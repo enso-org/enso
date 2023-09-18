@@ -1,5 +1,5 @@
 /** @file This module defines the Project Manager endpoint.
- * @see The protocol spec
+ * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
@@ -227,11 +227,13 @@ export class ProjectManager extends EventTarget {
     }
 
     /** Lazy initialization for the singleton instance. */
-    static default() {
+    static default(projectManagerUrl: string | null) {
         // `this.instance` is initially undefined as an instance should only be created
         // if a `ProjectManager` is actually needed.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        return (this.instance ??= new ProjectManager(GLOBAL_CONFIG.projectManagerEndpoint))
+        return (this.instance ??= new ProjectManager(
+            projectManagerUrl ?? GLOBAL_CONFIG.projectManagerEndpoint
+        ))
     }
 
     /** Open an existing project. */

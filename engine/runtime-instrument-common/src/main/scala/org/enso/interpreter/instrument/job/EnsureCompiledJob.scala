@@ -5,7 +5,8 @@ import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Diagnostic, Warning}
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   GatherDiagnostics
@@ -34,9 +35,16 @@ import scala.jdk.OptionConverters._
 /** A job that ensures that specified files are compiled.
   *
   * @param files a files to compile
+  * @param isCancellable a flag indicating if the job is cancellable
   */
-final class EnsureCompiledJob(protected val files: Iterable[File])
-    extends Job[EnsureCompiledJob.CompilationStatus](List.empty, true, false) {
+final class EnsureCompiledJob(
+  protected val files: Iterable[File],
+  isCancellable: Boolean = true
+) extends Job[EnsureCompiledJob.CompilationStatus](
+      List.empty,
+      isCancellable,
+      false
+    ) {
 
   import EnsureCompiledJob.CompilationStatus
 
@@ -170,9 +178,9 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       )
       .diagnostics
     val diagnostics = pass.collect {
-      case warn: IR.Warning =>
+      case warn: Warning =>
         createDiagnostic(Api.DiagnosticType.Warning, module, warn)
-      case error: IR.Error =>
+      case error: Error =>
         createDiagnostic(Api.DiagnosticType.Error, module, error)
     }
     sendDiagnosticUpdates(diagnostics)
@@ -189,7 +197,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def createDiagnostic(
     kind: Api.DiagnosticType,
     module: Module,
-    diagnostic: IR.Diagnostic
+    diagnostic: Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
     Api.ExecutionResult.Diagnostic(
       kind,
@@ -282,7 +290,6 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     *
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
-    * @param ctx the runtime context
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
@@ -291,7 +298,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-    val scopeIds = splitMeta(source.toString())._2.map(_._2)
+    val scopeIds = splitMeta(source.toString)._2.map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
     Seq(
@@ -518,7 +525,7 @@ object EnsureCompiledJob {
 
   /** The outcome of a compilation. */
   sealed trait CompilationStatus
-  case object CompilationStatus {
+  private case object CompilationStatus {
 
     /** Compilation completed. */
     case object Success extends CompilationStatus

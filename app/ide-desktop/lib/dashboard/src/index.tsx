@@ -47,14 +47,16 @@ authentication.run({
     onAuthenticated() {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
     },
+    /** The cloud frontend is not capable of running a Project Manager. */
+    projectManagerUrl: null,
     // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
     // every time a new project is opened.
     appRunner: {
         stopApp: () => {
             window.enso?.stopApp()
         },
-        runApp: async config => {
-            await window.enso?.runApp(config)
+        runApp: async (config, accessToken) => {
+            await window.enso?.runApp(config, accessToken)
         },
     },
 })

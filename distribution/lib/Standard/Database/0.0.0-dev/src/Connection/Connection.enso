@@ -133,7 +133,8 @@ type Connection
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
 
-    ## Returns a materialized Table of all the matching views and tables.
+    ## GROUP Standard.Base.Metadata
+       Returns a materialized Table of all the matching views and tables.
 
        ? Temporary Tables
 
@@ -372,6 +373,17 @@ type Connection
     drop_table : Text -> Boolean -> Nothing
     drop_table self table_name if_exists=False =
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name if_exists))
+
+    ## PRIVATE
+       Removes all rows from a table.
+
+       Arguments:
+       - table_name: the name of the table to truncate.
+    truncate_table : Text -> Nothing ! Table_Not_Found
+    truncate_table self table_name =
+        ensure_exists = self.query (SQL_Query.Table_Name table_name)
+        ensure_exists.if_not_error <|
+            self.execute_update (self.dialect.generate_sql (Query.Truncate_Table table_name))
 
     ## PRIVATE
        Returns the base `Connection` instance.

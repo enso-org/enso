@@ -1,16 +1,17 @@
 package org.enso.launcher.components
 
-import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
 import org.enso.launcher.Constants
 import org.enso.launcher.project.ProjectManager
 import org.enso.logger.masking.MaskedPath
-import org.enso.loggingservice.LogLevel
+
+import java.net.URI
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner._
+import org.slf4j.event.Level
 
 import java.nio.file.{Files, Path}
 import scala.concurrent.Future
@@ -25,7 +26,7 @@ class LauncherRunner(
   componentsManager: RuntimeVersionManager,
   editionManager: EditionManager,
   environment: Environment,
-  loggerConnection: Future[Option[Uri]]
+  loggerConnection: Future[Option[URI]]
 ) extends Runner(
       componentsManager,
       distributionManager,
@@ -42,7 +43,7 @@ class LauncherRunner(
   def repl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
@@ -78,7 +79,7 @@ class LauncherRunner(
   def run(
     path: Option[Path],
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
@@ -131,7 +132,7 @@ class LauncherRunner(
     }
 
   private def setLogLevelArgs(
-    level: LogLevel,
+    level: Level,
     logMasking: Boolean
   ): Seq[String] =
     Seq("--log-level", level.name) ++
@@ -145,7 +146,7 @@ class LauncherRunner(
     options: LanguageServerOptions,
     contentRootPath: Path,
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
@@ -204,7 +205,7 @@ class LauncherRunner(
     uploadUrl: String,
     token: Option[String],
     hideProgress: Boolean,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
@@ -250,7 +251,7 @@ class LauncherRunner(
   def installDependencies(
     versionOverride: Option[SemVer],
     hideProgress: Boolean,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =

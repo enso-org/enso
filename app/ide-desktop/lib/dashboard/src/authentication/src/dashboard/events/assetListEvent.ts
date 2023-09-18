@@ -14,11 +14,14 @@ declare module '../../hooks' {
 
 /** Possible changes to the file list. */
 export enum AssetListEventType {
-    createDirectory = 'create-directory',
-    createProject = 'create-project',
+    newFolder = 'new-folder',
+    newProject = 'new-project',
     uploadFiles = 'upload-files',
-    createSecret = 'create-secret',
+    newSecret = 'new-secret',
+    closeFolder = 'close-folder',
+    willDelete = 'will-delete',
     delete = 'delete',
+    removeSelf = 'remove-self',
 }
 
 /** Properties common to all asset list events. */
@@ -28,11 +31,14 @@ interface AssetListBaseEvent<Type extends AssetListEventType> {
 
 /** All possible events. */
 interface AssetListEvents {
-    createDirectory: AssetListCreateDirectoryEvent
-    createProject: AssetListCreateProjectEvent
+    newFolder: AssetListNewFolderEvent
+    newProject: AssetListNewProjectEvent
     uploadFiles: AssetListUploadFilesEvent
-    createSecret: AssetListCreateSecretEvent
+    newSecret: AssetListNewSecretEvent
+    closeFolder: AssetListCloseFolderEvent
+    willDelete: AssetListWillDeleteEvent
     delete: AssetListDeleteEvent
+    removeSelf: AssetListRemoveSelfEvent
 }
 
 /** A type to ensure that {@link AssetListEvents} contains every {@link AssetListEventType}. */
@@ -48,13 +54,14 @@ type SanityCheck<
 > = T
 
 /** A signal to create a new directory. */
-interface AssetListCreateDirectoryEvent
-    extends AssetListBaseEvent<AssetListEventType.createDirectory> {
+interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
+    parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
 }
 
 /** A signal to create a new project. */
-interface AssetListCreateProjectEvent extends AssetListBaseEvent<AssetListEventType.createProject> {
+interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
+    parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
     templateId: string | null
     onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
@@ -62,19 +69,38 @@ interface AssetListCreateProjectEvent extends AssetListBaseEvent<AssetListEventT
 
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
+    parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
-    files: FileList
+    files: File[]
 }
 
 /** A signal to create a new secret. */
-interface AssetListCreateSecretEvent extends AssetListBaseEvent<AssetListEventType.createSecret> {
+interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
+    parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
     name: string
     value: string
 }
 
-/** A signal to delete a file. */
+/** A signal to close (collapse) a folder. */
+interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
+    id: backend.DirectoryId
+    key: backend.DirectoryId
+}
+
+/** A signal that a file will be deleted. */
+interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType.willDelete> {
+    key: backend.AssetId
+}
+
+/** A signal that a file has been deleted. This must not be called before the request is
+ * finished. */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
+    key: backend.AssetId
+}
+
+/** A signal for a file to remove itself from the asset list, without being deleted. */
+interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType.removeSelf> {
     id: backend.AssetId
 }
 

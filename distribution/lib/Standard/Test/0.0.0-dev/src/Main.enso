@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Bench.Bench
+import project.Bench.Phase_Conf
 import project.Faker.Faker
 import project.Problems
 import project.Test.Test
@@ -8,8 +9,9 @@ import project.Test_Suite.Test_Suite
 from project.Extensions import all
 
 export project.Bench.Bench
+export project.Bench.Phase_Conf
 export project.Faker.Faker
 export project.Problems
 export project.Test.Test
 export project.Test_Suite.Test_Suite
-from project.Extensions import all
+from project.Extensions export all

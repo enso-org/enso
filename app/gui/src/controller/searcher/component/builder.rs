@@ -13,6 +13,8 @@ use crate::model::suggestion_database;
 use double_representation::name::project::STANDARD_NAMESPACE;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Tag;
 use enso_suggestion_database::SuggestionDatabase;
 
 
@@ -27,15 +29,15 @@ use enso_suggestion_database::SuggestionDatabase;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum InGroupComponentOrderingKey<'a> {
-    FromDatabase { module: QualifiedNameRef<'a>, index: suggestion_database::entry::Id },
+    FromDatabase { module: QualifiedNameRef<'a>, label: &'a str },
     Virtual { name: &'a str },
 }
 
 impl<'a> InGroupComponentOrderingKey<'a> {
     fn of(component: &'a Component) -> Self {
         match &component.suggestion {
-            component::Suggestion::FromDatabase { entry, id } =>
-                Self::FromDatabase { module: entry.defined_in.as_ref(), index: *id },
+            component::Suggestion::FromDatabase { entry, .. } =>
+                Self::FromDatabase { module: entry.defined_in.as_ref(), label: &component.label },
             component::Suggestion::Virtual { snippet } => Self::Virtual { name: &snippet.name },
         }
     }
@@ -198,6 +200,9 @@ impl<'a> Builder<'a> {
             .displayed_by_default
             .sort_by(|lhs, rhs| ComponentOrderingKey::of(lhs).cmp(&ComponentOrderingKey::of(rhs)));
         self.built_list
+            .components
+            .sort_by(|lhs, rhs| ComponentOrderingKey::of(lhs).cmp(&ComponentOrderingKey::of(rhs)));
+        self.built_list
     }
 }
 
@@ -238,6 +243,17 @@ impl WhenDisplayed {
         // Currently, the engine does the filtering.
         Self::Always
     }
+
+    fn consider_tags(self, entry: &suggestion_database::Entry) -> Self {
+        let is_private_tag =
+            |doc: &DocSection| matches!(doc, DocSection::Tag { tag: Tag::Private, .. });
+        let is_private = entry.documentation.iter().any(is_private_tag);
+        if is_private {
+            Self::Never
+        } else {
+            self
+        }
+    }
 }
 
 impl<'a> Builder<'a> {
@@ -272,7 +288,17 @@ impl<'a> Builder<'a> {
             None if self.this_type.is_some() => WhenDisplayed::with_self_type(),
             None => WhenDisplayed::in_base_mode(&entry, group_id.is_some()),
         };
-        let component = Component::new_from_database_entry(id, entry, group_id);
+        let when_displayed = when_displayed.consider_tags(&entry);
+        let label = match entry.kind {
+            suggestion_database::entry::Kind::Module if self.inside_module.is_none() =>
+                format!("{}", entry.defined_in).into(),
+            _ => match entry.self_type.as_ref() {
+                Some(self_type) if self.this_type.is_none() =>
+                    format!("{}.{}", self_type.alias_name(), entry.name).into(),
+                _ => entry.name.to_im_string(),
+            },
+        };
+        let component = Component::new_from_database_entry(id, entry, group_id, label);
         if matches!(when_displayed, WhenDisplayed::Always) {
             self.built_list.displayed_by_default.push(component.clone());
         }
@@ -338,6 +364,7 @@ mod tests {
     use crate::controller::searcher::component::tests::check_groups;
 
     use double_representation::name::project;
+    use enso_suggestion_database::doc_section;
     use enso_suggestion_database::mock_suggestion_database;
     use ide_view::component_browser::component_list_panel::icon;
 
@@ -347,6 +374,9 @@ mod tests {
                 mod TopModule1 {
                     #[in_group("First Group")]
                     fn fun2() -> Standard.Base.Any;
+
+                    #[with_doc_section(doc_section!(@ Private, ""))]
+                    fn private() -> Standard.Base.Any;
 
                     mod SubModule1 {
                         fn fun4() -> Standard.Base.Any;
@@ -415,14 +445,15 @@ mod tests {
         let list = builder.build();
 
         check_displayed_components(&list, vec![
-            "TopModule1.fun2",
             "TopModule1.fun1",
+            "TopModule1.fun2",
             "TopModule2.fun0",
             "SubModule2.fun5",
             "test.Test.TopModule1",
             "test.Test.TopModule2",
         ]);
-        assert_eq!(list.components.len(), database.keys().len());
+        // We subtract a single private component.
+        assert_eq!(list.components.len(), database.keys().len() - 1);
 
         assert_eq!(list.groups.len(), 2);
         check_groups(&list, vec![Some(0), Some(0), Some(0), Some(1), None, None]);
@@ -445,8 +476,8 @@ mod tests {
         let list = builder.build();
 
         check_displayed_components(&list, vec![
-            "TopModule1.fun2",
             "TopModule1.fun1",
+            "TopModule1.fun2",
             "SubModule1",
             "SubModule2",
         ]);
@@ -460,6 +491,35 @@ mod tests {
             "SubModule2.fun5",
             "SubModule3",
             "SubModule3.fun6",
+        ]);
+    }
+
+    #[test]
+    fn building_main_module_content_list() {
+        let database = mock_database();
+        let groups = mock_groups();
+        let (module_id, _) = database
+            .lookup_by_qualified_name(&QualifiedName::from_text("test.Test").unwrap())
+            .unwrap();
+        let mut builder = Builder::new_inside_module(&database, &groups, module_id);
+
+        builder.add_components_from_db(database.keys());
+        let list = builder.build();
+
+        check_displayed_components(&list, vec!["TopModule1", "TopModule2"]);
+        check_groups(&list, vec![None, None]);
+        check_filterable_components(&list, vec![
+            "TopModule1",
+            "TopModule1.fun1",
+            "TopModule1.fun2",
+            "SubModule1",
+            "SubModule1.fun4",
+            "SubModule2",
+            "SubModule2.fun5",
+            "SubModule3",
+            "SubModule3.fun6",
+            "TopModule2",
+            "TopModule2.fun0",
         ]);
     }
 
@@ -508,8 +568,8 @@ mod tests {
         case(
             "First Group",
             vec![
-                "TopModule1.fun2",
                 "TopModule1.fun1",
+                "TopModule1.fun2",
                 "TopModule2.fun0",
                 "test1",
                 "test2",
@@ -527,8 +587,8 @@ mod tests {
         case(
             "Another Group",
             vec![
-                "TopModule1.fun2",
                 "TopModule1.fun1",
+                "TopModule1.fun2",
                 "TopModule2.fun0",
                 "SubModule2.fun5",
                 "test1",

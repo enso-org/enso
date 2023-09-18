@@ -44,7 +44,7 @@ function run(props: app.AppProps) {
         ideElement.style.display = 'fixed'
         // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
         // via the browser.
-        const actuallySupportsDeepLinks = supportsDeepLinks && detect.isRunningInElectron()
+        const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
         reactDOM.createRoot(root).render(
             IS_DEV_MODE ? (
                 <React.StrictMode>

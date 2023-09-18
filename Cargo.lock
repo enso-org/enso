@@ -1718,6 +1718,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2ea6706d74fca54e15f1d40b5cf7fe7f764aaec61352a9fcec58fe27e042fc8"
 
 [[package]]
+name = "diff"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
+
+[[package]]
 name = "difference"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1883,6 +1889,8 @@ dependencies = [
  "dirs",
  "enso-build-base",
  "enso-build-macros-lib",
+ "enso-enso-font",
+ "enso-font",
  "ensogl-pack",
  "filetime",
  "flate2",
@@ -2107,6 +2115,17 @@ dependencies = [
  "enso-profiler",
  "enso-reflect",
  "lexpr",
+ "pretty_assertions",
+ "serde",
+]
+
+[[package]]
+name = "enso-enso-font"
+version = "0.1.0"
+dependencies = [
+ "enso-font",
+ "ide-ci",
+ "owned_ttf_parser",
 ]
 
 [[package]]
@@ -2117,6 +2136,14 @@ dependencies = [
  "enso-profiler",
  "ensogl-core",
  "futures",
+]
+
+[[package]]
+name = "enso-font"
+version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "owned_ttf_parser",
 ]
 
 [[package]]
@@ -2197,6 +2224,7 @@ dependencies = [
  "enso-text",
  "enso-web",
  "ensogl",
+ "ensogl-breadcrumbs",
  "ensogl-component",
  "ensogl-drop-manager",
  "ensogl-dynamic-assets",
@@ -2396,7 +2424,6 @@ dependencies = [
  "enso-logging",
  "enso-reflect",
  "enso-shapely",
- "enso-web",
  "enso-zst",
  "failure",
  "futures",
@@ -2561,6 +2588,8 @@ dependencies = [
  "flo_stream",
  "futures",
  "parser",
+ "serde",
+ "serde_json",
  "span-tree",
  "wasm-bindgen-test",
 ]
@@ -2624,6 +2653,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-breadcrumbs"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-derive-theme",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-icons",
+ "ensogl-text",
+]
+
+[[package]]
 name = "ensogl-button"
 version = "0.1.0"
 dependencies = [
@@ -2635,6 +2677,7 @@ dependencies = [
 name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
+ "ensogl-breadcrumbs",
  "ensogl-button",
  "ensogl-drop-down",
  "ensogl-drop-down-menu",
@@ -3276,6 +3319,7 @@ dependencies = [
  "bincode 2.0.0-rc.2",
  "const_format",
  "enso-bitmap",
+ "enso-font",
  "enso-frp",
  "enso-prelude",
  "enso-shapely",
@@ -3283,7 +3327,6 @@ dependencies = [
  "enso-types",
  "ensogl-core",
  "ensogl-text-embedded-fonts",
- "ensogl-text-font-family",
  "ensogl-text-msdf",
  "ordered-float",
  "owned_ttf_parser",
@@ -3301,21 +3344,13 @@ name = "ensogl-text-embedded-fonts"
 version = "0.1.0"
 dependencies = [
  "enso-build",
- "enso-build-utilities",
+ "enso-enso-font",
+ "enso-font",
  "enso-prelude",
- "ensogl-text-font-family",
  "ide-ci",
  "owned_ttf_parser",
+ "rustybuzz",
  "tokio",
- "zip",
-]
-
-[[package]]
-name = "ensogl-text-font-family"
-version = "0.1.0"
-dependencies = [
- "derive_more",
- "owned_ttf_parser",
 ]
 
 [[package]]
@@ -3324,12 +3359,12 @@ version = "0.1.0"
 dependencies = [
  "enso-bitmap",
  "enso-build-utilities",
+ "enso-font",
  "enso-prelude",
  "enso-profiler",
  "enso-types",
  "enso-web",
  "ensogl-text-embedded-fonts",
- "ensogl-text-font-family",
  "failure",
  "futures",
  "ide-ci",
@@ -4322,11 +4357,11 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "ensogl",
+ "ensogl-breadcrumbs",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ide-view-component-list-panel",
- "ide-view-component-list-panel-breadcrumbs",
  "ide-view-documentation",
  "ide-view-graph-editor",
 ]
@@ -4349,19 +4384,6 @@ dependencies = [
  "ensogl-tooltip",
  "ide-view-component-list-panel-grid",
  "ordered-float",
-]
-
-[[package]]
-name = "ide-view-component-list-panel-breadcrumbs"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-derive-theme",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-text",
 ]
 
 [[package]]
@@ -4392,11 +4414,11 @@ dependencies = [
  "enso-profiler",
  "enso-suggestion-database",
  "ensogl",
+ "ensogl-breadcrumbs",
  "ensogl-component",
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",
- "ide-view-component-list-panel-breadcrumbs",
  "ide-view-graph-editor",
  "serde_json",
  "tokio",
@@ -4710,9 +4732,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.139"
+version = "0.2.147"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
+checksum = "b4668fb0ea861c1df094127ac5f1da3409a82116a4ba74fca2e58ef927159bb3"
 
 [[package]]
 name = "libm"
@@ -5598,6 +5620,16 @@ checksum = "54ff541861505aabf6ea722d2131ee980b8276e10a1297b94e896dd8b621850d"
 dependencies = [
  "predicates-core",
  "termtree",
+]
+
+[[package]]
+name = "pretty_assertions"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af7cee1a6c8a5b9208b3cb1061f10c0cb689087b3d8ce85fb9d2dd7a29b6ba66"
+dependencies = [
+ "diff",
+ "yansi",
 ]
 
 [[package]]
@@ -6497,6 +6529,7 @@ dependencies = [
  "enso-text",
  "failure",
  "parser",
+ "pretty_assertions",
  "wasm-bindgen-test",
 ]
 
@@ -7773,6 +7806,12 @@ name = "xmlparser"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "114ba2b24d2167ef6d67d7d04c8cc86522b87f490025f39f0303b7db5bf5e3d8"
+
+[[package]]
+name = "yansi"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
 name = "zeroize"

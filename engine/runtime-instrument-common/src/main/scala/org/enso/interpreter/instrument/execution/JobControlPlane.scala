@@ -30,6 +30,13 @@ trait JobControlPlane {
     */
   def startBackgroundJobs(): Boolean
 
+  /** Stops background jobs processing.
+    *
+    * @return `true` if the call stopped background job, `false` if they are
+    * already stopped.
+    */
+  def stopBackgroundJobs(): Boolean
+
   /** Finds the first in-progress job satisfying the `filter` condition
     */
   def jobInProgress[T](filter: PartialFunction[Job[_], Option[T]]): Option[T]

@@ -1,52 +1,76 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import DirectoryIcon from 'enso-assets/directory.svg'
+import FolderIcon from 'enso-assets/folder.svg'
+import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
+import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
-
-import * as backendProvider from '../../providers/backend'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import EditableSpan from './editableSpan'
+import SvgMask from '../../authentication/components/svgMask'
 
 // =====================
 // === DirectoryName ===
 // =====================
 
 /** Props for a {@link DirectoryNameColumn}. */
-export interface DirectoryNameColumnProps
-    extends column.AssetColumnProps<backendModule.DirectoryAsset> {}
+export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
 
-/** The icon and name of a {@link backendModule.DirectoryAsset}. */
+/** The icon and name of a {@link backendModule.DirectoryAsset}.
+ * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
+ * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const {
-        keyProp: key,
         item,
         setItem,
         selected,
         setSelected,
-        state: { assetEvents, dispatchAssetListEvent, doToggleDirectoryExpansion, getDepth },
+        state: { assetEvents, dispatchAssetListEvent, doToggleDirectoryExpansion },
         rowState,
         setRowState,
     } = props
-    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const [isHovered, setIsHovered] = React.useState(false)
+    const [shouldAnimate, setShouldAnimate] = React.useState(false)
+    const asset = item.item
+    if (asset.type !== backendModule.AssetType.directory) {
+        // eslint-disable-next-line no-restricted-syntax
+        throw new Error('`DirectoryNameColumn` can only display directory assets.')
+    }
+    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
+
+    React.useEffect(() => {
+        if (isHovered) {
+            // Delay adding animation CSS attributes, to prevent animations for
+            // the initial hover.
+            requestAnimationFrame(() => {
+                setShouldAnimate(true)
+            })
+        } else {
+            setShouldAnimate(false)
+        }
+    }, [isHovered])
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
             try {
-                await backend.updateDirectory(item.id, { title: newName }, item.title)
+                await backend.updateDirectory(asset.id, { title: newName }, asset.title)
                 return
             } catch (error) {
-                toastAndLog('Error renaming folder', error)
+                toastAndLog('Could not rename folder', error)
                 throw error
             }
         }
@@ -54,38 +78,41 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createProject:
+            case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.downloadSelected:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to directories.
+                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createDirectory: {
-                if (key === event.placeholderId) {
+            case assetEventModule.AssetEventType.newFolder: {
+                if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        toastAndLog('Folders cannot be created on the local backend')
+                        toastAndLog('Cannot create folders on the local drive')
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
                             const createdDirectory = await backend.createDirectory({
-                                parentId: item.parentId,
-                                title: item.title,
+                                parentId: asset.parentId,
+                                title: asset.title,
                             })
                             rowState.setPresence(presence.Presence.present)
-                            const newItem: backendModule.DirectoryAsset = {
-                                ...item,
+                            setAsset({
+                                ...asset,
                                 ...createdDirectory,
-                            }
-                            setItem(newItem)
+                            })
                         } catch (error) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.delete,
-                                id: key,
+                                key: item.key,
                             })
-                            toastAndLog('Error creating new folder', error)
+                            toastAndLog('Could not create new folder', error)
                         }
                     }
                 }
@@ -96,17 +123,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
-                getDepth(key)
+            className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+                item.depth
             )}`}
+            onMouseEnter={() => {
+                setIsHovered(true)
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+            }}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,
@@ -119,12 +149,25 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         window.setTimeout(() => {
                             setSelected(false)
                         }, 0)
-                        doToggleDirectoryExpansion(item, key)
+                        doToggleDirectoryExpansion(asset.id, item.key, asset.title)
                     }
                 }
             }}
         >
-            <img src={DirectoryIcon} />
+            {isHovered ? (
+                <SvgMask
+                    src={TriangleDownIcon}
+                    className={`cursor-pointer h-4 w-4 m-1 ${
+                        shouldAnimate ? 'transition-transform duration-300' : ''
+                    } ${item.children != null ? '' : '-rotate-90'}`}
+                    onClick={event => {
+                        event.stopPropagation()
+                        doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                    }}
+                />
+            ) : (
+                <SvgMask src={FolderIcon} className="h-4 w-4 m-1" />
+            )}
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {
@@ -132,13 +175,13 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         ...oldRowState,
                         isEditingName: false,
                     }))
-                    if (newTitle !== item.title) {
-                        const oldTitle = item.title
-                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
+                    if (newTitle !== asset.title) {
+                        const oldTitle = asset.title
+                        setAsset(oldItem => ({ ...oldItem, title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
+                            setAsset(oldItem => ({ ...oldItem, title: oldTitle }))
                         }
                     }
                 }}
@@ -148,9 +191,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className="cursor-pointer bg-transparent grow px-2"
+                className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+                }`}
             >
-                {item.title}
+                {asset.title}
             </EditableSpan>
         </div>
     )

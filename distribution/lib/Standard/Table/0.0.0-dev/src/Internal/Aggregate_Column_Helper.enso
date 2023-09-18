@@ -34,6 +34,7 @@ polyglot java import org.enso.table.aggregations.Sum as SumAggregator
    - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column
    - problems: Set of any problems when validating the input
 type Validated_Aggregate_Columns
+    ## PRIVATE
     Value (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
 
 ## PRIVATE

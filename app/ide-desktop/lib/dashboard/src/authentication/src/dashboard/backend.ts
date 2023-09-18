@@ -1,7 +1,105 @@
 /** @file Type definitions common between all backends. */
+import * as React from 'react'
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
+import * as permissions from './permissions'
+import * as uniqueString from '../uniqueString'
+
+// ================
+// === Newtypes ===
+// ================
+
+// These are constructor functions that construct values of the type they are named after.
+/* eslint-disable @typescript-eslint/no-redeclare */
+
+/** Unique identifier for a user/organization. */
+export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
+export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
+
+/** Unique identifier for a directory. */
+export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
+export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
+
+/** Unique identifier for an asset representing the items inside a directory for which the
+ * request to retrive the items has not yet completed. */
+export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
+export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
+
+/** Unique identifier for an asset representing the nonexistent children of an empty directory. */
+export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
+export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
+
+/** Unique identifier for a user's project. */
+export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+export const ProjectId = newtype.newtypeConstructor<ProjectId>()
+
+/** Unique identifier for an uploaded file. */
+export type FileId = newtype.Newtype<string, 'FileId'>
+export const FileId = newtype.newtypeConstructor<FileId>()
+
+/** Unique identifier for a secret environment variable. */
+export type SecretId = newtype.Newtype<string, 'SecretId'>
+export const SecretId = newtype.newtypeConstructor<SecretId>()
+
+/** Unique identifier for an arbitrary asset. */
+export type AssetId = IdType[keyof IdType]
+
+/** Unique identifier for a file tag or project tag. */
+export type TagId = newtype.Newtype<string, 'TagId'>
+export const TagId = newtype.newtypeConstructor<TagId>()
+
+/** A URL. */
+export type Address = newtype.Newtype<string, 'Address'>
+export const Address = newtype.newtypeConstructor<Address>()
+
+/** An email address. */
+export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
+export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
+
+/** An AWS S3 file path. */
+export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
+export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
+
+/** An AWS machine configuration. */
+export type Ami = newtype.Newtype<string, 'Ami'>
+export const Ami = newtype.newtypeConstructor<Ami>()
+
+/** An AWS user ID. */
+export type Subject = newtype.Newtype<string, 'Subject'>
+export const Subject = newtype.newtypeConstructor<Subject>()
+
+/* eslint-enable @typescript-eslint/no-redeclare */
+
+// ========================
+// === PermissionAction ===
+// ========================
+
+/** Backend representation of user permission types. */
+export enum PermissionAction {
+    own = 'Own',
+    admin = 'Admin',
+    edit = 'Edit',
+    read = 'Read',
+    readAndDocs = 'Read_docs',
+    readAndExec = 'Read_exec',
+    view = 'View',
+    viewAndDocs = 'View_docs',
+    viewAndExec = 'View_exec',
+}
+
+/** Whether each {@link PermissionAction} can execute a project. */
+export const PERMISSION_ACTION_CAN_EXECUTE: Record<PermissionAction, boolean> = {
+    [PermissionAction.own]: true,
+    [PermissionAction.admin]: true,
+    [PermissionAction.edit]: true,
+    [PermissionAction.read]: false,
+    [PermissionAction.readAndDocs]: false,
+    [PermissionAction.readAndExec]: true,
+    [PermissionAction.view]: false,
+    [PermissionAction.viewAndDocs]: false,
+    [PermissionAction.viewAndExec]: true,
+}
 
 // =============
 // === Types ===
@@ -12,80 +110,6 @@ export enum BackendType {
     local = 'local',
     remote = 'remote',
 }
-
-// These are constructor functions that construct values of the type they are named after.
-/* eslint-disable @typescript-eslint/no-redeclare */
-
-/** Unique identifier for a user/organization. */
-export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
-/** Create a {@link UserOrOrganizationId}. */
-export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
-
-/** Unique identifier for a directory. */
-export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
-/** Create a {@link DirectoryId}. */
-export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
-
-/** Unique identifier for an asset representing the items inside a directory for which the
- * request to retrive the items has not yet completed. */
-export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
-/** Create a {@link LoadingAssetId}. */
-export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
-
-/** Unique identifier for an asset representing the nonexistent children of an empty directory. */
-export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
-/** Create a {@link EmptyAssetId}. */
-export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
-
-/** Unique identifier for a user's project. */
-export type ProjectId = newtype.Newtype<string, 'ProjectId'>
-/** Create a {@link ProjectId}. */
-export const ProjectId = newtype.newtypeConstructor<ProjectId>()
-
-/** Unique identifier for an uploaded file. */
-export type FileId = newtype.Newtype<string, 'FileId'>
-/** Create a {@link FileId}. */
-export const FileId = newtype.newtypeConstructor<FileId>()
-
-/** Unique identifier for a secret environment variable. */
-export type SecretId = newtype.Newtype<string, 'SecretId'>
-/** Create a {@link SecretId}. */
-export const SecretId = newtype.newtypeConstructor<SecretId>()
-
-/** Unique identifier for an arbitrary asset */
-export type AssetId = IdType[keyof IdType]
-
-/** Unique identifier for a file tag or project tag. */
-export type TagId = newtype.Newtype<string, 'TagId'>
-/** Create a {@link TagId}. */
-export const TagId = newtype.newtypeConstructor<TagId>()
-
-/** A URL. */
-export type Address = newtype.Newtype<string, 'Address'>
-/** Create an {@link Address}. */
-export const Address = newtype.newtypeConstructor<Address>()
-
-/** An email address. */
-export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
-/** Create an {@link EmailAddress}. */
-export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
-
-/** An AWS S3 file path. */
-export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
-/** Create an {@link S3FilePath}. */
-export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
-
-/** An AWS machine configuration. */
-export type Ami = newtype.Newtype<string, 'Ami'>
-/** Create an {@link Ami}. */
-export const Ami = newtype.newtypeConstructor<Ami>()
-
-/** An AWS user ID. */
-export type Subject = newtype.Newtype<string, 'Subject'>
-/** Create a {@link Subject}. */
-export const Subject = newtype.newtypeConstructor<Subject>()
-
-/* eslint-enable @typescript-eslint/no-redeclare */
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
@@ -109,6 +133,7 @@ export enum ProjectState {
     created = 'Created',
     new = 'New',
     openInProgress = 'OpenInProgress',
+    provisioned = 'Provisioned',
     opened = 'Opened',
     closed = 'Closed',
     /** A frontend-specific state, representing a project that should be displayed as
@@ -122,9 +147,31 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
     type: ProjectState
+    /* eslint-disable @typescript-eslint/naming-convention */
+    volume_id: string
+    instance_id?: string
+    execute_async?: boolean
+    address?: string
+    security_group_id?: string
+    ec2_id?: string
+    ec2_public_ip_address?: string
+    current_session_id?: string
+    opened_by?: EmailAddress
+    /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-/** Common `Project` fields returned by all `Project`-related endpoints.  */
+export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean> = {
+    [ProjectState.created]: false,
+    [ProjectState.new]: false,
+    [ProjectState.openInProgress]: true,
+    [ProjectState.provisioned]: true,
+    [ProjectState.opened]: true,
+    [ProjectState.closed]: false,
+    [ProjectState.placeholder]: true,
+    [ProjectState.closing]: false,
+}
+
+/** Common `Project` fields returned by all `Project`-related endpoints. */
 export interface BaseProject {
     organizationId: string
     projectId: ProjectId
@@ -139,7 +186,7 @@ export interface CreatedProject extends BaseProject {
 
 /** A `Project` returned by the `listProjects` endpoint. */
 export interface ListedProjectRaw extends CreatedProject {
-    address: Address | null
+    address?: Address
 }
 
 /** A `Project` returned by `listProjects`. */
@@ -157,14 +204,28 @@ export interface UpdatedProject extends BaseProject {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-    ideVersion: VersionNumber | null
-    engineVersion: VersionNumber | null
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    ide_version: VersionNumber | null
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    engine_version: VersionNumber | null
 }
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-    ideVersion: VersionNumber | null
+    /** This must not be null as it is required to determine the base URL for backend assets. */
+    ideVersion: VersionNumber
     engineVersion: VersionNumber | null
+    openedBy?: EmailAddress
+}
+
+/** Information required to open a project. */
+export interface ProjectStartupInfo {
+    project: Project
+    projectAsset: ProjectAsset
+    // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
+    setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
+    backendType: BackendType
+    accessToken: string | null
 }
 
 /** Metadata describing an uploaded file. */
@@ -182,6 +243,7 @@ export interface FileInfo {
      * but it's just string on the backend. */
     path: string
     id: FileId
+    project: CreatedProject | null
 }
 
 /** A secret environment variable. */
@@ -291,25 +353,10 @@ export interface SimpleUser {
     email: EmailAddress
 }
 
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    execute = 'Execute',
-    edit = 'Edit',
-    view = 'View',
-}
-
 /** User permission for a specific user. */
 export interface UserPermission {
     user: User
     permission: PermissionAction
-}
-
-/** User permissions for a specific user. This is only returned by
- * {@link groupPermissionsByUser}. */
-export interface UserPermissions {
-    user: User
-    permissions: PermissionAction[]
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -349,16 +396,25 @@ export interface IdType {
     [AssetType.specialEmpty]: EmptyAssetId
 }
 
+/** The english name of each asset type. */
+export const ASSET_TYPE_NAME: Record<AssetType, string> = {
+    [AssetType.directory]: 'folder',
+    [AssetType.project]: 'project',
+    [AssetType.file]: 'file',
+    [AssetType.secret]: 'secret',
+    [AssetType.specialLoading]: 'special loading asset',
+    [AssetType.specialEmpty]: 'special empty asset',
+} as const
+
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
  * in a directory listing. */
 export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
+    // This is a sequence of numbers, not magic numbers. `999` and `1000` are arbitrary numbers
+    // that are higher than the number of possible asset types.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
     [AssetType.directory]: 0,
     [AssetType.project]: 1,
     [AssetType.file]: 2,
-    // These are not magic constants; `3` is simply the next number after `2`.
-    // `999` and `1000` are arbitrary numbers chosen to be higher than the number of possible
-    // asset types.
-    /* eslint-disable @typescript-eslint/no-magic-numbers */
     [AssetType.secret]: 3,
     [AssetType.specialLoading]: 999,
     [AssetType.specialEmpty]: 1000,
@@ -374,7 +430,7 @@ export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
 export interface BaseAsset {
     id: AssetId
     title: string
-    modifiedAt: dateTime.Rfc3339DateTime | null
+    modifiedAt: dateTime.Rfc3339DateTime
     /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
@@ -404,8 +460,36 @@ export interface SecretAsset extends Asset<AssetType.secret> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
 export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
 
+/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
+    return {
+        type: AssetType.specialLoading,
+        title: '',
+        id: LoadingAssetId(uniqueString.uniqueString()),
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        permissions: [],
+        projectState: null,
+    }
+}
+
 /** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
 export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+
+/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
+    return {
+        type: AssetType.specialEmpty,
+        title: '',
+        id: EmptyAssetId(uniqueString.uniqueString()),
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        permissions: [],
+        projectState: null,
+    }
+}
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset =
@@ -433,6 +517,39 @@ export const assetIsSecret = assetIsType(AssetType.secret)
 export const assetIsFile = assetIsType(AssetType.file)
 /* eslint-disable no-restricted-syntax */
 
+// ==============================
+// === compareUserPermissions ===
+// ==============================
+
+/** A value returned from a compare function passed to {@link Array.sort}, indicating that the
+ * first argument was less than the second argument. */
+const COMPARE_LESS_THAN = -1
+
+/** Return a positive number when `a > b`, a negative number when `a < b`, and `0`
+ * when `a === b`. */
+export function compareUserPermissions(a: UserPermission, b: UserPermission) {
+    const relativePermissionPrecedence =
+        permissions.PERMISSION_ACTION_PRECEDENCE[a.permission] -
+        permissions.PERMISSION_ACTION_PRECEDENCE[b.permission]
+    if (relativePermissionPrecedence !== 0) {
+        return relativePermissionPrecedence
+    } else {
+        const aName = a.user.user_name
+        const bName = b.user.user_name
+        const aEmail = a.user.user_email
+        const bEmail = b.user.user_email
+        return aName < bName
+            ? COMPARE_LESS_THAN
+            : aName > bName
+            ? 1
+            : aEmail < bEmail
+            ? COMPARE_LESS_THAN
+            : aEmail > bEmail
+            ? 1
+            : 0
+    }
+}
+
 // =================
 // === Endpoints ===
 // =================
@@ -454,7 +571,7 @@ export interface InviteUserRequestBody {
 export interface CreatePermissionRequestBody {
     userSubjects: Subject[]
     resourceId: AssetId
-    actions: PermissionAction[]
+    action: PermissionAction | null
 }
 
 /** HTTP request body for the "create directory" endpoint. */
@@ -486,6 +603,7 @@ export interface ProjectUpdateRequestBody {
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
     forceCreate: boolean
+    executeAsync: boolean
 }
 
 /** HTTP request body for the "create secret" endpoint. */
@@ -543,13 +661,17 @@ export function detectVersionLifecycle(version: string) {
     }
 }
 
-// =======================
-// === rootDirectoryId ===
-// =======================
+// =====================
+// === compareAssets ===
+// =====================
 
-/** Return the id of the root directory for a user or organization. */
-export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
-    return DirectoryId(userOrOrganizationId.replace(/^organization-/, `${AssetType.directory}-`))
+/** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
+export function compareAssets(a: AnyAsset, b: AnyAsset) {
+    const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+    if (relativeTypeOrder !== 0) {
+        return relativeTypeOrder
+    }
+    return a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
 }
 
 // ==================
@@ -562,28 +684,38 @@ export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
     return asset.id
 }
 
-// ==============================
-// === groupPermissionsByUser ===
-// ==============================
+// =====================
+// === fileIsProject ===
+// =====================
 
-/** Converts an array of {@link UserPermission}s to an array of {@link UserPermissions}. */
-export function groupPermissionsByUser(permissions: UserPermission[]) {
-    const users: UserPermissions[] = []
-    const userMap: Record<Subject, UserPermissions> = {}
-    for (const permission of permissions) {
-        const existingUser = userMap[permission.user.pk]
-        if (existingUser != null) {
-            existingUser.permissions.push(permission.permission)
-        } else {
-            const newUser: UserPermissions = {
-                user: permission.user,
-                permissions: [permission.permission],
-            }
-            users.push(newUser)
-            userMap[permission.user.pk] = newUser
-        }
-    }
-    return users
+/** A subset of properties of the JS `File` type. */
+interface JSFile {
+    name: string
+}
+
+/** Whether a `File` is a project. */
+export function fileIsProject(file: JSFile) {
+    return (
+        file.name.endsWith('.tar.gz') ||
+        file.name.endsWith('.zip') ||
+        file.name.endsWith('.enso-project')
+    )
+}
+
+/** Whether a `File` is not a project. */
+export function fileIsNotProject(file: JSFile) {
+    return !fileIsProject(file)
+}
+
+// =============================
+// === stripProjectExtension ===
+// =============================
+
+/** Remove the extension of the project file name (if any). */
+
+/** Whether a `File` is a project. */
+export function stripProjectExtension(name: string) {
+    return name.replace(/\.tar\.gz$|\.zip$|\.enso-project/, '')
 }
 
 // ===============
@@ -621,6 +753,8 @@ export abstract class Backend {
             }
         }
     }
+    /** Return the root directory id for the given user. */
+    abstract rootDirectoryId(user: UserOrOrganization | null): DirectoryId
     /** Return a list of all users in the same organization. */
     abstract listUsers(): Promise<SimpleUser[]>
     /** Set the username of the current user. */
@@ -690,5 +824,5 @@ export abstract class Backend {
     /** Delete a file tag or project tag. */
     abstract deleteTag(tagId: TagId): Promise<void>
     /** Return a list of backend or IDE versions. */
-    abstract listVersions(params: ListVersionsRequestParams): Promise<[Version, ...Version[]]>
+    abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

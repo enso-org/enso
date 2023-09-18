@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder;
 
 import java.util.Arrays;
 import java.util.BitSet;
+import org.enso.table.data.column.storage.type.IntegerType;
 
 /** A common base for numeric builders. */
 public abstract class NumericBuilder extends TypedBuilder {
@@ -16,39 +17,11 @@ public abstract class NumericBuilder extends TypedBuilder {
   }
 
   public static DoubleBuilder createDoubleBuilder(int size) {
-    return new DoubleBuilder(new BitSet(size), new long[size], 0);
+    return new DoubleBuilder(new BitSet(), new long[size], 0);
   }
 
-  public static LongBuilder createLongBuilder(int size) {
-    return new LongBuilder(new BitSet(size), new long[size], 0);
-  }
-
-  /**
-   * Converts the provided LongBuilder to a DoubleBuilder.
-   *
-   * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
-   * used.
-   */
-  protected static DoubleBuilder retypeLongBuilderToDouble(LongBuilder builder) {
-    long[] data = builder.data;
-    BitSet isMissing = builder.isMissing;
-    int currentSize = builder.currentSize;
-
-    // Invalidate the old builder.
-    builder.data = null;
-    builder.isMissing = null;
-    builder.currentSize = -1;
-
-    // Translate the data in-place to avoid unnecessary allocations.
-    for (int i = 0; i < currentSize; i++) {
-      if (!isMissing.get(i)) {
-        long currentIntegerValue = data[i];
-        double convertedFloatValue = (double) currentIntegerValue;
-        data[i] = Double.doubleToRawLongBits(convertedFloatValue);
-      }
-    }
-
-    return new DoubleBuilder(isMissing, data, currentSize);
+  public static LongBuilder createLongBuilder(int size, IntegerType type) {
+    return LongBuilder.make(size, type);
   }
 
   @Override

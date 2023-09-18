@@ -21,16 +21,16 @@ spec = Test.group "Random" <|
         (random_range.at 0 >= 0) . should_equal True
         (random_range.at 1 <= 100) . should_equal True
 
-    Test.specify "should allow generating random decimals" <|
+    Test.specify "should allow generating random floats" <|
         rng = Random.new 12345
-        rng.decimal . should_equal 0.3618031071604718 epsilon=0.00000001
-        rng.decimal . should_equal 0.932993485288541 epsilon=0.00000001
+        rng.float . should_equal 0.3618031071604718 epsilon=0.00000001
+        rng.float . should_equal 0.932993485288541 epsilon=0.00000001
 
-        random_range = 0.up_to 1000 . map _->rng.decimal . compute_bulk [Statistic.Minimum, Statistic.Maximum]
+        random_range = 0.up_to 1000 . map _->rng.float . compute_bulk [Statistic.Minimum, Statistic.Maximum]
         (random_range.at 0 >= 0) . should_equal True
         (random_range.at 1 <= 1) . should_equal True
 
-    Test.specify "should allow generating random gaussian decimals" <|
+    Test.specify "should allow generating random gaussian floats" <|
         rng = Random.new 12345
         rng.gaussian . should_equal -0.187808989658912 epsilon=0.00000001
         rng.gaussian . should_equal 0.5884363051154796 epsilon=0.00000001

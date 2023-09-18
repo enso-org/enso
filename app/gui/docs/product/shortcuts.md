@@ -53,6 +53,8 @@ broken and require further investigation.
 | <kbd>cmd</kbd>+<kbd>alt</kbd>+<kbd>r</kbd>                                      | Re-execute the program                                                                                                                                                                                                                               |
 | <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>k</kbd>                                    | Switch the execution environment to Design.                                                                                                                                                                                                          |
 | <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>l</kbd>                                    | Switch the execution environment to Live.                                                                                                                                                                                                            |
+| <kbd>cmd</kbd>+<kbd>c</kbd>                                                     | Copy the selected nodes to the clipboard.                                                                                                                                                                                                            |
+| <kbd>cmd</kbd>+<kbd>v</kbd>                                                     | Paste a node from the clipboard at the mouse cursor position.                                                                                                                                                                                        |
 
 #### Navigation
 
@@ -97,7 +99,7 @@ broken and require further investigation.
 
 | Shortcut                                         | Action                                                      |
 | ------------------------------------------------ | ----------------------------------------------------------- |
-| <kbd>tab</kbd>                                   | Open Component Browser to create a new node .               |
+| <kbd>enter</kbd>                                 | Open Component Browser to create a new node .               |
 | <kbd>backspace</kbd> or <kbd>delete</kbd>        | Remove selected nodes.                                      |
 | <kbd>cmd</kbd>+<kbd>g</kbd>                      | Collapse (group) selected nodes.                            |
 | <kbd>cmd</kbd>+<kbd>LMB</kbd>                    | Start editing node expression.                              |
@@ -139,3 +141,5 @@ broken and require further investigation.
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>arrow up</kbd>           | Pop a breadcrumb without navigating.                                                                                           |
 | <kbd>cmd</kbd> + <kbd>i</kbd>                                      | Reload visualizations. To see the effect in the currently shown visualizations, you need to switch to another and switch back. |
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>b</kbd>                  | Toggle read-only mode.                                                                                                         |
+| <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>x</kbd> | Toggle WebGL Context loss / restoration for testing.                                                                           |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>u</kbd>                  | Dump the suggestion database as JSON to the console. Available only in debug mode, and only if the component browser is open.  |

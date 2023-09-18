@@ -2,7 +2,11 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Function, Module, Name}
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.IRPass
@@ -35,18 +39,23 @@ case object TypeNames extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
-      val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
+      val typeParams = d match {
+        case t: Definition.Type => t.params.map(_.name)
+        case _                  => Nil
+      }
+      val mapped =
+        d.mapExpressions(resolveExpression(typeParams, bindingsMap, _))
       doResolveType(
-        Nil,
+        typeParams,
         bindingsMap,
         mapped match {
-          case typ: IR.Module.Scope.Definition.Type =>
+          case typ: Definition.Type =>
             typ.members.foreach(m =>
               m.arguments.foreach(a =>
                 doResolveType(typ.params.map(_.name), bindingsMap, a)
@@ -60,24 +69,25 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveExpression(
+    typeParams: List[Name],
     bindingsMap: BindingsMap,
-    ir: IR.Expression
-  ): IR.Expression = {
-    def go(ir: IR.Expression): IR.Expression = {
+    ir: Expression
+  ): Expression = {
+    def go(ir: Expression): Expression = {
       val processedIr = ir match {
-        case fn: IR.Function.Lambda =>
+        case fn: Function.Lambda =>
           fn.copy(arguments =
-            fn.arguments.map(doResolveType(Nil, bindingsMap, _))
+            fn.arguments.map(doResolveType(typeParams, bindingsMap, _))
           )
         case x => x
       }
-      doResolveType(Nil, bindingsMap, processedIr.mapExpressions(go))
+      doResolveType(typeParams, bindingsMap, processedIr.mapExpressions(go))
     }
     go(ir)
   }
 
   private def doResolveType[T <: IR](
-    typeParams: List[IR.Name],
+    typeParams: List[Name],
     bindingsMap: BindingsMap,
     ir: T
   ): T = {
@@ -93,42 +103,42 @@ case object TypeNames extends IRPass {
   }
 
   private def resolveSignature(
-    typeParams: List[IR.Name],
+    typeParams: List[Name],
     bindingsMap: BindingsMap,
-    expression: IR.Expression
-  ): IR.Expression =
+    expression: Expression
+  ): Expression =
     expression.transformExpressions {
       case expr if SuspendedArguments.representsSuspended(expr) => expr
-      case n: IR.Name.Literal =>
+      case n: Name.Literal =>
         if (typeParams.exists(_.name == n.name)) {
           n
         } else {
           processResolvedName(n, bindingsMap.resolveName(n.name))
         }
-      case n: IR.Name.Qualified =>
+      case n: Name.Qualified =>
         processResolvedName(
           n,
           bindingsMap.resolveQualifiedName(n.parts.map(_.name))
         )
-      case s: IR.Type.Set =>
+      case s: `type`.Set =>
         s.mapExpressions(resolveSignature(typeParams, bindingsMap, _))
     }
 
   private def processResolvedName(
-    name: IR.Name,
+    name: Name,
     resolvedName: Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName]
-  ): IR.Name =
+  ): Name =
     resolvedName
       .map(res => name.updateMetadata(this -->> Resolution(res)))
       .fold(
         error =>
-          IR.Error.Resolution(name, IR.Error.Resolution.ResolverError(error)),
+          errors.Resolution(name, errors.Resolution.ResolverError(error)),
         n =>
           n.getMetadata(this).get.target match {
             case _: ResolvedModule =>
-              IR.Error.Resolution(
+              errors.Resolution(
                 n,
-                IR.Error.Resolution.UnexpectedModule("type signature")
+                errors.Resolution.UnexpectedModule("type signature")
               )
             case _ => n
           }
@@ -144,9 +154,9 @@ case object TypeNames extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     ir
   }
 

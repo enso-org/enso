@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
 
 from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Excel_Workbook
 
@@ -317,6 +319,37 @@ spec_write suffix test_sheet_name =
             written = out.read (Excel (Worksheet "Another")) . select_columns [0, 1, 2]
             written.should_equal expected
             out.delete_if_exists
+
+        Test.specify 'should be able to write to a new dry run file' <|
+            out.delete_if_exists
+            temp = Context.Output.with_disabled <|
+                result = table.write out on_problems=Report_Error . should_succeed
+                Problems.expect_only_warning Dry_Run_Operation result
+                result.exists.should_be_true
+                written = result.read
+                written.sheet_count . should_equal 1
+                written.sheet_names . should_equal ['EnsoSheet']
+                written.read 'EnsoSheet' . should_equal table
+                result
+            temp.delete_if_exists
+
+        Test.specify 'should be able to write to an existing empty file' <|
+            out.delete_if_exists
+            [].write_bytes out
+
+            out_bak.delete_if_exists
+
+            table.write out on_problems=Report_Error . should_succeed . should_equal out
+            written = out.read
+            written.sheet_count . should_equal 1
+            written.sheet_names . should_equal ['EnsoSheet']
+            written.read 'EnsoSheet' . should_equal table
+
+            out_bak.exists.should_be_true
+            out_bak.size.should_equal 0
+
+            out.delete_if_exists
+            out_bak.delete_if_exists
 
         Test.specify 'should fail to append to a sheet by name if missing columns' <|
             out.delete_if_exists

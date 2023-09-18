@@ -2,29 +2,30 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as common from 'enso-common'
-
+import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
+import * as localStorageModule from '../localStorage'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
-import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
 import * as spinner from './spinner'
 import Chat, * as chat from './chat'
-import DriveView from './driveView'
+import Drive from './drive'
 import Editor from './editor'
-import Templates from './templates'
+import Home from './home'
 import TheModal from './theModal'
 import TopBar from './topBar'
 
@@ -38,31 +39,39 @@ export interface DashboardProps {
     supportsLocalBackend: boolean
     appRunner: AppRunner
     initialProjectName: string | null
+    projectManagerUrl: string | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, appRunner, initialProjectName } = props
-    const navigate = hooks.useNavigate()
+    const { supportsLocalBackend, appRunner, initialProjectName, projectManagerUrl } = props
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
+    const { modal } = modalProvider.useModal()
     const { unsetModal } = modalProvider.useSetModal()
-    const [directoryId, setDirectoryId] = React.useState(
-        session.organization != null
-            ? backendModule.rootDirectoryId(session.organization.id)
-            : // The local backend uses the empty string as the sole directory ID.
-              backendModule.DirectoryId('')
-    )
+    const { localStorage } = localStorageProvider.useLocalStorage()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const [initialized, setInitialized] = React.useState(false)
     const [query, setQuery] = React.useState('')
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
-    const [page, setPage] = React.useState(pageSwitcher.Page.drive)
-    const [project, setProject] = React.useState<backendModule.Project | null>(null)
+    const [page, setPage] = React.useState(
+        () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
+    )
+    const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>(
+        []
+    )
+    const [projectStartupInfo, setProjectStartupInfo] =
+        React.useState<backendModule.ProjectStartupInfo | null>(null)
+    const [openProjectAbortController, setOpenProjectAbortController] =
+        React.useState<AbortController | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
+    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const modalRef = React.useRef<modalProvider.Modal | null>(null)
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -74,32 +83,145 @@ export default function Dashboard(props: DashboardProps) {
         backend.type === backendModule.BackendType.remote
 
     React.useEffect(() => {
+        setInitialized(true)
+    }, [])
+
+    React.useEffect(() => {
+        modalRef.current = modal
+    }, [modal])
+
+    React.useEffect(() => {
         unsetModal()
+        if (page === pageSwitcher.Page.editor) {
+            document.body.style.cursor = 'none'
+        } else {
+            document.body.style.cursor = 'auto'
+        }
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
+        if (query !== '') {
+            setPage(pageSwitcher.Page.drive)
+        }
+    }, [query])
+
+    React.useEffect(() => {
+        let currentBackend = backend
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
-            localStorage.getItem(backendProvider.BACKEND_TYPE_KEY) !==
-                backendModule.BackendType.remote
+            localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
+                backendModule.BackendType.local
         ) {
-            setBackend(new localBackend.LocalBackend())
-            setDirectoryId(backendModule.DirectoryId(''))
+            currentBackend = new localBackend.LocalBackend(
+                projectManagerUrl,
+                localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
+            )
+            setBackend(currentBackend)
         }
-        // This hook MUST only run once, on mount.
+        const savedProjectStartupInfo = localStorage.get(
+            localStorageModule.LocalStorageKey.projectStartupInfo
+        )
+        if (savedProjectStartupInfo != null) {
+            if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
+                if (session.accessToken != null) {
+                    if (
+                        currentBackend.type === backendModule.BackendType.remote &&
+                        savedProjectStartupInfo.projectAsset.parentId ===
+                            backend.rootDirectoryId(session.organization)
+                    ) {
+                        // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
+                        setPage(pageSwitcher.Page.drive)
+                        setQueuedAssetEvents([
+                            {
+                                type: assetEventModule.AssetEventType.openProject,
+                                id: savedProjectStartupInfo.project.projectId,
+                                shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
+                                runInBackground: false,
+                            },
+                        ])
+                    } else {
+                        setPage(pageSwitcher.Page.drive)
+                        const httpClient = new http.Client(
+                            new Headers([['Authorization', `Bearer ${session.accessToken}`]])
+                        )
+                        const remoteBackend = new remoteBackendModule.RemoteBackend(
+                            httpClient,
+                            logger
+                        )
+                        void (async () => {
+                            const abortController = new AbortController()
+                            setOpenProjectAbortController(abortController)
+                            await remoteBackendModule.waitUntilProjectIsReady(
+                                remoteBackend,
+                                savedProjectStartupInfo.projectAsset,
+                                abortController
+                            )
+                            if (!abortController.signal.aborted) {
+                                const project = await remoteBackend.getProjectDetails(
+                                    savedProjectStartupInfo.projectAsset.id,
+                                    savedProjectStartupInfo.projectAsset.title
+                                )
+                                setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                                if (page === pageSwitcher.Page.editor) {
+                                    setPage(page)
+                                }
+                            }
+                        })()
+                    }
+                }
+            } else {
+                setProjectStartupInfo(savedProjectStartupInfo)
+            }
+        }
+        // This MUST only run when the component is mounted.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    hooks.useEventHandler(assetEvents, event => {
+        switch (event.type) {
+            case assetEventModule.AssetEventType.openProject: {
+                openProjectAbortController?.abort()
+                setOpenProjectAbortController(null)
+                break
+            }
+            default: {
+                // Ignored.
+                break
+            }
+        }
+    })
+
     React.useEffect(() => {
-        const goToDrive = () => {
-            setPage(pageSwitcher.Page.drive)
+        if (initialized) {
+            if (projectStartupInfo != null) {
+                localStorage.set(
+                    localStorageModule.LocalStorageKey.projectStartupInfo,
+                    projectStartupInfo
+                )
+            } else {
+                localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+            }
         }
-        document.addEventListener('show-dashboard', goToDrive)
+        // `initialized` is NOT a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [projectStartupInfo, /* should never change */ localStorage])
+
+    React.useEffect(() => {
+        localStorage.set(localStorageModule.LocalStorageKey.page, page)
+    }, [page, /* should never change */ localStorage])
+
+    React.useEffect(() => {
+        const onClick = () => {
+            if (getSelection()?.type !== 'Range') {
+                unsetModal()
+            }
+        }
+        document.addEventListener('click', onClick)
         return () => {
-            document.removeEventListener('show-dashboard', goToDrive)
+            document.removeEventListener('click', onClick)
         }
-    }, [])
+    }, [/* should never change */ unsetModal])
 
     React.useEffect(() => {
         // The types come from a third-party API and cannot be changed.
@@ -134,47 +256,41 @@ export default function Dashboard(props: DashboardProps) {
     }, [])
 
     React.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (
-                shortcuts.SHORTCUT_REGISTRY.matchesKeyboardAction(
-                    shortcuts.KeyboardAction.closeModal,
-                    event
-                )
-            ) {
-                event.preventDefault()
+        return shortcuts.registerKeyboardHandlers({
+            [shortcutsModule.KeyboardAction.closeModal]: () => {
                 unsetModal()
-            }
-        }
-        document.addEventListener('keydown', onKeyDown)
-        return () => {
-            document.removeEventListener('keydown', onKeyDown)
-        }
-    }, [unsetModal])
+                if (modalRef.current == null) {
+                    // eslint-disable-next-line no-restricted-syntax
+                    return false
+                }
+            },
+        })
+    }, [shortcuts, /* should never change */ unsetModal])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackend.LocalBackend())
-                        setDirectoryId(backendModule.DirectoryId(''))
+                        setBackend(new localBackend.LocalBackend(projectManagerUrl, null))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
                         headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
                         const client = new http.Client(headers)
                         setBackend(new remoteBackendModule.RemoteBackend(client, logger))
-                        setDirectoryId(
-                            session.organization != null
-                                ? backendModule.rootDirectoryId(session.organization.id)
-                                : backendModule.DirectoryId('')
-                        )
                         break
                     }
                 }
             }
         },
-        [backend.type, logger, session.accessToken, session.organization, setBackend]
+        [
+            backend.type,
+            session.accessToken,
+            logger,
+            /* should never change */ projectManagerUrl,
+            /* should never change */ setBackend,
+        ]
     )
 
     const doCreateProject = React.useCallback(
@@ -183,124 +299,124 @@ export default function Dashboard(props: DashboardProps) {
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.createProject,
-                parentId: directoryId,
+                type: assetListEventModule.AssetListEventType.newProject,
+                parentKey: null,
+                parentId: null,
                 templateId: templateId ?? null,
                 onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
-        [directoryId, /* should never change */ dispatchAssetListEvent]
+        [/* should never change */ dispatchAssetListEvent]
     )
 
     const openEditor = React.useCallback(
-        async (newProject: backendModule.ProjectAsset) => {
-            setPage(pageSwitcher.Page.editor)
-            if (project?.projectId !== newProject.id) {
-                setProject(await backend.getProjectDetails(newProject.id, newProject.title))
+        async (
+            newProject: backendModule.ProjectAsset,
+            setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+            switchPage: boolean
+        ) => {
+            if (switchPage) {
+                setPage(pageSwitcher.Page.editor)
+            }
+            if (projectStartupInfo?.project.projectId !== newProject.id) {
+                setProjectStartupInfo({
+                    project: await backend.getProjectDetails(newProject.id, newProject.title),
+                    projectAsset: newProject,
+                    setProjectAsset: setProjectAsset,
+                    backendType: backend.type,
+                    accessToken: session.accessToken,
+                })
             }
         },
-        [backend, project?.projectId, setPage]
+        [backend, projectStartupInfo?.project.projectId, session.accessToken]
     )
 
-    const closeEditor = React.useCallback(() => {
-        setProject(null)
+    const closeEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
+        setProjectStartupInfo(oldInfo =>
+            oldInfo?.projectAsset.id === closingProject.id ? null : oldInfo
+        )
     }, [])
 
-    const closeModalIfExists = React.useCallback(() => {
-        if (getSelection()?.type !== 'Range') {
-            unsetModal()
-        }
-    }, [/* should never change */ unsetModal])
-
     return (
-        <div
-            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
-                page === pageSwitcher.Page.drive ? '' : 'hidden'
-            }`}
-            onContextMenu={event => {
-                event.preventDefault()
-                unsetModal()
-            }}
-            onClick={closeModalIfExists}
-        >
-            <TopBar
-                supportsLocalBackend={supportsLocalBackend}
-                projectName={project?.name ?? null}
-                page={page}
-                setPage={setPage}
-                asset={null}
-                isEditorDisabled={project == null}
-                isHelpChatOpen={isHelpChatOpen}
-                setIsHelpChatOpen={setIsHelpChatOpen}
-                setBackendType={setBackendType}
-                query={query}
-                setQuery={setQuery}
-            />
-            {isListingRemoteDirectoryWhileOffline ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="flex flex-col gap-4">
-                        <div className="text-base text-center">You are not signed in.</div>
-                        <button
-                            className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
-                            onClick={() => {
-                                navigate(app.LOGIN_PATH)
-                            }}
-                        >
-                            Login
-                        </button>
-                    </div>
-                </div>
-            ) : isListingLocalDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="text-base text-center">
-                        Could not connect to the Project Manager. Please try restarting{' '}
-                        {common.PRODUCT_NAME}, or manually launching the Project Manager.
-                    </div>
-                </div>
-            ) : isListingRemoteDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center mx-2">
-                    <div className="text-base text-center">
-                        We will review your user details and enable the cloud experience for you
-                        shortly.
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <Templates onTemplateClick={doCreateProject} />
-                    <DriveView
-                        page={page}
-                        initialProjectName={initialProjectName}
-                        directoryId={directoryId}
-                        setDirectoryId={setDirectoryId}
-                        assetListEvents={assetListEvents}
-                        dispatchAssetListEvent={dispatchAssetListEvent}
-                        query={query}
-                        doCreateProject={doCreateProject}
-                        doOpenEditor={openEditor}
-                        doCloseEditor={closeEditor}
-                        appRunner={appRunner}
-                        loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                        isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
-                        isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                        isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
-                    />
-                </>
-            )}
-            <TheModal />
-            <Editor
-                visible={page === pageSwitcher.Page.editor}
-                project={project}
-                appRunner={appRunner}
-            />
-            {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-            {isHelpChatVisible && session.accessToken != null && (
-                <Chat
-                    isOpen={isHelpChatOpen}
-                    doClose={() => {
-                        setIsHelpChatOpen(false)
+        <>
+            <div
+                className={`flex flex-col relative select-none text-primary text-xs h-screen pb-2 ${
+                    page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+                }`}
+                onContextMenu={event => {
+                    event.preventDefault()
+                    unsetModal()
+                }}
+            >
+                <TopBar
+                    supportsLocalBackend={supportsLocalBackend}
+                    projectAsset={projectStartupInfo?.projectAsset ?? null}
+                    setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
+                    page={page}
+                    setPage={setPage}
+                    asset={null}
+                    isEditorDisabled={projectStartupInfo == null}
+                    isHelpChatOpen={isHelpChatOpen}
+                    setIsHelpChatOpen={setIsHelpChatOpen}
+                    setBackendType={setBackendType}
+                    query={query}
+                    setQuery={setQuery}
+                    doRemoveSelf={() => {
+                        if (projectStartupInfo?.projectAsset != null) {
+                            dispatchAssetListEvent({
+                                type: assetListEventModule.AssetListEventType.removeSelf,
+                                id: projectStartupInfo.projectAsset.id,
+                            })
+                            setProjectStartupInfo(null)
+                        }
+                    }}
+                    onSignOut={() => {
+                        if (page === pageSwitcher.Page.editor) {
+                            setPage(pageSwitcher.Page.drive)
+                        }
+                        setProjectStartupInfo(null)
                     }}
                 />
-            )}
-        </div>
+                <Home hidden={page !== pageSwitcher.Page.home} onTemplateClick={doCreateProject} />
+                <Drive
+                    hidden={page !== pageSwitcher.Page.drive}
+                    page={page}
+                    initialProjectName={initialProjectName}
+                    query={query}
+                    projectStartupInfo={projectStartupInfo}
+                    queuedAssetEvents={queuedAssetEvents}
+                    assetListEvents={assetListEvents}
+                    dispatchAssetListEvent={dispatchAssetListEvent}
+                    assetEvents={assetEvents}
+                    dispatchAssetEvent={dispatchAssetEvent}
+                    doCreateProject={doCreateProject}
+                    doOpenEditor={openEditor}
+                    doCloseEditor={closeEditor}
+                    loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                    isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
+                    isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                    isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
+                />
+                <TheModal />
+                <Editor
+                    hidden={page !== pageSwitcher.Page.editor}
+                    supportsLocalBackend={supportsLocalBackend}
+                    projectStartupInfo={projectStartupInfo}
+                    appRunner={appRunner}
+                />
+                {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
+                {isHelpChatVisible && session.accessToken != null && (
+                    <Chat
+                        isOpen={isHelpChatOpen}
+                        doClose={() => {
+                            setIsHelpChatOpen(false)
+                        }}
+                    />
+                )}
+            </div>
+            <div className="text-xs text-primary select-none">
+                <TheModal />
+            </div>
+        </>
     )
 }

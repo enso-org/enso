@@ -1,5 +1,11 @@
 package org.enso.interpreter.node.expression.builtin.text.util;
 
+import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.type.TypesGen;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -7,11 +13,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 @GenerateUncached
 public abstract class TypeToDisplayTextNode extends Node {
@@ -43,7 +44,7 @@ public abstract class TypeToDisplayTextNode extends Node {
     } else if (TypesGen.isEnsoBigInteger(value)) {
       return "Integer";
     } else if (TypesGen.isDouble(value)) {
-      return value + " (Decimal)";
+      return value + " (Float)";
     } else if (TypesGen.isBoolean(value)) {
       return (TypesGen.asBoolean(value) ? "True" : "False");
     } else if (TypesGen.isText(value)) {
@@ -62,7 +63,7 @@ public abstract class TypeToDisplayTextNode extends Node {
       return TypesGen.asUnresolvedSymbol(value).getName() + " (Unresolved_Symbol)";
     } else if (TypesGen.isManagedResource(value)) {
       return "Managed_Resource";
-    } else if (TypesGen.isArray(value)) {
+    } else if (objects.hasArrayElements(value)) {
       return "Array";
     } else if (TypesGen.isRef(value)) {
       return "Ref";

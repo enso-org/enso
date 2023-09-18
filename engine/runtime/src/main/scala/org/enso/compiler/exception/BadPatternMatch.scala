@@ -43,10 +43,19 @@ object BadPatternMatch {
   /** Where the pattern match is matching on a polyglot symbol not visible in the
     * current scope.
     *
-    * @param name the name of the requested constructor
+    * @param name the name of the requested symbol
     */
   sealed case class NonVisiblePolyglotSymbol(name: String)
       extends BadPatternMatch {
     override val message: String = s"$name is not visible in this scope"
+  }
+
+  /** Where the pattern match is matching on a non-final polyglot symbol.
+    *
+    * @param name the name of the requested symbol
+    */
+  sealed case class NonConstantPolyglotSymbol(name: String)
+      extends BadPatternMatch {
+    override val message: String = s"$name is not a constant"
   }
 }

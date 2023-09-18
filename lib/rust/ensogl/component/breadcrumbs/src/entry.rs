@@ -37,8 +37,8 @@ pub mod separator {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
         alignment = center;
-        (style: Style) {
-            let color = style.get_color(theme::separator::color);
+        (style: Style, color: Vector4) {
+            let color: Var<color::Rgba> = color.into();
             let width = style.get_number(theme::separator::width);
             let height = style.get_number(theme::separator::height);
             let triangle = Triangle(width, height).rotate((PI/2.0).radians());
@@ -113,9 +113,9 @@ pub struct Style {
     pub text_y_offset:            f32,
     pub text_padding_left:        f32,
     pub text_size:                f32,
-    pub selected_color:           color::Rgba,
+    pub icon_x_offset:            f32,
+    pub icon_y_offset:            f32,
     pub highlight_corners_radius: f32,
-    pub greyed_out_color:         color::Rgba,
 }
 
 
@@ -125,7 +125,7 @@ pub struct Style {
 
 /// A model for the entry in the breadcrumbs list.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, PartialEq)]
 pub enum Model {
     #[default]
     Ellipsis,
@@ -186,8 +186,8 @@ impl EntryData {
         let separator = separator::View::new();
         let state = default();
         let icon: any_icon::View = default();
-        icon.set_size((ICON_WIDTH, ICON_WIDTH));
         ellipsis.set_size((ellipsis::ICON_WIDTH, ellipsis::ICON_WIDTH));
+        icon.set_size((ICON_WIDTH, ICON_WIDTH));
         display_object.add_child(&icon);
         display_object.add_child(&ellipsis);
         Self { display_object, state, text, ellipsis, separator, icon }
@@ -223,7 +223,6 @@ impl EntryData {
         if let Some(icon) = icon {
             self.display_object.add_child(&self.icon);
             self.icon.icon.set(icon.any_cached_shape_location());
-            self.text.set_x(ICON_WIDTH);
         } else {
             self.icon.unset_parent();
             self.text.set_x(0.0);
@@ -256,15 +255,22 @@ impl EntryData {
         }
     }
 
-    fn update_layout(&self, contour: Contour, text_padding: f32, text_y_offset: f32) {
+    fn update_layout(
+        &self,
+        contour: Contour,
+        text_padding: f32,
+        text_y_offset: f32,
+        icon_x_offset: f32,
+        icon_y_offset: f32,
+    ) {
         let size = contour.size;
         let icon_offset = if self.has_icon() { ICON_WIDTH } else { 0.0 };
         self.text.set_xy(Vector2(icon_offset + text_padding - size.x / 2.0, text_y_offset));
         self.separator.set_size(Vector2(separator::ICON_WIDTH, size.y));
         self.ellipsis.set_size(Vector2(ellipsis::ICON_WIDTH, size.y));
         self.icon.set_size(Vector2(ICON_WIDTH, size.y));
-        self.icon.set_x(-ICON_WIDTH);
-        self.icon.set_y(-2.0);
+        self.icon.set_x(-size.x / 2.0 - icon_x_offset);
+        self.icon.set_y(-ICON_WIDTH / 2.0 - icon_y_offset);
     }
 
     fn set_default_color(&self, color: color::Lcha) {
@@ -333,6 +339,9 @@ pub struct Params {
     pub style:            Style,
     /// The first greyed out column. All columns to the right will also be greyed out.
     pub greyed_out_start: Option<Col>,
+    pub selected_color:   color::Rgba,
+    pub greyed_out_color: color::Rgba,
+    pub separator_color:  color::Rgba,
 }
 
 
@@ -369,13 +378,20 @@ impl ensogl_grid_view::Entry for Entry {
             hover_color <- input.set_params.map(|p| p.style.hover_color).cloned_into().on_change();
             font <- input.set_params.map(|p| p.style.font_name.clone_ref()).on_change();
             text_padding <- input.set_params.map(|p| p.style.text_padding_left).on_change();
-            text_color <- input.set_params.map(|p| p.style.selected_color).cloned_into().on_change();
+            text_color <- input.set_params.map(|p| p.selected_color).cloned_into().on_change();
             text_y_offset <- input.set_params.map(|p| p.style.text_y_offset).on_change();
             text_size <- input.set_params.map(|p| p.style.text_size).on_change();
-            greyed_out_color <- input.set_params.map(|p| p.style.greyed_out_color).cloned_into().on_change();
+            icon_x_offset <- input.set_params.map(|p| p.style.icon_x_offset).on_change();
+            icon_y_offset <- input.set_params.map(|p| p.style.icon_y_offset).on_change();
+            greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).cloned_into().on_change();
+            separator_color <- input.set_params.map(|p| p.separator_color).cloned_into().on_change();
             highlight_corners_radius <- input.set_params.map(|p| p.style.highlight_corners_radius).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
             transparent_color <- init.constant(color::Lcha::transparent());
+            new_model <- input.set_model.on_change();
+
+
+            // === Appearance ===
 
             col <- input.set_location._1();
             should_grey_out <- all_with(&col, &greyed_out_from,
@@ -397,10 +413,10 @@ impl ensogl_grid_view::Entry for Entry {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 0.0,
             });
-
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
+            eval separator_color((c: &color::Rgba) data.separator.color.set(Vector4::from(c)));
             is_disabled <- input.set_model.map(|m| matches!(m, Model::Separator | Model::Ellipsis));
             out.disabled <+ is_disabled;
             out.contour <+ contour;
@@ -410,24 +426,34 @@ impl ensogl_grid_view::Entry for Entry {
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ init.constant(color::Lcha::transparent());
 
+            // For text entries, we also listen for [`Text::width`] changes.
+            text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
+            entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
 
-            // === Override column width ===
 
-            // We need to adjust the width of the grid view column depending on the width of
-            // the entry.
-            out.override_column_width <+ input.set_model.map2(&text_padding,
+            // === Layout ===
+
+            override_column_width <- new_model.map2(&text_padding,
                 f!([data](model, text_padding) {
                     data.set_model(model);
                     data.width(*text_padding)
                 })
             );
-            // For text entries, we also listen for [`Text::width`] changes.
-            text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
-            entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
-            out.override_column_width <+ entry_width;
 
-            layout <- all(contour, text_padding, text_y_offset, input.set_model);
-            eval layout ((&(c, to, tyo, _)) data.update_layout(c, to, tyo));
+            layout <- all6(
+                &contour,
+                &text_padding,
+                &text_y_offset,
+                &new_model,
+                &icon_x_offset,
+                &icon_y_offset);
+            eval layout ((&(c, to, tyo, _, ix, iy)) data.update_layout(c, to, tyo, ix, iy));
+
+            // === Override column width ===
+
+            // We need to adjust the width of the grid view column depending on the width of
+            // the entry.
+            out.override_column_width <+ any(entry_width,override_column_width);
         }
         init.emit(());
         Self { frp, data }

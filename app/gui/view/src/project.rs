@@ -26,7 +26,6 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
-use ide_view_project_view_top_bar::window_control_buttons;
 use ide_view_project_view_top_bar::ProjectViewTopBar;
 
 
@@ -144,16 +143,14 @@ ensogl::define_endpoints! {
         execution_context_reload_and_restart(),
         toggle_read_only(),
         set_read_only(bool),
-        /// Push a hardcoded breadcrumb without notifying the controller.
-        debug_push_breadcrumb(),
-        /// Pop a breadcrumb without notifying the controller.
-        debug_pop_breadcrumb(),
         /// Started creation of a new node using the AI searcher.
         start_node_creation_with_ai_searcher(),
         /// Started creation of a new node using the Component Browser.
         start_node_creation_with_component_browser(),
         /// Accepts the currently selected input of the searcher.
         accept_searcher_input(),
+        /// Dump the suggestion database in JSON to the console.
+        dump_suggestion_database(),
     }
 
     Output {
@@ -179,9 +176,10 @@ ensogl::define_endpoints! {
         fullscreen_visualization_shown (bool),
         drop_files_enabled             (bool),
         debug_mode                     (bool),
-        go_to_dashboard_button_pressed (),
         /// The name of the command currently being handled due to shortcut being pressed.
         current_shortcut               (Option<ImString>),
+        /// Request the controller to dump the suggestion database in JSON to the console.
+        request_dump_suggestion_database(),
     }
 }
 
@@ -285,18 +283,10 @@ impl Model {
         project_view_top_bar_size: Vector2,
     ) {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        let buttons_y = window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
-        let y = buttons_y - project_view_top_bar_size.y / 2.0;
-        let project_view_top_bar_origin = Vector2(0.0, y);
+        let y = -project_view_top_bar_size.y;
+        let x = ARGS.groups.window.options.top_bar_offset.value;
+        let project_view_top_bar_origin = Vector2(x as f32, y);
         self.top_bar.set_xy(top_left + project_view_top_bar_origin);
-    }
-
-    fn on_close_clicked(&self) {
-        js::close(enso_config::window_app_scope_name);
-    }
-
-    fn on_fullscreen_clicked(&self) {
-        js::fullscreen();
     }
 
     fn show_project_list(&self) {
@@ -313,43 +303,6 @@ impl Model {
 
     fn hide_graph_editor(&self) {
         self.display_object.remove_child(&*self.graph_editor);
-    }
-}
-
-
-
-mod js {
-    // use super::*;
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen(inline_js = "
-    export function close(windowAppScopeConfigName) {
-        try { window[windowAppScopeConfigName].close(); }
-        catch(e) {
-            console.error(`Exception thrown from window.${windowAppScopeConfigName}.close:`,e)
-        }
-    }")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        pub fn close(window_app_scope_name: &str);
-    }
-
-
-    #[wasm_bindgen(inline_js = "
-    export function fullscreen() {
-        try {
-            if(document.fullscreenElement === null)
-                document.documentElement.requestFullscreen()
-            else
-                document.exitFullscreen()
-        } catch (e) {
-            console.error('Exception thrown when toggling fullscreen display mode:',e)
-        }
-    }
-    ")]
-    extern "C" {
-        #[allow(unsafe_code)]
-        pub fn fullscreen();
     }
 }
 
@@ -424,12 +377,6 @@ impl View {
         let project_view_top_bar = &model.top_bar;
         frp::extend! { network
             init <- source_();
-            let window_control_buttons = &project_view_top_bar.window_control_buttons;
-            eval_ window_control_buttons.close (model.on_close_clicked());
-            eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-            let go_to_dashboard_button = &project_view_top_bar.go_to_dashboard_button;
-            frp.source.go_to_dashboard_button_pressed <+
-                go_to_dashboard_button.is_pressed.on_true();
 
             let project_view_top_bar_display_object = project_view_top_bar.display_object();
             _eval <- all_with3(
@@ -443,9 +390,6 @@ impl View {
             project_view_top_bar_width <-
                 project_view_top_bar_display_object.on_resized.map(|new_size| new_size.x);
             self.model.graph_editor.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
-
-            project_view_top_bar.breadcrumbs.debug_push_breadcrumb <+ frp.debug_push_breadcrumb.constant(None);
-            project_view_top_bar.breadcrumbs.debug_pop_breadcrumb <+ frp.debug_pop_breadcrumb;
         }
         init.emit(());
         self
@@ -759,6 +703,7 @@ impl View {
             debug_mode <- bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
             frp.source.debug_mode <+ debug_mode;
             popup.is_enabled <+ debug_mode;
+            frp.source.request_dump_suggestion_database <+ frp.dump_suggestion_database;
         }
         self
     }
@@ -768,9 +713,13 @@ impl View {
         let network = &frp.network;
         let graph_editor = &self.model.graph_editor.frp;
         frp::extend! { network
-            // Searcher type to use for node creation
-            ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion);
-            component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser);
+            // Searcher type to use for node creation.
+            // Debounces are needed, because there are shortcut conflits with Component Browser's
+            // internals, causing CB being closed immediately after opening.
+            // TODO[ao] This is a hotfix, and the proper fix is tracked by
+            //          https://github.com/enso-org/enso/issues/7528
+            ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion).debounce();
+            component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser).debounce();
             searcher_type <- any(&ai_searcher, &component_browser_searcher);
 
             frp.source.searcher_type <+ searcher_type;
@@ -854,10 +803,11 @@ impl application::View for View {
             // is ready.
             (Press, "", "cmd alt y", "execution_context_reload_and_restart"),
             (Press, "!is_searcher_opened", "cmd tab", "start_node_creation_with_ai_searcher"),
-            (Press, "!is_searcher_opened", "tab", "start_node_creation_with_component_browser"),
+            (Press, "!is_searcher_opened", "enter", "start_node_creation_with_component_browser"),
             (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),
+            (Press, "debug_mode", "ctrl shift u", "dump_suggestion_database"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

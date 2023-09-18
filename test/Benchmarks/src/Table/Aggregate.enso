@@ -5,11 +5,6 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 from Standard.Test import Bench, Faker
 
-## Bench Utilities ============================================================
-
-vector_size = 2500
-iter_size = 20
-num_iterations = 3
 
 create_table : Integer -> Integer -> Table
 create_table rows (seed=1646322139) =
@@ -23,33 +18,83 @@ create_table rows (seed=1646322139) =
     text2 = ["Hexadecimal", 0.up_to rows . map _-> faker.make_some_nothing (faker.hexadecimal 8)]
     Table.new [key1, key2, key3, value1, value2, text1, text2]
 
-# The Benchmarks ==============================================================
-bench =
-    IO.println <| "Making table data..."
-    table = create_table vector_size
 
-    Bench.measure (table.aggregate [Count]) "Count table" iter_size num_iterations
-    Bench.measure (table.aggregate [Maximum "ValueWithNothing"]) "Max table" iter_size num_iterations
-    Bench.measure (table.aggregate [Sum "ValueWithNothing"]) "Sum table" iter_size num_iterations
-    # Bench.measure (table.aggregate [Count_Distinct "Index"]) "Count Distinct table" iter_size num_iterations
-    Bench.measure (table.aggregate [Standard_Deviation "Value"]) "StDev table" iter_size num_iterations
-    # Bench.measure (table.aggregate [Median "Value"]) "Median table" iter_size num_iterations
-    # Bench.measure (table.aggregate [Mode "Index"]) "Mode table" iter_size num_iterations
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
-    Bench.measure (table.aggregate [Group_By "Index", Count]) "Count grouped" iter_size num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Maximum "ValueWithNothing"]) "Max table" iter_size num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Sum "ValueWithNothing"]) "Sum table" iter_size num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Count_Distinct "Code"]) "Count Distinct grouped" iter_size num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Standard_Deviation "Value"]) "StDev grouped" iter_size num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Median "Value"]) "Median grouped" iter_size num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Mode "Index"]) "Mode grouped" iter_size num_iterations
 
-    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Count]) "Count 2 level groups" iter_size num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Maximum "ValueWithNothing"]) "Max table" iter_size num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Sum "ValueWithNothing"]) "Sum table" iter_size num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Count_Distinct "Code"]) "Count Distinct 2 level groups" iter_size num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value"]) "StDev 2 level groups" iter_size num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Median "Value"]) "Median 2 level groups" iter_size num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Mode "Index"]) "Mode 2 level groups" iter_size num_iterations
+type Data
+    Value ~table
 
-main = bench
+    create rows = Data.Value (create_table rows)
+
+
+collect_benches = Bench.build builder->
+    vector_size = 250000
+    data = Data.create vector_size
+
+    builder.group "Table_Aggregate" options group_builder->
+        group_builder.specify "Count_table" <|
+            data.table.aggregate [Count]
+
+        group_builder.specify "Max_table" <|
+            data.table.aggregate [Maximum "ValueWithNothing"]
+
+        group_builder.specify "Sum_table" <|
+            data.table.aggregate [Sum "ValueWithNothing"]
+
+        group_builder.specify "Count_Distinct_table" <|
+            data.table.aggregate [Count_Distinct "Index"]
+
+        group_builder.specify "StDev_table" <|
+            data.table.aggregate [Standard_Deviation "Value"]
+
+        group_builder.specify "Median_table" <|
+            data.table.aggregate [Median "Value"]
+
+        group_builder.specify "Mode_table" <|
+            data.table.aggregate [Mode "Index"]
+
+        group_builder.specify "Count_grouped" <|
+            data.table.aggregate [Group_By "Index", Count]
+
+        group_builder.specify "Max_grouped" <|
+            data.table.aggregate [Group_By "Index", Maximum "ValueWithNothing"]
+
+        group_builder.specify "Sum_grouped" <|
+            data.table.aggregate [Group_By "Index", Sum "ValueWithNothing"]
+
+        group_builder.specify "Count_Distinct_grouped" <|
+            data.table.aggregate [Group_By "Index", Count_Distinct "Code"]
+
+        group_builder.specify "StDev_grouped" <|
+            data.table.aggregate [Group_By "Index", Standard_Deviation "Value"]
+
+        group_builder.specify "Median_grouped" <|
+            data.table.aggregate [Group_By "Index", Median "Value"]
+
+        group_builder.specify "Mode_grouped" <|
+            data.table.aggregate [Group_By "Index", Mode "Index"]
+
+        group_builder.specify "Count_2_level_groups" <|
+            data.table.aggregate [Group_By "Index", Group_By "Flag", Count]
+
+        group_builder.specify "Max_2_level_groups" <|
+            data.table.aggregate [Group_By "Index", Group_By "Flag", Maximum "ValueWithNothing"]
+
+        group_builder.specify "Sum_2_level_groups" <|
+            data.table.aggregate [Group_By "Index", Group_By "Flag", Sum "ValueWithNothing"]
+
+        group_builder.specify "Count_Distinct_2_level_groups" <|
+            data.table.aggregate [Group_By "Index", Group_By "Flag", Count_Distinct "Code"]
+
+        group_builder.specify "StDev_2_level_groups" <|
+            data.table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value"]
+
+        group_builder.specify "Median_2_level_groups" <|
+            data.table.aggregate [Group_By "Index", Group_By "Flag", Median "Value"]
+
+        group_builder.specify "Mode_2_level_groups" <|
+            data.table.aggregate [Group_By "Index", Group_By "Flag", Mode "Index"]
+
+
+main = collect_benches . run_main

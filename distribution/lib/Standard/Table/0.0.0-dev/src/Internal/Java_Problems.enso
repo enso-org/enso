@@ -2,10 +2,16 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Unquoted_Characters_In_Output, Unquoted_Delimiter
+import project.Data.Type.Storage
+from project.Errors import all
 
+polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
+polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
+polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
+polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
+polyglot java import org.enso.table.data.table.problems.IllegalArgumentError
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
@@ -13,8 +19,10 @@ polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.problems.AggregatedProblems
+polyglot java import org.enso.table.problems.WithAggregatedProblems
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
+
 ## PRIVATE
    Convert a Java problem into its Enso equivalent.
 translate_problem p = case p of
@@ -23,8 +31,27 @@ translate_problem p = case p of
         Error.throw err
     _ : ArithmeticError ->
         Arithmetic_Error.Error p.getMessage
+    _ : IllegalArgumentError ->
+        Illegal_Argument.Error p.getMessage
     _ : FloatingPointGrouping ->
         Floating_Point_Equality.Error p.getLocationName
+    _ : LossOfIntegerPrecision ->
+        Loss_Of_Integer_Precision.Warning p.getAffectedRowsCount p.getExampleValue p.getExampleValueConverted
+    _ : ArithmeticOverflow ->
+        target_type = Storage.to_value_type p.targetType
+        example_operands = case p.exampleOperands of
+            Nothing -> Nothing
+            array -> Vector.from_polyglot_array array
+        Arithmetic_Overflow.Warning target_type p.affectedRowCount example_operands
+    _ : ConversionFailure ->
+        examples = Vector.from_polyglot_array p.examples
+        target_type = Storage.to_value_type p.targetType
+        related_column = p.relatedColumn
+        affected_rows_count = p.affectedRowCount
+        constructor = if p.errorType == ConversionFailureType.NUMBER_OUT_OF_RANGE then Conversion_Failure.Out_Of_Range else
+            if p.errorType == ConversionFailureType.TEXT_TOO_LONG then Conversion_Failure.Text_Too_Long else
+                Conversion_Failure.Error
+        constructor target_type related_column affected_rows_count examples
     _ : UnquotedCharactersInOutput ->
         Unquoted_Characters_In_Output.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : UnquotedDelimiter ->
@@ -44,11 +71,23 @@ translate_problem p = case p of
 
 ## PRIVATE
    Convert Java aggregated problems to Enso Vector of equivalents.
-parse_aggregated_problems : AggregatedProblems -> Vector
-parse_aggregated_problems problems =
+parse_aggregated_problems : AggregatedProblems -> (Any -> Any) -> Vector
+parse_aggregated_problems problems (problem_mapping = translate_problem) =
     if problems.is_nothing then [] else
         problems_array = problems.getProblems
-        parsed = Vector.from_polyglot_array problems_array . map translate_problem
+        parsed = Vector.from_polyglot_array problems_array . map problem_mapping
 
         if problems.getCount == problems_array.length then parsed else
             parsed + [Additional_Warnings.Error (problems.getCount - problems_array.length)]
+
+## PRIVATE
+   Unpacks a `WithAggregatedProblems` instance, extracting the value and
+   attaching any associated problems according to the provided behavior.
+
+   The `problem_mapping` argument may be used to add custom problem mapping
+   logic that depends on a particular context.
+unpack_value_with_aggregated_problems : Problem_Behavior -> WithAggregatedProblems -> (Any -> Any) -> Any
+unpack_value_with_aggregated_problems on_problems with_problems (problem_mapping = translate_problem) =
+    problems = parse_aggregated_problems with_problems.problems problem_mapping
+    on_problems.attach_problems_before problems <|
+        with_problems.value

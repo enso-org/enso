@@ -8,6 +8,7 @@ import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.index.CrossTabIndex;
@@ -437,7 +438,7 @@ public class Table {
       System.arraycopy(id_columns, 0, newColumns, 0, id_columns.length);
 
       int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
-      Builder builder = new StringBuilder(size);
+      Builder builder = new StringBuilder(size, TextType.VARIABLE_LENGTH);
       builder.appendNulls(size);
       Storage<?> newStorage = builder.seal();
       newColumns[id_columns.length] = new Column(name_field, newStorage);
@@ -452,7 +453,7 @@ public class Table {
     // Create Storage
     Builder[] storage = new Builder[id_columns.length + 2];
     IntStream.range(0, id_columns.length).forEach(i -> storage[i] = Builder.getForType(id_columns[i].getStorage().getType(), new_count));
-    storage[id_columns.length] = new StringBuilder(new_count);
+    storage[id_columns.length] = new StringBuilder(new_count, TextType.VARIABLE_LENGTH);
     storage[id_columns.length + 1] = new InferredBuilder(new_count);
 
     // Load Data

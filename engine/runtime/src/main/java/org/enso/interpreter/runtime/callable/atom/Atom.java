@@ -8,9 +8,10 @@ import java.util.Set;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -22,7 +23,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
@@ -37,7 +37,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public abstract class Atom implements TruffleObject {
+public abstract class Atom implements EnsoObject {
   final AtomConstructor constructor;
   private Integer hashCode;
 
@@ -116,7 +116,10 @@ public abstract class Atom implements TruffleObject {
       sb.append(suffix);
     }
     if (obj != null) {
-      var errorMessage = InteropLibrary.getUncached().toDisplayString(obj);
+      var errorMessage = switch (obj) {
+        case Function fn -> fn.toString(false);
+        default -> InteropLibrary.getUncached().toDisplayString(obj);
+      };
       if (errorMessage != null) {
         sb.append(errorMessage);
       } else {
@@ -140,29 +143,29 @@ public abstract class Atom implements TruffleObject {
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  public Array getMembers(boolean includeInternal) {
-    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
+  public EnsoObject getMembers(boolean includeInternal) {
+    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     Set<String> allMembers = new HashSet<>();
     if (members != null) {
-      allMembers.addAll(members.keySet());
+      allMembers.addAll(members);
     }
-    members = constructor.getType().getDefinitionScope().getMethods().get(constructor.getType());
+    members = constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
     if (members != null) {
-      allMembers.addAll(members.keySet());
+      allMembers.addAll(members);
     }
-    Object[] mems = allMembers.toArray();
-    return new Array(mems);
+    String[] mems = allMembers.toArray(new String[0]);
+    return ArrayLikeHelpers.wrapStrings(mems);
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public boolean isMemberInvocable(String member) {
-    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
-    if (members != null && members.containsKey(member)) {
+    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
+    if (members != null && members.contains(member)) {
       return true;
     }
-    members = constructor.getType().getDefinitionScope().getMethods().get(constructor.getType());
-    return members != null && members.containsKey(member);
+    members = constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
+    return members != null && members.contains(member);
   }
 
   @ExportMessage
@@ -239,6 +242,7 @@ public abstract class Atom implements TruffleObject {
       boolean allowSideEffects,
       @CachedLibrary("this") InteropLibrary atoms,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached BranchProfile handleError
   ) {
     Object result = null;
@@ -252,6 +256,8 @@ public abstract class Atom implements TruffleObject {
         msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
       } else if (TypesGen.isText(result)) {
         return TypesGen.asText(result);
+      } else if (interop.isString(result)) {
+        return Text.create(interop.asString(result));
       } else {
         msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
       }

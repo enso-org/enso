@@ -19,8 +19,8 @@ use enso_prelude::*;
 use ensogl_core::prelude::*;
 
 use enso_shapely::before_main;
+use ensogl_text::font::DEFAULT_CODE_FONT;
 use ensogl_text::font::DEFAULT_FONT;
-use ensogl_text::font::DEFAULT_FONT_MONO;
 
 
 
@@ -194,6 +194,7 @@ define_themes! { [light:0, dark:1]
 
         top_bar {
             padding_left = 19.0, 19.0;
+            padding_top = 9.0, 9.0;
             gap = 16.0, 16.0;
             background {
                 color = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);
@@ -214,9 +215,18 @@ define_themes! { [light:0, dark:1]
                 }
             }
             breadcrumbs {
+              entry {
+                    text {
+                        selected_color = Lcha(0.49, 0.0, 0.75, 1.0), Lcha(0.49, 0.0, 0.75, 1.0);
+                        greyed_out_color = Lcha(0.49, 0.0, 0.75, 0.6), Lcha(0.49, 0.0, 0.75, 0.6);
+                    }
+                }
+                separator {
+                            color = Lcha(0.49, 0.0, 0.75, 1.0), Lcha(0.49, 0.0, 0.75, 1.0);
+                }
+                background = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);
                 full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 transparent = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
-                selected    = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 hover       = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
                 deselected  {
                     left  = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
@@ -238,7 +248,23 @@ define_themes! { [light:0, dark:1]
                 width = 406.0, 406.0;
                 height = 380.0, 380.0;
                 background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
-                corner_radius = 14.0, 14.0;
+                corner_radius = 20.0, 20.0;
+                breadcrumbs {
+                    background = Rgb(0.463, 0.69, 0.376), Rgb(0.463, 0.69, 0.376);
+                    padding_y = 8.0, 8.0;
+                    padding_x = 10.0, 10.0;
+                    height = 40.0, 40.0;
+                    entry {
+                        text {
+                            selected_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
+                            greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
+
+                        }
+                    }
+                    separator {
+                                color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
+                    }
+                }
             }
             component_list_panel {
                 width = 190.0, 190.0;
@@ -352,9 +378,8 @@ define_themes! { [light:0, dark:1]
                     breadcrumbs {
                         crop_left = 8.0, 8.0;
                         crop_right = 3.0, 3.0;
-                        height = 44.0, 44.0;
+                        height = 28.0, 28.0;
                         background_padding_x = 15.0, 15.0;
-                        background_color = Rgb(0.463, 0.69, 0.376), Rgb(0.463, 0.69, 0.376);
                         background_height = 28.0, 28.0;
                         background_y_offset = 2.0, 2.0;
                         separator {
@@ -382,9 +407,9 @@ define_themes! { [light:0, dark:1]
                             text_y_offset = 6.0, 6.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
-                            selected_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
+                            icon_x_offset = 2.0, 2.0;
+                            icon_y_offset = 6.0, 6.0;
                             highlight_corners_radius = 15.0, 15.0;
-                            greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
                         }
                     }
                 }
@@ -552,11 +577,8 @@ define_themes! { [light:0, dark:1]
                 stripe_gap   = 20.0 , 20.0;
                 stripe_angle = 135.0 , 135.0;
             }
-            profiling {
-                lightness    = code::types::lightness , code::types::lightness;
-                chroma       = code::types::chroma    , code::types::chroma;
-                min_time_hue = 0.38                   , 0.38;
-                max_time_hue = 0.07                   , 0.07;
+            pending {
+                alpha_factor = 0.5;
             }
             type_label {
                 offset_y = -23.0, -23.0;
@@ -606,10 +628,6 @@ define_themes! { [light:0, dark:1]
                 chroma_factor    = 0.8 , 1.0;
             }
         }
-        profiling_button {
-            toggled         = Lcha(0.7,0.5,0.12,1.0) , Lcha(0.7,0.5,0.12,1.0);
-            toggled_hovered = Lcha(0.55,0.5,0.12,1.0) , Lcha(0.85,0.5,0.12,1.0);
-        }
         add_node_button {
             margin = 14.0, 14.0;
             size = 60.0, 60.0;
@@ -656,7 +674,7 @@ define_themes! { [light:0, dark:1]
             /// Additional space around the triangle shape that will detect mouse hover.
             triangle_offset = Vector2(0.0, -7.0);
             dropdown_offset = Vector2(0.0, -20.0);
-            dropdown_max_size = Vector2(300.0, 500.0);
+            dropdown_max_size = Vector2(800.0, 600.0);
             dropdown_tint = Rgba(0.0,0.0,0.0,0.1);
         }
         list_view {
@@ -665,7 +683,7 @@ define_themes! { [light:0, dark:1]
             text = Lcha(0.0,0.0,0.0,0.7), Lcha(1.0,0.0,0.0,0.7);
             text {
                 selection = Lcha(0.7,0.0,0.125,0.7);
-                font      = DEFAULT_FONT_MONO;
+                font      = DEFAULT_CODE_FONT;
                 size      = 12.0;
                 highlight_bold = 0.02;
             }
@@ -702,6 +720,7 @@ define_themes! { [light:0, dark:1]
             /// this style.
             connected_color = Lcha(1.0,0.0,0.0,1.0);
             connected_weight = 400.0;
+            pending_alpha = graph_editor::node::pending::alpha_factor;
         }
         separator {
             color = Rgba(0.0, 0.0, 0.0, 0.12);
@@ -713,6 +732,10 @@ define_themes! { [light:0, dark:1]
             color = Lcha(1.0,0.0,0.0,0.7);
             margin = widget::separator::margin;
             weight = 400.0;
+        }
+        method {
+            icon_gap = 10.0;
+            pending_icon_alpha = graph_editor::node::pending::alpha_factor;
         }
     }
     colors {

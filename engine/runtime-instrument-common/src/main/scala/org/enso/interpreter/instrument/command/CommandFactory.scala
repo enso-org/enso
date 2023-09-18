@@ -46,6 +46,9 @@ object CommandFactory {
       case payload: Api.RenameProject =>
         new RenameProjectCmd(request.requestId, payload)
 
+      case payload: Api.RenameSymbol =>
+        new RenameSymbolCmd(request.requestId, payload)
+
       case payload: Api.OpenFileNotification =>
         new OpenFileCmd(payload)
       case payload: Api.CloseFileNotification => new CloseFileCmd(payload)
@@ -53,8 +56,8 @@ object CommandFactory {
       case payload: Api.SetExpressionValueNotification =>
         new SetExpressionValueCmd(payload)
 
-      case payload: Api.InvalidateModulesIndexRequest =>
-        new InvalidateModulesIndexCmd(request.requestId, payload)
+      case _: Api.InvalidateModulesIndexRequest =>
+        new InvalidateModulesIndexCommand(request.requestId)
 
       case _: Api.GetTypeGraphRequest =>
         new GetTypeGraphCommand(request.requestId)

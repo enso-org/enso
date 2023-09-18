@@ -1,14 +1,15 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.base.Text_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
@@ -20,18 +21,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 
 public class ToTextStorageConverter implements StorageConverter<String> {
-  private final int minLength;
-  private final int maxLength;
   private final TextType targetType;
 
   public ToTextStorageConverter(TextType textType) {
-    maxLength = Math.toIntExact(textType.maxLength());
-    if (textType.fixedLength()) {
-      minLength = maxLength;
-    } else {
-      minLength = -1;
-    }
-
     targetType = textType;
   }
 
@@ -40,10 +32,10 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       if (stringStorage.getType().equals(targetType)) {
         return stringStorage;
       } else {
-        return adaptStringStorage(stringStorage);
+        return adaptStringStorage(stringStorage, problemBuilder);
       }
     }
-    if (storage instanceof LongStorage longStorage) {
+    if (storage instanceof AbstractLongStorage longStorage) {
       return castLongStorage(longStorage, problemBuilder);
     } else if (storage instanceof DoubleStorage doubleStorage) {
       return castDoubleStorage(doubleStorage, problemBuilder);
@@ -64,7 +56,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
   public Storage<String> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder(mixedStorage.size());
+    StringBuilder builder = new StringBuilder(mixedStorage.size(), targetType);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       switch (o) {
@@ -79,6 +71,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -103,9 +96,9 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return b ? "True" : "False";
   }
 
-  private Storage<String> castLongStorage(LongStorage longStorage, CastProblemBuilder problemBuilder) {
+  private Storage<String> castLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder(longStorage.size());
+    StringBuilder builder = new StringBuilder(longStorage.size(), targetType);
     for (int i = 0; i < longStorage.size(); i++) {
       if (longStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -116,12 +109,14 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
   private Storage<String> castBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder(boolStorage.size());
+    StringBuilder builder = new StringBuilder(boolStorage.size(), targetType);
     for (int i = 0; i < boolStorage.size(); i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -132,28 +127,32 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
   private Storage<String> castDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder(doubleStorage.size());
+    StringBuilder builder = new StringBuilder(doubleStorage.size(), targetType);
     for (int i = 0; i < doubleStorage.size(); i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = doubleStorage.getItem(i);
+        double value = doubleStorage.getItemAsDouble(i);
         builder.append(adapt(Double.toString(value), problemBuilder));
       }
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
   private <T> Storage<String> castDateTimeStorage(Storage<T> storage, Function<T, String> converter, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder(storage.size());
+    StringBuilder builder = new StringBuilder(storage.size(), targetType);
     for (int i = 0; i < storage.size(); i++) {
       if (storage.isNa(i)) {
         builder.appendNulls(1);
@@ -165,6 +164,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -172,6 +173,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     String adapted = adaptWithoutWarning(value);
 
     // If the value was truncated, report the data loss.
+    // (We can use the codepoint lengths here because truncation on grapheme length will still change the codepoint
+    // length too, and this check is simply faster.)
     if (adapted.length() < value.length()) {
       problemBuilder.reportTextTooLong(value);
     }
@@ -180,24 +183,12 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private String adaptWithoutWarning(String value) {
-    if (maxLength == -1) {
-      return value;
-    }
-
-    int textLength = (int) Text_Utils.grapheme_length(value);
-
-    if (textLength > maxLength) {
-      return Text_Utils.take_prefix(value, maxLength);
-    } else if (textLength < minLength) {
-      return value + " ".repeat(minLength - textLength);
-    } else {
-      return value;
-    }
+    return targetType.adapt(value);
   }
 
-  private Storage<String> adaptStringStorage(StringStorage stringStorage) {
+  private Storage<String> adaptStringStorage(StringStorage stringStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    StringBuilder builder = new StringBuilder(stringStorage.size());
+    StringBuilder builder = new StringBuilder(stringStorage.size(), targetType);
     for (int i = 0; i < stringStorage.size(); i++) {
       if (stringStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -209,6 +200,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
       context.safepoint();
     }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

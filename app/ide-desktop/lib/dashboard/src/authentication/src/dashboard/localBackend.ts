@@ -27,11 +27,25 @@ export class LocalBackend extends backend.Backend {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
-    private readonly projectManager = projectManager.ProjectManager.default()
+    private readonly projectManager: projectManager.ProjectManager
 
     /** Create a {@link LocalBackend}. */
-    constructor() {
+    constructor(
+        projectManagerUrl: string | null,
+        projectStartupInfo: backend.ProjectStartupInfo | null
+    ) {
         super()
+        this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
+        if (projectStartupInfo?.backendType === backend.BackendType.local) {
+            LocalBackend.currentlyOpenProjects.set(projectStartupInfo.project.projectId, {
+                projectName: projectManager.ProjectName(projectStartupInfo.project.name),
+                // The values are not important; fill with dummy values.
+                engineVersion: projectStartupInfo.project.engineVersion?.value ?? '',
+                projectNamespace: '',
+                languageServerBinaryAddress: { host: '', port: 0 },
+                languageServerJsonAddress: { host: '', port: 0 },
+            })
+        }
         if (IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.
@@ -39,10 +53,15 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
+    /** Return the root directory id for the given user. */
+    override rootDirectoryId(): backend.DirectoryId {
+        return backend.DirectoryId('')
+    }
+
     /** Return a list of assets in a directory.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async listDirectory(): Promise<backend.AnyAsset[]> {
+    override async listDirectory(): Promise<backend.AnyAsset[]> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
             type: backend.AssetType.project,
@@ -57,6 +76,8 @@ export class LocalBackend extends backend.Backend {
                     : project.id === LocalBackend.currentlyOpeningProjectId
                     ? backend.ProjectState.openInProgress
                     : backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
         }))
     }
@@ -64,7 +85,7 @@ export class LocalBackend extends backend.Backend {
     /** Return a list of projects belonging to the current user.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async listProjects(): Promise<backend.ListedProject[]> {
+    override async listProjects(): Promise<backend.ListedProject[]> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
             name: project.name,
@@ -73,6 +94,8 @@ export class LocalBackend extends backend.Backend {
             packageName: project.name,
             state: {
                 type: backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
             jsonAddress: null,
             binaryAddress: null,
@@ -82,7 +105,9 @@ export class LocalBackend extends backend.Backend {
     /** Create a project.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
+    override async createProject(
+        body: backend.CreateProjectRequestBody
+    ): Promise<backend.CreatedProject> {
         const project = await this.projectManager.createProject({
             name: projectManager.ProjectName(body.projectName),
             ...(body.projectTemplateName != null
@@ -97,6 +122,8 @@ export class LocalBackend extends backend.Backend {
             packageName: body.projectName,
             state: {
                 type: backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
         }
     }
@@ -104,7 +131,7 @@ export class LocalBackend extends backend.Backend {
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
+    override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
@@ -114,7 +141,7 @@ export class LocalBackend extends backend.Backend {
             return
         } catch (error) {
             throw new Error(
-                `Unable to close project ${
+                `Could not close project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
@@ -124,7 +151,7 @@ export class LocalBackend extends backend.Backend {
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
+    override async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
         const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
         if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
@@ -157,6 +184,8 @@ export class LocalBackend extends backend.Backend {
                                 : project.lastOpened != null
                                 ? backend.ProjectState.closed
                                 : backend.ProjectState.created,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        volume_id: '',
                     },
                 }
             }
@@ -178,6 +207,8 @@ export class LocalBackend extends backend.Backend {
                 projectId,
                 state: {
                     type: backend.ProjectState.opened,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    volume_id: '',
                 },
             }
         }
@@ -186,7 +217,7 @@ export class LocalBackend extends backend.Backend {
     /** Prepare a project for execution.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async openProject(
+    override async openProject(
         projectId: backend.ProjectId,
         _body: backend.OpenProjectRequestBody | null,
         title: string | null
@@ -202,7 +233,7 @@ export class LocalBackend extends backend.Backend {
                 return
             } catch (error) {
                 throw new Error(
-                    `Unable to open project ${
+                    `Could not open project ${
                         title != null ? `'${title}'` : `with ID '${projectId}'`
                     }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
                 )
@@ -215,7 +246,7 @@ export class LocalBackend extends backend.Backend {
     /** Change the name of a project.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async projectUpdate(
+    override async projectUpdate(
         projectId: backend.ProjectId,
         body: backend.ProjectUpdateRequestBody
     ): Promise<backend.UpdatedProject> {
@@ -257,7 +288,10 @@ export class LocalBackend extends backend.Backend {
     /** Delete a project.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async deleteProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
+    override async deleteProject(
+        projectId: backend.ProjectId,
+        title: string | null
+    ): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
@@ -267,7 +301,7 @@ export class LocalBackend extends backend.Backend {
             return
         } catch (error) {
             throw new Error(
-                `Unable to delete project ${
+                `Could not delete project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
@@ -290,11 +324,7 @@ export class LocalBackend extends backend.Backend {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             version_type: params.versionType,
         })
-        const versions: [backend.Version, ...backend.Version[]] = [
-            engineVersionToVersion(engineVersions[0]),
-            ...engineVersions.map<backend.Version>(engineVersionToVersion),
-        ]
-        return versions
+        return engineVersions.map(engineVersionToVersion)
     }
 
     // === Endpoints that intentionally do not work on the Local Backend ===
@@ -302,7 +332,7 @@ export class LocalBackend extends backend.Backend {
     /** @throws An error stating that the operation is intentionally unavailable on the local
      * backend. */
     invalidOperation(): never {
-        throw new Error('Unable to manage users, folders, files, and secrets on the local backend.')
+        throw new Error('Cannot manage users, folders, files, and secrets on the local backend.')
     }
 
     /** Return an empty array. This function should never need to be called. */

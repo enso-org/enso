@@ -18,13 +18,16 @@ declare module '../../hooks' {
 
 /** Possible types of asset state change. */
 export enum AssetEventType {
-    createProject = 'create-project',
-    createDirectory = 'create-directory',
+    newProject = 'new-project',
+    newFolder = 'new-folder',
     uploadFiles = 'upload-files',
-    createSecret = 'create-secret',
+    newSecret = 'new-secret',
     openProject = 'open-project',
+    closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
+    downloadSelected = 'download-selected',
+    removeSelf = 'remove-self',
 }
 
 /** Properties common to all asset state change events. */
@@ -34,13 +37,16 @@ interface AssetBaseEvent<Type extends AssetEventType> {
 
 /** All possible events. */
 interface AssetEvents {
-    createProject: AssetCreateProjectEvent
-    createDirectory: AssetCreateDirectoryEvent
+    newProject: AssetNewProjectEvent
+    newFolder: AssetNewFolderEvent
     uploadFiles: AssetUploadFilesEvent
-    createSecret: AssetCreateSecretEvent
+    newSecret: AssetNewSecretEvent
     openProject: AssetOpenProjectEvent
+    closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
+    downloadSelected: AssetDownloadSelectedEvent
+    removeSelf: AssetRemoveSelfEvent
 }
 
 /** A type to ensure that {@link AssetEvents} contains every {@link AssetLEventType}. */
@@ -54,31 +60,38 @@ type SanityCheck<
 > = T
 
 /** A signal to create a project. */
-export interface AssetCreateProjectEvent extends AssetBaseEvent<AssetEventType.createProject> {
+export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
     placeholderId: backendModule.ProjectId
     templateId: string | null
     onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to create a directory. */
-export interface AssetCreateDirectoryEvent extends AssetBaseEvent<AssetEventType.createDirectory> {
+export interface AssetNewFolderEvent extends AssetBaseEvent<AssetEventType.newFolder> {
     placeholderId: backendModule.DirectoryId
 }
 
 /** A signal to upload files. */
 export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
-    files: Map<backendModule.FileId, File>
+    files: Map<backendModule.AssetId, File>
 }
 
 /** A signal to create a secret. */
-export interface AssetCreateSecretEvent extends AssetBaseEvent<AssetEventType.createSecret> {
+export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
     placeholderId: backendModule.SecretId
     value: string
 }
 
 /** A signal to open the specified project. */
 export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
-    id: backendModule.AssetId
+    id: backendModule.ProjectId
+    shouldAutomaticallySwitchPage: boolean
+    runInBackground: boolean
+}
+
+/** A signal to close the specified project. */
+export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.closeProject> {
+    id: backendModule.ProjectId
 }
 
 /** A signal to cancel automatically opening any project that is currently opening. */
@@ -88,6 +101,15 @@ export interface AssetCancelOpeningAllProjectsEvent
 /** A signal to delete multiple assets. */
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
     ids: Set<backendModule.AssetId>
+}
+
+/** A signal to download the currently selected assets. */
+export interface AssetDownloadSelectedEvent
+    extends AssetBaseEvent<AssetEventType.downloadSelected> {}
+
+/** A signal to remove the current user's permissions for an asset.. */
+export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.removeSelf> {
+    id: backendModule.AssetId
 }
 
 /** Every possible type of asset event. */

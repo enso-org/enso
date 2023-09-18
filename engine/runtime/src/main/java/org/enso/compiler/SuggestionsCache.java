@@ -85,7 +85,6 @@ public final class SuggestionsCache
         .map(pkg -> computeDigestOfLibrarySources(pkg.listSourcesJava(), logger));
   }
 
-
   @Override
   protected Optional<Roots> getCacheRoots(EnsoContext context) {
     return context.getPackageRepository().getPackageForLibraryJava(libraryName).map(pkg -> {
@@ -94,7 +93,7 @@ public final class SuggestionsCache
       var distribution = context.getDistributionManager();
       var pathSegments = new String[]{
               pkg.namespace(),
-              pkg.module(),
+              pkg.normalizedName(),
               pkg.getConfig().version(),
               Info.ensoVersion(),
               libraryName.namespace()

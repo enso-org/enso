@@ -111,6 +111,8 @@ noted. The documentation syntax supports the following tags:
 - `ADVANCED`: Items that are _not_ private, but are for power users.
 - `ALIAS`: A name under which the documented entity will display in the
   searcher. This tag may occur _multiple times_ to provide multiple aliases.
+- `GROUP`: Used to group constructs together in the searcher and documentation.
+- `ICON`: Used to provide an icon for the construct in the searcher and nodes.
 - `DEPRECATED`: Used for constructs that should no longer be used and that may
   be removed in the future.
 - `MODIFIED`: Used for constructs that have had their behaviour change after a

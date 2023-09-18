@@ -46,6 +46,10 @@ pub use double_representation::graph::LocationHint;
 
 
 
+mod clipboard;
+
+
+
 // ==============
 // === Errors ===
 // ==============
@@ -544,13 +548,14 @@ impl Handle {
 
     /// Returns information about all the nodes currently present in this graph.
     pub fn nodes(&self) -> FallibleResult<Vec<Node>> {
-        let node_infos = self.all_node_infos()?;
-        let mut nodes = Vec::new();
-        for info in node_infos {
-            let metadata = self.module.node_metadata(info.id()).ok();
-            nodes.push(Node { info, metadata })
-        }
-        Ok(nodes)
+        Ok(self
+            .all_node_infos()?
+            .into_iter()
+            .map(|info| {
+                let metadata = self.module.node_metadata(info.id()).ok();
+                Node { info, metadata }
+            })
+            .collect())
     }
 
     /// Returns information about all the connections between graph's nodes.
@@ -927,6 +932,22 @@ impl Handle {
         // It's fine if there were no metadata.
         let _ = self.module.remove_node_metadata(id);
         Ok(())
+    }
+
+    /// Copy the node to clipboard. See `clipboard` module documentation for details.
+    pub fn copy_node(&self, id: ast::Id) -> FallibleResult {
+        let graph = GraphInfo::from_definition(self.definition()?.item);
+        let node = graph.locate_node(id)?;
+        let expression = node.whole_expression().repr();
+        let metadata = self.module.node_metadata(id).ok();
+        clipboard::copy_node(expression, metadata)?;
+        Ok(())
+    }
+
+    /// Paste a node from clipboard at cursor position. See `clipboard` module documentation for
+    /// details.
+    pub fn paste_node(&self, cursor_pos: Vector2, on_error: fn(String)) {
+        clipboard::paste_node(self, cursor_pos, on_error);
     }
 
     /// Sets the given's node expression.

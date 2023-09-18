@@ -5,7 +5,8 @@
    sources, fetching data and analysing it locally.
 
    > Example
-     Download a file. NOTE: This example will make a network request.
+     Download a file.
+     Note: This example will make a network request.
 
          import Standard.Base.Network.HTTP.HTTP
          import Standard.Examples
@@ -15,8 +16,8 @@
              res = HTTP.fetch "http://httpbin.org/bytes/1024" . to_file out_file
 
    > Example
-     Send authenticated Get request (note the use of TLS). NOTE: This example
-     will make a network request.
+     Send authenticated Get request (note the use of TLS).
+     Note: This example will make a network request.
 
          import Standard.Base.Network.HTTP.HTTP
          import Standard.Base.Network.HTTP.Header
@@ -26,8 +27,8 @@
             HTTP.fetch "https://httpbin.org/basic-auth/user/pass" headers
 
    > Example
-     Send a Post request with binary data. NOTE: This example will make a
-     network request.
+     Send a Post request with binary data.
+     Note: This example will make a network request.
 
          import Standard.Base.Network.HTTP.HTTP
          import Standard.Base.Network.HTTP.Header.Header

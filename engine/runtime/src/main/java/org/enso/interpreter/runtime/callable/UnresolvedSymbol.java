@@ -4,20 +4,24 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.graalvm.collections.Pair;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
-public final class UnresolvedSymbol implements TruffleObject {
+public final class UnresolvedSymbol implements EnsoObject {
   private final String name;
   private final ModuleScope scope;
 
@@ -53,35 +57,18 @@ public final class UnresolvedSymbol implements TruffleObject {
    * is returned. This is useful for certain subtyping relations, such as "any constructor is a
    * subtype of Any" or "Nat is a subtype of Int, is a subtype of Number".
    *
+   * @param node the node that performs the query
    * @param type the type for which this symbol should be resolved
-   * @return the resolved function definition, or null if not found
+   * @return the resolved function definition and type it was resolved in, or null if not found
    */
-  public Function resolveFor(Type type) {
-    Type current = type;
-    while (current != null) {
-      Function candidate = scope.lookupMethodDefinition(current, name);
-      if (candidate != null) {
-        return candidate;
+  public Pair<Function, Type> resolveFor(Node node, Type type) {
+    if (type != null) {
+      for (var current : type.allTypes(EnsoContext.get(node))) {
+        Function candidate = scope.lookupMethodDefinition(current, name);
+        if (candidate != null) {
+          return Pair.create(candidate, current);
+        }
       }
-      current = current.getSupertype();
-    }
-    return null;
-  }
-
-  /**
-   * Resolves the type where the symbol is declared.
-   *
-   * @param type the type for which this symbol should be resolved
-   * @return the resolved function definition, or null if not found
-   */
-  public Type resolveDeclaringType(Type type) {
-    Type current = type;
-    while (current != null) {
-      Function candidate = scope.lookupMethodDefinition(current, name);
-      if (candidate != null) {
-        return current;
-      }
-      current = current.getSupertype();
     }
     return null;
   }

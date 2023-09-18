@@ -9,17 +9,17 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
     "be able to insert links" in {
       val graph = new TypeGraph("Builtins.Main.Any")
       graph.insert("Builtins.Main.Number", "Builtins.Main.Any")
-      graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
+      graph.insert("Builtins.Main.Float", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
     }
 
     "be able to query direct parents" in {
       val graph = new TypeGraph("Builtins.Main.Any")
       graph.insert("Builtins.Main.Number", "Builtins.Main.Any")
-      graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
+      graph.insert("Builtins.Main.Float", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
-      graph.getDirectParents("Builtins.Main.Decimal") shouldEqual Set(
+      graph.getDirectParents("Builtins.Main.Float") shouldEqual Set(
         "Builtins.Main.Number"
       )
       graph.getDirectParents("Builtins.Main.Integer") shouldEqual Set(
@@ -34,7 +34,7 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
     "be able to query all parents" in {
       val graph = new TypeGraph("Builtins.Main.Any")
       graph.insert("Builtins.Main.Number", "Builtins.Main.Any")
-      graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
+      graph.insert("Builtins.Main.Float", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
       graph.getParents("Builtins.Main.Any") shouldEqual List()
@@ -45,7 +45,7 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
         "Builtins.Main.Number",
         "Builtins.Main.Any"
       )
-      graph.getParents("Builtins.Main.Decimal") shouldEqual List(
+      graph.getParents("Builtins.Main.Float") shouldEqual List(
         "Builtins.Main.Number",
         "Builtins.Main.Any"
       )
@@ -54,7 +54,7 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
     "have a fallback parent for any typename" in {
       val graph = new TypeGraph("Builtins.Main.Any")
       graph.insert("Builtins.Main.Number", "Builtins.Main.Any")
-      graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
+      graph.insert("Builtins.Main.Float", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
       graph.getParents("My_User_Type") shouldEqual List("Builtins.Main.Any")

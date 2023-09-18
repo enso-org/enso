@@ -3,7 +3,8 @@ package org.enso.interpreter.runtime.callable;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -11,12 +12,13 @@ import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
-public final class UnresolvedConversion implements TruffleObject {
+public final class UnresolvedConversion implements EnsoObject {
   private final ModuleScope scope;
 
   /**
@@ -43,13 +45,12 @@ public final class UnresolvedConversion implements TruffleObject {
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(EnsoContext ctx, Type into, Type from) {
-    Type current = from;
-    while (current != null) {
-      Function candidate = scope.lookupConversionDefinition(current, into);
-      if (candidate != null) {
-        return candidate;
-      } else {
-        current = current.getSupertype();
+    if (from != null) {
+      for (var current : from.allTypes(ctx)) {
+        Function candidate = scope.lookupConversionDefinition(current, into);
+        if (candidate != null) {
+          return candidate;
+        }
       }
     }
     return scope.lookupConversionDefinition(ctx.getBuiltins().any(), into);

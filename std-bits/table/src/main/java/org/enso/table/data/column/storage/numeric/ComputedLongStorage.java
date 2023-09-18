@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -35,7 +34,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public StorageType getType() {
+  public IntegerType getType() {
     return IntegerType.INT_64;
   }
 
@@ -76,7 +75,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, cardinality, newMissing);
+    return new LongStorage(newData, cardinality, newMissing, getType());
   }
 
   @Override
@@ -94,7 +93,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, positions.length, newMissing);
+    return new LongStorage(newData, positions.length, newMissing, getType());
   }
 
   @Override
@@ -111,7 +110,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, total, newMissing);
+    return new LongStorage(newData, total, newMissing, getType());
   }
 
   @Override
@@ -124,7 +123,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
       context.safepoint();
     }
     BitSet newMask = new BitSet();
-    return new LongStorage(newData, newSize, newMask);
+    return new LongStorage(newData, newSize, newMask, getType());
   }
 
   @Override
@@ -144,8 +143,16 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
       offset += length;
     }
 
-    return new LongStorage(newData, newSize, newMissing);
+    return new LongStorage(newData, newSize, newMissing, getType());
   }
 
   private static final BitSet EMPTY = new BitSet();
+
+  @Override
+  public AbstractLongStorage widen(IntegerType widerType) {
+    // Currently the implementation only reports 64-bit type so there is no widening to do - we can
+    // just return self.
+    assert getType().equals(IntegerType.INT_64);
+    return this;
+  }
 }

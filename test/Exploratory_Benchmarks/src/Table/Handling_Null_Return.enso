@@ -1,0 +1,46 @@
+from Standard.Base import all
+from Standard.Table import Table
+from Standard.Test import Bench
+
+polyglot java import org.enso.exploratory_benchmark_helpers.LongNullHandling
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
+
+type Data
+    Value ~table
+
+    create num_rows =
+        table =
+            a = Vector.new num_rows i-> i % 10000
+            b = Vector.new num_rows i-> i % 10
+
+            # To avoid division by zero
+            c = Vector.new num_rows i-> 1 + (i % 100)
+            Table.new [["A", a], ["B", b], ["C", c]]
+
+        Data.Value table
+
+
+collect_benches = Bench.build builder->
+    num_rows = 1000000
+    data = Data.create num_rows
+
+    builder.group ("Handling_Null_Return_" + num_rows.to_text) options group_builder->
+        get_storage name =
+            data.table.at name . java_column . getStorage
+
+        group_builder.specify "NoNulls_10percent" <|
+            LongNullHandling.runNoNulls (get_storage "a") (get_storage "b")
+        group_builder.specify "BoxingNulls_10percent" <|
+            LongNullHandling.runBoxingNulls (get_storage "a") (get_storage "b")
+        group_builder.specify "ReportingNulls_10percent" <|
+            LongNullHandling.runReportingNulls (get_storage "a") (get_storage "b")
+
+        group_builder.specify "NoNulls_none" <|
+            LongNullHandling.runNoNulls (get_storage "a") (get_storage "c")
+        group_builder.specify "BoxingNulls_none" <|
+            LongNullHandling.runBoxingNulls (get_storage "a") (get_storage "c")
+        group_builder.specify "ReportingNulls_none" <|
+            LongNullHandling.runReportingNulls (get_storage "a") (get_storage "c")
+
+main = collect_benches . run_main

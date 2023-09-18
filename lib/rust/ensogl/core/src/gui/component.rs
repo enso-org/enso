@@ -36,7 +36,7 @@ pub trait AnyShapeView: display::Object {
     /// Get the shape's shader code in GLSL 330 format. The shader parameters will not be bound to
     /// any particular mesh and thus this code can be used for optimization purposes only.
     fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
-        self.sprite().symbol.shader().abstract_shader_code_in_glsl_310()
+        self.sprite().symbol.shader.borrow().abstract_shader_code_in_glsl_310()
     }
     /// The shape definition path (file:line:column).
     fn definition_path(&self) -> &'static str;

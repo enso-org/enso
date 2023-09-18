@@ -7,3 +7,9 @@ type Hello
     formulate arr =
         process (t:Text) (h:Hello) = t + h.msg
         arr.fold "" process
+
+    formulate_with_to : Vector Hello -> Text
+    formulate_with_to arr =
+        arr.fold "" t-> h->
+            m = h.to Hello . msg
+            t + m

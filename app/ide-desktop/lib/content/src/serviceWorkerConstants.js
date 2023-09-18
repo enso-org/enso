@@ -48,18 +48,12 @@ export const DEPENDENCIES = [
     'https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js',
     'https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css',
     'https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css',
-    // app/ide-desktop/lib/content/src/docsStyle.css
-    'https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7PqtlsnztA.ttf',
-    'https://fonts.gstatic.com/s/sourcecodepro/v14/HI_SiYsKILxRpg3hIP6sJ7fM7PqVOg.ttf',
-    'https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7PqtzsjztA.ttf',
-    'https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7Pqt4s_ztA.ttf',
-    'https://fonts.gstatic.com/s/sourcecodepro/v14/HI_XiYsKILxRpg3hIP6sJ7fM7Pqths7ztA.ttf',
     // app/ide-desktop/lib/dashboard/src/tailwind.css
     'https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap',
     // Loaded by https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap
     ...M_PLUS_1_SECTIONS.map(
         number =>
-            `https://fonts.gstatic.com/s/mplus1/v6/` +
+            'https://fonts.gstatic.com/s/mplus1/v6/' +
             `R70ZjygA28ymD4HgBVu92j6eR1mYP_TX-Bb-rTg93gHfHe9F4Q.${number}.woff2`
     ),
 ]

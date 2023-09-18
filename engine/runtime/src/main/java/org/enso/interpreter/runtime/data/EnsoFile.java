@@ -5,7 +5,6 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -31,6 +30,8 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Set;
 
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+
 import com.oracle.truffle.api.dsl.Cached;
 
 /**
@@ -40,7 +41,7 @@ import com.oracle.truffle.api.dsl.Cached;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "io", name = "File", stdlibName = "Standard.Base.System.File.File")
-public final class EnsoFile implements TruffleObject {
+public final class EnsoFile implements EnsoObject {
   private final TruffleFile truffleFile;
 
   public EnsoFile(TruffleFile truffleFile) {
@@ -106,7 +107,7 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.Method(name = "read_last_bytes_builtin")
   @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
-  public ArrayOverBuffer readLastBytes(long n) throws IOException {
+  public EnsoObject readLastBytes(long n) throws IOException {
     try (SeekableByteChannel channel =
         this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
       int bytesToRead = Math.toIntExact(Math.min(channel.size(), n));
@@ -117,7 +118,7 @@ public final class EnsoFile implements TruffleObject {
       }
 
       buffer.flip();
-      return ArrayOverBuffer.wrapBuffer(buffer);
+      return ArrayLikeHelpers.wrapBuffer(buffer);
     }
   }
 
@@ -213,8 +214,8 @@ public final class EnsoFile implements TruffleObject {
   @Builtin.Method(name = "list_immediate_children_array")
   @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
-  public EnsoFile[] list() throws IOException {
-    return this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new);
+  public EnsoObject list() throws IOException {
+    return ArrayLikeHelpers.wrapEnsoObjects(this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new));
   }
 
   @Builtin.Method
@@ -239,6 +240,16 @@ public final class EnsoFile implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public String getName() {
     return this.truffleFile.getName();
+  }
+
+  @Builtin.Method(name = "size_builtin")
+  @Builtin.WrapException(from = IOException.class)
+  @CompilerDirectives.TruffleBoundary
+  public long getSize() throws IOException {
+    if ( this.truffleFile.isDirectory()) {
+      throw new IOException("size can only be called on files.");
+    }
+    return this.truffleFile.size();
   }
 
   @TruffleBoundary
