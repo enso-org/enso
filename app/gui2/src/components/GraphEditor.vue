@@ -111,7 +111,7 @@ function moveNode(id: ExprId, delta: Vec2) {
 .viewport {
   position: relative;
   contain: layout;
-  overflow: hidden;
+  overflow: clip;
 }
 
 svg {

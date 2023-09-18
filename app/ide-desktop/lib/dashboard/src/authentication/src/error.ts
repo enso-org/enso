@@ -54,7 +54,7 @@ export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
 /** Return a toastify option object that renders an error message. */
 // eslint-disable-next-line no-restricted-syntax
 export function render(f: (message: string) => string): toastify.UpdateOptions {
-    return { render: ({ data }: { data: unknown }) => f(getMessageOrToString(data)) }
+    return { render: ({ data }) => f(getMessageOrToString(data)) }
 }
 
 // ============================

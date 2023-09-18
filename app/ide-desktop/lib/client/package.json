@@ -38,7 +38,7 @@
     "electron-builder": "^22.14.13",
     "electron-notarize": "1.2.2",
     "enso-common": "^1.0.0",
-    "esbuild": "^0.17.15",
+    "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",
     "portfinder": "^1.0.32",
     "tsx": "^3.12.6"

@@ -26,14 +26,14 @@ const barStyle = computed(() => {
 <template>
   <div class="TopBar" :style="barStyle">
     <ProjectTitle
-      :title="title"
-      :modes="modes"
-      :mode="mode"
+      :title="props.title"
+      :modes="props.modes"
+      :mode="props.mode"
       @update:mode="emit('update:mode', $event)"
       @execute="emit('execute')"
     />
     <NavBar
-      :breadcrumbs="breadcrumbs"
+      :breadcrumbs="props.breadcrumbs"
       @back="emit('back')"
       @forward="emit('forward')"
       @breadcrumbClick="emit('breadcrumbClick', $event)"

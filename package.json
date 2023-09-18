@@ -1,11 +1,10 @@
 {
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^5.48.1",
-    "@typescript-eslint/parser": "^5.48.1",
     "prettier": "^3.0.0"
   },
   "dependencies": {
-    "chromedriver": "^106.0.1"
+    "chromedriver": "^106.0.1",
+    "tslib": "^2.6.2"
   },
   "name": "root",
   "workspaces": [
@@ -13,5 +12,8 @@
     "app/ide-desktop/lib/*",
     "app/ide-desktop/lib/dashboard/src/authentication",
     "app/gui2"
-  ]
+  ],
+  "overrides": {
+    "tslib": "$tslib"
+  }
 }
