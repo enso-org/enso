@@ -41,7 +41,6 @@ import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
-import project.Data.Time.Date_Time_Format_Pattern.Date_Time_Format_Pattern
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
@@ -88,6 +87,7 @@ from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Data.Time.Conversions import all
+from project.Data.Time.Date_Time_Format_Constants import all
 from project.Errors.Problem_Behavior.Problem_Behavior import all
 from project.Meta.Enso_Project import enso_project
 from project.Network.Extensions import all
@@ -132,7 +132,6 @@ export project.Data.Time.Date_Period.Date_Period
 export project.Data.Time.Date_Range.Date_Range
 export project.Data.Time.Date_Time.Date_Time
 export project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
-export project.Data.Time.Date_Time_Format_Pattern.Date_Time_Format_Pattern
 export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From
 export project.Data.Time.Duration.Duration
@@ -181,6 +180,7 @@ from project.Data.Range.Extensions export all
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
 from project.Data.Text.Extensions export all
 from project.Data.Time.Conversions export all
+from project.Data.Time.Date_Time_Format_Constants export all
 from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.Function export all
 from project.Meta.Enso_Project export enso_project

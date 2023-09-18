@@ -270,7 +270,7 @@ type Date_Time_Formatter
 ## PRIVATE
 type Date_Time_Format_Parse_Error
     ## PRIVATE
-       Indicates an error during parsing of a `Date_Time_Format_Pattern`.
+       Indicates an error during parsing of a `Date_Time_Format_Constants`.
     Error message
 
     ## PRIVATE

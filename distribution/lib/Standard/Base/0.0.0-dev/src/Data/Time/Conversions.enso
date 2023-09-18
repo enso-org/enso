@@ -1,12 +1,7 @@
 import project.Data.Locale.Locale
 import project.Data.Text.Text
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
-import project.Data.Time.Date_Time_Format_Pattern.Date_Time_Format_Pattern
 
 ## PRIVATE
 Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =
     Date_Time_Formatter.from_simple_pattern that locale
-
-Date_Time_Formatter.from (that:Date_Time_Format_Pattern) = case that of
-    Date_Time_Format_Pattern.ISO_Date -> Date_Time_Formatter.iso_date
-    _ -> Date_Time_Formatter.from_simple_pattern (Text.from "TODO")

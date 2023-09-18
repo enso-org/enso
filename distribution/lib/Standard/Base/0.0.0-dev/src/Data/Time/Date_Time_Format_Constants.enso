@@ -1,0 +1,55 @@
+import project.Data.Locale.Locale
+import project.Data.Text.Text
+
+import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
+
+## PRIVATE
+   Workaround for https://github.com/enso-org/enso/issues/7824
+   Once that issue is fixed, this should be removed.
+type Date_Time_Format_Constants
+    ## The default format for date-time used in Enso.
+       It acts as `ISO_Zoned_Date_Time` but both offset and timezone are optional.
+
+       For example, it may parse date of the form `2011-12-03 10:15:30+01:00[Europe/Paris]`,
+       as well as `2011-12-03T10:15:30` assuming the default timezone.
+    Default_Enso_Zoned_Date_Time
+
+    ## The ISO 8601 format for date-time with offset and timezone.
+       The date and time parts may be separated by a single space or a `T`.
+
+       For example, it may parse date of the form `2011-12-03 10:15:30+01:00[Europe/Paris]`.
+    ISO_Zoned_Date_Time
+
+    ## The ISO 8601 format for date-time with offset.
+       The date and time parts may be separated by a single space or a `T`.
+
+       For example, it may parse date of the form `2011-12-03 10:15:30+01:00`.
+    ISO_Offset_Date_Time
+
+    ## The ISO 8601 format for date-time without a timezone.
+       The date and time parts may be separated by a single space or a `T`.
+
+       For example, it may parse date of the form `2011-12-03 10:15:30`. The
+       timezone will be set to `Time_Zone.system`.
+    ISO_Local_Date_Time
+
+    ## The ISO 8601 format for date.
+
+       For example, it may parse date of the form `2011-12-03`.
+    ISO_Date
+
+    ## The ISO 8601 format for time.
+
+       For example, it may parse time of the form `10:15:30`.
+    ISO_Time
+
+## PRIVATE
+   Workaround for https://github.com/enso-org/enso/issues/7824
+   Once that issue is fixed, this should be removed.
+Date_Time_Formatter.from (that:Date_Time_Format_Constants) = case that of
+    Date_Time_Format_Constants.ISO_Date -> Date_Time_Formatter.iso_date
+    Date_Time_Format_Constants.ISO_Time -> Date_Time_Formatter.iso_time
+    Date_Time_Format_Constants.ISO_Local_Date_Time -> Date_Time_Formatter.iso_local_date_time
+    Date_Time_Format_Constants.ISO_Offset_Date_Time -> Date_Time_Formatter.iso_offset_date_time
+    Date_Time_Format_Constants.ISO_Zoned_Date_Time -> Date_Time_Formatter.iso_zoned_date_time
+    Date_Time_Format_Constants.Default_Enso_Zoned_Date_Time -> Date_Time_Formatter.default_enso_zoned_date_time
