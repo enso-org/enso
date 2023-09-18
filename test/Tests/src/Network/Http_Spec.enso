@@ -29,6 +29,17 @@ spec =
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
+    Test.group "asdfasdf" pending=pending_has_url <|
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_get = base_url_with_slash + "get"
+        url_head = base_url_with_slash + "head"
+        url_options = base_url_with_slash + "options"
+
+        Test.specify "Can perform a HEAD" <|
+            response = Data.fetch url_head method=HTTP_Method.Head
+            response.code.code . should_equal 200
+            response.decode_as_text . should_equal ''
+
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
             http = HTTP.new (timeout = (Duration.new seconds=30))
@@ -79,26 +90,16 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "Can perform a HEAD" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
-            response = Data.fetch url_head method=HTTP_Method.Head #try_auto_parse_response=False
+        Test.specify "Can perform a HEAD" <|
+            response = Data.fetch url_head method=HTTP_Method.Head
             response.code.code . should_equal 200
             response.decode_as_text . should_equal ''
 
-        Test.specify "Can perform an OPTIONS" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+        Test.specify "Can perform an OPTIONS" <|
+            IO.println "AAA options"
             response = Data.fetch url_options method=HTTP_Method.Options
             response.code.code . should_equal 200
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "0"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "args": {}
-                }
-            response.decode_as_json . should_equal expected_response
+            response.decode_as_text . should_equal ''
 
         Test.specify "Can perform auto-parse" pending="Re-enable when #7828 is implemented" <|
             response = Data.fetch url_get
@@ -398,58 +399,61 @@ spec =
                 }
             response.decode_as_json . should_equal expected_response
 
-        Test.specify "Can perform a Request_Body.Text PUT" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+        Test.specify "Can perform a Request_Body.Text PUT" <|
+            IO.println "AAA Can perform a Request_Body.Text PUT"
             response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
-                    "Content-Length": "47"
+                    "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
                   "form": null,
                   "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "data": "hello world",
                   "json": null,
                   "args": {}
                 }
             response.decode_as_json . should_equal expected_response
 
-        Test.specify "Can perform a Request_Body.Text PATCH" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+        Test.specify "Can perform a Request_Body.Text PATCH" <|
+            IO.println "AAA patch"
             response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "47"
+                    "Content-Type": "application/diff",
+                    "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
                   "form": null,
                   "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "data": "hello world",
                   "json": null,
                   "args": {}
                 }
             response.decode_as_json . should_equal expected_response
 
-        Test.specify "Can perform a DELETE" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
-            response = Data.post url_delete method=HTTP_Method.Delete #try_auto_parse_response=False
+        Test.specify "Can perform a DELETE" <|
+            IO.println "AAA delete"
+            response = Data.post url_delete method=HTTP_Method.Delete
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
-                    "Content-Length": "47"
+                    "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
                   "form": null,
                   "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "data": "",
                   "json": null,
                   "args": {}
                 }
@@ -474,7 +478,7 @@ spec =
                 }
             response.decode_as_json . should_equal expected_response
 
-        Test.specify "Can send a custom header" pending='Re-enable when https://github.com/enso-org/enso/issues/7836 is done" <|
+        Test.specify "Can send a custom header" pending="Re-enable when https://github.com/enso-org/enso/issues/7836 is done" <|
             response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
             expected_response = Json.parse <| '''
                 {
@@ -498,7 +502,7 @@ spec =
             Context.Output.with_disabled <|
                 Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
 
-        Test.specify "Cannot perform PATCH/PUT/DELETE when output context is disabled" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+        Test.specify "Cannot perform PATCH/PUT/DELETE when output context is disabled" <|
             Context.Output.with_disabled <|
                 Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
                 Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put . should_fail_with Forbidden_Operation

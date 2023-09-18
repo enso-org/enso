@@ -4,35 +4,47 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class DummyHandler implements HttpHandler {
-
-  private enum Method {
-    GET,
-    POST,
-    HEAD;
-  }
-
   private static final Set<String> requiredHeaders =
       Set.of("Content-length", "Content-type", "User-agent");
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
+    System.out.println("GGGGG");
+    System.out.println(exchange.getHttpContext().getPath());
+    //System.out.println(exchange.getProtocol());
+    //System.out.println(exchange.getRemoteAddress());
+    System.out.println(exchange.getRequestHeaders().entrySet());
+    System.out.println(exchange.getRequestMethod());
+    System.out.println(exchange.getRequestURI());
+    ////System.out.println(exchange.getRequestBody());
+    //InputStream is = exchange.getRequestBody();
+    //String result = new BufferedReader(new InputStreamReader(is))
+    //        .lines().collect(Collectors.joining("\n"));
+    //System.out.println("body start ----");
+    //System.out.println(result);
+    //System.out.println("body end ----");
+    System.out.println("GGGGG done");
+
     boolean first = true;
     String contentType = null;
-    Method meth = method(exchange.getRequestMethod());
+    HttpMethod meth = method(exchange.getRequestMethod());
 
     String response;
-    if (meth == Method.HEAD) {
+    if (meth == HttpMethod.HEAD || meth == HttpMethod.OPTIONS) {
       response = "";
       exchange.sendResponseHeaders(200, -1);
     } else {
+      //exchange.getResponseHeaders().put("Content-Type", List.of("application/json"));
       response = "{\n";
       response += "  \"headers\": {\n";
       for (Map.Entry<String, List<String>> entry : exchange.getRequestHeaders().entrySet()) {
@@ -57,7 +69,7 @@ public class DummyHandler implements HttpHandler {
       response += "  },\n";
       response += "  \"origin\": \"127.0.0.1\",\n";
       response += "  \"url\": \"\",\n";
-      if (meth == Method.POST) {
+      if (meth == HttpMethod.POST || meth == HttpMethod.DELETE || meth == HttpMethod.PUT || meth == HttpMethod.PATCH) {
         boolean isJson = contentType != null && contentType.equals("application/json");
         InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
         BufferedReader br = new BufferedReader(isr);
@@ -77,8 +89,8 @@ public class DummyHandler implements HttpHandler {
     os.close();
   }
 
-  private Method method(String v) {
-    return v.equals("HEAD") ? Method.HEAD : (v.equals("POST") ? Method.POST : Method.GET);
+  private HttpMethod method(String v) {
+    return HttpMethod.valueOf(v);
   }
 
   private String formatHeaderKey(String key) {
