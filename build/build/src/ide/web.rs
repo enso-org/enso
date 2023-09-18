@@ -244,7 +244,7 @@ impl FallibleManipulator for ProjectManagerInfo {
 #[derivative(Debug)]
 pub struct IdeDesktop {
     pub build_sbt:   generated::RepoRootBuildSbt,
-    pub package_dir: generated::RepoRootAppIdeDesktop,
+    pub package_dir: generated::RepoRoot,
     #[derivative(Debug = "ignore")]
     pub octocrab:    Octocrab,
     pub cache:       ide_ci::cache::Cache,
