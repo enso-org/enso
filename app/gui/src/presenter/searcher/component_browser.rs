@@ -104,6 +104,12 @@ impl Model {
         }
     }
 
+    fn update_preview(&self) {
+        if let Err(error) = self.controller.preview_input() {
+            error!("Failed to preview searcher preview because of error: {error}.")
+        }
+    }
+
     fn suggestion_accepted(
         &self,
         id: component_grid::EntryId,
@@ -300,10 +306,10 @@ impl ComponentBrowserSearcher {
         let browser = &model.view;
 
         frp::extend! { network
-            eval model.project.searcher_input_changed ([model]((expr, selections)) {
+            on_input_changed <- model.project.searcher_input_changed.map(f!([model]((expr, selections)) {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
                 model.input_changed(expr, cursor_position);
-            });
+            }));
 
             action_list_changed <- any_mut::<()>();
             // When the searcher input is changed, we need to update immediately the list of
@@ -345,6 +351,9 @@ impl ComponentBrowserSearcher {
             eval grid.active ((entry) model.on_entry_for_docs_selected(*entry));
 
             eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
+            no_selection <- grid.active.on_change().map(|e| e.is_none());
+            update_preview <- on_input_changed.gate(&no_selection);
+            eval_ update_preview(model.update_preview());
             eval grid.active((entry) model.suggestion_selected(*entry));
             eval grid.module_entered((id) model.module_entered(*id));
         }
