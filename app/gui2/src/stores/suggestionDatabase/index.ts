@@ -47,7 +47,7 @@ export function initializeMockDb() {
 
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = reactive(new SuggestionDb())
-  const groups = ref<Array<Group>>([
+  const groups = ref<Group[]>([
     { color: '#4D9A29', name: 'Input' },
     { color: '#B37923', name: 'Web' },
     { color: '#9735B9', name: 'Parse' },
