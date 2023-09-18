@@ -6,19 +6,19 @@ const emit = defineEmits<{
   codeUpdate: [code: string]
 }>()
 
-const content = ref('main = \n    2 + 2')
+const content = ref('')
 const shown = ref(false)
 
 watchEffect(() => {
   emit('codeUpdate', content.value)
 })
 
-const textArea = ref<InstanceType<typeof HTMLTextAreaElement> | null>(null)
+const textArea = ref<HTMLElement>()
+const rootElement = ref<HTMLElement>()
 
 useWindowEvent('keydown', (e) => {
   const graphEditorInFocus = document.activeElement === document.body
-  const codeEditorInFocus =
-    document.activeElement === document.querySelector('.CodeEditor > textarea')
+  const codeEditorInFocus = rootElement.value?.contains(document.activeElement)
   const validFocus = graphEditorInFocus || codeEditorInFocus
   const targetKeyPressed = e.key == `\``
   if (validFocus && targetKeyPressed) {
@@ -29,10 +29,9 @@ useWindowEvent('keydown', (e) => {
 
 watchEffect(
   () => {
+    /// If the code editor is shown, focus the text area to allow typing.
     if (shown.value) {
       textArea.value?.focus()
-    } else {
-      textArea.value?.blur()
     }
   },
   { flush: 'post' },
@@ -40,8 +39,8 @@ watchEffect(
 </script>
 
 <template>
-  <div v-if="shown" class="CodeEditor" @keydown.enter.stop>
-    <textarea v-model="content" ref="textArea"></textarea>
+  <div v-if="shown" ref="rootElement" class="CodeEditor" @keydown.enter.stop>
+    <textarea ref="textArea" v-model="content"></textarea>
   </div>
 </template>
 
