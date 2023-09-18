@@ -160,7 +160,7 @@ type Date_Time_Format_Pattern
     ## The ISO 8601 format for date.
 
        For example, it may parse date of the form `2011-12-03`.
-    ISO_Local_Date
+    ISO_Date
 
     ## The ISO 8601 format for time.
 
