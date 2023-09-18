@@ -51,6 +51,8 @@ spec =
     Test.group "fetch" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_get = base_url_with_slash + "get"
+        url_head = base_url_with_slash + "head"
+        url_options = base_url_with_slash + "options"
 
         Test.specify "Can perform a GET with a JSON response" <|
             response = Data.fetch url_get
@@ -76,6 +78,27 @@ spec =
             f.size . should_equal 7168
             f.delete
             f.exists.should_be_false
+
+        Test.specify "Can perform a HEAD" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+            response = Data.fetch url_head method=HTTP_Method.Head #try_auto_parse_response=False
+            response.code.code . should_equal 200
+            response.decode_as_text . should_equal ''
+
+        Test.specify "Can perform an OPTIONS" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+            response = Data.fetch url_options method=HTTP_Method.Options
+            response.code.code . should_equal 200
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "0"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform auto-parse" pending="Re-enable when #7828 is implemented" <|
             response = Data.fetch url_get
@@ -121,6 +144,9 @@ spec =
     Test.group "post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
+        url_put = base_url_with_slash + "put"
+        url_patch = base_url_with_slash + "patch"
+        url_delete = base_url_with_slash + "delete"
 
         Test.specify "Can perform a Request_Body.Text POST" <|
             response = Data.post url_post (Request_Body.Text "hello world")
@@ -372,6 +398,63 @@ spec =
                 }
             response.decode_as_json . should_equal expected_response
 
+        Test.specify "Can perform a Request_Body.Text PUT" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+            response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "47"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
+
+        Test.specify "Can perform a Request_Body.Text PATCH" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+            response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "47"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
+
+        Test.specify "Can perform a DELETE" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+            response = Data.post url_delete method=HTTP_Method.Delete #try_auto_parse_response=False
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "47"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
+
         Test.specify "Can skip auto-parse" <|
             response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
             expected_response = Json.parse <| '''
@@ -410,6 +493,17 @@ spec =
                 }
             response.decode_as_json . should_equal expected_response
 
+        Test.specify "Cannot perform POST when output context is disabled" <|
+            Context.Output.with_disabled <|
+                Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
+
+        Test.specify "Cannot perform PATCH/PUT/DELETE when output context is disabled" pending="Re-enable when https://github.com/enso-org/enso/issues/7835 is done" <|
+            Context.Output.with_disabled <|
+                Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
+                Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put . should_fail_with Forbidden_Operation
+                Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch . should_fail_with Forbidden_Operation
+                Data.post url_delete method=HTTP_Method.Delete . should_fail_with Forbidden_Operation
+
         Test.specify "Unsupported method" <|
             err = Data.post url_post (Request_Body.Text "hello world") method=HTTP_Method.Get
             err.catch.should_equal (Illegal_Argument.Error "Unsupported method Get")
@@ -420,100 +514,6 @@ spec =
         Test.specify "Nonexistent file" <|
             test_file = enso_project.data / "does_not_exist.txt"
             Data.post url_post (Request_Body.Binary test_file) . should_fail_with Request_Error
-
-    Test.group "put/patch/delete" pending="reenable when https://github.com/enso-org/enso/issues/7835 is done" <|
-        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
-        url_post = base_url_with_slash + "post"
-        url_head = base_url_with_slash + "head"
-        url_options = base_url_with_slash + "options"
-        url_put = base_url_with_slash + "put"
-        url_patch = base_url_with_slash + "patch"
-        url_delete = base_url_with_slash + "delete"
-
-        Test.specify "Can perform a HEAD" <|
-            response = Data.fetch url_head method=HTTP_Method.Head #try_auto_parse_response=False
-            response.code.code . should_equal 200
-            response.decode_as_text . should_equal ''
-
-        Test.specify "Can perform an OPTIONS" <|
-            response = Data.fetch url_options method=HTTP_Method.Options
-            response.code.code . should_equal 200
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "0"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "args": {}
-                }
-            response.decode_as_json . should_equal expected_response
-
-        Test.specify "Can perform a Request_Body.Text PUT" <|
-            response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "47"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
-                  "json": null,
-                  "args": {}
-                }
-            response.decode_as_json . should_equal expected_response
-
-        Test.specify "Can perform a Request_Body.Text PATCH" <|
-            response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "47"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
-                  "json": null,
-                  "args": {}
-                }
-            response.decode_as_json . should_equal expected_response
-
-        Test.specify "Can perform a DELETE" <|
-            response = Data.post url_delete method=HTTP_Method.Delete #try_auto_parse_response=False
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "47"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "form": null,
-                  "files": null,
-                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
-                  "json": null,
-                  "args": {}
-                }
-            response.decode_as_json . should_equal expected_response
-
-        Test.specify "Cannot perform POST/PATCH/PUT/DELETE when output context is disabled" <|
-            Context.Output.with_disabled <|
-                Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
-                Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put . should_fail_with Forbidden_Operation
-                Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch . should_fail_with Forbidden_Operation
-                Data.post url_delete method=HTTP_Method.Delete . should_fail_with Forbidden_Operation
 
     Test.group "Headers" <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
