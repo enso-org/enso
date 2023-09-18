@@ -12,7 +12,7 @@ export interface Group {
   name: string
 }
 
-function fromJsonProtocol(data: any, groups: Group[]): SuggestionEntry {
+function fromJson(data: any, groups: Group[]): SuggestionEntry {
   function tagValue(tag: string): string {
     return data.documentation.find((section: any) => section['Tag']?.tag === tag)?.Tag.body
   }
@@ -27,20 +27,21 @@ function fromJsonProtocol(data: any, groups: Group[]): SuggestionEntry {
     aliases: Array.from(tagValue('Alias')?.split(',') ?? [], (alias) => alias.trim()),
     arguments: data.arguments,
     returnType: data.return_type,
-    documentation: '',
+    documentation: data.documentation,
     iconName: data.icon_name,
     groupIndex: findIndexOpt(groups, (group) => data.group_name == group.name) ?? undefined,
     reexportedIn: data.reexported_in,
   }
 }
 
+// TODO[ao]: This is a temporary mock; soon we should load db from the language server (#7785)
 export function initializeMockDb() {
   fetch('https://capricornus.pl/~adam/db-formatted.json')
     .then((resp) => resp.json())
     .then((mockDb) => {
       const db = useSuggestionDbStore()
       for (const [id, entry] of Object.entries(mockDb)) {
-        db.entries.set(+id, fromJsonProtocol(entry, db.groups))
+        db.entries.set(+id, fromJson(entry, db.groups))
       }
     })
 }

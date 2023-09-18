@@ -105,22 +105,22 @@ export function makeSimpleEntry(
   }
 }
 
-export function makeModule(definedIn: QualifiedName) {
+export function makeModule(definedIn: QualifiedName): SuggestionEntry {
   return makeSimpleEntry(SuggestionKind.Module, definedIn, qnLastSegment(definedIn), definedIn)
 }
 
-export function makeType(definedIn: QualifiedName, name: string) {
+export function makeType(definedIn: QualifiedName, name: string): SuggestionEntry {
   return makeSimpleEntry(SuggestionKind.Type, definedIn, name, `${definedIn}.${name}`)
 }
 
-export function makeCon(type: QualifiedName, name: string) {
+export function makeCon(type: QualifiedName, name: string): SuggestionEntry {
   return {
     memberOf: type,
     ...makeSimpleEntry(SuggestionKind.Constructor, qnParent(type), name, type),
   }
 }
 
-export function makeMethod(type: QualifiedName, name: string, returnType: string) {
+export function makeMethod(type: QualifiedName, name: string, returnType: string): SuggestionEntry {
   return {
     memberOf: type,
     selfType: type,
@@ -128,24 +128,40 @@ export function makeMethod(type: QualifiedName, name: string, returnType: string
   }
 }
 
-export function makeStaticMethod(type: QualifiedName, name: string, returnType: string) {
+export function makeStaticMethod(
+  type: QualifiedName,
+  name: string,
+  returnType: string,
+): SuggestionEntry {
   return {
     memberOf: type,
     ...makeSimpleEntry(SuggestionKind.Method, qnParent(type), name, returnType),
   }
 }
 
-export function makeModuleMethod(module: QualifiedName, name: string, returnType: string) {
+export function makeModuleMethod(
+  module: QualifiedName,
+  name: string,
+  returnType: string,
+): SuggestionEntry {
   return {
     memberOf: module,
     ...makeSimpleEntry(SuggestionKind.Method, module, name, returnType),
   }
 }
 
-export function makeFunction(definedIn: QualifiedName, name: string, returnType: string) {
+export function makeFunction(
+  definedIn: QualifiedName,
+  name: string,
+  returnType: string,
+): SuggestionEntry {
   return makeSimpleEntry(SuggestionKind.Function, definedIn, name, returnType)
 }
 
-export function makeLocal(definedIn: QualifiedName, name: string, returnType: string) {
+export function makeLocal(
+  definedIn: QualifiedName,
+  name: string,
+  returnType: string,
+): SuggestionEntry {
   return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
 }

@@ -102,6 +102,7 @@ function componentStyle(index: number) {
 }
 
 function componentColor(component: Component): string {
+  // TODO[ao]: A set of default color should be specified in css, see #7785.
   return suggestionDbStore.groups[component.group ?? -1]?.color ?? '#006b8a'
 }
 
