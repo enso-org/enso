@@ -67,7 +67,6 @@ spec =
 
         Test.specify "Can perform a GET with a JSON response" <|
             response = Data.fetch url_get
-            response.code.code . should_equal 200
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -79,7 +78,7 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a GET with a file response" <|
             f = enso_project.data / "spreadsheet.xls"
@@ -101,7 +100,7 @@ spec =
             response.code.code . should_equal 200
             response.decode_as_text . should_equal ''
 
-        Test.specify "Can perform auto-parse" pending="Re-enable when #7828 is implemented" <|
+        Test.specify "Can perform auto-parse" <|
             response = Data.fetch url_get
             response.at "headers" . at "Content-Length" . should_equal "0"
 
@@ -151,7 +150,6 @@ spec =
 
         Test.specify "Can perform a Request_Body.Text POST" <|
             response = Data.post url_post (Request_Body.Text "hello world")
-            response.code.code . should_equal 200
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -168,12 +166,11 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Json JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post (Request_Body.Json json)
-            response.code.code . should_equal 200
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -189,12 +186,11 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post json
-            response.code.code . should_equal 200
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -210,7 +206,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform an object Request_Body.Json POST" <|
             response = Data.post url_post (Request_Body.Json (Test_Type.Aaa "abc"))
@@ -229,7 +225,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform an object JSON POST" <|
             response = Data.post url_post (Test_Type.Bbb 12)
@@ -248,7 +244,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "can handle a bad .to_json" <|
             Data.post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
@@ -272,7 +268,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a Text POST with explicit content type" <|
             response = Data.post url_post (Request_Body.Text 'a,b,c\n' content_type="text/csv")
@@ -292,7 +288,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a File POST" <|
             test_file = enso_project.data / "sample.txt"
@@ -312,7 +308,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a binary File POST" <|
             test_file = enso_project.data / "sample.png"
@@ -332,7 +328,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a url-encoded form POST" <|
             test_file = enso_project.data / "sample.txt"
@@ -353,13 +349,13 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a multipart form POST" <|
             test_file = enso_project.data / "sample.png"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data)
-            response_json = response.decode_as_json
+            response_json = response
             response_json.at "headers" . at "Content-Type" . should_equal "text/plain"
             response_json.at "data" . is_empty . should_be_false
 
@@ -381,7 +377,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a Text POST with auto-conversion" <|
             response = Data.post url_post "hello world"
@@ -401,7 +397,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Text PUT" <|
             IO.println "AAA Can perform a Request_Body.Text PUT"
@@ -422,7 +418,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Text PATCH" <|
             IO.println "AAA patch"
@@ -443,7 +439,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can perform a DELETE" <|
             IO.println "AAA delete"
@@ -463,7 +459,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Can skip auto-parse" <|
             response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
@@ -504,7 +500,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Cannot perform POST when output context is disabled" <|
             Context.Output.with_disabled <|
@@ -550,7 +546,7 @@ spec =
                   "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Content type in the header list is respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json"]
@@ -570,7 +566,7 @@ spec =
                   "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Multiple content types in the header list are respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json", Header.content_type "text/plain"]
@@ -590,7 +586,7 @@ spec =
                   "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Unspecified content type defaults to text/plain" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}')
@@ -610,7 +606,7 @@ spec =
                   "json": null,
                   "args": {}
                 }
-            response.decode_as_json . should_equal expected_response
+            response . should_equal expected_response
 
         Test.specify "Cannot specify content type in both body and headers" <|
             Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument

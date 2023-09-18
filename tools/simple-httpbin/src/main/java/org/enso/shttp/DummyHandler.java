@@ -44,7 +44,7 @@ public class DummyHandler implements HttpHandler {
       response = "";
       exchange.sendResponseHeaders(200, -1);
     } else {
-      //exchange.getResponseHeaders().put("Content-Type", List.of("application/json"));
+      exchange.getResponseHeaders().put("Content-Type", List.of("application/json"));
       response = "{\n";
       response += "  \"headers\": {\n";
       for (Map.Entry<String, List<String>> entry : exchange.getRequestHeaders().entrySet()) {
