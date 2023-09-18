@@ -14,8 +14,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class DummyHandler implements HttpHandler {
-  private static final Set<String> requiredHeaders =
-      Set.of("Content-length", "Content-type", "User-agent");
+  private static final Set<String> ignoredHeaders =
+      Set.of("Host");
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
@@ -48,7 +48,7 @@ public class DummyHandler implements HttpHandler {
       response = "{\n";
       response += "  \"headers\": {\n";
       for (Map.Entry<String, List<String>> entry : exchange.getRequestHeaders().entrySet()) {
-        if (requiredHeaders.contains(entry.getKey())) {
+        if (!ignoredHeaders.contains(entry.getKey())) {
           if (!first) {
             response += ",\n";
           } else {

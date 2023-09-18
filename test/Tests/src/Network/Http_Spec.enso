@@ -155,6 +155,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
                     "Content-Length": "11"
@@ -258,6 +259,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-16LE",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
                     "Content-Length": "24"
@@ -277,6 +279,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/csv",
                     "Content-Length": "6"
@@ -385,6 +388,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
                     "Content-Length": "11"
@@ -405,6 +409,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
                     "Content-Length": "11"
@@ -425,6 +430,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "application/diff",
                     "Content-Length": "11"
@@ -464,6 +470,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
                     "Content-Length": "11"
@@ -478,11 +485,12 @@ spec =
                 }
             response.decode_as_json . should_equal expected_response
 
-        Test.specify "Can send a custom header" pending="Re-enable when https://github.com/enso-org/enso/issues/7836 is done" <|
+        Test.specify "Can send a custom header" <|
             response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
                     "Content-Length": "11",
@@ -529,6 +537,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
@@ -548,6 +557,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
@@ -567,6 +577,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
@@ -586,6 +597,7 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
                     "Content-Length": "23"
