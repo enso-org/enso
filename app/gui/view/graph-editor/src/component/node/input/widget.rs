@@ -793,7 +793,7 @@ impl Tree {
     }
 
     /// Get pretty-printed representation of this widget tree for debugging purposes.
-    fn debug_print(&self) -> String {
+    pub fn debug_print(&self) -> String {
         let mut result = String::new();
         let hierarchy = self.model.hierarchy.borrow();
         let Some(root) = hierarchy.first() else { return "<EMPTY>".to_string() };
