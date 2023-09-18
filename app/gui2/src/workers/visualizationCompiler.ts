@@ -157,7 +157,6 @@ onmessage = async (
     | { type: 'compile'; id: number; path: string }
   >,
 ) => {
-  console.log('what!', event.data)
   switch (event.data.type) {
     case 'register-builtin-modules': {
       builtinModules = new Set(event.data.modules)

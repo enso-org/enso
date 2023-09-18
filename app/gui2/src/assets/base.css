@@ -42,10 +42,6 @@
   --color-widget: rgba(255 255 255 / 0.12);
   --color-widget-selected: rgba(255 255 255 / 0.58);
   --color-port-connected: rgba(255 255 255 / 0.15);
-
-  --color-error-dataflow: rgb(223 88 125);
-  --color-error-panic: rgb(180 60 20);
-  --color-error-warning: rgb(255 167 37);
 }
 
 /* non-color variables */

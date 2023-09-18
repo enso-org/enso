@@ -1,8 +1,9 @@
-/**
- * Helper function to get text width to make sure that labels on x axis do not overlap,
- * and keeps it readable.
- */
-export function getTextWidth(text: string, font: string) {
+/** Helper function to get text width to make sure that labels on x axis do not overlap,
+ * and keeps it readable. */
+export function getTextWidth(text: string | null | undefined, font: string) {
+  if (text == null) {
+    return 0
+  }
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
   if (context == null) {

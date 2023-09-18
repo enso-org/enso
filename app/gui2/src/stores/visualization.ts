@@ -8,8 +8,6 @@ import * as useVisualizationConfig from '@/providers/useVisualizationConfig'
 
 import { defineStore } from 'pinia'
 
-// FIXME: add histogram visualization
-
 const moduleCache: Record<string, any> = {
   vue,
   '@vueuse/core': vueUseCore,
@@ -32,14 +30,13 @@ type VisualizationModule = {
 const builtinVisualizationPaths: Record<string, string> = {
   JSON: '/visualizations/JSONVisualization.vue',
   Table: '/visualizations/TableVisualization.vue',
-  Error: '/visualizations/ErrorVisualization.vue',
-  Warnings: '/visualizations/WarningsVisualization.vue',
-  Bubble: '/visualizations/BubbleVisualization.vue',
-  Image: '/visualizations/ImageBase64Visualization.vue',
-  'Geo Map': '/visualizations/GeoMapVisualization.vue',
   Scatterplot: '/visualizations/ScatterplotVisualization.vue',
-  'SQL Query': '/visualizations/SQLVisualization.vue',
+  Histogram: '/visualizations/HistogramVisualization.vue',
   Heatmap: '/visualizations/HeatmapVisualization.vue',
+  'SQL Query': '/visualizations/SQLVisualization.vue',
+  'Geo Map': '/visualizations/GeoMapVisualization.vue',
+  Image: '/visualizations/ImageBase64Visualization.vue',
+  Warnings: '/visualizations/WarningsVisualization.vue',
 }
 
 export const useVisualizationStore = defineStore('visualization', () => {
@@ -179,24 +176,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
 
   function sampleData(type: string) {
     switch (type) {
-      case 'Error': {
-        return { kind: 'Dataflow', message: 'a data flow error' }
-      }
       case 'Warnings': {
         return ['warning 1', "warning 2!!&<>;'\x22"]
-      }
-      case 'Bubble': {
-        return [
-          [10, 10, 10],
-          [10, 100, 10],
-          [100, 10, 10],
-          [100, 100, 10],
-          [25, 25, 5],
-          [25, 85, 5],
-          [85, 25, 5],
-          [85, 85, 5],
-          [55, 55, 20],
-        ]
       }
       case 'Image': {
         return {
@@ -255,6 +236,20 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
           [1, 2, 3, 2, 3],
           [50, 25, 40, 20, 10],
         ]
+      }
+      case 'Histogram': {
+        return {
+          axis: {
+            x: { label: 'x-axis label', scale: 'linear' },
+            y: { label: 'y-axis label', scale: 'logarithmic' },
+          },
+          focus: { x: 1.7, y: 2.1, zoom: 3.0 },
+          color: 'rgb(1.0,0.0,0.0)',
+          bins: 10,
+          data: {
+            values: [0.1, 0.2, 0.1, 0.15, 0.7],
+          },
+        }
       }
       case 'Table': {
         return {

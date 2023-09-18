@@ -63,9 +63,12 @@ const pointsNode = ref<SVGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 
-const data_ = computed(() => {
+const data = computed(() => {
   const newData: Data = typeof props.data === 'string' ? JSON.parse(props.data) : props.data
-  if (newData.update === 'diff') {
+  if (newData == null) {
+    console.error('Heatmap was not passed any data.')
+    return []
+  } else if (newData.update === 'diff') {
     if (newData.data != null) {
       return newData.data
     }
@@ -99,7 +102,7 @@ const boxWidth = computed(() => Math.max(0, width.value - margin.left - margin.r
 const boxHeight = computed(() => Math.max(0, height.value - margin.top - margin.bottom))
 
 watch(
-  () => [data_.value, width.value, height.value],
+  () => [data.value, width.value, height.value],
   () => {
     updateHeatmap()
   },
@@ -108,7 +111,7 @@ watch(
 const margin = { top: 20, right: 20, bottom: 20, left: 25 }
 
 const dataPoints = computed(() => {
-  const newData = data_.value
+  const newData = data.value
   let groups: number[] = []
   let variables: number[] = []
   let values: number[] = []
