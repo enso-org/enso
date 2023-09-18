@@ -84,15 +84,11 @@ type Response
     @format decode_format_selector
     decode : File_Format -> Any -> Any
     decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
-        IO.println 'AAAAA decode'
-        IO.println format
         case format of
             Auto_Detect ->
                 content_type = self.content_type
-                IO.println content_type
                 format = if content_type.is_nothing then Nothing else
                     Auto_Detect.get_web_parser content_type (self.internal_http_response.uri.toString)
-                IO.println format
                 if format.is_nothing then if_unsupported else
                     format.read_web self
             _ ->

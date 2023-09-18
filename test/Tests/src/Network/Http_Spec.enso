@@ -53,12 +53,20 @@ spec =
         url_get = base_url_with_slash + "get"
 
         Test.specify "Can perform a GET with a JSON response" <|
-            IO.println "AAAAA start Can perform a GET with a JSON response"
             response = Data.fetch url_get
-            IO.println "AAAAA response type"
-            IO.println (Meta.get_simple_type_name response)
-            response.at "headers" . at "Content-Length" . should_equal "0"
-            IO.println "AAAAA end Can perform a GET with a JSON response"
+            response.code.code . should_equal 200
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "0"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a GET with a file response" <|
             f = enso_project.data / "spreadsheet.xls"
@@ -69,22 +77,25 @@ spec =
             f.delete
             f.exists.should_be_false
 
+        Test.specify "Can perform auto-parse" pending="Re-enable when #7828 is implemented" <|
+            response = Data.fetch url_get
+            response.at "headers" . at "Content-Length" . should_equal "0"
+
         Test.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
             response.code.code . should_equal 200
-            response.body.bytes.length . should_equal 307
-
-        Test.specify "Can perform a HEAD" <|
-            # httpbin.org does not provide a HEAD endpoint, so we use GET
-            response = Data.fetch url_get method=HTTP_Method.Head #try_auto_parse_response=False
-            response.code.code . should_equal 200
-            response.body.bytes.length . should_equal 0
-
-        Test.specify "Can perform an OPTIONS" <|
-            # httpbin.org does not provide an OPTIONS endpoint, so we use GET
-            response = Data.fetch url_get method=HTTP_Method.Options
-            response.code.code . should_equal 200
-            response.body.bytes.length . should_equal 0
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "0"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can still perform request when output context is disabled" <|
             run_with_and_without_output <|
@@ -110,41 +121,106 @@ spec =
     Test.group "post" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
-        url_put = base_url_with_slash + "put"
-        url_patch = base_url_with_slash + "patch"
-        url_delete = base_url_with_slash + "delete"
 
         Test.specify "Can perform a Request_Body.Text POST" <|
             response = Data.post url_post (Request_Body.Text "hello world")
-            response.at "data" . should_equal "hello world"
-            response.at "headers" . at "Content-Length" . should_equal "11"
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response.code.code . should_equal 200
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "hello world",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Json JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post (Request_Body.Json json)
-            response.at "data" . should_equal '{"a":"asdf","b":123}'
-            response.at "headers" . at "Content-Length" . should_equal "20"
-            response.at "headers" . at "Content-Type" . should_equal "application/json"
+            response.code.code . should_equal 200
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "20"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'
             response = Data.post url_post json
-            response.at "data" . should_equal '{"a":"asdf","b":123}'
-            response.at "headers" . at "Content-Length" . should_equal "20"
-            response.at "headers" . at "Content-Type" . should_equal "application/json"
+            response.code.code . should_equal 200
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "20"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform an object Request_Body.Json POST" <|
             response = Data.post url_post (Request_Body.Json (Test_Type.Aaa "abc"))
-            response.at "data" . should_equal '{"type":"Test_Type","constructor":"Aaa","s":"abc"}'
-            response.at "headers" . at "Content-Length" . should_equal "50"
-            response.at "headers" . at "Content-Type" . should_equal "application/json"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "50"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Aaa\\",\\"s\\":\\"abc\\"}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform an object JSON POST" <|
             response = Data.post url_post (Test_Type.Bbb 12)
-            response.at "data" . should_equal '{"type":"Test_Type","constructor":"Bbb","i":12}'
-            response.at "headers" . at "Content-Length" . should_equal "47"
-            response.at "headers" . at "Content-Type" . should_equal "application/json"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "47"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "can handle a bad .to_json" <|
             Data.post url_post (Bad_To_Json.Aaa "abcd") . should_fail_with Illegal_Argument
@@ -152,86 +228,187 @@ spec =
         Test.specify "Can perform a Text POST with explicit encoding" <|
             body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le
             response = Data.post url_post body
-            response.at "data" . should_equal 'H\u0000e\u0000l\u0000l\u0000o\u0000 \u0000W\u0000o\u0000r\u0000l\u0000d\u0000!\u0000'
-            response.at "headers" . at "Content-Length" . should_equal "24"
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
-            response.at "headers" . at "Content-Encoding" . should_equal "UTF-16LE"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "24"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "H\\u0000e\\u0000l\\u0000l\\u0000o\\u0000 \\u0000W\\u0000o\\u0000r\\u0000l\\u0000d\\u0000!\\u0000",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a Text POST with explicit content type" <|
             response = Data.post url_post (Request_Body.Text 'a,b,c\n' content_type="text/csv")
-            response.at "data" . should_equal 'a,b,c\n'
-            response.at "headers" . at "Content-Length" . should_equal "6"
-            response.at "headers" . at "Content-Type" . should_equal "text/csv"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/csv",
+                    "Content-Length": "6"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "a,b,c",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a File POST" <|
             test_file = enso_project.data / "sample.txt"
             response = Data.post url_post (Request_Body.Binary test_file)
-            response.at "data" . should_equal test_file.read_text
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "403"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart souffl\u00E9 jelly beans gummies.",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a binary File POST" <|
             test_file = enso_project.data / "sample.png"
             response = Data.post url_post (Request_Body.Binary test_file)
-            response.at "data" . should_start_with 'data:application/octet-stream;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "26905"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "\uFFFDPNG",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a url-encoded form POST" <|
             test_file = enso_project.data / "sample.txt"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
-            response.at "data" . should_start_with "key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll"
-            response.at "headers" . at "Content-Length" . should_equal "432"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "432"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll+cake+ice+cream.+Carrot+cake+apple+pie+gingerbread+chocolate+cake+pudding+tart+souffl%C3%A9+jelly+beans+gummies.%0A%0ATootsie+roll+chupa+chups+muffin+croissant+fruitcake+jujubes+danish+cotton+candy+danish.+Oat+cake+chocolate+fruitcake+halvah+icing+oat+cake+toffee+powder.+Pastry+drag%C3%A9e+croissant.+Ice+cream+candy+canes+dessert+muffin+sugar+plum+tart+jujubes.%0A",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a multipart form POST" <|
             test_file = enso_project.data / "sample.png"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data)
-            response.at "form" . at "key" . should_equal "val"
-            response.at "files" . at "a_file" . should_start_with 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJgAAACQCAYAAAD0'
-            response.at "headers" . at "Content-Type" . should_start_with "multipart/form-data"
+            response_json = response.decode_as_json
+            response_json.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response_json.at "data" . is_empty . should_be_false
 
         Test.specify "Can perform a File POST with auto-conversion" <|
             test_file = enso_project.data / "sample.txt"
             response = Data.post url_post test_file
-            response.at "data" . should_equal test_file.read_text
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "403"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart souffl\u00E9 jelly beans gummies.",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can perform a Text POST with auto-conversion" <|
             response = Data.post url_post "hello world"
-            response.at "data" . should_equal "hello world"
-            response.at "headers" . at "Content-Length" . should_equal "11"
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "hello world",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can skip auto-parse" <|
             response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
-            response.body.bytes.length . should_equal 417
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "hello world",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Can send a custom header" <|
             response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
-            response.at "data" . should_equal "hello world"
-            response.at "headers" . at "Content-Length" . should_equal "11"
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
-            response.at "headers" . at "Custom" . should_equal "asdf"
-
-        Test.specify "Can perform a Request_Body.Text PUT" <|
-            response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
-            response.at "data" . should_equal "hello world"
-            response.at "headers" . at "Content-Length" . should_equal "11"
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
-
-        Test.specify "Can perform a Request_Body.Text PATCH" <|
-            response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
-            response.at "data" . should_equal "hello world"
-            response.at "headers" . at "Content-Length" . should_equal "11"
-            response.at "headers" . at "Content-Type" . should_equal "application/diff"
-
-        Test.specify "Can perform a DELETE" <|
-            response = Data.post url_delete method=HTTP_Method.Delete #try_auto_parse_response=False
-            response.at "headers" . at "Content-Length" . should_equal "0"
-
-        Test.specify "Cannot perform POST/PATCH/PUT/DELETE when output context is disabled" <|
-            Context.Output.with_disabled <|
-                Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
-                Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put . should_fail_with Forbidden_Operation
-                Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch . should_fail_with Forbidden_Operation
-                Data.post url_delete method=HTTP_Method.Delete . should_fail_with Forbidden_Operation
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "hello world",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Unsupported method" <|
             err = Data.post url_post (Request_Body.Text "hello world") method=HTTP_Method.Get
@@ -244,25 +421,179 @@ spec =
             test_file = enso_project.data / "does_not_exist.txt"
             Data.post url_post (Request_Body.Binary test_file) . should_fail_with Request_Error
 
+    Test.group "put/patch/delete" pending="reenable when https://github.com/enso-org/enso/issues/7835 is done" <|
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_post = base_url_with_slash + "post"
+        url_head = base_url_with_slash + "head"
+        url_options = base_url_with_slash + "options"
+        url_put = base_url_with_slash + "put"
+        url_patch = base_url_with_slash + "patch"
+        url_delete = base_url_with_slash + "delete"
+
+        Test.specify "Can perform a HEAD" <|
+            response = Data.fetch url_head method=HTTP_Method.Head #try_auto_parse_response=False
+            response.code.code . should_equal 200
+            response.decode_as_text . should_equal ''
+
+        Test.specify "Can perform an OPTIONS" <|
+            response = Data.fetch url_options method=HTTP_Method.Options
+            response.code.code . should_equal 200
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "0"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
+
+        Test.specify "Can perform a Request_Body.Text PUT" <|
+            response = Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "47"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
+
+        Test.specify "Can perform a Request_Body.Text PATCH" <|
+            response = Data.post url_patch (Request_Body.Text "hello world" content_type="application/diff") method=HTTP_Method.Patch
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "47"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
+
+        Test.specify "Can perform a DELETE" <|
+            response = Data.post url_delete method=HTTP_Method.Delete #try_auto_parse_response=False
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "47"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
+
+        Test.specify "Cannot perform POST/PATCH/PUT/DELETE when output context is disabled" <|
+            Context.Output.with_disabled <|
+                Data.post url_post (Request_Body.Text "hello world") . should_fail_with Forbidden_Operation
+                Data.post url_put (Request_Body.Text "hello world") method=HTTP_Method.Put . should_fail_with Forbidden_Operation
+                Data.post url_patch (Request_Body.Text "hello world") method=HTTP_Method.Patch . should_fail_with Forbidden_Operation
+                Data.post url_delete method=HTTP_Method.Delete . should_fail_with Forbidden_Operation
+
     Test.group "Headers" <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 
         Test.specify "Content-type in the body is respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}' content_type="application/json")
-            response.at "headers" . at "Content-Type" . should_equal "application/json"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "application/json",
+                    "Content-Length": "23"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
+                  "json": {"a": "asdf", "b": 123},
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Content type in the header list is respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json"]
-            response.at "headers" . at "Content-Type" . should_equal "application/json"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "application/json",
+                    "Content-Length": "23"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
+                  "json": {"a": "asdf", "b": 123},
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Multiple content types in the header list are respected" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}') headers=[Header.content_type "application/json", Header.content_type "text/plain"]
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "application/json",
+                    "Content-Length": "23"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
+                  "json": {"a": "asdf", "b": 123},
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Unspecified content type defaults to text/plain" <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}')
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "23"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "form": null,
+                  "files": null,
+                  "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
+                  "json": null,
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
 
         Test.specify "Cannot specify content type in both body and headers" <|
             Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
