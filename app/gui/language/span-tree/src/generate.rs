@@ -384,7 +384,6 @@ impl SpanTreeGenerator for GeneralizedInfix {
         let chain = self.flatten();
         let kind = kind.into();
         let mut app_base = ApplicationBase::from_infix(self);
-        console_log!("APP BASE {app_base:#?}");
         let mut application = app_base.resolve(context);
         let node_application = application
             .as_ref()
@@ -1434,7 +1433,7 @@ mod test {
             .add_empty_child(0, BeforeArgument(0))
             .add_leaf(0, 1, node::Kind::argument().indexed(0), SectionLeftCrumb::Arg)
             .add_leaf(1, 1, node::Kind::Operation, SectionLeftCrumb::Opr)
-            .add_empty_child(2, Append)
+            .add_empty_child(2, ExpectedArgument { index: 1, named: false })
             .build();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
@@ -1457,7 +1456,7 @@ mod test {
             sth_else => panic!("There should be 5 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(2)
-            .add_empty_child(0, BeforeArgument(0))
+            .add_empty_child(0, ExpectedArgument { index: 0, named: false })
             .add_leaf(0, 1, node::Kind::Operation, SectionRightCrumb::Opr)
             .add_leaf(1, 1, node::Kind::argument().indexed(1), SectionRightCrumb::Arg)
             .add_empty_child(2, Append)
