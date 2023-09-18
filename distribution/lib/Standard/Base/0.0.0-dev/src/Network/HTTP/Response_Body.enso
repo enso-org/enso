@@ -89,8 +89,7 @@ type Response_Body
                     case first_block.length < maximum_body_in_memory of
                         True -> Response_Body.Byte_Array (Vector.from_polyglot_array first_block) self.content_type self.uri
                         False ->
-                            ## Use the domain name as a prefix?
-                            file = File.create_temporary_file
+                            file = File.create_temporary_file self.uri.host
 
                             ## Write contents to temporary file
                             Context.Output.with_enabled <|
