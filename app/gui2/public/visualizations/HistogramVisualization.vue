@@ -159,15 +159,15 @@ const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
 
 const points = ref<number[]>([])
-const dataBins = ref<number[]>([])
+const dataBins = ref<number[]>()
 const binCount = ref(DEFAULT_NUMBER_OF_BINS)
 const axis = ref(DEFAULT_AXES_CONFIGURATION)
-const focus = ref<Focus>({ x: 0, y: 0, zoom: 1 })
+const focus = ref<Focus>()
 const brushExtent = ref<d3Types.BrushSelection>()
 // FIXME:
 const scale = ref<ScaleConfiguration>(null!)
 
-const data = watchEffect(() => {
+watchEffect(() => {
   let rawData: Data | undefined =
     typeof props.data === 'string' ? JSON.parse(props.data) : props.data
   if (rawData == null) {
@@ -203,7 +203,7 @@ const data = watchEffect(() => {
       binCount.value = Math.max(1, rawData.bins)
     }
     if (!isUpdate) {
-      dataBins.value = rawData.data?.bins ?? []
+      dataBins.value = rawData.data?.bins ?? undefined
     }
 
     const values = Array.isArray(rawData) ? rawData : rawData.data?.values ?? []
@@ -256,7 +256,7 @@ const yLabelLeft = computed(
 onMounted(() => {
   updateHistogram()
   zoom = initPanAndZoom()
-  initBrushing()
+  updateBrushing()
 })
 
 watch(
@@ -264,6 +264,7 @@ watch(
   () => {
     updateHistogram()
     zoom = initPanAndZoom()
+    updateBrushing()
   },
 )
 
@@ -419,6 +420,7 @@ const brush = computed(() =>
  * Section "Brushing for zooming".
  */
 function zoomIn() {
+  focus.value = undefined
   if (brushExtent.value == null) {
     return
   }
@@ -440,17 +442,13 @@ function zoomIn() {
  * Brush is a tool which enables user to select points, and zoom into selection via
  * keyboard shortcut or button event.
  */
-function initBrushing() {
+function updateBrushing() {
   if (brushNode.value == null) {
     throw new Error('Scatterplot could not find the HTML element for the brush.')
   }
-
   // The brush element must be child of zoom element - this is only way we found to have both
   // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
   d3.select(brushNode.value).call(brush.value)
-
-  let endEvents = ['click', 'auxclick', 'contextmenu', 'scroll']
-  endEvents.forEach((e) => document.addEventListener(e, endBrushing, false))
 }
 
 /**
@@ -512,14 +510,6 @@ function rescale(scale: ScaleConfiguration, shouldAnimate: boolean) {
     )
 }
 
-function createBins(values: number[]) {
-  let bins = []
-  for (let i = 0; i < values.length; i++) {
-    bins.push({ x0: i, x1: i + 1, length: values[i] })
-  }
-  return bins
-}
-
 /**
  * Return the extrema of the data and and paddings that ensure data will fit into the
  * drawing area.
@@ -529,8 +519,8 @@ function createBins(values: number[]) {
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
-  let xMin = dataBins.value.length ? 0 : Math.min(...points.value)
-  let xMax = dataBins.value.length ? dataBins.value.length - 1 : Math.max(...points.value)
+  let xMin = dataBins.value != null ? 0 : Math.min(...points.value)
+  let xMax = dataBins.value != null ? dataBins.value.length - 1 : Math.max(...points.value)
   const dx = xMax - xMin
   const paddingX = 0.1 * dx
   return { xMin, xMax, paddingX, dx }
@@ -567,22 +557,24 @@ function updateHistogram() {
 
   let bins: Bin[] = []
   if (dataBins.value != null) {
-    bins = createBins(dataBins.value)
+    bins = dataBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
   } else {
+    const xDomain = x.domain()
     const histogram = d3
       .bin()
       // FIXME: remove if unnecessary
       .value((d) => d)
-    // The built-in types are too wide here. The domain *always* contains two elements.
-    histogram.domain(x.domain() as [number, number])
-    histogram.thresholds(x.ticks(binCount.value))
+      // The built-in types are too wide here. The domain *always* contains two elements.
+      .domain([xDomain[0] ?? 0, xDomain[1] ?? 1])
+      .thresholds(x.ticks(binCount.value))
     bins = histogram(points.value)
   }
 
   const y = d3
     .scaleLinear()
     .range([boxHeight.value, 0])
-    .domain([0, d3.max(bins, (d) => d.length) ?? 1])
+    // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
+    .domain([0, d3.max(bins, (d) => d.length) || 1])
 
   const yAxisTicks = y.ticks().filter((tick) => Number.isInteger(tick))
 
@@ -604,15 +596,15 @@ function updateHistogram() {
   } else {
     const items = d3.select(plotNode.value).selectAll<SVGRectElement, Bin>('rect').data(bins)
     const boxHeight_ = boxHeight.value
-    items
-      .enter()
-      .append('rect')
-      .attr('x', 1)
-      .attr('transform', (d) => 'translate(' + x(d.x0 ?? 0) + ',' + y(d.length ?? 0) + ')')
-      .attr('width', (d) => x(d.x1 ?? 0) - x(d.x0 ?? 0))
-      .attr('height', (d) => boxHeight_ - y(d.length ?? 0))
-      .style('fill', (d) => fill(d.length ?? 0))
-    items.exit().remove()
+    items.join(
+      (enter) => enter.append('rect').attr('x', 1),
+      (update) =>
+        update
+          .attr('transform', (d) => 'translate(' + x(d.x0 ?? 0) + ',' + y(d.length ?? 0) + ')')
+          .attr('width', (d) => x(d.x1 ?? 0) - x(d.x0 ?? 0))
+          .attr('height', (d) => boxHeight_ - y(d.length ?? 0))
+          .style('fill', (d) => fill(d.length ?? 0)),
+    )
   }
 
   scale.value = { x, y, zoom: 1.0 }
@@ -641,6 +633,7 @@ function updateColorLegend(colorScale: d3Types.ScaleContinuousNumeric<number, nu
 }
 
 function fitAll() {
+  focus.value = undefined
   if (zoomNode.value == null) {
     console.error('Histogram could not find the HTML element for the zoom.')
   } else {
@@ -652,7 +645,7 @@ function fitAll() {
     extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
   ]
   zoom.transformedScale.x.domain(domainX)
-  zoom.transformedScale.zoom = focus.value.zoom = 1
+  zoom.transformedScale.zoom = 1
   rescale(zoom.transformedScale, true)
 }
 
@@ -733,7 +726,7 @@ onUnmounted(() => {
             v-text="axis.y.label"
           ></text>
           <g ref="plotNode" clip-path="url(#histogram-clip-path)"></g>
-          <g class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+          <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
             <g ref="brushNode" class="brush"></g>
           </g>
         </g>
@@ -754,7 +747,6 @@ onUnmounted(() => {
 }
 
 .label {
-  font-family: 'DejaVu Sans Mono', monospace;
   font-size: 10px;
 }
 

@@ -241,7 +241,7 @@ onMounted(() => {
   scaleAndAxis = updateAxes()
   zoom = addPanAndZoom()
   redrawPoints()
-  addBrushing()
+  updateBrushing()
 })
 
 watch(
@@ -250,7 +250,7 @@ watch(
     scaleAndAxis = updateAxes()
     zoom = addPanAndZoom()
     redrawPoints()
-    addBrushing()
+    updateBrushing()
   },
 )
 
@@ -438,7 +438,7 @@ const brush = computed(() =>
  * Brush is a tool which enables user to select points, and zoom into selection via
  * keyboard shortcut or button event.
  */
-function addBrushing() {
+function updateBrushing() {
   if (brushNode.value == null) {
     throw new Error('Scatterplot could not find the HTML element for the brush.')
   }
@@ -788,7 +788,6 @@ function fitAll() {
 }
 
 .label {
-  font-family: 'DejaVu Sans Mono', monospace;
   font-size: 10px;
 }
 
