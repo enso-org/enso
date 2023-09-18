@@ -436,6 +436,7 @@ pub fn gui() -> Result<Workflow> {
     workflow.add(PRIMARY_OS, job::Lint);
     workflow.add(PRIMARY_OS, job::WasmTest);
     workflow.add(PRIMARY_OS, job::NativeTest);
+    workflow.add(PRIMARY_OS, job::NewGuiTest);
 
     // FIXME: Integration tests are currently always failing.
     //        The should be reinstated when fixed.
@@ -452,10 +453,12 @@ pub fn gui() -> Result<Workflow> {
             let _wasm_job = workflow.add(os, job::BuildWasm);
         }
         let project_manager_job = workflow.add(os, job::BuildBackend);
-        workflow.add_customized(os, job::PackageIde, |job| {
+        let add_ide_dependencies = |job: &mut Job| {
             job.needs.insert(wasm_job_linux.clone());
-            job.needs.insert(project_manager_job);
-        });
+            job.needs.insert(project_manager_job.clone());
+        };
+        workflow.add_customized(os, job::PackageOldIde, add_ide_dependencies);
+        workflow.add_customized(os, job::PackageNewIde, add_ide_dependencies);
     }
     Ok(workflow)
 }
