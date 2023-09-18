@@ -474,14 +474,15 @@ spec =
                 }
             response.decode_as_json . should_equal expected_response
 
-        Test.specify "Can send a custom header" <|
+        Test.specify "Can send a custom header" pending='Re-enable when https://github.com/enso-org/enso/issues/7836 is done" <|
             response = Data.post url_post (Request_Body.Text "hello world") headers=[Header.new "Custom" "asdf"]
             expected_response = Json.parse <| '''
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "text/plain",
-                    "Content-Length": "11"
+                    "Content-Length": "11",
+                    "Custom": "asdf"
                   },
                   "origin": "127.0.0.1",
                   "url": "",
