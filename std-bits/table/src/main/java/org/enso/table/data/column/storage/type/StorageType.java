@@ -20,7 +20,7 @@ public sealed interface StorageType permits AnyObjectType, BigIntegerType, Boole
       return IntegerType.INT_64;
     }
 
-    if (NumericConverter.isDecimalLike(item)) {
+    if (NumericConverter.isFloatLike(item)) {
       return FloatType.FLOAT_64;
     }
 

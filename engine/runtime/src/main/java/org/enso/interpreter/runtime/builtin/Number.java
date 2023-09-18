@@ -1,7 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.node.expression.builtin.Builtin;
-import org.enso.interpreter.node.expression.builtin.number.Decimal;
+import org.enso.interpreter.node.expression.builtin.number.Float;
 import org.enso.interpreter.node.expression.builtin.number.Integer;
 import org.enso.interpreter.runtime.data.Type;
 
@@ -9,14 +9,14 @@ import org.enso.interpreter.runtime.data.Type;
 public class Number {
   private final Builtin integer;
   private final Builtin number;
-  private final Builtin decimal;
+  private final Builtin ensoFloat;
 
   /** Creates builders for number Atom Constructors. */
   public Number(Builtins builtins) {
     integer = builtins.getBuiltinType(Integer.class);
     number =
         builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.number.Number.class);
-    decimal = builtins.getBuiltinType(Decimal.class);
+    ensoFloat = builtins.getBuiltinType(Float.class);
   }
 
   /** @return the Integer atom constructor */
@@ -30,7 +30,7 @@ public class Number {
   }
 
   /** @return the Decimal atom constructor */
-  public Type getDecimal() {
-    return decimal.getType();
+  public Type getFloat() {
+    return ensoFloat.getType();
   }
 }

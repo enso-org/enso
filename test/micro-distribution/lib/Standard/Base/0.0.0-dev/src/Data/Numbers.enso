@@ -3,3 +3,4 @@ type Number
 
 @Builtin_Type
 type Integer
+    ^ self that = @Builtin_Method "Integer.^"

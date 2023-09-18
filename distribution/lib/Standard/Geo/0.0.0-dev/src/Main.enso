@@ -24,6 +24,6 @@ from project.Geo_Json export geo_json_to_table
          import Standard.Geo
 
          example_point = Geo.point 51.509865 -0.118092
-point : Decimal -> Decimal -> Decimal -> Table
+point : Float -> Float -> Float -> Table
 point latitude longitude elevation=0 =
     Table.new [["latitude", [latitude]], ["longitude", [longitude]], ["elevation", [elevation]]]

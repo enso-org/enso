@@ -244,7 +244,7 @@ impl SpriteSystem {
         let size = instance_scope.add_buffer("size");
         let alignment_value = Rc::new(Cell::new(alignment));
         let initial_alignment = alignment_value.get().normalized();
-        let alignment = symbol.variables().add_or_panic("alignment", initial_alignment);
+        let alignment = symbol.variables.borrow_mut().add_or_panic("alignment", initial_alignment);
 
         stats.inc_sprite_system_count();
 
@@ -300,12 +300,12 @@ impl SpriteSystem {
 
     /// Sets the geometry material for all sprites in this system.
     pub fn set_geometry_material<M: Into<Material>>(&self, material: M) {
-        self.symbol.shader().set_geometry_material(material);
+        self.symbol.shader.borrow_mut().set_geometry_material(material);
     }
 
     /// Sets the surface material for all sprites in this system.
     pub fn set_material<M: Into<Material>>(&self, material: M) {
-        self.symbol.shader().set_material(material);
+        self.symbol.shader.borrow_mut().set_material(material);
     }
 }
 
@@ -327,7 +327,7 @@ impl SpriteSystem {
     }
 
     fn init_shader(&self) {
-        let shader = self.symbol.shader();
+        let mut shader = self.symbol.shader.borrow_mut();
         let surface_material = Self::default_surface_material();
         let geometry_material = Self::default_geometry_material();
         shader.set_geometry_material(geometry_material);

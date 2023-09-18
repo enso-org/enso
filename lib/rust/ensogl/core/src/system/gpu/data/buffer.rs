@@ -10,6 +10,7 @@ use crate::control::callback;
 use crate::data::dirty;
 use crate::data::seq::observable::Observable;
 use crate::debug::stats::Stats;
+use crate::system::gpu::context::ContextLost;
 use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
@@ -73,10 +74,10 @@ pub struct GlData {
 
 impl GlData {
     /// Constructor.
-    pub fn new(context: &Context) -> Self {
-        let context = context.clone();
-        let buffer = create_gl_buffer(&context);
-        Self { context, buffer }
+    pub fn new(context: Context) -> Result<Self, ContextLost> {
+        let buffer = context.create_buffer()?;
+        let context = context;
+        Ok(Self { context, buffer })
     }
 }
 
@@ -269,9 +270,9 @@ impl<T:Storable> {
     /// Set the GPU context. In most cases, this happens during app initialization or during context
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&mut self, context:Option<&Context>) {
-        self.gl = context.map(|ctx| {
+        self.gl = context.and_then(|ctx| {
             self.resize_dirty.set();
-            GlData::new(ctx)
+            GlData::new(ctx.clone()).ok()
         });
     }
 }}
@@ -411,14 +412,6 @@ impl<T> Drop for BufferData<T> {
             self.drop_stats();
         }
     }
-}
-
-
-// === Utils ===
-
-fn create_gl_buffer(context: &Context) -> WebGlBuffer {
-    let buffer = context.create_buffer();
-    buffer.ok_or("Failed to create WebGL buffer.").unwrap()
 }
 
 

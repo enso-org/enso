@@ -308,6 +308,9 @@
   centered and the delay before showing them was extended.
 - [Accurate GPU performance measurements have been implemented][6595]. It is
   possible now to track both the time spent on both the CPU and the GPU sides.
+- [Support recovery from GL context loss][7662]. This allows the application to
+  continue after an interruption to rendering, such as hibernation or movement
+  of the application window to a display rendered by a different GPU.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -323,6 +326,7 @@
 [6595]: https://github.com/enso-org/enso/pull/6595
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
+[7662]: https://github.com/enso-org/enso/pull/7662
 
 #### Enso Standard Library
 
@@ -569,6 +573,7 @@
   `Column.map` and `Column.zip`.][7637]
 - [Added `delete_rows` method to Database Table, changed the
   `update_database_table` API into `update_rows`.][7709]
+- [Renamed `Decimal` to `Float`.][7807]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -807,6 +812,7 @@
 [7615]: https://github.com/enso-org/enso/pull/7615
 [7637]: https://github.com/enso-org/enso/pull/7637
 [7709]: https://github.com/enso-org/enso/pull/7709
+[7807]: https://github.com/enso-org/enso/pull/7807
 
 #### Enso Compiler
 
@@ -947,6 +953,7 @@
   projects next to each other][7634]
 - [Support runtime checks of intersection types][7769]
 - [Merge `Small_Integer` and `Big_Integer` types][7636]
+- [Inline type ascriptions][7796]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1086,6 +1093,7 @@
 [7634]: https://github.com/enso-org/enso/pull/7634
 [7769]: https://github.com/enso-org/enso/pull/7769
 [7636]: https://github.com/enso-org/enso/pull/7636
+[7796]: https://github.com/enso-org/enso/pull/7796
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

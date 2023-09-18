@@ -1,4 +1,4 @@
-import project.Data.Numbers.Decimal
+import project.Data.Numbers.Float
 import project.Data.Numbers.Number
 
 ## The mathematical constant pi, equal to the ratio of a circle circumference
@@ -8,7 +8,7 @@ import project.Data.Numbers.Number
      Calculating the area of a circle.
 
          circle_area r = 2 * Math.pi * r^2
-pi : Decimal
+pi : Float
 pi = 3.1415926535897932385
 
 ## The mathematical constant e, the base of the natural logarithm.
@@ -17,7 +17,7 @@ pi = 3.1415926535897932385
      Calculating the natural logarithm of 3.
 
          3.log Math.e
-e : Decimal
+e : Float
 e = 2.718281828459045235360
 
 ## PRIVATE

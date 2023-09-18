@@ -19,6 +19,6 @@ public class DefaultDoubleExports {
       Double receiver,
       @CachedLibrary("receiver") TypesLibrary thisLib,
       @Cached(value = "1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getDecimal();
+    return EnsoContext.get(thisLib).getBuiltins().number().getFloat();
   }
 }

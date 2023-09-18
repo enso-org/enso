@@ -171,7 +171,7 @@ from project.Data.Boolean export Boolean, False, True
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 from project.Data.Json.Extensions export all
 from project.Data.Noise export all hiding Deterministic_Random, Generator, Long, Noise, Random
-from project.Data.Numbers export Decimal, Integer, Number
+from project.Data.Numbers export Float, Integer, Number
 from project.Data.Range.Extensions export all
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
 from project.Data.Text.Extensions export all

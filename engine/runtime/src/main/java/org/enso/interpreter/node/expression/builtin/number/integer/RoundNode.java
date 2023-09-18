@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.profiles.PrimitiveValueProfile;
@@ -11,7 +10,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.RoundHelpers;
     type = "Integer",
     name = "round",
     description = "Decimal ceiling, converting to a small or big integer depending on size.")
-public class RoundNode extends Node {
+public class RoundNode extends IntegerNode {
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
   private final PrimitiveValueProfile constantPlacesDecimalPlaces = PrimitiveValueProfile.create();
