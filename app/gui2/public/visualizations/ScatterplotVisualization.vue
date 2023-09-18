@@ -584,19 +584,21 @@ watchEffect(() => {
   d3Points.value?.remove()
   d3Points.value = d3
     .select(points)
-    .selectAll('dataPoint')
+    .selectAll<SVGPathElement, unknown>('dataPoint')
     .data(data.value.data)
-    .enter()
-    .append('path')
-    .attr(
-      'd',
-      symbol.type(matchShape).size((d: Point) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+    .join((enter) =>
+      enter
+        .append('path')
+        .attr(
+          'd',
+          symbol.type(matchShape).size((d: Point) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+        )
+        .attr(
+          'transform',
+          (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
+        )
+        .style('fill', (d) => d.color ?? FILL_COLOR),
     )
-    .attr(
-      'transform',
-      (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
-    )
-    .style('fill', (d) => d.color ?? FILL_COLOR)
 
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Labels.value?.remove()
