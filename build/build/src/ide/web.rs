@@ -259,7 +259,7 @@ impl IdeDesktop {
     ) -> Self {
         Self {
             build_sbt: repo_root.build_sbt.clone(),
-            package_dir: repo_root.app.ide_desktop.clone(),
+            package_dir: repo_root.clone(),
             octocrab,
             cache,
             linked_dist: repo_root.target.ensogl_pack.linked_dist.clone(),
