@@ -31,7 +31,7 @@ make_date_format_selector (date:Date=(Date.new 2012 3 14)) =
         [f + " (e.g. " + date.format f + ")", f.pretty]
     custom_locale_format =
         format = Date_Time_Formatter.from 'd MMMM yyyy' locale=Locale.france
-        ['d MMMM yyyy with custom Locale (e.g. ' + date.format format + ')', "(Date_Time_Formatter.from 'd MMMM yyyy' locale=Locale.france)"]
+        ['d MMMM yyyy - with custom Locale (e.g. ' + date.format format + ')', "(Date_Time_Formatter.from 'd MMMM yyyy' locale=Locale.france)"]
     week_date_formats = ['YYYY-ww-d', 'YYYY-ww', 'ddd, YYYY-ww'].map f->
         format = Date_Time_Formatter.from_iso_week_date_pattern f
         ["ISO Week-based Date: " + f + " (e.g. " + date.format format + ")", "("+fqn+".from_iso_week_date_pattern " + f.pretty + ")"]
@@ -55,8 +55,8 @@ make_date_time_format_selector (date_time:Date_Time=(Date_Time.new 2012 3 14 15 
     formats = ['yyyy-MM-dd HH:mm:ss.f', 'yyyy-MM-dd HH:mm:ss.f TT', 'd/M/yyyy h:mm a', 'dd/MM/yyyy HH:mm:ss', 'd-MMM-yy HH:mm:ss', 'd-MMM-yy h:mm:ss a', 'd MMMM yyyy h:mm a', 'M/d/yyyy h:mm:ss a', 'MM/dd/yyyy HH:mm:ss']
     mapped_formats = formats.map f-> [f + " (e.g. " + date_time.format f + ")", f.pretty]
     custom_locale_format =
-        format = Date_Time_Formatter.from 'd MMMM yyyy h:mm a' locale=Locale.france
-        ['d MMMM yyyy h:mm a with custom Locale (e.g. ' + date_time.format format + ')', "(Date_Time_Formatter.from 'd MMMM yyyy h:mm a' locale=Locale.france)"]
+        format = Date_Time_Formatter.from 'd MMMM yyyy HH:mm' locale=Locale.france
+        ['d MMMM yyyy HH:mm - with custom Locale (e.g. ' + date_time.format format + ')', "(Date_Time_Formatter.from 'd MMMM yyyy HH:mm' locale=Locale.france)"]
     week_date_formats = ['YYYY-ww-d HH:mm:ss.f'].map f->
         format = Date_Time_Formatter.from_iso_week_date_pattern f
         ["ISO Week-based Date-Time: " + f + " (e.g. " + date_time.format format + ")", "("+fqn+".from_iso_week_date_pattern " + f.pretty + ")"]
