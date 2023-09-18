@@ -44,7 +44,7 @@ interpret locale nodes =
             builder.appendLocalizedOffset TextStyle.FULL
 
         Time_Patterns.AmPm ->
-            builder.appendValue ChronoField.AMPM_OF_DAY 2
+            builder.appendText ChronoField.AMPM_OF_DAY
         Time_Patterns.Fraction_Of_Second representation ->
             min_digits = 1
             max_digits = case representation.digits of
