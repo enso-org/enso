@@ -195,6 +195,13 @@ type Unresolved_Symbol
     scope : Any
     scope self = get_unresolved_symbol_scope self.value
 
+    ## ADVANCED
+       GROUP Metadata
+
+       Starts building an instrumentation for a given node
+    instrument : Instrumentor
+    instrument self = Instrumentor.Value (instrumentor_builtin "newBuilder" [ self.value ])
+
 type Error
     ## PRIVATE
        ADVANCED
@@ -561,3 +568,24 @@ get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
    - constructor: the constructor to get the declaring type of.
 get_constructor_declaring_type : Any -> Any
 get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
+
+instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"
+
+# Builder to create instrumentation for a function
+type Instrumentor
+    Value impl
+    on_enter self (fn : Text -> Any | Nothing) =
+        instrumentor_builtin "onEnter" [ self.impl, fn ]
+        self
+    on_return self (fn : Text -> Any -> Nothing) =
+        instrumentor_builtin "onReturn" [ self.impl, fn ]
+        self
+    on_function self (fn : Text -> Any | Nothing) =
+        instrumentor_builtin "onFunction" [ self.impl, fn ]
+        self
+    on_exception self (fn : Any -> Nothing) =
+        instrumentor_builtin "onException" [ self.impl, fn ]
+        self
+    activate self =
+        instrumentor_builtin "activate" [ self.impl ]
+        self
