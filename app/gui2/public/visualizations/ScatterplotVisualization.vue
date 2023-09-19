@@ -57,20 +57,22 @@ interface PointsConfiguration {
   labels: string
 }
 
-enum Scale {
+enum ScaleType {
   linear = 'linear',
   logarithmic = 'logarithmic',
 }
 
 interface AxisConfiguration {
   label: string
-  scale: Scale
+  scale: ScaleType
 }
 
 interface AxesConfiguration {
   x: AxisConfiguration
   y: AxisConfiguration
 }
+
+type Scale = ScaleContinuousNumeric<number, number>
 
 interface Color {
   red: number
@@ -138,9 +140,9 @@ const SHAPE_TO_SYMBOL: Record<string, SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<Scale, ScaleContinuousNumeric<number, number>> = {
-  [Scale.linear]: d3.scaleLinear(),
-  [Scale.logarithmic]: d3.scaleLog(),
+const SCALE_TO_D3_SCALE: Record<ScaleType, ScaleContinuousNumeric<number, number>> = {
+  [ScaleType.linear]: d3.scaleLinear(),
+  [ScaleType.logarithmic]: d3.scaleLog(),
 }
 
 const data = computed<Data>(() => {
@@ -160,22 +162,25 @@ const data = computed<Data>(() => {
     rawData = {}
   }
   const axis: AxesConfiguration = rawData.axis ?? {
-    x: { label: '', scale: Scale.linear },
-    y: { label: '', scale: Scale.linear },
+    x: { label: '', scale: ScaleType.linear },
+    y: { label: '', scale: ScaleType.linear },
   }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
   return { axis, points, data, focus }
 })
 
-const rootNode = ref<SVGElement>()
 const pointsNode = ref<SVGGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
 
-const d3Points = ref<Selection<SVGPathElement, Point, SVGGElement, unknown>>()
+const d3Points = computed(() => d3.select(pointsNode.value))
+const d3Brush = computed(() => d3.select(brushNode.value))
+const d3XAxis = computed(() => d3.select(xAxisNode.value))
+const d3YAxis = computed(() => d3.select(yAxisNode.value))
+
 const d3Labels = ref<Selection<SVGTextElement, Point, SVGGElement, unknown>>()
 const bounds = ref<[number, number, number, number]>()
 const brushExtent = ref<BrushSelection>()
@@ -234,22 +239,15 @@ watchEffect(() => {
 let scaleAndAxis = {} as ReturnType<typeof updateAxes>
 let zoom = {} as ReturnType<typeof addPanAndZoom>
 
-onMounted(() => {
+function update() {
   scaleAndAxis = updateAxes()
   zoom = addPanAndZoom()
   redrawPoints()
   updateBrushing()
-})
+}
 
-watch(
-  () => [data.value, width.value, height.value],
-  () => {
-    scaleAndAxis = updateAxes()
-    zoom = addPanAndZoom()
-    redrawPoints()
-    updateBrushing()
-  },
-)
+onMounted(update)
+watch([data, width, height], update)
 
 /**
  * Helper function calculating extreme values and paddings to make sure data will fit nicely.
@@ -272,7 +270,6 @@ const extremesAndDeltas = computed(() => {
  * Adds panning and zooming functionality to the visualization.
  */
 function addPanAndZoom() {
-  const scatterplot = pointsNode.value
   const extent: [min: number, max: number] = [MIN_SCALE, MAX_SCALE]
   let startX = 0
   let startY = 0
@@ -366,16 +363,15 @@ function addPanAndZoom() {
 
     scaleAndAxis.xAxis.call(d3.axisBottom(transformedScale.xScale).ticks(xTicks.value))
     scaleAndAxis.yAxis.call(d3.axisLeft(transformedScale.yScale).ticks(yTicks.value))
-    d3.select(scatterplot)
+    d3Points.value
       .selectAll<SVGPathElement, Point>('path')
       .attr(
         'transform',
-        (d) =>
-          'translate(' + transformedScale.xScale(d.x) + ',' + transformedScale.yScale(d.y) + ')',
+        (d) => `translate(${transformedScale.xScale(d.x)}, ${transformedScale.yScale(d.y)})`,
       )
 
     if (data.value.points.labels === VISIBLE_POINTS) {
-      d3.select(scatterplot)
+      d3Points.value
         .selectAll<SVGTextElement, Point>('text')
         .attr('x', (d) => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
         .attr('y', (d) => transformedScale.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
@@ -435,7 +431,7 @@ const brush = computed(() =>
 function updateBrushing() {
   // The brush element must be a child of zoom element - this is only way we found to have both
   // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276
-  d3.select(brushNode.value).call(brush.value)
+  d3Brush.value.call(brush.value)
 }
 
 /**
@@ -466,7 +462,7 @@ function zoomToSelected() {
   zoom.transformedScale.xScale.domain([xMin, xMax])
   zoom.transformedScale.yScale.domain([yMin, yMax])
 
-  zoomingHelper(zoom.transformedScale)
+  zoomingHelper(zoom.transformedScale.xScale, zoom.transformedScale.yScale)
 }
 
 watch(
@@ -488,32 +484,29 @@ watch(
 /**
  * Helper function for zooming in after the scale has been updated.
  */
-function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
-  d3.select(xAxisNode.value)
+function zoomingHelper(xScale: Scale, yScale: Scale) {
+  d3XAxis.value
     .transition()
     .duration(ANIMATION_DURATION_MS)
-    .call(d3.axisBottom(scaleAndAxis.xScale).ticks(xTicks.value))
-  d3.select(yAxisNode.value)
+    .call(d3.axisBottom(xScale).ticks(xTicks.value))
+  d3YAxis.value
     .transition()
     .duration(ANIMATION_DURATION_MS)
-    .call(d3.axisLeft(scaleAndAxis.yScale).ticks(yTicks.value))
+    .call(d3.axisLeft(yScale).ticks(yTicks.value))
 
-  d3.select(pointsNode.value)
+  d3Points.value
     .selectAll<SVGPathElement, Point>('path')
     .transition()
     .duration(ANIMATION_DURATION_MS)
-    .attr(
-      'transform',
-      (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
-    )
+    .attr('transform', (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
 
   if (data.value.points.labels === VISIBLE_POINTS) {
-    d3.select(pointsNode.value)
+    d3Points.value
       .selectAll<SVGTextElement, Point>('text')
       .transition()
       .duration(ANIMATION_DURATION_MS)
-      .attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
-      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
+      .attr('x', (d) => xScale(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('y', (d) => yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 }
 
@@ -523,45 +516,41 @@ const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},$
 },0.8)`
 
 watchEffect(() => {
-  if (pointsNode.value == null) {
-    // Not yet mounted.
-    return
-  }
-  const points = pointsNode.value
+  const { xScale, yScale } = scaleAndAxis
   const symbol = d3.symbol()
-
-  d3Points.value?.remove()
-  d3Points.value = d3
-    .select(points)
+  d3Points.value
     .selectAll<SVGPathElement, unknown>('dataPoint')
     .data(data.value.data)
-    .join((enter) =>
-      enter
-        .append('path')
-        .attr(
-          'd',
-          symbol.type(matchShape).size((d: Point) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
-        )
-        .attr(
-          'transform',
-          (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
-        )
-        .style('fill', (d) => d.color ?? FILL_COLOR),
+    .join(
+      (enter) =>
+        enter
+          .append('path')
+          .attr(
+            'd',
+            symbol.type(matchShape).size((d: Point) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+          )
+          .style('fill', (d) => d.color ?? FILL_COLOR)
+          .attr('transform', (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`),
+      (update) => update.attr('x', (d) => xScale(d.x)).attr('y', (d) => yScale(d.y)),
     )
-
   if (data.value.points.labels === VISIBLE_POINTS) {
-    d3Labels.value?.remove()
-    d3Labels.value = d3
-      .select(points)
+    d3Points.value
       .selectAll('dataPoint')
       .data(data.value.data)
-      .enter()
-      .append('text')
-      .text((d) => d.label ?? '')
-      .attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
-      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
-      .attr('class', 'label')
-      .attr('fill', 'black')
+      .join(
+        (enter) =>
+          enter
+            .append('text')
+            .attr('class', 'label')
+            .text((d) => d.label ?? '')
+            .attr('x', (d) => xScale(d.x) + POINT_LABEL_PADDING_X_PX)
+            .attr('y', (d) => yScale(d.y) + POINT_LABEL_PADDING_Y_PX),
+        (update) =>
+          update
+            .text((d) => d.label ?? '')
+            .attr('x', (d) => xScale(d.x) + POINT_LABEL_PADDING_X_PX)
+            .attr('y', (d) => yScale(d.y) + POINT_LABEL_PADDING_Y_PX),
+      )
   }
 })
 
@@ -569,14 +558,15 @@ watchEffect(() => {
  * Create a plot object and populate it with the given data.
  */
 function redrawPoints() {
-  d3Points.value?.attr(
-    'transform',
-    (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
-  )
+  const { xScale, yScale } = scaleAndAxis
+  d3Points.value
+    .selectAll<SVGPathElement, Point>('dataPoint')
+    .attr('transform', (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
-    d3Labels.value
-      ?.attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
-      .attr('y', (d) => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
+    d3Points.value
+      .selectAll<SVGPathElement, Point>('dataPoint')
+      .attr('x', (d) => xScale(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('y', (d) => yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 }
 
@@ -660,7 +650,7 @@ function fitAll() {
   zoom.transformedScale.xScale.domain(domainX)
   zoom.transformedScale.yScale.domain(domainY)
 
-  zoomingHelper(zoom.transformedScale)
+  zoomingHelper(zoom.transformedScale.xScale, zoom.transformedScale.yScale)
 
   bounds.value = undefined
   limit.value = DEFAULT_LIMIT
@@ -695,7 +685,7 @@ useEvent(document, 'scroll', endBrushing)
     </template>
     <div class="ScatterplotVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">
-        <g ref="rootNode" :transform="`translate(${margin.left}, ${margin.top})`">
+        <g :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>
             <clipPath id="clip">
               <rect :width="boxWidth" :height="boxHeight"></rect>
