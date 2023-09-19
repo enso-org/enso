@@ -28,7 +28,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
 
         Test.specify "should handle errors when creating a time" <|
             case create_new_time 24 0 0 . catch of
-                Time_Error.Error msg ->
+                Time_Error.Error msg _ ->
                     msg.to_text . contains "24" . should_not_equal -1
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -65,7 +65,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
 
         Test.specify "should throw error when parsing invalid time" <|
             case parse_time "1200" . catch of
-                Time_Error.Error msg ->
+                Time_Error.Error msg _ ->
                     msg . should_equal "Text '1200' could not be parsed at index 2"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -77,7 +77,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
         Test.specify "should throw error when parsing custom format" <|
             time = parse_time "12:30" "HH:mm:ss"
             case time.catch of
-                Time_Error.Error msg ->
+                Time_Error.Error msg _ ->
                     msg . should_equal "Text '12:30' could not be parsed at index 5"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)

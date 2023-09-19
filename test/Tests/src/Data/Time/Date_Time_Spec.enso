@@ -67,7 +67,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should handle errors when creating time" <|
             case create_new_datetime 1970 0 0 . catch of
-                Time_Error.Error msg ->
+                Time_Error.Error msg _ ->
                     msg.to_text . contains "0" . should_be_true
                     msg.to_text . contains "1" . should_be_true
                     msg.to_text . contains "12" . should_be_true
@@ -180,7 +180,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should throw error when parsing invalid time" <|
             case parse_datetime "2008-1-1" . catch of
-                Time_Error.Error msg ->
+                Time_Error.Error msg _ ->
                     msg . should_equal "Text '2008-1-1' could not be parsed at index 5"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -213,7 +213,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         Test.specify "should throw error when parsing custom format" <|
             time = parse_datetime "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['z']'"
             case time.catch of
-                Time_Error.Error msg ->
+                Time_Error.Error msg _ ->
                     msg . should_equal "Text '2008-01-01' could not be parsed at index 10"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)

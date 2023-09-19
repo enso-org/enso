@@ -1,0 +1,20 @@
+from Standard.Base import all
+import Standard.Base.Errors.Time_Error.Time_Error
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec =
+    Test.group "Formatting date/time values" <|
+        Test.specify "should allow printing month names" <|
+            d = Date.new 2020 6 30
+            d.format "d. MMM yyyy" . should_equal "30. Jun 2020"
+            d.format (Date_Time_Formatter.from "d. MMM yyyy" Locale.us) . should_equal "30. June 2020"
+            # Note that the default (ROOT) locale returns a short name even for MMMM (full name) month format.
+            d.format (Date_Time_Formatter.from "d. MMM yyyy" Locale.default) . should_equal "30. Jun 2020"
+    Test.group "Parsing date/time values" <|
+        Test.specify "should allow short month names" <|
+            Date.parse "30. Jun 2020" "d. MMM yyyy" . should_equal (Date.new 2020 6 30)
+
+        Test.specify "should allow long month names" <|
+            Date.parse "30. June 2020" (Date_Time_Formatter.from "d. MMMM yyyy" Locale.uk) . should_equal (Date.new 2020 6 30)
