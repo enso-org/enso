@@ -99,12 +99,19 @@ impl Kind {
     /// Match the value with `Kind::InsertionPoint{..}` but not
     /// `Kind::InsertionPoint(ExpectedArgument(_))`.
     pub fn is_positional_insertion_point(&self) -> bool {
-        self.is_insertion_point() && !self.is_expected_argument()
+        self.is_insertion_point() && !self.is_expected_argument() && !self.is_expected_operand()
     }
 
     /// Match the value with `Kind::InsertionPoint(ExpectedArgument(_))`.
     pub fn is_expected_argument(&self) -> bool {
         matches!(self, Self::InsertionPoint(t) if t.kind.is_expected_argument())
+    }
+
+    pub fn is_expected_operand(&self) -> bool {
+        matches!(
+            self,
+            Self::InsertionPoint(InsertionPoint { kind: InsertionPointType::ExpectedOperand, .. })
+        )
     }
 
     /// Match the argument in a prefix method application.
@@ -374,6 +381,8 @@ pub enum InsertionPointType {
         index: usize,
         named: bool,
     },
+    ExpectedTarget,
+    ExpectedOperand,
 }
 
 // === Matchers ===

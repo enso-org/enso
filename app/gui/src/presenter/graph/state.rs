@@ -363,7 +363,6 @@ impl<'a> ControllerChange<'a> {
                 "Setting node expression from controller: {} -> {}",
                 displayed.expression, new_displayed_expr
             );
-            console_log!("{new_displayed_expr:#?}");
             displayed.expression = new_displayed_expr.clone();
             let new_expressions =
                 node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();

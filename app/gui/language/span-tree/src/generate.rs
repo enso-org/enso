@@ -217,9 +217,7 @@ impl<'a> ApplicationBase<'a> {
         }
 
         let invocation_info = context.call_info(self.call_id?)?;
-        console_log!("1: {invocation_info:?}");
         let invocation_info = invocation_info.with_call_id(self.call_id);
-        console_log!("2: {invocation_info:?}");
 
         let self_in_access = || {
             !invocation_info.is_constructor
@@ -439,7 +437,12 @@ fn generate_node_for_opr_chain(
             let node = target.arg.generate_node(kind, context)?;
             Ok((node, target.offset))
         }
-        None => Ok((Node::new().with_kind(InsertionPointType::BeforeArgument(0)), 0)),
+        None => {
+            let application_id = this.args.first().and_then(|app| app.infix_id);
+            let port_id =
+                application_id.map(|application| PortId::ArgPlaceholder { application, index: 0 });
+            Ok((Node::new().with_kind(InsertionPointType::ExpectedTarget).with_port_id(port_id), 0))
+        }
     };
 
     // In this fold we pass last generated node and offset after it, wrapped in Result.
@@ -450,6 +453,7 @@ fn generate_node_for_opr_chain(
         let is_first = i == 0;
         let is_last = i + 1 == this.args.len();
         let has_left = !node.is_insertion_point();
+        let has_right = elem.operand.is_some();
         let opr_crumbs = elem.crumb_to_operator(has_left);
         let opr_ast = Located::new(opr_crumbs, elem.operator.ast());
         let left_crumbs = if has_left { vec![elem.crumb_to_previous()] } else { vec![] };
@@ -480,7 +484,6 @@ fn generate_node_for_opr_chain(
         }
 
         let mut infix_right_argument_info = if !app_base.uses_method_notation {
-            console_log!("Setting call id {:?}", elem.infix_id);
             app_base.set_call_id(elem.infix_id);
             app_base.resolve(context).and_then(|mut resolved| {
                 // For resolved infix arguments, the arity should always be 2. First always
@@ -522,14 +525,18 @@ fn generate_node_for_opr_chain(
                 argument.node.set_argument_info(info);
                 argument.node.set_definition_index(index);
             }
-        }
-
-        if is_last && !app_base.uses_method_notation {
-            let argument = gen.generate_empty_node(InsertionPointType::Append);
+        } else if !app_base.uses_method_notation {
+            let argument = gen.generate_empty_node(InsertionPointType::ExpectedOperand);
+            argument.port_id =
+                elem.infix_id.map(|application| PortId::ArgPlaceholder { application, index: 1 });
             if let Some((index, info)) = infix_right_argument_info.take() {
                 argument.node.set_argument_info(info);
                 argument.node.set_definition_index(index);
             }
+        }
+
+        if is_last && has_right && !app_base.uses_method_notation {
+            gen.generate_empty_node(InsertionPointType::Append);
         }
 
         if this.operator.right_assoc {
@@ -1427,13 +1434,13 @@ mod test {
                 assert_eq!(arg0.argument_info(), Some(&this_param(Some(call_id))));
                 assert_eq!(arg1.argument_info(), Some(&param1(Some(call_id))));
             }
-            sth_else => panic!("There should be 5 leaves, found: {}", sth_else.len()),
+            sth_else => panic!("There should be 4 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(2)
             .add_empty_child(0, BeforeArgument(0))
             .add_leaf(0, 1, node::Kind::argument().indexed(0), SectionLeftCrumb::Arg)
             .add_leaf(1, 1, node::Kind::Operation, SectionLeftCrumb::Opr)
-            .add_empty_child(2, ExpectedArgument { index: 1, named: false })
+            .add_empty_child(2, ExpectedOperand)
             .build();
         clear_expression_ids(&mut tree.root);
         clear_parameter_infos(&mut tree.root);
@@ -1453,10 +1460,10 @@ mod test {
                 assert_eq!(arg0.argument_info(), Some(&this_param(Some(call_id))));
                 assert_eq!(arg1.argument_info(), Some(&param1(Some(call_id))));
             }
-            sth_else => panic!("There should be 5 leaves, found: {}", sth_else.len()),
+            sth_else => panic!("There should be 4 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(2)
-            .add_empty_child(0, ExpectedArgument { index: 0, named: false })
+            .add_empty_child(0, ExpectedTarget)
             .add_leaf(0, 1, node::Kind::Operation, SectionRightCrumb::Opr)
             .add_leaf(1, 1, node::Kind::argument().indexed(1), SectionRightCrumb::Arg)
             .add_empty_child(2, Append)
