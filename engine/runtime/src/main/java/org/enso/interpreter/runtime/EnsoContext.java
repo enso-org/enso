@@ -63,7 +63,7 @@ import scala.jdk.javaapi.OptionConverters;
  * The language context is the internal state of the language that is associated with each thread in
  * a running Enso program.
  */
-public class EnsoContext {
+public final class EnsoContext {
 
   private static final TruffleLanguage.ContextReference<EnsoContext> REFERENCE =
       TruffleLanguage.ContextReference.create(EnsoLanguage.class);
@@ -389,7 +389,7 @@ public class EnsoContext {
    * @param file the file to register
    */
   @TruffleBoundary
-  public void addToHostClassPath(TruffleFile file) {
+  public void addToClassPath(TruffleFile file) {
     if (findGuestJava() == null) {
       environment.addToHostClassPath(file);
     } else {

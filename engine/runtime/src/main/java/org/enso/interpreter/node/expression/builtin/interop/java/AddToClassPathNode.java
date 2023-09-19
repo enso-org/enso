@@ -27,7 +27,7 @@ public abstract class AddToClassPathNode extends Node {
   Object doExecute(Object path, @Cached ExpectStringNode expectStringNode) {
     var ctx = EnsoContext.get(this);
     var file = ctx.getTruffleFile(new File(expectStringNode.execute(path)));
-    ctx.addToHostClassPath(file);
+    ctx.addToClassPath(file);
     return ctx.getBuiltins().nothing();
   }
 }
