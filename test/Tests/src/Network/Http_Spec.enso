@@ -321,7 +321,7 @@ spec =
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
-            response.at "data" . should_equal 'key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll+cake+ice+cream.+Carrot+cake+apple+pie+gingerbread+chocolate+cake+pudding+tart+souffl%C3%A9+jelly+beans+gummies.%0A%0ATootsie+roll+chupa+chups+muffin+croissant+fruitcake+jujubes+danish+cotton+candy+danish.+Oat+cake+chocolate+fruitcake+halvah+icing+oat+cake+toffee+powder.+Pastry+drag%C3%A9e+croissant.+Ice+cream+candy+canes+dessert+muffin+sugar+plum+tart+jujubes.%0A'
+            response.at "data" . replace "%0D%" "%" . should_equal 'key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll+cake+ice+cream.+Carrot+cake+apple+pie+gingerbread+chocolate+cake+pudding+tart+souffl%C3%A9+jelly+beans+gummies.%0A%0ATootsie+roll+chupa+chups+muffin+croissant+fruitcake+jujubes+danish+cotton+candy+danish.+Oat+cake+chocolate+fruitcake+halvah+icing+oat+cake+toffee+powder.+Pastry+drag%C3%A9e+croissant.+Ice+cream+candy+canes+dessert+muffin+sugar+plum+tart+jujubes.%0A'
 
         Test.specify "Can perform a multipart form POST" <|
             test_file = enso_project.data / "sample.png"

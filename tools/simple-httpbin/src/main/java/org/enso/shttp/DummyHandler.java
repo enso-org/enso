@@ -4,18 +4,15 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class DummyHandler implements HttpHandler {
-  private static final Set<String> ignoredHeaders =
-      Set.of("Host");
+  private static final Set<String> ignoredHeaders = Set.of("Host");
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
@@ -54,7 +51,10 @@ public class DummyHandler implements HttpHandler {
       response += "  \"origin\": \"127.0.0.1\",\n";
       response += "  \"url\": \"\",\n";
       response += "  \"method\": \"" + meth + "\",\n";
-      if (meth == HttpMethod.POST || meth == HttpMethod.DELETE || meth == HttpMethod.PUT || meth == HttpMethod.PATCH) {
+      if (meth == HttpMethod.POST
+          || meth == HttpMethod.DELETE
+          || meth == HttpMethod.PUT
+          || meth == HttpMethod.PATCH) {
         boolean isJson = contentType != null && contentType.equals("application/json");
         InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
         BufferedReader br = new BufferedReader(isr);
