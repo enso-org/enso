@@ -88,21 +88,22 @@ import FindIcon from './icons/find.svg'
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
-import type {} from 'd3'
+import type {
+  BrushSelection,
+  ScaleContinuousNumeric,
+  SymbolType,
+  D3BrushEvent,
+  D3ZoomEvent,
+} from 'd3'
 
-import { useEvent } from './events.ts'
+import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
-import type { SymbolType } from 'd3'
-import type { ScaleContinuousNumeric } from 'd3'
-import type { Selection } from 'd3'
-import type { BrushSelection } from 'd3'
-import type { D3ZoomEvent } from 'd3'
-import type { D3BrushEvent } from 'd3'
+import type { Symbol } from 'd3'
 
 const props = defineProps<{ data: Partial<Data> | number[] | string }>()
 const emit = defineEmits<{
@@ -125,8 +126,7 @@ const VISIBLE_POINTS = 'visible'
 const DEFAULT_LIMIT = 1024
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 
-const MIN_SCALE = 0.5
-const MAX_SCALE = 20
+const ZOOM_EXTENT = [0.5, 20] satisfies BrushSelection
 const RIGHT_BUTTON = 2
 const MID_BUTTON = 1
 const MID_BUTTON_CLICKED = 4
@@ -177,15 +177,19 @@ const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
 
 const d3Points = computed(() => d3.select(pointsNode.value))
-const d3Brush = computed(() => d3.select(brushNode.value))
 const d3XAxis = computed(() => d3.select(xAxisNode.value))
 const d3YAxis = computed(() => d3.select(yAxisNode.value))
+const d3Zoom = computed(() => d3.select(zoomNode.value))
+const d3Brush = computed(() => d3.select(brushNode.value))
 
-const d3Labels = ref<Selection<SVGTextElement, Point, SVGGElement, unknown>>()
 const bounds = ref<[number, number, number, number]>()
 const brushExtent = ref<BrushSelection>()
 const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
+
+const xScale = ref(axisD3Scale(data.value.axis.x))
+const yScale = ref(axisD3Scale(data.value.axis.y))
+const symbol: Symbol<unknown, Point> = d3.symbol()
 
 const margin = computed(() => {
   const xLabel = data.value.axis.x.label
@@ -228,26 +232,9 @@ function updatePreprocessor() {
   )
 }
 
-onMounted(() => {
-  updatePreprocessor()
-})
+onMounted(updatePreprocessor)
 
-watchEffect(() => {
-  focus.value = data.value.focus
-})
-
-let scaleAndAxis = {} as ReturnType<typeof updateAxes>
-let zoom = {} as ReturnType<typeof addPanAndZoom>
-
-function update() {
-  scaleAndAxis = updateAxes()
-  zoom = addPanAndZoom()
-  redrawPoints()
-  updateBrushing()
-}
-
-onMounted(update)
-watch([data, width, height], update)
+watchEffect(() => (focus.value = data.value.focus))
 
 /**
  * Helper function calculating extreme values and paddings to make sure data will fit nicely.
@@ -266,14 +253,13 @@ const extremesAndDeltas = computed(() => {
   return { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy }
 })
 
-/**
- * Adds panning and zooming functionality to the visualization.
- */
-function addPanAndZoom() {
-  const extent: [min: number, max: number] = [MIN_SCALE, MAX_SCALE]
-  let startX = 0
-  let startY = 0
-  const zoom = d3
+let startX = 0
+let startY = 0
+let actionStartXScale = xScale.value.copy()
+let actionStartYScale = yScale.value.copy()
+
+const zoom = computed(() =>
+  d3
     .zoom<SVGGElement, unknown>()
     .filter((event: Event) => {
       if (
@@ -300,114 +286,97 @@ function addPanAndZoom() {
         event.deltaMode === 1 ? medDelta : event.deltaMode ? maxDelta : minDelta
       return -event.deltaY * wheelSpeedMultiplier
     })
-    .scaleExtent(extent)
+    .scaleExtent(ZOOM_EXTENT)
     .extent([
       [0, 0],
       [boxWidth.value, boxHeight.value],
     ])
     .on('zoom', zoomed)
-    .on('start', startZoom)
+    .on('start', startZoom),
+)
+watchEffect(() => d3Zoom.value.call(zoom.value))
 
-  let transformedScale = { ...scaleAndAxis }
-  let tempRmbScale = { ...scaleAndAxis }
+/** Helper function called on pan/scroll. */
+function zoomed(event: D3ZoomEvent<Element, unknown>) {
+  const xScale_ = xScale.value
+  const yScale_ = yScale.value
 
-  /**
-   * Helper function called on pan/scroll.
-   */
-  function zoomed(event: D3ZoomEvent<Element, unknown>) {
-    function rescale(distanceScale: d3.ZoomTransform) {
-      transformedScale.xScale = distanceScale.rescaleX(transformedScale.xScale)
-      transformedScale.yScale = distanceScale.rescaleY(transformedScale.yScale)
-    }
+  function innerRescale(distanceScale: d3.ZoomTransform) {
+    xScale_.domain(distanceScale.rescaleX(xScale_).domain())
+    yScale_.domain(distanceScale.rescaleY(yScale_).domain())
+  }
 
-    function getScaleForZoom(scale: number) {
-      return d3.zoomIdentity
-        .translate(startX - margin.value.left, startY - margin.value.top)
-        .scale(scale)
-        .translate(-startX + margin.value.left, -startY + margin.value.top)
-    }
+  function getScaleForZoom(scale: number) {
+    return d3.zoomIdentity
+      .translate(startX - margin.value.left, startY - margin.value.top)
+      .scale(scale)
+      .translate(-startX + margin.value.left, -startY + margin.value.top)
+  }
 
-    if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === RIGHT_BUTTON) {
-      transformedScale.xScale = tempRmbScale.xScale
-      transformedScale.yScale = tempRmbScale.yScale
-      const rmbDivider = 100
-      const zoomAmount = rmbZoomValue(event.sourceEvent) / rmbDivider
+  if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === RIGHT_BUTTON) {
+    xScale_.domain(actionStartXScale.domain())
+    yScale_.domain(actionStartYScale.domain())
+    const rmbDivider = 100
+    const zoomAmount = rmbZoomValue(event.sourceEvent) / rmbDivider
+    const distanceScale = getScaleForZoom(Math.exp(zoomAmount))
+    innerRescale(distanceScale)
+  } else if (event.sourceEvent instanceof WheelEvent) {
+    if (event.sourceEvent.ctrlKey) {
+      const pinchDivider = 100
+      const zoomAmount = -event.sourceEvent.deltaY / pinchDivider
       const distanceScale = getScaleForZoom(Math.exp(zoomAmount))
-      rescale(distanceScale)
-    } else if (event.sourceEvent instanceof WheelEvent) {
-      if (event.sourceEvent.ctrlKey) {
-        const pinchDivider = 100
-        const zoomAmount = -event.sourceEvent.deltaY / pinchDivider
-        const distanceScale = getScaleForZoom(Math.exp(zoomAmount))
-        rescale(distanceScale)
-      } else {
-        const distanceScale = d3.zoomIdentity.translate(
-          -event.sourceEvent.deltaX,
-          -event.sourceEvent.deltaY,
-        )
-        rescale(distanceScale)
-      }
-    } else if (
-      event.sourceEvent instanceof MouseEvent &&
-      event.sourceEvent.buttons === MID_BUTTON_CLICKED
-    ) {
-      const movementFactor = 2
-      const distanceScale = d3.zoomIdentity.translate(
-        event.sourceEvent.movementX / movementFactor,
-        event.sourceEvent.movementY / movementFactor,
-      )
-      rescale(distanceScale)
+      innerRescale(distanceScale)
     } else {
-      rescale(event.transform)
-    }
-
-    scaleAndAxis.xAxis.call(d3.axisBottom(transformedScale.xScale).ticks(xTicks.value))
-    scaleAndAxis.yAxis.call(d3.axisLeft(transformedScale.yScale).ticks(yTicks.value))
-    d3Points.value
-      .selectAll<SVGPathElement, Point>('path')
-      .attr(
-        'transform',
-        (d) => `translate(${transformedScale.xScale(d.x)}, ${transformedScale.yScale(d.y)})`,
+      const distanceScale = d3.zoomIdentity.translate(
+        -event.sourceEvent.deltaX,
+        -event.sourceEvent.deltaY,
       )
-
-    if (data.value.points.labels === VISIBLE_POINTS) {
-      d3Points.value
-        .selectAll<SVGTextElement, Point>('text')
-        .attr('x', (d) => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
-        .attr('y', (d) => transformedScale.yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
+      innerRescale(distanceScale)
     }
+  } else if (
+    event.sourceEvent instanceof MouseEvent &&
+    event.sourceEvent.buttons === MID_BUTTON_CLICKED
+  ) {
+    const movementFactor = 2
+    const distanceScale = d3.zoomIdentity.translate(
+      event.sourceEvent.movementX / movementFactor,
+      event.sourceEvent.movementY / movementFactor,
+    )
+    innerRescale(distanceScale)
+  } else {
+    innerRescale(event.transform)
   }
 
-  /**
-   * Return the position of this event in local canvas coordinates.
-   */
-  function getPos(event: MouseEvent | WheelEvent | null) {
-    if (event != null) {
-      return { x: event.offsetX, y: event.offsetY }
-    }
-    return { x: 0, y: 0 }
-  }
+  d3XAxis.value.call(d3.axisBottom(xScale_).ticks(xTicks.value))
+  d3YAxis.value.call(d3.axisLeft(yScale_).ticks(yTicks.value))
+  d3Points.value
+    .selectAll<SVGPathElement, Point>('path')
+    .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
 
-  /**
-   * Return the zoom value computed from the initial right-mouse-button event to the current
-   * right-mouse event.
-   */
-  function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
-    const dX = (event?.offsetX ?? 0) - startX
-    const dY = (event?.offsetY ?? 0) - startY
-    return dX - dY
+  if (data.value.points.labels === VISIBLE_POINTS) {
+    d3Points.value
+      .selectAll<SVGTextElement, Point>('text')
+      .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
+}
 
-  /**
-   * Helper function called when starting to pan/scroll.
-   */
-  function startZoom(event: D3ZoomEvent<Element, unknown>) {
-    startX = event.sourceEvent?.offsetX ?? 0
-    startY = event.sourceEvent?.offsetY ?? 0
-    tempRmbScale = { ...transformedScale }
-  }
+/**
+ * Return the zoom value computed from the initial right-mouse-button event to the current
+ * right-mouse event.
+ */
+function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
+  const dX = (event?.offsetX ?? 0) - startX
+  const dY = (event?.offsetY ?? 0) - startY
+  return dX - dY
+}
 
-  return { zoom, transformedScale }
+/** Helper function called when starting to pan/scroll. */
+function startZoom(event: D3ZoomEvent<Element, unknown>) {
+  startX = event.sourceEvent?.offsetX ?? 0
+  startY = event.sourceEvent?.offsetY ?? 0
+  actionStartXScale = xScale.value.copy()
+  actionStartYScale = yScale.value.copy()
 }
 
 const brush = computed(() =>
@@ -434,12 +403,10 @@ function updateBrushing() {
   d3Brush.value.call(brush.value)
 }
 
-/**
- * Zooms into the selected fragment of the plot.
+/** Zoom into the selected area of the plot.
  *
  * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
- * Section "Brushing for zooming".
- */
+ * Section "Brushing for zooming". */
 function zoomToSelected() {
   focus.value = undefined
   if (
@@ -449,42 +416,35 @@ function zoomToSelected() {
   ) {
     return
   }
+  const xScale_ = xScale.value
+  const yScale_ = yScale.value
   const [[xMinRaw, yMaxRaw], [xMaxRaw, yMinRaw]] = brushExtent.value
-  brushExtent.value = undefined
-  let xMin = zoom.transformedScale.xScale.invert(xMinRaw)
-  let xMax = zoom.transformedScale.xScale.invert(xMaxRaw)
-  let yMin = zoom.transformedScale.yScale.invert(yMinRaw)
-  let yMax = zoom.transformedScale.yScale.invert(yMaxRaw)
+  const xMin = xScale_.invert(xMinRaw)
+  const xMax = xScale_.invert(xMaxRaw)
+  const yMin = yScale_.invert(yMinRaw)
+  const yMax = yScale_.invert(yMaxRaw)
 
   bounds.value = [xMin, yMin, xMax, yMax]
   updatePreprocessor()
-
-  zoom.transformedScale.xScale.domain([xMin, xMax])
-  zoom.transformedScale.yScale.domain([yMin, yMax])
-
-  zoomingHelper(zoom.transformedScale.xScale, zoom.transformedScale.yScale)
+  xScale_.domain([xMin, xMax])
+  yScale_.domain([yMin, yMax])
+  rescale(xScale_, yScale_)
 }
 
-watch(
+useEventConditional(
+  document,
+  'keydown',
   () => brushExtent.value != null,
-  (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      function handler(event: KeyboardEvent) {
-        if (shortcuts.zoomIn(event)) {
-          zoomToSelected()
-          endBrushing()
-        }
-      }
-      document.addEventListener('keydown', handler)
-      onCleanup(() => document.removeEventListener('keydown', handler))
+  (event) => {
+    if (shortcuts.zoomIn(event)) {
+      zoomToSelected()
+      endBrushing()
     }
   },
 )
 
-/**
- * Helper function for zooming in after the scale has been updated.
- */
-function zoomingHelper(xScale: Scale, yScale: Scale) {
+/** Animate the chart to a new scale. */
+function rescale(xScale: Scale, yScale: Scale) {
   d3XAxis.value
     .transition()
     .duration(ANIMATION_DURATION_MS)
@@ -515,66 +475,41 @@ const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},$
   ACCENT_COLOR.blue * 255
 },0.8)`
 
-watchEffect(() => {
-  const { xScale, yScale } = scaleAndAxis
-  const symbol = d3.symbol()
-  d3Points.value
-    .selectAll<SVGPathElement, unknown>('dataPoint')
-    .data(data.value.data)
-    .join(
-      (enter) =>
-        enter
-          .append('path')
-          .attr(
-            'd',
-            symbol.type(matchShape).size((d: Point) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
-          )
-          .style('fill', (d) => d.color ?? FILL_COLOR)
-          .attr('transform', (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`),
-      (update) => update.attr('x', (d) => xScale(d.x)).attr('y', (d) => yScale(d.y)),
+/** Create a plot object and populate it with the given data. */
+function redrawData() {
+  const xScale_ = xScale.value
+  const yScale_ = yScale.value
+  const paths = d3Points.value.selectAll<SVGPathElement, unknown>('path').data(data.value.data)
+  paths.join(
+    (enter) => enter.append('path'),
+    (update) =>
+      update
+        .attr(
+          'd',
+          symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+        )
+        .style('fill', (d) => d.color ?? FILL_COLOR)
+        .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`),
+  )
+  if (data.value.points.labels === VISIBLE_POINTS) {
+    const labels = d3Points.value.selectAll<SVGPathElement, unknown>('text').data(data.value.data)
+    labels.join(
+      (enter) => enter.append('text'),
+      (update) =>
+        update
+          .attr('class', 'label')
+          .text((d) => d.label ?? '')
+          .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
+          .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX),
     )
-  if (data.value.points.labels === VISIBLE_POINTS) {
-    d3Points.value
-      .selectAll('dataPoint')
-      .data(data.value.data)
-      .join(
-        (enter) =>
-          enter
-            .append('text')
-            .attr('class', 'label')
-            .text((d) => d.label ?? '')
-            .attr('x', (d) => xScale(d.x) + POINT_LABEL_PADDING_X_PX)
-            .attr('y', (d) => yScale(d.y) + POINT_LABEL_PADDING_Y_PX),
-        (update) =>
-          update
-            .text((d) => d.label ?? '')
-            .attr('x', (d) => xScale(d.x) + POINT_LABEL_PADDING_X_PX)
-            .attr('y', (d) => yScale(d.y) + POINT_LABEL_PADDING_Y_PX),
-      )
-  }
-})
-
-/**
- * Create a plot object and populate it with the given data.
- */
-function redrawPoints() {
-  const { xScale, yScale } = scaleAndAxis
-  d3Points.value
-    .selectAll<SVGPathElement, Point>('dataPoint')
-    .attr('transform', (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
-  if (data.value.points.labels === VISIBLE_POINTS) {
-    d3Points.value
-      .selectAll<SVGPathElement, Point>('dataPoint')
-      .attr('x', (d) => xScale(d.x) + POINT_LABEL_PADDING_X_PX)
-      .attr('y', (d) => yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 }
 
 /**
  * Helper function to match d3 shape from string.
  */
-function matchShape(d: { shape: string }) {
-  return SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle
+function matchShape(d: Point) {
+  return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
 }
 
 /**
@@ -589,69 +524,56 @@ function axisD3Scale(axis: AxisConfiguration | undefined) {
   return axis != null ? SCALE_TO_D3_SCALE[axis.scale] : d3.scaleLinear()
 }
 
-/**
- * Helper function calculating domains for x and y axes.
- *
- * Example:
- * Lets say we have a bunch of points. Those points will have some minimum and maximum value,
- * from which we can calculate the span of points on X and Y axis, hence domain, with added
- * padding to make sure points will fit nicely on the chart.
- */
-const domains = computed(() => {
-  let domainX = [
-    extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
-    extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
-  ]
-  let domainY = [
-    extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
-    extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
-  ]
-
+watchEffect(() => {
+  // Update the axes in d3.
+  const { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy } = extremesAndDeltas.value
+  let domainX: [min: number, max: number]
+  let domainY: [min: number, max: number]
   const focus_ = focus.value
-  if (focus_ != null) {
-    if (focus_.x != null && focus_.y != null && focus_.zoom != null) {
-      let newPaddingX = extremesAndDeltas.value.dx * (1 / (2 * focus_.zoom))
-      let newPaddingY = extremesAndDeltas.value.dy * (1 / (2 * focus_.zoom))
-      domainX = [focus_.x - newPaddingX, focus_.x + newPaddingX]
-      domainY = [focus_.y - newPaddingY, focus_.y + newPaddingY]
-    }
+  if (focus_?.x != null && focus_.y != null && focus_.zoom != null) {
+    const newPaddingX = dx * (1 / (2 * focus_.zoom))
+    const newPaddingY = dy * (1 / (2 * focus_.zoom))
+    domainX = [focus_.x - newPaddingX, focus_.x + newPaddingX]
+    domainY = [focus_.y - newPaddingY, focus_.y + newPaddingY]
+  } else {
+    domainX = [xMin - paddingX, xMax + paddingX]
+    domainY = [yMin - paddingY, yMax + paddingY]
   }
-  return { x: domainX, y: domainY }
+  const axis = data.value.axis
+  xScale.value = axisD3Scale(axis.x).domain(domainX).range([0, boxWidth.value])
+  yScale.value = axisD3Scale(axis.y).domain(domainY).range([boxHeight.value, 0])
+  d3XAxis.value.call(d3.axisBottom(xScale.value).ticks(xTicks.value))
+  d3YAxis.value.call(d3.axisLeft(yScale.value).ticks(yTicks.value))
 })
 
-/**
- * Creates plot's axes.
- */
-function updateAxes() {
-  const xScale = axisD3Scale(data.value.axis.x).domain(domains.value.x).range([0, boxWidth.value])
-  const xAxis = d3.select(xAxisNode.value).call(d3.axisBottom(xScale).ticks(xTicks.value))
-  const yScale = axisD3Scale(data.value.axis.y).domain(domains.value.y).range([boxHeight.value, 0])
-  const yAxis = d3.select(yAxisNode.value).call(d3.axisLeft(yScale).ticks(yTicks.value))
-  return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
+// ==============
+// === Update ===
+// ==============
+
+function update() {
+  redrawData()
+  updateBrushing()
 }
+
+onMounted(update)
+watch([data, width, height], update)
+watchEffect(update)
+
+// ======================
+// === Event handlers ===
+// ======================
 
 function fitAll() {
   focus.value = undefined
-  if (zoomNode.value == null) {
-    console.error('Scatterplot could not find the HTML element for the zoom.')
-  } else {
-    d3.select(zoomNode.value).transition().duration(0).call(zoom.zoom.transform, d3.zoomIdentity)
-  }
-
-  const domainX = [
+  xScale.value.domain([
     extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
     extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
-  ]
-  const domainY = [
+  ])
+  yScale.value.domain([
     extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
-  ]
-
-  zoom.transformedScale.xScale.domain(domainX)
-  zoom.transformedScale.yScale.domain(domainY)
-
-  zoomingHelper(zoom.transformedScale.xScale, zoom.transformedScale.yScale)
-
+  ])
+  rescale(xScale.value, yScale.value)
   bounds.value = undefined
   limit.value = DEFAULT_LIMIT
   updatePreprocessor()
@@ -659,7 +581,7 @@ function fitAll() {
 
 function endBrushing() {
   brushExtent.value = undefined
-  d3.select(brushNode.value).call(brush.value.move, null)
+  d3Brush.value.call(brush.value.move, null)
 }
 
 useEvent(document, 'keydown', (event) => {

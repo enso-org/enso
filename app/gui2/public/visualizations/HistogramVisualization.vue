@@ -105,20 +105,22 @@ import FindIcon from './icons/find.svg'
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
-import type { ScaleContinuousNumeric } from 'd3'
+import type {
+  BrushSelection,
+  ScaleContinuousNumeric,
+  ScaleSequential,
+  ZoomTransform,
+  D3BrushEvent,
+  D3ZoomEvent,
+} from 'd3'
 
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
-import { useEvent } from './events.ts'
+import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
-import type { BrushSelection } from 'd3'
-import type { D3ZoomEvent } from 'd3'
-import type { ZoomTransform } from 'd3'
-import type { D3BrushEvent } from 'd3'
-import type { ScaleSequential } from 'd3'
 
 const shortcuts = {
   zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
@@ -138,9 +140,7 @@ const RMB_DIVIDER = 100
 const PINCH_DIVIDER = 100
 
 const EPSILON = 0.001
-const MIN_SCALE = 0.5
-const MAX_SCALE = 20
-const ZOOM_EXTENT = [MIN_SCALE, MAX_SCALE] satisfies BrushSelection
+const ZOOM_EXTENT = [0.5, 20] satisfies BrushSelection
 const RIGHT_BUTTON = 2
 const MID_BUTTON = 1
 const MID_BUTTON_CLICKED = 4
@@ -176,7 +176,7 @@ const brushExtent = ref<BrushSelection>()
 const zoomLevel = ref(1)
 const maxY = ref(1)
 
-const dataScale = ref(d3.scaleLinear())
+const originalXScale = ref(d3.scaleLinear())
 const xScale = ref(d3.scaleLinear())
 const yScale = ref(d3.scaleLinear())
 const fill = ref(d3.scaleSequential().interpolator(d3.interpolateViridis))
@@ -248,6 +248,8 @@ const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value
 
 let startX = 0
 let startY = 0
+let actionStartXScale = xScale.value.copy()
+let actionStartZoomLevel = zoomLevel.value
 
 function getScaleForZoom(scale: number) {
   return d3.zoomIdentity
@@ -314,12 +316,12 @@ function zoomed(event: D3ZoomEvent<Element, unknown>) {
   }
 
   if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === RIGHT_BUTTON) {
-    xScale_.domain(dataScale.value.domain())
+    xScale_.domain(actionStartXScale.domain())
     const zoomAmount = rmbZoomValue(event.sourceEvent) / RMB_DIVIDER
     const scale = Math.exp(zoomAmount)
     const distanceScale = getScaleForZoom(scale)
     xScale_.domain(distanceScale.rescaleX(xScale_).domain())
-    zoomLevel.value = scale
+    zoomLevel.value = actionStartZoomLevel * scale
   } else if (event.sourceEvent instanceof WheelEvent) {
     if (event.sourceEvent.ctrlKey) {
       const zoomAmount = -event.sourceEvent.deltaY / PINCH_DIVIDER
@@ -347,7 +349,7 @@ function zoomed(event: D3ZoomEvent<Element, unknown>) {
   } else {
     innerRescale(event.transform)
   }
-  rescale(xScale_, yScale_, false)
+  rescale(xScale_, yScale_)
 }
 
 /** Return the zoom value computed from the initial right-mouse-button event to the current
@@ -362,6 +364,8 @@ function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
 function startZoom(event: D3ZoomEvent<Element, unknown>) {
   startX = event.sourceEvent?.offsetX ?? 0
   startY = event.sourceEvent?.offsetY ?? 0
+  actionStartXScale = xScale.value.copy()
+  actionStartZoomLevel = zoomLevel.value
 }
 
 const brush = computed(() =>
@@ -379,7 +383,7 @@ const brush = computed(() =>
 // both zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
 watchEffect(() => d3Brush.value.call(brush.value))
 
-/** Zooms into selected fragment of plot.
+/** Zoom into the selected area of the plot.
  *
  * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
  * Section "Brushing for zooming". */
@@ -398,44 +402,36 @@ function zoomIn() {
   xScale_.domain([xMin, xMax])
   const selectionWidth = end - start
   zoomLevel.value *= boxWidth.value / selectionWidth
-  rescale(xScale_, yScale.value, true)
+  rescale(xScale_, yScale.value)
 }
 
-/**
- * Removes brush, keyboard event and zoom button when end event is captured.
- */
 function endBrushing() {
   brushExtent.value = undefined
   d3Brush.value.call(brush.value.move, null)
 }
 
-watch(
+useEventConditional(
+  document,
+  'keydown',
   () => brushExtent.value != null,
-  (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      function handler(event: KeyboardEvent) {
-        if (shortcuts.zoomIn(event)) {
-          zoomIn()
-          endBrushing()
-        }
-      }
-      document.addEventListener('keydown', handler)
-      onCleanup(() => document.removeEventListener('keydown', handler))
+  (event) => {
+    if (shortcuts.zoomIn(event)) {
+      zoomIn()
+      endBrushing()
     }
   },
 )
 
 /** Animate the chart to a new scale. */
-function rescale(xScale: Scale, yScale: Scale, shouldAnimate: boolean) {
-  const duration = shouldAnimate ? ANIMATION_DURATION : 0.0
+function rescale(xScale: Scale, yScale: Scale) {
   d3XAxis.value
     .transition()
-    .duration(duration)
+    .duration(ANIMATION_DURATION)
     .call(d3.axisBottom(xScale).ticks(width.value / 40))
   const yTicks = yScale.ticks().filter(Number.isInteger)
   d3YAxis.value
     .transition()
-    .duration(duration)
+    .duration(ANIMATION_DURATION)
     .call(
       d3
         .axisLeft(yScale)
@@ -446,13 +442,12 @@ function rescale(xScale: Scale, yScale: Scale, shouldAnimate: boolean) {
   d3Plot.value
     .selectAll<SVGRectElement, Bin>('rect')
     .transition()
-    .duration(duration)
+    .duration(ANIMATION_DURATION)
     .attr(
       'transform',
       (d) =>
         `translate(${xScale(d.x0 ?? 0)}, ${yScale(d.length ?? 0)}) scale(${zoomLevel.value}, 1)`,
     )
-  update()
 }
 
 /**
@@ -486,7 +481,7 @@ watchEffect(() => {
       extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
     ]
   }
-  dataScale.value.domain(domainX).range([0, boxWidth.value])
+  originalXScale.value.domain(domainX).range([0, boxWidth.value])
   xScale.value.domain(domainX).range([0, boxWidth.value])
   d3XAxis.value.call(d3.axisBottom(xScale.value).ticks(width.value / 40))
 })
@@ -508,9 +503,9 @@ watchEffect(() => {
  *
  * Bind the new data to the plot, creating new bars, removing old ones and
  * update the axes accordingly. */
-function updateHistogram(
+function redrawData(
   bins: Bin[],
-  dataScale: Scale,
+  xScale: Scale,
   yScale: Scale,
   fill: ScaleSequential<string>,
   boxHeight: number,
@@ -521,8 +516,8 @@ function updateHistogram(
     (enter) => enter.append('rect').attr('x', 1),
     (update) =>
       update
-        .attr('transform', (d) => `translate(${dataScale(d.x0 ?? 0)}, ${yScale(d.length ?? 0)})`)
-        .attr('width', (d) => dataScale(d.x1 ?? 0) - dataScale(d.x0 ?? 0))
+        .attr('transform', (d) => `translate(${xScale(d.x0 ?? 0)}, ${yScale(d.length ?? 0)})`)
+        .attr('width', (d) => xScale(d.x1 ?? 0) - xScale(d.x0 ?? 0))
         .attr('height', (d) => Math.max(0, boxHeight - yScale(d.length ?? 0)))
         .style('fill', (d) => fill(d.length ?? 0)),
   )
@@ -556,36 +551,36 @@ function update() {
   if (rawBins.value != null) {
     bins = rawBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
   } else if (points.value != null) {
-    const dataDomain = dataScale.value.domain()
+    const dataDomain = originalXScale.value.domain()
     const histogram = d3
       .bin()
       .domain([dataDomain[0] ?? 0, dataDomain[1] ?? 1])
-      .thresholds(dataScale.value.ticks(binCount.value))
+      .thresholds(originalXScale.value.ticks(binCount.value))
     bins = histogram(points.value)
   }
   // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
   maxY.value = d3.max(bins, (d) => d.length) || 1
-  updateHistogram(bins, dataScale.value, yScale.value, fill.value, boxHeight.value)
+  redrawData(bins, xScale.value, yScale.value, fill.value, boxHeight.value)
 }
 
 onMounted(() => {
   emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
-  update()
 })
 
+onMounted(update)
 watch([width, height, maxY], () => queueMicrotask(update))
 watchEffect(update)
 
 watch([width, height], () => queueMicrotask(endBrushing))
 
-// ===============
-// === Zooming ===
-// ===============
+// ======================
+// === Event handlers ===
+// ======================
 
 function fitAll() {
   focus.value = undefined
   zoomLevel.value = 1
-  xScale.value.domain(dataScale.value.domain())
+  xScale.value.domain(originalXScale.value.domain())
   queueMicrotask(update)
 }
 
