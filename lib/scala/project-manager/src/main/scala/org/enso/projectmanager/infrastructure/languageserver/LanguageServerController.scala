@@ -165,6 +165,14 @@ class LanguageServerController(
       case _ => stash()
     }
 
+  /** In supervising mode, the language server has already been setup and can handle requests for shutdown.
+    *
+    * @param connectionInfo language server connection info
+    * @param serverProcessManager an actor that manages the lifecycle of the server process
+    * @param clients list of connected clients
+    * @param scheduledShutdown cancellable timeout of the hard shutdown event and a port number of the client that initiated it
+    * @return current supervising actor state
+    */
   private def supervising(
     connectionInfo: LanguageServerConnectionInfo,
     serverProcessManager: ActorRef,

@@ -67,8 +67,6 @@ class JsonRpcServer(
             messageHandler,
             MessageHandler.Disconnected(port),
             { _: Throwable =>
-              // TODO: If enabled, the warning would produce too much noise in tests
-              // logger.warn(s"Connection closed abruptly: ${e.getMessage}", e)
               MessageHandler.Disconnected(port)
             }
           )
