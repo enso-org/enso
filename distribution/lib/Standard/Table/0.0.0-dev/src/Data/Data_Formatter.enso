@@ -269,19 +269,19 @@ type Data_Formatter
     make_date_formatter self =
         if self.date_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting dates requires at least one entry in the `date_formats` parameter") else
             Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-                DateFormatter.new self.date_formats.first self.datetime_locale.java_locale
+                DateFormatter.new self.date_formats.first.underlying
 
     ## PRIVATE
     make_time_of_day_formatter self =
         if self.time_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting times requires at least one entry in the `time_formats` parameter") else
             Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-                TimeFormatter.new self.time_formats.first self.datetime_locale.java_locale
+                TimeFormatter.new self.time_formats.first.underlying
 
     ## PRIVATE
     make_date_time_formatter self =
         if self.datetime_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
             Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-                DateTimeFormatter.new self.datetime_formats.first self.datetime_locale.java_locale
+                DateTimeFormatter.new self.datetime_formats.first.underlying
 
     ## PRIVATE
     make_boolean_formatter self =
