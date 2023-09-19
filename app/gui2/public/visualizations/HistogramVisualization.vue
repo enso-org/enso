@@ -157,7 +157,7 @@ const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
 
 const points = ref<number[]>([])
-const dataBins = ref<number[]>()
+const rawBins = ref<number[]>()
 const binCount = ref(DEFAULT_NUMBER_OF_BINS)
 const axis = ref(DEFAULT_AXES_CONFIGURATION)
 const focus = ref<Focus>()
@@ -165,6 +165,7 @@ const brushExtent = ref<d3Types.BrushSelection>()
 /** This is INCORRECT, but SAFE, as long as {@link updateHistogram} is called before
  * {@link updatePanAndZoom}. */
 const scale = ref<ScaleConfiguration>(null!)
+const maxY = ref(1)
 
 watchEffect(() => {
   let rawData: Data | undefined =
@@ -202,7 +203,7 @@ watchEffect(() => {
       binCount.value = Math.max(1, rawData.bins)
     }
     if (!isUpdate) {
-      dataBins.value = rawData.data?.bins ?? undefined
+      rawBins.value = rawData.data?.bins ?? undefined
     }
 
     const values = Array.isArray(newData) ? newData : newData?.values ?? []
@@ -248,18 +249,41 @@ const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value
 // === Setup ===
 // =============
 
-onMounted(() => {
-  updateHistogram()
+function update(
+  rawBins: number[] | undefined,
+  points: number[] | undefined,
+  width: number,
+  height: number,
+) {
+  let bins: Bin[] = []
+  if (rawBins != null) {
+    bins = rawBins.map((length, i) => ({ x0: i, x1: i + 1, length }))
+  } else if (points != null) {
+    const xScale_ = xScale.value
+    const xDomain = xScale_.domain()
+    const histogram = d3
+      .bin()
+      .domain([xDomain[0] ?? 0, xDomain[1] ?? 1])
+      .thresholds(xScale_.ticks(binCount.value))
+    bins = histogram(points)
+  }
+  // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
+  maxY.value = d3.max(bins, (d) => d.length) || 1
+  updateHistogram(bins)
   zoom = updatePanAndZoom()
-  updateBrushing()
+  // Note: The brush element must be a child of the zoom element - this is only way we found to have
+  // both zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
+  d3.select(brushNode.value).call(brush.value)
+}
+
+onMounted(() => {
+  update(rawBins.value, points.value, width.value, height.value)
 })
 
 watch(
-  () => [points.value, width.value, height.value],
-  () => {
-    updateHistogram()
-    zoom = updatePanAndZoom()
-    updateBrushing()
+  () => [rawBins.value, points.value, width.value, height.value] as const,
+  ([bins, points, width, height]) => {
+    update(bins, points, width, height)
   },
 )
 
@@ -432,18 +456,6 @@ function zoomIn() {
 }
 
 /**
- * Adds brushing functionality to the visualization.
- *
- * Brush is a tool which enables user to select points, and zoom into selection via
- * keyboard shortcut or button event.
- */
-function updateBrushing() {
-  // The brush element must be child of zoom element - this is only way we found to have both
-  // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
-  d3.select(brushNode.value).call(brush.value)
-}
-
-/**
  * Removes brush, keyboard event and zoom button when end event is captured.
  */
 function endBrushing() {
@@ -499,8 +511,8 @@ function rescale(scale: ScaleConfiguration, shouldAnimate: boolean) {
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
-  let xMin = dataBins.value != null ? 0 : Math.min(...points.value)
-  let xMax = dataBins.value != null ? dataBins.value.length - 1 : Math.max(...points.value)
+  let xMin = rawBins.value != null ? 0 : Math.min(...points.value)
+  let xMax = rawBins.value != null ? rawBins.value.length - 1 : Math.max(...points.value)
   const dx = xMax - xMin
   const paddingX = 0.1 * dx
   return { xMin, xMax, paddingX, dx }
@@ -522,44 +534,20 @@ const xScale = computed(() => {
   return d3.scaleLinear().domain(domainX).range([0, boxWidth.value])
 })
 
-const bins = computed<Bin[]>(() => {
-  if (dataBins.value != null) {
-    return dataBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
-  } else {
-    const xScale_ = xScale.value
-    const xDomain = xScale_.domain()
-    const histogram = d3
-      .bin()
-      .domain([xDomain[0] ?? 0, xDomain[1] ?? 1])
-      .thresholds(xScale_.ticks(binCount.value))
-    return histogram(points.value)
-  }
-})
-
-const yScale = computed(() =>
-  d3
-    .scaleLinear()
-    .range([boxHeight.value, 0])
-    // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
-    .domain([0, d3.max(bins.value, (d) => d.length) || 1]),
-)
-
+const yScale = computed(() => d3.scaleLinear().range([boxHeight.value, 0]).domain([0, maxY.value]))
 const fill = computed(() =>
   d3.scaleSequential().interpolator(d3.interpolateViridis).domain(yScale.value.domain()),
 )
-
-const yAxisTicks = computed(() => yScale.value.ticks().filter((tick) => Number.isInteger(tick)))
+const yAxisTicks = computed(() => yScale.value.ticks().filter(Number.isInteger))
 const yAxis = computed(() =>
   d3.axisLeft(yScale.value).tickValues(yAxisTicks.value).tickFormat(d3.format('d')),
 )
 
-/**
- * Update the d3 histogram with the current data.
+/** Update the d3 histogram with the current data.
  *
- * Binds the new data to the plot, creating new bars, removing old ones and
- * updates the axes accordingly.
- */
-function updateHistogram() {
+ * Bind the new data to the plot, creating new bars, removing old ones and
+ * update the axes accordingly. */
+function updateHistogram(bins: Bin[]) {
   const xScale_ = xScale.value
   d3.select(xAxisNode.value).call(d3.axisBottom(xScale_).ticks(width.value / 40))
   const yScale_ = yScale.value
@@ -569,7 +557,7 @@ function updateHistogram() {
   if (plotNode.value == null) {
     console.error('Histogram could not find the HTML element for the chart.')
   } else {
-    const items = d3.select(plotNode.value).selectAll<SVGRectElement, Bin>('rect').data(bins.value)
+    const items = d3.select(plotNode.value).selectAll<SVGRectElement, Bin>('rect').data(bins)
     const boxHeight_ = boxHeight.value
     items.join(
       (enter) => enter.append('rect').attr('x', 1),
@@ -584,7 +572,6 @@ function updateHistogram() {
           .style('fill', (d) => fill_(d.length ?? 0)),
     )
   }
-
   scale.value = { x: xScale_, y: yScale_, zoom: 1.0 }
 }
 
