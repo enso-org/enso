@@ -931,7 +931,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   )
               ),
               selfType      = "Standard.Base.Data.Numbers.Number",
-              returnType    = SuggestionBuilder.Any,
+              returnType    = "Unnamed.Test.Foo",
               documentation = Some(" My conversion")
             ),
             Vector()

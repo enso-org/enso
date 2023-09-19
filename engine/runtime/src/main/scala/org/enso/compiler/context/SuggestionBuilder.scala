@@ -159,16 +159,22 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case definition.Method
                 .Conversion(
-                  Name.MethodReference(_, _, _, _, _),
+                  Name.MethodReference(typePtr, _, _, _, _),
                   _,
                   Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
                   _
                 ) =>
+            val selfType = typePtr.flatMap { typePointer =>
+              typePointer
+                .getMetadata(MethodDefinitions)
+                .map(_.target.qualifiedName)
+            }
             val conversion = buildConversion(
               body.getExternalId,
               module,
+              selfType,
               args,
               doc
             )
@@ -283,6 +289,7 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildConversion(
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
+    selfType: Option[QualifiedName],
     args: Seq[DefinitionArgument],
     doc: Option[String]
   ): Suggestion.Conversion = {
@@ -294,7 +301,6 @@ final class SuggestionBuilder[A: IndexedSource](
           .map(buildTypedArgument(arg, _))
           .getOrElse(buildArgument(arg))
       }
-    val returnTypeName = methodArgs(0).reprType
     val sourceTypeName = methodArgs(1).reprType
 
     Suggestion.Conversion(
@@ -302,7 +308,7 @@ final class SuggestionBuilder[A: IndexedSource](
       module        = module.toString,
       arguments     = methodArgs,
       selfType      = sourceTypeName,
-      returnType    = returnTypeName,
+      returnType    = selfType.fold(Any)(_.toString),
       documentation = doc
     )
   }
