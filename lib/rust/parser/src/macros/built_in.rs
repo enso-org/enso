@@ -38,6 +38,7 @@ fn statement() -> resolver::SegmentMap<'static> {
     register_import_macros(&mut macro_map);
     register_export_macros(&mut macro_map);
     macro_map.register(type_def());
+    macro_map.register(private());
     macro_map.register(foreign());
     macro_map
 }
@@ -638,12 +639,26 @@ fn foreign<'s>() -> Definition<'s> {
     crate::macro_definition! {("foreign", everything()) foreign_body}
 }
 
+fn private<'s>() -> Definition<'s> {
+    println!("Registering private macro def");
+    crate::macro_definition! {("private", everything()) private_keyword}
+}
+
 fn skip<'s>() -> Definition<'s> {
     crate::macro_definition! {("SKIP", everything()) capture_expressions}
 }
 
 fn freeze<'s>() -> Definition<'s> {
     crate::macro_definition! {("FREEZE", everything()) capture_expressions}
+}
+
+fn private_keyword(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    println!("private_keyword[begin] : Segments={:?}", segments);
+    let segment = segments.pop().0;
+    let keyword = into_private(segment.header);
+    let ret_tree = syntax::Tree::private(keyword);
+    println!("private_keyword[end]: ret_tree={:?}", ret_tree);
+    ret_tree
 }
 
 /// Macro body builder that just parses the tokens of each segment as expressions, and places them
@@ -741,6 +756,11 @@ fn into_close_symbol(token: syntax::token::Token) -> syntax::token::CloseSymbol 
 fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {
     let syntax::token::Token { left_offset, code, .. } = token;
     syntax::token::ident(left_offset, code, false, 0, false, false, false)
+}
+
+fn into_private(token: syntax::token::Token)  -> syntax::token::Private {
+    let syntax::token::Token { left_offset, code, .. } = token;
+    syntax::token::private(left_offset, code)
 }
 
 
