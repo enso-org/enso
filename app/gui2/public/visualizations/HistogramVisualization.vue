@@ -100,6 +100,16 @@ interface ScaleConfiguration {
   y: d3Types.ScaleContinuousNumeric<number, number>
   zoom: number
 }
+
+declare module 'd3' {
+  function select<GElement extends d3Types.BaseType, OldDatum>(
+    node: GElement | null | undefined,
+  ): d3Types.Selection<GElement, OldDatum, null, undefined>
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ScaleSequential<Output, Unknown = never> {
+    ticks(): number[]
+  }
+}
 </script>
 
 <script setup lang="ts">
@@ -164,7 +174,7 @@ const binCount = ref(DEFAULT_NUMBER_OF_BINS)
 const axis = ref(DEFAULT_AXES_CONFIGURATION)
 const focus = ref<Focus>()
 const brushExtent = ref<d3Types.BrushSelection>()
-// FIXME:
+/** This is INCORRECT, but SAFE, as long as {@link updateHistogram} is called before {@link updatePanAndZoom}. */
 const scale = ref<ScaleConfiguration>(null!)
 
 watchEffect(() => {
@@ -174,7 +184,7 @@ watchEffect(() => {
     console.error('Heatmap was not passed any data.')
   } else {
     const isUpdate = rawData.update === 'diff'
-    let newData: HistogramInnerData | number[]
+    let newData: HistogramInnerData | number[] = []
     if (Array.isArray(rawData)) {
       newData = rawData
       rawData = {} as Data
@@ -206,7 +216,7 @@ watchEffect(() => {
       dataBins.value = rawData.data?.bins ?? undefined
     }
 
-    const values = Array.isArray(rawData) ? rawData : rawData.data?.values ?? []
+    const values = Array.isArray(newData) ? newData : newData?.values ?? []
     points.value = values.filter((value) => typeof value === 'number' && !Number.isNaN(value))
   }
 })
@@ -215,7 +225,7 @@ onMounted(() => {
   emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
 })
 
-let zoom = {} as ReturnType<typeof initPanAndZoom>
+let zoom = {} as ReturnType<typeof updatePanAndZoom>
 
 // =================
 // === Positions ===
@@ -255,7 +265,7 @@ const yLabelLeft = computed(
 
 onMounted(() => {
   updateHistogram()
-  zoom = initPanAndZoom()
+  zoom = updatePanAndZoom()
   updateBrushing()
 })
 
@@ -263,7 +273,7 @@ watch(
   () => [points.value, width.value, height.value],
   () => {
     updateHistogram()
-    zoom = initPanAndZoom()
+    zoom = updatePanAndZoom()
     updateBrushing()
   },
 )
@@ -271,7 +281,7 @@ watch(
 /**
  * Initialise panning and zooming functionality on the visualization.
  */
-function initPanAndZoom() {
+function updatePanAndZoom() {
   const extent = [MIN_SCALE, MAX_SCALE] satisfies d3Types.BrushSelection
   let startX = 0
   let startY = 0
@@ -443,9 +453,6 @@ function zoomIn() {
  * keyboard shortcut or button event.
  */
 function updateBrushing() {
-  if (brushNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the brush.')
-  }
   // The brush element must be child of zoom element - this is only way we found to have both
   // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
   d3.select(brushNode.value).call(brush.value)
@@ -455,9 +462,6 @@ function updateBrushing() {
  * Removes brush, keyboard event and zoom button when end event is captured.
  */
 function endBrushing() {
-  if (brushNode.value == null) {
-    throw new Error('Histogram could not find the HTML element for the brush.')
-  }
   brushExtent.value = undefined
   d3.select(brushNode.value).call(brush.value.move, null)
 }
@@ -482,15 +486,6 @@ watch(
  * Helper function for rescaling the data points with a new scale.
  */
 function rescale(scale: ScaleConfiguration, shouldAnimate: boolean) {
-  if (xAxisNode.value == null) {
-    throw new Error('Histogram could not find the HTML element for the x axis.')
-  }
-  if (yAxisNode.value == null) {
-    throw new Error('Histogram could not find the HTML element for the y axis.')
-  }
-  if (plotNode.value == null) {
-    throw new Error('Histogram could not find the root HTML element for the chart.')
-  }
   const duration = shouldAnimate ? ANIMATION_DURATION : 0.0
   d3.select(xAxisNode.value)
     .transition()
@@ -526,6 +521,53 @@ const extremesAndDeltas = computed(() => {
   return { xMin, xMax, paddingX, dx }
 })
 
+const xScale = computed(() => {
+  const focus_ = focus.value
+  const extremesAndDeltas_ = extremesAndDeltas.value
+  let domainX: [min: number, max: number]
+  if (focus_?.x != null && focus_.zoom != null) {
+    let paddingX = extremesAndDeltas_.dx / (2 * focus_.zoom)
+    domainX = [focus_.x - paddingX, focus_.x + paddingX]
+  } else {
+    domainX = [
+      extremesAndDeltas_.xMin - extremesAndDeltas_.paddingX,
+      extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
+    ]
+  }
+  return d3.scaleLinear().domain(domainX).range([0, boxWidth.value])
+})
+
+const bins = computed<Bin[]>(() => {
+  if (dataBins.value != null) {
+    return dataBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
+  } else {
+    const xScale_ = xScale.value
+    const xDomain = xScale_.domain()
+    const histogram = d3
+      .bin()
+      .domain([xDomain[0] ?? 0, xDomain[1] ?? 1])
+      .thresholds(xScale_.ticks(binCount.value))
+    return histogram(points.value)
+  }
+})
+
+const yScale = computed(() =>
+  d3
+    .scaleLinear()
+    .range([boxHeight.value, 0])
+    // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
+    .domain([0, d3.max(bins.value, (d) => d.length) || 1]),
+)
+
+const fill = computed(() =>
+  d3.scaleSequential().interpolator(d3.interpolateViridis).domain(yScale.value.domain()),
+)
+
+const yAxisTicks = computed(() => yScale.value.ticks().filter((tick) => Number.isInteger(tick)))
+const yAxis = computed(() =>
+  d3.axisLeft(yScale.value).tickValues(yAxisTicks.value).tickFormat(d3.format('d')),
+)
+
 /**
  * Update the d3 histogram with the current data.
  *
@@ -533,81 +575,32 @@ const extremesAndDeltas = computed(() => {
  * updates the axes accordingly.
  */
 function updateHistogram() {
-  const focus_ = focus.value
-  const extremesAndDeltas_ = extremesAndDeltas.value
-  let domainX = [
-    extremesAndDeltas_.xMin - extremesAndDeltas_.paddingX,
-    extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
-  ]
-
-  if (focus_ !== undefined) {
-    if (focus_.x !== undefined && focus_.zoom !== undefined) {
-      let paddingX = extremesAndDeltas_.dx / (2 * focus_.zoom)
-      domainX = [focus_.x - paddingX, focus_.x + paddingX]
-    }
-  }
-
-  const x = d3.scaleLinear().domain(domainX).range([0, boxWidth.value])
-
-  if (xAxisNode.value == null) {
-    console.error('Histogram could not find the HTML element for the x axis.')
-  } else {
-    d3.select(xAxisNode.value).call(d3.axisBottom(x).ticks(width.value / 40))
-  }
-
-  let bins: Bin[] = []
-  if (dataBins.value != null) {
-    bins = dataBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
-  } else {
-    const xDomain = x.domain()
-    const histogram = d3
-      .bin()
-      // FIXME: remove if unnecessary
-      .value((d) => d)
-      // The built-in types are too wide here. The domain *always* contains two elements.
-      .domain([xDomain[0] ?? 0, xDomain[1] ?? 1])
-      .thresholds(x.ticks(binCount.value))
-    bins = histogram(points.value)
-  }
-
-  const y = d3
-    .scaleLinear()
-    .range([boxHeight.value, 0])
-    // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
-    .domain([0, d3.max(bins, (d) => d.length) || 1])
-
-  const yAxisTicks = y.ticks().filter((tick) => Number.isInteger(tick))
-
-  const yAxis = d3.axisLeft(y).tickValues(yAxisTicks).tickFormat(d3.format('d'))
-
-  if (yAxisNode.value == null) {
-    console.error('Histogram could not find the HTML element for the y axis.')
-  } else {
-    d3.select(yAxisNode.value).call(yAxis.ticks(height.value / 20))
-  }
-
-  const fill = d3.scaleSequential().interpolator(d3.interpolateViridis).domain(y.domain())
-
-  // FIXME [sb]: Not sure what is going on here.
-  updateColorLegend(fill as any)
-
+  const xScale_ = xScale.value
+  d3.select(xAxisNode.value).call(d3.axisBottom(xScale_).ticks(width.value / 40))
+  const yScale_ = yScale.value
+  d3.select(yAxisNode.value).call(yAxis.value)
+  const fill_ = fill.value
+  updateColorLegend(fill_)
   if (plotNode.value == null) {
     console.error('Histogram could not find the HTML element for the chart.')
   } else {
-    const items = d3.select(plotNode.value).selectAll<SVGRectElement, Bin>('rect').data(bins)
+    const items = d3.select(plotNode.value).selectAll<SVGRectElement, Bin>('rect').data(bins.value)
     const boxHeight_ = boxHeight.value
     items.join(
       (enter) => enter.append('rect').attr('x', 1),
       (update) =>
         update
-          .attr('transform', (d) => 'translate(' + x(d.x0 ?? 0) + ',' + y(d.length ?? 0) + ')')
-          .attr('width', (d) => x(d.x1 ?? 0) - x(d.x0 ?? 0))
-          .attr('height', (d) => boxHeight_ - y(d.length ?? 0))
-          .style('fill', (d) => fill(d.length ?? 0)),
+          .attr(
+            'transform',
+            (d) => 'translate(' + xScale_(d.x0 ?? 0) + ',' + yScale_(d.length ?? 0) + ')',
+          )
+          .attr('width', (d) => xScale_(d.x1 ?? 0) - xScale_(d.x0 ?? 0))
+          .attr('height', (d) => boxHeight_ - yScale_(d.length ?? 0))
+          .style('fill', (d) => fill_(d.length ?? 0)),
     )
   }
 
-  scale.value = { x, y, zoom: 1.0 }
+  scale.value = { x: xScale_, y: yScale_, zoom: 1.0 }
 }
 
 /**
@@ -615,10 +608,7 @@ function updateHistogram() {
  * Set up `stop` attributes on color legend gradient to match `colorScale`, so color legend shows correct colors
  * used by histogram.
  */
-function updateColorLegend(colorScale: d3Types.ScaleContinuousNumeric<number, number>) {
-  if (colorLegendGradientNode.value == null) {
-    throw new Error('Histogram could not find the HTML element for the legend.')
-  }
+function updateColorLegend(colorScale: d3Types.ScaleSequential<string>) {
   const colorScaleToGradient = (t: number, i: number, n: number[]) => ({
     offset: `${(100 * i) / n.length}%`,
     color: colorScale(t),
@@ -634,11 +624,7 @@ function updateColorLegend(colorScale: d3Types.ScaleContinuousNumeric<number, nu
 
 function fitAll() {
   focus.value = undefined
-  if (zoomNode.value == null) {
-    console.error('Histogram could not find the HTML element for the zoom.')
-  } else {
-    d3.select(zoomNode.value).transition().duration(0).call(zoom.zoom.transform, d3.zoomIdentity)
-  }
+  d3.select(zoomNode.value).transition().duration(0).call(zoom.zoom.transform, d3.zoomIdentity)
   const extremesAndDeltas_ = extremesAndDeltas.value
   let domainX = [
     extremesAndDeltas_.xMin - extremesAndDeltas_.paddingX,
@@ -684,7 +670,6 @@ onUnmounted(() => {
     </template>
     <div ref="containerNode" class="HistogramVisualization">
       <svg :width="width" :height="height">
-        <!-- FIXME: color-legend-gradient -->
         <rect
           class="color-legend"
           :width="COLOR_LEGEND_WIDTH"
