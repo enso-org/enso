@@ -6,7 +6,7 @@ import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, Plugin } from 'vite'
 import topLevelAwait from 'vite-plugin-top-level-await'
 import * as tailwindConfig from '../ide-desktop/lib/dashboard/tailwind.config'
-import { createGatewayServer } from './server'
+import { createGatewayServer } from './ydoc-server'
 
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 

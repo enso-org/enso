@@ -4,7 +4,14 @@ import * as map from 'lib0/map'
 import * as set from 'lib0/set'
 import { SHA3 } from 'sha3'
 import { Emitter } from './event'
-import type { Checksum, FileEdit, Notifications, Path, RegisterOptions, response } from './lsTypes'
+import type {
+  Checksum,
+  FileEdit,
+  Notifications,
+  Path,
+  RegisterOptions,
+  response,
+} from './languageServerTypes'
 import type { Uuid } from './yjsModel'
 
 export class LanguageServer extends Emitter<Notifications> {

@@ -17,7 +17,6 @@ const pingTimeout = 30000
 
 const messageSync = 0
 const messageAwareness = 1
-// const messageAuth = 2
 
 interface AwarenessUpdate {
   added: number[]
@@ -27,6 +26,9 @@ interface AwarenessUpdate {
 
 type ConnectionId = YjsConnection | string
 
+/**
+ * A Yjs document that is shared over multiple websocket connections.
+ */
 export class WSSharedDoc {
   doc: Y.Doc
   /**

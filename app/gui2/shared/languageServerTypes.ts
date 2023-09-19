@@ -255,13 +255,6 @@ type FileSystemObject =
 
 interface VisualizationContext {}
 
-type Messages = {
-  'file/event': { path: Path; kind: FileEventKind }
-  'text/autoSave': { path: Path }
-  'text/didChange': { edits: FileEdit[] }
-  'text/fileModifiedOnDisk': { path: Path }
-}
-
 export type Notifications = {
   'file/event': [{ path: Path; kind: FileEventKind }]
   'text/autoSave': [{ path: Path }]

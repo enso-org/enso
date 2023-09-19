@@ -5,7 +5,7 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { Emitter } from '../shared/event'
 import { LanguageServer } from '../shared/languageServer'
-import { Checksum, Path, response } from '../shared/lsTypes'
+import { Checksum, Path, response } from '../shared/languageServerTypes'
 import { DistributedModule, DistributedProject, NodeMetadata, Uuid } from '../shared/yjsModel'
 import { WSSharedDoc } from './ydoc'
 
@@ -19,7 +19,7 @@ export class LanguageServerSession extends Emitter<Events> {
   clientId: Uuid
   indexDoc: WSSharedDoc
   docs: Map<string, WSSharedDoc>
-  refcount: number
+  retainCount: number
   url: string
   client: Client
   ls: LanguageServer
@@ -31,7 +31,7 @@ export class LanguageServerSession extends Emitter<Events> {
     super()
     this.clientId = random.uuidv4() as Uuid
     this.docs = new Map()
-    this.refcount = 0
+    this.retainCount = 0
     this.url = url
     const transport = new WebSocketTransport(url)
     const requestManager = new RequestManager([transport])
@@ -148,12 +148,12 @@ export class LanguageServerSession extends Emitter<Events> {
   }
 
   retain() {
-    this.refcount++
+    this.retainCount++
   }
 
   release() {
-    this.refcount--
-    if (this.refcount === 0) {
+    this.retainCount--
+    if (this.retainCount === 0) {
       this.model.doc.destroy()
       this.ls.dispose()
       sessions.delete(this.url)

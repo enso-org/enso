@@ -5,7 +5,7 @@
     "vitest.config.*",
     "playwright.config.*",
     "eslint.config.js",
-    "server/**/*",
+    "ydoc-server/**/*",
     "shared/**/*",
     "e2e/**/*",
     "node.env.d.ts"
