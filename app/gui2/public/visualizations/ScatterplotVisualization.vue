@@ -86,7 +86,7 @@ import FindIcon from './icons/find.svg'
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
-import type * as d3Types from 'd3'
+import type {} from 'd3'
 
 import { useEvent } from './events.ts'
 import { getTextWidth } from './measurement.ts'
@@ -95,6 +95,12 @@ import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import type { SymbolType } from 'd3'
+import type { ScaleContinuousNumeric } from 'd3'
+import type { Selection } from 'd3'
+import type { BrushSelection } from 'd3'
+import type { D3ZoomEvent } from 'd3'
+import type { D3BrushEvent } from 'd3'
 
 const props = defineProps<{ data: Partial<Data> | number[] | string }>()
 const emit = defineEmits<{
@@ -124,7 +130,7 @@ const MID_BUTTON = 1
 const MID_BUTTON_CLICKED = 4
 const SCROLL_WHEEL = 0
 
-const SHAPE_TO_SYMBOL: Record<string, d3Types.SymbolType> = {
+const SHAPE_TO_SYMBOL: Record<string, SymbolType> = {
   cross: d3.symbolCross,
   diamond: d3.symbolDiamond,
   square: d3.symbolSquare,
@@ -132,7 +138,7 @@ const SHAPE_TO_SYMBOL: Record<string, d3Types.SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<Scale, d3Types.ScaleContinuousNumeric<number, number>> = {
+const SCALE_TO_D3_SCALE: Record<Scale, ScaleContinuousNumeric<number, number>> = {
   [Scale.linear]: d3.scaleLinear(),
   [Scale.logarithmic]: d3.scaleLog(),
 }
@@ -169,10 +175,10 @@ const yAxisNode = ref<SVGGElement>()
 const zoomNode = ref<SVGGElement>()
 const brushNode = ref<SVGGElement>()
 
-const d3Points = ref<d3Types.Selection<SVGPathElement, Point, SVGGElement, unknown>>()
-const d3Labels = ref<d3Types.Selection<SVGTextElement, Point, SVGGElement, unknown>>()
+const d3Points = ref<Selection<SVGPathElement, Point, SVGGElement, unknown>>()
+const d3Labels = ref<Selection<SVGTextElement, Point, SVGGElement, unknown>>()
 const bounds = ref<[number, number, number, number]>()
-const brushExtent = ref<d3Types.BrushSelection>()
+const brushExtent = ref<BrushSelection>()
 const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
 
@@ -311,7 +317,7 @@ function addPanAndZoom() {
   /**
    * Helper function called on pan/scroll.
    */
-  function zoomed(event: d3Types.D3ZoomEvent<Element, unknown>) {
+  function zoomed(event: D3ZoomEvent<Element, unknown>) {
     function rescale(distanceScale: d3.ZoomTransform) {
       transformedScale.xScale = distanceScale.rescaleX(transformedScale.xScale)
       transformedScale.yScale = distanceScale.rescaleY(transformedScale.yScale)
@@ -399,7 +405,7 @@ function addPanAndZoom() {
   /**
    * Helper function called when starting to pan/scroll.
    */
-  function startZoom(event: d3Types.D3ZoomEvent<Element, unknown>) {
+  function startZoom(event: D3ZoomEvent<Element, unknown>) {
     startX = event.sourceEvent?.offsetX ?? 0
     startY = event.sourceEvent?.offsetY ?? 0
     tempRmbScale = { ...transformedScale }
@@ -415,7 +421,7 @@ const brush = computed(() =>
       [0, 0],
       [boxWidth.value, boxHeight.value],
     ])
-    .on('start brush', (event: d3Types.D3BrushEvent<unknown>) => {
+    .on('start brush', (event: D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
     }),
 )

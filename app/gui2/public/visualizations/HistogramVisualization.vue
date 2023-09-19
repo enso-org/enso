@@ -105,7 +105,6 @@ import FindIcon from './icons/find.svg'
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
-import type * as d3Types from 'd3'
 import type { ScaleContinuousNumeric } from 'd3'
 
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
@@ -115,6 +114,11 @@ import { useEvent } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import type { BrushSelection } from 'd3'
+import type { D3ZoomEvent } from 'd3'
+import type { ZoomTransform } from 'd3'
+import type { D3BrushEvent } from 'd3'
+import type { ScaleSequential } from 'd3'
 
 const shortcuts = {
   zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
@@ -136,7 +140,7 @@ const PINCH_DIVIDER = 100
 const EPSILON = 0.001
 const MIN_SCALE = 0.5
 const MAX_SCALE = 20
-const ZOOM_EXTENT = [MIN_SCALE, MAX_SCALE] satisfies d3Types.BrushSelection
+const ZOOM_EXTENT = [MIN_SCALE, MAX_SCALE] satisfies BrushSelection
 const RIGHT_BUTTON = 2
 const MID_BUTTON = 1
 const MID_BUTTON_CLICKED = 4
@@ -168,7 +172,7 @@ const rawBins = ref<number[]>()
 const binCount = ref(DEFAULT_NUMBER_OF_BINS)
 const axis = ref(DEFAULT_AXES_CONFIGURATION)
 const focus = ref<Focus>()
-const brushExtent = ref<d3Types.BrushSelection>()
+const brushExtent = ref<BrushSelection>()
 const zoomLevel = ref(1)
 const maxY = ref(1)
 
@@ -292,11 +296,11 @@ const zoom = computed(() =>
 watchEffect(() => d3Zoom.value.call(zoom.value))
 
 /** Helper function called on pan/scroll. */
-function zoomed(event: d3Types.D3ZoomEvent<Element, unknown>) {
+function zoomed(event: D3ZoomEvent<Element, unknown>) {
   const xScale_ = xScale.value
   const yScale_ = yScale.value
 
-  function innerRescale(transformEvent: d3Types.ZoomTransform) {
+  function innerRescale(transformEvent: ZoomTransform) {
     xScale_.domain(transformEvent.rescaleX(xScale_).domain())
     const newYDomain = transformEvent.rescaleY(yScale_).domain()
     const yMin = newYDomain[0] ?? 0
@@ -355,7 +359,7 @@ function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
 }
 
 /** Helper function called when starting to pan/scroll. */
-function startZoom(event: d3Types.D3ZoomEvent<Element, unknown>) {
+function startZoom(event: D3ZoomEvent<Element, unknown>) {
   startX = event.sourceEvent?.offsetX ?? 0
   startY = event.sourceEvent?.offsetY ?? 0
 }
@@ -367,7 +371,7 @@ const brush = computed(() =>
       [0, 0],
       [boxWidth.value, boxHeight.value],
     ])
-    .on('start brush', (event: d3Types.D3BrushEvent<unknown>) => {
+    .on('start brush', (event: D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
     }),
 )
@@ -508,7 +512,7 @@ function updateHistogram(
   bins: Bin[],
   dataScale: Scale,
   yScale: Scale,
-  fill: d3Types.ScaleSequential<string>,
+  fill: ScaleSequential<string>,
   boxHeight: number,
 ) {
   updateColorLegend(fill)
@@ -529,7 +533,7 @@ function updateHistogram(
  * Set up `stop` attributes on color legend gradient to match `colorScale`, so color legend shows correct colors
  * used by histogram.
  */
-function updateColorLegend(colorScale: d3Types.ScaleSequential<string>) {
+function updateColorLegend(colorScale: ScaleSequential<string>) {
   const colorScaleToGradient = (t: number, i: number, n: number[]) => ({
     offset: `${(100 * i) / n.length}%`,
     color: colorScale(t),

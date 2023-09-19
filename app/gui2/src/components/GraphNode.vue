@@ -267,7 +267,7 @@ const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
 
-const visualizationType = ref('Scatterplot')
+const visualizationType = ref('Histogram')
 const visualization = shallowRef<Visualization>()
 
 const queuedVisualizationData = computed<{}>(() =>

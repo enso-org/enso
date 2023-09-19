@@ -58,6 +58,8 @@ const emit = defineEmits<{
 
 const config = useVisualizationConfig()
 
+const MARGIN = { top: 20, right: 20, bottom: 20, left: 25 }
+
 const containerNode = ref<HTMLElement>()
 const pointsNode = ref<SVGElement>()
 const xAxisNode = ref<SVGGElement>()
@@ -98,8 +100,8 @@ const height = computed(
   () =>
     config.value.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
 )
-const boxWidth = computed(() => Math.max(0, width.value - margin.left - margin.right))
-const boxHeight = computed(() => Math.max(0, height.value - margin.top - margin.bottom))
+const boxWidth = computed(() => Math.max(0, width.value - MARGIN.left - MARGIN.right))
+const boxHeight = computed(() => Math.max(0, height.value - MARGIN.top - MARGIN.bottom))
 
 watch(
   () => [data.value, width.value, height.value],
@@ -107,8 +109,6 @@ watch(
     updateHeatmap()
   },
 )
-
-const margin = { top: 20, right: 20, bottom: 20, left: 25 }
 
 const dataPoints = computed(() => {
   const newData = data.value
@@ -224,7 +224,7 @@ function updateHeatmap() {
   <VisualizationContainer :below-toolbar="true">
     <div ref="containerNode" class="HeatmapVisualization">
       <svg :width="width" :height="height">
-        <g :transform="`translate(${margin.left},${margin.top})`">
+        <g :transform="`translate(${MARGIN.left},${MARGIN.top})`">
           <g ref="xAxisNode" class="label label-x" :transform="`translate(0, ${boxHeight})`"></g>
           <g ref="yAxisNode" class="label label-y"></g>
           <g ref="pointsNode"></g>
