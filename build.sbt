@@ -1709,9 +1709,6 @@ lazy val `engine-runner` = project
                   .getLanguages()
                   .containsKey("java")
               ) {
-                System.out.println(
-                  "Building engine `runner` image with experimental Espresso support!"
-                )
                 Seq(
                   "-Dorg.graalvm.launcher.home=" + System.getProperty(
                     "java.home"
