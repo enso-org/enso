@@ -25,10 +25,9 @@ public abstract class AddToClassPathNode extends Node {
   @CompilerDirectives.TruffleBoundary
   @Specialization
   Object doExecute(Object path, @Cached ExpectStringNode expectStringNode) {
-    EnsoContext context = EnsoContext.get(this);
-    context
-        .getEnvironment()
-        .addToHostClassPath(context.getTruffleFile(new File(expectStringNode.execute(path))));
-    return context.getBuiltins().nothing();
+    var ctx = EnsoContext.get(this);
+    var file = ctx.getTruffleFile(new File(expectStringNode.execute(path)));
+    ctx.addToClassPath(file);
+    return ctx.getBuiltins().nothing();
   }
 }
