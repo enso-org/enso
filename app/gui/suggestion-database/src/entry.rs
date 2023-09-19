@@ -973,10 +973,11 @@ where
                 let label = chain_to_label(&chain);
                 let qualified_name = entry.qualified_name();
                 let required_import = Some(qualified_name.to_string());
-                // As we don't generate `this`, we will never follow the code path where
-                // `in_module` is used. That's why passing `default()` is valid.
+                // Passing some meaningful module name instead of `default()` is preferable, but we
+                // can't access it in this method. This means we never use `Main` instead of
+                // project name in dropdowns.
                 let in_module = default();
-                let expression = entry.code_to_insert(false, in_module);
+                let expression = entry.code_to_insert(true, in_module);
                 let expression = if entry.arguments.is_empty() {
                     expression.to_string()
                 } else {
