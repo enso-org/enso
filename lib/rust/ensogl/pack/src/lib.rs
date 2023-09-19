@@ -357,7 +357,7 @@ pub async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
     println!("compile_this_crate_ts_sources");
     if check_if_ts_needs_rebuild(paths)? {
         info!("EnsoGL Pack TypeScript sources changed, recompiling.");
-        ide_ci::programs::Npm.cmd()?.install().current_dir(&paths.this_crate.js).run_ok().await?;
+        ide_ci::programs::Npm.cmd()?.install().current_dir(&paths.workspace).run_ok().await?;
         let run_script = async move |script_name, script_args: &[&str]| {
             ide_ci::programs::Npm
                 .cmd()?

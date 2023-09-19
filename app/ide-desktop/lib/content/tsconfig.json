@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["../types", "../../utils.ts", "../dashboard/esbuild-config.ts", "../../build.json", "."]
+  "include": [
+    "../types",
+    "../../utils.ts",
+    "../../build.json",
+    "../dashboard",
+    "."
+  ]
 }

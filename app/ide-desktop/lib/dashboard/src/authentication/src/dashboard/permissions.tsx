@@ -48,7 +48,6 @@ export enum Permission {
     delete = 'delete',
 }
 
-
 /** CSS classes for each permission. */
 export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
     [Permission.owner]: 'text-tag-text bg-permission-owner',
@@ -94,9 +93,7 @@ export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
 /** The corresponding {@link Permissions} for each {@link PermissionAction}. */
-export const FROM_PERMISSION_ACTION: Readonly<
-    Record<PermissionAction, Readonly<Permissions>>
-> = {
+export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Readonly<Permissions>>> = {
     [PermissionAction.own]: { type: Permission.owner },
     [PermissionAction.admin]: { type: Permission.admin },
     [PermissionAction.edit]: { type: Permission.edit },

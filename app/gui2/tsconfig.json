@@ -12,6 +12,6 @@
     },
     {
       "path": "./tsconfig.vitest.json"
-    },
+    }
   ]
 }
