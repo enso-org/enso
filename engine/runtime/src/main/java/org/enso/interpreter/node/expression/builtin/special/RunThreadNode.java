@@ -24,9 +24,7 @@ public abstract class RunThreadNode extends Node {
   @Specialization
   Thread doExecute(MaterializedFrame frame, State state, Object self) {
     EnsoContext ctx = EnsoContext.get(this);
-    Thread thread =
-        ctx.getEnvironment()
-            .createThread(
+    Thread thread = ctx.createThread(false,
                 () -> {
                   Object p = ctx.getThreadManager().enter();
                   try {

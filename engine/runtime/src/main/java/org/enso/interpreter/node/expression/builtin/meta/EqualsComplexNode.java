@@ -417,7 +417,7 @@ public abstract class EqualsComplexNode extends Node {
     }
   }
 
-  @Specialization(guards = {"isHostObject(selfHostObject)", "isHostObject(otherHostObject)"})
+  @Specialization(guards = {"isJavaObject(selfHostObject)", "isJavaObject(otherHostObject)"})
   boolean equalsHostObjects(
       Object selfHostObject,
       Object otherHostObject,
@@ -434,7 +434,7 @@ public abstract class EqualsComplexNode extends Node {
 
   // HostFunction is identified by a qualified name, it is not a lambda.
   // It has well-defined equality based on the qualified name.
-  @Specialization(guards = {"isHostFunction(selfHostFunc)", "isHostFunction(otherHostFunc)"})
+  @Specialization(guards = {"isJavaFunction(selfHostFunc)", "isJavaFunction(otherHostFunc)"})
   boolean equalsHostFunctions(
       Object selfHostFunc,
       Object otherHostFunc,
@@ -467,10 +467,10 @@ public abstract class EqualsComplexNode extends Node {
     if (EqualsNode.isPrimitive(left, interop) && EqualsNode.isPrimitive(right, interop)) {
       return false;
     }
-    if (isHostObject(left) && isHostObject(right)) {
+    if (isJavaObject(left) && isJavaObject(right)) {
       return false;
     }
-    if (isHostFunction(left) && isHostFunction(right)) {
+    if (isJavaFunction(left) && isJavaFunction(right)) {
       return false;
     }
     if (left instanceof Atom && right instanceof Atom) {
@@ -540,7 +540,7 @@ public abstract class EqualsComplexNode extends Node {
     if (object instanceof Atom) {
       return false;
     }
-    if (isHostObject(object)) {
+    if (isJavaObject(object)) {
       return false;
     }
     if (interop.isDate(object)) {
@@ -562,13 +562,11 @@ public abstract class EqualsComplexNode extends Node {
     }
   }
 
-  @TruffleBoundary
-  boolean isHostObject(Object object) {
-    return EnsoContext.get(this).getEnvironment().isHostObject(object);
+  boolean isJavaObject(Object object) {
+    return EnsoContext.get(this).isJavaPolyglotObject(object);
   }
 
-  @TruffleBoundary
-  boolean isHostFunction(Object object) {
-    return EnsoContext.get(this).getEnvironment().isHostFunction(object);
+  boolean isJavaFunction(Object object) {
+    return EnsoContext.get(this).isJavaPolyglotFunction(object);
   }
 }

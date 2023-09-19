@@ -291,7 +291,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
             methodBody.add("  return " + qual + "." + name + "(" + paramsApplied + ");");
           } else if (convertToGuestValue) {
             methodBody.add("  var result = " + qual + "." + name + "(" + paramsApplied + ");");
-            methodBody.add("  return EnsoContext.get(this).getEnvironment().asGuestValue(result);");
+            methodBody.add("  return EnsoContext.get(this).asGuestValue(result);");
           } else {
             processingEnvironment
                 .getMessager()

@@ -1864,8 +1864,7 @@ class IrToTruffle(
       argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
       val src = language.buildSource(code, scopeName)
-      val foreignCt = context.getEnvironment
-        .parseInternal(src, argumentNames: _*)
+      val foreignCt = context.parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
           ReadLocalVariableNode.build(new FramePointer(0, slotIdx))

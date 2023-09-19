@@ -162,17 +162,13 @@ public final class TopLevelScope implements EnsoObject {
     }
 
     private static Object leakContext(EnsoContext context) {
-      return context.getEnvironment().asGuestValue(context);
+      return context.asGuestValue(context);
     }
 
     @CompilerDirectives.TruffleBoundary
     private static Object compile(Object[] arguments, EnsoContext context)
         throws UnsupportedTypeException, ArityException {
-      boolean useGlobalCache =
-          context
-              .getEnvironment()
-              .getOptions()
-              .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
+      boolean useGlobalCache = context.isUseGlobalCache();
       boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
       try {
         return context.getCompiler().compile(shouldCompileDependencies, useGlobalCache).get();
