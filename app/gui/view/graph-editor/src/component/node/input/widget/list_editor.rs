@@ -789,7 +789,7 @@ enum DefaultVariant {
 impl DefaultVariant {
     fn from_single(ty: &str) -> Option<Self> {
         match ty.strip_prefix("Standard.Base.Data.")? {
-            "Numbers.Integer" | "Numbers.Decimal" | "Numbers.Number" => Some(Self::Numeric),
+            "Numbers.Integer" | "Numbers.Float" | "Numbers.Number" => Some(Self::Numeric),
             "Boolean.Boolean" => Some(Self::Boolean),
             "Text.Text" => Some(Self::Text),
             "Any" => Some(Self::Any),

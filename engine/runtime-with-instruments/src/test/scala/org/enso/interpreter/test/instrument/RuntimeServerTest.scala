@@ -806,6 +806,143 @@ class RuntimeServerTest
     )
   }
 
+  it should "send method pointer updates of builtin operators" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x_1   = metadata.addItem(48, 5, "aa")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x_1 = 3 ^ 4
+        |    x_1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x_1,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            "Standard.Base.Data.Numbers.Integer",
+            "^"
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of partially applied builtin operators" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x_1   = metadata.addItem(48, 5, "aa")
+    val id_x_2   = metadata.addItem(64, 7, "ab")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x_1 = "4" +
+        |    x_2 = x_1 "2"
+        |    x_2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    val textPlusMethodPointer = Api.MethodPointer(
+      "Standard.Base.Data.Text",
+      "Standard.Base.Data.Text.Text",
+      "+"
+    )
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x_1,
+        ConstantsGen.FUNCTION,
+        methodCall = Some(Api.MethodCall(textPlusMethodPointer, Vector(1))),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          None,
+          Some(Api.FunctionSchema(textPlusMethodPointer, Vector(1)))
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        id_x_2,
+        ConstantsGen.TEXT,
+        Api.MethodCall(textPlusMethodPointer)
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "send method pointer updates of partially applied constructors" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

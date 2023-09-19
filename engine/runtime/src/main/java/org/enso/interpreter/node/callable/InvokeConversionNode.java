@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -150,6 +151,27 @@ public abstract class InvokeConversionNode extends BaseNode {
       PanicSentinel that,
       Object[] arguments) {
     throw that;
+  }
+
+  @Specialization
+  Object doMultiValue(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      Object self,
+      EnsoMultiValue that,
+      Object[] arguments) {
+    var type = extractType(self);
+    var result = that.castTo(type);
+    if (result == null) {
+      throw new PanicException(
+          EnsoContext.get(this)
+              .getBuiltins()
+              .error()
+              .makeNoSuchConversion(type, self, conversion),
+          this);
+    }
+    return result;
   }
 
   @Specialization

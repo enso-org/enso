@@ -296,32 +296,32 @@ spec =
             pattern = Regex.compile "(?<건반>[a-z]+)"
             pattern.replace "foo bar, baz" "[$<건반>]" . should_equal "[foo] [bar], [baz]"
 
-         Text.group "should correctly evaluate documentation examples" <|
-            Test.specify "example 1" <|
-                pattern = Regex.compile 'aa'
-                pattern.replace 'aaa' 'b' . should_equal 'ba'
+        Test.group "should correctly evaluate documentation examples" <|
+           Test.specify "example 1" <|
+               pattern = Regex.compile 'aa'
+               pattern.replace 'aaa' 'b' . should_equal 'ba'
 
-            Test.specify "example 2" <|
-                pattern = Regex.compile '[lo]'
-                pattern.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
+           Test.specify "example 2" <|
+               pattern = Regex.compile '[lo]'
+               pattern.replace 'Hello World!' '#' . should_equal 'He### W#r#d!'
 
-            Test.specify "example 3" <|
-                pattern = Regex.compile 'l'
-                pattern.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
+           Test.specify "example 3" <|
+               pattern = Regex.compile 'l'
+               pattern.replace 'Hello World!' '#' only_first=True . should_equal 'He#lo World!'
 
-            Test.specify "example 4" <|
-                pattern = Regex.compile '"(.*?)"'
-                pattern.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
+           Test.specify "example 4" <|
+               pattern = Regex.compile '"(.*?)"'
+               pattern.replace '"abc" foo "bar" baz' '($1)' . should_equal '(abc) foo (bar) baz'
 
-            Test.specify "example 5" <|
-                pattern = Regex.compile "aa"
-                input = "aa ab aa ac ad aa aa ax"
-                match = pattern.replace input "xyz"
-                match . should_equal "xyz ab xyz ac ad xyz xyz ax"
+           Test.specify "example 5" <|
+               pattern = Regex.compile "aa"
+               input = "aa ab aa ac ad aa aa ax"
+               match = pattern.replace input "xyz"
+               match . should_equal "xyz ab xyz ac ad xyz xyz ax"
 
-            Test.specify "example 6" <|
-                pattern = Regex.compile "([a-z]+)"
-                pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
+           Test.specify "example 6" <|
+               pattern = Regex.compile "([a-z]+)"
+               pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
 
         Test.specify "`replace` with an empty pattern should be an error" <|
             pattern = Regex.compile ""

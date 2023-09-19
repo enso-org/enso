@@ -21,8 +21,6 @@ use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu::texture;
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::system::gpu::Texture;
 use font::FontWithGpuData;
 use font::GlyphRenderInfo;
 use font::Style;
@@ -132,13 +130,15 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
 
         sprite_system.unsafe_set_alignment(alignment::Dim2::left_bottom());
         display::world::with_context(|t| {
-            t.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-            t.variables.add("msdf_size", size);
+            let mut variables = t.variables.borrow_mut();
+            variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+            variables.add("msdf_size", size);
         });
 
-        symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
-        symbol.variables().add_uniform_or_panic("opacity_increase", &font.opacity_increase);
-        symbol.variables().add_uniform_or_panic("opacity_exponent", &font.opacity_exponent);
+        let mut variables = symbol.variables.borrow_mut();
+        variables.add_uniform_or_panic("atlas", &font.atlas);
+        variables.add_uniform_or_panic("opacity_increase", &font.opacity_increase);
+        variables.add_uniform_or_panic("opacity_exponent", &font.opacity_exponent);
 
         SystemData {}
     }
@@ -161,31 +161,25 @@ pub struct Glyph {
 #[derive(Debug, display::Object)]
 pub struct GlyphData {
     pub view:               glyph_shape::View,
-    pub glyph_id:           Cell<GlyphId>,
     pub line_byte_offset:   Cell<Byte>,
-    pub display_object:     display::object::Instance,
-    pub context:            Context,
-    pub properties:         Cell<font::family::NonVariableFaceHeader>,
-    pub variations:         RefCell<VariationAxes>,
     pub x_advance:          Cell<f32>,
     /// Indicates whether this glyph is attached to cursor. Needed for text width computation.
     /// Attached glyphs should not be considered part of the line during animation because they
     /// will be moved around, so they need to be ignored when computing the line width.
     pub attached_to_cursor: Cell<bool>,
+    glyph_id:               Cell<GlyphId>,
+    display_object:         display::object::Instance,
+    properties:             Cell<font::family::NonVariableFaceHeader>,
+    variations:             RefCell<VariationAxes>,
 }
 
 
 // === Face Header Properties Getters and Setters ===
 
-/// For each property, such as `Weight(Thin, ExtraLight, ...)` defines:
+/// For each property, such as `Weight` defines:
 /// ```text
 /// pub fn weight(&self) -> Weight { ... }
 /// pub fn set_weight(&self, weight: Weight) { ... }
-/// pub fn set_weight_thin(&self) { ... }
-/// pub fn set_weight_extra_light(&self) { ... }
-/// ...
-/// pub fn is_weight_thin(&self) { ... }
-/// pub fn is_weight_extra_light(&self) { ... }
 /// ...
 /// ```
 ///
@@ -195,7 +189,7 @@ pub struct GlyphData {
 /// pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) { ... }
 /// ```
 macro_rules! define_prop_setters_and_getters {
-    ($($prop:ident ($($variant:ident),* $(,)?)),*$(,)?) => { paste! {
+    ($($prop:ident),*$(,)?) => { paste! {
 
         /// Set `NonVariableFaceHeader` of the glyph.
         pub fn set_properties(&self, props: font::family::NonVariableFaceHeader) {
@@ -222,46 +216,12 @@ macro_rules! define_prop_setters_and_getters {
             pub fn [<$prop:snake:lower>](&self) -> $prop {
                 self.properties.get().[<$prop:snake:lower>]
             }
-
-            $(
-                #[doc = "Set the `"]
-                #[doc = stringify!($prop)]
-                #[doc = "` property to `"]
-                #[doc = stringify!($variant)]
-                #[doc = "`."]
-                pub fn [<set_ $prop:snake:lower _ $variant:snake:lower>](&self) {
-                    self.[<set_ $prop:snake:lower>]($prop::$variant)
-                }
-
-                #[doc = "Checks whether the `"]
-                #[doc = stringify!($prop)]
-                #[doc = "` property is set to `"]
-                #[doc = stringify!($variant)]
-                #[doc = "`."]
-                pub fn [<is_ $prop:snake:lower _ $variant:snake:lower>](&self) -> bool {
-                    self.properties.get().[<$prop:snake:lower>] == $prop::$variant
-                }
-            )*
         )*
     }};
 }
 
 impl Glyph {
-    define_prop_setters_and_getters![
-        Weight(Thin, ExtraLight, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black),
-        Style(Normal, Italic, Oblique),
-        Width(
-            UltraCondensed,
-            ExtraCondensed,
-            Condensed,
-            SemiCondensed,
-            Normal,
-            SemiExpanded,
-            Expanded,
-            ExtraExpanded,
-            UltraExpanded
-        )
-    ];
+    define_prop_setters_and_getters![Weight, Style, Width];
 }
 
 
@@ -382,7 +342,6 @@ impl Glyph {
             self.view.data.borrow().font.glyph_info(self.properties.get(), &variations, glyph_id);
         if let Some(glyph_info) = opt_glyph_info {
             self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id);
-            self.update_atlas();
             self.view.set_size(glyph_info.scale.scale(self.font_size().value));
         } else {
             // This should not happen. Fonts contain special glyph for missing characters.
@@ -400,27 +359,6 @@ impl Glyph {
     /// color do not call this method.
     fn refresh(&self) {
         self.set_glyph_id(self.glyph_id.get());
-    }
-
-    /// Check whether the CPU-bound texture changed and if so, upload it to GPU.
-    #[cfg(not(target_arch = "wasm32"))]
-    fn update_atlas(&self) {}
-    #[cfg(target_arch = "wasm32")]
-    fn update_atlas(&self) {
-        let data = self.view.data.borrow();
-        let font = &data.font;
-        let glyph_size = data.font.msdf_texture().size();
-        let num_glyphs = data.font.msdf_texture().glyphs() as i32;
-        let gpu_tex_glyphs = font.atlas.with_item(|texture| texture.storage().layers);
-        let texture_changed = gpu_tex_glyphs != num_glyphs;
-        if texture_changed {
-            let texture = Texture::new(
-                &self.context,
-                ((glyph_size.x() as i32, glyph_size.y() as i32), num_glyphs),
-            );
-            font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
-            font.atlas.set(texture);
-        }
     }
 }
 
@@ -456,31 +394,10 @@ impl WeakGlyph {
 // === System ===
 // ==============
 
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, CloneRef, Debug, Default)]
-#[allow(missing_copy_implementations)]
-/// Mocked version of WebGL context.
-pub struct Context;
-
-#[cfg(not(target_arch = "wasm32"))]
-fn get_context(_scene: &Scene) -> Context {
-    Context
-}
-
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::display::world::Context;
-
-#[cfg(target_arch = "wasm32")]
-fn get_context(scene: &Scene) -> Context {
-    scene.context.borrow().as_ref().unwrap().clone_ref()
-}
-
-
 /// A system for displaying glyphs.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct System {
-    context:  Context,
     pub font: FontWithGpuData,
 }
 
@@ -491,15 +408,13 @@ impl System {
         let scene = scene.as_ref();
         let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
-        let context = get_context(scene);
-        Self { context, font }
+        Self { font }
     }
 
     /// Create new glyph. In the returned glyph the further parameters (position,size,character)
     /// may be set.
     #[profile(Debug)]
     pub fn new_glyph(&self) -> Glyph {
-        let context = self.context.clone();
         let display_object = display::object::Instance::new_no_debug();
         let font = self.font.clone_ref();
         let glyph_id = default();
@@ -516,7 +431,6 @@ impl System {
             data: Rc::new(GlyphData {
                 view,
                 display_object,
-                context,
                 glyph_id,
                 line_byte_offset,
                 properties,

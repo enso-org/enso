@@ -1,6 +1,6 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
-import project.Data.Numbers.Decimal
+import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
@@ -243,17 +243,17 @@ type Duration
 
     ## GROUP DateTime
        Convert the duration to total seconds.
-    total_seconds : Decimal ! Illegal_State
+    total_seconds : Float ! Illegal_State
     total_seconds self = self.total_milliseconds / 1000.0
 
     ## GROUP DateTime
        Convert the duration to total minutes.
-    total_minutes : Decimal ! Illegal_State
+    total_minutes : Float ! Illegal_State
     total_minutes self = self.total_seconds / 60.0
 
     ## GROUP DateTime
        Convert the duration to total minutes.
-    total_hours : Decimal ! Illegal_State
+    total_hours : Float ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 
     ## PRIVATE

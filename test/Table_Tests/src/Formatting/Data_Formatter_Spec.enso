@@ -63,18 +63,18 @@ spec =
             exponential_formatter = Data_Formatter.Value allow_exponential_notation=True
             plain_formatter.parse "1E3" . should_equal "1E3"
 
-            r1 = plain_formatter.parse "1E3" Decimal
+            r1 = plain_formatter.parse "1E3" Float
             r1.should_equal Nothing
-            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Decimal ["1E3"])]
+            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Float ["1E3"])]
 
             exponential_formatter.parse "1E3" . should_equal 1000.0
-            exponential_formatter.parse "1E3" Decimal . should_equal 1000.0
+            exponential_formatter.parse "1E3" Float . should_equal 1000.0
             exponential_formatter.parse "1E3" Integer . should_equal Nothing
 
             plain_formatter.parse "1.2E-3" . should_equal "1.2E-3"
-            plain_formatter.parse "1.2E-3" Decimal . should_equal Nothing
+            plain_formatter.parse "1.2E-3" Float . should_equal Nothing
             exponential_formatter.parse "1.2E-3" . should_equal 0.0012
-            exponential_formatter.parse "1.2E-3" Decimal . should_equal 0.0012
+            exponential_formatter.parse "1.2E-3" Float . should_equal 0.0012
 
         Test.specify "handle leading zeros, only if enabled" <|
             Data_Formatter.Value.parse "0100" . should_equal "0100"
@@ -137,9 +137,9 @@ spec =
                 r.should_equal Nothing
                 Problems.expect_only_warning Invalid_Format r
 
-            r1 = formatter.parse "Text" datatype=Decimal
+            r1 = formatter.parse "Text" datatype=Float
             w1 = expect_warning r1
-            w1.value_type . should_equal Decimal
+            w1.value_type . should_equal Float
             w1.column . should_equal Nothing
 
             expect_warning <| formatter.parse "Text" datatype=Integer

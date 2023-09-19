@@ -1,11 +1,14 @@
 import project.Any.Any
+import project.Data.Map.Map
 import project.Data.Pair.Pair
+import project.Data.Set.Set
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Network.HTTP.Form.Form
-import project.Network.HTTP.Form.Part_Value
+import project.Errors.Common.Forbidden_Operation
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.HTTP_Version.HTTP_Version
@@ -16,14 +19,19 @@ import project.Network.Proxy.Proxy
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime.Context
+import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Json.Extensions import all
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpRequest
+polyglot java import java.net.http.HttpRequest.BodyPublisher
 polyglot java import java.net.http.HttpResponse
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
+polyglot java import java.nio.file.Path
 polyglot java import org.enso.base.Http_Utils
 
 type HTTP
@@ -58,47 +66,6 @@ type HTTP
         HTTP.Value timeout follow_redirects proxy version
 
     ## PRIVATE
-       ADVANCED
-       Send the Get request and return the body.
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - headers: Any headers for the options request.
-
-       > Example
-         Send a Get request and return the body.
-         Note: This example will make a network request.
-
-             import Standard.Base.Network.HTTP.HTTP
-
-             example_fetch = HTTP.fetch "http://httpbin.org/get"
-
-       > Example
-         Send authenticated Get request (note the use of TLS) and return the body.
-         Note: This example will make a network request.
-
-             import Standard.Base.Network.HTTP.HTTP
-             import Standard.Base.Network.HTTP.Header.Header
-
-             example_fetch =
-                headers = [Header.authorization_basic "user" "pass"]
-                HTTP.fetch "https://httpbin.org/basic-auth/user/pass" headers
-
-       > Example
-         Download a file.
-         Note: This example will make a network request.
-
-             import Standard.Base.Network.HTTP.HTTP
-             import Standard.Examples
-
-             example_fetch =
-                 out_file = Examples.scratch_file
-                 res = HTTP.fetch "http://httpbin.org/bytes/1024" . to_file out_file
-    fetch : (Text | URI) -> Vector -> Response ! Request_Error
-    fetch uri (headers = []) =
-        HTTP.new.get uri headers . body
-
-    ## PRIVATE
 
        An HTTP client.
 
@@ -109,237 +76,13 @@ type HTTP
        - version: The HTTP version supported by the client.
     Value timeout follow_redirects proxy version
 
-    ## Send an Options request.
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - headers: Any headers for the options request.
-
-       > Example
-         Send an Options request.
-         Note: This example will make a network request.
-
-             import Standard.Base.Network.HTTP.HTTP
-             import Standard.Examples
-
-             static_options = HTTP.new.options "http://httpbin.org"
-             example_options = Examples.http_client.options "http://httpbin.org"
-    options : (Text | URI) -> Vector -> Response ! Request_Error
-    options self uri (headers = []) =
-        req = Request.options uri headers
-        self.request req
-
-    ## Send a Get request.
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - headers: Any headers for the options request.
-
-       > Example
-         Send a Get request.
-         Note: This example will make a network request.
-
-             import Standard.Examples
-
-             example_get = Examples.http_client.get "http://httpbin.org/get"
-
-       > Example
-         Send authenticated Get request (note the use of TLS).
-         Note: This example will make a network request.
-
-             import Standard.Base.Network.HTTP.Header.Header
-             import Standard.Examples
-
-             example_get =
-                headers = [Header.authorization_basic "user" "pass"]
-                Examples.http_client.get "https://httpbin.org/basic-auth/user/pass" headers
-
-       > Example
-            Download a file.
-            Note: This example will make a network request.
-
-             import Standard.Examples
-
-             example_get =
-                 out_file = Examples.scratch_file
-                 res = Examples.http_client.get "http://httpbin.org/bytes/1024"
-                 res.body.to_file out_file
-    get : (Text | URI) -> Vector -> Response ! Request_Error
-    get self uri (headers = []) =
-        req = Request.get uri headers
-        self.request req
-
-    ## Send a Head request.
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - headers: Any headers for the options request.
-
-
-       > Example
-         Send a Head request.
-         Note: This example will make a network request.
-
-             import Standard.Examples
-
-             example_head = Examples.http_client.head "http://httpbin.org"
-    head : (Text | URI) -> Vector -> Response ! Request_Error
-    head self uri (headers = []) =
-        req = Request.head uri headers
-        self.request req
-
-    ## Send a Post request.
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - body: The body of the post request.
-       - headers: Any headers for the options request.
-
-
-       > Example
-         Send a Post request with binary data.
-         Note: This example will make a network request.
-
-             import Standard.Base.Network.HTTP.Header.Header
-             import Standard.Base.Network.HTTP.Request_Body.Request_Body
-             import Standard.Examples
-
-             example_post =
-                 body = Request_Body.Bytes "Hello".utf_8
-                 Examples.http_client.post "http://httpbin.org/post" body [header_binary]
-    post : (Text | URI) -> Request_Body -> Vector -> Response ! Request_Error
-    post self uri body (headers = []) =
-        req = Request.post uri body headers
-        self.request req
-
-    ## Send a Post request with the form. By default it will be encoded as
-       "application/x-www-form-urlencoded". To encode the form as
-       "multipart/form-data" add the appropriate header.
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - parts: A form, or the parts for creating a form.
-       - headers: Any headers for the options request.
-
-
-       > Example
-         Send a Post request with form.
-         Note: This example will make a network request.
-
-             import Standard.Base.Network.HTTP.Form.Form
-             import Standard.Examples
-
-             example_post_form =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
-                 Examples.http_client.post_form "http://httpbin.org/post" form
-
-       > Example
-         Send a Post request with form encoded as "multipart/form-data".
-         Note: This example will make a network request.
-
-             import Standard.Base.Network.HTTP.Form.Form
-             import Standard.Base.Network.HTTP.Header.Header
-             import Standard.Examples
-
-             example_post_form =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
-                 Examples.http_client.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
-    post_form : (Text | URI) -> (Vector | Form) -> Vector -> Response ! Request_Error
-    post_form self uri parts (headers = []) =
-        new_headers = [Header.application_x_www_form_urlencoded]
-        req = Request.post uri (Request_Body.Form (Form.new parts)) new_headers . with_headers headers
-        self.request req
-
-    ## Send a Post request with body with content-type "application/json".
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - body_json: The JSON body for the post request.
-       - headers: Any headers for the options request.
-
-
-       > Example
-         Send a Post request with json data.
-         Note: This example will make a network request.
-
-             import Standard.Examples
-
-             example_post_json =
-                 json = '{"key":"val"}'
-                 Examples.http_client.post_json "http://httpbin.org/post" json
-    post_json : (Text | URI) -> Text -> Vector -> Response ! Request_Error
-    post_json self uri body_json (headers = []) =
-        new_headers = [Header.application_json]
-        req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
-        self.request req
-
-    ## Send a Put request.
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - body: The body for the put request.
-       - headers: Any headers for the options request.
-
-       > Example
-         Send a Put request with binary data.
-
-             import Standard.Base.Network.HTTP.Header.Header
-             import Standard.Base.Network.HTTP.Request_Body.Request_Body
-             import Standard.Examples
-
-             example_put =
-                 body = Request_Body.Bytes "contents".utf_8
-                 Examples.http_client.put "http://httpbin.org/post" body [header_binary]
-    put : (Text | URI) -> Request_Body -> Vector -> Response ! Request_Error
-    put self uri body (headers = []) =
-        req = Request.put uri body headers
-        self.request req
-
-    ## Send a Put request with body with content-type "application/json".
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - body_json: The JSON for the body of the put request.
-       - headers: Any headers for the options request.
-
-       > Example
-         Send a Put request with json data.
-         Note: This example will make a network request.
-
-             import Standard.Examples
-
-             example_post_json =
-                 json = '{"key":"val"}'
-                 Examples.http_client.put_json "http://httpbin.org/post" json
-    put_json : (Text | URI) -> Text -> Vector -> Response ! Request_Error
-    put_json self uri body_json (headers = []) =
-        new_headers = [Header.application_json]
-        req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
-        self.request req
-
-    ## Create a Delete request.
-
-       Arguments:
-       - uri: The address to which the request will be sent.
-       - headers: Any headers for the options request.
-
-       > Example
-         Send a Delete request.
-         Note: This example will make a network request.
-
-             import Standard.Examples
-
-             example_delete = Examples.http_client.delete "http://httpbin.org/delete"
-    delete : (Text | URI) -> Vector -> Response ! Request_Error
-    delete self uri (headers = []) =
-        req = Request.delete uri headers
-        self.request req
-
     ## ADVANCED
        Create a request
 
        Arguments:
        - req: The HTTP request to send using `self` HTTP client.
+       - try_auto_parse_response: If true, attempt to auto-parse the result
+         body.
 
        > Example
          Send a Get request with headers.
@@ -358,14 +101,13 @@ type HTTP
          Open a connection and send a Post request with form.
          Note: This example will send a network request.
 
-             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Examples
 
              example_request =
                  req = Request.post "http://httpbin.org/post" Body.Empty
-                 with_form = req.with_form [Form.text_field "key" "value"]
+                 with_form = req.with_form (Map.from_vector [["key", "value"]])
                  with_header = with_form.with_header "X-Trace-Id" "123456789"
                  res = Examples.http_client.request with_header
                  res.code
@@ -374,13 +116,12 @@ type HTTP
          Send a Post request with urlencoded form data.
          Note: This example will send a network request.
 
-             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Examples
 
              example_request =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
+                 form = Map.from_vector [["name", "John Doe"], ["license.txt", enso_project.root / "LICENSE"]]
                  req = Request.post "http://httpbin.org/post" Request_Body.Empty . with_form form
                  Examples.http_client.request req
 
@@ -388,14 +129,13 @@ type HTTP
          Send a Post request with form encoded as "multipart/form-data".
          Note: This example will send a network request.
 
-             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.Header.Header
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Examples
 
              example_request =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
+                 form = Map.from_vector [["name", "John Doe"], ["license.txt", enso_project.root / "LICENSE"]]
                  req = Request.post "http://httpbin.org/post" Request_Body.Empty
                  with_form = req.with_form form
                  with_headers = with_form.with_headers [Header.multipart_form_data]
@@ -407,66 +147,109 @@ type HTTP
 
              import Standard.Base.Data.Time.Duration.Duration
              import Standard.Base.Network.HTTP.HTTP
-             import Standard.Base.Network.HTTP.Form.Form
              import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
              import Standard.Base.Network.HTTP.Request.Request
 
              example_request =
-                 form = [Form.text_field "name" "John Doe"]
+                 form = Map.from_vector [["name", "John Doe"]]
                  req = Request.new HTTP_Method.Post "http://httpbin.org/post" . with_form form
                  http = HTTP.new (timeout = (Duration.new seconds=30))
                  http.request req
-    request : Request -> Response ! Request_Error
-    request self req =
+
+       > Example
+         Send a Get request with headers, and auto-parse the result
+         Note: This example will send a network request.
+
+             import Standard.Base.Network.HTTP.HTTP
+             import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
+             import Standard.Base.Network.HTTP.Request.Request
+
+             example_request =
+                 req = Request.new HTTP_Method.Get "http://httpbin.org/get" try_auto_parse_response=True
+                 res = Examples.http_client.request req
+                 res.body
+    request : Request -> Boolean -> Response ! Request_Error
+    request self req try_auto_parse_response=False =
+        # Prevent request if the method is a write-like method and output context is disabled.
+        check_output_context ~action =
+            if fetch_methods.contains req.method || Context.Output.is_enabled then action else
+                Error.throw (Forbidden_Operation.Error ("Method " + req.method.to_text + " requests are forbidden as the Output context is disabled."))
         handle_request_error =
             Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
-        Panic.recover Any <| handle_request_error <|
+
+        resolved_req = req.resolve_content_type
+        resolved_req.if_not_error <| Panic.recover Any <| handle_request_error <| check_output_context <|
             body_publishers = HttpRequest.BodyPublishers
             builder = HttpRequest.newBuilder
+
             # set uri
-            builder.uri (Panic.rethrow req.uri.internal_uri)
-            # prepare headers and body
-            req_with_body = case req.body of
+            uri = case resolved_req.uri of
+                _ : Text -> resolved_req.uri.to_uri
+                _ : URI -> resolved_req.uri
+            builder.uri uri.internal_uri
+
+            # Generate body publisher, possibly generating additional headers
+            body_publisher_and_headers = case resolved_req.body of
+                Request_Body.Text text encoding _ ->
+                    ## We ignore the content_type field of the request body,
+                       since any value it had was moved to the headers list in resolve_content_type
+                    headers = [Header.new "Content-Encoding" encoding.character_set]
+                    Pair.new (body_publishers.ofString text encoding.to_java_charset) headers
+                Request_Body.Json x ->
+                    json = x.to_json
+                    json.if_not_error <|
+                        Pair.new (body_publishers.ofString json) [Header.application_json]
+                Request_Body.Binary file ->
+                    path = Path.of file.path
+                    Pair.new (body_publishers.ofFile path) [Header.application_octet_stream]
+                Request_Body.Form_Data form_data url_encoded ->
+                    build_form_body_publisher form_data url_encoded
                 Request_Body.Empty ->
-                    Pair.new req body_publishers.noBody
-                Request_Body.Text text ->
-                    builder.header Header.text_plain.name Header.text_plain.value
-                    Pair.new req (body_publishers.ofString text)
-                Request_Body.Json json ->
-                    builder.header Header.application_json.name Header.application_json.value
-                    Pair.new req (body_publishers.ofString json)
-                Request_Body.Form form ->
-                    add_multipart form =
-                        body_builder = Http_Utils.multipart_body_builder
-                        form.parts.map part-> case part.value of
-                            Part_Value.Text text -> body_builder.add_part_text part.key text
-                            Part_Value.File file -> body_builder.add_part_file part.key file.path
-                        boundary = body_builder.get_boundary
-                        Pair.new (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
-                    add_urlencoded form =
-                        body_builder = Http_Utils.urlencoded_body_builder
-                        form.parts.map part-> case part.value of
-                            Part_Value.Text text -> body_builder.add_part_text part.key text
-                            Part_Value.File file -> body_builder.add_part_file part.key file.path
-                        Pair.new req body_builder.build
-                    if req.headers.contains Header.multipart_form_data then add_multipart form else
-                        add_urlencoded form
-                Request_Body.Bytes bytes ->
-                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
-                    Pair.new req (body_publishers.ofByteArray bytes)
-            # method
-            req_http_method = req.method.to_http_method_name
-            case req_with_body of
-                Pair.Value req body ->
-                    # set method and body
-                    builder.method req_http_method body
-                    # set headers
-                    req.headers.map h-> builder.header h.name h.value
-            http_request = builder.build
-            body_handler = HttpResponse.BodyHandlers . ofByteArray
-            Response.Value (self.internal_http_client.send http_request body_handler)
+                    Pair.new (body_publishers.noBody) []
+                _ ->
+                    Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + resolved_req.body.to_display_text + "; this is a bug in the Data library"))
+
+            # Send request
+            body_publisher_and_headers.if_not_error <|
+                body_publisher = body_publisher_and_headers.first
+                additional_headers = body_publisher_and_headers.second
+
+                # set method and body
+                builder.method resolved_req.method.to_http_method_name body_publisher
+
+                # set headers
+                all_headers = resolved_req.headers + additional_headers
+                all_headers.map h-> builder.header h.name h.value
+
+                http_request = builder.build
+                body_handler = HttpResponse.BodyHandlers . ofByteArray
+
+                response = Response.Value (self.internal_http_client.send http_request body_handler)
+
+                if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
+                    if try_auto_parse_response.not then response else
+                        response.decode if_unsupported=response . catch handler=(_->response)
 
     ## PRIVATE
+
+       Static helper for get-like methods
+    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+        check_method fetch_methods method <|
+            request = Request.new method uri (parse_headers headers) Request_Body.Empty
+            HTTP.new.request request try_auto_parse_response
+
+    ## PRIVATE
+
+       Static helper for post-like methods
+    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+        check_method post_methods method <|
+            request = Request.new method uri (parse_headers headers) body
+            HTTP.new.request request try_auto_parse_response
+
+    ## PRIVATE
+
        Build an HTTP client.
     internal_http_client : HttpClient
     internal_http_client self =
@@ -496,6 +279,50 @@ type HTTP
                 builder.version HttpClient.Version.HTTP_2
         # build http client
         builder.build
+
+## PRIVATE
+parse_headers : Vector (Header | Pair Text Text) -> Vector Header
+parse_headers headers =
+    headers . map h-> case h of
+        _ : Vector -> Header.new (h.at 0) (h.at 1)
+        _ : Pair -> Header.new (h.at 0) (h.at 1)
+        _ : Header -> h
+        _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
+
+## PRIVATE
+
+   Build a BodyPublisher from the given form data.
+build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher [Header]
+build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
+    True ->
+        body_builder = Http_Utils.urlencoded_body_builder
+        form_data.map_with_key key-> value->
+            case value of
+                _ : Text -> body_builder.add_part_text key value
+                _ : File -> body_builder.add_part_file key value.path
+        Pair.new body_builder.build []
+    False ->
+        body_builder = Http_Utils.multipart_body_builder
+        form_data.map_with_key key-> value->
+            case value of
+                _ : Text -> body_builder.add_part_text key value
+                _ : File -> body_builder.add_part_file key value.path
+        boundary = body_builder.get_boundary
+        Pair.new body_builder.build [Header.multipart_form_data boundary]
+
+## PRIVATE
+fetch_methods : Set HTTP_Method
+fetch_methods = Set.from_vector [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options]
+
+## PRIVATE
+post_methods : Set HTTP_Method
+post_methods = Set.from_vector [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch, HTTP_Method.Delete]
+
+## PRIVATE
+check_method : Set HTTP_Method -> Any -> Any ! Illegal_Argument
+check_method allowed_methods method ~action =
+    if allowed_methods.contains method then action else
+        Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))
 
 ## PRIVATE
    An error when sending an HTTP request.

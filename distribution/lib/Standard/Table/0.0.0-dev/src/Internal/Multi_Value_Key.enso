@@ -28,7 +28,7 @@ type Unordered_Multi_Value_Key
     validate_grouping_columns columns problem_builder =
         validate_column column =
             value_type = column.value_type
-            is_float x = x.is_a Decimal
+            is_float x = x.is_a Float
             has_floats = value_type.is_floating_point || ((value_type == Value_Type.Mixed) && column.to_vector.any is_float)
             if has_floats then
                 problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)

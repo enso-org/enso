@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.literal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.source.SourceSection;
 import java.util.function.Predicate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
@@ -51,8 +50,8 @@ final class PatchableLiteralNode extends ExpressionNode implements Patchable, Pr
   }
 
   @Override
-  public SourceSection getSourceSection() {
-    return node.getSourceSection();
+  public int[] getSourceSectionBounds() {
+    return node.getSourceSectionBounds();
   }
 
   @Override
