@@ -27,7 +27,7 @@ interface HeatmapUpdate {
   data: object[] | undefined
 }
 
-interface DataPoint {
+interface Bucket {
   index: number
   group: number
   variable: number
@@ -49,7 +49,7 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{ data: Data | string }>()
 const emit = defineEmits<{
@@ -59,11 +59,6 @@ const emit = defineEmits<{
 const config = useVisualizationConfig()
 
 const MARGIN = { top: 20, right: 20, bottom: 20, left: 25 }
-
-const containerNode = ref<HTMLElement>()
-const pointsNode = ref<SVGElement>()
-const xAxisNode = ref<SVGGElement>()
-const yAxisNode = ref<SVGGElement>()
 
 const data = computed(() => {
   const newData: Data = typeof props.data === 'string' ? JSON.parse(props.data) : props.data
@@ -84,33 +79,32 @@ const data = computed(() => {
   return []
 })
 
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.Table.Visualization', 'prepare_visualization')
-  updateHeatmap()
-})
+const pointsNode = ref<SVGElement>()
+const xAxisNode = ref<SVGGElement>()
+const yAxisNode = ref<SVGGElement>()
 
-const width = computed(
-  () =>
-    config.value.width ??
-    config.value.nodeSize.x ??
-    containerNode.value?.getBoundingClientRect().width ??
-    100,
+const d3XAxis = computed(() => d3.select(xAxisNode.value))
+const d3YAxis = computed(() => d3.select(yAxisNode.value))
+
+const d3Points = computed(() => d3.select(pointsNode.value))
+
+const fill = computed(() =>
+  d3
+    .scaleSequential()
+    .interpolator(d3.interpolateViridis)
+    .domain([0, d3.max(buckets.value, (d) => d.value) ?? 1]),
 )
-const height = computed(
-  () =>
-    config.value.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
-)
+
+const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x))
+const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
 const boxWidth = computed(() => Math.max(0, width.value - MARGIN.left - MARGIN.right))
 const boxHeight = computed(() => Math.max(0, height.value - MARGIN.top - MARGIN.bottom))
 
-watch(
-  () => [data.value, width.value, height.value],
-  () => {
-    updateHeatmap()
-  },
-)
+onMounted(() => {
+  emit('update:preprocessor', 'Standard.Visualization.Table.Visualization', 'prepare_visualization')
+})
 
-const dataPoints = computed(() => {
+const buckets = computed(() => {
   const newData = data.value
   let groups: number[] = []
   let variables: number[] = []
@@ -135,94 +129,88 @@ const dataPoints = computed(() => {
     variables = newData[1] as any
     values = newData[2] as any
   }
-
-  return Array.from<unknown, DataPoint>({ length: groups.length }, (_, i) => ({
+  return Array.from<unknown, Bucket>({ length: groups.length }, (_, i) => ({
     index: i,
     group: groups[i]!,
     variable: variables[i]!,
     value: values[i]!,
   }))
 })
+const groups = computed(() => Array.from(new Set(Array.from(buckets.value, (p) => p.group))))
+const variables = computed(() => Array.from(new Set(Array.from(buckets.value, (p) => p.variable))))
 
-const d3Points = computed(() => {
-  if (xAxisNode.value == null || yAxisNode.value == null || pointsNode.value == null) {
-    // Not mounted yet.
-    return
-  }
-  const dataPoints_ = dataPoints.value
+const xScale = ref(d3.scaleBand<number>().padding(0.05))
+const yScale = ref(d3.scaleBand<number>().padding(0.05))
 
-  // Build color scale
-  let fill = d3
-    .scaleSequential()
-    .interpolator(d3.interpolateViridis)
-    .domain([0, d3.max(dataPoints_, (d) => d.value) ?? 1])
-
-  return d3
-    .select<SVGElement, DataPoint>(pointsNode.value)
-    .selectAll()
-    .data(dataPoints.value, (d) => d?.group + ':' + d?.variable)
-    .join((enter) =>
-      enter
-        .append('rect')
-        .attr('rx', 4)
-        .attr('ry', 4)
-        .style('fill', (d) => fill(d.value))
-        .style('stroke-width', 4)
-        .style('stroke', 'none')
-        .style('opacity', 0.8),
-    )
-})
-
-const groups = computed(() => Array.from(new Set(Array.from(dataPoints.value, (p) => p.group))))
-const variables = computed(() =>
-  Array.from(new Set(Array.from(dataPoints.value, (p) => p.variable))),
-)
-
-/**
- * Initialise the heatmap with the current data and settings.
- */
-function updateHeatmap() {
-  const dataPoints_ = dataPoints.value
-
-  // Build X scales and axis:
-  let x = d3
-    .scaleBand<number>()
-    .range([0, boxWidth.value])
-    .domain(dataPoints_.map((d) => d.group))
-    .padding(0.05)
-  const xMod = Math.max(1, Math.round(dataPoints_.length / (boxWidth.value / 40)))
+const xAxis = computed(() => {
+  const xMod = Math.max(1, Math.round(buckets.value.length / (boxWidth.value / 40)))
   const lastGroupIndex = groups.value.length - 1
-  let xAxis = d3
-    .axisBottom(x)
+  return d3
+    .axisBottom(xScale.value)
     .tickSize(0)
     .tickValues(groups.value.filter((_, i) => i % xMod === 0 || i === lastGroupIndex))
-  d3.select(xAxisNode.value).call(xAxis)
+})
 
-  // Build Y scales and axis:
-  let y = d3
-    .scaleBand<number>()
-    .range([boxHeight.value, 0])
-    .domain(dataPoints_.map((d) => d.variable ?? 0))
-    .padding(0.05)
-  const yMod = Math.max(1, Math.round(dataPoints_.length / (boxHeight.value / 40)))
+watchEffect(() => {
+  // Update the x-axis in D3.
+  xScale.value.range([0, boxWidth.value]).domain(buckets.value.map((d) => d.group))
+  d3XAxis.value.call(xAxis.value)
+})
+
+const yAxis = computed(() => {
+  const yMod = Math.max(1, Math.round(buckets.value.length / (boxHeight.value / 20)))
   const lastVariableIndex = variables.value.length - 1
-  let yAxis = d3
-    .axisLeft(y)
+  return d3
+    .axisLeft(yScale.value)
     .tickSize(0)
     .tickValues(variables.value.filter((_, i) => i % yMod === 0 || i === lastVariableIndex))
-  d3.select(yAxisNode.value).call(yAxis)
+})
 
+watchEffect(() => {
+  // Update the y-axis in D3.
+  yScale.value.range([boxHeight.value, 0]).domain(buckets.value.map((d) => d.variable ?? 0))
+  d3YAxis.value.call(yAxis.value)
+})
+
+function redrawData() {
+  const buckets_ = buckets.value
+  const xScale_ = xScale.value
+  const yScale_ = yScale.value
+  const fill_ = fill.value
   d3Points.value
-    ?.attr('x', (d) => x(d.group)!)
-    .attr('y', (d) => y(d.variable ?? 0)!)
-    .attr('width', x.bandwidth())
-    .attr('height', y.bandwidth())
+    .selectAll('rect')
+    .data(buckets_)
+    .join(
+      (enter) =>
+        enter
+          .append('rect')
+          .attr('rx', 4)
+          .attr('ry', 4)
+          .style('stroke-width', 4)
+          .style('stroke', 'none')
+          .style('opacity', 0.8)
+          .style('fill', (d) => fill_(d.value)),
+      (update) =>
+        update
+          .attr('width', xScale_.bandwidth())
+          .attr('height', yScale_.bandwidth())
+          .attr('x', (d) => xScale_(d.group)!)
+          .attr('y', (d) => yScale_(d.variable ?? 0)!),
+    )
 }
+
+// =============
+// === Setup ===
+// =============
+
+onMounted(() => queueMicrotask(redrawData))
+watch([data, width, height], () => queueMicrotask(redrawData))
+watchEffect(redrawData)
 </script>
 
 <template>
   <VisualizationContainer :below-toolbar="true">
-    <div ref="containerNode" class="HeatmapVisualization">
+    <div class="HeatmapVisualization">
       <svg :width="width" :height="height">
         <g :transform="`translate(${MARGIN.left},${MARGIN.top})`">
           <g ref="xAxisNode" class="label label-x" :transform="`translate(0, ${boxHeight})`"></g>

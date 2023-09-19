@@ -237,7 +237,7 @@ const margin = computed(() => ({
   bottom: MARGIN + (axis.value?.x?.label ? AXIS_LABEL_HEIGHT : 0),
   left: MARGIN + (axis.value?.y?.label ? AXIS_LABEL_HEIGHT : 0),
 }))
-const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x) ?? 100)
+const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x))
 const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
@@ -349,7 +349,7 @@ function zoomed(event: D3ZoomEvent<Element, unknown>) {
   } else {
     innerRescale(event.transform)
   }
-  rescale(xScale_, yScale_)
+  rescale(xScale_, yScale_, false)
 }
 
 /** Return the zoom value computed from the initial right-mouse-button event to the current
@@ -387,7 +387,7 @@ watchEffect(() => d3Brush.value.call(brush.value))
  *
  * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
  * Section "Brushing for zooming". */
-function zoomIn() {
+function zoomToSelected() {
   if (brushExtent.value == null) {
     return
   }
@@ -402,7 +402,7 @@ function zoomIn() {
   xScale_.domain([xMin, xMax])
   const selectionWidth = end - start
   zoomLevel.value *= boxWidth.value / selectionWidth
-  rescale(xScale_, yScale.value)
+  rescale(xScale_, yScale.value, true)
 }
 
 function endBrushing() {
@@ -416,22 +416,23 @@ useEventConditional(
   () => brushExtent.value != null,
   (event) => {
     if (shortcuts.zoomIn(event)) {
-      zoomIn()
+      zoomToSelected()
       endBrushing()
     }
   },
 )
 
 /** Animate the chart to a new scale. */
-function rescale(xScale: Scale, yScale: Scale) {
+function rescale(xScale: Scale, yScale: Scale, shouldAnimate: boolean) {
+  const duration = shouldAnimate ? ANIMATION_DURATION : 0
   d3XAxis.value
     .transition()
-    .duration(ANIMATION_DURATION)
+    .duration(duration)
     .call(d3.axisBottom(xScale).ticks(width.value / 40))
   const yTicks = yScale.ticks().filter(Number.isInteger)
   d3YAxis.value
     .transition()
-    .duration(ANIMATION_DURATION)
+    .duration(duration)
     .call(
       d3
         .axisLeft(yScale)
@@ -442,7 +443,7 @@ function rescale(xScale: Scale, yScale: Scale) {
   d3Plot.value
     .selectAll<SVGRectElement, Bin>('rect')
     .transition()
-    .duration(ANIMATION_DURATION)
+    .duration(duration)
     .attr(
       'transform',
       (d) =>
@@ -471,17 +472,15 @@ watchEffect(() => {
   // Update the x-axis in D3.
   const focus_ = focus.value
   const extremesAndDeltas_ = extremesAndDeltas.value
-  let domainX: [min: number, max: number]
+  let domainX: [min: number, max: number] = [
+    extremesAndDeltas_.xMin - extremesAndDeltas_.paddingX,
+    extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
+  ]
+  originalXScale.value.domain(domainX).range([0, boxWidth.value])
   if (focus_?.x != null && focus_.zoom != null) {
     let paddingX = extremesAndDeltas_.dx / (2 * focus_.zoom)
     domainX = [focus_.x - paddingX, focus_.x + paddingX]
-  } else {
-    domainX = [
-      extremesAndDeltas_.xMin - extremesAndDeltas_.paddingX,
-      extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
-    ]
   }
-  originalXScale.value.domain(domainX).range([0, boxWidth.value])
   xScale.value.domain(domainX).range([0, boxWidth.value])
   d3XAxis.value.call(d3.axisBottom(xScale.value).ticks(width.value / 40))
 })
@@ -499,28 +498,38 @@ watchEffect(() => {
   d3YAxis.value.call(yAxis.value)
 })
 
-/** Update the d3 histogram with the current data.
- *
- * Bind the new data to the plot, creating new bars, removing old ones and
- * update the axes accordingly. */
-function redrawData(
-  bins: Bin[],
-  xScale: Scale,
-  yScale: Scale,
-  fill: ScaleSequential<string>,
-  boxHeight: number,
-) {
-  updateColorLegend(fill)
-  const items = d3Plot.value.selectAll<SVGRectElement, Bin>('rect').data(bins)
-  items.join(
-    (enter) => enter.append('rect').attr('x', 1),
-    (update) =>
-      update
-        .attr('transform', (d) => `translate(${xScale(d.x0 ?? 0)}, ${yScale(d.length ?? 0)})`)
-        .attr('width', (d) => xScale(d.x1 ?? 0) - xScale(d.x0 ?? 0))
-        .attr('height', (d) => Math.max(0, boxHeight - yScale(d.length ?? 0)))
-        .style('fill', (d) => fill(d.length ?? 0)),
-  )
+function redrawData() {
+  const originalXScale_ = originalXScale.value
+  const xScale_ = xScale.value
+  const yScale_ = yScale.value
+  const boxHeight_ = boxHeight.value
+  const fill_ = fill.value
+  let bins: Bin[] = []
+  if (rawBins.value != null) {
+    bins = rawBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
+  } else if (points.value != null) {
+    const dataDomain = originalXScale.value.domain()
+    const histogram = d3
+      .bin()
+      .domain([dataDomain[0] ?? 0, dataDomain[1] ?? 1])
+      .thresholds(originalXScale.value.ticks(binCount.value))
+    bins = histogram(points.value)
+  }
+  // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
+  maxY.value = d3.max(bins, (d) => d.length) || 1
+  updateColorLegend(fill.value)
+  d3Plot.value
+    .selectAll('rect')
+    .data(bins)
+    .join(
+      (enter) => enter.append('rect').attr('x', 1),
+      (update) =>
+        update
+          .attr('transform', (d) => `translate(${xScale_(d.x0 ?? 0)}, ${yScale_(d.length ?? 0)})`)
+          .attr('width', (d) => originalXScale_(d.x1 ?? 0) - originalXScale_(d.x0 ?? 0))
+          .attr('height', (d) => Math.max(0, boxHeight_ - yScale_(d.length ?? 0)))
+          .style('fill', (d) => fill_(d.length ?? 0)),
+    )
 }
 
 /**
@@ -546,30 +555,13 @@ function updateColorLegend(colorScale: ScaleSequential<string>) {
 // === Update ===
 // ==============
 
-function update() {
-  let bins: Bin[] = []
-  if (rawBins.value != null) {
-    bins = rawBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
-  } else if (points.value != null) {
-    const dataDomain = originalXScale.value.domain()
-    const histogram = d3
-      .bin()
-      .domain([dataDomain[0] ?? 0, dataDomain[1] ?? 1])
-      .thresholds(originalXScale.value.ticks(binCount.value))
-    bins = histogram(points.value)
-  }
-  // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
-  maxY.value = d3.max(bins, (d) => d.length) || 1
-  redrawData(bins, xScale.value, yScale.value, fill.value, boxHeight.value)
-}
-
 onMounted(() => {
   emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
 })
 
-onMounted(update)
-watch([width, height, maxY], () => queueMicrotask(update))
-watchEffect(update)
+onMounted(() => queueMicrotask(redrawData))
+watch([width, height, maxY], () => queueMicrotask(redrawData))
+watchEffect(redrawData)
 
 watch([width, height], () => queueMicrotask(endBrushing))
 
@@ -581,7 +573,7 @@ function fitAll() {
   focus.value = undefined
   zoomLevel.value = 1
   xScale.value.domain(originalXScale.value.domain())
-  queueMicrotask(update)
+  rescale(xScale.value, yScale.value, true)
 }
 
 useEvent(document, 'keydown', (event) => {
@@ -602,7 +594,7 @@ useEvent(document, 'scroll', endBrushing)
         <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <img :src="FindIcon" alt="Zoom to selected" @click="zoomIn" />
+        <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
     <div class="HistogramVisualization" @pointerdown.stop>

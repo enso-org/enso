@@ -204,7 +204,7 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x) ?? 100)
+const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x))
 const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
@@ -390,18 +390,7 @@ const brush = computed(() =>
       brushExtent.value = event.selection ?? undefined
     }),
 )
-
-/**
- * Add brushing functionality to the plot.
- *
- * The brush is a tool which enables user to select points, and zoom into the selection using
- * a keyboard shortcut or button event.
- */
-function updateBrushing() {
-  // The brush element must be a child of zoom element - this is only way we found to have both
-  // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276
-  d3Brush.value.call(brush.value)
-}
+watchEffect(() => d3Brush.value.call(brush.value))
 
 /** Zoom into the selected area of the plot.
  *
@@ -475,7 +464,6 @@ const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},$
   ACCENT_COLOR.blue * 255
 },0.8)`
 
-/** Create a plot object and populate it with the given data. */
 function redrawData() {
   const xScale_ = xScale.value
   const yScale_ = yScale.value
@@ -505,21 +493,17 @@ function redrawData() {
   }
 }
 
-/**
- * Helper function to match d3 shape from string.
- */
+/** Helper function to match a d3 shape from its name. */
 function matchShape(d: Point) {
   return d.shape != null ? SHAPE_TO_SYMBOL[d.shape] ?? d3.symbolCircle : d3.symbolCircle
 }
 
-/**
- * Construct either linear or logarithmic D3 scale.
+/** Construct either a linear or a logarithmic D3 scale.
  *
  * The scale kind is selected depending on update contents.
  *
  * @param axis Axis information as received in the visualization update.
- * @returns D3 scale.
- */
+ * @returns D3 scale. */
 function axisD3Scale(axis: AxisConfiguration | undefined) {
   return axis != null ? SCALE_TO_D3_SCALE[axis.scale] : d3.scaleLinear()
 }
@@ -550,14 +534,9 @@ watchEffect(() => {
 // === Update ===
 // ==============
 
-function update() {
-  redrawData()
-  updateBrushing()
-}
-
-onMounted(update)
-watch([data, width, height], update)
-watchEffect(update)
+onMounted(() => queueMicrotask(redrawData))
+watch([data, width, height], () => queueMicrotask(redrawData))
+watchEffect(redrawData)
 
 // ======================
 // === Event handlers ===
@@ -565,6 +544,8 @@ watchEffect(update)
 
 function fitAll() {
   focus.value = undefined
+  bounds.value = undefined
+  limit.value = DEFAULT_LIMIT
   xScale.value.domain([
     extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
     extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
@@ -574,8 +555,6 @@ function fitAll() {
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
   ])
   rescale(xScale.value, yScale.value)
-  bounds.value = undefined
-  limit.value = DEFAULT_LIMIT
   updatePreprocessor()
 }
 
