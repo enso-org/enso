@@ -148,7 +148,6 @@ const emit = defineEmits<{
 
 const config = useVisualizationConfig()
 
-const containerNode = ref<HTMLElement>()
 const rootNode = ref<SVGGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
@@ -212,10 +211,6 @@ watchEffect(() => {
   }
 })
 
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
-})
-
 let zoom = {} as ReturnType<typeof updatePanAndZoom>
 
 // =================
@@ -228,65 +223,14 @@ const margin = computed(() => ({
   bottom: MARGIN + (axis.value?.x?.label ? AXIS_LABEL_HEIGHT : 0),
   left: MARGIN + (axis.value?.y?.label ? AXIS_LABEL_HEIGHT : 0),
 }))
-const width = computed(
-  () =>
-    config.value.width ??
-    config.value.nodeSize.x ??
-    containerNode.value?.getBoundingClientRect().width ??
-    100,
-)
-const height = computed(
-  () =>
-    config.value.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
-)
+const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x) ?? 100)
+const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
 const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x.label) / 2)
 const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
 const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y.label) / 2)
-
-// =============
-// === Setup ===
-// =============
-
-function update(
-  rawBins: number[] | undefined,
-  points: number[] | undefined,
-  width: number,
-  height: number,
-) {
-  let bins: Bin[] = []
-  if (rawBins != null) {
-    bins = rawBins.map((length, i) => ({ x0: i, x1: i + 1, length }))
-  } else if (points != null) {
-    const xScale_ = xScale.value
-    const xDomain = xScale_.domain()
-    const histogram = d3
-      .bin()
-      .domain([xDomain[0] ?? 0, xDomain[1] ?? 1])
-      .thresholds(xScale_.ticks(binCount.value))
-    bins = histogram(points)
-  }
-  // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
-  maxY.value = d3.max(bins, (d) => d.length) || 1
-  updateHistogram(bins)
-  zoom = updatePanAndZoom()
-  // Note: The brush element must be a child of the zoom element - this is only way we found to have
-  // both zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
-  d3.select(brushNode.value).call(brush.value)
-}
-
-onMounted(() => {
-  update(rawBins.value, points.value, width.value, height.value)
-})
-
-watch(
-  () => [rawBins.value, points.value, width.value, height.value] as const,
-  ([bins, points, width, height]) => {
-    update(bins, points, width, height)
-  },
-)
 
 /**
  * Initialise panning and zooming functionality on the visualization.
@@ -501,6 +445,7 @@ function rescale(scale: ScaleConfiguration, shouldAnimate: boolean) {
       'transform',
       (d) => `translate(${scale.x(d.x0 ?? 0)}, ${scale.y(d.length ?? 0)}) scale(${scale.zoom}, 1)`,
     )
+  update()
 }
 
 /**
@@ -515,11 +460,14 @@ const extremesAndDeltas = computed(() => {
   let xMin = rawBins.value != null ? 0 : Math.min(...points.value)
   let xMax = rawBins.value != null ? rawBins.value.length - 1 : Math.max(...points.value)
   const dx = xMax - xMin
-  const paddingX = 0.1 * dx
+  const binCount_ = rawBins.value?.length || binCount.value
+  const paddingX = Math.max(0.1 * dx, 1 / binCount_)
   return { xMin, xMax, paddingX, dx }
 })
 
-const xScale = computed(() => {
+const xScale = d3.scaleLinear()
+watchEffect(() => {
+  // Update the x-axis in D3.
   const focus_ = focus.value
   const extremesAndDeltas_ = extremesAndDeltas.value
   let domainX: [min: number, max: number]
@@ -532,29 +480,29 @@ const xScale = computed(() => {
       extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
     ]
   }
-  return d3.scaleLinear().domain(domainX).range([0, boxWidth.value])
+  xScale.domain(domainX).range([0, boxWidth.value])
+  d3.select(xAxisNode.value).call(d3.axisBottom(xScale).ticks(width.value / 40))
 })
 
-const yScale = computed(() => d3.scaleLinear().range([boxHeight.value, 0]).domain([0, maxY.value]))
-const fill = computed(() =>
-  d3.scaleSequential().interpolator(d3.interpolateViridis).domain(yScale.value.domain()),
-)
-const yAxisTicks = computed(() => yScale.value.ticks().filter(Number.isInteger))
-const yAxis = computed(() =>
-  d3.axisLeft(yScale.value).tickValues(yAxisTicks.value).tickFormat(d3.format('d')),
-)
+const yScale = d3.scaleLinear()
+const fill = d3.scaleSequential().interpolator(d3.interpolateViridis)
+const yAxis = d3.axisLeft(yScale).tickFormat(d3.format('d'))
+
+watchEffect(() => {
+  // Update the y-axis in D3.
+  yScale.range([boxHeight.value, 0]).domain([0, maxY.value])
+  fill.domain(yScale.domain())
+  const yTicks = yScale.ticks().filter(Number.isInteger)
+  yAxis.scale(yScale).tickValues(yTicks)
+  d3.select(yAxisNode.value).call(yAxis)
+})
 
 /** Update the d3 histogram with the current data.
  *
  * Bind the new data to the plot, creating new bars, removing old ones and
  * update the axes accordingly. */
 function updateHistogram(bins: Bin[]) {
-  const xScale_ = xScale.value
-  d3.select(xAxisNode.value).call(d3.axisBottom(xScale_).ticks(width.value / 40))
-  const yScale_ = yScale.value
-  d3.select(yAxisNode.value).call(yAxis.value)
-  const fill_ = fill.value
-  updateColorLegend(fill_)
+  updateColorLegend(fill)
   if (plotNode.value == null) {
     console.error('Histogram could not find the HTML element for the chart.')
   } else {
@@ -566,14 +514,14 @@ function updateHistogram(bins: Bin[]) {
         update
           .attr(
             'transform',
-            (d) => 'translate(' + xScale_(d.x0 ?? 0) + ',' + yScale_(d.length ?? 0) + ')',
+            (d) => 'translate(' + xScale(d.x0 ?? 0) + ',' + yScale(d.length ?? 0) + ')',
           )
-          .attr('width', (d) => xScale_(d.x1 ?? 0) - xScale_(d.x0 ?? 0))
-          .attr('height', (d) => boxHeight_ - yScale_(d.length ?? 0))
-          .style('fill', (d) => fill_(d.length ?? 0)),
+          .attr('width', (d) => xScale(d.x1 ?? 0) - xScale(d.x0 ?? 0))
+          .attr('height', (d) => Math.max(0, boxHeight_ - yScale(d.length ?? 0)))
+          .style('fill', (d) => fill(d.length ?? 0)),
     )
   }
-  scale.value = { x: xScale_, y: yScale_, zoom: 1.0 }
+  scale.value = { x: xScale, y: yScale, zoom: 1.0 }
 }
 
 /**
@@ -594,6 +542,52 @@ function updateColorLegend(colorScale: d3Types.ScaleSequential<string>) {
     .attr('offset', (d) => d.offset)
     .attr('stop-color', (d) => d.color)
 }
+
+// ==============
+// === Update ===
+// ==============
+
+function update(
+  rawBins_: number[] | undefined = rawBins.value,
+  points_: number[] | undefined = points.value,
+) {
+  let bins: Bin[] = []
+  if (rawBins_ != null) {
+    bins = rawBins_.map((length, i) => ({ x0: i, x1: i + 1, length }))
+  } else if (points_ != null) {
+    const xDomain = xScale.domain()
+    const histogram = d3
+      .bin()
+      .domain([xDomain[0] ?? 0, xDomain[1] ?? 1])
+      .thresholds(xScale.ticks(binCount.value))
+    bins = histogram(points_)
+  }
+  // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
+  maxY.value = d3.max(bins, (d) => d.length) || 1
+  updateHistogram(bins)
+  zoom = updatePanAndZoom()
+  // Note: The brush element must be a child of the zoom element - this is only way we found to have
+  // both zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
+  d3.select(brushNode.value).call(brush.value)
+}
+
+onMounted(() => {
+  emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
+  update()
+})
+
+watch(
+  () => [rawBins.value, points.value, width.value, height.value] as const,
+  ([bins, points]) => {
+    queueMicrotask(() => {
+      update(bins, points)
+    })
+  },
+)
+
+// ===============
+// === Zooming ===
+// ===============
 
 function fitAll() {
   focus.value = undefined
@@ -629,7 +623,7 @@ useEvent(document, 'scroll', endBrushing)
         <img :src="FindIcon" alt="Zoom to selected" @click="zoomIn" />
       </button>
     </template>
-    <div ref="containerNode" class="HistogramVisualization">
+    <div class="HistogramVisualization">
       <svg :width="width" :height="height">
         <rect
           class="color-legend"

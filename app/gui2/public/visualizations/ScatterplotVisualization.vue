@@ -88,13 +88,13 @@ import FindIcon from './icons/find.svg'
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 import type * as d3Types from 'd3'
 
+import { useEvent } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
-import { useEvent } from './events'
 
 const props = defineProps<{ data: Partial<Data> | number[] | string }>()
 const emit = defineEmits<{
@@ -162,7 +162,6 @@ const data = computed<Data>(() => {
   return { axis, points, data, focus }
 })
 
-const containerNode = ref<HTMLElement>()
 const rootNode = ref<SVGElement>()
 const pointsNode = ref<SVGGElement>()
 const xAxisNode = ref<SVGGElement>()
@@ -190,17 +189,8 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = computed(
-  () =>
-    config.value.width ??
-    config.value.nodeSize.x ??
-    containerNode.value?.getBoundingClientRect().width ??
-    100,
-)
-const height = computed(
-  () =>
-    config.value.height ?? ((containerNode.value?.getBoundingClientRect().width ?? 100) * 3) / 4,
-)
+const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x) ?? 100)
+const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xTicks = computed(() => boxWidth.value / 40)
@@ -697,7 +687,7 @@ useEvent(document, 'scroll', endBrushing)
         <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
-    <div ref="containerNode" class="ScatterplotVisualization">
+    <div class="ScatterplotVisualization">
       <svg :width="width" :height="height">
         <g ref="rootNode" :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>

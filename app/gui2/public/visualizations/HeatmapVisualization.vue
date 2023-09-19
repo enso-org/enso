@@ -161,14 +161,16 @@ const d3Points = computed(() => {
     .select<SVGElement, DataPoint>(pointsNode.value)
     .selectAll()
     .data(dataPoints.value, (d) => d?.group + ':' + d?.variable)
-    .enter()
-    .append('rect')
-    .attr('rx', 4)
-    .attr('ry', 4)
-    .style('fill', (d) => fill(d.value))
-    .style('stroke-width', 4)
-    .style('stroke', 'none')
-    .style('opacity', 0.8)
+    .join((enter) =>
+      enter
+        .append('rect')
+        .attr('rx', 4)
+        .attr('ry', 4)
+        .style('fill', (d) => fill(d.value))
+        .style('stroke-width', 4)
+        .style('stroke', 'none')
+        .style('opacity', 0.8),
+    )
 })
 
 const groups = computed(() => Array.from(new Set(Array.from(dataPoints.value, (p) => p.group))))
