@@ -1863,7 +1863,7 @@ class IrToTruffle(
       argumentNames: List[String],
       argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
-      val src = language.buildSource(code, scopeName)
+      val src       = language.buildSource(code, scopeName)
       val foreignCt = context.parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>

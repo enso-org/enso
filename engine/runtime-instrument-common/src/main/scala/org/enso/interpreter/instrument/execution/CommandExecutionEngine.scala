@@ -16,7 +16,8 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
     extends CommandProcessor {
 
   private val isSequential =
-    interpreterContext.executionService.getContext.isInterpreterSequentialCommandExection()
+    interpreterContext.executionService.getContext
+      .isInterpreterSequentialCommandExection()
 
   private val locking = new ReentrantLocking(
     interpreterContext.executionService.getLogger

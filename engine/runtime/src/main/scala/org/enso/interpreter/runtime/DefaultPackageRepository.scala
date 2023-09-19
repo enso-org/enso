@@ -286,7 +286,7 @@ private class DefaultPackageRepository(
       s"[${MaskedPath(root.location).applyMasking()}]."
     )
     val rootFile = context.findLibraryRootPath(root)
-    val pkg = packageManager.loadPackage(rootFile).get
+    val pkg      = packageManager.loadPackage(rootFile).get
     registerPackageInternal(
       libraryName    = libraryName,
       libraryVersion = libraryVersion,
