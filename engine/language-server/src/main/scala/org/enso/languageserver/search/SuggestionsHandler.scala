@@ -16,7 +16,7 @@ import org.enso.languageserver.data.{
   Config,
   ReceivesSuggestionsDatabaseUpdates
 }
-import org.enso.languageserver.event.{InitializedEvent, JsonSessionTerminated}
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
   FileDeletedEvent,
@@ -115,8 +115,6 @@ final class SuggestionsHandler(
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
-
-    context.system.eventStream.subscribe(self, classOf[JsonSessionTerminated])
   }
 
   override def receive: Receive =
@@ -312,9 +310,27 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case GetSuggestionsDatabase =>
-      suggestionsRepo.currentVersion
-        .map(GetSuggestionsDatabaseResult(_, Seq()))
-        .pipeTo(sender())
+      val responseAction = for {
+        _       <- suggestionsRepo.clean
+        version <- suggestionsRepo.currentVersion
+      } yield GetSuggestionsDatabaseResult(version, Seq())
+
+      responseAction.pipeTo(sender())
+
+      val handlerAction = for {
+        _ <- responseAction
+      } yield SearchProtocol.InvalidateModulesIndex
+
+      val handler = context.system.actorOf(
+        InvalidateModulesIndexHandler.props(
+          RuntimeFailureMapper(contentRootManager),
+          timeout,
+          runtimeConnector
+        )
+      )
+
+      handlerAction.pipeTo(handler)
+
       if (state.shouldStartBackgroundProcessing) {
         runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
         context.become(
@@ -453,29 +469,6 @@ final class SuggestionsHandler(
           graph,
           clients,
           state.suggestionLoadingComplete()
-        )
-      )
-
-    case JsonSessionTerminated(_) =>
-      val action = for {
-        _ <- suggestionsRepo.clean
-      } yield SearchProtocol.InvalidateModulesIndex
-
-      val handler = context.system.actorOf(
-        InvalidateModulesIndexHandler.props(
-          RuntimeFailureMapper(contentRootManager),
-          timeout,
-          runtimeConnector
-        )
-      )
-
-      action.pipeTo(handler)
-      context.become(
-        initialized(
-          projectName,
-          graph,
-          clients,
-          state.backgroundProcessingStopped()
         )
       )
   }

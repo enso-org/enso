@@ -4,7 +4,7 @@ const emit = defineEmits<{ click: [] }>()
 </script>
 
 <template>
-  <div class="NavBreadcrumb"><span v-text="text" @click="emit('click')"></span></div>
+  <div class="NavBreadcrumb"><span @click="emit('click')" v-text="text"></span></div>
 </template>
 
 <style scoped>

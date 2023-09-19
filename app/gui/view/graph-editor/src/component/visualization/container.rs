@@ -125,9 +125,14 @@ impl ViewState {
         )
     }
 
-    /// Indicates whether the visualization is fullscreen mode.
+    /// Indicates whether the visualization is in fullscreen mode.
     pub fn is_fullscreen(&self) -> bool {
         matches!(self, ViewState::Fullscreen)
+    }
+
+    /// Indicates whether the visualization is in preview mode.
+    pub fn is_preview(&self) -> bool {
+        matches!(self, ViewState::Preview { .. })
     }
 
     /// Return a new state after considering (lack of) presence of the error.

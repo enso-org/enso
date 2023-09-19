@@ -610,7 +610,7 @@ type Loss_Of_Integer_Precision
        Indicates that an automatic conversion of an integer column to a decimal
        column is losing precision because some of the large integers cannot be
        exactly represented by the `double` type.
-    Warning (affected_rows_count : Integer) (example_value : Integer) (example_value_converted : Decimal)
+    Warning (affected_rows_count : Integer) (example_value : Integer) (example_value_converted : Float)
 
     ## PRIVATE
        Create a human-readable version of the error.

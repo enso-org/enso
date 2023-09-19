@@ -38,15 +38,15 @@ spec = Test.group "Pattern Matches" <|
         case Integer of
             Integer -> Nothing
             _ -> Test.fail "Expected the Integer constructor to match."
-    Test.specify "should be able to match on the Decimal type" <|
+    Test.specify "should be able to match on the Float type" <|
         case 1.7 of
             _ : Integer -> Test.fail "Expected a decimal to match."
-            Decimal -> Test.fail "Expected a decimal to match."
-            _ : Decimal -> Nothing
+            Float -> Test.fail "Expected a decimal to match."
+            _ : Float -> Nothing
             _ -> Test.fail "Expected a decimal to match."
-        case Decimal of
-            Decimal -> Nothing
-            _ -> Test.fail "Expected the Decimal constructor to match."
+        case Float of
+            Float -> Nothing
+            _ -> Test.fail "Expected the Float constructor to match."
     Test.specify "should be able to match on the Number type" <|
         case 1 of
             _ : Number -> Nothing
@@ -66,8 +66,8 @@ spec = Test.group "Pattern Matches" <|
         case Integer of
             _ : Number -> Test.fail "Integer type isn't instance of Number type"
             _ -> Nothing
-        case Decimal of
-            _ : Number -> Test.fail "Decimal type isn't instance of Number type"
+        case Float of
+            _ : Number -> Test.fail "Float type isn't instance of Number type"
             _ -> Nothing
     Test.specify "should be able to match on the Text type" <|
         case "foo" of

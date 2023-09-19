@@ -422,7 +422,7 @@ class DistributionManager(val env: Environment) {
       * Should be used in places where not being able to determine the data
       * directory is not a fatal error.
       */
-    def safeDataDirectory: Option[Path] =
+    private def safeDataDirectory: Option[Path] =
       Try(dataDirectory).toOption
 
     /** Determines whether a locally installed distribution exists on the

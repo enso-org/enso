@@ -591,15 +591,6 @@ LANG=C enso --run test/Tests
 
 #### Test Dependencies
 
-Some test suites require extra setup and enabled only on CI. To replicate the CI
-environment you should install and run extra services:
-
-```bash
-# Httpbin
-go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
-$(go env GOPATH)/bin/httpbin -host :8080
-```
-
 To run all the stdlib test suites, set `CI=true` environment variable:
 
 ```bash

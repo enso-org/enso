@@ -1495,6 +1495,7 @@ lazy val `runtime-instrument-common` =
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
     .settings(
+      frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
@@ -1698,11 +1699,25 @@ lazy val `engine-runner` = project
           "-H:IncludeResources=.*Main.enso$",
           "--macro:truffle",
           "--language:js",
-          //          "-g",
+          // "-g",
           //          "-H:+DashboardAll",
           //          "-H:DashboardDump=runner.bgv"
           "-Dnic=nic"
-        ),
+        ) ++ (if (
+                org.graalvm.polyglot.Engine
+                  .create()
+                  .getLanguages()
+                  .containsKey("java")
+              ) {
+                Seq(
+                  "-Dorg.graalvm.launcher.home=" + System.getProperty(
+                    "java.home"
+                  ),
+                  "--language:java"
+                )
+              } else {
+                Seq()
+              }),
         mainClass = Option("org.enso.runner.Main"),
         cp        = Option("runtime.jar"),
         initializeAtRuntime = Seq(
@@ -1710,6 +1725,7 @@ lazy val `engine-runner` = project
           "io.methvin.watchservice.jna.CarbonAPI",
           "org.enso.syntax2.Parser",
           "zio.internal.ZScheduler$$anon$4",
+          "org.enso.runner.Main$",
           "sun.awt",
           "sun.java2d",
           "sun.font",

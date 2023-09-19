@@ -33,7 +33,7 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON, JS_Object, Json
-from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
+from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
 from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
@@ -1421,22 +1421,22 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
         span = used.locate term Matching_Mode.Last case_sensitivity
         if span.is_nothing then Nothing else span.start
 
-## ALIAS decimal from text, to_decimal
+## ALIAS float from text, to_float
    GROUP Conversions
 
-   Parses a textual representation of a decimal into a decimal number, returning
-   a `Number_Parse_Error` if the text does not represent a valid decimal.
+   Parses a textual representation of a float into a float number, returning
+   a `Number_Parse_Error` if the text does not represent a valid float.
 
    Arguments:
    - locale: The locale that specifies the format to use when parsing
 
    > Example
-     Parse the text "7.6" into a decimal number.
+     Parse the text "7.6" into a float number.
 
-         "7.6".parse_decimal
+         "7.6".parse_float
 @locale Locale.default_widget
-Text.parse_decimal : Locale | Nothing -> Decimal ! Number_Parse_Error
-Text.parse_decimal self locale=Nothing = Decimal.parse self locale
+Text.parse_float : Locale | Nothing -> Float ! Number_Parse_Error
+Text.parse_float self locale=Nothing = Float.parse self locale
 
 ## ALIAS integer from text, to_integer
    GROUP Conversions
@@ -1658,7 +1658,7 @@ Text.parse_date_time self format:Text="" locale:Locale=Locale.default = Date_Tim
        two digits.
      - If the nano-of-second is zero or not available then the format is
        complete.
-     - A decimal point
+     - A float point
      - One to nine digits for the nano-of-second. As many digits will be output
        as required.
 

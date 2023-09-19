@@ -3,6 +3,8 @@ from Standard.Base import all
 from Standard.Test import Test_Suite
 
 import project.Examples_Spec
+import project.Python_Examples_Spec
 
 main = Test_Suite.run_main <|
     Examples_Spec.spec
+    Python_Examples_Spec.spec
