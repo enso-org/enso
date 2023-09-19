@@ -275,9 +275,6 @@ const extremesAndDeltas = computed(() => {
  * Adds panning and zooming functionality to the visualization.
  */
 function addPanAndZoom() {
-  if (pointsNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the chart.')
-  }
   const scatterplot = pointsNode.value
   const extent: [min: number, max: number] = [MIN_SCALE, MAX_SCALE]
   let startX = 0
@@ -439,9 +436,6 @@ const brush = computed(() =>
  * keyboard shortcut or button event.
  */
 function updateBrushing() {
-  if (brushNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the brush.')
-  }
   // The brush element must be a child of zoom element - this is only way we found to have both
   // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276
   d3.select(brushNode.value).call(brush.value)
@@ -451,9 +445,6 @@ function updateBrushing() {
  * Removes brush, keyboard event and zoom button when end event is captured.
  */
 function endBrushing() {
-  if (brushNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the brush.')
-  }
   brushExtent.value = undefined
   d3.select(brushNode.value).call(brush.value.move, null)
 }
@@ -531,15 +522,6 @@ watch(
  * Helper function for zooming in after the scale has been updated.
  */
 function zoomingHelper(scaleAndAxis: ReturnType<typeof updateAxes>) {
-  if (xAxisNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the x axis.')
-  }
-  if (yAxisNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the y axis.')
-  }
-  if (pointsNode.value == null) {
-    throw new Error('Scatterplot could not find the root HTML element for the chart.')
-  }
   d3.select(xAxisNode.value)
     .transition()
     .duration(ANIMATION_DURATION_MS)
@@ -620,15 +602,10 @@ watchEffect(() => {
  * Create a plot object and populate it with the given data.
  */
 function redrawPoints() {
-  if (pointsNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the chart.')
-  }
-
   d3Points.value?.attr(
     'transform',
     (d) => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')',
   )
-
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Labels.value
       ?.attr('x', (d) => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X_PX)
@@ -689,12 +666,6 @@ const domains = computed(() => {
  * Creates plot's axes.
  */
 function updateAxes() {
-  if (xAxisNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the x axis.')
-  }
-  if (yAxisNode.value == null) {
-    throw new Error('Scatterplot could not find the HTML element for the y axis.')
-  }
   const xScale = axisD3Scale(data.value.axis.x).domain(domains.value.x).range([0, boxWidth.value])
   const xAxis = d3.select(xAxisNode.value).call(d3.axisBottom(xScale).ticks(xTicks.value))
   const yScale = axisD3Scale(data.value.axis.y).domain(domains.value.y).range([boxHeight.value, 0])

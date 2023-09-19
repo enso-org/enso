@@ -52,20 +52,6 @@ interface UnknownTable {
   indices: unknown[][] | undefined
 }
 
-declare module 'ag-grid-enterprise' {
-  // These type parameters are defined on the original interface.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColDef<TData, TValue> {
-    manuallySized: boolean
-  }
-
-  // These type parameters are defined on the original interface.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface AbstractColDef<TData, TValue> {
-    field: string
-  }
-}
-
 declare const agGrid: typeof import('ag-grid-enterprise')
 </script>
 

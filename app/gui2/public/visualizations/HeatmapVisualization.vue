@@ -180,15 +180,6 @@ const variables = computed(() =>
  * Initialise the heatmap with the current data and settings.
  */
 function updateHeatmap() {
-  if (xAxisNode.value == null) {
-    throw new Error('Could not find the HTML element for the x axis.')
-  }
-  if (yAxisNode.value == null) {
-    throw new Error('Could not find the HTML element for the y axis.')
-  }
-  if (pointsNode.value == null) {
-    throw new Error('Could not find the HTML element for the heatmap.')
-  }
   const dataPoints_ = dataPoints.value
 
   // Build X scales and axis:

@@ -100,16 +100,6 @@ interface ScaleConfiguration {
   y: d3Types.ScaleContinuousNumeric<number, number>
   zoom: number
 }
-
-declare module 'd3' {
-  function select<GElement extends d3Types.BaseType, OldDatum>(
-    node: GElement | null | undefined,
-  ): d3Types.Selection<GElement, OldDatum, null, undefined>
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ScaleSequential<Output, Unknown = never> {
-    ticks(): number[]
-  }
-}
 </script>
 
 <script setup lang="ts">
@@ -172,7 +162,8 @@ const binCount = ref(DEFAULT_NUMBER_OF_BINS)
 const axis = ref(DEFAULT_AXES_CONFIGURATION)
 const focus = ref<Focus>()
 const brushExtent = ref<d3Types.BrushSelection>()
-/** This is INCORRECT, but SAFE, as long as {@link updateHistogram} is called before {@link updatePanAndZoom}. */
+/** This is INCORRECT, but SAFE, as long as {@link updateHistogram} is called before
+ * {@link updatePanAndZoom}. */
 const scale = ref<ScaleConfiguration>(null!)
 
 watchEffect(() => {
