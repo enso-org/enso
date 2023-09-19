@@ -744,7 +744,7 @@ type Date_Time
     to_display_text : Text
     to_display_text self =
         time_format = if self.nanosecond include_milliseconds=True == 0 then "HH:mm:ss" else "HH:mm:ss.n"
-        self.format "yyyy-MM-dd "+time_format+" VV"
+        self.format "yyyy-MM-dd "+time_format+" tt"
 
     ## PRIVATE
        Convert to a JavaScript Object representing a Date_Time.
@@ -813,7 +813,7 @@ type Date_Time
              from Standard.Base import Date_Time
 
              example_format =
-                Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['VV']'"
+                Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['tt']'"
 
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as

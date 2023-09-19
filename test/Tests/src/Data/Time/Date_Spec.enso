@@ -560,7 +560,7 @@ python_date year month=1 day=1 =
             "Invalid value for MonthOfYear (valid values 1 - 12): " + month.to_text
         Error.throw <| Time_Error.Error msg
 
-python_parse text format="" =
+python_parse text format=Date_Time_Formatter.iso_date =
     d = Date.parse text format
     python_date d.year d.month d.day
 

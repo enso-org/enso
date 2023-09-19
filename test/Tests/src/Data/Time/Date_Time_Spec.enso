@@ -80,8 +80,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
 
         Test.specify "should format using provided pattern and locale" <|
             d = create_new_datetime 2020 6 21
-            d.format "d. MMMM yyyy" (Locale.new "gb") . should_equal "21. Jun 2020"
-            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020"
+            d.format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "gb")) . should_equal "21. Jun 2020"
+            d.format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "fr")) . should_equal "21. juin 2020"
 
         Test.specify "should format using default pattern" <|
             text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
@@ -877,7 +877,7 @@ python_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=No
     Panic.catch Any (python_datetime_impl year month day hour minute second nanosecond z) err->
         Error.throw (Time_Error.Error err.payload)
 
-python_parse text format="" =
+python_parse text format=Date_Time_Formatter.default_enso_zoned_date_time =
     d = Date_Time.parse text format
     python_datetime d.year d.month d.day d.hour d.minute d.second (d.nanosecond include_milliseconds=True) d.zone
 
@@ -887,7 +887,7 @@ foreign js js_local_datetime_impl year month day hour minute second nanosecond =
     }
     return new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000);
 
-js_parse text format="" =
+js_parse text format=Date_Time_Formatter.default_enso_zoned_date_time =
     d = Date_Time.parse text format
     js_datetime d.year d.month d.day d.hour d.minute d.second (d.nanosecond include_milliseconds=True) d.zone
 
