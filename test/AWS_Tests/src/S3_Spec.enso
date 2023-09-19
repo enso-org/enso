@@ -50,7 +50,7 @@ spec =
     Test.group "S3.list_objects" pending=pending <|
         Test.specify "should be able to list objects" <|
             objects = S3.list_objects bucket_name
-            objects.get . should_contain object_name
+            objects . should_contain object_name
             list.put objects
 
         Test.specify "should attach a warning if not a complete list" <|
@@ -60,7 +60,7 @@ spec =
             warnings.length . should_equal 1
 
             warning = warnings.first
-            warning.should_be_a More_Records_Available
+            warning.value.should_be_a More_Records_Available
 
         Test.specify "should handle missing bucket gracefully" <|
             S3.list_objects not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
