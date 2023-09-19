@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "noEmit": true,
     "allowJs": true,
     "checkJs": true,

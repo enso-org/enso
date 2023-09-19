@@ -2,7 +2,6 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import { argv } from 'node:process'
 
 import * as esbuild from 'esbuild'
 
@@ -13,7 +12,8 @@ import * as bundler from './esbuild-config'
 // =================
 
 export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-export const ANALYZE = argv.includes('--analyze')
+export const ANALYZE = process.argv.includes('--analyze')
+
 // ===============
 // === Bundler ===
 // ===============

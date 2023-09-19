@@ -16,8 +16,8 @@ import * as assetTreeNode from './assetTreeNode'
 import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
-import * as permissions from './permissions'
 import * as modalProvider from '../providers/modal'
+import * as permissions from './permissions'
 import * as sorting from './sorting'
 import * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
@@ -110,7 +110,7 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.docs]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
 } as const
 
-/** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
+/** {@link tableColumn.TableColumnProps} for an unknown variant of {@link backend.Asset}. */
 export type AssetColumnProps = tableColumn.TableColumnProps<
     assetTreeNode.AssetTreeNode,
     assetsTable.AssetsTableState,

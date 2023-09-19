@@ -12,16 +12,16 @@ import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
+import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
-import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
-import * as utils from '../../utils'
 import * as tailwindConfig from './tailwind.config'
+import * as utils from '../../utils'
 
 // =================
 // === Constants ===
@@ -107,9 +107,7 @@ export function bundlerOptions(args: Arguments) {
             // The `dataurl` loader replaces the import with the file, as a data URL. Using the
             // `file` loader, which copies the file and replaces the import with the path.
             /* eslint-disable @typescript-eslint/naming-convention */
-            esbuildPluginInlineImage({
-                extensions: ['svg'],
-            }) as esbuild.Plugin,
+            esbuildPluginInlineImage({ extensions: ['svg'] }),
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
             // This is not strictly needed because the cloud frontend does not use
@@ -129,7 +127,7 @@ export function bundlerOptions(args: Arguments) {
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         pure: ['assert'],
-        sourcemap: true as NonNullable<esbuild.BuildOptions['sourcemap']>,
+        sourcemap: true,
         minify: !devMode,
         metafile: trueBoolean,
         format: 'esm',
