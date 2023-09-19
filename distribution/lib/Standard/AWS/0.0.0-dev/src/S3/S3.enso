@@ -50,7 +50,7 @@ list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max
    one with object keys.
 @credentials AWS_Credential.default_widget
 read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error
-read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = handle_s3_errors bucket <|
+read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
     client = make_client credentials
 
     per_request = Math.min max_count 1000
@@ -81,15 +81,15 @@ read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing deli
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
 head : Text -> Text -> AWS_Credential | Nothing -> Map Text Any ! S3_Error
-head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket key <|
+head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing =
     client = make_client credentials
     response = case key == "" of
         True ->
             request = HeadBucketRequest.builder.bucket bucket . build
-            client.headBucket request
+            handle_s3_errors bucket=bucket <| client.headBucket request
         False ->
             request = HeadObjectRequest.builder.bucket bucket . key key . build
-            client.headObject request
+            handle_s3_errors bucket=bucket key=key <| client.headObject request
 
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Map.from_vector pairs
@@ -104,10 +104,12 @@ head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_er
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
 get_object : Text -> Text -> AWS_Credential | Nothing -> Any ! S3_Error
-get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket key <|
-    client = make_client credentials
+get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
+
+    client = make_client credentials
     response = client.getObject request
+
     inner_response = response.response
     mime_type = inner_response.contentType
     s3_uri = URI.parse ("s3://" + bucket + "/" + key)
@@ -127,16 +129,15 @@ parse_uri uri =
 
 ## PRIVATE
 handle_s3_errors : Text -> Text -> Function -> Any ! S3_Error | AWS_SDK_Error
-handle_s3_errors bucket="" key="" ~action =
-    bucket_handler = if bucket == "" then identity else
-        Panic.catch NoSuchBucketException handler=(_->Error.throw (S3_Bucket_Not_Found.Error bucket))
-    key_handler = if key == "" then identity else
-        Panic.catch NoSuchKeyException handler=(_->Error.throw (No_Such_Key.Error bucket key))
+handle_s3_errors ~action bucket="" key="" =
     s3_inner_handler caught_panic =
-        aws_error = caught_panic.payload.awsErrorDetails
-        Error.throw (S3_Error.Error aws_error.errorMessage aws_error.errorCode)
+        error = if bucket!="" && caught_panic.payload.is_a NoSuchBucketException then S3_Bucket_Not_Found.Error bucket else
+            if bucket!="" && key!="" && caught_panic.payload.is_a NoSuchKeyException then No_Such_Key.Error bucket key else
+                aws_error = caught_panic.payload.awsErrorDetails
+                S3_Error.Error aws_error.errorMessage aws_error.errorCode
+        Error.throw error
     s3_handler = Panic.catch S3Exception handler=s3_inner_handler
-    AWS_SDK_Error.handle_java_errors <| s3_handler <| bucket_handler <| key_handler <| action
+    AWS_SDK_Error.handle_java_errors <| s3_handler <| action
 
 ## PRIVATE
 make_client : (AWS_Credential | Nothing) -> S3Client

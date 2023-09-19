@@ -33,7 +33,7 @@ spec =
         Test.specify "should be able to list buckets" <|
             bucket_list = S3.list_buckets . should_succeed
             buckets.put bucket_list
-            if bucket_name != Nothing then  bucket_list . should_contain bucket_name
+            if bucket_name != Nothing then bucket_list . should_contain bucket_name
 
         Test.specify "should handle auth issues" <|
             S3.list_buckets (AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
@@ -66,7 +66,7 @@ spec =
             S3.list_objects not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
 
         Test.specify "should handle auth issues" <|
-            S3.list_objects bucket_name (AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
+            S3.list_objects bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
 
     ## read_bucket
 
