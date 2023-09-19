@@ -1236,14 +1236,14 @@ class SuggestionsRepoTest
     "search suggestion by self-type and non-static attribute" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          _ <- repo.insert(suggestion.module)
-          _ <- repo.insert(suggestion.tpe)
-          _ <- repo.insert(suggestion.constructor)
+          _   <- repo.insert(suggestion.module)
+          _   <- repo.insert(suggestion.tpe)
+          _   <- repo.insert(suggestion.constructor)
           _   <- repo.insert(suggestion.method)
           id4 <- repo.insert(suggestion.instanceMethod)
-          _ <- repo.insert(suggestion.conversion)
-          _ <- repo.insert(suggestion.function)
-          _ <- repo.insert(suggestion.local)
+          _   <- repo.insert(suggestion.conversion)
+          _   <- repo.insert(suggestion.function)
+          _   <- repo.insert(suggestion.local)
           res <-
             repo.search(
               None,
