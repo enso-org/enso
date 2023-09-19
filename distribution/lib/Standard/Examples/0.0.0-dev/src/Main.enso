@@ -41,7 +41,7 @@ xls =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
     file = enso_project.data / 'spreadsheet.xls'
     if file.exists.not then
-        Context.Output.with_enabled <| HTTP.fetch url . to_file file
+        Context.Output.with_enabled <| Data.fetch url . body . to_file file
     file
 
 ## An example XLSX file for experimenting with Table and its APIs.
@@ -56,7 +56,7 @@ xlsx =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xlsx"
     file = enso_project.data / 'spreadsheet.xlsx'
     if file.exists.not then
-        Context.Output.with_enabled <| HTTP.fetch url . to_file file
+        Context.Output.with_enabled <| Data.fetch url . body . to_file file
     file
 
 ## A file that is used for writing temporary data as part of tests.
@@ -175,7 +175,7 @@ image_file =
     url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
     file = enso_project.data / "image.png"
     if file.exists.not then
-        Context.Output.with_enabled <| HTTP.fetch url . to_file file
+        Context.Output.with_enabled <| HTTP.fetch url . body . to_file file
     file
 
 ## A PNG image.
