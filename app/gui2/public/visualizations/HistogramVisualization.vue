@@ -89,13 +89,13 @@ interface AxesConfiguration {
   y: AxisConfiguration
 }
 
+type Scale = ScaleContinuousNumeric<number, number>
+
 interface Bin {
   x0: number | undefined
   x1: number | undefined
   length: number | undefined
 }
-
-type Scale = ScaleContinuousNumeric<number, number>
 </script>
 
 <script setup lang="ts">
@@ -133,8 +133,10 @@ const DEFAULT_AXES_CONFIGURATION: AxesConfiguration = {
 const RMB_DIVIDER = 100
 const PINCH_DIVIDER = 100
 
+const EPSILON = 0.001
 const MIN_SCALE = 0.5
 const MAX_SCALE = 20
+const ZOOM_EXTENT = [MIN_SCALE, MAX_SCALE] satisfies d3Types.BrushSelection
 const RIGHT_BUTTON = 2
 const MID_BUTTON = 1
 const MID_BUTTON_CLICKED = 4
@@ -170,6 +172,7 @@ const brushExtent = ref<d3Types.BrushSelection>()
 const zoomLevel = ref(1)
 const maxY = ref(1)
 
+const dataScale = ref(d3.scaleLinear())
 const xScale = ref(d3.scaleLinear())
 const yScale = ref(d3.scaleLinear())
 const fill = ref(d3.scaleSequential().interpolator(d3.interpolateViridis))
@@ -239,14 +242,19 @@ const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x
 const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
 const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y.label) / 2)
 
-/**
- * Initialise panning and zooming functionality on the visualization.
- */
-function updatePanAndZoom() {
-  const extent = [MIN_SCALE, MAX_SCALE] satisfies d3Types.BrushSelection
-  let startX = 0
-  let startY = 0
-  const zoom = d3
+let startX = 0
+let startY = 0
+
+function getScaleForZoom(scale: number) {
+  return d3.zoomIdentity
+    .translate(startX - (AXIS_LABEL_HEIGHT + MARGIN), startY - MARGIN)
+    .scale(scale)
+    .translate(-startX + (AXIS_LABEL_HEIGHT + MARGIN), -startY + MARGIN)
+}
+
+/** Initialise panning and zooming functionality on the visualization. */
+const zoom = computed(() =>
+  d3
     .zoom<SVGGElement, unknown>()
     .filter((event: Event) => {
       if (
@@ -273,104 +281,83 @@ function updatePanAndZoom() {
         event.deltaMode === 1 ? medDelta : event.deltaMode ? maxDelta : minDelta
       return -event.deltaY * wheelSpeedMultiplier
     })
-    .scaleExtent(extent)
+    .scaleExtent(ZOOM_EXTENT)
     .extent([
       [0, 0],
       [boxWidth.value, boxHeight.value],
     ])
     .on('zoom', zoomed)
-    .on('start', startZoom)
+    .on('start', startZoom),
+)
+watchEffect(() => d3Zoom.value.call(zoom.value))
 
+/** Helper function called on pan/scroll. */
+function zoomed(event: d3Types.D3ZoomEvent<Element, unknown>) {
   const xScale_ = xScale.value
   const yScale_ = yScale.value
-  let originalXScale = xScale_.copy()
-  let originalZoom = zoomLevel.value
 
-  /**
-   * Helper function called on pan/scroll.
-   */
-  function zoomed(event: d3Types.D3ZoomEvent<Element, unknown>) {
-    function innerRescale(transformEvent: d3Types.ZoomTransform) {
-      xScale_.domain(transformEvent.rescaleX(xScale_).domain())
-      const newYDomain = transformEvent.rescaleY(yScale_).domain()
-      if ((newYDomain[0] ?? 0) >= 0) {
-        yScale_.domain(newYDomain)
-      }
+  function innerRescale(transformEvent: d3Types.ZoomTransform) {
+    xScale_.domain(transformEvent.rescaleX(xScale_).domain())
+    const newYDomain = transformEvent.rescaleY(yScale_).domain()
+    const yMin = newYDomain[0] ?? 0
+    if (yMin >= -EPSILON && yMin <= EPSILON) {
+      newYDomain[0] -= yMin
+      newYDomain[1] -= yMin
     }
-
-    function getScaleForZoom(scale: number) {
-      return d3.zoomIdentity
-        .translate(startX - (AXIS_LABEL_HEIGHT + MARGIN), startY - MARGIN)
-        .scale(scale)
-        .translate(-startX + (AXIS_LABEL_HEIGHT + MARGIN), -startY + MARGIN)
+    if ((newYDomain[0] ?? 0) >= 0) {
+      yScale_.domain(newYDomain)
     }
+  }
 
-    if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === RIGHT_BUTTON) {
-      xScale_.domain(originalXScale.domain())
-      const zoomAmount = rmbZoomValue(event.sourceEvent) / RMB_DIVIDER
+  if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === RIGHT_BUTTON) {
+    xScale_.domain(dataScale.value.domain())
+    const zoomAmount = rmbZoomValue(event.sourceEvent) / RMB_DIVIDER
+    const scale = Math.exp(zoomAmount)
+    const distanceScale = getScaleForZoom(scale)
+    xScale_.domain(distanceScale.rescaleX(xScale_).domain())
+    zoomLevel.value = scale
+  } else if (event.sourceEvent instanceof WheelEvent) {
+    if (event.sourceEvent.ctrlKey) {
+      const zoomAmount = -event.sourceEvent.deltaY / PINCH_DIVIDER
       const scale = Math.exp(zoomAmount)
       const distanceScale = getScaleForZoom(scale)
       xScale_.domain(distanceScale.rescaleX(xScale_).domain())
-      zoomLevel.value = originalZoom * scale
-    } else if (event.sourceEvent instanceof WheelEvent) {
-      if (event.sourceEvent.ctrlKey) {
-        const zoomAmount = -event.sourceEvent.deltaY / PINCH_DIVIDER
-        const scale = Math.exp(zoomAmount)
-        const distanceScale = getScaleForZoom(scale)
-        xScale_.domain(distanceScale.rescaleX(xScale_).domain())
-        zoomLevel.value *= scale
-      } else {
-        const distanceScale = d3.zoomIdentity.translate(
-          -event.sourceEvent.deltaX,
-          -event.sourceEvent.deltaY,
-        )
-        innerRescale(distanceScale)
-      }
-    } else if (
-      event.sourceEvent instanceof MouseEvent &&
-      event.sourceEvent.buttons === MID_BUTTON_CLICKED
-    ) {
-      const movementFactor = 2
+      zoomLevel.value *= scale
+    } else {
       const distanceScale = d3.zoomIdentity.translate(
-        event.sourceEvent.movementX / movementFactor,
-        event.sourceEvent.movementY / movementFactor,
+        -event.sourceEvent.deltaX,
+        -event.sourceEvent.deltaY,
       )
       innerRescale(distanceScale)
-    } else {
-      innerRescale(event.transform)
     }
-    rescale(xScale_, yScale_, false)
+  } else if (
+    event.sourceEvent instanceof MouseEvent &&
+    event.sourceEvent.buttons === MID_BUTTON_CLICKED
+  ) {
+    const movementFactor = 2
+    const distanceScale = d3.zoomIdentity.translate(
+      event.sourceEvent.movementX / movementFactor,
+      event.sourceEvent.movementY / movementFactor,
+    )
+    innerRescale(distanceScale)
+  } else {
+    innerRescale(event.transform)
   }
+  rescale(xScale_, yScale_, false)
+}
 
-  /**
-   * Return the position of this event in local canvas coordinates.
-   */
-  function getPos(event: MouseEvent | undefined) {
-    return { x: event?.offsetX ?? 0, y: event?.offsetY ?? 0 }
-  }
+/** Return the zoom value computed from the initial right-mouse-button event to the current
+ * right-mouse event. */
+function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
+  const dX = (event?.offsetX ?? 0) - startX
+  const dY = (event?.offsetY ?? 0) - startY
+  return dX - dY
+}
 
-  /**
-   * Return the zoom value computed from the initial right-mouse-button event to the current
-   * right-mouse event.
-   */
-  function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
-    const end = getPos(event)
-    const dX = (event?.offsetX ?? 0) - startX
-    const dY = (event?.offsetY ?? 0) - startY
-    return dX - dY
-  }
-
-  /**
-   * Helper function called when starting to pan/scroll.
-   */
-  function startZoom(event: d3Types.D3ZoomEvent<Element, unknown>) {
-    startX = event.sourceEvent?.offsetX ?? 0
-    startY = event.sourceEvent?.offsetY ?? 0
-    originalXScale = xScale_.copy()
-    originalZoom = zoomLevel.value
-  }
-
-  return zoom
+/** Helper function called when starting to pan/scroll. */
+function startZoom(event: d3Types.D3ZoomEvent<Element, unknown>) {
+  startX = event.sourceEvent?.offsetX ?? 0
+  startY = event.sourceEvent?.offsetY ?? 0
 }
 
 const brush = computed(() =>
@@ -384,13 +371,14 @@ const brush = computed(() =>
       brushExtent.value = event.selection ?? undefined
     }),
 )
+// Note: The brush element must be a child of the zoom element - this is only way we found to have
+// both zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
+watchEffect(() => d3Brush.value.call(brush.value))
 
-/**
- * Zooms into selected fragment of plot.
+/** Zooms into selected fragment of plot.
  *
  * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
- * Section "Brushing for zooming".
- */
+ * Section "Brushing for zooming". */
 function zoomIn() {
   if (brushExtent.value == null) {
     return
@@ -404,8 +392,8 @@ function zoomIn() {
   const xMin = xScale_.invert(start)
   const xMax = xScale_.invert(end)
   xScale_.domain([xMin, xMax])
-  const dx = end - start
-  zoomLevel.value *= boxWidth.value / dx
+  const selectionWidth = end - start
+  zoomLevel.value *= boxWidth.value / selectionWidth
   rescale(xScale_, yScale.value, true)
 }
 
@@ -433,17 +421,24 @@ watch(
   },
 )
 
-/** Rescale the data points with a new scale. */
+/** Animate the chart to a new scale. */
 function rescale(xScale: Scale, yScale: Scale, shouldAnimate: boolean) {
   const duration = shouldAnimate ? ANIMATION_DURATION : 0.0
   d3XAxis.value
     .transition()
     .duration(duration)
     .call(d3.axisBottom(xScale).ticks(width.value / 40))
+  const yTicks = yScale.ticks().filter(Number.isInteger)
   d3YAxis.value
     .transition()
     .duration(duration)
-    .call(d3.axisLeft(yScale).ticks(height.value / 20))
+    .call(
+      d3
+        .axisLeft(yScale)
+        .ticks(height.value / 20)
+        .tickValues(yTicks)
+        .tickFormat(d3.format('d')),
+    )
   d3Plot.value
     .selectAll<SVGRectElement, Bin>('rect')
     .transition()
@@ -487,16 +482,21 @@ watchEffect(() => {
       extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
     ]
   }
+  dataScale.value.domain(domainX).range([0, boxWidth.value])
   xScale.value.domain(domainX).range([0, boxWidth.value])
   d3XAxis.value.call(d3.axisBottom(xScale.value).ticks(width.value / 40))
 })
 
 watchEffect(() => {
   // Update the y-axis in D3.
-  yScale.value.range([boxHeight.value, 0]).domain([0, maxY.value])
-  fill.value.domain(yScale.value.domain())
-  const yTicks = yScale.value.ticks().filter(Number.isInteger)
-  yAxis.value.scale(yScale.value).tickValues(yTicks)
+  const yScale_ = yScale.value
+  yScale_.range([boxHeight.value, 0])
+  if (yScale_.domain()[0] === 0) {
+    yScale_.domain([0, maxY.value])
+  }
+  fill.value.domain(yScale_.domain())
+  const yTicks = yScale_.ticks().filter(Number.isInteger)
+  yAxis.value.scale(yScale_).tickValues(yTicks)
   d3YAxis.value.call(yAxis.value)
 })
 
@@ -506,7 +506,7 @@ watchEffect(() => {
  * update the axes accordingly. */
 function updateHistogram(
   bins: Bin[],
-  xScale: Scale,
+  dataScale: Scale,
   yScale: Scale,
   fill: d3Types.ScaleSequential<string>,
   boxHeight: number,
@@ -517,8 +517,8 @@ function updateHistogram(
     (enter) => enter.append('rect').attr('x', 1),
     (update) =>
       update
-        .attr('transform', (d) => `translate(${xScale(d.x0 ?? 0)}, ${yScale(d.length ?? 0)})`)
-        .attr('width', (d) => xScale(d.x1 ?? 0) - xScale(d.x0 ?? 0))
+        .attr('transform', (d) => `translate(${dataScale(d.x0 ?? 0)}, ${yScale(d.length ?? 0)})`)
+        .attr('width', (d) => dataScale(d.x1 ?? 0) - dataScale(d.x0 ?? 0))
         .attr('height', (d) => Math.max(0, boxHeight - yScale(d.length ?? 0)))
         .style('fill', (d) => fill(d.length ?? 0)),
   )
@@ -552,22 +552,16 @@ function update() {
   if (rawBins.value != null) {
     bins = rawBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
   } else if (points.value != null) {
-    const xDomain = xScale.value.domain()
+    const dataDomain = dataScale.value.domain()
     const histogram = d3
       .bin()
-      .domain([xDomain[0] ?? 0, xDomain[1] ?? 1])
-      .thresholds(xScale.value.ticks(binCount.value))
+      .domain([dataDomain[0] ?? 0, dataDomain[1] ?? 1])
+      .thresholds(dataScale.value.ticks(binCount.value))
     bins = histogram(points.value)
   }
   // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
   maxY.value = d3.max(bins, (d) => d.length) || 1
-  // FIXME:
-  // rescale(xScale.value, yScale.value, true)
-  updateHistogram(bins, xScale.value, yScale.value, fill.value, boxHeight.value)
-  updatePanAndZoom()
-  // Note: The brush element must be a child of the zoom element - this is only way we found to have
-  // both zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
-  d3Brush.value.call(brush.value)
+  updateHistogram(bins, dataScale.value, yScale.value, fill.value, boxHeight.value)
 }
 
 onMounted(() => {
@@ -575,12 +569,10 @@ onMounted(() => {
   update()
 })
 
-watch(
-  () => [width.value, height.value] as const,
-  () => queueMicrotask(update),
-)
-
+watch([width, height, maxY], () => queueMicrotask(update))
 watchEffect(update)
+
+watch([width, height], () => queueMicrotask(endBrushing))
 
 // ===============
 // === Zooming ===
@@ -588,6 +580,9 @@ watchEffect(update)
 
 function fitAll() {
   focus.value = undefined
+  zoomLevel.value = 1
+  xScale.value.domain(dataScale.value.domain())
+  queueMicrotask(update)
 }
 
 useEvent(document, 'keydown', (event) => {
@@ -653,7 +648,7 @@ useEvent(document, 'scroll', endBrushing)
             v-text="axis.y.label"
           ></text>
           <g ref="plotNode" clip-path="url(#histogram-clip-path)"></g>
-          <g ref="zoomNode" class="zoom" :width="boxWidth" :height="boxHeight" fill="none">
+          <g ref="zoomNode" class="zoom">
             <g ref="brushNode" class="brush"></g>
           </g>
         </g>
