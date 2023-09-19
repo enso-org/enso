@@ -4,8 +4,10 @@
     "vite.config.*",
     "vitest.config.*",
     "playwright.config.*",
+    "eslint.config.js",
     "server/**/*",
     "shared/**/*",
+    "e2e/**/*",
     "node.env.d.ts"
   ],
   "compilerOptions": {

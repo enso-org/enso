@@ -15,7 +15,7 @@
     "test:e2e": "playwright test",
     "build-only": "vite build",
     "type-check": "npm --workspace=enso-dashboard run typecheck && vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "lint": "eslint . --fix",
     "format": "prettier --write src/",
     "build-rust-ffi": "cd rust-ffi && wasm-pack build --release --target web",
     "preinstall": "npm run build-rust-ffi"
@@ -37,6 +37,8 @@
     "yjs": "^13.6.7"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^2.1.2",
+    "@eslint/js": "^8.49.0",
     "@playwright/test": "^1.37.0",
     "@rushstack/eslint-patch": "^1.3.2",
     "@tsconfig/node18": "^18.2.0",

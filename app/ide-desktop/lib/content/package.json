@@ -29,7 +29,7 @@
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
-    "@eslint/js": "^8.36.0",
+    "@eslint/js": "^8.49.0",
     "@types/connect": "^3.4.35",
     "@types/morgan": "^1.9.4",
     "@types/serve-static": "^1.15.1",
