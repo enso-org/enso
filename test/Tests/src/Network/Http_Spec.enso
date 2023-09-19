@@ -262,7 +262,7 @@ spec =
                   "method": "POST",
                   "form": null,
                   "files": null,
-                  "data": "H\\u0000e\\u0000l\\u0000l\\u0000o\\u0000 \\u0000W\\u0000o\\u0000r\\u0000l\\u0000d\\u0000!\\u0000",
+                  "data": "Hello World!",
                   "json": null,
                   "args": {}
                 }
@@ -283,7 +283,7 @@ spec =
                   "method": "POST",
                   "form": null,
                   "files": null,
-                  "data": "a,b,c",
+                  "data": "a,b,c\\n",
                   "json": null,
                   "args": {}
                 }
@@ -293,28 +293,15 @@ spec =
             test_file = enso_project.data / "sample.txt"
             response = Data.post url_post (Request_Body.Binary test_file)
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
-            response.at "data" . should_equal 'Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart souffl\u00E9 jelly beans gummies.'
+            expected_text = test_file.read_text
+            response . at "data" . should_equal expected_text
+            #response.at "data" . should_equal 'Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart soufflé jelly beans gummies.\n\nTootsie roll chupa chups muffin croissant fruitcake jujubes danish cotton candy danish. Oat cake chocolate fruitcake halvah icing oat cake toffee powder. Pastry dragée croissant. Ice cream candy canes dessert muffin sugar plum tart jujubes.\n'
 
         Test.specify "Can perform a binary File POST" <|
             test_file = enso_project.data / "sample.png"
             response = Data.post url_post (Request_Body.Binary test_file)
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "26905"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "\uFFFDPNG",
-                  "json": null,
-                  "args": {}
-                }
-            response . should_equal expected_response
+            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response.at "data" . should_start_with '\uFFFDPNG'
 
         Test.specify "Can perform a url-encoded form POST" <|
             test_file = enso_project.data / "sample.txt"
@@ -335,7 +322,8 @@ spec =
             test_file = enso_project.data / "sample.txt"
             response = Data.post url_post test_file
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
-            response.at "data" . should_equal 'Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart souffl\u00E9 jelly beans gummies.'
+            expected_text = test_file.read_text
+            response . at "data" . should_equal expected_text
 
         Test.specify "Can perform a Text POST with auto-conversion" <|
             response = Data.post url_post "hello world"
