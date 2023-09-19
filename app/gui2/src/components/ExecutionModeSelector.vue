@@ -63,6 +63,8 @@ span {
   display: inline-block;
   height: 24px;
   padding: 1px 0px;
+  vertical-align: middle;
+  overflow: clip;
 }
 
 .ExecutionModeSelector {
@@ -96,6 +98,8 @@ span {
 }
 
 .execution-mode-dropdown {
+  display: flex;
+  flex-flow: column;
   position: absolute;
   background: #64b526;
   border-radius: 10px;
@@ -119,13 +123,23 @@ span {
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition: all 0.1s;
+
+  > span {
+    transition: all 0.1s;
+  }
 }
 
 .dropdown-enter-from,
 .dropdown-leave-to {
   max-height: 0;
-  padding: 0;
+  padding-top: 0;
+  padding-bottom: 0;
   overflow: hidden;
+
+  > span {
+    padding: 0;
+    max-height: 0;
+  }
 }
 
 </style>

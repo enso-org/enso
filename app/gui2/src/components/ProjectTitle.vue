@@ -33,8 +33,7 @@ const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
   > .title {
     display: inline-block;
     height: 24px;
-    padding-top: 1px;
-    padding-bottom: 1px;
+    padding: 1px 0px;
   }
 }
 </style>

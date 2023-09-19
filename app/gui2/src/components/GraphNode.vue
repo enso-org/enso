@@ -261,7 +261,7 @@ function handleClick(e: PointerEvent) {
     :class="{ dragging: dragPointer.dragging }"
     v-on="dragPointer.events"
   >
-    <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
+    <div class="grab-handle" @pointerdown="handleClick">@ &nbsp;</div>
     <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
     <div
       ref="editableRootNode"
@@ -312,7 +312,7 @@ function handleClick(e: PointerEvent) {
   gap: 4px;
 }
 
-.icon {
+.grab-handle {
   cursor: grab;
 }
 
