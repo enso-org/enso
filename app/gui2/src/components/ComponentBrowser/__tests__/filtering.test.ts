@@ -11,7 +11,7 @@ import {
   makeType,
 } from '@/stores/suggestionDatabase/entry'
 import { Filtering } from '../filtering'
-import { assumeQualifiedName } from '@/util/qualifiedName'
+import type { QualifiedName } from '@/util/qualifiedName'
 
 test.each([
   { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },
@@ -104,7 +104,7 @@ test.each([
   makeCon('local.Project.Module.Type.Foo_Con'),
   {
     ...makeStaticMethod('local.Project.Module.Type.foo_extension'),
-    definedIn: assumeQualifiedName('local.Project.Another_Module'),
+    definedIn: 'local.Project.Another_Module' as QualifiedName,
   },
 ])('$name entry is in the local.Project.Module.Type content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module.Type' })
@@ -129,7 +129,7 @@ test.each([
 test('An Instance method is shown when self type matches', () => {
   const entry = makeMethod('Standard.Base.Data.Vector.Vector.get')
   const filteringWithSelfType = new Filtering({
-    selfType: assumeQualifiedName('Standard.Base.Data.Vector.Vector'),
+    selfType: 'Standard.Base.Data.Vector.Vector' as QualifiedName,
   })
   expect(filteringWithSelfType.filter(entry)).not.toBeNull()
   const filteringWithoutSelfType = new Filtering({ pattern: 'get' })
@@ -146,7 +146,7 @@ test.each([
   makeMethod('Standard.Base.Data.Vector.Vector2.get'),
 ])('$name is filtered out when Vector self type is specified', (entry) => {
   const filtering = new Filtering({
-    selfType: assumeQualifiedName('Standard.Base.Data.Vector.Vector'),
+    selfType: 'Standard.Base.Data.Vector.Vector' as QualifiedName,
   })
   expect(filtering.filter(entry)).toBeNull()
 })

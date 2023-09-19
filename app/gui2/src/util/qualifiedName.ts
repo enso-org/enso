@@ -1,4 +1,3 @@
-import { bail } from './assert'
 import type { Opt } from './opt'
 
 declare const identifierBrand: unique symbol
@@ -7,18 +6,15 @@ const identifierRegexPart = '(?:[a-zA-Z_][0-9]*)+'
 const identifierRegex = new RegExp(`^${identifierRegexPart}$`)
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
 
+/** A string representing a valid identifier of our language. */
 export type Identifier = string & { [identifierBrand]: never; [qualifiedNameBrand]: never }
 
-export function tryIdentifier(str: string): Opt<Identifier> {
-  if (identifierRegex.test(str)) {
-    return str as Identifier
-  } else {
-    return null
-  }
+export function isIdentifier(str: string): str is Identifier {
+  return identifierRegex.test(str)
 }
 
-export function assumeIdentifier(str: string): Identifier {
-  return tryIdentifier(str) ?? bail('Invalid identifier')
+export function tryIdentifier(str: string): Opt<Identifier> {
+  return isIdentifier(str) ? (str as Identifier) : null
 }
 
 /** A string representing a valid qualified name of our language.
@@ -29,16 +25,12 @@ export function assumeIdentifier(str: string): Identifier {
  */
 export type QualifiedName = string & { [qualifiedNameBrand]: never }
 
-export function tryQualifiedName(str: string): Opt<QualifiedName> {
-  if (qnRegex.test(str)) {
-    return str as QualifiedName
-  } else {
-    return null
-  }
+export function isQualifiedName(str: string): str is QualifiedName {
+  return qnRegex.test(str)
 }
 
-export function assumeQualifiedName(str: string): QualifiedName {
-  return tryQualifiedName(str) ?? bail('Invalid qualified name')
+export function tryQualifiedName(str: string): Opt<QualifiedName> {
+  return isQualifiedName(str) ? (str as QualifiedName) : null
 }
 
 /** Split the qualified name to parent and last segment (name). */
