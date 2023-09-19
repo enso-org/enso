@@ -133,10 +133,8 @@ const shortcuts = {
   showAll: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'a',
 }
 
-const FONT_STYLE = "10px 'DejaVu Sans Mono'"
 const MARGIN = 25
-const X_AXIS_LABEL_WIDTH = 10
-const Y_AXIS_LABEL_WIDTH = 10
+const AXIS_LABEL_HEIGHT = 10
 const ANIMATION_DURATION = 1000
 const DEFAULT_NUMBER_OF_BINS = 50
 const COLOR_LEGEND_WIDTH = 5
@@ -234,8 +232,8 @@ let zoom = {} as ReturnType<typeof updatePanAndZoom>
 const margin = computed(() => ({
   top: MARGIN / 2.0,
   right: MARGIN / 2.0,
-  bottom: MARGIN + (axis.value?.x?.label ? X_AXIS_LABEL_WIDTH : 0),
-  left: MARGIN + (axis.value?.y?.label ? Y_AXIS_LABEL_WIDTH : 0),
+  bottom: MARGIN + (axis.value?.x?.label ? AXIS_LABEL_HEIGHT : 0),
+  left: MARGIN + (axis.value?.y?.label ? AXIS_LABEL_HEIGHT : 0),
 }))
 const width = computed(
   () =>
@@ -250,14 +248,10 @@ const height = computed(
 )
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
-const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - X_AXIS_LABEL_WIDTH / 2)
-const xLabelLeft = computed(
-  () => boxWidth.value / 2 + getTextWidth(axis.value.x.label, FONT_STYLE) / 2,
-)
-const yLabelTop = computed(() => -margin.value.left + Y_AXIS_LABEL_WIDTH)
-const yLabelLeft = computed(
-  () => -boxHeight.value / 2 + getTextWidth(axis.value.y.label, FONT_STYLE) / 2,
-)
+const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
+const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x.label) / 2)
+const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
+const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y.label) / 2)
 
 // =============
 // === Setup ===
@@ -336,9 +330,9 @@ function updatePanAndZoom() {
 
     function getScaleForZoom(scale: number) {
       return d3.zoomIdentity
-        .translate(startX - (Y_AXIS_LABEL_WIDTH + MARGIN), startY - MARGIN)
+        .translate(startX - (AXIS_LABEL_HEIGHT + MARGIN), startY - MARGIN)
         .scale(scale)
-        .translate(-startX + (Y_AXIS_LABEL_WIDTH + MARGIN), -startY + MARGIN)
+        .translate(-startX + (AXIS_LABEL_HEIGHT + MARGIN), -startY + MARGIN)
     }
 
     if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === RIGHT_BUTTON) {
@@ -697,7 +691,6 @@ onUnmounted(() => {
             v-if="axis.x.label"
             class="label label-x"
             text-anchor="end"
-            transform="rotate(-90)"
             :x="xLabelLeft"
             :y="xLabelTop"
             v-text="axis.x.label"
@@ -729,10 +722,6 @@ onUnmounted(() => {
 .HistogramVisualization .selection {
   rx: 4px;
   stroke: transparent;
-}
-
-.label {
-  font-size: 10px;
 }
 
 .label-y {
