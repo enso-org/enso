@@ -26,7 +26,7 @@ public class LoggingServiceManager {
       throw new LoggingServiceAlreadySetup();
     } else {
       if (config.appenders().containsKey(config.appender())) {
-        currentLevel = logLevel;
+        currentLevel = config.logToFile() ? Level.TRACE : logLevel;
         return Future.apply(
             () -> {
               var server = LoggingServiceFactory.get().localServerFor(port);
