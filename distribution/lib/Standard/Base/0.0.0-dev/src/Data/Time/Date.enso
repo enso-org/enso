@@ -107,10 +107,26 @@ type Date
 
        Arguments:
        - text: The text to try and parse as a date.
-       - format: A pattern describing how to parse the text, or a `Date_Time_Formatter`.
+       - format: A pattern describing how to parse the text,
+         or a `Date_Time_Formatter`.
 
        Returns a `Time_Error` if the provided `text` cannot be parsed using the
        provided `format`.
+
+       ? Default Date Formatting
+         Unless you provide a custom format, the text must represent a valid date
+         that can be parsed using the ISO-8601 extended local date format. The
+         format consists of:
+
+         - Four digits or more for the year. Years in the range 0000 to 9999
+           will be pre-padded by zero to ensure four digits. Years outside
+           that range will have a prefixed positive or negative symbol.
+         - A dash
+         - Two digits for the month-of-year. This is pre-padded by zero to ensure
+           two digits.
+         - A dash
+         - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+           digits.
 
        ? Pattern Syntax
          If the pattern is provided as `Text`, it is parsed using the format
@@ -139,21 +155,6 @@ type Date
          - Q: Quarter of year.
            If only year and quarter are provided in the pattern, when parsing a
            date, the result will be the first day of that quarter.
-
-       ? Default Date Formatting
-         Unless you provide a custom format, the text must represent a valid date
-         that can be parsed using the ISO-8601 extended local date format. The
-         format consists of:
-
-         - Four digits or more for the year. Years in the range 0000 to 9999
-           will be pre-padded by zero to ensure four digits. Years outside
-           that range will have a prefixed positive or negative symbol.
-         - A dash
-         - Two digits for the month-of-year. This is pre-padded by zero to ensure
-           two digits.
-         - A dash
-         - Two digits for the day-of-month. This is pre-padded by zero to ensure two
-           digits.
 
        > Example
          Parse the date of 23rd December 2020.
