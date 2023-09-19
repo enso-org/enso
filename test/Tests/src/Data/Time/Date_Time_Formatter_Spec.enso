@@ -18,3 +18,119 @@ spec =
 
         Test.specify "should allow long month names" <|
             Date.parse "30. June 2020" (Date_Time_Formatter.from "d. MMMM yyyy" Locale.uk) . should_equal (Date.new 2020 6 30)
+
+        Test.specify "should parse default time format" <|
+            text = Date_Time.new 1970 (zone = Time_Zone.utc) . to_text
+            time = Date_Time.parse text
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        Test.specify "should parse local time adding system zone" <|
+            time = Date_Time.parse "1970-01-01T00:00:01"
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 1
+            time . nanosecond . should_equal 0
+            (time.zone.offset time) . should_equal (Time_Zone.system.offset time)
+
+        Test.specify "should parse time Z" <|
+            time = Date_Time.parse "1582-10-15T00:00:01Z"
+            time . to_enso_epoch_seconds . should_equal 1
+            time.zone.zone_id . should_equal "Z"
+
+        Test.specify "should parse time UTC" <|
+            time = Date_Time.parse "1582-10-15T00:00:01Z[UTC]"
+            time . to_enso_epoch_seconds . should_equal 1
+            time . zone . zone_id . should_equal "UTC"
+
+        Test.specify "should parse time with nanoseconds" <|
+            time = Date_Time.parse "1970-01-01T00:00:01.123456789Z"
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 1
+            time . nanosecond include_milliseconds=True . should_equal 123456789
+            time . millisecond . should_equal 123
+            time . microsecond . should_equal 456
+            time . nanosecond . should_equal 789
+            time.zone.zone_id . should_equal "Z"
+
+        Test.specify "should parse time with offset-based zone" <|
+            time = Date_Time.parse "1970-01-01T00:00:01+01:00"
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time.zone.zone_id . take (Last 6) . should_equal "+01:00"
+
+        Test.specify "should parse time with id-based zone" <|
+            time = Date_Time.parse "1970-01-01T00:00:01+01:00[Europe/Paris]"
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            zone = time.zone
+            zone.offset time . should_equal 3600
+            zone.zone_id . should_equal "Europe/Paris"
+            time.to_display_text . should_equal "1970-01-01 00:00:01 Europe/Paris"
+
+        Test.specify "should throw error when parsing invalid time" <|
+            case Date_Time.parse "2008-1-1" . catch of
+                Time_Error.Error msg _ ->
+                    msg . should_equal "Text '2008-1-1' could not be parsed at index 5"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
+
+        Test.specify "should parse custom format of zoned time" <|
+            time = Date_Time.parse "2020-05-06 04:30:20 UTC" "yyyy-MM-dd HH:mm:ss tt"
+            time . year . should_equal 2020
+            time . month . should_equal 5
+            time . day . should_equal 6
+            time . hour . should_equal 4
+            time . minute . should_equal 30
+            time . second . should_equal 20
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            (time.zone.zone_id . take (Last 3) . to_case Case.Upper) . should_equal "UTC"
+
+        Test.specify "should parse custom format of local time" <|
+            time = Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+            time . year . should_equal 2020
+            time . month . should_equal 5
+            time . day . should_equal 6
+            time . hour . should_equal 4
+            time . minute . should_equal 30
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+
+        Test.specify "should throw error when parsing custom format" <|
+            time = Date_Time.parse "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['tt']'"
+            case time.catch of
+                Time_Error.Error msg _ ->
+                    msg . should_equal "Text '2008-01-01' could not be parsed at index 10"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)

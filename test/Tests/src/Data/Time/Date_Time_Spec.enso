@@ -21,10 +21,7 @@ spec =
     spec_with "Date_Time" enso_datetime Date_Time.parse
     spec_with "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
     if Polyglot.is_language_installed "python" then
-        ignore_z_check a b =
-            if a == 'Z' || b == 'Z' then True else
-                a.should_equal frames_to_skip=2 b
-        spec_with "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True loose_zone_equal=ignore_z_check
+        spec_with "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True
     spec_with "JavaZonedDateTime" java_datetime java_parse
     spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
 
@@ -47,11 +44,7 @@ spec =
             (Date_Time.new 2022 12 12).should_equal (Date_Time.new 2022 12 12)
             (Date_Time.new 2022 12 12).should_not_equal (Date_Time.new 1996)
 
-default_zone_equal z1 z2 =
-    z1 . should_equal frames_to_skip=1 z2
-    False
-
-spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False loose_zone_equal=default_zone_equal =
+spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
     Test.group name <|
 
         Test.specify "should create time" <|
@@ -93,130 +86,6 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
                 zone_pairs = [["zone", Time_Zone.utc]]
                 time_pairs = [["year", 1970], ["month", 12], ["day", 21], ["hour", 0], ["minute", 0], ["second", 0], ["nanosecond", 0]]
                 JS_Object.from_pairs ([["type", "Date_Time"], ["constructor", "new"]] + time_pairs + zone_pairs) . to_text
-
-        Test.specify "should parse default time format" <|
-            text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
-            time = parse_datetime text
-            time . year . should_equal 1970
-            time . month . should_equal 1
-            time . day . should_equal 1
-            time . hour . should_equal 0
-            time . minute . should_equal 0
-            time . second . should_equal 0
-            time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
-
-        Test.specify "should parse local time adding system zone" <|
-            time = parse_datetime "1970-01-01T00:00:01"
-            time . year . should_equal 1970
-            time . month . should_equal 1
-            time . day . should_equal 1
-            time . hour . should_equal 0
-            time . minute . should_equal 0
-            time . second . should_equal 1
-            time . nanosecond . should_equal 0
-            (time.zone.offset time) . should_equal (Time_Zone.system.offset time)
-
-        Test.specify "should parse time Z" <|
-            time = parse_datetime "1582-10-15T00:00:01Z"
-            time . to_enso_epoch_seconds . should_equal 1
-            loose_zone_equal time.zone.zone_id "Z"
-
-        Test.specify "should parse time UTC" <|
-            time = parse_datetime "1582-10-15T00:00:01Z[UTC]"
-            time . to_enso_epoch_seconds . should_equal 1
-            time . zone . zone_id . should_equal "UTC"
-
-        Test.specify "should parse time with nanoseconds" <|
-            time = parse_datetime "1970-01-01T00:00:01.123456789Z"
-            time . year . should_equal 1970
-            time . month . should_equal 1
-            time . day . should_equal 1
-            time . hour . should_equal 0
-            time . minute . should_equal 0
-            time . second . should_equal 1
-            case nanoseconds_loss_in_precision of
-                True ->
-                    time . nanosecond include_milliseconds=True . should_equal 123000000
-                    time . millisecond . should_equal 123
-                    time . microsecond . should_equal 0
-                    time . nanosecond . should_equal 0
-                False ->
-                    time . nanosecond include_milliseconds=True . should_equal 123456789
-                    time . millisecond . should_equal 123
-                    time . microsecond . should_equal 456
-                    time . nanosecond . should_equal 789
-            loose_zone_equal time.zone.zone_id  "Z"
-
-        Test.specify "should parse time with offset-based zone" <|
-            time = parse_datetime "1970-01-01T00:00:01+01:00"
-            time . year . should_equal 1970
-            time . month . should_equal 1
-            time . day . should_equal 1
-            time . hour . should_equal 0
-            time . minute . should_equal 0
-            time . second . should_equal 1
-            time . millisecond . should_equal 0
-            time . microsecond . should_equal 0
-            time . nanosecond . should_equal 0
-            time.zone.zone_id . take (Last 6) . should_equal "+01:00"
-
-        Test.specify "should parse time with id-based zone" <|
-            time = parse_datetime "1970-01-01T00:00:01+01:00[Europe/Paris]"
-            time . year . should_equal 1970
-            time . month . should_equal 1
-            time . day . should_equal 1
-            time . hour . should_equal 0
-            time . minute . should_equal 0
-            time . second . should_equal 1
-            time . millisecond . should_equal 0
-            time . microsecond . should_equal 0
-            time . nanosecond . should_equal 0
-            zone = time.zone
-            zone.offset time . should_equal 3600
-            if name.contains "Python" then time.zone.zone_id . should_equal "UTC+01:00" else
-                zone.zone_id . should_equal "Europe/Paris"
-                time.to_display_text . should_equal "1970-01-01 00:00:01 Europe/Paris"
-
-        Test.specify "should throw error when parsing invalid time" <|
-            case parse_datetime "2008-1-1" . catch of
-                Time_Error.Error msg _ ->
-                    msg . should_equal "Text '2008-1-1' could not be parsed at index 5"
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
-
-        Test.specify "should parse custom format of zoned time" <|
-            time = parse_datetime "2020-05-06 04:30:20 UTC" "yyyy-MM-dd HH:mm:ss z"
-            time . year . should_equal 2020
-            time . month . should_equal 5
-            time . day . should_equal 6
-            time . hour . should_equal 4
-            time . minute . should_equal 30
-            time . second . should_equal 20
-            time . millisecond . should_equal 0
-            time . microsecond . should_equal 0
-            time . nanosecond . should_equal 0
-            (time.zone.zone_id . take (Last 3) . to_case Case.Upper) . should_equal "UTC"
-
-        Test.specify "should parse custom format of local time" <|
-            time = parse_datetime "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
-            time . year . should_equal 2020
-            time . month . should_equal 5
-            time . day . should_equal 6
-            time . hour . should_equal 4
-            time . minute . should_equal 30
-            time . second . should_equal 0
-            time . millisecond . should_equal 0
-            time . microsecond . should_equal 0
-            time . nanosecond . should_equal 0
-
-        Test.specify "should throw error when parsing custom format" <|
-            time = parse_datetime "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['z']'"
-            case time.catch of
-                Time_Error.Error msg _ ->
-                    msg . should_equal "Text '2008-01-01' could not be parsed at index 10"
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should get Enso epoch seconds" <|
             (create_new_datetime 1582 10 15 0 0 8 (zone = Time_Zone.utc)).to_enso_epoch_seconds . should_equal 8
