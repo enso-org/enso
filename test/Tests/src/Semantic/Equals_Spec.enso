@@ -3,10 +3,11 @@ from Standard.Base import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import java.math.BigInteger as JavaBig
-polyglot java import java.nio.file.Path as JavaPath
+polyglot java import java.math.BigInteger as Java_Big_Integer
+polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base_test_helpers.IntHolder
+polyglot java import org.enso.base_test_helpers.IntHolderEquals
 
 type CustomEqType
     C1 f1
@@ -125,6 +126,12 @@ foreign js js_map a b = """
     m.set("b", b);
     return m
 
+foreign js js_obj a b = """
+    var m = {};
+    m.a = a;
+    m.b = b;
+    return m;
+
 spec =
     Test.group "Operator ==" <|
         Test.specify "should handle primitive values" <|
@@ -172,8 +179,8 @@ spec =
             ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
 
         Test.specify "should dispatch to equals on host values" <|
-            path1 = JavaPath.of "home" "user" . resolve "file.txt"
-            path2 = JavaPath.of "home" "user" "file.txt"
+            path1 = Java_Path.of "home" "user" . resolve "file.txt"
+            path2 = Java_Path.of "home" "user" "file.txt"
             (path1 == path2).should_be_true
             path3 = path1.resolve "subfile.txt"
             (path3 == path2).should_be_false
@@ -226,11 +233,36 @@ spec =
         Test.specify "should not try to compare members" <|
             x = IntHolder.new 5
             y = IntHolder.new 5
+            z = IntHolder.new 3
+            x==z . should_be_false
             x==y . should_be_false
+            y==y . should_be_true
+            x==x . should_be_true
+            z==z . should_be_true
+
+        Test.specify "should not try to compare members in JS object" <|
+            x = js_obj 5 3
+            y = js_obj 5 3
+            z = js_obj 3 5
+            x==z . should_be_false
+            x==y . should_be_false
+            y==y . should_be_true
+            x==x . should_be_true
+            z==z . should_be_true
+
+        Test.specify "should invoke equals" <|
+            x = IntHolderEquals.new 5
+            y = IntHolderEquals.new 5
+            z = IntHolderEquals.new 3
+            x==z . should_be_false
+            x==y . should_be_true
+            y==y . should_be_true
+            x==x . should_be_true
+            z==z . should_be_true
 
         Test.specify "should compare big integer" <|
-            x = JavaBig.new "54024430107564432"
-            y = JavaBig.new "54024430107564432"
+            x = Java_Big_Integer.new "54024430107564432"
+            y = Java_Big_Integer.new "54024430107564432"
             x==y . should_be_true
 
         Test.specify "JSON is found different" <|
