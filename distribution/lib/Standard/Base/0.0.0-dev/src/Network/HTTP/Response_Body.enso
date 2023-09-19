@@ -61,7 +61,7 @@ type Response_Body
              import Standard.Examples
 
              example_to_file =
-                Examples.get_geo_data.to_file Examples.scratch_file
+                Examples.get_geo_data.body.to_file Examples.scratch_file
     to_file : File -> File
     to_file self file =
         self.bytes.write_bytes file
