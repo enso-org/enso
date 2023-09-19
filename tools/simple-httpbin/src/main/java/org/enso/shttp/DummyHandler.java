@@ -45,7 +45,6 @@ public class DummyHandler implements HttpHandler {
                   + entry.getValue().get(0)
                   + "\"";
         }
-        System.out.println("AAA key " + entry.getKey());
         if (entry.getKey().equals("Content-type")) {
           contentType = entry.getValue().get(0);
         }
@@ -53,7 +52,6 @@ public class DummyHandler implements HttpHandler {
           contentEncoding = entry.getValue().get(0);
         }
       }
-      System.out.println("AAA encoding " + contentEncoding);
       response += "\n";
       response += "  },\n";
       response += "  \"origin\": \"127.0.0.1\",\n";

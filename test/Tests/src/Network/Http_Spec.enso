@@ -295,7 +295,6 @@ spec =
             response.at "headers" . at "Content-Type" . should_equal "text/plain"
             expected_text = test_file.read_text
             response . at "data" . should_equal expected_text
-            #response.at "data" . should_equal 'Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart soufflé jelly beans gummies.\n\nTootsie roll chupa chups muffin croissant fruitcake jujubes danish cotton candy danish. Oat cake chocolate fruitcake halvah icing oat cake toffee powder. Pastry dragée croissant. Ice cream candy canes dessert muffin sugar plum tart jujubes.\n'
 
         Test.specify "Can perform a binary File POST" <|
             test_file = enso_project.data / "sample.png"
