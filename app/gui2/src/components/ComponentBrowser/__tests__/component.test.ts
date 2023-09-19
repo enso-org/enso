@@ -16,61 +16,45 @@ import { Filtering } from '../filtering'
 import shuffleSeed from 'shuffle-seed'
 
 test.each([
-  { suggestion: makeModuleMethod('Standard.Base.Data', 'read', 'Any'), expected: 'Data.read' },
-  {
-    suggestion: makeStaticMethod('Standard.Base.Data.Vector', 'new', 'Any'),
-    expected: 'Vector.new',
-  },
-  { suggestion: makeMethod('Standard.Base.Data.Vector', 'get', 'Any'), expected: 'get' },
-  {
-    suggestion: makeCon('Standard.Table.Data.Join_Kind.Join_Kind', 'LeftInner'),
-    expected: 'Join_Kind.LeftInner',
-  },
-  {
-    suggestion: makeModule('Standard.Table.Data.Join_Kind'),
-    expected: 'Join_Kind',
-  },
-  {
-    suggestion: makeModule('Standard.Table.Data'),
-    mainExpected: 'Standard.Table.Data',
-    expected: 'Data',
-  },
-  { suggestion: makeModuleMethod('local.Project', 'main', 'Any'), expected: 'Project.main' },
-])(
-  "$suggestion.name Component's label is $expected",
-  ({ suggestion, expected, mainExpected: mainExpected }) => {
-    const mainView = new Filtering({})
-    const filteredView = new Filtering({ pattern: 'e' })
-    expect(labelOfEntry(suggestion, filteredView)).toBe(expected)
-    expect(labelOfEntry(suggestion, mainView)).toBe(mainExpected ?? expected)
-  },
-)
+  [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],
+  [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
+  [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
+  [makeCon('Standard.Table.Data.Join_Kind.Join_Kind.LeftInner'), 'Join_Kind.LeftInner'],
+  [makeModule('Standard.Table.Data.Join_Kind'), 'Join_Kind'],
+  [makeModule('Standard.Table.Data'), 'Data', 'Standard.Table.Data'],
+  [makeModuleMethod('local.Project.main'), 'Project.main'],
+])("$name Component's label is valid", (suggestion, expected, mainExpected?) => {
+  const mainView = new Filtering({})
+  const filteredView = new Filtering({ pattern: 'e' })
+  expect(labelOfEntry(suggestion, filteredView)).toBe(expected)
+  expect(labelOfEntry(suggestion, mainView)).toBe(mainExpected ?? expected)
+})
 
 test('Suggestions are ordered properly', () => {
   const sortedEntries: MatchedSuggestion[] = [
     {
       id: 100,
-      entry: makeModuleMethod('local.Project.Z', 'best_score', 'Any'),
+      entry: makeModuleMethod('local.Project.Z.best_score'),
       match: { score: 0 },
     },
     {
       id: 90,
-      entry: { ...makeModuleMethod('local.Project.Z', 'b', 'Any'), groupIndex: 0 },
+      entry: { ...makeModuleMethod('local.Project.Z.b'), groupIndex: 0 },
       match: { score: 50 },
     },
     {
       id: 91,
-      entry: { ...makeModuleMethod('local.Project.Z', 'a', 'Any'), groupIndex: 0 },
+      entry: { ...makeModuleMethod('local.Project.Z.a'), groupIndex: 0 },
       match: { score: 50 },
     },
     {
       id: 89,
-      entry: { ...makeModuleMethod('local.Project.A', 'foo', 'Any'), groupIndex: 1 },
+      entry: { ...makeModuleMethod('local.Project.A.foo'), groupIndex: 1 },
       match: { score: 50 },
     },
     {
       id: 88,
-      entry: { ...makeModuleMethod('local.Project.B', 'another_module', 'Any'), groupIndex: 1 },
+      entry: { ...makeModuleMethod('local.Project.B.another_module'), groupIndex: 1 },
       match: { score: 50 },
     },
     {
@@ -80,7 +64,7 @@ test('Suggestions are ordered properly', () => {
     },
     {
       id: 50,
-      entry: makeModuleMethod('local.Project.Z', 'module_content', 'Any'),
+      entry: makeModuleMethod('local.Project.Z.module_content'),
       match: { score: 50 },
     },
     {

@@ -8,7 +8,6 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/util/animation'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { qnSplit } from '@/util/qualifiedName'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 
 const ITEM_SIZE = 32
@@ -48,8 +47,13 @@ const inputText = ref('')
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
-  let [qualifiedNamePattern, pattern] = qnSplit(inputText.value)
-  return new Filtering({ pattern, qualifiedNamePattern, ...filterFlags.value })
+  const input = inputText.value
+  const pathPatternSep = inputText.value.lastIndexOf('.')
+  return new Filtering({
+    pattern: input.substring(pathPatternSep + 1),
+    qualifiedNamePattern: input.substring(0, pathPatternSep),
+    ...filterFlags.value,
+  })
 })
 
 watch(currentFiltering, selectLastAfterRefresh)

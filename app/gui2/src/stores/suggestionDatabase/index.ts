@@ -35,16 +35,7 @@ function fromJson(data: any, groups: Group[]): SuggestionEntry {
 }
 
 // TODO[ao]: This is a temporary mock; soon we should load db from the language server (#7785)
-export function initializeMockDb() {
-  fetch('https://capricornus.pl/~adam/db-formatted.json')
-    .then((resp) => resp.json())
-    .then((mockDb) => {
-      const db = useSuggestionDbStore()
-      for (const [id, entry] of Object.entries(mockDb)) {
-        db.entries.set(+id, fromJson(entry, db.groups))
-      }
-    })
-}
+export function initializeMockDb() {}
 
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = reactive(new SuggestionDb())
@@ -58,5 +49,12 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
     { color: '#4D9A29', name: 'Output' },
   ])
 
-  return { entries, groups }
+  async function initializeDb() {
+    const mockDb = await (await fetch('https://capricornus.pl/~adam/db-formatted.json')).json()
+    for (const [id, entry] of Object.entries(mockDb)) {
+      entries.set(+id, fromJson(entry, groups.value))
+    }
+  }
+
+  return { entries, groups, initializeDb }
 })

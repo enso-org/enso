@@ -5,7 +5,7 @@ import { qnParent, type QualifiedName } from '@/util/qualifiedName'
 export interface Filter {
   pattern?: string
   selfType?: QualifiedName
-  qualifiedNamePattern?: QualifiedName
+  qualifiedNamePattern?: string
   showUnstable?: boolean
   showLocal?: boolean
 }
@@ -139,7 +139,10 @@ class FilteringQualifiedName {
     const entryOwner =
       entry.kind == SuggestionKind.Module ? qnParent(entry.definedIn) : entry.definedIn
     const regex = alsoFilteringByPattern ? this.memberOfAnyDescendantRegex : this.memberRegex
-    return regex.test(entryOwner) || (entry.memberOf != null && regex.test(entry.memberOf))
+    return (
+      (entryOwner != null && regex.test(entryOwner)) ||
+      (entry.memberOf != null && regex.test(entry.memberOf))
+    )
   }
 }
 

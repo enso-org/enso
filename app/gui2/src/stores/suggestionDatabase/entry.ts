@@ -1,4 +1,13 @@
-import { qnLastSegment, qnParent, type QualifiedName } from '@/util/qualifiedName'
+import { bail } from '@/util/assert'
+import {
+  qnLastSegment,
+  qnParent,
+  type Identifier,
+  type QualifiedName,
+  assumeQualifiedName,
+  assumeIdentifier,
+  qnSplit,
+} from '@/util/qualifiedName'
 
 export type SuggestionId = number
 
@@ -64,7 +73,7 @@ export interface SuggestionEntry {
   isPrivate: boolean
   isUnstable: boolean
   /// A name of suggested object.
-  name: string
+  name: Identifier
   /// A list of aliases.
   aliases: string[]
   /// A type of the "self" argument. This field is present only for instance methods.
@@ -86,82 +95,111 @@ export interface SuggestionEntry {
   groupIndex?: number
 }
 
-export function makeSimpleEntry(
+function makeSimpleEntry(
   kind: SuggestionKind,
   definedIn: QualifiedName,
-  name: string,
+  name: Identifier,
   returnType: QualifiedName,
 ): SuggestionEntry {
   return {
     kind,
-    definedIn,
-    name,
+    definedIn: assumeQualifiedName(definedIn),
+    name: assumeIdentifier(name),
     isPrivate: false,
     isUnstable: false,
     aliases: [],
     arguments: [],
-    returnType,
+    returnType: assumeQualifiedName(returnType),
     documentation: '',
   }
 }
 
-export function makeModule(definedIn: QualifiedName): SuggestionEntry {
-  return makeSimpleEntry(SuggestionKind.Module, definedIn, qnLastSegment(definedIn), definedIn)
+export function makeModule(fullyQualifiedName: string): SuggestionEntry {
+  const fqn = assumeQualifiedName(fullyQualifiedName)
+  return makeSimpleEntry(SuggestionKind.Module, fqn, qnLastSegment(fqn), fqn)
 }
 
-export function makeType(definedIn: QualifiedName, name: string): SuggestionEntry {
-  return makeSimpleEntry(SuggestionKind.Type, definedIn, name, `${definedIn}.${name}`)
+export function makeType(fullyQualifiedName: string): SuggestionEntry {
+  const fqn = assumeQualifiedName(fullyQualifiedName)
+  const [definedIn, name] = qnSplit(fqn)
+  return makeSimpleEntry(SuggestionKind.Type, definedIn ?? bail('Invalid type name'), name, fqn)
 }
 
-export function makeCon(type: QualifiedName, name: string): SuggestionEntry {
+export function makeCon(fullyQualifiedName: string): SuggestionEntry {
+  const fqn = assumeQualifiedName(fullyQualifiedName)
+  const [maybeType, name] = qnSplit(fqn)
+  const type = maybeType ?? bail('Invalid constructor name')
+  const definedIn = qnParent(type) ?? bail('Invalid constructor name')
   return {
     memberOf: type,
-    ...makeSimpleEntry(SuggestionKind.Constructor, qnParent(type), name, type),
+    ...makeSimpleEntry(SuggestionKind.Constructor, definedIn, name, type),
   }
 }
 
-export function makeMethod(type: QualifiedName, name: string, returnType: string): SuggestionEntry {
+export function makeMethod(
+  fullyQualifiedName: string,
+  returnType: string = 'Any',
+): SuggestionEntry {
+  const fqn = assumeQualifiedName(fullyQualifiedName)
+  const [maybeType, name] = qnSplit(fqn)
+  const type = maybeType ?? bail('Invalid method name')
+  const definedIn = qnParent(type) ?? bail('Invalid method name')
   return {
     memberOf: type,
     selfType: type,
-    ...makeSimpleEntry(SuggestionKind.Method, qnParent(type), name, returnType),
+    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, assumeQualifiedName(returnType)),
   }
 }
 
 export function makeStaticMethod(
-  type: QualifiedName,
-  name: string,
-  returnType: string,
+  fullyQualifiedName: string,
+  returnType: string = 'Any',
 ): SuggestionEntry {
+  const fqn = assumeQualifiedName(fullyQualifiedName)
+  const [maybeType, name] = qnSplit(fqn)
+  const type = maybeType ?? bail('Invalid method name')
+  const definedIn = qnParent(type) ?? bail('Invalid method name')
   return {
     memberOf: type,
-    ...makeSimpleEntry(SuggestionKind.Method, qnParent(type), name, returnType),
+    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, assumeQualifiedName(returnType)),
   }
 }
 
 export function makeModuleMethod(
-  module: QualifiedName,
-  name: string,
-  returnType: string,
+  fullyQualifiedName: string,
+  returnType: string = 'Any',
 ): SuggestionEntry {
+  const fqn = assumeQualifiedName(fullyQualifiedName)
+  const [maybeDefinedIn, name] = qnSplit(fqn)
+  const definedIn = maybeDefinedIn ?? bail('Invalid method name')
   return {
-    memberOf: module,
-    ...makeSimpleEntry(SuggestionKind.Method, module, name, returnType),
+    memberOf: definedIn,
+    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, assumeQualifiedName(returnType)),
   }
 }
 
 export function makeFunction(
-  definedIn: QualifiedName,
+  definedIn: string,
   name: string,
-  returnType: string,
+  returnType: string = 'Any',
 ): SuggestionEntry {
-  return makeSimpleEntry(SuggestionKind.Function, definedIn, name, returnType)
+  return makeSimpleEntry(
+    SuggestionKind.Function,
+    assumeQualifiedName(definedIn),
+    assumeIdentifier(name),
+    assumeQualifiedName(returnType),
+  )
 }
 
 export function makeLocal(
-  definedIn: QualifiedName,
+  definedIn: string,
   name: string,
-  returnType: string,
+  returnType: string = 'Any',
 ): SuggestionEntry {
-  return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
+  return makeSimpleEntry(
+    SuggestionKind.Local,
+    assumeQualifiedName(definedIn),
+    assumeIdentifier(name),
+    assumeQualifiedName(returnType),
+  )
 }

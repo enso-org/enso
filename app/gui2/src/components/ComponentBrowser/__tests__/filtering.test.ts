@@ -11,11 +11,12 @@ import {
   makeType,
 } from '@/stores/suggestionDatabase/entry'
 import { Filtering } from '../filtering'
+import { assumeQualifiedName } from '@/util/qualifiedName'
 
 test.each([
-  { ...makeModuleMethod('Standard.Base.Data', 'read', 'Any'), groupIndex: 0 },
-  { ...makeModuleMethod('Standard.Base.Data', 'write', 'Any'), groupIndex: 0 },
-  { ...makeStaticMethod('Standard.Base.Data.Vector.Vector', 'new', 'Any'), groupIndex: 1 },
+  { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },
+  { ...makeModuleMethod('Standard.Base.Data.write'), groupIndex: 0 },
+  { ...makeStaticMethod('Standard.Base.Data.Vector.Vector.new'), groupIndex: 1 },
   makeModule('local.New_Project'),
   makeModule('Standard.Base.Data'),
 ])('$name entry is in the CB main view', (entry) => {
@@ -24,8 +25,8 @@ test.each([
 })
 
 test.each([
-  makeModuleMethod('Standard.Base.Data', 'convert', 'Any'), // not in group
-  { ...makeMethod('Standard.Base.Data.Vector.Vector', 'get', 'Any'), groupIndex: 1 }, // not static method
+  makeModuleMethod('Standard.Base.Data.convert'), // not in group
+  { ...makeMethod('Standard.Base.Data.Vector.Vector.get'), groupIndex: 1 }, // not static method
   makeModule('Standard.Base.Data.Vector'), // Not top module
 ])('$name entry is not in the CB main view', (entry) => {
   const filtering = new Filtering({})
@@ -33,16 +34,12 @@ test.each([
 })
 
 test.each([
-  makeModuleMethod('local.Project.Module', 'module_method', 'Any'),
-  makeType('local.Project.Module', 'Type'),
-  makeCon('local.Project.Module.Type', 'Con'),
-  makeStaticMethod('local.Project.Module.Type', 'method', 'Any'),
+  makeModuleMethod('local.Project.Module.module_method'),
+  makeType('local.Project.Module.Type'),
+  makeCon('local.Project.Module.Type.Con'),
+  makeStaticMethod('local.Project.Module.Type.method'),
   makeModule('local.Project.Module.Submodule'),
-  makeModuleMethod(
-    'another.Project.Local.Project.Module',
-    'module_method_with_matching_suffix',
-    'Any',
-  ),
+  makeModuleMethod('another.Project.Local.Project.Module.module_method_with_matching_suffix'),
 ])('$name entry is in the local.Project.Module content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module' })
   const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
@@ -51,17 +48,13 @@ test.each([
 })
 
 test.each([
-  makeModuleMethod('local.Project.Another_Module', 'another_module_method', 'Any'),
-  makeModuleMethod(
-    'local.Project.Another_Module.Module',
-    'another_module_with_same_name_method',
-    'Any',
-  ),
-  makeModuleMethod('local.Project.Module.Submodule', 'submodules_method', 'Any'),
+  makeModuleMethod('local.Project.Another_Module.another_module_method'),
+  makeModuleMethod('local.Project.Another_Module.Module.another_module_with_same_name_method'),
+  makeModuleMethod('local.Project.Module.Submodule.submodules_method'),
   makeModule('local.Project.Module'),
   makeModule('local.Project.Module.Submodule.Nested'),
-  makeType('local.Project', 'In_Parent_Module'),
-  makeType('local.Project.Module.Submodule', 'In_Submodule'),
+  makeType('local.Project.In_Parent_Module'),
+  makeType('local.Project.Module.Submodule.In_Submodule'),
 ])('$name entry is not in the local.Project.Module content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module' })
   const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
@@ -70,15 +63,15 @@ test.each([
 })
 
 test.each([
-  makeModuleMethod('local.Project.Module', 'foo', 'Any'),
-  makeModuleMethod('local.Project.Module.Submodule', 'foo_in_submodule', 'Any'),
-  makeModuleMethod('local.Project.Module.Submodule.Nested', 'foo_nested', 'Any'),
-  makeType('local.Project.Module.Submodule.Nested', 'Foo_Type'),
-  makeCon('local.Project.Module.Submodule.Nested.Foo_Type', 'Foo_Con'),
-  makeStaticMethod('local.Project.Module.Submodule.Nested.Foo_Type', 'foo_method', 'Any'),
+  makeModuleMethod('local.Project.Module.foo'),
+  makeModuleMethod('local.Project.Module.Submodule.foo_in_submodule'),
+  makeModuleMethod('local.Project.Module.Submodule.Nested.foo_nested'),
+  makeType('local.Project.Module.Submodule.Nested.Foo_Type'),
+  makeCon('local.Project.Module.Submodule.Nested.Foo_Type.Foo_Con'),
+  makeStaticMethod('local.Project.Module.Submodule.Nested.Foo_Type.foo_method'),
   makeModule('local.Project.Module.Foo_Direct_Submodule'),
   makeModule('local.Project.Module.Submodule.Foo_Nested'),
-  makeModuleMethod('another.Project.Local.Project.Module', 'foo_with_matching_suffix', 'Any'),
+  makeModuleMethod('another.Project.Local.Project.Module.foo_with_matching_suffix'),
 ])(
   "$name entry is in the local.Project.Module content when filtering by pattern 'foo'",
   (entry) => {
@@ -91,14 +84,10 @@ test.each([
 )
 
 test.each([
-  makeModuleMethod('local.Project.Module', 'bar', 'Any'),
-  makeModuleMethod('local.Project.Another_Module', 'foo_in_another_module', 'Any'),
-  makeModuleMethod(
-    'local.Project.Another_Module.Module',
-    'foo_in_another_module_with_same_name',
-    'Any',
-  ),
-  makeModuleMethod('local.Project', 'foo_in_parent_module', 'Any'),
+  makeModuleMethod('local.Project.Module.bar'),
+  makeModuleMethod('local.Project.Another_Module.foo_in_another_module'),
+  makeModuleMethod('local.Project.Another_Module.Module.foo_in_another_module_with_same_name'),
+  makeModuleMethod('local.Project.foo_in_parent_module'),
 ])(
   "$name entry is in not the local.Project.Module content when filtering by pattern 'foo'",
   (entry) => {
@@ -111,11 +100,11 @@ test.each([
 )
 
 test.each([
-  makeStaticMethod('local.Project.Module.Type', 'foo_method', 'Any'),
-  makeCon('local.Project.Module.Type', 'Foo_Con'),
+  makeStaticMethod('local.Project.Module.Type.foo_method'),
+  makeCon('local.Project.Module.Type.Foo_Con'),
   {
-    ...makeStaticMethod('local.Project.Module.Type', 'foo_extension', 'Any'),
-    definedIn: 'local.Project.Another_Module',
+    ...makeStaticMethod('local.Project.Module.Type.foo_extension'),
+    definedIn: assumeQualifiedName('local.Project.Another_Module'),
   },
 ])('$name entry is in the local.Project.Module.Type content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module.Type' })
@@ -128,18 +117,20 @@ test.each([
 })
 
 test.each([
-  makeType('local.Project.Module', 'Type'),
-  makeModuleMethod('local.Project.Module', 'module_method', 'Any'),
-  makeStaticMethod('local.Project.Module.Another_Type', 'another_type_method', 'Any'),
-  makeStaticMethod('local.Project.Another_Module.Type', 'another_module_type_method', 'Any'),
+  makeType('local.Project.Module.Type'),
+  makeModuleMethod('local.Project.Module.module_method'),
+  makeStaticMethod('local.Project.Module.Another_Type.another_type_method'),
+  makeStaticMethod('local.Project.Another_Module.Type.another_module_type_method'),
 ])('$name entry is not in the local.Project.Module.Type content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module.Type' })
   expect(filtering.filter(entry)).toBeNull()
 })
 
 test('An Instance method is shown when self type matches', () => {
-  const entry = makeMethod('Standard.Base.Data.Vector.Vector', 'get', 'Any')
-  const filteringWithSelfType = new Filtering({ selfType: 'Standard.Base.Data.Vector.Vector' })
+  const entry = makeMethod('Standard.Base.Data.Vector.Vector.get')
+  const filteringWithSelfType = new Filtering({
+    selfType: assumeQualifiedName('Standard.Base.Data.Vector.Vector'),
+  })
   expect(filteringWithSelfType.filter(entry)).not.toBeNull()
   const filteringWithoutSelfType = new Filtering({ pattern: 'get' })
   expect(filteringWithoutSelfType.filter(entry)).toBeNull()
@@ -147,20 +138,22 @@ test('An Instance method is shown when self type matches', () => {
 
 test.each([
   makeModule('Standard.Base.Data.Vector'),
-  makeStaticMethod('Standard.Base.Data.Vector.Vector', 'new', 'Any'),
-  makeCon('Standard.Base.Data.Vector.Vector', 'Vector_Con'),
-  makeLocal('Standard.Base.Data.Vector', 'get', 'Any'),
-  makeFunction('Standard.Base.Data.Vector', 'func', 'Any'),
-  makeMethod('Standard.Base.Data.Vector.Vecto', 'get', 'Any'),
-  makeMethod('Standard.Base.Data.Vector.Vector2', 'get', 'Any'),
+  makeStaticMethod('Standard.Base.Data.Vector.Vector.new'),
+  makeCon('Standard.Base.Data.Vector.Vector.Vector_Con'),
+  makeLocal('Standard.Base.Data.Vector', 'get'),
+  makeFunction('Standard.Base.Data.Vector', 'func'),
+  makeMethod('Standard.Base.Data.Vector.Vecto.get'),
+  makeMethod('Standard.Base.Data.Vector.Vector2.get'),
 ])('$name is filtered out when Vector self type is specified', (entry) => {
-  const filtering = new Filtering({ selfType: 'Standard.Base.Data.Vector.Vector' })
+  const filtering = new Filtering({
+    selfType: assumeQualifiedName('Standard.Base.Data.Vector.Vector'),
+  })
   expect(filtering.filter(entry)).toBeNull()
 })
 
 test.each(['bar', 'barfoo', 'fo', 'bar_fo_bar'])("%s is not matched by pattern 'foo'", (name) => {
   const pattern = 'foo'
-  const entry = makeModuleMethod('local.Project', name, 'Any')
+  const entry = makeModuleMethod(`local.Project.${name}`)
   const filtering = new Filtering({ pattern })
   expect(filtering.filter(entry)).toBeNull()
 })
@@ -181,7 +174,7 @@ test('Matching pattern without underscores', () => {
     { name: 'bar', aliases: ['frequent_objective_objections'] }, // alias initials match
   ]
   const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
-    const entry = { ...makeModuleMethod('local.Project', name, 'Any'), aliases: aliases ?? [] }
+    const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
@@ -207,7 +200,7 @@ test('Matching pattern with underscores', () => {
     { name: 'bar', aliases: ['xyz_fooabc_abc_barabc_xyz'] }, // alias word start match
   ]
   const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
-    const entry = { ...makeModuleMethod('local.Project', name, 'Any'), aliases: aliases ?? [] }
+    const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
@@ -218,9 +211,9 @@ test('Matching pattern with underscores', () => {
 })
 
 test('Unstable filtering', () => {
-  const stableEntry = makeStaticMethod('local.Project.Type', 'stable', 'Any')
+  const stableEntry = makeStaticMethod('local.Project.Type.stable')
   const unstableEntry = {
-    ...makeStaticMethod('local.Project.Type', 'unstable', 'Any'),
+    ...makeStaticMethod('local.Project.Type.unstable'),
     isUnstable: true,
   }
   const stableFiltering = new Filtering({ qualifiedNamePattern: 'local.Project.Type' })
