@@ -475,7 +475,7 @@ public final class EnsoContext {
         }
       }
     } else {
-      throw new IllegalStateException("Unsupported value of ENSO_JAVA environment variable: " + envJava);
+      throw new IllegalStateException("Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
     }
     return guestJava;
   }
