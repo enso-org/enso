@@ -693,7 +693,7 @@ useEvent(document, 'scroll', endBrushing)
         <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
-    <div class="ScatterplotVisualization">
+    <div class="ScatterplotVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">
         <g ref="rootNode" :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>

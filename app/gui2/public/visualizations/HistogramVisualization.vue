@@ -610,7 +610,7 @@ useEvent(document, 'scroll', endBrushing)
         <img :src="FindIcon" alt="Zoom to selected" @click="zoomIn" />
       </button>
     </template>
-    <div class="HistogramVisualization">
+    <div class="HistogramVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">
         <rect
           class="color-legend"
