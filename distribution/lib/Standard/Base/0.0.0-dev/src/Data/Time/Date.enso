@@ -726,7 +726,8 @@ type Date
        Format this date using the provided format specifier.
 
        Arguments:
-       - format: The text specifying the format, or a `Date_Time_Formatter`.
+       - format: A pattern describing how to format the text,
+         or a `Date_Time_Formatter`.
 
        ? Pattern Syntax
          If the pattern is provided as `Text`, it is parsed using the format

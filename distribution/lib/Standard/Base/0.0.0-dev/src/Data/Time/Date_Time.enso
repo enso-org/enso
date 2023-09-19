@@ -763,15 +763,48 @@ type Date_Time
        Format this time as text using the specified format specifier.
 
        Arguments:
-       - pattern: The pattern that specifies how to format the time.
-       - locale: The locale in which the format should be interpreted.
-         (Defaults to Locale.default.)
+       - format: A pattern describing how to format the text,
+         or a `Date_Time_Formatter`.
 
        ? Pattern Syntax
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
+         If the pattern is provided as `Text`, it is parsed using the format
+         described below. See `Date_Time_Formatter` for more options.
+         - y: Year. The number of pattern letters determines the minimum number of
+           digits.
+           - y: The year using any number of digits.
+           - yy: The year, using at most two digits. The default range is
+             1950-2049, but this can be changed by including the end year in
+             braces e.g. `yy{2099}`.
+           - yyyy: The year, using exactly four digits.
+         - M: Month of year. The number of pattern letters determines the format:
+           - M: Any number (1-12).
+           - MM: Month number with zero padding required (01-12).
+           - MMM: Short name of the month (Jan-Dec).
+           - MMMM: Full name of the month (January-December).
+           The month names depend on the selected locale.
+         - d: Day. The number of pattern letters determines the format:
+           - d: Any number (1-31).
+           - dd: Day number with zero padding required (01-31).
+           - ddd: Short name of the day of week (Mon-Sun).
+           - dddd: Full name of the day of week (Monday-Sunday).
+           The weekday names depend on the selected locale.
+           Both day of week and day of month may be included in a single pattern -
+           in such case the day of week is used as a sanity check.
+         - Q: Quarter of year.
+           If only year and quarter are provided in the pattern, when parsing a
+           date, the result will be the first day of that quarter.
+         - H: 24h hour of day (0-23).
+         - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+           between AM and PM.
+         - m: Minute of hour.
+         - s: Second of minute.
+         - f: Fractional part of the second. The number of pattern letters
+           determines the number of digits. If one letter is used, any number of
+           digits will be accepted.
+         - a: AM/PM marker.
+         - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
+           -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
+         - Z: Zone offset (e.g. +0000, -0830, +08:30:15).
 
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as
