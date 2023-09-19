@@ -160,20 +160,17 @@ final class SuggestionBuilder[A: IndexedSource](
           case definition.Method
                 .Conversion(
                   Name.MethodReference(_, _, _, _, _),
-                  Name.Literal(sourceTypeName, _, _, _, _),
+                  _,
                   Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
                   _
-                ) if ConversionsEnabled =>
-            val typeSignature = ir.getMetadata(TypeSignatures)
+                ) =>
             val conversion = buildConversion(
               body.getExternalId,
               module,
               args,
-              sourceTypeName,
-              doc,
-              typeSignature
+              doc
             )
             go(tree += Tree.Node(conversion, Vector()), scope)
 
@@ -287,19 +284,25 @@ final class SuggestionBuilder[A: IndexedSource](
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
     args: Seq[DefinitionArgument],
-    sourceTypeName: String,
-    doc: Option[String],
-    typeSignature: Option[TypeSignatures.Metadata]
+    doc: Option[String]
   ): Suggestion.Conversion = {
-    val typeSig = buildTypeSignatureFromMetadata(typeSignature)
-    val (methodArgs, returnTypeDef) =
-      buildFunctionArguments(args, typeSig)
+    val methodArgs =
+      args.map { arg =>
+        buildTypeSignatureFromMetadata(
+          arg.getMetadata(TypeSignatures)
+        ).headOption
+          .map(buildTypedArgument(arg, _))
+          .getOrElse(buildArgument(arg))
+      }
+    val returnTypeName = methodArgs(0).reprType
+    val sourceTypeName = methodArgs(1).reprType
+
     Suggestion.Conversion(
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
       selfType      = sourceTypeName,
-      returnType    = buildReturnType(returnTypeDef),
+      returnType    = returnTypeName,
       documentation = doc
     )
   }
@@ -744,9 +747,6 @@ final class SuggestionBuilder[A: IndexedSource](
 }
 
 object SuggestionBuilder {
-
-  /** TODO[DB] enable conversions when they get the runtime support. */
-  private val ConversionsEnabled: Boolean = false
 
   /** Creates the suggestion builder for a module.
     *

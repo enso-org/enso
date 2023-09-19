@@ -856,15 +856,15 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
-    "build conversion method for simple type" in {
-      pending
-
+    "build conversion method for simple type111" in {
       val code =
-        """type MyAtom a
+        """import Standard.Base.Data.Numbers
+          |
+          |type Foo
+          |    Value foo
           |
           |## My conversion
-          |MyAtom.from : Number -> MyAtom
-          |MyAtom.from a = MyAtom a
+          |Foo.from (that:Numbers.Number) = Foo.Value a
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -873,31 +873,42 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Type(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "MyType",
-              params = Seq(
-                Suggestion
-                  .Argument("a", SuggestionBuilder.Any, false, false, None)
-              ),
-              returnType    = "Unnamed.Test.MyType",
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Foo",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Foo",
               parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.DefinedMethod(
+            Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
-              name       = "a",
+              name       = "Value",
+              arguments = Seq(
+                Suggestion
+                  .Argument("foo", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.Foo",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Getter(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
               arguments = List(
                 Suggestion
-                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.Foo", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyType",
+              selfType      = "Unnamed.Test.Foo",
               returnType    = SuggestionBuilder.Any,
-              isStatic      = false,
               documentation = None,
               annotations   = Seq()
             ),
@@ -908,10 +919,19 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               externalId = None,
               module     = "Unnamed.Test",
               arguments = Seq(
-                Suggestion.Argument("a", "Number", false, false, None)
+                Suggestion
+                  .Argument("self", SuggestionBuilder.Any, false, false, None),
+                Suggestion
+                  .Argument(
+                    "that",
+                    "Standard.Base.Data.Numbers.Number",
+                    false,
+                    false,
+                    None
+                  )
               ),
-              returnType    = "Unnamed.Test.MyType",
-              selfType      = "Number",
+              selfType      = "Standard.Base.Data.Numbers.Number",
+              returnType    = SuggestionBuilder.Any,
               documentation = Some(" My conversion")
             ),
             Vector()
