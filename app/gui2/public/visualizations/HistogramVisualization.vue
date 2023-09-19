@@ -114,9 +114,10 @@ import type * as d3Types from 'd3'
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
+import { useEvent } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
-import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 const shortcuts = {
   zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
@@ -607,27 +608,15 @@ function fitAll() {
   rescale(zoom.transformedScale, true)
 }
 
-function onKeydown(event: KeyboardEvent) {
+useEvent(document, 'keydown', (event) => {
   if (shortcuts.showAll(event)) {
     fitAll()
   }
-}
-
-onMounted(() => {
-  document.addEventListener('keydown', onKeydown)
-  document.addEventListener('click', endBrushing)
-  document.addEventListener('auxclick', endBrushing)
-  document.addEventListener('contextmenu', endBrushing)
-  document.addEventListener('scroll', endBrushing)
 })
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', onKeydown)
-  document.removeEventListener('click', endBrushing)
-  document.removeEventListener('auxclick', endBrushing)
-  document.removeEventListener('contextmenu', endBrushing)
-  document.removeEventListener('scroll', endBrushing)
-})
+useEvent(document, 'click', endBrushing)
+useEvent(document, 'auxclick', endBrushing)
+useEvent(document, 'contextmenu', endBrushing)
+useEvent(document, 'scroll', endBrushing)
 </script>
 
 <template>

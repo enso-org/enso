@@ -93,7 +93,8 @@ import { getTextWidth } from './measurement.ts'
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
-import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { useEvent } from './events'
 
 const props = defineProps<{ data: Partial<Data> | number[] | string }>()
 const emit = defineEmits<{
@@ -430,46 +431,16 @@ const brush = computed(() =>
 )
 
 /**
- * Adds brushing functionality to the plot.
+ * Add brushing functionality to the plot.
  *
- * Brush is a tool which enables user to select points, and zoom into selection via
- * keyboard shortcut or button event.
+ * The brush is a tool which enables user to select points, and zoom into the selection using
+ * a keyboard shortcut or button event.
  */
 function updateBrushing() {
   // The brush element must be a child of zoom element - this is only way we found to have both
   // zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276
   d3.select(brushNode.value).call(brush.value)
 }
-
-/**
- * Removes brush, keyboard event and zoom button when end event is captured.
- */
-function endBrushing() {
-  brushExtent.value = undefined
-  d3.select(brushNode.value).call(brush.value.move, null)
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (shortcuts.showAll(event)) {
-    fitAll()
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('keydown', onKeydown)
-  document.addEventListener('click', endBrushing)
-  document.addEventListener('auxclick', endBrushing)
-  document.addEventListener('contextmenu', endBrushing)
-  document.addEventListener('scroll', endBrushing)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', onKeydown)
-  document.removeEventListener('click', endBrushing)
-  document.removeEventListener('auxclick', endBrushing)
-  document.removeEventListener('contextmenu', endBrushing)
-  document.removeEventListener('scroll', endBrushing)
-})
 
 /**
  * Zooms into the selected fragment of the plot.
@@ -699,6 +670,21 @@ function fitAll() {
   limit.value = DEFAULT_LIMIT
   updatePreprocessor()
 }
+
+function endBrushing() {
+  brushExtent.value = undefined
+  d3.select(brushNode.value).call(brush.value.move, null)
+}
+
+useEvent(document, 'keydown', (event) => {
+  if (shortcuts.showAll(event)) {
+    fitAll()
+  }
+})
+useEvent(document, 'click', endBrushing)
+useEvent(document, 'auxclick', endBrushing)
+useEvent(document, 'contextmenu', endBrushing)
+useEvent(document, 'scroll', endBrushing)
 </script>
 
 <template>
