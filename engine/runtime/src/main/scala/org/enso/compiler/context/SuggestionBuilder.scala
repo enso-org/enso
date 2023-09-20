@@ -300,14 +300,13 @@ final class SuggestionBuilder[A: IndexedSource](
         ).headOption
           .map(buildTypedArgument(arg, _))
           .getOrElse(buildArgument(arg))
-      }
-    val sourceTypeName = methodArgs(1).reprType
+      }.tail
 
     Suggestion.Conversion(
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      selfType      = sourceTypeName,
+      selfType      = methodArgs.head.reprType,
       returnType    = selfType.fold(Any)(_.toString),
       documentation = doc
     )

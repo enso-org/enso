@@ -856,7 +856,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
-    "build conversion method for simple type111" in {
+    "build conversion method for simple type" in {
       val code =
         """import Standard.Base.Data.Numbers
           |
@@ -919,16 +919,13 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               externalId = None,
               module     = "Unnamed.Test",
               arguments = Seq(
-                Suggestion
-                  .Argument("self", SuggestionBuilder.Any, false, false, None),
-                Suggestion
-                  .Argument(
-                    "that",
-                    "Standard.Base.Data.Numbers.Number",
-                    false,
-                    false,
-                    None
-                  )
+                Suggestion.Argument(
+                  "that",
+                  "Standard.Base.Data.Numbers.Number",
+                  false,
+                  false,
+                  None
+                )
               ),
               selfType      = "Standard.Base.Data.Numbers.Number",
               returnType    = "Unnamed.Test.Foo",
@@ -940,21 +937,14 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
-    "build conversion method for complex type" in {
-      pending
+    "build conversion method with extra arguments" in {
       val code =
-        """type MyMaybe
-          |    Some a
-          |    None
+        """import Standard.Base.Data.Numbers
           |
-          |type New
-          |    Newtype x
+          |type Foo
+          |    Value foo bar
           |
-          |## My conversion method
-          |New.from : MyMaybe -> New
-          |New.from opt = case opt of
-          |    Some a -> Newtype a
-          |    None -> Newtype 0
+          |Foo.from (that:Numbers.Number) other=1 = Foo.Value that other
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -965,9 +955,9 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
             Suggestion.Type(
               externalId    = None,
               module        = "Unnamed.Test",
-              name          = "MyMaybe",
+              name          = "Foo",
               params        = Seq(),
-              returnType    = "Unnamed.Test.MyMaybe",
+              returnType    = "Unnamed.Test.Foo",
               parentType    = Some(SuggestionBuilder.Any),
               documentation = None
             ),
@@ -977,85 +967,46 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
             Suggestion.Constructor(
               externalId = None,
               module     = "Unnamed.Test",
-              name       = "Some",
+              name       = "Value",
               arguments = Seq(
                 Suggestion
-                  .Argument("a", SuggestionBuilder.Any, false, false, None)
+                  .Argument("foo", SuggestionBuilder.Any, false, false, None),
+                Suggestion
+                  .Argument("bar", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.MyMaybe",
+              returnType    = "Unnamed.Test.Foo",
               documentation = None,
               annotations   = Seq()
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.DefinedMethod(
+            Suggestion.Getter(
               externalId = None,
               module     = "Unnamed.Test",
-              name       = "a",
+              name       = "foo",
               arguments = List(
                 Suggestion
-                  .Argument("self", "Unnamed.Test.MyMaybe", false, false, None)
+                  .Argument("self", "Unnamed.Test.Foo", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyMaybe",
+              selfType      = "Unnamed.Test.Foo",
               returnType    = SuggestionBuilder.Any,
-              isStatic      = false,
               documentation = None,
               annotations   = Seq()
             ),
             Vector()
           ),
           Tree.Node(
-            Suggestion.Constructor(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "None",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.None",
-              documentation = None,
-              annotations   = Seq()
-            ),
-            Vector()
-          ),
-          Tree.Node(
-            Suggestion.Type(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "New",
-              params        = Seq(),
-              returnType    = "Unnamed.Test.New",
-              parentType    = Some(SuggestionBuilder.Any),
-              documentation = None
-            ),
-            Vector()
-          ),
-          Tree.Node(
-            Suggestion.Constructor(
+            Suggestion.Getter(
               externalId = None,
               module     = "Unnamed.Test",
-              name       = "Newtype",
-              arguments = Seq(
-                Suggestion
-                  .Argument("x", SuggestionBuilder.Any, false, false, None)
-              ),
-              returnType    = "Unnamed.Test.New",
-              documentation = None,
-              annotations   = Seq()
-            ),
-            Vector()
-          ),
-          Tree.Node(
-            Suggestion.DefinedMethod(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "x",
+              name       = "bar",
               arguments = List(
                 Suggestion
-                  .Argument("self", "Unnamed.Test.New", false, false, None)
+                  .Argument("self", "Unnamed.Test.Foo", false, false, None)
               ),
-              selfType      = "Unnamed.Test.New",
+              selfType      = "Unnamed.Test.Foo",
               returnType    = SuggestionBuilder.Any,
-              isStatic      = false,
               documentation = None,
               annotations   = Seq()
             ),
@@ -1066,12 +1017,19 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               externalId = None,
               module     = "Unnamed.Test",
               arguments = Seq(
+                Suggestion.Argument(
+                  "that",
+                  "Standard.Base.Data.Numbers.Number",
+                  false,
+                  false,
+                  None
+                ),
                 Suggestion
-                  .Argument("opt", "Unnamed.Test.MyMaybe", false, false, None)
+                  .Argument("other", SuggestionBuilder.Any, false, true, Some("1"))
               ),
-              returnType    = "Unnamed.Test.MyType",
-              selfType      = "Unnamed.Test.MyMaybe",
-              documentation = Some(" My conversion method")
+              selfType      = "Standard.Base.Data.Numbers.Number",
+              returnType    = "Unnamed.Test.Foo",
+              documentation = None
             ),
             Vector()
           )
