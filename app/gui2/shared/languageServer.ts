@@ -148,6 +148,31 @@ export class LanguageServer extends ObservableV2<Notifications> {
     return this.request('file/checksum', { path })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#vcsinit) */
+  vcsInit(root: Path): Promise<void> {
+    return this.request('vcs/init', { root })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#vcssave) */
+  vcsSave(root: Path, name?: string): Promise<response.VCSCommit> {
+    return this.request('vcs/save', { root, name })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#vcsstatus) */
+  vcsStatus(root: Path): Promise<response.VCSStatus> {
+    return this.request('vcs/status', { root })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#vcsrestore) */
+  vcsRestore(root: Path, commitId?: string): Promise<response.VCSChanges> {
+    return this.request('vcs/restore', { root, commitId })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#vcslist) */
+  vcsList(root: Path, limit?: number): Promise<response.VCSSaves> {
+    return this.request('vcs/list', { root, limit })
+  }
+
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextcreate) */
   createExecutionContext(contextId?: ContextId): Promise<response.ExecutionContext> {
     return this.request('executionContext/create', { contextId })

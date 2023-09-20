@@ -274,6 +274,11 @@ type Messages = {
   'text/fileModifiedOnDisk': { path: Path }
 }
 
+export interface VCSSave {
+  commitId: string
+  message: string
+}
+
 export type Notifications = {
   'text/autoSave': (param: { path: Path }) => void
   'text/didChange': (param: { edits: FileEdit[] }) => void
@@ -351,6 +356,25 @@ export namespace response {
 
   export interface FileChecksum {
     checksum: Checksum
+  }
+
+  export interface VCSCommit {
+    commitId: string
+    message: string
+  }
+
+  export interface VCSStatus {
+    dirty: boolean
+    changed: Path[]
+    lastSave: VCSSave
+  }
+
+  export interface VCSChanges {
+    changed: Path[]
+  }
+
+  export interface VCSSaves {
+    saves: VCSSave[]
   }
 
   export interface ExecutionContext {
