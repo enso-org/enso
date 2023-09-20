@@ -112,6 +112,20 @@ type Header
     content_type : Text -> Header
     content_type value = Header.Value Header.content_type_header_name value
 
+    ## Create "Content-Encoding" header.
+
+       Arguments:
+       - value: The value for the content encoding header.
+
+       > Example
+         Create a content encoding header containing "my_encoding".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_content_type = Header.content_encoding "myencoding"
+    content_encoding : Text -> Header
+    content_encoding value = Header.Value Header.content_encoding_header_name value
+
     ## Header "Content-Type: application/json".
 
        > Example
@@ -180,6 +194,9 @@ type Header
 
     content_type_header_name : Text
     content_type_header_name = "Content-Type"
+
+    content_encoding_header_name : Text
+    content_encoding_header_name = "Content-Encoding"
 
 ## PRIVATE
 type Header_Comparator

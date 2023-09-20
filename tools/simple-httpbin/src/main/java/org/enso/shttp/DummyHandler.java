@@ -67,7 +67,6 @@ public class DummyHandler implements HttpHandler {
         String value = readBody(exchange.getRequestBody(), contentEncoding);
         response +=
             "  \"data\": \"" + (value == null ? "" : StringEscapeUtils.escapeJson(value)) + "\",\n";
-        response += "  \"json\": " + (isJson ? value : "null") + ",\n";
       }
       response += "  \"args\": {}\n";
       response += "}";
