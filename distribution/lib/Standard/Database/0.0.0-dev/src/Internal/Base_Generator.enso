@@ -88,7 +88,7 @@ make_unary_op name =
    - function: A function taking exactly one argument: the generated SQL code
      for the argument of the operation, and returning the generated SQL code for
      the whole operation.
-lift_unary_op : Text -> (Builder -> Builder) -> [Text, (Vector Builder -> Builder)]
+lift_unary_op : Text -> (Builder -> Builder) -> Pair Text (Vector Builder -> Builder)
 lift_unary_op name function =
     generator = arguments -> case arguments.length == 1 of
         False -> Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name + ".")
@@ -104,7 +104,7 @@ lift_unary_op name function =
    - function: A function taking exactly two arguments: the generated SQL code
      for the argument of the operation, and returning the generated SQL code for
      the whole operation.
-lift_binary_op : Text -> (Builder -> Builder -> Builder) -> [Text, (Vector Builder -> Builder)]
+lift_binary_op : Text -> (Builder -> Builder -> Builder) -> Pair Text (Vector Builder -> Builder)
 lift_binary_op name function =
     generator = arguments -> case arguments.length == 2 of
         False -> Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name + ".")

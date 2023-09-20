@@ -168,10 +168,9 @@ pub mod prelude {
 // ==============
 
 /// Enso parser. See the module documentation to learn more about how it works.
-#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Parser {
-    pub macros: macros::resolver::MacroMap,
+    macros: macros::resolver::MacroMap,
 }
 
 impl Parser {
@@ -184,7 +183,7 @@ impl Parser {
     /// Main entry point.
     pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
         let tokens = lexer::run(code);
-        let resolver = macros::resolver::Resolver::new_statement();
+        let mut resolver = macros::resolver::Resolver::new_statement();
         let result = tokens.map(|tokens| resolver.run(&self.macros, tokens));
         let value = result.value;
         if let Some(error) = result.internal_error {

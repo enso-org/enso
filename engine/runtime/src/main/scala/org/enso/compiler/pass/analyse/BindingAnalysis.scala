@@ -57,6 +57,7 @@ case object BindingAnalysis extends IRPass {
         .exists(_.annotations.exists(_.name == "@Builtin_Type"))
       BindingsMap.Type(
         sumType.name.name,
+        sumType.params.map(_.name.name),
         sumType.members.map(m =>
           Cons(
             m.name.name,

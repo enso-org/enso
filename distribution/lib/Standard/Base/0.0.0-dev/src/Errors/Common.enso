@@ -1,12 +1,11 @@
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
+import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Function.Function
-import project.Data.Text.Extensions
-
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.ArithmeticException

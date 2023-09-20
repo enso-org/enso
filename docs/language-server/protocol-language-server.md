@@ -4636,7 +4636,7 @@ Sent from client to the server to receive the autocomplete suggestion.
   returnType?: string;
   // Filter by the suggestion types
   tags?: [SuggestionEntryType];
-  // Filter by `static` attribute of the suggestion
+  // Filter by `static` attribute of method suggestions
   isStatic?: Boolean;
 }
 ```

@@ -8,7 +8,7 @@ import topLevelAwait from 'vite-plugin-top-level-await'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [topLevelAwait(), vue(), yWebsocketServer()],
+  plugins: [vue(), yWebsocketServer(), topLevelAwait()],
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),

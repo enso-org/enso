@@ -573,6 +573,8 @@
   `Column.map` and `Column.zip`.][7637]
 - [Added `delete_rows` method to Database Table, changed the
   `update_database_table` API into `update_rows`.][7709]
+- [Added `Data.post` method to write to HTTP endpoints.][7700]
+- [Added support for S3. Using `Input_Stream` more for reading.][7776]
 - [Renamed `Decimal` to `Float`.][7807]
 
 [debug-shortcuts]:
@@ -811,7 +813,9 @@
 [7704]: https://github.com/enso-org/enso/pull/7704
 [7615]: https://github.com/enso-org/enso/pull/7615
 [7637]: https://github.com/enso-org/enso/pull/7637
+[7700]: https://github.com/enso-org/enso/pull/7700
 [7709]: https://github.com/enso-org/enso/pull/7709
+[7776]: https://github.com/enso-org/enso/pull/7776
 [7807]: https://github.com/enso-org/enso/pull/7807
 
 #### Enso Compiler
@@ -923,6 +927,7 @@
 - [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
+- [Experimental support for Espresso Java interpreter][6966]
 - [Suggestions are updated only when the type of the expression changes][6755]
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
@@ -1064,6 +1069,7 @@
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
+[6966]: https://github.com/enso-org/enso/pull/6966
 [6750]: https://github.com/enso-org/enso/pull/6750
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780

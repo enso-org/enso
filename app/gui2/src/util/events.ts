@@ -13,15 +13,15 @@ import {
 import { Vec2 } from './vec2'
 
 /**
- * Add an event listener on an {@link Element} for the duration of the component's lifetime.
+ * Add an event listener on an {@link HTMLElement} for the duration of the component's lifetime.
  * @param target element on which to register the event
  * @param event name of event to register
  * @param handler event handler
  */
-export function useElementEvent<K extends keyof ElementEventMap>(
-  target: Element,
+export function useElementEvent<K extends keyof HTMLElementEventMap>(
+  target: HTMLElement,
   event: K,
-  handler: (e: ElementEventMap[K]) => void,
+  handler: (e: HTMLElementEventMap[K]) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
   onMounted(() => {

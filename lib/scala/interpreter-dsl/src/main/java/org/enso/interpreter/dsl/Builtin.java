@@ -240,7 +240,7 @@ public @interface Builtin {
    *     try {
    *       return self.create(path)
    *     } catch (java.io.IOException e) {
-   *       throw new PanicException(EnsoContext.get(this).getEnvironment().asGuestValue(e), this);"
+   *       throw new PanicException(EnsoContext.get(this).asGuestValue(e), this);"
    *     }
    *   }
    * }
@@ -303,7 +303,6 @@ public @interface Builtin {
    * public class CreateFooNode extends Node {
    *   java.lang.Object execute(Foo self, Object item) {
    *     return context
-   *           .getEnvironment()
    *           .asGuestValue(self.foo(item));
    *   }
    * }

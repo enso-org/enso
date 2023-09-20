@@ -1329,6 +1329,29 @@ fn skip() {
 
 
 
+// =========================
+// === Scalability Tests ===
+// =========================
+
+/// Test an input that caused a stack overflow in a version of the parser that used recursion to
+/// resolve macro segments.
+#[test]
+fn big_array() {
+    let mut big_array = "[".to_owned();
+    // This value was chosen to be large enough to cause a stack overflow, but not so large that it
+    // would take a long time to do so.
+    let array_length = 1000;
+    for _ in 0..array_length {
+        big_array.push_str(
+            r#"[{"index":{"value":1},"size":{"value":8}},"6063e6d3-3341-40f4-b4fb-7e986eb31ae8"],"#,
+        );
+    }
+    big_array.push_str("1]");
+    expect_valid(&big_array);
+}
+
+
+
 // ==========================
 // === Syntax Error Tests ===
 // ==========================
@@ -1529,4 +1552,10 @@ fn expect_invalid_node(code: &str) {
 fn expect_multiple_operator_error(code: &str) {
     let errors = Errors::collect(code);
     assert!(errors.multiple_operator, "{:?}", enso_parser::Parser::new().run(code));
+}
+
+/// Check that the input can be parsed, and doesn't yield any `Invalid` nodes.
+fn expect_valid(code: &str) {
+    let errors = Errors::collect(code);
+    assert!(!errors.invalid_node);
 }
