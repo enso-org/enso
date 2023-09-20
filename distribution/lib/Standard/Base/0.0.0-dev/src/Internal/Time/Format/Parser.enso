@@ -215,6 +215,7 @@ type Parser
                 2 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 2)
                 3 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
                 _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+            "e" -> Panic.throw (Date_Time_Format_Parse_Error.Error "The pattern "+(character*count)+" is not a valid pattern for the "+self.mode.pattern_format_name+" format. If you want to represent the day of week as text use `ddd` for the short form and `dddd` for the long form.")
             _ -> Nothing
 
     ## PRIVATE

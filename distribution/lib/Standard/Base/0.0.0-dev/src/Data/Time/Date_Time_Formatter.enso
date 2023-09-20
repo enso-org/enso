@@ -275,6 +275,10 @@ type Date_Time_Formatter
         self.underlying.formatLocalTime time
 
 ## PRIVATE
+Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =
+    Date_Time_Formatter.from_simple_pattern that locale
+
+## PRIVATE
 type Date_Time_Format_Parse_Error
     ## PRIVATE
        Indicates an error during parsing of a `Date_Time_Format_Constants`.
