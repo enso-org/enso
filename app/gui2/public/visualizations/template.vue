@@ -6,8 +6,8 @@ export const inputType = '<allowed input type(s) here>'
 </script>
 
 <script setup lang="ts">
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { computed, onMounted } from 'vue'
-import VisualizationContainer from './VisualizationContainer.vue'
 // Optional
 // @ts-expect-error
 import dependency from 'http://<js dependency here>'
@@ -33,7 +33,7 @@ const data = computed<Data | undefined>(() =>
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs">
+  <VisualizationContainer>
     <!-- <content here> -->
   </VisualizationContainer>
 </template>

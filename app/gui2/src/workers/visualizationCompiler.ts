@@ -3,6 +3,7 @@ import MagicString from 'magic-string'
 import { transform } from 'sucrase'
 import { compileScript, compileStyle, parse } from 'vue/compiler-sfc'
 
+let builtinModules = new Set<string>()
 const ids = new Set<string>()
 function generateId() {
   for (;;) {
@@ -69,21 +70,18 @@ async function importVue(path: string) {
 async function rewriteImports(code: string, dir: string, id: string | undefined) {
   const ast = babelParse(code, { sourceType: 'module' })
   const s = new MagicString(code)
-  for (let i = 0; i < ast.program.body.length; ) {
-    const stmt = ast.program.body[i]!
+  for (const stmt of ast.program.body) {
     switch (stmt.type) {
       case 'ImportDeclaration': {
         let path = stmt.source.extra!.rawValue as string
+        const isBuiltin = builtinModules.has(path)
         const isRelative = /^[./]/.test(path)
         if (isRelative) {
           path = new URL(dir + path, location.href).toString()
         }
         if (
-          path == 'vue' ||
-          path == '@vueuse/core' ||
-          path.endsWith('.svg') ||
-          path.endsWith('.ts') ||
-          path.endsWith('.vue')
+          isBuiltin ||
+          (isRelative && (path.endsWith('.svg') || path.endsWith('.ts') || path.endsWith('.vue')))
         ) {
           const specifiers = stmt.specifiers.map((s: any) => {
             if (s.type === 'ImportDefaultSpecifier') {
@@ -103,7 +101,9 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
               ', ',
             )} } = await window.__visualizationModules[${JSON.stringify(path)}];`,
           )
-          if (path.endsWith('.svg')) {
+          if (isBuiltin) {
+            // No further action is needed.
+          } else if (path.endsWith('.svg')) {
             await importSvg(path)
           } else if (path.endsWith('.ts')) {
             await importTS(path)
@@ -114,26 +114,15 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
         break
       }
       case 'ExportDefaultDeclaration': {
-        if (
-          id != null &&
-          'callee' in stmt.declaration &&
-          'name' in stmt.declaration.callee &&
-          stmt.declaration?.callee?.name === '_defineComponent'
-        ) {
-          const firstProp =
-            'arguments' in stmt.declaration &&
-            stmt.declaration?.arguments?.[0] &&
-            'properties' in stmt.declaration?.arguments?.[0]
-              ? stmt.declaration?.arguments?.[0]?.properties?.[0]
-              : undefined
-          if (firstProp != null && firstProp.start != null) {
+        if (id != null && (stmt.declaration as any)?.callee?.name === '_defineComponent') {
+          const firstProp = (stmt.declaration as any)?.arguments?.[0]?.properties?.[0]
+          if (firstProp?.start != null) {
             s.appendLeft(firstProp.start, `__scopeId: ${JSON.stringify(`data-v-${id}`)}, `)
           }
         }
         break
       }
     }
-    i += 1
   }
   return s.toString()
 }
@@ -162,10 +151,24 @@ async function compileVisualization(path: string, addStyle: (code: string) => vo
   return path
 }
 
-onmessage = async (event: MessageEvent<{ id: number; path: string }>) => {
-  postMessage({
-    type: 'script',
-    id: event.data.id,
-    path: await compileVisualization(event.data.path, addStyle),
-  })
+onmessage = async (
+  event: MessageEvent<
+    | { type: 'register-builtin-modules'; modules: string[] }
+    | { type: 'compile'; id: number; path: string }
+  >,
+) => {
+  switch (event.data.type) {
+    case 'register-builtin-modules': {
+      builtinModules = new Set(event.data.modules)
+      break
+    }
+    case 'compile': {
+      postMessage({
+        type: 'compilation-result',
+        id: event.data.id,
+        path: await compileVisualization(event.data.path, addStyle),
+      })
+      break
+    }
+  }
 }

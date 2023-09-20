@@ -21,7 +21,9 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "builtins/VisualizationContainer.vue": ["./src/components/VisualizationContainer.vue"],
+      "builtins/useVisualizationConfig.ts": ["./src/providers/useVisualizationConfig.ts"]
     }
   },
   "references": [

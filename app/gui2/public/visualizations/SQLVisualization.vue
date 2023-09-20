@@ -36,14 +36,12 @@ declare const sqlFormatter: typeof import('sql-formatter')
 // eslint-disable-next-line no-redeclare
 import * as sqlFormatter from 'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm'
 
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from './builtins.ts'
 
 import { computed, onMounted } from 'vue'
 
-const props = defineProps<{
-  data: Data | string | undefined
-}>()
+const props = defineProps<{ data: Data | string | undefined }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
@@ -134,8 +132,8 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
-    <div class="SQLVisualization scrollable">
+  <VisualizationContainer :below-toolbar="true">
+    <div class="sql-visualization scrollable">
       <template v-if="data">
         <pre v-if="data.error" class="sql" v-text="data.error"></pre>
         <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->

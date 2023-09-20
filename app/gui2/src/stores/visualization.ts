@@ -3,8 +3,12 @@ import Compiler from '@/workers/visualizationCompiler?worker'
 import * as vueUseCore from '@vueuse/core'
 import type { VisualizationConfiguration } from 'shared/lsTypes'
 import * as vue from 'vue'
+import { type DefineComponent } from 'vue'
 
 import { defineStore } from 'pinia'
+
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import * as useVisualizationConfig from '@/providers/useVisualizationConfig'
 
 /** A module containing the default visualization function. */
 const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'
@@ -19,31 +23,46 @@ export const DEFAULT_VISUALIZATION_CONFIGURATION = {
   positionalArgumentsExpressions: DEFAULT_VISUALIZATION_ARGUMENTS,
 } satisfies Partial<VisualizationConfiguration>
 
-const moduleCache: Record<string, any> = { vue, '@vueuse/core': vueUseCore }
-// @ts-expect-error
+const moduleCache: Record<string, any> = {
+  vue,
+  '@vueuse/core': vueUseCore,
+  'builtins/VisualizationContainer.vue': { default: VisualizationContainer },
+  'builtins/useVisualizationConfig.ts': useVisualizationConfig,
+}
+// @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
+// else.
 window.__visualizationModules = moduleCache
 
-type VisualizationModule =
-  typeof import('../../public/visualizations/VisualizationContainer.vue') & {
-    name?: string
-    inputType?: string
-    scripts?: string[]
-    styles?: string[]
-  }
-
-export type Visualization = VisualizationModule['default']
+export type Visualization = DefineComponent<
+  // Props
+  { data: {} | undefined },
+  {},
+  {},
+  {},
+  {},
+  {},
+  {},
+  // Emits
+  { 'update:preprocessor': (module: string, method: string, ...args: string[]) => void }
+>
+type VisualizationModule = {
+  default: Visualization
+  name?: string
+  inputType?: string
+  scripts?: string[]
+  styles?: string[]
+}
 
 const builtinVisualizationPaths: Record<string, string> = {
   JSON: '/visualizations/JSONVisualization.vue',
   Table: '/visualizations/TableVisualization.vue',
-  Error: '/visualizations/ErrorVisualization.vue',
-  Warnings: '/visualizations/WarningsVisualization.vue',
-  Bubble: '/visualizations/BubbleVisualization.vue',
-  Image: '/visualizations/ImageBase64Visualization.vue',
-  'Geo Map': '/visualizations/GeoMapVisualization.vue',
   Scatterplot: '/visualizations/ScatterplotVisualization.vue',
-  'SQL Query': '/visualizations/SQLVisualization.vue',
+  Histogram: '/visualizations/HistogramVisualization.vue',
   Heatmap: '/visualizations/HeatmapVisualization.vue',
+  'SQL Query': '/visualizations/SQLVisualization.vue',
+  'Geo Map': '/visualizations/GeoMapVisualization.vue',
+  Image: '/visualizations/ImageBase64Visualization.vue',
+  Warnings: '/visualizations/WarningsVisualization.vue',
 }
 
 export const useVisualizationStore = defineStore('visualization', () => {
@@ -65,6 +84,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   async function compile(path: string) {
     if (worker == null) {
       worker = new Compiler()
+      worker.postMessage({ type: 'register-builtin-modules', modules: Object.keys(moduleCache) })
       worker.addEventListener(
         'message',
         async (
@@ -73,7 +93,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
             | { type: 'raw-import'; path: string; value: unknown }
             | { type: 'url-import'; path: string; mimeType: string; value: string }
             | { type: 'import'; path: string; code: string }
-            | { type: 'script'; id: number; path: string }
+            | { type: 'compilation-result'; id: number; path: string }
           >,
         ) => {
           switch (event.data.type) {
@@ -104,7 +124,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
               moduleCache[event.data.path] = await module
               break
             }
-            case 'script': {
+            case 'compilation-result': {
               workerCallbacks[event.data.id]?.resolve(moduleCache[event.data.path])
               break
             }
@@ -122,7 +142,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     const promise = new Promise<VisualizationModule>((resolve, reject) => {
       workerCallbacks[id] = { resolve, reject }
     })
-    worker.postMessage({ id, path })
+    worker.postMessage({ type: 'compile', id, path })
     return await promise
   }
 

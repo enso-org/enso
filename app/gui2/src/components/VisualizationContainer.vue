@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import CompassIcon from './icons/compass.svg'
-import ExitFullscreenIcon from './icons/exit_fullscreen.svg'
-import EyeIcon from './icons/eye.svg'
-import FullscreenIcon from './icons/fullscreen.svg'
+import SvgIcon from '@/components/SvgIcon.vue'
+import VisualizationSelector from '@/components/VisualizationSelector.vue'
 
-import VisualizationSelector from './Visualization/VisualizationSelector.vue'
-
-import type { Vec2 } from './builtins.ts'
-import { PointerButtonMask, usePointer } from './events.ts'
+import { PointerButtonMask, usePointer } from '@/util/events'
 
 import { ref } from 'vue'
+import { useVisualizationConfig } from '../providers/visualizationConfig'
 
-// FIXME: resizers to change `width` and `height`
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
   overflow?: boolean
@@ -19,24 +14,9 @@ const props = defineProps<{
   belowNode?: boolean
   /** If true, the visualization should display below the toolbar buttons. */
   belowToolbar?: boolean
-  /** Possible visualization types that can be switched to. */
-  types: string[]
-  background?: string
-  isCircularMenuVisible: boolean
-  nodeSize: Vec2
-  width: number | null
-  height: number | null
-  fullscreen: boolean
-  data?: {} | string | undefined
 }>()
-const emit = defineEmits<{
-  hide: []
-  'update:type': [type: string]
-  'update:width': [width: number]
-  'update:height': [height: number]
-  'update:fullscreen': [fullscreen: boolean]
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
+
+const config = useVisualizationConfig()
 
 const isSelectorVisible = ref(false)
 
@@ -58,7 +38,7 @@ const resizeRight = usePointer((pos, _, type) => {
     return
   }
   const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-  emit('update:width', Math.max(props.nodeSize.x, width))
+  config.value.width = Math.max(config.value.nodeSize.x, width)
 }, PointerButtonMask.Main)
 
 const resizeBottom = usePointer((pos, _, type) => {
@@ -66,7 +46,7 @@ const resizeBottom = usePointer((pos, _, type) => {
     return
   }
   const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-  emit('update:height', Math.max(0, height))
+  config.value.height = Math.max(0, height)
 }, PointerButtonMask.Main)
 
 const resizeBottomRight = usePointer((pos, _, type) => {
@@ -75,28 +55,28 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   }
   if (pos.delta.x !== 0) {
     const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-    emit('update:width', Math.max(props.nodeSize.x, width))
+    config.value.width = Math.max(config.value.nodeSize.x, width)
   }
   if (pos.delta.y !== 0) {
     const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-    emit('update:height', Math.max(0, height))
+    config.value.height = Math.max(0, height)
   }
 }, PointerButtonMask.Main)
 </script>
 
 <template>
-  <Teleport to="body" :disabled="!fullscreen">
+  <Teleport to="body" :disabled="!config.fullscreen">
     <div
       ref="rootNode"
       class="VisualizationContainer"
       :class="{
-        fullscreen: fullscreen,
-        'circular-menu-visible': isCircularMenuVisible,
+        fullscreen: config.fullscreen,
+        'circular-menu-visible': config.isCircularMenuVisible,
         'below-node': belowNode,
         'below-toolbar': belowToolbar,
       }"
       :style="{
-        '--color-visualization-bg': background,
+        '--color-visualization-bg': config.background,
       }"
     >
       <div class="resizer-right" v-on="resizeRight.events"></div>
@@ -107,40 +87,48 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         class="content scrollable"
         :class="{ overflow }"
         :style="{
-          width: fullscreen ? undefined : `${width ?? nodeSize.x}px`,
-          height: fullscreen ? undefined : `${height}px`,
+          width: config.fullscreen
+            ? undefined
+            : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
+          height: config.fullscreen ? undefined : `${config.height}px`,
         }"
         @wheel.passive="onWheel"
       >
         <slot></slot>
       </div>
       <div class="toolbars">
-        <div :class="{ toolbar: true, invisible: isCircularMenuVisible, hidden: fullscreen }">
+        <div
+          :class="{
+            toolbar: true,
+            invisible: config.isCircularMenuVisible,
+            hidden: config.fullscreen,
+          }"
+        >
           <div class="background"></div>
-          <button class="image-button active" @click="emit('hide')">
-            <img :src="EyeIcon" />
+          <button class="image-button active" @click="config.hide()">
+            <SvgIcon class="icon" name="eye" />
           </button>
         </div>
         <div class="toolbar">
           <div class="background"></div>
-          <button class="image-button active" @click="emit('update:fullscreen', !fullscreen)">
-            <img class="icon" :src="fullscreen ? ExitFullscreenIcon : FullscreenIcon" />
+          <button class="image-button active" @click="config.fullscreen = !config.fullscreen">
+            <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
           </button>
           <div class="icon-container">
             <button
               class="image-button active"
               @click.stop="isSelectorVisible = !isSelectorVisible"
             >
-              <img class="icon" :src="CompassIcon" />
+              <SvgIcon class="icon" name="compass" />
             </button>
             <VisualizationSelector
               v-if="isSelectorVisible"
-              :types="types"
+              :types="config.types"
               @hide="isSelectorVisible = false"
               @update:type="
                 (type) => {
                   isSelectorVisible = false
-                  emit('update:type', type)
+                  config.updateType(type)
                 }
               "
             />

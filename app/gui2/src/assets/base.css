@@ -42,10 +42,6 @@
   --color-widget: rgba(255 255 255 / 0.12);
   --color-widget-selected: rgba(255 255 255 / 0.58);
   --color-port-connected: rgba(255 255 255 / 0.15);
-
-  --color-error-dataflow: rgb(223 88 125);
-  --color-error-panic: rgb(180 60 20);
-  --color-error-warning: rgb(255 167 37);
 }
 
 /* non-color variables */
@@ -85,10 +81,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-#app *:focus {
-  outline: none !important;
-}
-
 .icon {
   width: 16px;
   height: 16px;
@@ -96,10 +88,6 @@ body {
 
 .button {
   cursor: pointer;
-}
-
-:focus {
-  outline: none;
 }
 
 .hidden {
@@ -115,6 +103,10 @@ body {
  * The 11px width/height (depending on scrollbar orientation)
  * is set so that it resembles macOS default scrollbar.
  */
+
+.scrollable {
+  scrollbar-color: rgba(190 190 190 / 50%) transparent;
+}
 
 .scrollable::-webkit-scrollbar {
   -webkit-appearance: none;

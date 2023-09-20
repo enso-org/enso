@@ -4,7 +4,7 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { onMounted } from 'vue'
 
@@ -21,7 +21,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
+  <VisualizationContainer :below-toolbar="true">
     <div class="JSONVisualization" v-text="data"></div>
   </VisualizationContainer>
 </template>

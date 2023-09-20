@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
 
 const props = defineProps<{
   isAutoEvaluationDisabled: boolean
@@ -16,27 +16,24 @@ const emit = defineEmits<{
 <template>
   <div class="CircularMenu">
     <div class="background"></div>
-    <button
+    <ToggleIcon
+      icon="no_auto_replay"
       class="icon-container button no-auto-evaluate-button"
-      :class="{ active: isAutoEvaluationDisabled }"
-      @click="emit('update:isAutoEvaluationDisabled', !isAutoEvaluationDisabled)"
-    >
-      <SvgIcon name="no_auto_replay" />
-    </button>
-    <button
+      :model-value="isAutoEvaluationDisabled"
+      @update:modelValue="emit('update:isAutoEvaluationDisabled', $event)"
+    />
+    <ToggleIcon
+      icon="docs"
       class="icon-container button docs-button"
-      :class="{ active: isDocsVisible }"
-      @click="emit('update:isDocsVisible', !isDocsVisible)"
-    >
-      <SvgIcon name="docs" />
-    </button>
-    <button
+      :model-value="isDocsVisible"
+      @update:modelValue="emit('update:isDocsVisible', $event)"
+    />
+    <ToggleIcon
+      icon="eye"
       class="icon-container button visualization-button"
-      :class="{ active: isVisualizationVisible }"
-      @click="emit('update:isVisualizationVisible', !isVisualizationVisible)"
-    >
-      <SvgIcon name="eye" />
-    </button>
+      :model-value="isVisualizationVisible"
+      @update:modelValue="emit('update:isVisualizationVisible', $event)"
+    />
   </div>
 </template>
 
@@ -66,7 +63,7 @@ const emit = defineEmits<{
   opacity: 30%;
 }
 
-.active {
+.toggledOn {
   opacity: unset;
 }
 

@@ -52,20 +52,6 @@ interface UnknownTable {
   indices: unknown[][] | undefined
 }
 
-declare module 'ag-grid-enterprise' {
-  // These type parameters are defined on the original interface.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColDef<TData, TValue> {
-    manuallySized: boolean
-  }
-
-  // These type parameters are defined on the original interface.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface AbstractColDef<TData, TValue> {
-    field: string
-  }
-}
-
 declare const agGrid: typeof import('ag-grid-enterprise')
 </script>
 
@@ -75,21 +61,25 @@ declare const agGrid: typeof import('ag-grid-enterprise')
 // eslint-disable-next-line no-redeclare
 import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
 
-import type { ColDef, ColumnResizedEvent, GridOptions } from 'ag-grid-community'
+import type {
+  ColDef,
+  ColumnResizedEvent,
+  GridOptions,
+  HeaderValueGetterParams,
+} from 'ag-grid-community'
 
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import { useThrottleFn } from '@vueuse/core'
 import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
 
-const props = defineProps<{
-  width: number | undefined
-  fullscreen: boolean
-  data: Data | string | undefined
-}>()
+const props = defineProps<{ data: Data | string | undefined }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
+
+const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
 const SIDE_MARGIN = 20
@@ -100,21 +90,21 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+const defaultColDef = {
+  editable: false,
+  sortable: true as boolean,
+  filter: true,
+  resizable: true,
+  minWidth: 25,
+  headerValueGetter: (params: HeaderValueGetterParams) => params.colDef.field,
+  cellRenderer: cellRenderer,
+}
 const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
   headerHeight: 20,
   rowHeight: 20,
   rowData: [],
   columnDefs: [],
-  defaultColDef: {
-    editable: false,
-    sortable: true as boolean,
-    filter: true,
-    resizable: true,
-    minWidth: 25,
-    headerValueGetter: (params) => params.colDef.field,
-    cellRenderer: cellRenderer,
-    manuallySized: false,
-  },
+  defaultColDef: defaultColDef as typeof defaultColDef & { manuallySized: boolean },
   onColumnResized: lockColumnSize,
   suppressFieldDotNotation: true,
 })
@@ -128,6 +118,13 @@ const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
 const selectableRowLimits = computed(() =>
   [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter((r) => r <= rowCount.value),
 )
+const wasAutomaticallyAutosized = ref(false)
+
+const throttledUpdateTableSize = useThrottleFn((...args: Parameters<typeof updateTableSize>) => {
+  queueMicrotask(() => {
+    updateTableSize(...args)
+  })
+}, 500)
 
 onMounted(() => {
   setRowLimitAndPage(1000, 0)
@@ -139,11 +136,12 @@ onMounted(() => {
   }
 
   new agGrid.Grid(tableNode.value!, agGridOptions.value)
+
+  throttledUpdateTableSize(undefined)
 })
 
-const throttledUpdateTableSize = useThrottleFn(updateTableSize, 500)
 watch(
-  () => [data.value, props.width, props.fullscreen],
+  () => [data.value, config.value.width, config.value.fullscreen],
   () => {
     throttledUpdateTableSize(undefined)
   },
@@ -369,6 +367,7 @@ function updateTableSize(clientWidth: number | undefined) {
   const maxWidth = clientWidth - SIDE_MARGIN
 
   // Resize based on the data and then shrink any columns that are too wide.
+  wasAutomaticallyAutosized.value = true
   columnApi.autoSizeColumns(cols, true)
   const bigCols = cols
     .filter((c) => c.getActualWidth() > maxWidth)
@@ -381,9 +380,10 @@ function lockColumnSize(e: ColumnResizedEvent) {
   if (!e.finished || e.source === 'api') {
     return
   }
-
-  // If the user manually resized a column, we don't want to auto-size it on a resize.
-  const manuallySized = e.source !== 'autosizeColumns'
+  // If the user manually resized (or manually autosized) a column, we don't want to auto-size it
+  // on a resize.
+  const manuallySized = e.source !== 'autosizeColumns' || !wasAutomaticallyAutosized.value
+  wasAutomaticallyAutosized.value = false
   for (const column of e.columns ?? []) {
     column.getColDef().manuallySized = manuallySized
   }
@@ -407,12 +407,7 @@ function goToLastPage() {
 </script>
 
 <template>
-  <VisualizationContainer
-    :="<any>$attrs"
-    :fullscreen="props.fullscreen"
-    :width="props.width"
-    :below-toolbar="true"
-  >
+  <VisualizationContainer :below-toolbar="true">
     <div ref="rootNode" class="TableVisualization" @wheel.stop>
       <div class="table-visualization-status-bar">
         <button :disabled="isFirstPage" @click="goToFirstPage">«</button>

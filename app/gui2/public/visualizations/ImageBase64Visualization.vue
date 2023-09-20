@@ -9,7 +9,7 @@ interface Data {
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { computed } from 'vue'
 
@@ -23,7 +23,7 @@ const DEFAULT_MEDIA_TYPE = 'image/png'
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-node="true">
+  <VisualizationContainer :below-node="true">
     <div class="ImageVisualization">
       <img
         v-if="data"

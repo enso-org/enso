@@ -4,7 +4,7 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from './VisualizationContainer.vue'
+import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { computed, onMounted } from 'vue'
 
@@ -27,7 +27,7 @@ const data = computed<Data | undefined>(() =>
 </script>
 
 <template>
-  <VisualizationContainer :="<any>$attrs" :below-toolbar="true">
+  <VisualizationContainer :below-toolbar="true">
     <div class="WarningsVisualization">
       <ul v-if="data">
         <li v-if="data.length === 0">There are no warnings.</li>
