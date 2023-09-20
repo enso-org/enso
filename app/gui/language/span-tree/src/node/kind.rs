@@ -107,10 +107,14 @@ impl Kind {
         matches!(self, Self::InsertionPoint(t) if t.kind.is_expected_argument())
     }
 
+    /// Check if given kind is an insertino point for expected operand of an unfinished infix.
     pub fn is_expected_operand(&self) -> bool {
         matches!(
             self,
-            Self::InsertionPoint(InsertionPoint { kind: InsertionPointType::ExpectedOperand, .. })
+            Self::InsertionPoint(InsertionPoint {
+                kind: InsertionPointType::ExpectedOperand | InsertionPointType::ExpectedTarget,
+                ..
+            })
         )
     }
 
@@ -381,7 +385,9 @@ pub enum InsertionPointType {
         index: usize,
         named: bool,
     },
+    /// Expected target of unfinished infix expression.
     ExpectedTarget,
+    /// Expected operand of unfinished infix expression.
     ExpectedOperand,
 }
 
