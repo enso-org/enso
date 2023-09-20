@@ -25,17 +25,17 @@ public abstract class RunThreadNode extends Node {
   Thread doExecute(MaterializedFrame frame, State state, Object self) {
     EnsoContext ctx = EnsoContext.get(this);
     Thread thread =
-        ctx.getEnvironment()
-            .createThread(
-                () -> {
-                  Object p = ctx.getThreadManager().enter();
-                  try {
-                    ThunkExecutorNodeGen.getUncached()
-                        .executeThunk(frame, self, state, BaseNode.TailStatus.NOT_TAIL);
-                  } finally {
-                    ctx.getThreadManager().leave(p);
-                  }
-                });
+        ctx.createThread(
+            false,
+            () -> {
+              Object p = ctx.getThreadManager().enter();
+              try {
+                ThunkExecutorNodeGen.getUncached()
+                    .executeThunk(frame, self, state, BaseNode.TailStatus.NOT_TAIL);
+              } finally {
+                ctx.getThreadManager().leave(p);
+              }
+            });
     thread.start();
     return thread;
   }

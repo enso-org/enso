@@ -23,7 +23,7 @@ public abstract class GetPolyglotLanguageNode extends Node {
 
   @Specialization
   Text doExecute(Object value) {
-    if (EnsoContext.get(this).getEnvironment().isHostObject(value)) {
+    if (EnsoContext.get(this).isJavaPolyglotObject(value)) {
       return java;
     } else {
       return unknown;

@@ -126,7 +126,7 @@ public abstract class EnsoProjectNode extends Node {
 
   private static Atom createProjectDescriptionAtom(EnsoContext ctx, Package<TruffleFile> pkg) {
     EnsoFile rootPath = new EnsoFile(pkg.root().normalize());
-    Object cfg = ctx.getEnvironment().asGuestValue(pkg.getConfig());
+    Object cfg = ctx.asGuestValue(pkg.getConfig());
     return ctx.getBuiltins()
         .getProjectDescription()
         .getUniqueConstructor()

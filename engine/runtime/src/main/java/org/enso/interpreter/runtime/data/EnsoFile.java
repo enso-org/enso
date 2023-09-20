@@ -87,14 +87,14 @@ public final class EnsoFile implements EnsoObject {
       hostArr = hostArrayCtor.apply(size);
       for (int i = 0; i < size; i++) {
         Object elem = interop.readArrayElement(arr, i);
-        if (!ctx.getEnvironment().isHostObject(elem)) {
+        if (!ctx.isJavaPolyglotObject(elem)) {
           var err = ctx.getBuiltins().error().makeUnsupportedArgumentsError(
               new Object[]{arr},
               "Arguments to opts should be host objects from java.io package"
           );
           throw new PanicException(err, interop);
         }
-        hostArr[i] = (T) ctx.getEnvironment().asHostObject(elem);
+        hostArr[i] = (T) ctx.asJavaPolyglotObject(elem);
       }
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       throw new IllegalStateException("Unreachable", e);
@@ -308,7 +308,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile fromString(EnsoContext context, String path) {
-    TruffleFile file = context.getEnvironment().getPublicTruffleFile(path);
+    TruffleFile file = context.getPublicTruffleFile(path);
     return new EnsoFile(file);
   }
 
@@ -319,7 +319,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile currentDirectory(EnsoContext context) {
-    TruffleFile file = context.getEnvironment().getCurrentWorkingDirectory();
+    TruffleFile file = context.getCurrentWorkingDirectory();
     return new EnsoFile(file);
   }
 

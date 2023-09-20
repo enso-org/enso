@@ -77,9 +77,9 @@ class BindingAnalysisTest extends CompilerTest {
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
       metadata.definedEntities should contain theSameElementsAs List(
-        Type("Foo", List(Cons("Mk_Foo", 3, false)), false),
-        Type("Bar", List(), false),
-        Type("Baz", List(), false),
+        Type("Foo", List(), List(Cons("Mk_Foo", 3, false)), false),
+        Type("Bar", List(), List(), false),
+        Type("Baz", List("x", "y"), List(), false),
         PolyglotSymbol("MyClass"),
         PolyglotSymbol("Renamed_Class"),
         ModuleMethod("foo")

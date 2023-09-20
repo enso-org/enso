@@ -1,61 +1,104 @@
 <script setup lang="ts">
-import { useResizeObserver, useWindowEvent } from '@/util/events'
-import { useComponentsStore } from '@/stores/components'
-import type { Component } from '@/stores/components'
+import { useResizeObserver } from '@/util/events'
+import { type Component, makeComponentList } from '@/components/ComponentBrowser/component'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/util/animation'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { Filtering } from '@/components/ComponentBrowser/filtering'
 
 const ITEM_SIZE = 32
+const TOP_BAR_HEIGHT = 32
 
 const props = defineProps<{
+  position: Vec2
   navigator: ReturnType<typeof useNavigator>
 }>()
 
-// === Position ===
+const emit = defineEmits<{
+  (e: 'finished'): void
+}>()
 
-const shown = ref(false)
-const scenePosition = ref(Vec2.Zero())
+onMounted(() => {
+  if (inputField.value != null) {
+    inputField.value.focus({ preventScroll: true })
+    selectLastAfterRefresh()
+  }
+})
+
+// === Position ===
 
 const transform = computed(() => {
   const nav = props.navigator
-  const pos = scenePosition.value
+  const pos = props.position
   return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
     1 / nav.scale
   }) translateY(-100%)`
 })
 
-function positionAtMouse(): boolean {
-  const nav = props.navigator
-  const mousePos = nav.sceneMousePos
-  if (mousePos == null) return false
-  scenePosition.value = mousePos
-  return true
+// === Input and Filtering ===
+
+const cbRoot = ref<HTMLElement>()
+const inputField = ref<HTMLElement>()
+const inputText = ref('')
+const filterFlags = ref({ showUnstable: false, showLocal: false })
+
+const currentFiltering = computed(() => {
+  const input = inputText.value
+  const pathPatternSep = inputText.value.lastIndexOf('.')
+  return new Filtering({
+    pattern: input.substring(pathPatternSep + 1),
+    qualifiedNamePattern: input.substring(0, pathPatternSep),
+    ...filterFlags.value,
+  })
+})
+
+watch(currentFiltering, selectLastAfterRefresh)
+
+function handleDefocus(e: FocusEvent) {
+  const stillInside =
+    cbRoot.value != null &&
+    e.relatedTarget instanceof Node &&
+    cbRoot.value.contains(e.relatedTarget)
+  if (stillInside) {
+    if (inputField.value != null) {
+      inputField.value.focus({ preventScroll: true })
+    }
+  } else {
+    emit('finished')
+  }
 }
 
 // === Components List and Positions ===
 
-const componentStore = useComponentsStore()
+const suggestionDbStore = useSuggestionDbStore()
+
+const components = computed(() => {
+  return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
+})
 
 const visibleComponents = computed(() => {
   if (scroller.value == null) return []
   const scrollPosition = animatedScrollPosition.value
-  const firstVisible = componentAtY(scrollPosition)
-  const lastVisible = componentAtY(animatedScrollPosition.value + scrollerSize.value.y)
-  return componentStore.components.slice(firstVisible, lastVisible + 1).map((component, i) => {
-    return { component, index: i + firstVisible }
+  const topmostVisible = componentAtY(scrollPosition)
+  const bottommostVisible = Math.max(
+    0,
+    componentAtY(animatedScrollPosition.value + scrollerSize.value.y),
+  )
+  return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
+    return { component, index: i + bottommostVisible }
   })
 })
 
 function componentPos(index: number) {
-  return index * ITEM_SIZE
+  return listContentHeight.value - (index + 1) * ITEM_SIZE
 }
 
 function componentAtY(pos: number) {
-  return Math.floor(pos / ITEM_SIZE)
+  return Math.floor((listContentHeight.value - pos) / ITEM_SIZE)
 }
 
 function componentStyle(index: number) {
@@ -63,7 +106,8 @@ function componentStyle(index: number) {
 }
 
 function componentColor(component: Component): string {
-  return componentStore.groups[component.group].color
+  // TODO[ao]: A set of default color should be specified in css, see #7785.
+  return suggestionDbStore.groups[component.group ?? -1]?.color ?? '#006b8a'
 }
 
 // === Highlight ===
@@ -93,30 +137,35 @@ const highlightClipPath = computed(() => {
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
 
-function navigateFirst() {
-  selected.value = 0
-  scrollToSelected()
-}
-
-function navigateLast() {
-  selected.value = componentStore.components.length - 1
-  scrollToSelected()
-}
-
 function navigateUp() {
+  if (selected.value != null && selected.value < components.value.length - 1) {
+    selected.value += 1
+  }
+  scrollToSelected()
+}
+
+function navigateDown() {
   if (selected.value == null) {
-    selected.value = componentStore.components.length - 1
+    selected.value = components.value.length - 1
   } else if (selected.value > 0) {
     selected.value -= 1
   }
   scrollToSelected()
 }
 
-function navigateDown() {
-  if (selected.value != null && selected.value < componentStore.components.length - 1) {
-    selected.value += 1
-  }
-  scrollToSelected()
+/**
+ * Select the last element after updating component list.
+ *
+ * As the list changes the scroller's content, we need to wait a frame so the scroller
+ * recalculates its height and setting scrollTop will work properly.
+ */
+function selectLastAfterRefresh() {
+  selected.value = 0
+  nextTick(() => {
+    scrollToSelected()
+    animatedScrollPosition.skip()
+    animatedHighlightPosition.skip()
+  })
 }
 
 // === Scrolling ===
@@ -126,12 +175,16 @@ const scrollerSize = useResizeObserver(scroller)
 const scrollPosition = ref(0)
 const animatedScrollPosition = useApproach(scrollPosition)
 
-const listContentHeight = computed(() => componentStore.components.length * ITEM_SIZE)
+const listContentHeight = computed(() =>
+  // We add a top padding of TOP_BAR_HEIGHT / 2 - otherwise the topmost entry would be covered
+  // by top bar.
+  Math.max(components.value.length * ITEM_SIZE + TOP_BAR_HEIGHT / 2, scrollerSize.value.y),
+)
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
 function scrollToSelected() {
   if (selectedPosition.value == null) return
-  scrollPosition.value = selectedPosition.value - scrollerSize.value.y + ITEM_SIZE
+  scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
 }
 
 function updateScroll() {
@@ -147,25 +200,11 @@ const docsVisible = ref(true)
 
 // === Key Events Handler ===
 
-useWindowEvent('keydown', (e) => {
+function handleKeydown(e: KeyboardEvent) {
   switch (e.key) {
     case 'Enter':
-      if (!shown.value && positionAtMouse()) {
-        shown.value = true
-        selected.value = componentStore.components.length - 1
-        nextTick(() => {
-          scrollToSelected()
-          animatedScrollPosition.skip()
-          animatedHighlightPosition.skip()
-          // After showing, the scroll top is set to 0 despite having assigned `scrollTop.prop` in
-          // the template. We need to manually assign it.
-          if (scroller.value) {
-            scroller.value.scrollTop = animatedScrollPosition.value
-          }
-        })
-      } else {
-        shown.value = false
-      }
+      e.stopPropagation()
+      emit('finished')
       break
     case 'ArrowUp':
       e.preventDefault()
@@ -175,80 +214,77 @@ useWindowEvent('keydown', (e) => {
       e.preventDefault()
       navigateDown()
       break
-    case 'Home':
-      e.preventDefault()
-      navigateFirst()
-      break
-    case 'End':
-      e.preventDefault()
-      navigateLast()
-      break
     case 'Escape':
-      console.log('ESC')
       e.preventDefault()
       selected.value = null
       break
   }
-})
+}
 </script>
 
 <template>
   <div
-    v-if="shown"
+    ref="cbRoot"
     class="ComponentBrowser"
     :style="{ transform, '--list-height': listContentHeightPx }"
+    tabindex="-1"
+    @focusout="handleDefocus"
+    @keydown="handleKeydown"
   >
-    <div class="panel components">
-      <div class="top-bar">
-        <div class="top-bar-inner">
-          <ToggleIcon icon="local_scope2" />
-          <ToggleIcon icon="command_key3" />
-          <ToggleIcon icon="unstable2" />
-          <ToggleIcon icon="marketplace" />
-          <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
-        </div>
-      </div>
-      <div class="components-content">
-        <div
-          ref="scroller"
-          class="list"
-          :scrollTop.prop="animatedScrollPosition.value"
-          @wheel.stop
-          @scroll="updateScroll"
-        >
-          <div class="list-variant" style="">
-            <div
-              v-for="item in visibleComponents"
-              :key="item.component.id"
-              class="component"
-              :style="componentStyle(item.index)"
-              @mousemove="selected = item.index"
-            >
-              <SvgIcon
-                :name="item.component.icon"
-                :style="{ color: componentColor(item.component) }"
-              />
-              {{ item.component.label }}
-            </div>
-          </div>
-          <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
-            <div
-              v-for="item in visibleComponents"
-              :key="item.component.id"
-              class="component"
-              :style="{
-                backgroundColor: componentColor(item.component),
-                ...componentStyle(item.index),
-              }"
-            >
-              <SvgIcon :name="item.component.icon" />
-              {{ item.component.label }}
-            </div>
+    <div class="panels">
+      <div class="panel components">
+        <div class="top-bar">
+          <div class="top-bar-inner">
+            <ToggleIcon v-model="filterFlags.showLocal" icon="local_scope2" />
+            <ToggleIcon icon="command_key3" />
+            <ToggleIcon v-model="filterFlags.showUnstable" icon="unstable2" />
+            <ToggleIcon icon="marketplace" />
+            <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
           </div>
         </div>
+        <div class="components-content">
+          <div
+            ref="scroller"
+            class="list"
+            :scrollTop.prop="animatedScrollPosition.value"
+            @wheel.stop.passive
+            @scroll="updateScroll"
+          >
+            <div class="list-variant" style="">
+              <div
+                v-for="item in visibleComponents"
+                :key="item.component.suggestionId"
+                class="component"
+                :style="componentStyle(item.index)"
+                @mousemove="selected = item.index"
+              >
+                <SvgIcon
+                  :name="item.component.icon"
+                  :style="{ color: componentColor(item.component) }"
+                />
+                {{ item.component.label }}
+              </div>
+            </div>
+            <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
+              <div
+                v-for="item in visibleComponents"
+                :key="item.component.suggestionId"
+                class="component"
+                :style="{
+                  backgroundColor: componentColor(item.component),
+                  ...componentStyle(item.index),
+                }"
+              >
+                <SvgIcon :name="item.component.icon" />
+                {{ item.component.label }}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
-    <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
+    <div class="CBInput"><input ref="inputField" v-model="inputText" /></div>
   </div>
 </template>
 
@@ -257,6 +293,13 @@ useWindowEvent('keydown', (e) => {
   --list-height: 0px;
   width: fit-content;
   color: rgba(0, 0, 0, 0.6);
+  font-size: 11.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.panels {
   display: flex;
   flex-direction: row;
   gap: 4px;
@@ -292,10 +335,11 @@ useWindowEvent('keydown', (e) => {
 }
 
 .list {
+  top: 20px;
   width: 100%;
-  height: 100%;
+  height: calc(100% - 20px);
+  overflow-x: hidden;
   overflow-y: auto;
-  font-size: 11.5px;
   position: relative;
 }
 
@@ -315,6 +359,7 @@ useWindowEvent('keydown', (e) => {
   padding: 9px;
   display: flex;
   position: absolute;
+  line-height: 1;
 }
 .selected {
   color: white;
@@ -357,6 +402,24 @@ useWindowEvent('keydown', (e) => {
 
   & > svg:not(.toggledOn):hover {
     color: rgba(0, 0, 0, 0.3);
+  }
+}
+
+.CBInput {
+  border-radius: 20px;
+  background-color: #eaeaea;
+  height: 40px;
+  padding: 12px;
+  display: flex;
+  flex-direction: row;
+
+  & input {
+    border: none;
+    outline: none;
+    min-width: 0;
+    flex-grow: 1;
+    background: none;
+    font: inherit;
   }
 }
 </style>

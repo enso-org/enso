@@ -157,13 +157,6 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   @SuppressWarnings("unchecked")
   protected void initializeContext(EnsoContext context) {
     context.initialize();
-    var env = context.getEnvironment();
-    var preinit = env.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
-    if (preinit != null && preinit.length() > 0) {
-      var epb = env.getInternalLanguages().get(ForeignLanguage.ID);
-      var run = env.lookup(epb, Consumer.class);
-      run.accept(preinit);
-    }
   }
 
   /**
