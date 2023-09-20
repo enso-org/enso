@@ -26,23 +26,17 @@ class UpdatingEditionProvider(
   private val provider = new FileSystemEditionProvider(actualSearchPaths)
   private val updater  = new EditionUpdater(cachePath, sources)
 
-  private var wasUpdateTried: Boolean = false
-
   /** @inheritdoc */
   override def findEditionForName(
     name: String
-  ): Either[EditionLoadingError, Editions.Raw.Edition] = {
+  ): Either[EditionLoadingError, Editions.Raw.Edition] =
     provider.findEditionForName(name) match {
       case Left(EditionNotFound(_)) =>
-        if (!wasUpdateTried) {
-          wasUpdateTried = true
-          updater.updateEditions()
-          provider.findEditionForName(name)
-        } else Left(EditionNotFound(name))
+        updater.downloadEdition(name)
+        provider.findEditionForName(name)
       case Left(otherError) => Left(otherError)
       case Right(value)     => Right(value)
     }
-  }
 
   /** Finds all editions available on the [[searchPaths]]. */
   override def findAvailableEditions(): Seq[String] =
@@ -52,7 +46,6 @@ class UpdatingEditionProvider(
   def findAvailableEditions(update: Boolean): Seq[String] = {
     if (update) {
       updater.updateEditions()
-      wasUpdateTried = true
     }
 
     provider.findAvailableEditions()

@@ -993,8 +993,7 @@ pub fn to_ast(token: Token) -> Tree {
         token::Variant::Newline(_)
         | token::Variant::BlockStart(_)
         | token::Variant::BlockEnd(_)
-        // This should be unreachable: `resolve_operator_precedence` doesn't calls `to_ast` for
-        // operators.
+        // This should be unreachable: `Precedence::resolve` doesn't calls `to_ast` for operators.
         | token::Variant::Operator(_)
         | token::Variant::Private(_)
         // Map an error case in the lexer to an error in the AST.

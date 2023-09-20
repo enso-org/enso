@@ -1,0 +1,129 @@
+from Standard.Base import all
+import Standard.Base.Errors.No_Such_Key.No_Such_Key
+import Standard.Base.Runtime.Ref.Ref
+
+from Standard.AWS import S3, AWS_Credential
+from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec =
+    bucket_name = "enso-data-samples"
+    not_a_bucket_name = "not_a_bucket_enso"
+    object_name = "Bus_Stop_Benches.geojson"
+    folder_name = "examples/"
+    sub_folder_name = "examples/folder 1/"
+    api_pending = if Environment.get "AWS_ACCESS_KEY_ID" . is_nothing then "No Access Key found." else Nothing
+
+    Test.group "S3.parse_uri" <|
+        Test.specify "parse bucket only uris" <|
+            S3.parse_uri "s3://" . should_equal (Pair.new "" "")
+            S3.parse_uri "s3://asda" . should_equal (Pair.new "asda" "")
+            S3.parse_uri "s3://banana/" . should_equal (Pair.new "banana" "")
+
+        Test.specify "parse full paths uris" <|
+            S3.parse_uri "s3://banana/apple" . should_equal (Pair.new "banana" "apple")
+            S3.parse_uri "s3://banana/apple/orange" . should_equal (Pair.new "banana" "apple/orange")
+
+        Test.specify "reject invalid urils" <|
+            S3.parse_uri "asda" . should_equal Nothing
+            S3.parse_uri "s3:///" . should_equal Nothing
+            S3.parse_uri "s3:///apple/orange" . should_equal Nothing
+
+    buckets = Ref.new []
+    Test.group "S3.list_buckets" pending=api_pending <|
+        Test.specify "should be able to list buckets" <|
+            bucket_list = S3.list_buckets . should_succeed
+            buckets.put bucket_list
+            if bucket_name != Nothing then bucket_list . should_contain bucket_name
+
+        Test.specify "should handle auth issues" <|
+            S3.list_buckets (AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
+
+    ## Rest of tests need a functional S3 connection
+    pending = if bucket_name.is_nothing then "No S3 bucket set." else if buckets.get.is_error then "S3 Access Failed." else if buckets.get.contains bucket_name then Nothing else "S3 Bucket Not Found."
+
+    Test.group "S3.head (bucket)" pending=pending <|
+        Test.specify "should be able to head a bucket" <|
+            S3.head bucket_name . should_equal Map.empty
+            S3.head not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
+
+    Test.group "S3.read_bucket" pending=pending <|
+        Test.specify "should be able to read bucket" <|
+            objects_and_folders = S3.read_bucket bucket_name
+            folders = objects_and_folders.first
+            folders . should_contain folder_name
+
+            objects = objects_and_folders.second
+            objects . should_contain object_name
+
+        Test.specify "should be able to read sub folder" <|
+            objects_and_folders = S3.read_bucket bucket_name folder_name
+            folders = objects_and_folders.first
+            folders . should_contain sub_folder_name
+
+        Test.specify "should attach a warning if not a complete list" <|
+            objects = S3.read_bucket bucket_name max_count=1
+
+            warnings = Warning.get_all objects
+            warnings.length . should_equal 1
+
+            warning = warnings.first
+            warning.value.should_be_a More_Records_Available
+
+        Test.specify "should handle missing bucket gracefully" <|
+            S3.read_bucket not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
+
+        Test.specify "should handle auth issues" <|
+            S3.read_bucket bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
+
+    list = Ref.new []
+    Test.group "S3.list_objects" pending=pending <|
+        Test.specify "should be able to list objects" <|
+            objects = S3.list_objects bucket_name
+            objects . should_contain object_name
+            list.put objects
+
+        Test.specify "should attach a warning if not a complete list" <|
+            objects = S3.list_objects bucket_name max_count=1
+
+            warnings = Warning.get_all objects
+            warnings.length . should_equal 1
+
+            warning = warnings.first
+            warning.value.should_be_a More_Records_Available
+
+        Test.specify "should handle missing bucket gracefully" <|
+            S3.list_objects not_a_bucket_name . should_fail_with S3_Bucket_Not_Found
+
+        Test.specify "should handle auth issues" <|
+            S3.list_objects bucket_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
+
+    ## These tests need a valid object, so check we found it within the bucket.
+    pending_object = if pending.is_nothing.not then pending else
+        if list.get.contains object_name then Nothing else
+            "Unable to find test object in bucket."
+
+    Test.group "S3.head (object)" pending=pending_object <|
+        Test.specify "should be able to head an object" <|
+            S3.head bucket_name object_name . should_succeed
+            S3.head not_a_bucket_name object_name . should_fail_with No_Such_Key
+            S3.head bucket_name "not_an_object" . should_fail_with No_Such_Key
+
+        Test.specify "should handle auth issues" <|
+            S3.list_objects bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
+
+    Test.group "S3.get_object" pending=pending_object <|
+        Test.specify "should be able to get an object" <|
+            response = S3.get_object bucket_name object_name
+            response.should_succeed
+            response.decode_as_json.should_succeed
+
+            S3.get_object not_a_bucket_name object_name . should_fail_with S3_Bucket_Not_Found
+            S3.get_object bucket_name "not_an_object" . should_fail_with No_Such_Key
+
+        Test.specify "should handle auth issues" <|
+            S3.get_object bucket_name object_name credentials=(AWS_Credential.Profile "NoSuchProfile") . should_fail_with AWS_SDK_Error
+
+main = Test_Suite.run_main spec
