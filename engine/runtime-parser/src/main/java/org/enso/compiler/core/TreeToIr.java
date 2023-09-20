@@ -40,6 +40,7 @@ import org.enso.syntax2.Tree;
 
 import org.enso.syntax2.Tree.Invalid;
 
+import org.enso.syntax2.Tree.Private;
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
 import scala.collection.immutable.List;
@@ -152,6 +153,7 @@ final class TreeToIr {
   Module translateModule(Tree module) {
     return switch (module) {
       case Tree.BodyBlock b -> {
+        boolean isPrivate = false;
         List<Definition> bindings = nil();
         List<Import> imports = nil();
         List<Export> exports = nil();
@@ -169,6 +171,16 @@ final class TreeToIr {
             bindings = cons(c, bindings);
             expr = doc.getExpression();
           }
+          if (expr instanceof Private priv) {
+            if (priv.getBody() != null) {
+              throw new IllegalStateException("Private token with body is not yet supported: " + priv);
+            }
+            if (isPrivate) {
+              throw new IllegalStateException("Private token specified more than once: " + priv);
+            }
+            isPrivate = true;
+            continue;
+          }
           switch (expr) {
             case Tree.Import imp -> imports = cons(translateImport(imp), imports);
             case Tree.Export exp -> exports = cons(translateExport(exp), exports);
@@ -176,11 +188,12 @@ final class TreeToIr {
             default -> bindings = translateModuleSymbol(expr, bindings);
           }
         }
-        yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
+        yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate, getIdentifiedLocation(module), meta(), diag());
       }
       default -> new Module(
         nil(), nil(),
         cons(translateSyntaxError(module, new Syntax.UnsupportedSyntax("translateModule")), nil()),
+        false,
         getIdentifiedLocation(module), meta(), diag()
       );
     };
