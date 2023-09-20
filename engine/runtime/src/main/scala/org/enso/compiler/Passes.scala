@@ -37,6 +37,7 @@ class Passes(
       FunctionBinding,
       GenerateMethodBodies,
       BindingAnalysis,
+      PrivateModuleAnalysis.MODULE$,
       ModuleNameConflicts
     )
   )
