@@ -1025,7 +1025,13 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   None
                 ),
                 Suggestion
-                  .Argument("other", SuggestionBuilder.Any, false, true, Some("1"))
+                  .Argument(
+                    "other",
+                    SuggestionBuilder.Any,
+                    false,
+                    true,
+                    Some("1")
+                  )
               ),
               selfType      = "Standard.Base.Data.Numbers.Number",
               returnType    = "Unnamed.Test.Foo",
@@ -1040,11 +1046,12 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     "build conversion method with extra typed arguments" in {
       val code =
         """import Standard.Base.Data.Numbers
+          |from Standard.Base.Data.Boolean import Boolean
           |
           |type Foo
           |    Value foo bar
           |
-          |Foo.from (that:Numbers.Number) (other:Numbers.Integer=1) = Foo.Value that other
+          |Foo.from (that:Numbers.Number) (other:Boolean=Boolean.True) = Foo.Value that other
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -1127,10 +1134,16 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                 Suggestion
                   .Argument(
                     "other",
-                    "Standard.Base.Data.Numbers.Integer",
+                    "Standard.Base.Data.Boolean.Boolean",
                     false,
                     true,
-                    Some("1")
+                    Some("Boolean.True"),
+                    Some(
+                      List(
+                        "Standard.Base.Data.Boolean.Boolean.True",
+                        "Standard.Base.Data.Boolean.Boolean.False"
+                      )
+                    )
                   )
               ),
               selfType      = "Standard.Base.Data.Numbers.Number",

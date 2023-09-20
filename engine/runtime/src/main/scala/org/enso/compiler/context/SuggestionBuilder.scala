@@ -733,7 +733,9 @@ final class SuggestionBuilder[A: IndexedSource](
     expr match {
       case Literal.Number(_, value, _, _, _) => Some(value)
       case Literal.Text(text, _, _, _)       => Some(text)
-      case _                                 => None
+      case Application.Prefix(name, path, _, _, _, _) =>
+        Some(path.map(_.value.showCode()).mkString(".") + "." + name.showCode())
+      case other => Some(other.showCode())
     }
 
   /** Build scope from the location. */
