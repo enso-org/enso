@@ -320,7 +320,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
-    var text = Time_Utils.normalise_iso_datetime(ctx.text.getText());
+    var text = ctx.text.getText();
 
     try {
       var dateTime = dateTimeFormatter.parseZonedDateTime(text);

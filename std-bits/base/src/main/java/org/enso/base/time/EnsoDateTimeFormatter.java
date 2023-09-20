@@ -40,7 +40,7 @@ public class EnsoDateTimeFormatter {
 
   public static EnsoDateTimeFormatter default_enso_zoned_date_time_formatter() {
     return new EnsoDateTimeFormatter(
-        Core_Date_Utils.defaultZonedDateTimeFormatter(),
+        Core_Date_Utils.defaultZonedDateTimeFormatter,
         Pair.create('T', " "),
         "default_enso_zoned_date_time",
         FormatterKind.CONSTANT

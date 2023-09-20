@@ -101,9 +101,6 @@ public final class EnsoDate implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   public Object toDisplayString(boolean allowSideEffects) {
-    return DATE_FORMATTER.format(date);
+    return Core_Date_Utils.defaultLocalDateFormatter.format(date);
   }
-
-  private static final DateTimeFormatter DATE_FORMATTER =
-      Core_Date_Utils.defaultLocalDateFormatter();
 }

@@ -44,7 +44,7 @@ public class Time_Utils {
   public static DateTimeFormatter make_formatter(String format, Locale locale) {
     var usedLocale = locale == Locale.ROOT ? Locale.US : locale;
     return switch (format) {
-      case "ENSO_ZONED_DATE_TIME" -> Core_Date_Utils.defaultZonedDateTimeFormatter();
+      case "ENSO_ZONED_DATE_TIME" -> Core_Date_Utils.defaultZonedDateTimeFormatter;
       case "ISO_ZONED_DATE_TIME" -> DateTimeFormatter.ISO_ZONED_DATE_TIME;
       case "ISO_OFFSET_DATE_TIME" -> DateTimeFormatter.ISO_OFFSET_DATE_TIME;
       case "ISO_LOCAL_DATE_TIME" -> DateTimeFormatter.ISO_LOCAL_DATE_TIME;
@@ -52,67 +52,6 @@ public class Time_Utils {
       case "ISO_LOCAL_TIME" -> DateTimeFormatter.ISO_LOCAL_TIME;
       default -> DateTimeFormatter.ofPattern(format, usedLocale);
     };
-  }
-
-  /**
-   * Creates a DateTimeFormatter from a format string, supporting building standard formats. For Enso format, return the
-   * default output formatter.
-   *
-   * @param format format string
-   * @param locale locale needed for custom formats
-   * @return DateTimeFormatter
-   */
-  public static DateTimeFormatter make_output_formatter(String format, Locale locale) {
-    return format.equals("ENSO_ZONED_DATE_TIME")
-        ? Time_Utils.default_output_date_time_formatter()
-        : make_formatter(format, locale);
-  }
-
-  /**
-   * Given a format string, returns true if it is a format that is based on ISO date time.
-   *
-   * @param format format string
-   * @return True if format is based on ISO date time
-   */
-  public static boolean is_iso_datetime_based(String format) {
-    return switch (format) {
-      case "ENSO_ZONED_DATE_TIME", "ISO_ZONED_DATE_TIME", "ISO_OFFSET_DATE_TIME", "ISO_LOCAL_DATE_TIME" -> true;
-      default -> false;
-    };
-  }
-
-  /**
-   * @return default DateTimeFormatter for parsing a Date.
-   */
-  public static DateTimeFormatter default_date_formatter() {
-    return Core_Date_Utils.defaultLocalDateFormatter();
-  }
-
-  /**
-   * @return default DateTimeFormatter for parsing a Time_Of_Day.
-   */
-  public static DateTimeFormatter default_time_of_day_formatter() {
-    return Core_Date_Utils.defaultLocalTimeFormatter();
-  }
-
-  /**
-   * @return default Date Time formatter for writing a Date_Time.
-   */
-  public static DateTimeFormatter default_output_date_time_formatter() {
-    return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE)
-        .appendLiteral(' ')
-        .append(DateTimeFormatter.ISO_LOCAL_TIME)
-        .toFormatter();
-  }
-
-  /**
-   * Replace space with T in ISO date time string to make it compatible with ISO format.
-   *
-   * @param dateString Raw date time string with either space or T as separator
-   * @return ISO format date time string
-   */
-  public static String normalise_iso_datetime(String dateString) {
-    return Core_Date_Utils.normaliseISODateTime(dateString);
   }
 
   /**

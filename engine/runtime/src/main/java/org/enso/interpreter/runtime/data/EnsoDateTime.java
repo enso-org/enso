@@ -228,7 +228,7 @@ public final class EnsoDateTime implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public Object toDisplayString(boolean allowSideEffects) {
-    return Core_Date_Utils.defaultZonedDateTimeFormatter().format(dateTime);
+    return Core_Date_Utils.defaultZonedDateTimeFormatter.format(dateTime);
   }
 
   // 15. October 1582
