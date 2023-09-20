@@ -574,6 +574,7 @@
 - [Added `delete_rows` method to Database Table, changed the
   `update_database_table` API into `update_rows`.][7709]
 - [Added `Data.post` method to write to HTTP endpoints.][7700]
+- [Added support for S3. Using `Input_Stream` more for reading.][7776]
 - [Renamed `Decimal` to `Float`.][7807]
 
 [debug-shortcuts]:
@@ -814,6 +815,7 @@
 [7637]: https://github.com/enso-org/enso/pull/7637
 [7700]: https://github.com/enso-org/enso/pull/7700
 [7709]: https://github.com/enso-org/enso/pull/7709
+[7776]: https://github.com/enso-org/enso/pull/7776
 [7807]: https://github.com/enso-org/enso/pull/7807
 
 #### Enso Compiler

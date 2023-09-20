@@ -41,7 +41,7 @@ xls =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
     file = enso_project.data / 'spreadsheet.xls'
     if file.exists.not then
-        Context.Output.with_enabled <| Data.fetch url . body . to_file file
+        Context.Output.with_enabled <| HTTP.fetch url . body . to_file file
     file
 
 ## An example XLSX file for experimenting with Table and its APIs.
@@ -56,7 +56,7 @@ xlsx =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xlsx"
     file = enso_project.data / 'spreadsheet.xlsx'
     if file.exists.not then
-        Context.Output.with_enabled <| Data.fetch url . body . to_file file
+        Context.Output.with_enabled <| HTTP.fetch url . body . to_file file
     file
 
 ## A file that is used for writing temporary data as part of tests.
@@ -145,7 +145,7 @@ geo_data_url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/Bus_Stop_Be
      Calling this method will cause Enso to make a network request to a data
      endpoint.
 get_response : Response
-get_response = HTTP.fetch geo_data_url
+get_response = HTTP.fetch geo_data_url . with_materialized_body
 
 ## Gets HTTP data from a network endpoint.
 
@@ -153,11 +153,7 @@ get_response = HTTP.fetch geo_data_url
      Calling this method will cause Enso to make a network request to a data
      endpoint.
 get_geo_data : Response_Body
-get_geo_data = HTTP.fetch geo_data_url
-
-## A simple HTTP client for examples.
-http_client : HTTP
-http_client = HTTP.new (timeout = Duration.new seconds=30)
+get_geo_data = Data.fetch geo_data_url try_auto_parse_response=False
 
 ## A basic URI for examples.
 uri : URI
