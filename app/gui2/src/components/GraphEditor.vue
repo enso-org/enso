@@ -12,6 +12,7 @@ import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import * as random from 'lib0/random'
 import { computeTextChecksum } from 'shared/languageServer'
+import type { ContextId } from 'shared/lsTypes'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
 import { onMounted, reactive, ref, watch } from 'vue'
 
@@ -25,7 +26,7 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
-const executionContextId = ref(random.uuidv4() as Uuid)
+const executionContextId = ref(random.uuidv4() as ContextId)
 const clientId = ref(random.uuidv4() as Uuid)
 const mainModule = `${projectStore.namespace}.${projectStore.name}.Main`
 const projectId = ref<Uuid>()
@@ -38,6 +39,9 @@ onMounted(async () => {
     console.error('Protocol connection initialization did not return a project root.')
     return
   }
+
+  // Not sure why `text/canEdit` is returning false.
+
   await projectStore.lsRpcConnection.openTextFile({
     rootId: projectRoot.id,
     segments: ['src', 'Main.enso'],

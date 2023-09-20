@@ -3,8 +3,11 @@ import type { ExprId, Uuid } from './yjsModel'
 /** Version checksum of a text file - Sha3_224 */
 declare const brandChecksum: unique symbol
 export type Checksum = string & { [brandChecksum]: never }
-export type ContextId = Uuid
+declare const contextIdChecksum: unique symbol
+export type ContextId = Uuid & { [contextIdChecksum]: never }
 export type ExpressionId = ExprId
+declare const brandUtcDateTime: unique symbol
+export type UTCDateTime = string & { [brandUtcDateTime]: never }
 
 export type ContentRoot =
   | { type: 'Project'; id: Uuid }
@@ -26,6 +29,32 @@ export interface FileEdit {
   edits: TextEdit[]
   oldVersion: Checksum
   newVersion: Checksum
+}
+
+export interface FileContents<T> {
+  contents: T
+}
+
+export interface TextFileContents extends FileContents<string> {}
+
+export interface DirectoryTree {
+  path: Path;
+  name: string;
+  files: FileSystemObject[];
+  directories: DirectoryTree[];
+}
+
+export interface FileAttributes {
+  creationTime: UTCDateTime
+  lastAccessTime: UTCDateTime
+  lastModifiedTime: UTCDateTime
+  kind: FileSystemObject
+  byteSize: number
+}
+
+export interface Range {
+  start: Position;
+  end: Position;
 }
 
 export interface TextEdit {
@@ -191,7 +220,7 @@ interface Diagnostic {
 }
 
 /** A representation of what kind of type a filesystem object can be. */
-type FileSystemObject =
+export type FileSystemObject =
   | {
       type: 'Directory'
       name: string
@@ -246,7 +275,6 @@ type Messages = {
 }
 
 export type Notifications = {
-  'file/event': (param: { path: Path; kind: FileEventKind }) => void
   'text/autoSave': (param: { path: Path }) => void
   'text/didChange': (param: { edits: FileEdit[] }) => void
   'text/fileModifiedOnDisk': (param: { path: Path }) => void
@@ -260,9 +288,6 @@ export type Notifications = {
     contextId: ContextId
     diagnostics: Diagnostic[]
   }) => void
-  'search/suggestionsDatabaseUpdate': (param: {}) => void
-  'file/rootAdded': (param: {}) => void
-  'file/rootRemoved': (param: {}) => void
   'executionContext/visualizationEvaluationFailed': (param: {
     contextId: ContextId
     visualizationId: Uuid
@@ -270,6 +295,10 @@ export type Notifications = {
     message: string
     diagnostic?: Diagnostic
   }) => void
+  'search/suggestionsDatabaseUpdate': (param: {}) => void
+  'file/event': (param: { path: Path; kind: FileEventKind }) => void
+  'file/rootAdded': (param: {}) => void
+  'file/rootRemoved': (param: {}) => void
   'refactoring/projectRenamed': (param: {}) => void
 }
 
@@ -300,8 +329,28 @@ export namespace response {
     contentRoots: ContentRoot[]
   }
 
+  export interface FileContents {
+    contents: TextFileContents
+  }
+
+  export interface FileExists {
+    exists: boolean
+  }
+
+  export interface FileTree {
+    tree: DirectoryTree
+  }
+
   export interface FileList {
     paths: FileSystemObject[]
+  }
+
+  export interface FileInfo {
+    attributes: FileAttributes
+  }
+
+  export interface FileChecksum {
+    checksum: Checksum
   }
 
   export interface ExecutionContext {

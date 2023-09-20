@@ -10,10 +10,12 @@ import type {
   ExecutionEnvironment,
   ExpressionId,
   FileEdit,
+  FileSystemObject,
   Notifications,
   Path,
   RegisterOptions,
   StackItem,
+  TextFileContents,
   VisualizationConfiguration,
   response,
 } from './lsTypes'
@@ -91,9 +93,59 @@ export class LanguageServer extends ObservableV2<Notifications> {
     return this.request('text/applyEdit', { edit, execute })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filewrite) */
+  writeFile(path: Path, contents: TextFileContents): Promise<void> {
+    return this.request('file/write', { path, contents })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#fileread) */
+  readFile(path: Path): Promise<response.FileContents> {
+    return this.request('file/read', { path })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filecreate) */
+  createFile(object: FileSystemObject): Promise<void> {
+    return this.request('file/create', { object })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filedelete) */
+  deleteFile(path: Path): Promise<void> {
+    return this.request('file/delete', { path })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filecopy) */
+  copyFile(from: Path, to: Path): Promise<void> {
+    return this.request('file/copy', { from, to })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filemove) */
+  moveFile(from: Path, to: Path): Promise<void> {
+    return this.request('file/move', { from, to })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#fileexists) */
+  fileExists(path: Path): Promise<response.FileExists> {
+    return this.request('file/exists', { path })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filetree) */
+  fileTree(path: Path, depth?: number): Promise<response.FileTree> {
+    return this.request('file/tree', { path, depth })
+  }
+
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filelist) */
   listFiles(path: Path): Promise<response.FileList> {
     return this.request('file/list', { path })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#fileinfo) */
+  fileInfo(path: Path): Promise<response.FileInfo> {
+    return this.request('file/info', { path })
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filechecksum) */
+  fileChecksum(path: Path): Promise<response.FileChecksum> {
+    return this.request('file/checksum', { path })
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextcreate) */
