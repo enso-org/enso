@@ -674,7 +674,6 @@ fn foreign<'s>() -> Definition<'s> {
 }
 
 fn private<'s>() -> Definition<'s> {
-    println!("Registering private macro def");
     crate::macro_definition! {("private", everything()) private_keyword}
 }
 
@@ -686,14 +685,14 @@ fn freeze<'s>() -> Definition<'s> {
     crate::macro_definition! {("FREEZE", everything()) capture_expressions}
 }
 
-fn private_keyword(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    println!("private_keyword[begin] : Segments={:?}", segments);
+fn private_keyword<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     let segment = segments.pop().0;
     let keyword = into_private(segment.header);
-    let body = operator::resolve_operator_precedence_if_non_empty(segment.result.tokens());
-    let ret_tree = syntax::Tree::private(keyword, body);
-    println!("private_keyword[end]: ret_tree={:?}", ret_tree);
-    ret_tree
+    let body = precedence.resolve(segment.result.tokens());
+    syntax::Tree::private(keyword, body)
 }
 
 /// Macro body builder that just parses the tokens of each segment as expressions, and places them
