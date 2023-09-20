@@ -140,7 +140,7 @@ impl JobArchetype for BuildWasm {
         plain_job_customized(
             &os,
             "Build GUI (WASM)",
-            " --wasm-upload-artifacts ${{ runner.os == 'Linux' }} wasm build",
+            " --wasm-upload-artifact ${{ runner.os == 'Linux' }} wasm build",
             |step| vec![step.with_secret_exposed(crate::env::ENSO_AG_GRID_LICENSE_KEY)],
         )
     }
