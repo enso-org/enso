@@ -169,10 +169,10 @@ public final class EnsoDateTime implements EnsoObject {
     return new EnsoDate(dateTime.toLocalDate());
   }
 
-  @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
+  @Builtin.Method(description = "Return a text representation of this date-time.")
   @CompilerDirectives.TruffleBoundary
   public Text toText() {
-    return Text.create(DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime));
+    return Text.create(Core_Date_Utils.defaultZonedDateTimeFormatter.format(dateTime));
   }
 
   @ExportMessage
