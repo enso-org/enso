@@ -4,6 +4,7 @@ import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -168,7 +169,7 @@ type Date_Time_Formatter
          pattern. If not specified, defaults to `Locale.default`. If passing a
          `DateTimeFormatter` instance and this argument is set, it will
          overwrite the original locale of that formatter.
-    from_java (pattern:Text|DateTimeFormatter) (locale:Locale|Nothing=Nothing) = case pattern of
+    from_java pattern (locale:Locale|Nothing=Nothing) = case pattern of
         java_formatter : DateTimeFormatter ->
             amended_formatter = case locale of
                 Nothing -> java_formatter
@@ -178,8 +179,7 @@ type Date_Time_Formatter
             java_locale = (locale.if_nothing Locale.default).java_locale
             java_formatter = DateTimeFormatter.ofPattern pattern java_locale
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.RAW_JAVA)
-
-    # TODO Locale for constants??
+        _ -> Error.throw (Illegal_Argument.Error "The pattern must either be a string or a Java DateTimeFormatter instance.")
 
     ## The default format for date-time used in Enso.
        It acts as `ISO_Zoned_Date_Time` but both offset and timezone are optional.

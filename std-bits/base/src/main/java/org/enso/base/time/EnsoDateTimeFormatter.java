@@ -11,6 +11,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
+import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalQueries;
 import java.util.Arrays;
 import java.util.Locale;
@@ -104,10 +105,21 @@ public class EnsoDateTimeFormatter {
 
     // Allow Year and Month to be parsed without a day (use first day of month).
     if (parsed.isSupported(ChronoField.YEAR) && parsed.isSupported(ChronoField.MONTH_OF_YEAR)) {
-      var dayOfMonth =
+      int dayOfMonth =
           parsed.isSupported(ChronoField.DAY_OF_MONTH) ? parsed.get(ChronoField.DAY_OF_MONTH) : 1;
       return LocalDate.of(
           parsed.get(ChronoField.YEAR), parsed.get(ChronoField.MONTH_OF_YEAR), dayOfMonth);
+    }
+
+    // Allow Year and Quarter to be parsed without a day (use first day of the quarter).
+    if (parsed.isSupported(ChronoField.YEAR) && parsed.isSupported(IsoFields.QUARTER_OF_YEAR)) {
+      int dayOfQuarter =
+          parsed.isSupported(IsoFields.DAY_OF_QUARTER) ? parsed.get(IsoFields.DAY_OF_QUARTER) : 1;
+      int year = parsed.get(ChronoField.YEAR);
+      int quarter = parsed.get(IsoFields.QUARTER_OF_YEAR);
+      int monthsToShift = 3 * (quarter - 1);
+      LocalDate firstDay = LocalDate.of(year, 1, 1);
+      return firstDay.plusMonths(monthsToShift).plusDays(dayOfQuarter - 1);
     }
 
     // Allow Month and Day to be parsed without a year (use current year).
