@@ -1037,6 +1037,112 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build conversion method with extra typed arguments" in {
+      val code =
+        """import Standard.Base.Data.Numbers
+          |
+          |type Foo
+          |    Value foo bar
+          |
+          |Foo.from (that:Numbers.Number) (other:Numbers.Integer=1) = Foo.Value that other
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Foo",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Foo",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "Value",
+              arguments = Seq(
+                Suggestion
+                  .Argument("foo", SuggestionBuilder.Any, false, false, None),
+                Suggestion
+                  .Argument("bar", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.Foo",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Getter(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = List(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.Foo", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Foo",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Getter(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "bar",
+              arguments = List(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.Foo", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Foo",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Conversion(
+              externalId = None,
+              module     = "Unnamed.Test",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "that",
+                  "Standard.Base.Data.Numbers.Number",
+                  false,
+                  false,
+                  None
+                ),
+                Suggestion
+                  .Argument(
+                    "other",
+                    "Standard.Base.Data.Numbers.Integer",
+                    false,
+                    true,
+                    Some("1")
+                  )
+              ),
+              selfType      = "Standard.Base.Data.Numbers.Number",
+              returnType    = "Unnamed.Test.Foo",
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build function simple" in {
 
       val code =
