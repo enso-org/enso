@@ -34,27 +34,6 @@ public class Time_Utils {
   }
 
   /**
-   * Creates a DateTimeFormatter from a format string, supporting building standard formats.
-   *
-   * @param format format string
-   * @param locale locale needed for custom formats
-   * @return DateTimeFormatter
-   */
-  @Deprecated
-  public static DateTimeFormatter make_formatter(String format, Locale locale) {
-    var usedLocale = locale == Locale.ROOT ? Locale.US : locale;
-    return switch (format) {
-      case "ENSO_ZONED_DATE_TIME" -> Core_Date_Utils.defaultZonedDateTimeFormatter;
-      case "ISO_ZONED_DATE_TIME" -> DateTimeFormatter.ISO_ZONED_DATE_TIME;
-      case "ISO_OFFSET_DATE_TIME" -> DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-      case "ISO_LOCAL_DATE_TIME" -> DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-      case "ISO_LOCAL_DATE" -> DateTimeFormatter.ISO_LOCAL_DATE;
-      case "ISO_LOCAL_TIME" -> DateTimeFormatter.ISO_LOCAL_TIME;
-      default -> DateTimeFormatter.ofPattern(format, usedLocale);
-    };
-  }
-
-  /**
    * Format a LocalDate instance using a formatter.
    *
    * @param date the LocalDate instance to format.
