@@ -24,13 +24,13 @@ spec =
 
         Test.specify "Date with locale" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
-            expected_default = Column.from_vector "values" ["21. June 2020", "25. April 2023"]
-            expected_gb = Column.from_vector "values" ["21. Jun 2020", "25. Apr 2023"]
+            expected_default = Column.from_vector "values" ["21. Jun 2020", "25. Apr 2023"]
+            expected_gb = Column.from_vector "values" ["21. June 2020", "25. April 2023"]
             expected_fr = Column.from_vector "values" ["21. juin 2020", "25. avril 2023"]
             input.format "d. MMMM yyyy" . should_equal expected_default
-            input.format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.default)) . should_equal expected_default
-            input.format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "gb")) . should_equal expected_gb
-            input.format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "fr")) . should_equal expected_fr
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal expected_default
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.uk) . should_equal expected_gb
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.france) . should_equal expected_fr
 
         Test.specify "Empty/Nothing format" <|
             input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
@@ -41,7 +41,7 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
-            input.format "DDDDD" . should_fail_with Illegal_Argument
+            input.format "jjjjjj" . should_fail_with Illegal_Argument
 
     Test.group "Date Column.format, with format Column" <|
         Test.specify "Date column" <|

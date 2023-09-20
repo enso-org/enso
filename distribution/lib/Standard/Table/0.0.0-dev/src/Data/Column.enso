@@ -1698,9 +1698,10 @@ type Column
             format_column : Column -> Value_Type.expect_text format_column <|
                 formatter = make_value_formatter_for_value_type self.value_type locale
                 formatter.if_not_error <|
-                    Column_Ops.map_2_over_storage self format_column formatter make_string_builder
+                    formatter_flipped value format = formatter format value
+                    Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
             _ ->
-                formatter = make_value_formatter_for_value_type self.value_type locale format=format
+                formatter = make_value_formatter_for_value_type self.value_type locale format
                 Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
         new_column
 
