@@ -50,7 +50,7 @@ type Request_Body
             Request_Body.Text _ _ _ -> Header.content_type "text/plain"
             Request_Body.Json _ -> Header.content_type "application/json"
             Request_Body.Binary _ -> Header.content_type "application/octet-stream"
-            Request_Body.Form_Data _ url_encoded -> url_encoded ? Header.application_x_www_form_urlencoded : Nothing
+            Request_Body.Form_Data _ url_encoded -> if url_encoded then Header.application_x_www_form_urlencoded else Nothing
             Request_Body.Empty -> Nothing
 
 Request_Body.from (that:Text) = Request_Body.Text that

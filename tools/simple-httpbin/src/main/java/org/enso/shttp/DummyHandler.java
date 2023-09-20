@@ -63,7 +63,6 @@ public class DummyHandler implements HttpHandler {
         response += "  \"files\": null,\n";
         response +=
             "  \"data\": \"" + (value == null ? "" : StringEscapeUtils.escapeJson(value)) + "\",\n";
-        response += "  \"json\": " + (isJson ? value : "null") + ",\n";
       }
       response += "  \"args\": {}\n";
       response += "}";

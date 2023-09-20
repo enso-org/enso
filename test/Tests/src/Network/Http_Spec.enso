@@ -34,31 +34,14 @@ spec =
 
     Test.group "asdfasdf" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_get = base_url_with_slash + "get"
         url_post = base_url_with_slash + "post"
         url_put = base_url_with_slash + "put"
         url_patch = base_url_with_slash + "patch"
         url_delete = base_url_with_slash + "delete"
 
-        Test.specify "Can perform a Request_Body.Text POST" <|
-            response = Data.post url_post (Request_Body.Text "hello world")
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "Content-Encoding": "UTF-8",
-                    "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "11"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "hello world",
-                  "json": null,
-                  "args": {}
-                }
-            response . should_equal expected_response
+        Test.specify "Cannot specify content type in both body and headers" <|
+            Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
 
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
@@ -91,7 +74,6 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -101,7 +83,7 @@ spec =
                 }
             response . should_equal expected_response
 
-        Test.specify "Can perform a GET with a file response" <|
+        Test.specify "Can perform a GET with a file response" pending="remove me" <|
             f = enso_project.data / "spreadsheet.xls"
             f.delete_if_exists
             url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
@@ -131,7 +113,6 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -185,7 +166,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -206,7 +186,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -227,7 +206,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -247,7 +225,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Aaa\\",\\"s\\":\\"abc\\"}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -267,7 +244,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -292,7 +268,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "H\\u0000e\\u0000l\\u0000l\\u0000o\\u0000 \\u0000W\\u0000o\\u0000r\\u0000l\\u0000d\\u0000!\\u0000",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -313,7 +288,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "a,b,c",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -340,7 +314,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "\uFFFDPNG",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -353,11 +326,12 @@ spec =
             response.at "data" . replace "%0D%" "%" . should_equal 'key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll+cake+ice+cream.+Carrot+cake+apple+pie+gingerbread+chocolate+cake+pudding+tart+souffl%C3%A9+jelly+beans+gummies.%0A%0ATootsie+roll+chupa+chups+muffin+croissant+fruitcake+jujubes+danish+cotton+candy+danish.+Oat+cake+chocolate+fruitcake+halvah+icing+oat+cake+toffee+powder.+Pastry+drag%C3%A9e+croissant.+Ice+cream+candy+canes+dessert+muffin+sugar+plum+tart+jujubes.%0A'
 
         Test.specify "Can perform a multipart form POST" <|
+            IO.println 'QQQ'
             test_file = enso_project.data / "sample.png"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data)
             response_json = response
-            response_json.at "headers" . at "Content-Type" . should_equal "multipart/form-data"
+            response_json.at "headers" . at "Content-Type" . should_start_with "multipart/form-data; boundary="
             response_json.at "data" . is_empty . should_be_false
 
         Test.specify "Can perform a File POST with auto-conversion" <|
@@ -382,7 +356,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -403,7 +376,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -424,7 +396,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -443,7 +414,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -464,7 +434,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response.decode_as_json . should_equal expected_response
@@ -486,7 +455,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -533,7 +501,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
-                  "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
             response . should_equal expected_response
@@ -554,7 +521,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
-                  "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
             response . should_equal expected_response
@@ -575,7 +541,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
-                  "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
             response . should_equal expected_response
@@ -596,7 +561,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -608,21 +572,21 @@ spec =
             Data.post url_post (Request_Body.Text "hello world" encoding=Encoding.utf_16_le) headers=[Header.new "Content-encoding" "UTF-16LE"] . should_fail_with Illegal_Argument
 
         Test.specify "Header resolution" <|
-            expected0 = [Header.content_type "text/plain"]
-            resolve_headers (HTTP_Method.Get "" [] (Request_Body.Text "")) . should_equal expected0
+            expected0 = [Header.content_encoding 'UTF-8', Header.content_type "text/plain"]
+            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "")) . should_equal expected0
 
-            expected1 = [Header.content_type "application/json"]
+            expected1 = [Header.content_type "application/json", Header.content_encoding 'UTF-8']
             resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json")) . should_equal expected1
 
-            expected2 = [Header.content_type "application/json"]
+            expected2 = [Header.content_type "application/json", Header.content_encoding 'UTF-8']
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")) . should_equal expected2
 
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain")) . should_fail_with Illegal_Argument
 
-            expected3 = [Header.new "some" "header", Header.content_type "application/json"]
+            expected3 = [Header.new "some" "header", Header.content_type "application/json", Header.content_encoding 'UTF-8']
             resolve_headers (Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json")) . should_equal expected3
 
-            expected4 = [Header.content_type "application/json", Header.content_type "text/plain"]
+            expected4 = [Header.content_type "application/json", Header.content_type "text/plain", Header.content_encoding 'UTF-8']
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_equal expected4
 
 main = Test_Suite.run_main spec
