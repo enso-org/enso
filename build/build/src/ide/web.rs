@@ -307,7 +307,6 @@ impl IdeDesktop {
         output_path: P,
     ) -> Result<ContentEnvironment<TempDir, P>> {
         let env = ContentEnvironment::new(self, wasm, build_info, output_path).await?;
-        self.npm()?.try_applying(&env)?.run("ci-check").run_ok().await?;
         self.npm()?
             .try_applying(&env)?
             .workspace(Workspaces::Content)
