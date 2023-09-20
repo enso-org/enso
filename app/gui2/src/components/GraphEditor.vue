@@ -11,8 +11,9 @@ import { useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import * as random from 'lib0/random'
+import { computeTextChecksum } from 'shared/languageServer'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 
 const MAIN_DEFINITION_NAME = 'main'
 
@@ -27,21 +28,66 @@ const projectStore = useProjectStore()
 const executionContextId = ref(random.uuidv4() as Uuid)
 const clientId = ref(random.uuidv4() as Uuid)
 const mainModule = `${projectStore.namespace}.${projectStore.name}.Main`
+const projectId = ref<Uuid>()
 
 onMounted(async () => {
-  await projectStore.lsRpcConnection.initProtocolConnection(clientId.value)
-  await projectStore.lsRpcConnection.createExecutionContext(executionContextId.value)
-  await projectStore.lsRpcConnection.pushExecutionContextItem(executionContextId.value, {
-    type: 'ExplicitCall',
-    methodPointer: {
-      module: mainModule,
-      definedOnType: mainModule,
-      name: MAIN_DEFINITION_NAME,
-    },
-    thisArgumentExpression: null,
-    positionalArgumentsExpressions: [],
+  await projectStore.dataConnection.initialize()
+  const projectInfo = await projectStore.lsRpcConnection.initProtocolConnection(clientId.value)
+  const projectRoot = projectInfo.contentRoots.find((root) => root.type === 'Project')
+  if (projectRoot == null) {
+    console.error('Protocol connection initialization did not return a project root.')
+    return
+  }
+  await projectStore.lsRpcConnection.openTextFile({
+    rootId: projectRoot.id,
+    segments: ['src', 'Main.enso'],
   })
+  projectId.value = projectRoot.id
 })
+
+const unwatch = watch(
+  () => [projectStore.module, projectId.value],
+  async () => {
+    const moduleText = projectStore.module?.contents.toJSON()
+    if (projectStore.module == null || !moduleText || projectId.value == null) {
+      // Not ready yet.
+      return
+    }
+    unwatch()
+    // Full invalidation: Send an update to the Language Server with the entire content of the file.
+    const endLine = projectStore.module.metadata.get('initialEndLine')
+    const endColumn = projectStore.module.metadata.get('initialEndColumn')
+    await projectStore.lsRpcConnection.applyEdit(
+      {
+        edits: [
+          {
+            range: {
+              start: { line: 0, character: 0 },
+              end: { line: endLine, character: endColumn },
+            },
+            text: moduleText,
+          },
+        ],
+        newVersion: computeTextChecksum(moduleText),
+        oldVersion: computeTextChecksum(moduleText),
+        path: { rootId: projectId.value, segments: ['src', 'Main.enso'] },
+      },
+      true,
+    )
+
+    await projectStore.lsRpcConnection.createExecutionContext(executionContextId.value)
+    await projectStore.lsRpcConnection.pushExecutionContextItem(executionContextId.value, {
+      type: 'ExplicitCall',
+      methodPointer: {
+        module: mainModule,
+        definedOnType: mainModule,
+        name: MAIN_DEFINITION_NAME,
+      },
+      thisArgumentExpression: null,
+      positionalArgumentsExpressions: [],
+    })
+  },
+)
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())

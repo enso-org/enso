@@ -299,23 +299,23 @@ export class Builder {
   }
 
   writeInt16(value: number): void {
-    this.bb.view.setInt16((this.space -= 2), value)
+    this.bb.view.setInt16((this.space -= 2), value, true)
   }
 
   writeInt32(value: number): void {
-    this.bb.view.setInt32((this.space -= 4), value)
+    this.bb.view.setInt32((this.space -= 4), value, true)
   }
 
   writeInt64(value: bigint): void {
-    this.bb.view.setBigInt64((this.space -= 8), value)
+    this.bb.view.setBigInt64((this.space -= 8), value, true)
   }
 
   writeFloat32(value: number): void {
-    this.bb.view.setFloat32((this.space -= 4), value)
+    this.bb.view.setFloat32((this.space -= 4), value, true)
   }
 
   writeFloat64(value: number): void {
-    this.bb.view.setFloat64((this.space -= 8), value)
+    this.bb.view.setFloat64((this.space -= 8), value, true)
   }
 
   addInt8(value: number): void {
@@ -485,9 +485,9 @@ export class Builder {
     const vt1 = this.space
     outerLoop: for (i = 0; i < this.vtables.length; i++) {
       const vt2 = this.bb.view.byteLength - this.vtables[i]
-      if (len == this.bb.view.getInt16(vt2)) {
+      if (len == this.bb.view.getInt16(vt2, true)) {
         for (let j = SIZEOF_SHORT; j < len; j += SIZEOF_SHORT) {
-          if (this.bb.view.getInt16(vt1 + j) != this.bb.view.getInt16(vt2 + j)) {
+          if (this.bb.view.getInt16(vt1 + j, true) != this.bb.view.getInt16(vt2 + j, true)) {
             continue outerLoop
           }
         }
@@ -502,14 +502,14 @@ export class Builder {
       this.space = this.bb.view.byteLength - vtableloc
 
       // Point table to existing vtable.
-      this.bb.view.setInt32(this.space, existingVtable - vtableloc)
+      this.bb.view.setInt32(this.space, existingVtable - vtableloc, true)
     } else {
       // No match:
       // Add the location of the current vtable to the list of vtables.
       this.vtables.push(this.offset())
 
       // Point table to current vtable.
-      this.bb.view.setInt32(this.bb.view.byteLength - vtableloc, this.offset() - vtableloc)
+      this.bb.view.setInt32(this.bb.view.byteLength - vtableloc, this.offset() - vtableloc, true)
     }
 
     this.isNested = false
@@ -543,9 +543,10 @@ export class Builder {
 
   requiredField(table: Offset, field: number): void {
     const tableStart = this.bb.view.byteLength - table
-    const vtableStart = tableStart - this.bb.view.getInt32(tableStart)
+    const vtableStart = tableStart - this.bb.view.getInt32(tableStart, true)
     const ok =
-      field < this.bb.view.getInt16(vtableStart) && this.bb.view.getInt16(vtableStart + field) != 0
+      field < this.bb.view.getInt16(vtableStart, true) &&
+      this.bb.view.getInt16(vtableStart + field, true) != 0
     // If this fails, the caller will show what field needs to be set.
     if (!ok) {
       throw new TypeError('FlatBuffers: field ' + field + ' must be set')
@@ -650,19 +651,21 @@ export class ByteBuffer {
   }
 
   offset(bbPos: number, vtableOffset: number): Offset {
-    const vtable = bbPos - this.view.getInt32(bbPos)
-    return vtableOffset < this.view.getInt16(vtable) ? this.view.getInt16(vtable + vtableOffset) : 0
+    const vtable = bbPos - this.view.getInt32(bbPos, true)
+    return vtableOffset < this.view.getInt16(vtable, true)
+      ? this.view.getInt16(vtable + vtableOffset, true)
+      : 0
   }
 
   union(t: Table, offset: number): Table {
-    t.bbPos = offset + this.view.getInt32(offset)
+    t.bbPos = offset + this.view.getInt32(offset, true)
     t.bb = this
     return t
   }
 
   rawMessage(offset: number): ArrayBuffer {
-    offset += this.view.getInt32(offset)
-    const length = this.view.getInt32(offset)
+    offset += this.view.getInt32(offset, true)
+    const length = this.view.getInt32(offset, true)
     offset += SIZEOF_INT
     return this.view.buffer.slice(offset, offset + length)
   }
@@ -672,15 +675,15 @@ export class ByteBuffer {
   }
 
   indirect(offset: Offset): Offset {
-    return offset + this.view.getInt32(offset)
+    return offset + this.view.getInt32(offset, true)
   }
 
   vector(offset: Offset): Offset {
-    return offset + this.view.getInt32(offset) + SIZEOF_INT // data starts after the length
+    return offset + this.view.getInt32(offset, true) + SIZEOF_INT // data starts after the length
   }
 
   vectorLength(offset: Offset): Offset {
-    return this.view.getInt32(offset + this.view.getInt32(offset))
+    return this.view.getInt32(offset + this.view.getInt32(offset, true))
   }
 }
 
@@ -720,12 +723,12 @@ export class InboundMessage implements Table {
   }
 
   static getRootAsInboundMessage(bb: ByteBuffer, obj?: InboundMessage): InboundMessage {
-    return (obj ?? new InboundMessage()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new InboundMessage()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   static getSizePrefixedRootAsInboundMessage(bb: ByteBuffer, obj?: InboundMessage): InboundMessage {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new InboundMessage()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new InboundMessage()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   messageId(obj?: EnsoUUID): EnsoUUID | null {
@@ -802,7 +805,10 @@ export class OutboundMessage implements Table {
   }
 
   static getRootAsOutboundMessage(bb: ByteBuffer, obj?: OutboundMessage): OutboundMessage {
-    return (obj ?? new OutboundMessage()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new OutboundMessage()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsOutboundMessage(
@@ -810,7 +816,10 @@ export class OutboundMessage implements Table {
     obj?: OutboundMessage,
   ): OutboundMessage {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new OutboundMessage()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new OutboundMessage()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   messageId(obj?: EnsoUUID): EnsoUUID | null {
@@ -887,11 +896,11 @@ export class EnsoUUID implements Table {
   }
 
   leastSigBits(): bigint {
-    return this.bb.view.getBigUint64(this.bbPos)
+    return this.bb.view.getBigUint64(this.bbPos, true)
   }
 
   mostSigBits(): bigint {
-    return this.bb.view.getBigUint64(this.bbPos + 8)
+    return this.bb.view.getBigUint64(this.bbPos + 8, true)
   }
 
   static createEnsoUUID(builder: Builder, leastSigBits: bigint, mostSigBits: bigint): Offset {
@@ -912,17 +921,17 @@ export class Error implements Table {
   }
 
   static getRootAsError(bb: ByteBuffer, obj?: Error): Error {
-    return (obj ?? new Error()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new Error()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   static getSizePrefixedRootAsError(bb: ByteBuffer, obj?: Error): Error {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new Error()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new Error()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   code(): number {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset ? this.bb.view.getInt32(this.bbPos + offset) : 0
+    return offset ? this.bb.view.getInt32(this.bbPos + offset, true) : 0
   }
 
   rawMessage(): ArrayBuffer | null {
@@ -1001,7 +1010,10 @@ export class ReadOutOfBoundsError implements Table {
     bb: ByteBuffer,
     obj?: ReadOutOfBoundsError,
   ): ReadOutOfBoundsError {
-    return (obj ?? new ReadOutOfBoundsError()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ReadOutOfBoundsError()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsReadOutOfBoundsError(
@@ -1009,12 +1021,15 @@ export class ReadOutOfBoundsError implements Table {
     obj?: ReadOutOfBoundsError,
   ): ReadOutOfBoundsError {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new ReadOutOfBoundsError()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ReadOutOfBoundsError()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   fileLength(): bigint {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset ? this.bb.view.getBigUint64(this.bbPos + offset) : 0n
+    return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
   static startReadOutOfBoundsError(builder: Builder) {
@@ -1057,12 +1072,12 @@ export class Success implements Table {
   }
 
   static getRootAsSuccess(bb: ByteBuffer, obj?: Success): Success {
-    return (obj ?? new Success()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new Success()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   static getSizePrefixedRootAsSuccess(bb: ByteBuffer, obj?: Success): Success {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new Success()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new Success()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   static startSuccess(builder: Builder) {
@@ -1090,7 +1105,10 @@ export class InitSessionCommand implements Table {
   }
 
   static getRootAsInitSessionCommand(bb: ByteBuffer, obj?: InitSessionCommand): InitSessionCommand {
-    return (obj ?? new InitSessionCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new InitSessionCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsInitSessionCommand(
@@ -1098,7 +1116,10 @@ export class InitSessionCommand implements Table {
     obj?: InitSessionCommand,
   ): InitSessionCommand {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new InitSessionCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new InitSessionCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   identifier(obj?: EnsoUUID): EnsoUUID | null {
@@ -1140,7 +1161,10 @@ export class VisualizationContext implements Table {
     bb: ByteBuffer,
     obj?: VisualizationContext,
   ): VisualizationContext {
-    return (obj ?? new VisualizationContext()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new VisualizationContext()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsVisualizationContext(
@@ -1148,7 +1172,10 @@ export class VisualizationContext implements Table {
     obj?: VisualizationContext,
   ): VisualizationContext {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new VisualizationContext()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new VisualizationContext()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   visualizationId(obj?: EnsoUUID): EnsoUUID | null {
@@ -1217,7 +1244,10 @@ export class VisualizationUpdate implements Table {
     bb: ByteBuffer,
     obj?: VisualizationUpdate,
   ): VisualizationUpdate {
-    return (obj ?? new VisualizationUpdate()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new VisualizationUpdate()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsVisualizationUpdate(
@@ -1225,7 +1255,10 @@ export class VisualizationUpdate implements Table {
     obj?: VisualizationUpdate,
   ): VisualizationUpdate {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new VisualizationUpdate()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new VisualizationUpdate()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   visualizationContext(obj?: VisualizationContext): VisualizationContext | null {
@@ -1314,12 +1347,12 @@ export class Path implements Table {
   }
 
   static getRootAsPath(bb: ByteBuffer, obj?: Path): Path {
-    return (obj ?? new Path()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new Path()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   static getSizePrefixedRootAsPath(bb: ByteBuffer, obj?: Path): Path {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new Path()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new Path()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   rootId(obj?: EnsoUUID): EnsoUUID | null {
@@ -1389,7 +1422,10 @@ export class WriteFileCommand implements Table {
   }
 
   static getRootAsWriteFileCommand(bb: ByteBuffer, obj?: WriteFileCommand): WriteFileCommand {
-    return (obj ?? new WriteFileCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new WriteFileCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsWriteFileCommand(
@@ -1397,7 +1433,10 @@ export class WriteFileCommand implements Table {
     obj?: WriteFileCommand,
   ): WriteFileCommand {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new WriteFileCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new WriteFileCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   path(obj?: Path): Path | null {
@@ -1477,7 +1516,10 @@ export class ReadFileCommand implements Table {
   }
 
   static getRootAsReadFileCommand(bb: ByteBuffer, obj?: ReadFileCommand): ReadFileCommand {
-    return (obj ?? new ReadFileCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ReadFileCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsReadFileCommand(
@@ -1485,7 +1527,10 @@ export class ReadFileCommand implements Table {
     obj?: ReadFileCommand,
   ): ReadFileCommand {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new ReadFileCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ReadFileCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   path(obj?: Path): Path | null {
@@ -1523,7 +1568,10 @@ export class FileContentsReply implements Table {
   }
 
   static getRootAsFileContentsReply(bb: ByteBuffer, obj?: FileContentsReply): FileContentsReply {
-    return (obj ?? new FileContentsReply()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new FileContentsReply()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsFileContentsReply(
@@ -1531,7 +1579,10 @@ export class FileContentsReply implements Table {
     obj?: FileContentsReply,
   ): FileContentsReply {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new FileContentsReply()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new FileContentsReply()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   contents(index: number): number | null {
@@ -1597,7 +1648,10 @@ export class WriteBytesCommand implements Table {
   }
 
   static getRootAsWriteBytesCommand(bb: ByteBuffer, obj?: WriteBytesCommand): WriteBytesCommand {
-    return (obj ?? new WriteBytesCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new WriteBytesCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsWriteBytesCommand(
@@ -1605,7 +1659,10 @@ export class WriteBytesCommand implements Table {
     obj?: WriteBytesCommand,
   ): WriteBytesCommand {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new WriteBytesCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new WriteBytesCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   path(obj?: Path): Path | null {
@@ -1615,7 +1672,7 @@ export class WriteBytesCommand implements Table {
 
   byteOffset(): bigint {
     const offset = this.bb.offset(this.bbPos, 6)
-    return offset ? this.bb.view.getBigUint64(this.bbPos + offset) : 0n
+    return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
   overwriteExisting(): boolean {
@@ -1709,7 +1766,10 @@ export class WriteBytesReply implements Table {
   }
 
   static getRootAsWriteBytesReply(bb: ByteBuffer, obj?: WriteBytesReply): WriteBytesReply {
-    return (obj ?? new WriteBytesReply()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new WriteBytesReply()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsWriteBytesReply(
@@ -1717,7 +1777,10 @@ export class WriteBytesReply implements Table {
     obj?: WriteBytesReply,
   ): WriteBytesReply {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new WriteBytesReply()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new WriteBytesReply()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   checksum(obj?: EnsoDigest): EnsoDigest | null {
@@ -1758,7 +1821,10 @@ export class ReadBytesCommand implements Table {
   }
 
   static getRootAsReadBytesCommand(bb: ByteBuffer, obj?: ReadBytesCommand): ReadBytesCommand {
-    return (obj ?? new ReadBytesCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ReadBytesCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsReadBytesCommand(
@@ -1766,7 +1832,10 @@ export class ReadBytesCommand implements Table {
     obj?: ReadBytesCommand,
   ): ReadBytesCommand {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new ReadBytesCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ReadBytesCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   segment(obj?: FileSegment): FileSegment | null {
@@ -1807,12 +1876,12 @@ export class ReadBytesReply implements Table {
   }
 
   static getRootAsReadBytesReply(bb: ByteBuffer, obj?: ReadBytesReply): ReadBytesReply {
-    return (obj ?? new ReadBytesReply()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ReadBytesReply()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   static getSizePrefixedRootAsReadBytesReply(bb: ByteBuffer, obj?: ReadBytesReply): ReadBytesReply {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new ReadBytesReply()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ReadBytesReply()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   checksum(obj?: EnsoDigest): EnsoDigest | null {
@@ -1899,7 +1968,10 @@ export class ChecksumBytesCommand implements Table {
     bb: ByteBuffer,
     obj?: ChecksumBytesCommand,
   ): ChecksumBytesCommand {
-    return (obj ?? new ChecksumBytesCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ChecksumBytesCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsChecksumBytesCommand(
@@ -1907,7 +1979,10 @@ export class ChecksumBytesCommand implements Table {
     obj?: ChecksumBytesCommand,
   ): ChecksumBytesCommand {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new ChecksumBytesCommand()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ChecksumBytesCommand()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   segment(obj?: FileSegment): FileSegment | null {
@@ -1948,7 +2023,10 @@ export class ChecksumBytesReply implements Table {
   }
 
   static getRootAsChecksumBytesReply(bb: ByteBuffer, obj?: ChecksumBytesReply): ChecksumBytesReply {
-    return (obj ?? new ChecksumBytesReply()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ChecksumBytesReply()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   static getSizePrefixedRootAsChecksumBytesReply(
@@ -1956,7 +2034,10 @@ export class ChecksumBytesReply implements Table {
     obj?: ChecksumBytesReply,
   ): ChecksumBytesReply {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new ChecksumBytesReply()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new ChecksumBytesReply()).init(
+      bb.view.getInt32(bb.position, true) + bb.position,
+      bb,
+    )
   }
 
   checksum(obj?: EnsoDigest): EnsoDigest | null {
@@ -1997,12 +2078,12 @@ export class EnsoDigest implements Table {
   }
 
   static getRootAsEnsoDigest(bb: ByteBuffer, obj?: EnsoDigest): EnsoDigest {
-    return (obj ?? new EnsoDigest()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new EnsoDigest()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   static getSizePrefixedRootAsEnsoDigest(bb: ByteBuffer, obj?: EnsoDigest): EnsoDigest {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new EnsoDigest()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new EnsoDigest()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   bytes(index: number): number | null {
@@ -2069,12 +2150,12 @@ export class FileSegment implements Table {
   }
 
   static getRootAsFileSegment(bb: ByteBuffer, obj?: FileSegment): FileSegment {
-    return (obj ?? new FileSegment()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new FileSegment()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   static getSizePrefixedRootAsFileSegment(bb: ByteBuffer, obj?: FileSegment): FileSegment {
     bb.position += SIZE_PREFIX_LENGTH
-    return (obj ?? new FileSegment()).init(bb.view.getInt32(bb.position) + bb.position, bb)
+    return (obj ?? new FileSegment()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
   path(obj?: Path): Path | null {
@@ -2084,12 +2165,12 @@ export class FileSegment implements Table {
 
   byteOffset(): bigint {
     const offset = this.bb.offset(this.bbPos, 6)
-    return offset ? this.bb.view.getBigUint64(this.bbPos + offset) : 0n
+    return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
   length(): bigint {
     const offset = this.bb.offset(this.bbPos, 8)
-    return offset ? this.bb.view.getBigUint64(this.bbPos + offset) : 0n
+    return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
   static startFileSegment(builder: Builder) {

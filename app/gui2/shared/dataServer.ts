@@ -1,7 +1,5 @@
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
-import type { WebsocketClient } from 'lib0/websocket'
-import type { MessageEvent } from 'ws'
 import {
   Builder,
   ByteBuffer,
@@ -27,6 +25,7 @@ import {
   WriteBytesReply,
   WriteFileCommand,
 } from './binaryProtocol'
+import type { WebsocketClient } from './websocket'
 
 export function uuidFromBits(leastSigBits: bigint, mostSigBits: bigint): string {
   const bits = (mostSigBits << 64n) | leastSigBits
@@ -58,6 +57,7 @@ export type DataServerEvents = {
 
 export class DataServer extends ObservableV2<DataServerEvents> {
   initialized = false
+  ready: Promise<void>
   uuid
   resolveCallbacks = new Map<string, (data: any) => void>()
 
@@ -65,17 +65,25 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   constructor(public websocket: WebsocketClient) {
     super()
     this.uuid = random.uuidv4()
-    websocket.on('message', (message: MessageEvent) => {
-      if (!(message.data instanceof ArrayBuffer)) {
-        console.warn('Data Server: Data type was invalid:', message.data)
+    if (websocket.connected) {
+      this.ready = Promise.resolve()
+    } else {
+      this.ready = new Promise((resolve, reject) => {
+        websocket.on('connect', () => resolve())
+        websocket.on('disconnect', reject)
+      })
+    }
+    websocket.on('message', (rawPayload) => {
+      if (!(rawPayload instanceof ArrayBuffer)) {
+        console.warn('Data Server: Data type was invalid:', rawPayload)
         // Ignore all non-binary messages. If the messages are `Blob`s instead, this is a
         // misconfiguration and should also be ignored.
         return
       }
-      const binaryMessage = new OutboundMessage().init(0, new ByteBuffer(message.data))
-      const id = binaryMessage.messageId()
+      const binaryMessage = OutboundMessage.getRootAsOutboundMessage(new ByteBuffer(rawPayload))
+      const id = binaryMessage.correlationId()
       if (id == null) {
-        console.warn('Data Server: Message ID was invalid.')
+        console.warn('Data Server: Correlation ID was invalid.')
         return
       }
       const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
@@ -91,6 +99,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
 
   async initialize() {
     if (!this.initialized) {
+      await this.ready
       await this.initSession()
     }
   }

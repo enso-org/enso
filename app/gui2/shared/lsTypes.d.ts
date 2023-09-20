@@ -1,10 +1,10 @@
-import type { Uuid } from './yjsModel'
+import type { ExprId, Uuid } from './yjsModel'
 
 /** Version checksum of a text file - Sha3_224 */
 declare const brandChecksum: unique symbol
 export type Checksum = string & { [brandChecksum]: never }
 export type ContextId = Uuid
-export type ExpressionId = Uuid
+export type ExpressionId = ExprId
 
 export type ContentRoot =
   | { type: 'Project'; id: Uuid }

@@ -223,6 +223,9 @@ class ModulePersistence extends ObservableV2<ModulePersistenceEvents> {
         const ideMeta = JSON.parse(metaLines[1])?.ide
         const nodeMeta = ideMeta?.node
 
+        this.model.metadata.set('initialEndLine', loaded.content.match(/\n/g)?.length ?? 0)
+        this.model.metadata.set('initialEndColumn', metaLines[1].length)
+
         for (const [{ index, size }, id] of idMapMeta) {
           const range = [index.value, index.value + size.value]
           if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
@@ -240,7 +243,7 @@ class ModulePersistence extends ObservableV2<ModulePersistenceEvents> {
             y: meta?.position?.vector?.[1] ?? 0,
             vis: meta?.visualization ?? undefined,
           }
-          this.model.metadata.set(id, formattedMeta)
+          this.model.nodeMetadata.set(id, formattedMeta)
         }
       } catch (e) {
         console.log('Metadata parse failed:', e)

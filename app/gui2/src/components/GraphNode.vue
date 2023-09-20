@@ -321,12 +321,9 @@ watch(isVisualizationVisible, async (visible) => {
   )
 })
 
-watchEffect(() => {
-  if (isVisualizationVisible.value && visualizationConfiguration.value != null) {
-    props.languageServer.modifyVisualization(
-      visualizationId.value,
-      visualizationConfiguration.value,
-    )
+watch(visualizationConfiguration, async (config) => {
+  if (config != null && isVisualizationVisible.value) {
+    await props.languageServer.modifyVisualization(visualizationId.value, config)
   }
 })
 
