@@ -311,7 +311,6 @@ resolve_headers req =
     ## Raise error if content type or encoding are specified in two places;
        otherwise, add any Request_Body settings to the header list.
     has_content_type_header_in_list = req.headers.any is_content_type_header
-    has_content_encoding_header_in_list = req.headers.any is_content_encoding_header
 
     all_headers = case request_body_content_type.is_nothing.not && has_content_type_header_in_list of
         True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Type in both the request body and request headers")

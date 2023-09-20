@@ -8,7 +8,7 @@ import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
 import Standard.Base.Runtime.Context
-from Standard.Base.Network.HTTP import HTTP, resolve_headers
+from Standard.Base.Network.HTTP import resolve_headers
 
 import Standard.Test.Extensions
 from Standard.Test import Test, Test_Suite
@@ -72,7 +72,7 @@ spec =
                 }
             response . should_equal expected_response
 
-        Test.specify "Can perform a GET with a file response" pending="remove me" <|
+        Test.specify "Can perform a GET with a file response" <|
             f = enso_project.data / "spreadsheet.xls"
             f.delete_if_exists
             url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
