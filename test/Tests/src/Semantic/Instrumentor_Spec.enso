@@ -18,12 +18,13 @@ spec =
                 Nothing
 
             Meta.meta .fib . instrument . on_return collect . activate
-            fib 10
+            result = fib 10
 
             v = b.to_vector
 
             v.length . should_equal 1
             v.at 0 . should_equal 89
+            result . should_equal 89
 
 main = Test_Suite.run_main spec
 
