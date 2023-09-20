@@ -1,5 +1,8 @@
 package org.enso.base.time;
 
+import org.enso.polyglot.common_utils.Core_Date_Utils;
+import org.graalvm.collections.Pair;
+
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -7,7 +10,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalQueries;
 
@@ -16,15 +18,32 @@ import static java.time.temporal.ChronoField.NANO_OF_SECOND;
 
 public class EnsoDateTimeFormatter {
   private final DateTimeFormatter formatter;
-  private final boolean needsISOTreplaceWorkaround;
+  private final Pair<Character, String> isoReplacementPair;
   private final String originalPattern;
   private final FormatterKind formatterKind;
 
-  public EnsoDateTimeFormatter(DateTimeFormatter formatter, boolean needsISOreplaceTWorkaround, String originalPattern, FormatterKind formatterKind) {
+  private EnsoDateTimeFormatter(DateTimeFormatter formatter, Pair<Character, String> isoReplacementPair, String originalPattern, FormatterKind formatterKind) {
     this.formatter = formatter;
-    this.needsISOTreplaceWorkaround = needsISOreplaceTWorkaround;
+    this.isoReplacementPair = isoReplacementPair;
     this.originalPattern = originalPattern;
     this.formatterKind = formatterKind;
+  }
+
+  public EnsoDateTimeFormatter(DateTimeFormatter formatter, String originalPattern, FormatterKind formatterKind) {
+    this(formatter, null, originalPattern, formatterKind);
+  }
+
+  public static EnsoDateTimeFormatter makeISOConstant(DateTimeFormatter formatter, String name) {
+    return new EnsoDateTimeFormatter(formatter, Pair.create(' ', "T"), name, FormatterKind.CONSTANT);
+  }
+
+  public static EnsoDateTimeFormatter default_enso_zoned_date_time_formatter() {
+    return new EnsoDateTimeFormatter(
+        Core_Date_Utils.defaultZonedDateTimeFormatter(),
+        Pair.create('T', " "),
+        "default_enso_zoned_date_time",
+        FormatterKind.CONSTANT
+    );
   }
 
   public DateTimeFormatter getRawJavaFormatter() {
@@ -39,10 +58,18 @@ public class EnsoDateTimeFormatter {
     return formatterKind;
   }
 
-  private String normaliseISODateTime(String dateString) {
-    if (dateString != null && dateString.length() > 10 && dateString.charAt(10) == ' ') {
+  private String normaliseInput(String dateString) {
+    if (isoReplacementPair == null) {
+      // Nothing to do
+      return dateString;
+    }
+
+    char from = isoReplacementPair.getLeft();
+    String to = isoReplacementPair.getRight();
+
+    if (dateString != null && dateString.length() > 10 && dateString.charAt(10) == from) {
       var builder = new StringBuilder(dateString);
-      builder.replace(10, 11, "T");
+      builder.replace(10, 11, to);
       return builder.toString();
     }
 
@@ -60,9 +87,7 @@ public class EnsoDateTimeFormatter {
   }
 
   public LocalDate parseLocalDate(String dateString) {
-    if (needsISOTreplaceWorkaround) {
-      dateString = normaliseISODateTime(dateString);
-    }
+    dateString = normaliseInput(dateString);
 
     var parsed = formatter.parse(dateString);
 
@@ -92,9 +117,7 @@ public class EnsoDateTimeFormatter {
   }
 
   public ZonedDateTime parseZonedDateTime(String dateString) {
-    if (needsISOTreplaceWorkaround) {
-      dateString = normaliseISODateTime(dateString);
-    }
+    dateString = normaliseInput(dateString);
 
     var resolved = formatter.parse(dateString);
 
@@ -129,10 +152,7 @@ public class EnsoDateTimeFormatter {
   }
 
   public LocalTime parseLocalTime(String text) {
-    if (needsISOTreplaceWorkaround) {
-      text = normaliseISODateTime(text);
-    }
-
+    text = normaliseInput(text);
     return LocalTime.parse(text, formatter);
   }
 

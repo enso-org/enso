@@ -9,9 +9,11 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalQueries;
 
@@ -35,7 +37,10 @@ public class Core_Date_Utils {
   /** @return default Date Time formatter for parsing a Date_Time. */
   public static DateTimeFormatter defaultZonedDateTimeFormatter() {
     return new DateTimeFormatterBuilder()
-        .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        .parseLenient()
+        .append(DateTimeFormatter.ISO_LOCAL_DATE)
+        .appendLiteral(' ')
+        .append(DateTimeFormatter.ISO_LOCAL_TIME)
         .optionalStart()
         .parseLenient()
         .appendOffsetId()

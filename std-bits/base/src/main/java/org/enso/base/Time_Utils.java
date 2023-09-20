@@ -82,18 +82,6 @@ public class Time_Utils {
   }
 
   /**
-   * @return default DateTimeFormatter for parsing a Date_Time.
-   */
-  public static EnsoDateTimeFormatter default_date_time_formatter() {
-    return new EnsoDateTimeFormatter(
-        Core_Date_Utils.defaultZonedDateTimeFormatter(),
-        true,
-        "default_enso_zoned_date_time",
-        FormatterKind.CONSTANT
-    );
-  }
-
-  /**
    * @return default DateTimeFormatter for parsing a Date.
    */
   public static DateTimeFormatter default_date_formatter() {

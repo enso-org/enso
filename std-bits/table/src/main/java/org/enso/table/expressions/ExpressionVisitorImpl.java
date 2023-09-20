@@ -316,7 +316,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
-  private static final EnsoDateTimeFormatter dateTimeFormatter = Time_Utils.default_date_time_formatter();
+  private static final EnsoDateTimeFormatter dateTimeFormatter = EnsoDateTimeFormatter.default_enso_zoned_date_time_formatter();
 
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
