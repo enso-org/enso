@@ -2527,3 +2527,15 @@ cast_if_needed column value_type = if column.value_type == value_type then colum
 ## PRIVATE
 naming_helper : Column_Naming_Helper
 naming_helper = Column_Naming_Helper.in_memory
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_vector
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Column.from (that:Date_Range) (name:Text="Date_Range") = Column.from_vector name that.to_vector
