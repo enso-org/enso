@@ -3,7 +3,6 @@ package org.enso.distribution.config
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json, JsonObject}
 import org.enso.distribution.config
-import org.enso.pkg.Contact
 
 /** Global user configuration.
   *
@@ -26,17 +25,7 @@ case class GlobalConfig(
   authorEmail: Option[String],
   editionProviders: Seq[String],
   original: JsonObject
-) {
-
-  /** Returns a [[Contact]] for the default author if at least one of the name
-    * and email is set.
-    *
-    * If both name and email are not set, returns None.
-    */
-  def defaultAuthor: Option[Contact] =
-    if (authorName.isEmpty && authorEmail.isEmpty) None
-    else Some(Contact(name = authorName, email = authorEmail))
-}
+)
 
 object GlobalConfig {
   private val defaultEditionProviders: Seq[String] = Seq(

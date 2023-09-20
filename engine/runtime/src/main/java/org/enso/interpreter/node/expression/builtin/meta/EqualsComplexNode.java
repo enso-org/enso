@@ -370,50 +370,10 @@ public abstract class EqualsComplexNode extends Node {
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
       @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
-    try {
-      Object selfMembers = interop.getMembers(selfObject);
-      Object otherMembers = interop.getMembers(otherObject);
-      assert interop.getArraySize(selfMembers) < Integer.MAX_VALUE
-          : "Long array sizes not supported";
-      int membersSize = (int) interop.getArraySize(selfMembers);
-      if (interop.getArraySize(otherMembers) != membersSize) {
-        return false;
-      }
-
-      // Check member names
-      String[] memberNames = new String[membersSize];
-      for (int i = 0; i < membersSize; i++) {
-        String selfMemberName = interop.asString(interop.readArrayElement(selfMembers, i));
-        String otherMemberName = interop.asString(interop.readArrayElement(otherMembers, i));
-        if (!equalsNode.execute(selfMemberName, otherMemberName)) {
-          return false;
-        }
-        memberNames[i] = selfMemberName;
-      }
-
-      // Check member values
-      for (int i = 0; i < membersSize; i++) {
-        if (interop.isMemberReadable(selfObject, memberNames[i])
-            && interop.isMemberReadable(otherObject, memberNames[i])) {
-          Object selfMember =
-              valueToEnsoNode.execute(interop.readMember(selfObject, memberNames[i]));
-          Object otherMember =
-              valueToEnsoNode.execute(interop.readMember(otherObject, memberNames[i]));
-          if (!equalsNode.execute(selfMember, otherMember)) {
-            return false;
-          }
-        }
-      }
+    if (interop.isIdentical(selfObject, otherObject, interop)) {
       return true;
-    } catch (UnsupportedMessageException
-        | InvalidArrayIndexException
-        | UnknownIdentifierException e) {
-      throw new IllegalStateException(
-          String.format(
-              "One of the interop objects has probably wrongly specified interop API "
-                  + "for members. selfObject = %s ; otherObject = %s",
-              selfObject, otherObject),
-          e);
+    } else {
+      return false;
     }
   }
 
@@ -547,6 +507,9 @@ public abstract class EqualsComplexNode extends Node {
       return false;
     }
     if (interop.isTime(object)) {
+      return false;
+    }
+    if (interop.hasHashEntries(object)) {
       return false;
     }
     return interop.hasMembers(object);

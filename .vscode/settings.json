@@ -5,5 +5,8 @@
   "vue.complete.casing.tags": "pascal",
   "auto-snippets.snippets": [
     { "language": "vue", "snippet": "Vue single-file component" }
-  ]
+  ],
+  "files.watcherExclude": {
+    "**/target": true
+  }
 }
