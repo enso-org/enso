@@ -19,9 +19,9 @@ polyglot java import org.enso.table.operations.OrderBuilder
    Create a formatter for the specified `Value_Type`.
 make_value_formatter_for_value_type : Value_Type -> Locale -> (Any -> Text)
 make_value_formatter_for_value_type value_type locale = case value_type of
-    Value_Type.Date -> make_value_formatter locale
-    Value_Type.Date_Time _ -> make_value_formatter locale
-    Value_Type.Time -> make_value_formatter locale
+    Value_Type.Date -> make_datetime_formatter locale
+    Value_Type.Date_Time _ -> make_datetime_formatter locale
+    Value_Type.Time -> make_datetime_formatter locale
     Value_Type.Boolean -> make_boolean_formatter
     Value_Type.Integer _ -> make_value_formatter locale
     Value_Type.Float _ -> make_value_formatter locale
@@ -33,8 +33,8 @@ make_value_formatter_for_value_type value_type locale = case value_type of
    Create a formatter for the given format string.
    The `value` parameter has to have a `format` method that takes a format and
    locale.
-make_value_formatter : Locale -> (Any -> Text)
-make_value_formatter locale = value-> format->
+make_value_formatter : Locale -> (Any -> Text -> Text)
+make_value_formatter locale value (format : Text | Nothing) =
     handle_illegal_argument_exception format <|
         if format.is_nothing || format.is_empty then value.to_text else
             value.format format locale
@@ -42,10 +42,17 @@ make_value_formatter locale = value-> format->
    Create a `Boolean` formatter that takes the format string as the second
    parameter.
 make_boolean_formatter : (Boolean -> Text -> Text)
-make_boolean_formatter = bool-> format->
+make_boolean_formatter (bool : Boolean) (format : Text | Nothing) =
     if format.is_nothing || format.is_empty then bool.to_text else
         data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
         data_formatter.format bool
+
+make_datetime_formatter : Locale -> (Any -> Date_Time_Formatter -> Text)
+make_datetime_formatter (locale_override : Locale) value (format : Date_Time_Formatter | Nothing) =
+    if format.is_nothing then value.to_text else
+        # If locale is set to default, keep the locale of the formatter, otherwise override it.
+        effective_formatter = if locale_override == Locale.default then format else format.with_locale locale_override
+        value.format effective_formatter
 
 ## PRIVATE
    Rethrow a Java IllegalArgumentException as an Illegal_Argument.

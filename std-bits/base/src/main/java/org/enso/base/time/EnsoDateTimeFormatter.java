@@ -12,6 +12,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalQueries;
+import java.util.Locale;
 
 import static java.time.temporal.ChronoField.INSTANT_SECONDS;
 import static java.time.temporal.ChronoField.NANO_OF_SECOND;
@@ -44,6 +45,10 @@ public class EnsoDateTimeFormatter {
         "default_enso_zoned_date_time",
         FormatterKind.CONSTANT
     );
+  }
+
+  public EnsoDateTimeFormatter withLocale(Locale locale) {
+    return new EnsoDateTimeFormatter(formatter.withLocale(locale), isoReplacementPair, originalPattern, formatterKind);
   }
 
   public DateTimeFormatter getRawJavaFormatter() {

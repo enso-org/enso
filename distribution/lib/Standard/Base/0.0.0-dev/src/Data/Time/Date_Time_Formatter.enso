@@ -240,6 +240,11 @@ type Date_Time_Formatter
     ## Parses a human-readable representation of this formatter.
     to_display_text self = self.to_text
 
+    ## Returns a copy of this formatter with a changed locale.
+    with_locale : Locale -> Date_Time_Formatter
+    with_locale self (locale : Locale) =
+        Date_Time_Formatter.Value (self.underlying.withLocale locale.java_locale)
+
     ## PRIVATE
     handle_java_errors self ~action =
         Panic.catch JException action caught_panic->
