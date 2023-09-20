@@ -19,6 +19,8 @@ const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
+const componentBrowserVisible = ref(false)
+const componentBrowserPosition = ref(Vec2.Zero())
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -44,12 +46,18 @@ function keyboardBusy() {
   return document.activeElement != document.body
 }
 
-useWindowEvent('keypress', (e) => {
+useWindowEvent('keydown', (e) => {
   if (keyboardBusy()) return
   const pos = navigator.sceneMousePos
   if (pos == null) return
 
   switch (e.key) {
+    case 'Enter':
+      if (!componentBrowserVisible.value) {
+        componentBrowserPosition.value = pos
+        componentBrowserVisible.value = true
+      }
+      break
     case 'n': {
       graphStore.createNode(pos, 'hello "world"! 123 + x')
       break
@@ -93,7 +101,12 @@ function moveNode(id: ExprId, delta: Vec2) {
         @movePosition="moveNode(id, $event)"
       />
     </div>
-    <ComponentBrowser :navigator="navigator" />
+    <ComponentBrowser
+      v-if="componentBrowserVisible"
+      :navigator="navigator"
+      :position="componentBrowserPosition"
+      @finished="componentBrowserVisible = false"
+    />
     <TopBar
       v-model:mode="mode"
       :title="title"

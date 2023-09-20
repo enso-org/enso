@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import ProjectView from '@/views/ProjectView.vue'
-import { toRef } from 'vue'
+import { onMounted, toRef } from 'vue'
 
 const props = defineProps<{
   config: GuiConfig
 }>()
 
 provideGuiConfig(toRef(props, 'config'))
+
+onMounted(() => useSuggestionDbStore().initializeDb())
 </script>
 
 <template>
@@ -19,4 +22,3 @@ provideGuiConfig(toRef(props, 'config'))
   flex: 1;
 }
 </style>
-@/providers/guiConfig

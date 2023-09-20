@@ -81,7 +81,7 @@ public class System {
     for (int i = 1; i <= arrArguments.length; i++) {
       cmd[i] = expectStringNode.execute(arrArguments[i - 1]);
     }
-    TruffleProcessBuilder pb = ctx.getEnvironment().newProcessBuilder(cmd);
+    TruffleProcessBuilder pb = ctx.newProcessBuilder(cmd);
 
     Process p = pb.start();
     ByteArrayInputStream in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
