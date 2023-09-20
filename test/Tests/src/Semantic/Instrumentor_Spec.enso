@@ -26,6 +26,16 @@ spec =
             v.at 0 . should_equal 89
             result . should_equal 89
 
+        Test.specify "replay with caches and specify different result" <|
+            replay uuid:Text = case uuid of
+                "00000000-aaaa-bbbb-0000-000000000000" -> 42
+                _ -> Nothing
+
+            Meta.meta .fib . instrument . on_enter replay . activate
+            result = fib 10
+
+            result . should_equal 42
+
 main = Test_Suite.run_main spec
 
 
