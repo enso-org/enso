@@ -31,6 +31,34 @@ spec =
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
+    Test.group "asdfasdf" pending=pending_has_url <|
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_post = base_url_with_slash + "post"
+        url_put = base_url_with_slash + "put"
+        url_patch = base_url_with_slash + "patch"
+        url_delete = base_url_with_slash + "delete"
+
+        Test.specify "Can perform a Request_Body.Text POST" <|
+            response = Data.post url_post (Request_Body.Text "hello world")
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Encoding": "UTF-8",
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "method": "POST",
+                  "form": null,
+                  "files": null,
+                  "data": "hello world",
+                  "json": null,
+                  "args": {}
+                }
+            response . should_equal expected_response
+
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
             http = HTTP.new (timeout = (Duration.new seconds=30))

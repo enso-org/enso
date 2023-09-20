@@ -2,12 +2,14 @@ import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Pair.Pair
 import project.Data.Set.Set
+import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.IO
 import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -286,10 +288,8 @@ parse_headers headers =
         _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
 ## PRIVATE
-   It is an error to specify the content type in the request body and the header list.
-   It is an error to specify the content encoding in the request body and the header list.
-   If the body is not Request_Body.Empty, and no content type is specified, a default is used.
-   If the body is not Request_Body.Empty, and no content encoding is specified, a default is used.
+   It is an error to specify the content type or content encoding in both the request body and the header list.
+   If the body is not Request_Body.Empty, and no content type or content encoding is specified, a default is used.
 resolve_headers : Request -> Text | Nothing -> Vector Header
 resolve_headers req boundary =
     is_content_type_header h = h.name . equals_ignore_case Header.content_type_header_name
@@ -308,20 +308,27 @@ resolve_headers req boundary =
        For `multipart/form-data`, add a content type header with the content boundary
     has_content_type_header_in_list = req.headers.any is_content_type_header
     has_content_encoding_header_in_list = req.headers.any is_content_encoding_header
+    IO.println 'HHH'
+    IO.println request_body_content_type
+    IO.println request_body_content_encoding
+    IO.println has_content_type_header_in_list
+    IO.println has_content_encoding_header_in_list
 
     all_headers = case request_body_content_type.is_nothing.not && has_content_type_header_in_list of
         True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Type in both the request body and request headers")
         False -> case request_body_content_encoding.is_nothing.not && has_content_encoding_header_in_list of
             True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Encoding in both the request body and request headers")
             False ->
-                content_type_additions = if request_body_content_type.is_nothing then [] else [request_body_content_type]
-                content_encoding_additions = if request_body_content_encoding.is_nothing then [] else [request_body_content_encoding]
-                boundary_additions = case req.body of
-                    Request_Body.Form_Data _ url_encoded = if url_encoded then [] else [Header.multipart_form_data boundary]
-                    _ -> []
-                headers = req.headers + content_type_additions + content_encoding_additions + boundary_additions
+                content_type_additions = if request_body_content_type.is_nothing then [] else [Header.content_type request_body_content_type]
+                content_encoding_additions = if request_body_content_encoding.is_nothing then [] else [Header.content_encoding request_body_content_encoding.character_set]
+                boundary_additions =
+                    case req.body of
+                        Request_Body.Form_Data _ url_encoded -> if url_encoded then [] else [Header.multipart_form_data boundary]
+                        _ -> []
+                req.headers + content_type_additions + content_encoding_additions + boundary_additions
+    IO.println all_headers
 
-    # Add default content type and/or encoding, if one is not specified and the body is not Request_Body.Empty
+    # Add default content type and/or encoding, if one is not specified and the body is not Request_Body.Empty.
     contains_content_type = all_headers.any is_content_type_header
     contains_content_encoding = all_headers.any is_content_encoding_header
     is_body_empty = case req.body of
@@ -330,7 +337,7 @@ resolve_headers req boundary =
     is_body_text = case req.body of
         Request_Body.Text _ _ _ -> True
         _ -> False
-    default_content_type = if is_body_empty.not && contains_content_type.not then [req.body.default_content_type] else []
+    default_content_type = if is_body_empty.not && contains_content_type.not then [req.body.default_content_type_header] else []
     default_content_encoding = if is_body_text && contains_content_encoding.not then [Header.content_encoding Encoding.utf_8.character_set] else []
 
     all_headers + default_content_type + default_content_encoding

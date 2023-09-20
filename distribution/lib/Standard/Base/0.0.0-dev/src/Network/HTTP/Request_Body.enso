@@ -15,7 +15,7 @@ type Request_Body
        - text: The plain text in the request body.
        - encoding: the text encoding to send as a Content-Encoding header
        - content_type: the content_type to send as a Content-Type header
-    Text (text:Text) (encoding:(Encoding|Nothing)=Nothing (content_type:(Text|Nothing)=Nothing)
+    Text (text:Text) (encoding:(Encoding|Nothing)=Nothing) (content_type:(Text|Nothing)=Nothing)
 
     ## Request body with an object to be sent as JSON.
 

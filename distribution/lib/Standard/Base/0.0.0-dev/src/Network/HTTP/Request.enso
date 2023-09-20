@@ -244,10 +244,13 @@ type Request
         Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
 
     ## PRIVATE
-    default_content_type : Header | Nothing
-    default_content_type self = case self of
-        Request_Body.Text _ _ _ = Header.content_type "text/plain"
-        Request_Body.Json _ = Header.content_type "application/json"
-        Request_Body.Binary _ = Header.content_type "application/octet-stream"
-        Request_Body.Form_Data _ url_encoded = url_encoded ? Header.application_x_www_form_urlencoded : Header.application_octet_stream
-        Request_Body.Empty -> Nothing
+       For Request_Body.Form_Data url_encoded=False, this returns `Nothing`,
+       because the content type must include the content boundary.
+    default_content_type_header : Header | Nothing
+    default_content_type_header self =
+        case self of
+            Request_Body.Text _ _ _ -> Header.content_type "text/plain"
+            Request_Body.Json _ -> Header.content_type "application/json"
+            Request_Body.Binary _ -> Header.content_type "application/octet-stream"
+            Request_Body.Form_Data _ url_encoded -> url_encoded ? Header.application_x_www_form_urlencoded : Nothing
+            Request_Body.Empty -> Nothing
