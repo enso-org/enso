@@ -38,10 +38,10 @@ export interface FileContents<T> {
 export interface TextFileContents extends FileContents<string> {}
 
 export interface DirectoryTree {
-  path: Path;
-  name: string;
-  files: FileSystemObject[];
-  directories: DirectoryTree[];
+  path: Path
+  name: string
+  files: FileSystemObject[]
+  directories: DirectoryTree[]
 }
 
 export interface FileAttributes {
@@ -53,8 +53,8 @@ export interface FileAttributes {
 }
 
 export interface Range {
-  start: Position;
-  end: Position;
+  start: Position
+  end: Position
 }
 
 export interface TextEdit {
