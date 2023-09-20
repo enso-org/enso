@@ -5,7 +5,7 @@ import Standard.Base.Errors.Time_Error.Time_Error
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import org.enso.table.formatting.DateTimeFormatter
+polyglot java import java.time.format.DateTimeFormatter
 
 spec =
     Test.group "Parsing formats" <|
@@ -195,3 +195,5 @@ spec =
             Date.parse "99-01-02" "yy{1949}-MM-dd" . should_equal (Date.new 1899 1 2)
             Date.parse "49-03-04" "yy{3099}-MM-dd" . should_equal (Date.new 3049 3 4)
             Date.parse "50-03-04" "yy{2099}-MM-dd" . should_equal (Date.new 2050 3 4)
+
+main = Test_Suite.run_main spec
