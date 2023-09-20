@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+from Standard.Test import Test_Suite
+
+import project.S3_Spec
+
+main = Test_Suite.run_main <|
+    S3_Spec.spec

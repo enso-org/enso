@@ -110,7 +110,7 @@ type Header
 
              example_content_type = Header.content_type "my_type"
     content_type : Text -> Header
-    content_type value = Header.Value "Content-Type" value
+    content_type value = Header.Value Header.content_type_header_name value
 
     ## Header "Content-Type: application/json".
 
@@ -177,6 +177,9 @@ type Header
        Convert to a display representation of this Header.
     to_display_text : Text
     to_display_text self = self.name + ": " + self.value.to_display_text
+
+    content_type_header_name : Text
+    content_type_header_name = "Content-Type"
 
 ## PRIVATE
 type Header_Comparator

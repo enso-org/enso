@@ -7,7 +7,7 @@ import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
 import project.Connection.SSL_Mode.SSL_Mode
 import project.Internal.Postgres.Pgpass
-import project.Internal.Postgres.Postgres_Connection
+import project.Internal.Postgres.Postgres_Connection.Postgres_Connection
 
 polyglot java import org.postgresql.Driver
 
@@ -33,7 +33,7 @@ type Postgres_Details
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options -> Postgres_Connection.Postgres_Connection
+    connect : Connection_Options -> Postgres_Connection
     connect self options =
         if Driver.isRegistered.not then Driver.register
 
@@ -53,7 +53,7 @@ type Postgres_Details
 
     ## PRIVATE
        Provides the properties for the connection.
-    jdbc_properties : [Pair Text Text]
+    jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
         credentials = case self.credentials of
             Nothing ->
@@ -81,7 +81,7 @@ type Postgres_Details
 ## PRIVATE
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
    connection.
-ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
+ssl_mode_to_jdbc_properties : SSL_Mode -> Vector (Pair Text Text)
 ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
     SSL_Mode.Disable -> []
     SSL_Mode.Prefer -> [Pair.new 'sslmode' 'prefer']

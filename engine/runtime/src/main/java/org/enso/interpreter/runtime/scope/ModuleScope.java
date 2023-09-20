@@ -203,17 +203,23 @@ public final class ModuleScope implements EnsoObject {
   }
 
   @TruffleBoundary
-  public Function lookupConversionDefinition(Type type, Type target) {
-    Function definedWithAtom = type.getDefinitionScope().getConversionsFor(target).get(type);
-    if (definedWithAtom != null) {
-      return definedWithAtom;
+  public Function lookupConversionDefinition(Type original, Type target) {
+    Function definedWithOriginal =
+        original.getDefinitionScope().getConversionsFor(target).get(original);
+    if (definedWithOriginal != null) {
+      return definedWithOriginal;
     }
-    Function definedHere = getConversionsFor(target).get(type);
+    Function definedWithTarget =
+        target.getDefinitionScope().getConversionsFor(target).get(original);
+    if (definedWithTarget != null) {
+      return definedWithTarget;
+    }
+    Function definedHere = getConversionsFor(target).get(original);
     if (definedHere != null) {
       return definedHere;
     }
     return imports.stream()
-        .map(scope -> scope.getExportedConversion(type, target))
+        .map(scope -> scope.getExportedConversion(original, target))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);

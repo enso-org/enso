@@ -6,7 +6,6 @@ import Standard.Test.Extensions
 
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
-polyglot java import java.time.ZoneRegion
 
 spec =
     Test.group "Zone" <|

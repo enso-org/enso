@@ -48,6 +48,6 @@ public abstract class PolyglotBranchNode extends BranchNode {
   void doFallback(VirtualFrame frame, Object state, Object target) {}
 
   boolean isPolyglotObject(Object o) {
-    return EnsoContext.get(this).getEnvironment().isHostObject(o);
+    return EnsoContext.get(this).isJavaPolyglotObject(o);
   }
 }

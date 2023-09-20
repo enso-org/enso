@@ -15,6 +15,7 @@ import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
 from project.Data.Text.Extensions import all
@@ -44,7 +45,7 @@ type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any ! File_Error
-    read self file on_problems =
+    read self file on_problems = if file.is_directory then file.list else
         reader = Auto_Detect.get_reading_format file
         if reader == Nothing then Error.throw (File_Error.Unsupported_Type file) else
             reader.read file on_problems
@@ -155,9 +156,9 @@ type Plain_Text_Format
 
     ## PRIVATE
        Implements the `Data.parse` for this `File_Format`
-    read_web : Response -> Any
-    read_web self response =
-        Text.from_bytes response.body.bytes self.encoding
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        Text.from_bytes (stream.read_all_bytes) self.encoding
 
 ## A file format for reading or writing files as a sequence of bytes.
 type Bytes
@@ -188,6 +189,12 @@ type Bytes
     read self file on_problems =
         _ = [on_problems]
         file.read_bytes
+
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        stream.read_all_bytes
 
 ## A file format for reading and writing files as JSON.
 type JSON_Format
@@ -226,9 +233,9 @@ type JSON_Format
 
     ## PRIVATE
        Implements the `Data.parse` for this `File_Format`
-    read_web : Response -> Any
-    read_web self response =
-        response.body.decode_as_json
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
 
 ## A setting to infer the default behaviour of some option.
 type Infer

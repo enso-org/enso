@@ -731,6 +731,7 @@ object BindingsMap {
     */
   case class Type(
     override val name: String,
+    params: Seq[String],
     members: Seq[Cons],
     builtinType: Boolean
   ) extends DefinedEntity {
