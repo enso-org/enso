@@ -14,7 +14,7 @@ export function isIdentifier(str: string): str is Identifier {
 }
 
 export function tryIdentifier(str: string): Opt<Identifier> {
-  return isIdentifier(str) ? (str as Identifier) : null
+  return isIdentifier(str) ? str : null
 }
 
 /** A string representing a valid qualified name of our language.
@@ -30,7 +30,7 @@ export function isQualifiedName(str: string): str is QualifiedName {
 }
 
 export function tryQualifiedName(str: string): Opt<QualifiedName> {
-  return isQualifiedName(str) ? (str as QualifiedName) : null
+  return isQualifiedName(str) ? str : null
 }
 
 /** Split the qualified name to parent and last segment (name). */

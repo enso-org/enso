@@ -8,8 +8,6 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": [
-      "vitest/importMeta"
-    ],
+    "types": ["vitest/importMeta"]
   }
 }
