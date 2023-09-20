@@ -109,7 +109,7 @@ bench-report*.xml
 .bloop/
 .bsp/
 project/metals.sbt
-/app/ide-desktop/build.json
+/build.json
 /app/ide-desktop/lib/client/electron-builder-config.json
 
 

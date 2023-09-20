@@ -21,7 +21,7 @@ import * as paths from './paths'
 import computeHashes from './tasks/computeHashes.mjs'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
-import BUILD_INFO from '../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =============
 // === Types ===

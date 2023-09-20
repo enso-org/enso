@@ -22,7 +22,7 @@ import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import * as utils from '../../utils'
-import BUILD_INFO from '../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =================
 // === Constants ===

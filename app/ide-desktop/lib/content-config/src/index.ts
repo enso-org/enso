@@ -3,7 +3,7 @@
 import * as semver from 'semver'
 
 import * as linkedDist from '../../../../../target/ensogl-pack/linked-dist'
-import BUILD_INFO from '../../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
 
 // Aliases with the same name as the original.
 // eslint-disable-next-line no-restricted-syntax

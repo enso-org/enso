@@ -3,7 +3,7 @@
   "include": [
     "../types",
     "../../utils.ts",
-    "../../build.json",
+    "../../../../build.json",
     "../dashboard",
     "."
   ]

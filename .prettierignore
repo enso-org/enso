@@ -26,7 +26,6 @@ test/**/data
 **/msdfgen_wasm.js
 
 # Generated files
-app/ide-desktop/build.json
 app/ide-desktop/lib/client/electron-builder-config.json
 app/ide-desktop/lib/content-config/src/config.json
 app/gui/view/documentation/assets/stylesheet.css

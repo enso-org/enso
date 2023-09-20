@@ -10,6 +10,6 @@
     "../dashboard",
     "../types",
     "../../utils.ts",
-    "../../build.json"
+    "../../../../build.json"
   ]
 }

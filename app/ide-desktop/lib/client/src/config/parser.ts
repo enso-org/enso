@@ -11,7 +11,7 @@ import * as contentConfig from 'enso-content-config'
 import * as config from 'config'
 import * as fileAssociations from 'file-associations'
 import * as naming from 'naming'
-import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../../../build.json' assert { type: 'json' }
 
 const logger = contentConfig.logger
 
