@@ -189,6 +189,8 @@ type HTTP
                 _ : URI -> req.uri
             builder.uri uri.internal_uri
 
+            headers = resolve_headers req
+
             # Generate body publisher and optional form content boundary
             body_publisher_and_boundary = case req.body of
                 Request_Body.Text text encoding _ ->
@@ -212,12 +214,14 @@ type HTTP
                 body_publisher = body_publisher_and_boundary.first
                 boundary = body_publisher_and_boundary.second
 
+                boundary_encoding_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
+
                 # set method and body
                 builder.method req.method.to_http_method_name body_publisher
 
                 # set headers
-                headers = resolve_headers req boundary
-                headers.map h-> builder.header h.name h.value
+                all_headers = headers + boundary_encoding_list
+                all_headers.map h-> builder.header h.name h.value
 
                 http_request = builder.build
                 body_handler = HttpResponse.BodyHandlers . ofByteArray
@@ -290,8 +294,8 @@ parse_headers headers =
 ## PRIVATE
    It is an error to specify the content type or content encoding in both the request body and the header list.
    If the body is not Request_Body.Empty, and no content type or content encoding is specified, a default is used.
-resolve_headers : Request -> Text | Nothing -> Vector Header
-resolve_headers req boundary =
+resolve_headers : Request -> Vector Header
+resolve_headers req =
     is_content_type_header h = h.name . equals_ignore_case Header.content_type_header_name
     is_content_encoding_header h = h.name . equals_ignore_case Header.content_encoding_header_name
 
@@ -305,7 +309,6 @@ resolve_headers req boundary =
 
     ## Raise error if content type or encoding are specified in two places;
        otherwise, add any Request_Body settings to the header list.
-       For `multipart/form-data`, add a content type header with the content boundary
     has_content_type_header_in_list = req.headers.any is_content_type_header
     has_content_encoding_header_in_list = req.headers.any is_content_encoding_header
     IO.println 'HHH'
@@ -321,11 +324,7 @@ resolve_headers req boundary =
             False ->
                 content_type_additions = if request_body_content_type.is_nothing then [] else [Header.content_type request_body_content_type]
                 content_encoding_additions = if request_body_content_encoding.is_nothing then [] else [Header.content_encoding request_body_content_encoding.character_set]
-                boundary_additions =
-                    case req.body of
-                        Request_Body.Form_Data _ url_encoded -> if url_encoded then [] else [Header.multipart_form_data boundary]
-                        _ -> []
-                req.headers + content_type_additions + content_encoding_additions + boundary_additions
+                req.headers + content_type_additions + content_encoding_additions
     IO.println all_headers
 
     # Add default content type and/or encoding, if one is not specified and the body is not Request_Body.Empty.

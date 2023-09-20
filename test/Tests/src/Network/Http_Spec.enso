@@ -8,6 +8,7 @@ import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
 import Standard.Base.Runtime.Context
+from Standard.Base.Network.HTTP import HTTP, resolve_headers
 
 import Standard.Test.Extensions
 from Standard.Test import Test, Test_Suite
@@ -607,21 +608,21 @@ spec =
             Data.post url_post (Request_Body.Text "hello world" encoding=Encoding.utf_16_le) headers=[Header.new "Content-encoding" "UTF-16LE"] . should_fail_with Illegal_Argument
 
         Test.specify "Header resolution" <|
-            expected0 = Request.new HTTP_Method.Get "" [Header.content_type "text/plain"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [] (Request_Body.Text "") . resolve_content_type . should_equal expected0
+            expected0 = [Header.content_type "text/plain"]
+            resolve_headers (HTTP_Method.Get "" [] (Request_Body.Text "")) . should_equal expected0
 
-            expected1 = Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json") . resolve_content_type . should_equal expected1
+            expected1 = [Header.content_type "application/json"]
+            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json")) . should_equal expected1
 
-            expected2 = Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "") . resolve_content_type . should_equal expected2
+            expected2 = [Header.content_type "application/json"]
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")) . should_equal expected2
 
-            Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain") . resolve_content_type . should_fail_with Illegal_Argument
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain")) . should_fail_with Illegal_Argument
 
-            expected3 = Request.new HTTP_Method.Get "" [Header.new "some" "header", Header.content_type "application/json"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json") . resolve_content_type . should_equal expected3
+            expected3 = [Header.new "some" "header", Header.content_type "application/json"]
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json")) . should_equal expected3
 
-            expected4 = Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "") . resolve_content_type . should_equal expected4
+            expected4 = [Header.content_type "application/json", Header.content_type "text/plain"]
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_equal expected4
 
 main = Test_Suite.run_main spec
