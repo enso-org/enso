@@ -12,6 +12,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalQueries;
+import java.util.Arrays;
 import java.util.Locale;
 
 import static java.time.temporal.ChronoField.INSTANT_SECONDS;
@@ -23,7 +24,8 @@ public class EnsoDateTimeFormatter {
   private final String originalPattern;
   private final FormatterKind formatterKind;
 
-  private EnsoDateTimeFormatter(DateTimeFormatter formatter, Pair<Character, String> isoReplacementPair, String originalPattern, FormatterKind formatterKind) {
+  private EnsoDateTimeFormatter(DateTimeFormatter formatter, Pair<Character, String> isoReplacementPair,
+                                String originalPattern, FormatterKind formatterKind) {
     this.formatter = formatter;
     this.isoReplacementPair = isoReplacementPair;
     this.originalPattern = originalPattern;
@@ -149,7 +151,7 @@ public class EnsoDateTimeFormatter {
       var localTime = LocalTime.from(resolved);
       return ZonedDateTime.of(localDate, localTime, zone);
     } catch (DateTimeException e) {
-      throw new DateTimeException("Unable to parse Text '" + dateString + "' to Date_Time: "+e.getMessage(), e);
+      throw new DateTimeException("Unable to parse Text '" + dateString + "' to Date_Time: " + e.getMessage(), e);
     } catch (ArithmeticException e) {
       throw new DateTimeException(
           "Unable to parse Text '" + dateString + "' to Date_Time due to arithmetic error.", e);
@@ -171,5 +173,25 @@ public class EnsoDateTimeFormatter {
 
   public String formatLocalTime(LocalTime time) {
     return formatter.format(time);
+  }
+
+  @Override
+  public int hashCode() {
+    // We ignore formatter here because it has identity semantics.
+    return Arrays.hashCode(new Object[]{isoReplacementPair, originalPattern, formatterKind});
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof EnsoDateTimeFormatter other) {
+      // The DateTimeFormatter has identity semantics, so instead we try to check the pattern instead, if available.
+      if (originalPattern != null) {
+        return formatterKind == other.formatterKind && originalPattern.equals(other.originalPattern) && isoReplacementPair.equals(other.isoReplacementPair) && formatter.getLocale().equals(other.formatter.getLocale());
+      } else {
+        return formatterKind == other.formatterKind && formatter.equals(other.formatter);
+      }
+    } else {
+      return false;
+    }
   }
 }

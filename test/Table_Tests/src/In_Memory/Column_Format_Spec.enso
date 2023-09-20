@@ -110,7 +110,7 @@ spec =
         Test.specify "Empty/Nothing format" <|
             zone = Time_Zone.parse "US/Hawaii"
             input = Column.from_vector "values" [Date_Time.new 2020 12 21 8 10 20 zone=zone, Date_Time.new 2023 4 25 14 25 2 zone=zone]
-            expected = Column.from_vector "values" ['2020-12-21T08:10:20-10:00[US/Hawaii]', '2023-04-25T14:25:02-10:00[US/Hawaii]']
+            expected = Column.from_vector "values" ['2020-12-21 08:10:20-10:00[US/Hawaii]', '2023-04-25 14:25:02-10:00[US/Hawaii]']
             input.format . should_equal expected
             input.format "" . should_equal expected
             input.format Nothing . should_equal expected
@@ -137,7 +137,7 @@ spec =
             zone = Time_Zone.parse "US/Hawaii"
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20 zone=zone, Date_Time.new 2023 4 25 14 25 2 zone=zone]
             formats = Column.from_vector "formats" ["", Nothing]
-            expected = Column.from_vector "values" ['2020-06-21T08:10:20-10:00[US/Hawaii]', '2023-04-25T14:25:02-10:00[US/Hawaii]']
+            expected = Column.from_vector "values" ['2020-06-21 08:10:20-10:00[US/Hawaii]', '2023-04-25 14:25:02-10:00[US/Hawaii]']
             actual = input.format formats
             actual . should_equal expected
 
