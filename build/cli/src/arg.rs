@@ -262,7 +262,7 @@ impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
 pub struct BuildDescription<Target: IsTargetSource> {
     #[clap(flatten)]
     pub input:           Target::BuildInput,
-    #[clap(name = Target::UPLOAD_ARTIFACT_NAME, long, enso_env())]
+    #[clap(name = Target::UPLOAD_ARTIFACT_NAME, long, enso_env(), default_value_t = ide_ci::actions::workflow::is_in_env())]
     pub upload_artifact: bool,
 }
 

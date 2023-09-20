@@ -62,12 +62,14 @@ impl Artifact {
         }
     }
 
-    pub async fn upload_as_ci_artifact(&self) -> Result {
+    pub async fn upload_as_ci_artifact(&self, prefix: impl AsRef<str>) -> Result {
         if is_in_env() {
-            upload_compressed_directory(&self.unpacked, format!("ide-unpacked-{TARGET_OS}"))
+            let prefix = prefix.as_ref();
+            upload_compressed_directory(&self.unpacked, format!("{prefix}-unpacked-{TARGET_OS}"))
                 .await?;
-            upload_single_file(&self.image, format!("ide-{TARGET_OS}")).await?;
-            upload_single_file(&self.image_checksum, format!("ide-{TARGET_OS}")).await?;
+            let packed_artifact_name = format!("{prefix}-{TARGET_OS}");
+            upload_single_file(&self.image, &packed_artifact_name).await?;
+            upload_single_file(&self.image_checksum, &packed_artifact_name).await?;
         } else {
             info!("Not in the CI environment, will not upload the artifacts.")
         }
@@ -120,6 +122,8 @@ pub struct BuildInput<GuiArtifact> {
     #[derivative(Debug = "ignore")]
     pub gui:             BoxFuture<'static, Result<GuiArtifact>>,
     pub electron_target: Option<String>,
+    /// The name base used to generate CI run artifact names.
+    pub artifact_name:   String,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -141,7 +145,7 @@ impl Ide {
         input: BuildInput<GuiArtifact>,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Artifact>> {
-        let BuildInput { version, project_manager, gui, electron_target } = input;
+        let BuildInput { version, project_manager, gui, electron_target, artifact_name: _ } = input;
         let repo_root = context.repo_root.clone();
         let ide_desktop = ide_desktop_from_context(context);
         let target_os = self.target_os;

@@ -249,7 +249,7 @@ impl JobArchetype for PackageNewIde {
         plain_job_customized(
             &os,
             "Package New IDE",
-            "ide2 build --wasm-source current-ci-run --backend-source current-ci-run",
+            "ide2 build --wasm-source current-ci-run --backend-source current-ci-run --gui-upload-artifact false",
             |step| vec![expose_os_specific_signing_secret(os, step)],
         )
     }

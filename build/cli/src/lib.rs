@@ -602,11 +602,12 @@ impl Processor {
         output_path: OutputPath<arg::ide::Target>,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
+        let artifact_name_prefix = input.artifact_name.clone();
         let build_job = target.build(&self.context, input, output_path);
         async move {
             let artifacts = build_job.await?;
             if is_in_env() {
-                artifacts.upload_as_ci_artifact().await?;
+                artifacts.upload_as_ci_artifact(artifact_name_prefix).await?;
             }
             Ok(artifacts)
         }
@@ -623,6 +624,7 @@ impl Processor {
             project_manager: self.get(project_manager),
             version: self.triple.versions.version.clone(),
             electron_target,
+            artifact_name: "ide".into(),
         };
         self.build_ide(input, output_path)
     }
@@ -653,6 +655,7 @@ impl Processor {
             project_manager: self.get(project_manager),
             version: self.triple.versions.version.clone(),
             electron_target,
+            artifact_name: "ide2".into(),
         };
         self.build_ide(input, output_path)
     }
