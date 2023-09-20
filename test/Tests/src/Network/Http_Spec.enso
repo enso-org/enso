@@ -168,7 +168,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/json",
                     "Content-Length": "20"
                   },
                   "origin": "127.0.0.1",
@@ -189,7 +189,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/json",
                     "Content-Length": "20"
                   },
                   "origin": "127.0.0.1",
@@ -209,7 +209,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/json",
                     "Content-Length": "50"
                   },
                   "origin": "127.0.0.1",
@@ -229,7 +229,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/json",
                     "Content-Length": "47"
                   },
                   "origin": "127.0.0.1",
@@ -292,7 +292,7 @@ spec =
         Test.specify "Can perform a File POST" <|
             test_file = enso_project.data / "sample.txt"
             response = Data.post url_post (Request_Body.Binary test_file)
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response.at "headers" . at "Content-Type" . should_equal "application/octet-stream"
             response.at "data" . should_equal 'Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart souffl\u00E9 jelly beans gummies.'
 
         Test.specify "Can perform a binary File POST" <|
@@ -302,7 +302,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/octet-stream",
                     "Content-Length": "26905"
                   },
                   "origin": "127.0.0.1",
@@ -320,7 +320,7 @@ spec =
             test_file = enso_project.data / "sample.txt"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response.at "headers" . at "Content-Type" . should_equal "application/x-www-form-urlencoded"
             response.at "data" . replace "%0D%" "%" . should_equal 'key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll+cake+ice+cream.+Carrot+cake+apple+pie+gingerbread+chocolate+cake+pudding+tart+souffl%C3%A9+jelly+beans+gummies.%0A%0ATootsie+roll+chupa+chups+muffin+croissant+fruitcake+jujubes+danish+cotton+candy+danish.+Oat+cake+chocolate+fruitcake+halvah+icing+oat+cake+toffee+powder.+Pastry+drag%C3%A9e+croissant.+Ice+cream+candy+canes+dessert+muffin+sugar+plum+tart+jujubes.%0A'
 
         Test.specify "Can perform a multipart form POST" <|
@@ -328,13 +328,13 @@ spec =
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data)
             response_json = response
-            response_json.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response_json.at "headers" . at "Content-Type" . should_equal "multipart/form-data"
             response_json.at "data" . is_empty . should_be_false
 
         Test.specify "Can perform a File POST with auto-conversion" <|
             test_file = enso_project.data / "sample.txt"
             response = Data.post url_post test_file
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response.at "headers" . at "Content-Type" . should_equal "application/octet-stream"
             response.at "data" . should_equal 'Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart souffl\u00E9 jelly beans gummies.'
 
         Test.specify "Can perform a Text POST with auto-conversion" <|
@@ -406,7 +406,6 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -575,6 +574,9 @@ spec =
 
         Test.specify "Cannot specify content type in both body and headers" <|
             Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
+
+        Test.specify "Cannot specify content encoding in both body and headers" <|
+            Data.post url_post (Request_Body.Text "hello world" encoding=Encoding.utf_16_le) headers=[Header.new "Content-encoding" "UTF-16LE"] . should_fail_with Illegal_Argument
 
         Test.specify "Header resolution" <|
             expected0 = Request.new HTTP_Method.Get "" [Header.content_type "text/plain"] (Request_Body.Text "")
