@@ -231,10 +231,9 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
 
    ! Specifying Content Encodings
 
-     If the `body` parameter specifies an explicit content encoding, then it is
-     an error to also specify additional `Content-encoding` headers in the
-     `headers` parameter. (It is not an error to specify multiple
-     `Content-encoding` values in `headers`, however.)
+     The content encoding specified in the `Request_Body` is used to encode the
+     body. The `headers` list can contain additional `Content-Encoding` headers,
+     and these are sent to the server, but not used for encoding.
 
    > Example
      Write a text string to an HTTP endpoint.

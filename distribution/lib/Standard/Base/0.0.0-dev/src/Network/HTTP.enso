@@ -295,7 +295,7 @@ parse_headers headers =
         _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
 ## PRIVATE
-   It is an error to specify the content type or content encoding in both the request body and the header list.
+   It is an error to specify the content type in both the request body and the header list.
    If the body is not Request_Body.Empty, and no content type or content encoding is specified, a default is used.
 resolve_headers : Request -> Vector Header
 resolve_headers req =
@@ -322,12 +322,10 @@ resolve_headers req =
 
     all_headers = case request_body_content_type.is_nothing.not && has_content_type_header_in_list of
         True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Type in both the request body and request headers")
-        False -> case request_body_content_encoding.is_nothing.not && has_content_encoding_header_in_list of
-            True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Encoding in both the request body and request headers")
-            False ->
-                content_type_additions = if request_body_content_type.is_nothing then [] else [Header.content_type request_body_content_type]
-                content_encoding_additions = if request_body_content_encoding.is_nothing then [] else [Header.content_encoding request_body_content_encoding.character_set]
-                req.headers + content_type_additions + content_encoding_additions
+        False ->
+            content_type_additions = if request_body_content_type.is_nothing then [] else [Header.content_type request_body_content_type]
+            content_encoding_additions = if request_body_content_encoding.is_nothing then [] else [Header.content_encoding request_body_content_encoding.character_set]
+            req.headers + content_type_additions + content_encoding_additions
     IO.println all_headers
 
     all_headers.if_not_error <|
