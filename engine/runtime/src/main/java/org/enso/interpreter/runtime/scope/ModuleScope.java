@@ -204,11 +204,13 @@ public final class ModuleScope implements EnsoObject {
 
   @TruffleBoundary
   public Function lookupConversionDefinition(Type original, Type target) {
-    Function definedWithOriginal = original.getDefinitionScope().getConversionsFor(target).get(original);
+    Function definedWithOriginal =
+        original.getDefinitionScope().getConversionsFor(target).get(original);
     if (definedWithOriginal != null) {
       return definedWithOriginal;
     }
-    Function definedWithTarget = target.getDefinitionScope().getConversionsFor(target).get(original);
+    Function definedWithTarget =
+        target.getDefinitionScope().getConversionsFor(target).get(original);
     if (definedWithTarget != null) {
       return definedWithTarget;
     }
