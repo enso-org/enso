@@ -12,7 +12,7 @@ import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import * as random from 'lib0/random'
 import { computeTextChecksum } from 'shared/languageServer'
-import type { ContextId } from 'shared/lsTypes'
+import type { ContextId, Path } from 'shared/lsTypes'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
 import { onMounted, reactive, ref, watch } from 'vue'
 
@@ -40,12 +40,17 @@ onMounted(async () => {
     return
   }
 
-  // Not sure why `text/canEdit` is returning false.
+  const rootPathWithoutSegments: Path = { rootId: projectRoot.id, segments: [] }
+  const rootPath: Path = { rootId: projectRoot.id, segments: ['src', 'Main.enso'] }
 
-  await projectStore.lsRpcConnection.openTextFile({
-    rootId: projectRoot.id,
-    segments: ['src', 'Main.enso'],
-  })
+  // TODO [sb]: Not sure why `text/canEdit` is returning false.
+  // The following lines are copied from the old GUI's websocket messages.
+  // TODO: ignore the `VCSAlreadyPresent` error.
+  await projectStore.lsRpcConnection.vcsInit(rootPathWithoutSegments)
+  // Omitted: `capabilityAcquire('search/receivesSuggestionsDatabaseUpdates')`
+  await projectStore.lsRpcConnection.fileExists(rootPath)
+
+  await projectStore.lsRpcConnection.openTextFile(rootPath)
   projectId.value = projectRoot.id
 })
 
