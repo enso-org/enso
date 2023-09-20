@@ -10,7 +10,6 @@ use crate::paths::generated::RepoRootDistGui2Assets;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
-use crate::source::BuildTargetJob;
 use crate::source::WithDestination;
 
 use ide_ci::ok_ready_boxed;
@@ -206,7 +205,7 @@ impl IsTarget for Gui2 {
     fn build_internal(
         &self,
         context: Context,
-        job: BuildTargetJob<Self>,
+        job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let WithDestination { inner: _, destination } = job;
         async move {

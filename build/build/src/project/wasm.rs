@@ -8,7 +8,7 @@ use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
 use crate::project::IsWatchable;
-use crate::source::BuildTargetJob;
+use crate::source::BuildSource;
 use crate::source::WatchTargetJob;
 use crate::source::WithDestination;
 
@@ -206,9 +206,9 @@ impl IsTarget for Wasm {
     fn build_internal(
         &self,
         context: Context,
-        job: BuildTargetJob<Self>,
+        job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let Context { octocrab: _, cache, upload_artifacts: _, repo_root } = context;
+        let Context { octocrab: _, cache, repo_root } = context;
         let WithDestination { inner, destination } = job;
         let span = info_span!("Building WASM.",
             repo = %repo_root.display(),
@@ -332,7 +332,11 @@ impl IsWatchable for Wasm {
 
             let WatchTargetJob {
                 watch_input: WatchInput { cargo_watch_options: cargo_watch_flags },
-                build: WithDestination { inner, destination },
+                build:
+                    WithDestination {
+                        inner: BuildSource { input, should_upload_artifact: _ },
+                        destination,
+                    },
             } = job;
             let BuildInput {
                 crate_path,
@@ -345,7 +349,7 @@ impl IsWatchable for Wasm {
                 uncollapsed_log_level,
                 wasm_size_limit,
                 system_shader_tools: _,
-            } = inner;
+            } = input;
 
 
             let current_exe = std::env::current_exe()?;
@@ -380,7 +384,6 @@ impl IsWatchable for Wasm {
                 .arg(current_exe)
                 .arg("--skip-version-check") // We already checked in the parent process.
                 .args(["--cache-path", context.cache.path().as_str()])
-                .args(["--upload-artifacts", context.upload_artifacts.to_string().as_str()])
                 .args(["--repo-path", context.repo_root.as_str()]);
 
             // === Build Script command and its options ===

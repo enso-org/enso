@@ -1,9 +1,18 @@
 {
-  "rust-analyzer.linkedProjects": ["./app/gui2/rust-ffi/Cargo.toml"],
+  "rust-analyzer.linkedProjects": [
+    "./app/gui2/rust-ffi/Cargo.toml"
+  ],
   "vue.complete.casing.status": false,
   "vue.complete.casing.props": "camel",
   "vue.complete.casing.tags": "pascal",
   "auto-snippets.snippets": [
-    { "language": "vue", "snippet": "Vue single-file component" }
-  ]
+    {
+      "language": "vue",
+      "snippet": "Vue single-file component"
+    }
+  ],
+  "files.watcherExclude": {
+    "**/target": true
+  },
+  "cmake.configureOnOpen": false
 }

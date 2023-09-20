@@ -42,6 +42,7 @@ use crate::arg::OutputPath;
 use crate::arg::Target;
 use crate::arg::WatchJob;
 use anyhow::Context;
+use arg::BuildDescription;
 use clap::Parser;
 use derivative::Derivative;
 use enso_build::context::BuildContext;
@@ -67,6 +68,7 @@ use enso_build::project::wasm::Wasm;
 use enso_build::project::IsTarget;
 use enso_build::project::IsWatchable;
 use enso_build::project::IsWatcher;
+use enso_build::source::BuildSource;
 use enso_build::source::BuildTargetJob;
 use enso_build::source::CiRunSource;
 use enso_build::source::ExternalSource;
@@ -136,7 +138,6 @@ impl Processor {
             inner: project::Context {
                 cache: Cache::new(&cli.cache_path).await?,
                 octocrab,
-                upload_artifacts: cli.upload_artifacts,
                 repo_root: enso_build::paths::new_repo_root(absolute_repo_path, &triple),
             },
             triple,
@@ -159,9 +160,13 @@ impl Processor {
     {
         let span = info_span!("Resolving.", ?target, ?source).entered();
         let destination = source.output_path.output_path;
+        let should_upload_artifact = source.build_args.upload_artifact;
         let source = match source.source {
-            arg::SourceKind::Build =>
-                T::resolve(self, source.build_args).map_ok(Source::BuildLocally).boxed(),
+            arg::SourceKind::Build => T::resolve(self, source.build_args.input)
+                .map_ok(move |input| {
+                    Source::BuildLocally(BuildSource { input, should_upload_artifact })
+                })
+                .boxed(),
             arg::SourceKind::Local =>
                 ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
             arg::SourceKind::CiRun => {
@@ -248,10 +253,23 @@ impl Processor {
         &self,
         job: BuildJob<T>,
     ) -> BoxFuture<'static, Result<BuildTargetJob<T>>> {
-        let BuildJob { input, output_path } = job;
+        let BuildJob { input: BuildDescription { input, upload_artifact }, output_path } = job;
         let input = self.resolve_inputs::<T>(input);
         async move {
-            Ok(WithDestination { destination: output_path.output_path, inner: input.await? })
+            Ok(WithDestination::new(
+                BuildSource {
+                    input:                  input.await?,
+                    should_upload_artifact: upload_artifact,
+                },
+                output_path.output_path,
+            ))
+            // Ok(BuildTargetJob {
+            //     build:                  WithDestination {
+            //         destination: output_path.output_path,
+            //         inner:       input.await?,
+            //     },
+            //     should_upload_artifact: upload_artifact,
+            // })
         }
         .boxed()
     }
@@ -446,8 +464,7 @@ impl Processor {
                 };
                 let context = self.prepare_backend_context(config);
                 async move {
-                    let mut context = context.await?;
-                    context.upload_artifacts = true;
+                    let context = context.await?;
                     context.build().await
                 }
                 .void_ok()
@@ -468,7 +485,7 @@ impl Processor {
             let paths = paths?;
             let inner = crate::project::Context {
                 repo_root: paths.repo_root.clone(),
-                upload_artifacts: true,
+                // upload_artifacts: true,
                 octocrab,
                 cache: Cache::new_default().await?,
             };

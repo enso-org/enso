@@ -77,10 +77,10 @@ pub trait IsTargetSource {
     const SOURCE_NAME: &'static str;
     const PATH_NAME: &'static str;
     const OUTPUT_PATH_NAME: &'static str;
-    // const UPLOAD_ASSET_NAME: &'static str;
     const RUN_ID_NAME: &'static str;
     const RELEASE_DESIGNATOR_NAME: &'static str;
     const ARTIFACT_NAME_NAME: &'static str;
+    const UPLOAD_ARTIFACT_NAME: &'static str;
     const DEFAULT_OUTPUT_PATH: &'static str;
 
     type BuildInput: Clone + Debug + PartialEq + Args + Send + Sync;
@@ -101,6 +101,7 @@ macro_rules! source_args_hlp {
             const RUN_ID_NAME: &'static str = concat!($prefix, "-", "run-id");
             const RELEASE_DESIGNATOR_NAME: &'static str = concat!($prefix, "-", "release");
             const ARTIFACT_NAME_NAME: &'static str = concat!($prefix, "-", "artifact-name");
+            const UPLOAD_ARTIFACT_NAME: &'static str = concat!($prefix, "-", "upload-artifact");
             const DEFAULT_OUTPUT_PATH: &'static str = concat!("dist/", $prefix);
 
             type BuildInput = $inputs;
@@ -173,11 +174,6 @@ pub struct Cli {
     #[clap(long, global = true, enso_env())]
     pub skip_version_check: bool,
 
-    /// Whether built artifacts should be uploaded as part of CI run. Ignored in non-CI
-    /// environment.
-    #[clap(long, global = true, hide = !ide_ci::actions::workflow::is_in_env(), parse(try_from_str), default_value_t = true, enso_env())]
-    pub upload_artifacts: bool,
-
     #[clap(subcommand)]
     pub target: Target,
 }
@@ -220,13 +216,10 @@ pub struct Source<Target: IsTargetSource> {
 
     /// Used when `SourceKind::Build` is used.
     #[clap(flatten)]
-    pub build_args: Target::BuildInput,
+    pub build_args: BuildDescription<Target>,
 
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
-    //
-    // #[clap(name = Target::UPLOAD_ASSET_NAME, long)]
-    // pub upload_asset: bool,
 }
 
 /// Discriminator denoting how some target artifact should be obtained.
@@ -266,9 +259,18 @@ impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
 
 #[derive(Args, Clone, PartialEq, Derivative)]
 #[derivative(Debug)]
+pub struct BuildDescription<Target: IsTargetSource> {
+    #[clap(flatten)]
+    pub input:           Target::BuildInput,
+    #[clap(name = Target::UPLOAD_ARTIFACT_NAME, long, enso_env())]
+    pub upload_artifact: bool,
+}
+
+#[derive(Args, Clone, PartialEq, Derivative)]
+#[derivative(Debug)]
 pub struct BuildJob<Target: IsTargetSource> {
     #[clap(flatten)]
-    pub input:       Target::BuildInput,
+    pub input:       BuildDescription<Target>,
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
 }

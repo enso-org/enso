@@ -10,7 +10,7 @@ use crate::project::IsWatchable;
 use crate::project::IsWatcher;
 use crate::project::PerhapsWatched;
 use crate::project::Wasm;
-use crate::source::BuildTargetJob;
+use crate::source::BuildSource;
 use crate::source::GetTargetJob;
 use crate::source::WatchTargetJob;
 use crate::source::WithDestination;
@@ -127,7 +127,7 @@ impl IsTarget for Gui {
     fn build_internal(
         &self,
         context: Context,
-        job: BuildTargetJob<Self>,
+        job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let WithDestination { inner, destination } = job;
         async move {
@@ -187,8 +187,12 @@ impl IsWatchable for Gui {
         context: Context,
         job: WatchTargetJob<Self>,
     ) -> BoxFuture<'static, Result<Self::Watcher>> {
-        let WatchTargetJob { watch_input, build: WithDestination { inner, destination } } = job;
-        let BuildInput { build_info, wasm } = inner;
+        let WatchTargetJob {
+            watch_input,
+            build:
+                WithDestination { inner: BuildSource { input, should_upload_artifact: _ }, destination },
+        } = job;
+        let BuildInput { build_info, wasm } = input;
         let perhaps_watched_wasm = perhaps_watch(Wasm, context.clone(), wasm, watch_input.wasm);
         let ide = ide_desktop_from_context(&context);
         async move {
@@ -212,8 +216,12 @@ impl Gui {
         context: Context,
         job: WatchTargetJob<Self>,
     ) -> GuiBuildWithWatchedWasm {
-        let WatchTargetJob { watch_input, build: WithDestination { inner, destination } } = job;
-        let BuildInput { build_info, wasm } = inner;
+        let WatchTargetJob {
+            watch_input,
+            build:
+                WithDestination { inner: BuildSource { input, should_upload_artifact: _ }, destination },
+        } = job;
+        let BuildInput { build_info, wasm } = input;
         let WatchInput { wasm: wasm_watch_input } = watch_input;
         let perhaps_watched_wasm = perhaps_watch(Wasm, context, wasm, wasm_watch_input);
         GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info, destination }
