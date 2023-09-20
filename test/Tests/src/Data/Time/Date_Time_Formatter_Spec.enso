@@ -40,7 +40,7 @@ spec =
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal "30. Jun 2020"
 
         Test.specify "should allow using a Java formatter" <|
-            jformatter = DateTimeFormatter.ISO_ORDINAL_DATE
+            jformatter = Date_Time_Formatter.from_java DateTimeFormatter.ISO_ORDINAL_DATE
             Date.new 2020 2 1 . format jformatter . should_equal "2020-032"
 
         Test.specify "should allow parsing Java patterns" <|
