@@ -42,8 +42,8 @@ type Request_Body
     Empty
 
     ## PRIVATE
-       For Request_Body.Form_Data url_encoded=False, this returns `Nothing`,
-       because the content type must include the content boundary.
+       For `Request_Body.Form_Data url_encoded=False`, this returns `Nothing`,
+       because the content type must include a content boundary.
     default_content_type_header : Header | Nothing
     default_content_type_header self =
         case self of

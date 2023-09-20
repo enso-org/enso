@@ -198,7 +198,6 @@ type HTTP
                     Request_Body.Json x ->
                         json = x.to_json
                         json.if_not_error <|
-                        json.if_not_error <|
                             Pair.new (body_publishers.ofString json) Nothing
                     Request_Body.Binary file ->
                         path = Path.of file.path
@@ -215,13 +214,13 @@ type HTTP
                     body_publisher = body_publisher_and_boundary.first
                     boundary = body_publisher_and_boundary.second
 
-                    boundary_encoding_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
+                    boundary_encoding_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
 
                     # set method and body
                     builder.method req.method.to_http_method_name body_publisher
 
                     # set headers
-                    all_headers = headers + boundary_encoding_list
+                    all_headers = headers + boundary_encoding_header_list
                     all_headers.map h-> builder.header h.name h.value
 
                     http_request = builder.build
@@ -308,7 +307,7 @@ resolve_headers req =
         Request_Body.Text _ content_encoding _ -> content_encoding
         _ -> Nothing
 
-    ## Raise error if content type or encoding are specified in two places;
+    ## Raise error if content type is specified in two places;
        otherwise, add any Request_Body settings to the header list.
     has_content_type_header_in_list = req.headers.any is_content_type_header
 

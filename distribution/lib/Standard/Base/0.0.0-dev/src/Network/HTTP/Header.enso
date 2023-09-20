@@ -122,7 +122,7 @@ type Header
 
              import Standard.Base.Network.HTTP.Header.Header
 
-             example_content_type = Header.content_encoding "myencoding"
+             example_content_type = Header.content_encoding "my_encoding"
     content_encoding : Text -> Header
     content_encoding value = Header.Value Header.content_encoding_header_name value
 
