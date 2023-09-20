@@ -114,7 +114,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A `private` keyword, marking associated expressions as project-private.
         Private {
-            pub token: token::Private<'s>,
+            pub keyword: token::Private<'s>,
+            pub body: Option<Tree<'s>>,
         },
         /// A numeric literal, like `10`.
         Number {
@@ -955,7 +956,6 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
 pub fn to_ast(token: Token) -> Tree {
     match token.variant {
         token::Variant::Ident(ident) => token.with_variant(ident).into(),
-        token::Variant::Private(private) => Tree::private(token.with_variant(private)),
         token::Variant::Digits(number) =>
             Tree::number(None, Some(token.with_variant(number)), None),
         token::Variant::NumberBase(base) =>
@@ -996,6 +996,7 @@ pub fn to_ast(token: Token) -> Tree {
         // This should be unreachable: `resolve_operator_precedence` doesn't calls `to_ast` for
         // operators.
         | token::Variant::Operator(_)
+        | token::Variant::Private(_)
         // Map an error case in the lexer to an error in the AST.
         | token::Variant::Invalid(_) => {
             let message = format!("Unexpected token: {token:?}");

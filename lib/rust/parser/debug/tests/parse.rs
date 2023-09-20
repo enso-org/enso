@@ -1192,8 +1192,10 @@ fn pattern_match_auto_scope() {
 // === Private (project-private) keyword ===
 #[test]
 fn private_keyword() {
-    test("private", block![(Private)]);
+    test("private", block![(Private ())]);
+    test("private func", block![(Private (Ident func))]);
 }
+
 
 #[test]
 #[ignore]

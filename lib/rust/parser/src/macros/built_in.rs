@@ -656,7 +656,8 @@ fn private_keyword(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     println!("private_keyword[begin] : Segments={:?}", segments);
     let segment = segments.pop().0;
     let keyword = into_private(segment.header);
-    let ret_tree = syntax::Tree::private(keyword);
+    let body = operator::resolve_operator_precedence_if_non_empty(segment.result.tokens());
+    let ret_tree = syntax::Tree::private(keyword, body);
     println!("private_keyword[end]: ret_tree={:?}", ret_tree);
     ret_tree
 }
