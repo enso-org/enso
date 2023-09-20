@@ -9,7 +9,6 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.IO
 import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -199,6 +198,7 @@ type HTTP
                     Request_Body.Json x ->
                         json = x.to_json
                         json.if_not_error <|
+                        json.if_not_error <|
                             Pair.new (body_publishers.ofString json) Nothing
                     Request_Body.Binary file ->
                         path = Path.of file.path
@@ -222,8 +222,6 @@ type HTTP
 
                     # set headers
                     all_headers = headers + boundary_encoding_list
-                    IO.println 'LLL'
-                    IO.println all_headers
                     all_headers.map h-> builder.header h.name h.value
 
                     http_request = builder.build
@@ -314,11 +312,6 @@ resolve_headers req =
        otherwise, add any Request_Body settings to the header list.
     has_content_type_header_in_list = req.headers.any is_content_type_header
     has_content_encoding_header_in_list = req.headers.any is_content_encoding_header
-    IO.println 'HHH'
-    IO.println request_body_content_type
-    IO.println request_body_content_encoding
-    IO.println has_content_type_header_in_list
-    IO.println has_content_encoding_header_in_list
 
     all_headers = case request_body_content_type.is_nothing.not && has_content_type_header_in_list of
         True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Type in both the request body and request headers")
@@ -326,7 +319,6 @@ resolve_headers req =
             content_type_additions = if request_body_content_type.is_nothing then [] else [Header.content_type request_body_content_type]
             content_encoding_additions = if request_body_content_encoding.is_nothing then [] else [Header.content_encoding request_body_content_encoding.character_set]
             req.headers + content_type_additions + content_encoding_additions
-    IO.println all_headers
 
     all_headers.if_not_error <|
         # Add default content type and/or encoding, if one is not specified and the body is not Request_Body.Empty.

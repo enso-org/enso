@@ -32,17 +32,6 @@ spec =
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
-    Test.group "asdfasdf" pending=pending_has_url <|
-        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
-        url_get = base_url_with_slash + "get"
-        url_post = base_url_with_slash + "post"
-        url_put = base_url_with_slash + "put"
-        url_patch = base_url_with_slash + "patch"
-        url_delete = base_url_with_slash + "delete"
-
-        Test.specify "Cannot specify content type in both body and headers" <|
-            Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
-
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
             http = HTTP.new (timeout = (Duration.new seconds=30))
@@ -313,7 +302,6 @@ spec =
             response.at "data" . replace "%0D%" "%" . should_equal 'key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll+cake+ice+cream.+Carrot+cake+apple+pie+gingerbread+chocolate+cake+pudding+tart+souffl%C3%A9+jelly+beans+gummies.%0A%0ATootsie+roll+chupa+chups+muffin+croissant+fruitcake+jujubes+danish+cotton+candy+danish.+Oat+cake+chocolate+fruitcake+halvah+icing+oat+cake+toffee+powder.+Pastry+drag%C3%A9e+croissant.+Ice+cream+candy+canes+dessert+muffin+sugar+plum+tart+jujubes.%0A'
 
         Test.specify "Can perform a multipart form POST" <|
-            IO.println 'QQQ'
             test_file = enso_project.data / "sample.png"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data)
