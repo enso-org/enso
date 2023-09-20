@@ -43,6 +43,8 @@ type S3_File
     size self =
         if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
             head = S3.head self.bucket self.prefix self.credentials
+            content_length = head.get "ContentLength"
+            if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
     ## PRIVATE
        ADVANCED
@@ -80,7 +82,6 @@ type S3_File
         if (open_options !=  [File_Access.Read]) then Error.throw (S3_Error.Error "S3 files can only be opened for reading." self.uri) else
             response_body = S3.get_object self.bucket self.prefix self.credentials
             response_body.with_stream action
-
 
     ## ALIAS load, open
        GROUP Input
