@@ -148,11 +148,8 @@ impl IsTarget for Gui {
             let ret = Artifact::new(destination.clone());
             let ensogl_app_dir = &ret.0.ensogl_app;
             create_dir_if_missing(ensogl_app_dir).await?;
-            let ensogl_app_files = [
-                &content_env.wasm.0.index_js.path,
-                &content_env.wasm.0.index_d_ts.path,
-                &content_env.wasm.0.index_js_map.path,
-            ];
+            let ensogl_app_files =
+                [&content_env.wasm.0.index_js.path, &content_env.wasm.0.index_js_map.path];
             for file in ensogl_app_files {
                 ide_ci::fs::copy_to(file, ensogl_app_dir)?;
             }
