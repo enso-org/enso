@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc",
-    "lint": "npx --yes eslint src",
+    "lint": "eslint src",
     "build": "tsx bundle.ts",
     "watch": "tsx watch.ts",
     "start": "tsx start.ts",

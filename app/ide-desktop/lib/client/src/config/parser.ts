@@ -3,8 +3,8 @@
 import chalk from 'chalk'
 import stringLength from 'string-length'
 
-import yargs from 'yargs/yargs'
-import * as yargsModule from 'yargs'
+// eslint-disable-next-line no-restricted-syntax
+import yargs, { Options } from 'yargs'
 
 import * as contentConfig from 'enso-content-config'
 
@@ -278,20 +278,18 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMENTS) {
     const args = config.CONFIG
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
-    const yargsOptions = args
-        .optionsRecursive()
-        .reduce((opts: Record<string, yargsModule.Options>, option) => {
-            opts[naming.camelToKebabCase(option.qualifiedName())] = {
-                ...option,
-                requiresArg: ['string', 'array'].includes(option.type),
-                default: null,
-                // Required because yargs defines `defaultDescription`
-                // as `string | undefined`, not `string | null`.
-                // eslint-disable-next-line no-restricted-syntax
-                defaultDescription: option.defaultDescription ?? undefined,
-            }
-            return opts
-        }, {})
+    const yargsOptions = args.optionsRecursive().reduce((opts: Record<string, Options>, option) => {
+        opts[naming.camelToKebabCase(option.qualifiedName())] = {
+            ...option,
+            requiresArg: ['string', 'array'].includes(option.type),
+            default: null,
+            // Required because yargs defines `defaultDescription`
+            // as `string | undefined`, not `string | null`.
+            // eslint-disable-next-line no-restricted-syntax
+            defaultDescription: option.defaultDescription ?? undefined,
+        }
+        return opts
+    }, {})
 
     const optParser = yargs()
         .version(false)

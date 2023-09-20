@@ -51,7 +51,6 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "npx --yes eslint src",
     "start": "tsx start.ts",
     "build": "tsx bundle.ts",
     "dist": "tsx dist.ts",

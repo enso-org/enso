@@ -48,7 +48,6 @@ use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::Benchmarks;
 use enso_build::engine::Tests;
 use enso_build::paths::TargetTriple;
-use enso_build::prettier;
 use enso_build::project;
 use enso_build::project::backend;
 use enso_build::project::backend::Backend;
@@ -835,13 +834,11 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .run_ok()
                 .await?;
 
+            Npm.cmd()?.install().run("ci-check").run_ok().await?;
             ensogl_pack::build_ts_sources_only().await?;
-            prettier::check(&ctx.repo_root).await?;
-            let js_modules_root = ctx.repo_root.join("app/ide-desktop");
-            Npm.cmd()?.current_dir(&js_modules_root).args(["run", "lint"]).run_ok().await?;
         }
         Target::Fmt => {
-            let prettier = prettier::write(&ctx.repo_root);
+            let prettier = Npm.cmd()?.install().run("format").run_ok();
             let our_formatter =
                 enso_formatter::process_path(&ctx.repo_root, enso_formatter::Action::Format);
             let (r1, r2) = join!(prettier, our_formatter).await;

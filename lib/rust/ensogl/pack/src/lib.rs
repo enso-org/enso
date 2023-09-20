@@ -361,7 +361,8 @@ pub async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
         let run_script = async move |script_name, script_args: &[&str]| {
             ide_ci::programs::Npm
                 .cmd()?
-                .run(script_name, script_args)
+                .run(script_name)
+                .args(script_args)
                 .current_dir(&paths.this_crate.js)
                 .run_ok()
                 .await

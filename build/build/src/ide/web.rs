@@ -13,7 +13,6 @@ use futures_util::future::try_join4;
 use ide_ci::io::download_all;
 use ide_ci::ok_ready_boxed;
 use ide_ci::program::command::FallibleManipulator;
-use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
 use std::process::Stdio;
@@ -131,6 +130,7 @@ pub fn path_to_executable_in_pm_bundle(
 #[derive(Clone, Copy, Debug)]
 pub enum Workspaces {
     Icons,
+    IdeDesktop,
     Content,
     /// The Electron client.
     Enso,
@@ -140,6 +140,7 @@ impl AsRef<OsStr> for Workspaces {
     fn as_ref(&self) -> &OsStr {
         match self {
             Workspaces::Icons => OsStr::new("enso-icons"),
+            Workspaces::IdeDesktop => OsStr::new("enso-ide-desktop"),
             Workspaces::Content => OsStr::new("enso-content"),
             Workspaces::Enso => OsStr::new("enso"),
         }
@@ -282,7 +283,6 @@ impl IdeDesktop {
 
     pub async fn install(&self) -> Result {
         self.npm()?.install().run_ok().await?;
-        self.npm()?.install().arg("--workspaces").run_ok().await?;
         Ok(())
     }
 
@@ -290,7 +290,7 @@ impl IdeDesktop {
         self.npm()?
             .workspace(Workspaces::Icons)
             .set_env(env::ENSO_BUILD_ICONS, output_path.as_ref())?
-            .run("build", EMPTY_ARGS)
+            .run("build")
             .run_ok()
             .await?;
         Ok(IconsArtifacts(output_path.as_ref().into()))
@@ -307,23 +307,11 @@ impl IdeDesktop {
         output_path: P,
     ) -> Result<ContentEnvironment<TempDir, P>> {
         let env = ContentEnvironment::new(self, wasm, build_info, output_path).await?;
-        //env.apply();
+        self.npm()?.try_applying(&env)?.run("ci-check").run_ok().await?;
         self.npm()?
             .try_applying(&env)?
             .workspace(Workspaces::Content)
-            .run("lint", EMPTY_ARGS)
-            .run_ok()
-            .await?;
-        self.npm()?
-            .try_applying(&env)?
-            .workspace(Workspaces::Content)
-            .run("typecheck", EMPTY_ARGS)
-            .run_ok()
-            .await?;
-        self.npm()?
-            .try_applying(&env)?
-            .workspace(Workspaces::Content)
-            .run("build", EMPTY_ARGS)
+            .run("build")
             .run_ok()
             .await?;
 
@@ -349,7 +337,7 @@ impl IdeDesktop {
             .npm()?
             .try_applying(&watch_environment)?
             .workspace(Workspaces::Content)
-            .run("watch", EMPTY_ARGS)
+            .run("watch")
             .spawn_intercepting()?;
         Ok(Watcher { child_process, watch_environment })
     }
@@ -386,7 +374,7 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
-            .run("build", EMPTY_ARGS)
+            .run("build")
             .run_ok();
 
         let icons_dist = TempDir::new()?;
@@ -419,7 +407,7 @@ impl IdeDesktop {
             .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
-            .run("dist", EMPTY_ARGS)
+            .run("dist")
             .arg("--")
             .arg(target_os_flag(target_os)?)
             .args(target_args)
@@ -471,7 +459,8 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_IDE, temp_dir_for_ide.path())?
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
-            .run("watch", script_args)
+            .run("watch")
+            .args(script_args)
             .run_ok()
             .await?;
 

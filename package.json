@@ -1,12 +1,23 @@
 {
   "devDependencies": {
+    "npm-run-all": "^4.1.5",
     "prettier": "^3.0.0"
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
+    "lint": "^0.8.19",
+    "run": "^1.4.0",
     "tslib": "^2.6.2"
   },
   "name": "root",
+  "scripts": {
+    "format": "prettier --write .",
+    "prettier": "prettier --check .",
+    "lint": "npm --workspaces --if-present run lint",
+    "test": "npm --workspaces --if-present run test",
+    "typecheck": "npm --workspaces --if-present run typecheck",
+    "ci-check": "run-p test prettier lint typecheck"
+  },
   "workspaces": [
     "app/ide-desktop",
     "app/ide-desktop/lib/*",

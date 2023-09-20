@@ -15,11 +15,11 @@
     "build": "We are using tsup to be able to generate the bundled .d.ts file. It is the only solution that works. See the following link for reference: https://github.com/Microsoft/TypeScript/issues/4433"
   },
   "scripts": {
-    "typecheck": "npx tsc --noEmit",
-    "build": "npx --yes tsup src/runner/index.ts --format=cjs --dts --sourcemap",
-    "build-asset-extractor": "npx --yes tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --dts --sourcemap",
-    "build-runtime-libs": "npx --yes esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
-    "lint": "npx --yes eslint src"
+    "typecheck": "tsc --noEmit",
+    "build": "tsup src/runner/index.ts --format=cjs --dts --sourcemap",
+    "build-asset-extractor": "tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --dts --sourcemap",
+    "build-runtime-libs": "esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
+    "lint": "eslint src"
   },
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
