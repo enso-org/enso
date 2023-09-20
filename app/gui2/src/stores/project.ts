@@ -1,6 +1,5 @@
 import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { attachProvider } from '@/util/crdt'
-import { modKey, useWindowEvent } from '@/util/events'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import { defineStore } from 'pinia'
@@ -24,8 +23,6 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
       rpcUrl: engine.rpcUrl,
       dataUrl: engine.dataUrl,
     }
-  } else if (engine.projectManagerUrl != null) {
-    throw new Error('Project manager connection not implemented')
   }
 
   throw new Error('Incomplete engine configuration')
@@ -37,7 +34,6 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
  * client, it is submitted to the language server as a document update.
  */
 export const useProjectStore = defineStore('project', () => {
-  // inputs
   const observedFileName = ref<string>()
 
   const doc = new Y.Doc()
@@ -55,16 +51,6 @@ export const useProjectStore = defineStore('project', () => {
   const lsRpcConnection = new LanguageServer(rpcClient)
 
   const undoManager = new Y.UndoManager([], { doc })
-
-  useWindowEvent('keydown', (e) => {
-    if (modKey(e) && e.key === 'z') {
-      console.log('undo')
-      undoManager.undo()
-    } else if (modKey(e) && e.key === 'y') {
-      console.log('redo')
-      undoManager.redo()
-    }
-  })
 
   watchEffect((onCleanup) => {
     // For now, let's assume that the websocket server is running on the same host as the web server.

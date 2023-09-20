@@ -158,7 +158,6 @@ export class LanguageServerSession extends Emitter<Events> {
       this.ls.dispose()
       sessions.delete(this.url)
     }
-    // any time session is released, we need to close all open documents
   }
 
   getYDoc(guid: string): WSSharedDoc | undefined {

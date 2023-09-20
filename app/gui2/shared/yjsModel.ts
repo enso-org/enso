@@ -28,22 +28,12 @@ export class DistributedProject {
     return Array.from(this.modules.keys())
   }
 
-  // observe(callback: (update: ProjectUpdate) => void) {
-  //   return this.doc.on('update', callback)
-  // }
-
   findModuleByDocId(id: string): string | null {
     for (const [name, doc] of this.modules.entries()) {
       if (doc.guid === id) return name
     }
     return null
   }
-
-  // async findModuleByName(name: string): Promise<number | null> {
-  //   await this.doc.whenLoaded
-  //   const index = this.moduleNames().indexOf(name)
-  //   return index < 0 ? null : index
-  // }
 
   async openModule(name: string): Promise<DistributedModule | null> {
     const doc = this.modules.get(name)
@@ -307,4 +297,37 @@ export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
 
 export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[1] && a[1] >= b[0]
+}
+
+if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest
+  /** prettier ignore */
+  test.each([
+    [
+      [0, 1],
+      [0, 1],
+    ],
+    [
+      [0, 1],
+      [0, 0],
+    ],
+    [
+      [0, 1],
+      [1, 1],
+    ],
+    [
+      [0, 1],
+      [0, 2],
+    ],
+    [
+      [0, 1],
+      [1, 2],
+    ],
+    [
+      [0, 1],
+      [2, 2],
+    ],
+  ])('Range %s should enclose %s', (a, b) => expect(rangeEncloses(a, b)).toBe(true))
+
+  test.each([])('Range %s should not enclose %s', (a, b) => expect(rangeEncloses(a, b)).toBe(false))
 }

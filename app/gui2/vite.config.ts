@@ -42,7 +42,7 @@ export default defineConfig({
 
 function gatewayServer(): Plugin {
   return {
-    name: 'y-websocket-server',
+    name: 'gateway-server',
     configureServer(server) {
       if (server.httpServer == null) return
 
