@@ -1,10 +1,36 @@
 from Standard.Base import all
+import Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+polyglot java import org.enso.table.formatting.DateTimeFormatter
+
 spec =
+    Test.group "Parsing formats" <|
+        Test.specify "should throw informative error for replacements of Java patterns in Simple format" <|
+            r1 = Date_Time_Formatter.from "E, d MMM yyyy"
+            r1.should_fail_with Date_Time_Format_Parse_Error
+            r1.catch.to_display_text . should_contain "use `ddd`"
+
+            r2 = Date_Time_Formatter.from "d LLL yyyy"
+            r2.should_fail_with Date_Time_Format_Parse_Error
+            r2.catch.to_display_text . should_contain "use `MMM`"
+
+            r3 = Date_Time_Formatter.from "dd-MM-yyyy HH:mm:ss '['XX']'"
+            r3.should_fail_with Date_Time_Format_Parse_Error
+            r3.catch.to_display_text . should_contain "use `zz`"
+
+        Test.specify "should report format parse failures" <|
+            Date_Time_Formatter.from "yyyy[" . should_fail_with Date_Time_Format_Parse_Error
+            Date_Time_Formatter.from "yyyy{12}" . should_fail_with Date_Time_Format_Parse_Error
+            Date_Time_Formatter.from "yy{baz}" . should_fail_with Date_Time_Format_Parse_Error
+            Date_Time_Formatter.from "MM{baz}" . should_fail_with Date_Time_Format_Parse_Error
+            Date_Time_Formatter.from "{baz}" . should_fail_with Date_Time_Format_Parse_Error
+            Date_Time_Formatter.from "]" . should_fail_with Date_Time_Format_Parse_Error
+            Date_Time_Formatter.from "'" . should_fail_with Date_Time_Format_Parse_Error
+
     Test.group "Formatting date/time values" <|
         Test.specify "should allow printing month names" <|
             d = Date.new 2020 6 30
@@ -12,6 +38,14 @@ spec =
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.us) . should_equal "30. June 2020"
             # Note that the default (ROOT) locale returns a short name even for MMMM (full name) month format.
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal "30. Jun 2020"
+
+        Test.specify "should allow using a Java formatter" <|
+            jformatter = DateTimeFormatter.ISO_ORDINAL_DATE
+            Date.new 2020 2 1 . format jformatter . should_equal "2020-032"
+
+        Test.specify "should allow parsing Java patterns" <|
+            Date.new 2020 2 1 . format (Date_Time_Formatter.from_java "E, d LLL yyyy") . should_equal "Sat, 1 Feb 2020"
+
     Test.group "Parsing date/time values" <|
         Test.specify "should allow short month names" <|
             Date.parse "30. Jun 2020" "d. MMM yyyy" . should_equal (Date.new 2020 6 30)
@@ -134,3 +168,30 @@ spec =
                     msg . should_contain "Text '2008-01-01' could not be parsed"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
+
+        Test.specify "should be able to parse YYYY as well as yyyy" <|
+            Date.parse "2020-01-02" "YYYY-MM-dd" . should_equal (Date.new 2020 1 1)
+            Date.parse "2020-01-02" "yyyy-MM-dd" . should_equal (Date.new 2020 1 1)
+
+        Test.specify "should be able to parse year-month without day" <|
+            Date.parse "2022-05" "yyyy-MM" . should_equal (Date.new 2022 5 1)
+
+        Test.specify "should be able to parse a quarter without day" <|
+            Date.parse "Q2 of 2022" "'Q'Q 'of' yyyy" . should_equal (Date.new 2022 4 1)
+
+        Test.specify "should be able to parse a day and month without year - defaulting to current year" <|
+            current_year = Date.today.year
+            Date.parse "07/23" "MM/dd" . should_equal (Date.new current_year 7 23)
+            Date.parse "14. of May" "d. 'of' MMMM" . should_equal (Date.new current_year 5 14)
+
+        Test.specify "should be able to parse 2-digit year" <|
+            Date.parse "22-05-06" "yy-MM-dd" . should_equal (Date.new 2022 5 6)
+            Date.parse "99-01-02" "yy-MM-dd" . should_equal (Date.new 1999 1 2)
+            Date.parse "49-03-04" "yy-MM-dd" . should_equal (Date.new 2049 3 4)
+            Date.parse "50-03-04" "yy-MM-dd" . should_equal (Date.new 1950 3 4)
+
+        Test.specify "should be able to parse 2-digit year with custom base-year" <|
+            Date.parse "22-05-06" "yy{1999}-MM-dd" . should_equal (Date.new 1922 5 6)
+            Date.parse "99-01-02" "yy{1949}-MM-dd" . should_equal (Date.new 1899 1 2)
+            Date.parse "49-03-04" "yy{3099}-MM-dd" . should_equal (Date.new 3049 3 4)
+            Date.parse "50-03-04" "yy{2099}-MM-dd" . should_equal (Date.new 2050 3 4)

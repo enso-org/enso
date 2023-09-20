@@ -161,9 +161,12 @@ type Parser
             any_pattern = date_pattern.if_nothing <|
                 self.parse_time_or_timezone_pattern character count
             any_pattern.if_nothing <|
-                Panic.throw (Date_Time_Format_Parse_Error.Error "The pattern "+(character*count)+" is not recognized as any known pattern for the "+self.mode.pattern_format_name+" format.")
+                self.fail_invalid_pattern character count
             any_pattern
         _ -> Panic.throw (Illegal_State.Error "Unexpected (here) token type: "+token.to_text)
+
+    fail_invalid_pattern self character count extra_message="" =
+        Panic.throw (Date_Time_Format_Parse_Error.Error "The pattern "+(character*count)+" is not a valid pattern for the "+self.mode.pattern_format_name+" format."+extra_message)
 
     ## PRIVATE
     consume_token self =
@@ -215,7 +218,8 @@ type Parser
                 2 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 2)
                 3 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
                 _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
-            "e" -> Panic.throw (Date_Time_Format_Parse_Error.Error "The pattern "+(character*count)+" is not a valid pattern for the "+self.mode.pattern_format_name+" format. If you want to represent the day of week as text use `ddd` for the short form and `dddd` for the long form.")
+            "e" -> self.fail_invalid_pattern character count " If you want to represent the day of week as text use `ddd` for the short form and `dddd` for the long form, or use `from_java` for the Java syntax."
+            "l" -> self.fail_invalid_pattern character count " If you want to represent the month as text use `MMM` for the short form and `MMMM` for the long form, or use `from_java` for the Java syntax."
             _ -> Nothing
 
     ## PRIVATE
@@ -229,6 +233,7 @@ type Parser
                 2 -> ISO_Week_Year_Patterns.Day_Of_Week (Numeric_Representation.Value 2)
                 3 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Short_Form)
                 _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+            "e" -> self.fail_invalid_pattern character count " If you want to represent the day of week as text use `ddd` for the short form and `dddd` for the long form, or use `from_java` for the Java syntax."
             _ -> Nothing
 
     ## PRIVATE
@@ -250,6 +255,7 @@ type Parser
             "a" -> Time_Patterns.AmPm
             "t" -> if count <= 3 then Time_Zone_Patterns.Time_Zone_ID else Time_Zone_Patterns.Time_Zone_Name
             "z" -> Time_Zone_Patterns.Time_Zone_Offset
+            "x" -> self.fail_invalid_pattern character count " If you want to represent the time zone offset use `zz`, or use `from_java` for the Java syntax."
             _ -> Nothing
 
 ## PRIVATE
