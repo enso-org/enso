@@ -2194,12 +2194,13 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "graal-sdk"               % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "com.univocity"       % "univocity-parsers"       % univocityParsersVersion,
-      "org.apache.poi"      % "poi-ooxml"               % poiOoxmlVersion,
-      "org.apache.xmlbeans" % "xmlbeans"                % xmlbeansVersion,
-      "org.antlr"           % "antlr4-runtime"          % antlrVersion
+      "org.graalvm.sdk"          % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
+      "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
+      "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
+      "org.antlr"                % "antlr4-runtime"          % antlrVersion,
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.20.0" // org.apache.poi uses log4j
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
