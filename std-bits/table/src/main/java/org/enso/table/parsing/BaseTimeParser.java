@@ -1,8 +1,6 @@
 package org.enso.table.parsing;
 
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import org.enso.base.Time_Utils;
 import org.enso.base.time.EnsoDateTimeFormatter;
 import org.enso.table.parsing.problems.ProblemAggregator;
 
@@ -25,7 +23,8 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
       try {
         return parseStrategy.parse(text, formatter);
       } catch (DateTimeParseException ignored) {
-        // TODO I think ideally we should try to return Option instead of throwing, as throwing is inefficient
+        // TODO I think ideally we should try to return Option instead of throwing, as throwing is
+        // inefficient
       }
     }
 

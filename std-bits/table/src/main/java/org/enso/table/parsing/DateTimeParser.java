@@ -6,7 +6,9 @@ import org.enso.table.data.column.builder.DateTimeBuilder;
 
 public class DateTimeParser extends BaseTimeParser {
   public DateTimeParser(EnsoDateTimeFormatter[] formatters) {
-    super(formatters, (String text, EnsoDateTimeFormatter formatter) -> formatter.parseZonedDateTime(text));
+    super(
+        formatters,
+        (String text, EnsoDateTimeFormatter formatter) -> formatter.parseZonedDateTime(text));
   }
 
   @Override

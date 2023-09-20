@@ -6,7 +6,9 @@ import org.enso.table.data.column.builder.TimeOfDayBuilder;
 
 public class TimeOfDayParser extends BaseTimeParser {
   public TimeOfDayParser(EnsoDateTimeFormatter[] formatters) {
-    super(formatters, (String text, EnsoDateTimeFormatter formatter) -> formatter.parseLocalTime(text));
+    super(
+        formatters,
+        (String text, EnsoDateTimeFormatter formatter) -> formatter.parseLocalTime(text));
   }
 
   @Override

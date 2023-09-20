@@ -9,38 +9,38 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalQueries;
 
 public class Core_Date_Utils {
   /** default Date Time formatter for parsing a Date_Time. */
   public static final DateTimeFormatter defaultZonedDateTimeFormatter =
-    new DateTimeFormatterBuilder()
-        .parseLenient()
-        .append(DateTimeFormatter.ISO_LOCAL_DATE)
-        .appendLiteral(' ')
-        .append(DateTimeFormatter.ISO_LOCAL_TIME)
-        .optionalStart()
-        .parseLenient()
-        .appendOffsetId()
-        .optionalEnd()
-        .optionalStart()
-        .appendLiteral('[')
-        .parseCaseSensitive()
-        .appendZoneRegionId()
-        .appendLiteral(']')
-        .toFormatter();
+      new DateTimeFormatterBuilder()
+          .parseLenient()
+          .append(DateTimeFormatter.ISO_LOCAL_DATE)
+          .appendLiteral(' ')
+          .append(DateTimeFormatter.ISO_LOCAL_TIME)
+          .optionalStart()
+          .parseLenient()
+          .appendOffsetId()
+          .optionalEnd()
+          .optionalStart()
+          .appendLiteral('[')
+          .parseCaseSensitive()
+          .appendZoneRegionId()
+          .appendLiteral(']')
+          .toFormatter();
 
   /** default Date formatter for parsing a Date. */
-  public static final DateTimeFormatter defaultLocalDateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
+  public static final DateTimeFormatter defaultLocalDateFormatter =
+      DateTimeFormatter.ISO_LOCAL_DATE;
 
   /** default Time formatter for parsing a Time_Of_Day. */
-  public static final DateTimeFormatter defaultLocalTimeFormatter = DateTimeFormatter.ISO_LOCAL_TIME;
+  public static final DateTimeFormatter defaultLocalTimeFormatter =
+      DateTimeFormatter.ISO_LOCAL_TIME;
 
   /**
    * Parse a date string into a LocalDate. Allows missing day (assumes first day of month) or
