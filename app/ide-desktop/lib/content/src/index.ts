@@ -141,7 +141,7 @@ function displayDeprecatedVersionDialog() {
 // ========================
 
 /** Nested configuration options with `string` values. */
-interface StringConfig {
+export interface StringConfig {
     [key: string]: StringConfig | string
 }
 
