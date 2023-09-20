@@ -17,6 +17,7 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -227,7 +228,7 @@ public final class EnsoDateTime implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public Object toDisplayString(boolean allowSideEffects) {
-    return DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime);
+    return Core_Date_Utils.defaultZonedDateTimeFormatter().format(dateTime);
   }
 
   // 15. October 1582
