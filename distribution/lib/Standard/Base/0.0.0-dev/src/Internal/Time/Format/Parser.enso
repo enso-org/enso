@@ -108,7 +108,7 @@ type Parser_Mode
     ## PRIVATE
     pattern_format_name self = case self of
         Parser_Mode.Simple -> "Simple"
-        Parser_Mode.ISO_Week_Year -> "ISO_Week_Date"
+        Parser_Mode.ISO_Week_Year -> "ISO Week-Date"
 
 ## PRIVATE
 type Parser

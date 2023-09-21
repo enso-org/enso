@@ -147,14 +147,14 @@ type Date_Time_Formatter
        > Example
          Parsing a date in the ISO week date format
 
-             Date.parse (ISO_Week_Date "YYYY-'W'WW-d" "1976-W53-6") == (Date.new 1977 01 01)
-             Date.parse (ISO_Week_Date "YYYY-'W'WW, eee" "1978-W01, Mon") == (Date.new 1978 01 02)
-             Date_Time.parse (ISO_Week_Date "YYYY-'W'WW-d HH:mm:ss" "1978-W01-4 12:34:56") == (Date_Time.new 1978 01 05 12 34 56)
+             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d" "1976-W53-6") == (Date.new 1977 01 01)
+             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee" "1978-W01, Mon") == (Date.new 1978 01 02)
+             Date_Time.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d HH:mm:ss" "1978-W01-4 12:34:56") == (Date_Time.new 1978 01 05 12 34 56)
 
        > Example
          Omitting the day of the week will result in the first day of that week.
 
-             Date.parse (ISO_Week_Date "YYYY-'W'WW" "1978-W01") == (Date.new 1978 01 02)
+             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW" "1978-W01") == (Date.new 1978 01 02)
     @locale Locale.default_widget
     from_iso_week_date_pattern pattern:Text locale:Locale=Locale.default =
         java_formatter = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern |>
