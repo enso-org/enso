@@ -19,6 +19,12 @@ import java.util.Locale;
 import static java.time.temporal.ChronoField.INSTANT_SECONDS;
 import static java.time.temporal.ChronoField.NANO_OF_SECOND;
 
+/**
+ * An Enso representation of the DateTimeFormatter.
+ * <p>
+ * It adds some additional functionality to the Java formatter - including a workaround for making the `T` in ISO dates
+ * optional and tracking how it was constructed.
+ */
 public class EnsoDateTimeFormatter {
   private final DateTimeFormatter formatter;
   private final Pair<Character, String> isoReplacementPair;
@@ -87,7 +93,7 @@ public class EnsoDateTimeFormatter {
   @Override
   public String toString() {
     return switch (formatterKind) {
-      case SIMPLE -> "(Simple) " + originalPattern;
+      case SIMPLE -> originalPattern;
       case ISO_WEEK_DATE -> "(ISO Week Date Format) " + originalPattern;
       case RAW_JAVA -> "(Java Format Pattern) " + originalPattern;
       case CONSTANT -> originalPattern;
