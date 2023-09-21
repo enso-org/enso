@@ -173,11 +173,13 @@ impl Model {
         data: VisualizationUpdateData,
     ) -> Option<(NodeId, CallWidgetsConfig)> {
         let query_data = self.widget_queries.get_mut(&target)?;
+        let in_module = self.graph.module_qualified_name();
 
         let (definitions, errors) = configuration::deserialize_widget_definitions(
             &data,
             &self.graph.suggestion_db(),
             &self.graph.parser(),
+            in_module.as_ref(),
         );
 
         for error in errors {
