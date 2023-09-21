@@ -58,8 +58,8 @@ interface PointsConfiguration {
 }
 
 enum ScaleType {
-  linear = 'linear',
-  logarithmic = 'logarithmic',
+  Linear = 'linear',
+  Logarithmic = 'logarithmic',
 }
 
 interface AxisConfiguration {
@@ -141,8 +141,8 @@ const SHAPE_TO_SYMBOL: Record<string, SymbolType> = {
 }
 
 const SCALE_TO_D3_SCALE: Record<ScaleType, ScaleContinuousNumeric<number, number>> = {
-  [ScaleType.linear]: d3.scaleLinear(),
-  [ScaleType.logarithmic]: d3.scaleLog(),
+  [ScaleType.Linear]: d3.scaleLinear(),
+  [ScaleType.Logarithmic]: d3.scaleLog(),
 }
 
 const data = computed<Data>(() => {
@@ -162,8 +162,8 @@ const data = computed<Data>(() => {
     rawData = {}
   }
   const axis: AxesConfiguration = rawData.axis ?? {
-    x: { label: '', scale: ScaleType.linear },
-    y: { label: '', scale: ScaleType.linear },
+    x: { label: '', scale: ScaleType.Linear },
+    y: { label: '', scale: ScaleType.Linear },
   }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus

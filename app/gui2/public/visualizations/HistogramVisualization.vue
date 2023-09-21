@@ -75,8 +75,8 @@ interface Focus {
 }
 
 enum ScaleType {
-  linear = 'linear',
-  logarithmic = 'logarithmic',
+  Linear = 'linear',
+  Logarithmic = 'logarithmic',
 }
 
 interface AxisConfiguration {
@@ -133,8 +133,8 @@ const ANIMATION_DURATION = 1000
 const DEFAULT_NUMBER_OF_BINS = 50
 const COLOR_LEGEND_WIDTH = 5
 const DEFAULT_AXES_CONFIGURATION: AxesConfiguration = {
-  x: { scale: ScaleType.linear },
-  y: { scale: ScaleType.linear },
+  x: { scale: ScaleType.Linear },
+  y: { scale: ScaleType.Linear },
 }
 const RMB_DIVIDER = 100
 const PINCH_DIVIDER = 100
