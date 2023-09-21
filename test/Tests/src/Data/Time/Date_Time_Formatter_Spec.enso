@@ -52,7 +52,7 @@ spec =
 
         Test.specify "should handle various formats" <|
             Date.new 2023 09 21 . format "E, dd.MM.yy" . should_equal "Thu, 21.09.23"
-            Date.new 2023 09 21 . format "DDDD" . should_equal "Thursday"
+            Date.new 2023 09 21 . format (Date_Time_Formatter.from "DDDD" Locale.poland) . should_equal "czwartek"
             Date.new 2023 09 21 . format (Date_Time_Formatter.from_iso_week_date_pattern "ee, 'W'WW ''yy") . should_equal "Thursday, W38 '23"
             Date.new 2023 09 21 . format "'Q'Q ''yy{1999}" . should_equal "Q3 '23"
 
