@@ -128,8 +128,7 @@ impl SpanWidget for Widget {
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
-        let is_placeholder =
-            ctx.span_node.is_expected_argument() || ctx.span_node.is_expected_operand();
+        let is_placeholder = ctx.span_node.is_placeholder();
 
         let expr = ctx.span_expression();
         let content = if is_placeholder || ctx.info.connection.is_some() {
