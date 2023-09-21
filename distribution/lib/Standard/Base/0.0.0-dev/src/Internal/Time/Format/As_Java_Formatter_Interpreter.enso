@@ -42,8 +42,6 @@ interpret locale nodes =
         Time_Patterns.Fraction_Of_Second representation ->
             min_digits = 1
             max_digits = case representation.digits of
-                # If just one digit provided, we allow as many as possible.
-                # TODO
                 1 -> 9
                 digits -> digits
             includes_decimal_point = False

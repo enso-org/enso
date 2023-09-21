@@ -10,11 +10,16 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.time.temporal.IsoFields;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalField;
 import java.time.temporal.TemporalQueries;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import static java.time.temporal.ChronoField.INSTANT_SECONDS;
 import static java.time.temporal.ChronoField.NANO_OF_SECOND;
@@ -103,7 +108,7 @@ public class EnsoDateTimeFormatter {
   public LocalDate parseLocalDate(String dateString) {
     dateString = normaliseInput(dateString);
 
-    var parsed = formatter.parse(dateString);
+    TemporalAccessor parsed = formatter.parse(dateString);
 
     if (parsed.isSupported(ChronoField.EPOCH_DAY)) {
       return LocalDate.ofEpochDay(parsed.getLong(ChronoField.EPOCH_DAY));
@@ -135,6 +140,20 @@ public class EnsoDateTimeFormatter {
           LocalDate.now().getYear(),
           parsed.get(ChronoField.MONTH_OF_YEAR),
           parsed.get(ChronoField.DAY_OF_MONTH));
+    }
+
+    if (parsed.isSupported(IsoFields.WEEK_BASED_YEAR) && parsed.isSupported(IsoFields.WEEK_OF_WEEK_BASED_YEAR)) {
+      // Get the day of week or default to first day if not present.
+      long dayOfWeek = parsed.isSupported(ChronoField.DAY_OF_WEEK) ? parsed.get(ChronoField.DAY_OF_WEEK) : 1;
+      HashMap<TemporalField, Long> fields = new HashMap<>();
+      fields.put(IsoFields.WEEK_BASED_YEAR, parsed.getLong(IsoFields.WEEK_BASED_YEAR));
+      fields.put(IsoFields.WEEK_OF_WEEK_BASED_YEAR, parsed.getLong(IsoFields.WEEK_OF_WEEK_BASED_YEAR));
+      fields.put(ChronoField.DAY_OF_WEEK, dayOfWeek);
+
+      TemporalAccessor resolved = IsoFields.WEEK_OF_WEEK_BASED_YEAR.resolve(fields, parsed, ResolverStyle.SMART);
+      if (resolved.isSupported(ChronoField.EPOCH_DAY)) {
+        return LocalDate.ofEpochDay(resolved.getLong(ChronoField.EPOCH_DAY));
+      }
     }
 
     // This will usually throw at this point, but it will construct a more informative exception than we could.
