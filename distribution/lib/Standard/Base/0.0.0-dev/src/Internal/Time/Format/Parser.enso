@@ -89,13 +89,16 @@ type Time_Patterns
 ## PRIVATE
 type Time_Zone_Patterns
     ## PRIVATE
-    Time_Zone_Name
+    Time_Zone_Name representation:Text_Representation
 
     ## PRIVATE
     Time_Zone_ID
 
     ## PRIVATE
-    Time_Zone_Offset
+    Time_Zone_Offset pattern:Text zero:Text
+
+    ## PRIVATE
+    Time_Zone_Localized_Offset representation:Text_Representation
 
 ## PRIVATE
 type Parser_Mode
@@ -153,7 +156,7 @@ type Parser
         Format_Token.Literal text ->
             Common_Nodes.Literal text
         Format_Token.Curly_Section inner_text ->
-            Panic.throw (Date_Time_Format_Parse_Error.Error "Unexpected section in curly braces: {"+inner_text+"}. Currently, the curly braces are only used to parametrize the two-digit year with the max year, e.g. `yy{2049}`. If you want to include a curly brace as literal, escape it with single quotes like '{"+inner_text+"}'")
+            Panic.throw (Date_Time_Format_Parse_Error.Error "Unexpected section in curly braces: {"+inner_text+"}. If you want to include a curly brace as literal, escape it with single quotes like '{"+inner_text+"}'")
         Format_Token.Pattern character count ->
             date_pattern = case self.mode of
                 Parser_Mode.Simple -> self.parse_simple_date_pattern character count
@@ -175,6 +178,10 @@ type Parser
         self.tokens.at current_position
 
     ## PRIVATE
+       Checks if the next token is a curly brace parameter.
+       If it is, it is consumed and its value (as Text) is returned.
+       Otherwise, returns Nothing and does not move the cursor.
+    consume_curly_parameter_if_exists : Text | Nothing
     consume_curly_parameter_if_exists self =
         current_position = self.position.get
         case self.tokens.at current_position of
@@ -247,6 +254,7 @@ type Parser
     ## PRIVATE
     parse_time_or_timezone_pattern self character count =
         lowercase = character.to_case Case.Lower
+        text_representation = if count <= 3 then Text_Representation.Short_Form else Text_Representation.Long_Form
         case lowercase of
             "h" -> case character of
                 "H" -> Time_Patterns.Hour (Numeric_Representation.Value count) is_24h=True
@@ -261,11 +269,18 @@ type Parser
                     Panic.throw (Date_Time_Format_Parse_Error.Error "It is meaningless to have more than 9 digits in the fractional-of-second pattern, because at most nanosecond precision of seconds is currently supported.")
                 Time_Patterns.Fraction_Of_Second (Numeric_Representation.Value count)
             "a" -> Time_Patterns.AM_PM
-            "t" -> if count <= 3 then Time_Zone_Patterns.Time_Zone_ID else Time_Zone_Patterns.Time_Zone_Name
+            "t" -> if count <= 3 then Time_Zone_Patterns.Time_Zone_ID else Time_Zone_Patterns.Time_Zone_Name text_representation
             "v" -> case character of
                 "V" -> Time_Zone_Patterns.Time_Zone_ID
-                "v" -> Time_Zone_Patterns.Time_Zone_Name
-            "z" -> Time_Zone_Patterns.Time_Zone_Offset
+                "v" -> Time_Zone_Patterns.Time_Zone_Name text_representation
+            "z" -> case count of
+                4 -> Time_Zone_Patterns.Time_Zone_Localized_Offset Text_Representation.Long_Form
+                5 ->
+                    no_offset_string = self.consume_curly_parameter_if_exists.if_nothing "Z"
+                    Time_Zone_Patterns.Time_Zone_Offset "+HH:MM:ss" no_offset_string
+                _ -> if count > 5 then self.fail_invalid_pattern character count " Too many characters for timezone format, 5 is a maximum." else
+                    no_offset_string = self.consume_curly_parameter_if_exists.if_nothing "+0000"
+                    Time_Zone_Patterns.Time_Zone_Offset "+HHMM" no_offset_string
             "x" -> self.fail_invalid_pattern character count " If you want to represent the time zone offset use `zz`, or use `from_java` for the Java syntax."
             _ -> Nothing
 

@@ -203,7 +203,14 @@ type Date_Time
          - a: AM/PM marker.
          - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
            -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
-         - Z: Zone offset (e.g. +0000, -0830, +08:30:15).
+         - Z: Zone offset.
+           - z, zz, zz: A short offset form (+HHmm).
+             No offset is indicated by "+0000". This can be customized by setting
+             an alternative no offset string in curly braces, e.g. `zz{Z}`.
+           - zzzz: A full offset form (+HH:mm:ss).
+             No offset is indicated by "Z". This can be customized as above, e.g.
+             `zzzz{0}`.
+           - zzzzz: Localized offset.
 
        ? Default Date_Time Format
          Unless you provide a custom format, the text must represent a valid
@@ -804,7 +811,14 @@ type Date_Time
          - a: AM/PM marker.
          - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
            -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
-         - Z: Zone offset (e.g. +0000, -0830, +08:30:15).
+         - Z: Zone offset.
+           - z, zz, zz: A short offset form (+HHmm).
+             No offset is indicated by "+0000". This can be customized by setting
+             an alternative no offset string in curly braces, e.g. `zz{Z}`.
+           - zzzz: A full offset form (+HH:mm:ss).
+             No offset is indicated by "Z". This can be customized as above, e.g.
+             `zzzz{0}`.
+           - zzzzz: Localized offset.
 
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as

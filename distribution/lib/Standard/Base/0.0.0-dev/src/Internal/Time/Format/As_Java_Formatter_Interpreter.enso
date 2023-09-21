@@ -31,18 +31,12 @@ interpret locale nodes =
 
         Time_Zone_Patterns.Time_Zone_ID ->
             builder.appendZoneId
-        Time_Zone_Patterns.Time_Zone_Name ->
-            # TODO maybe ability to SHORT if less than 4 chars
-            builder.appendZoneText TextStyle.FULL
-        Time_Zone_Patterns.Time_Zone_Offset ->
-            ## TODO
-                 appendOffset("+HHMM", "+0000");
-               count == 4
-                 appendLocalizedOffset(TextStyle.FULL);
-               count == 5
-                 appendOffset("+HH:MM:ss","Z");
-            builder.appendLocalizedOffset TextStyle.FULL
-
+        Time_Zone_Patterns.Time_Zone_Name representation ->
+            builder.appendZoneText (text_representation_to_java_style representation)
+        Time_Zone_Patterns.Time_Zone_Offset pattern zero ->
+            builder.appendOffset pattern zero
+        Time_Zone_Patterns.Time_Zone_Localized_Offset representation ->
+            builder.appendLocalizedOffset (text_representation_to_java_style representation)
         Time_Patterns.AM_PM ->
             builder.appendText ChronoField.AMPM_OF_DAY
         Time_Patterns.Fraction_Of_Second representation ->
@@ -87,9 +81,12 @@ append_field builder field representation = case representation of
     Numeric_Representation.Value digits -> case digits of
         2 -> builder.appendValue field 2
         _ -> builder.appendValue field digits 19 SignStyle.NORMAL
-    Text_Representation.Short_Form ->
-        builder.appendText field TextStyle.SHORT
-    Text_Representation.Long_Form ->
-        builder.appendText field TextStyle.FULL
+    text_representation : Text_Representation ->
+        builder.appendText field (text_representation_to_java_style text_representation)
     Two_Digit_Year_Representation.Value max_year ->
         Time_Utils.appendTwoDigitYear builder field max_year
+
+## PRIVATE
+text_representation_to_java_style representation = case representation of
+    Text_Representation.Short_Form -> TextStyle.SHORT
+    Text_Representation.Long_Form  -> TextStyle.FULL
