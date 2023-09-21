@@ -803,6 +803,17 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 exclusions.push("target/enso-build");
             }
 
+            if !dry_run {
+                // On Windows, `npm` uses junctions as symbolic links for in-workspace dependencies.
+                // Unfortunately, Git for Windows treats those as hard links. That then leads to
+                // `git clean` recursing into those linked directories, happily deleting sources of
+                // whole linked packages. Manually deleting `node_modules` before running clean
+                // prevents this from happening.
+                //
+                // Related npm issue: https://github.com/npm/npm/issues/19091
+                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("node_modules")).await?;
+            }
+
             let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
             let clean_cache = async {
                 if cache && !dry_run {
