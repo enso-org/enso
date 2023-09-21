@@ -8,6 +8,12 @@
       "listen": "true",
       "hostName": "localhost",
       "port": "5005"
+    },
+    {
+      "name": "Debug Adapter Protocol",
+      "type": "node",
+      "debugServer": 4711,
+      "request": "attach"
     }
   ]
 }
