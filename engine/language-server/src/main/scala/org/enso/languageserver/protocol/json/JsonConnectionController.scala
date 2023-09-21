@@ -259,7 +259,11 @@ class JsonConnectionController(
         receiver ! ResponseResult(
           InitProtocolConnection,
           request.id,
-          InitProtocolConnection.Result(allRoots.map(_.toContentRoot).toSet)
+          InitProtocolConnection.Result(
+            buildinfo.Info.ensoVersion,
+            buildinfo.Info.currentEdition,
+            allRoots.map(_.toContentRoot).toSet
+          )
         )
 
         initialize(webActor, rpcSession)
