@@ -6,7 +6,7 @@
 
 **Download** _"VSCode Extension" artifact_ from the [latest actions run](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml), unzip, install into VSCode:
 
-![Install VSIX](https://github.com/enso-org/enso/assets/26887752/9d7c35d6-44b2-4157-b451-bb27980425c7)
+![Install from VSIX file](https://github.com/enso-org/enso/assets/26887752/9d7c35d6-44b2-4157-b451-bb27980425c7)
 
 Your Enso files will get proper **syntax coloring**. You'll be able to **debug** Java/Enso code interchangeably.
 
