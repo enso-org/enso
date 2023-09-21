@@ -56,6 +56,9 @@ spec =
             Date.new 2023 09 21 . format (Date_Time_Formatter.from_iso_week_date_pattern "ee, 'W'WW ''yy") . should_equal "Thursday, W38 '23"
             Date.new 2023 09 21 . format "'Q'Q ''yy{1999}" . should_equal "Q3 '23"
 
+            tz = Time_Zone.parse "US/Hawaii"
+            Date_Time.new 2023 09 21 12 zone=tz . format "yyyy/MM/dd HH:mm:ss VV" . should_equal "2023/09/21 12:00:00 US/Hawaii"
+
     Test.group "Parsing date/time values" <|
         Test.specify "should allow short month names" <|
             Date.parse "30. Jun 2020" "d. MMM yyyy" . should_equal (Date.new 2020 6 30)
@@ -147,7 +150,7 @@ spec =
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should parse custom format of zoned time" <|
-            time = Date_Time.parse "2020-05-06 04:30:20 UTC" "yyyy-MM-dd HH:mm:ss tt"
+            time = Date_Time.parse "2020-05-06 04:30:20 UTC" "yyyy-MM-dd HH:mm:ss VV"
             time . year . should_equal 2020
             time . month . should_equal 5
             time . day . should_equal 6

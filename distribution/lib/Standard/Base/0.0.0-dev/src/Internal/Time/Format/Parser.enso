@@ -262,6 +262,9 @@ type Parser
                 Time_Patterns.Fraction_Of_Second (Numeric_Representation.Value count)
             "a" -> Time_Patterns.AM_PM
             "t" -> if count <= 3 then Time_Zone_Patterns.Time_Zone_ID else Time_Zone_Patterns.Time_Zone_Name
+            "v" -> case character of
+                "V" -> Time_Zone_Patterns.Time_Zone_ID
+                "v" -> Time_Zone_Patterns.Time_Zone_Name
             "z" -> Time_Zone_Patterns.Time_Zone_Offset
             "x" -> self.fail_invalid_pattern character count " If you want to represent the time zone offset use `zz`, or use `from_java` for the Java syntax."
             _ -> Nothing

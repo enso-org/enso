@@ -744,7 +744,7 @@ type Date_Time
     to_display_text self =
         # TODO note that we are using a format that will not be parsed by our default formatters and needs custom formatter to be parsed. Is that OK?
         time_format = if self.nanosecond include_milliseconds=True == 0 then "HH:mm:ss" else "HH:mm:ss.n"
-        self.format "yyyy-MM-dd "+time_format+" tt"
+        self.format "yyyy-MM-dd "+time_format+" TT"
 
     ## PRIVATE
        Convert to a JavaScript Object representing a Date_Time.

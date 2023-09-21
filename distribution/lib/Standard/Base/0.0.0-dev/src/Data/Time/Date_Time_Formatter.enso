@@ -80,6 +80,8 @@ type Date_Time_Formatter
        - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
          -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
        - Z: Zone offset (e.g. +0000, -0830, +08:30:15).
+       - v: Time zone name (same as TTTT).
+       - V: Time zone ID (same as T).
 
        Some parts, like fractions of a second may not be required. The square
        brackets `[]` can be used to surround such optional sections.
