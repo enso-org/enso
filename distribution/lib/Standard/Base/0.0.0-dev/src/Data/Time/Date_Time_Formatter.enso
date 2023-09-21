@@ -281,7 +281,7 @@ Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =
 ## PRIVATE
 type Date_Time_Format_Parse_Error
     ## PRIVATE
-       Indicates an error during parsing of a `Date_Time_Format_Constants`.
+       Indicates an error during parsing of a date time format pattern.
     Error message
 
     ## PRIVATE
