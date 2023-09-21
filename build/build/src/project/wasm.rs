@@ -448,6 +448,7 @@ impl Artifact {
             path: _,
             dynamic_assets,
             index_js: _,
+            index_d_ts: _,
             index_js_map: _,
             pkg_js,
             pkg_js_map,
