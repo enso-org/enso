@@ -226,7 +226,7 @@ spec =
              Date_Time.parse "12/10/2021 5:34 PM" "d/M/Y h:mm a" . should_equal (Date_Time.new 2021 10 12 17 34 00)
              Date.parse "2021-10" "yyyy-MM" . should_equal (Date.new 2021 10 01)
              Date.parse "10-12" "MM-dd" . should_equal (Date.new (Date.today.year) 10 12)
-             Date.parse "1 November '95" "dd MMMM ''yy{2099}" . should_equal (Date.new 2095 11 01)
+             Date.parse "1 Nov '95" "d MMM ''yy{2099}" . should_equal (Date.new 2095 11 01)
              Date_Time.parse "2021-10-12T12:34:56.789+0200" "yyyy-MM-dd'T'HH:mm:ss.fZ" . should_equal (Date_Time.new 2021 10 12 12 34 56 millisecond=789 zone=(Time_Zone.new hours=2))
 
         Test.specify "should be able to parse a week-based year format" <|

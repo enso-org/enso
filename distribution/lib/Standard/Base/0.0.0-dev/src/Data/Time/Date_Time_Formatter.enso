@@ -118,7 +118,7 @@ type Date_Time_Formatter
        > Example
          Parsing a two-digit year with a custom base year.
 
-             Date.parse "1 November '95" "dd MMMM ''yy{2099}" == (Date.new 2095 11 01)
+             Date.parse "1 Nov '95" "d MMM ''yy{2099}" == (Date.new 2095 11 01)
     @locale Locale.default_widget
     from_simple_pattern pattern:Text locale:Locale=Locale.default =
         java_formatter = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern |>
