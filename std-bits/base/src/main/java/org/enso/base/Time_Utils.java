@@ -2,8 +2,6 @@ package org.enso.base;
 
 import org.enso.base.time.Date_Time_Utils;
 import org.enso.base.time.Date_Utils;
-import org.enso.base.time.EnsoDateTimeFormatter;
-import org.enso.base.time.FormatterKind;
 import org.enso.base.time.TimeUtilsBase;
 import org.enso.base.time.Time_Of_Day_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
@@ -17,7 +15,6 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalField;
 import java.time.temporal.TemporalUnit;
@@ -240,7 +237,7 @@ public class Time_Utils {
    * This helper method is needed, because calling `appendValueReduced` directly from Enso fails to convert an EnsoDate
    * to a LocalDate due to polyglot unable to handle the polymorphism of the method.
    */
-  public static void appendTwoDigitYear(DateTimeFormatterBuilder builder, ChronoField yearField, int maxYear) {
+  public static void appendTwoDigitYear(DateTimeFormatterBuilder builder, TemporalField yearField, int maxYear) {
     int minYear = maxYear - 99;
     LocalDate baseDate = LocalDate.of(minYear, 1, 1);
     builder.appendValueReduced(yearField, 2, 2, baseDate);
