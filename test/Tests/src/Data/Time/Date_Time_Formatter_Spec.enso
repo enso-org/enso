@@ -59,6 +59,17 @@ spec =
             tz = Time_Zone.parse "US/Hawaii"
             Date_Time.new 2023 09 21 12 zone=tz . format "yyyy/MM/dd HH:mm:ss VV" . should_equal "2023/09/21 12:00:00 US/Hawaii"
 
+        Test.specify "should allow to customize the 'zero' of a zone offset" <|
+            dt = Date_Time.new 2020 01 02 12 zone=(Time_Zone.utc)
+            dt.format "yyyy/MM/dd HH:mm:ss ZZ" . should_equal "2020/01/02 12:00:00 +0000"
+            dt.format "yyyy/MM/dd HH:mm:ss ZZ{Z}" . should_equal "2020/01/02 12:00:00 Z"
+            dt.format "yyyy/MM/dd HH:mm:ss ZZ{<no offset>}" . should_equal "2020/01/02 12:00:00 <no offset>"
+
+            dt2 = Date_Time.new 2020 01 02 12 zone=(Time_Zone.parse "US/Hawaii")
+            dt2.format "yyyy/MM/dd HH:mm:ss ZZ" . should_equal "2020/01/02 12:00:00 -1000"
+            dt2.format "yyyy/MM/dd HH:mm:ss ZZ{Z}" . should_equal "2020/01/02 12:00:00 -1000"
+            dt2.format "yyyy/MM/dd HH:mm:ss ZZZZZ{<no offset>}" . should_equal "2020/01/02 12:00:00 -10:00"
+
     Test.group "Parsing date/time values" <|
         Test.specify "should allow short month names" <|
             Date.parse "30. Jun 2020" "d. MMM yyyy" . should_equal (Date.new 2020 6 30)
