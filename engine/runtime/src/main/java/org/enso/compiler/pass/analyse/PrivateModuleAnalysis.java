@@ -10,7 +10,6 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Import;
-import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
 import org.enso.interpreter.util.ScalaConversions;
 import scala.collection.immutable.Seq;
@@ -48,7 +47,7 @@ public class PrivateModuleAnalysis implements IRPass {
 
   @Override
   public Module runModule(Module moduleIr, ModuleContext moduleContext) {
-    var bindingsMap = (BindingsMap) moduleIr.passData().getUnsafe(BindingAnalysis$.MODULE$, () -> "BindingAnalysis should have already run");
+    var bindingsMap = moduleContext.bindingsAnalysis();
     var currentPackage = moduleContext.getPackage();
     List<Import> errors = new ArrayList<>();
     // Check if imported modules are not private

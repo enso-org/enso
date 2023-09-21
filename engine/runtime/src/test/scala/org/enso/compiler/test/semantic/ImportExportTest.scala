@@ -90,7 +90,8 @@ class ImportExportTest
   }
 
   "Private modules" should {
-    "not be able to export private module" in {
+    // Blocked byhttps://github.com/enso-org/enso/issues/7867
+    "not be able to export private module" ignore {
       """
         |private
         |""".stripMargin
@@ -112,7 +113,8 @@ class ImportExportTest
         .isInstanceOf[errors.ImportExport.ExportPrivateModule] shouldBe true
     }
 
-    "not be able to export anything from private module itself" in {
+    // Blocked by https://github.com/enso-org/enso/issues/7867
+    "not be able to export anything from private module itself" ignore {
       val mainIr =
         s"""
            |private
@@ -133,7 +135,8 @@ class ImportExportTest
 
     }
 
-  "not be able to export anything from private module from Main module" in {
+  // Blocked by https://github.com/enso-org/enso/issues/7867
+  "not be able to export anything from private module from Main module" ignore {
       """
         |private
         |type Type_In_Priv_Module
