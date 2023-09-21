@@ -5,8 +5,6 @@ import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as load from '../load'
 
-import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { type: 'yaml' }
-
 // =================
 // === Constants ===
 // =================

@@ -16,8 +16,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsup src/runner/index.ts --format=cjs --dts --sourcemap",
-    "build-asset-extractor": "tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --dts --sourcemap",
+    "build-asset-extractor": "tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --sourcemap",
     "build-runtime-libs": "esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
     "lint": "eslint src"
   },
@@ -30,7 +29,6 @@
     "esbuild": "^0.19.3",
     "eslint": "^8.49.0",
     "eslint-plugin-jsdoc": "^46.8.1",
-    "ts-node": "^10.9.1",
     "tsup": "^7.2.0",
     "typescript": "~5.2.2"
   },

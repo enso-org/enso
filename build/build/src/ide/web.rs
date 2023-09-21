@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 use crate::ide::web::env::CSC_KEY_PASSWORD;
 use crate::paths::generated;
-use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use crate::project::gui::BuildInfo;
 use crate::project::wasm;
 use crate::project::ProcessWrapper;
@@ -175,7 +174,6 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         let assets_download = download_js_assets(&asset_dir);
         let fonts_download = fonts::install_html_fonts(&ide.cache, &ide.octocrab, &asset_dir);
         let (wasm, _, _) = try_join3(wasm, assets_download, fonts_download).await?;
-        wasm.symlink_ensogl_dist(&ide.linked_dist)?;
         ide.write_build_info(build_info)?;
         Ok(ContentEnvironment { asset_dir, wasm, output_path })
     }
@@ -250,7 +248,6 @@ pub struct IdeDesktop {
     #[derivative(Debug = "ignore")]
     pub octocrab:    Octocrab,
     pub cache:       ide_ci::cache::Cache,
-    pub linked_dist: RepoRootTargetEnsoglPackLinkedDist,
 }
 
 impl IdeDesktop {
@@ -264,7 +261,6 @@ impl IdeDesktop {
             package_dir: repo_root.clone(),
             octocrab,
             cache,
-            linked_dist: repo_root.target.ensogl_pack.linked_dist.clone(),
         }
     }
 

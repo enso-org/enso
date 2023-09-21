@@ -2,7 +2,7 @@
   "compilerOptions": {
     "lib": ["DOM"],
     "composite": true,
-    "rootDir": ".",
+    "rootDir": "../..",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

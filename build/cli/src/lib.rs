@@ -846,7 +846,6 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .await?;
 
             Npm.cmd()?.install().run_ok().await?;
-            ensogl_pack::build_ts_sources_only().await?;
             Npm.cmd()?.run("ci-check").run_ok().await?;
         }
         Target::Fmt => {

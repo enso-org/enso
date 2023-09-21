@@ -21,6 +21,6 @@ pub fn parse_to_json(code: &str) -> String {
 }
 
 #[wasm_bindgen(start)]
-pub fn init() {
+fn main() {
     console_error_panic_hook::set_once();
 }

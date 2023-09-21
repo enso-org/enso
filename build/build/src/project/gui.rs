@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::ide::web::IdeDesktop;
-use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use crate::project::perhaps_watch;
 use crate::project::Context;
 use crate::project::IsArtifact;
@@ -38,11 +37,6 @@ impl Artifact {
     pub fn new(gui_path: impl AsRef<Path>) -> Self {
         // TODO: sanity check
         Self(crate::paths::generated::RepoRootDistGui::new_root(gui_path.as_ref()))
-    }
-
-    pub fn symlink_ensogl_dist(&self, linked_dist: &RepoRootTargetEnsoglPackLinkedDist) -> Result {
-        ide_ci::fs::remove_symlink_dir_if_exists(linked_dist)?;
-        ide_ci::fs::symlink_auto(&self.ensogl_app, linked_dist)
     }
 }
 

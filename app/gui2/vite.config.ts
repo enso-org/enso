@@ -14,6 +14,9 @@ const projectManagerUrl = 'ws://127.0.0.1:30535'
 export default defineConfig({
   cacheDir: '../../node_modules/.cache/vite',
   plugins: [vue(), gatewayServer(), topLevelAwait()],
+  optimizeDeps: {
+    entries: 'index.html',
+  },
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
