@@ -222,7 +222,7 @@ spec =
 
         Test.specify "should work like in examples" <|
              Date.parse "Tue, 12 Oct 2021" "ddd, d MMM yyyy" . should_equal (Date.new 2021 10 12)
-             Date.parse "Thursday, 1 October '98" "dddd, dd MMMM ''yy" . should_equal (Date.new 1998 10 01)
+             Date.parse "Thursday, 1 October '98" (Date_Time_Formatter.from "dddd, d MMMM ''yy" Locale.uk) . should_equal (Date.new 1998 10 01)
              Date_Time.parse "12/10/2021 5:34 PM" "d/M/Y h:mm a" . should_equal (Date_Time.new 2021 10 12 17 34 00)
              Date.parse "2021-10" "yyyy-MM" . should_equal (Date.new 2021 10 01)
              Date.parse "10-12" "MM-dd" . should_equal (Date.new (Date.today.year) 10 12)

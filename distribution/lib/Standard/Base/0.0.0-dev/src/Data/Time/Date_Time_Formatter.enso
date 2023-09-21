@@ -98,8 +98,12 @@ type Date_Time_Formatter
 
              Date_Time.parse "2021-10-12T12:34:56.789+0200" "yyyy-MM-dd'T'HH:mm:ss.fZ" == (Date_Time.new 2021 10 12 12 34 56 millisecond=789 zone=(Time_Zone.new hours=2))
              Date.parse "Tue, 12 Oct 2021" "ddd, d MMM yyyy" == (Date.new 2021 10 12)
-             Date.parse "Thursday, 1 October '98" "dddd, dd MMMM ''yy" == (Date.new 1998 10 01)
              Date_Time.parse "12/10/2021 5:34 PM" "d/M/Y h:mm a" == (Date_Time.new 2021 10 12 17 34 00)
+
+       > Example
+         Note that the default locale may not support full-length day/month names, so you may need to set a specific locale for this to work.
+
+             Date.parse "Thursday, 1 October '98" (Date_Time_Formatter.from "dddd, d MMMM ''yy" Locale.uk) == (Date.new 1998 10 01)
 
        > Example
          Omitting the day will yield the first day of the month.
