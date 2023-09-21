@@ -132,7 +132,7 @@ object SearchProtocol {
       conversion.module,
       conversion.name,
       conversion.arguments,
-      conversion.returnType,
+      conversion.selfType,
       conversion.returnType,
       conversion.isStatic,
       conversion.documentation,
