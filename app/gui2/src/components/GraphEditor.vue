@@ -12,7 +12,7 @@ import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import * as random from 'lib0/random'
 import { computeTextChecksum } from 'shared/languageServer'
-import type { ContextId, Path } from 'shared/lsTypes'
+import { LanguageServerErrorCode, type ContextId, type Path, type LanguageServerError } from 'shared/lsTypes'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
 import { onMounted, reactive, ref, watch } from 'vue'
 
@@ -45,8 +45,14 @@ onMounted(async () => {
 
   // TODO [sb]: Not sure why `text/canEdit` is returning false.
   // The following lines are copied from the old GUI's websocket messages.
-  // TODO: ignore the `VCSAlreadyPresent` error.
-  await projectStore.lsRpcConnection.vcsInit(rootPathWithoutSegments)
+  try {
+    await projectStore.lsRpcConnection.vcsInit(rootPathWithoutSegments)
+  } catch (error_) {
+    const error = error_ as LanguageServerError
+    if (error.code !== LanguageServerErrorCode.VCSAlreadyExists) {
+      throw error
+    }
+  }
   // Omitted: `capabilityAcquire('search/receivesSuggestionsDatabaseUpdates')`
   await projectStore.lsRpcConnection.fileExists(rootPath)
 

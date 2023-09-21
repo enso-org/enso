@@ -15,7 +15,7 @@ import * as random from 'lib0/random'
 import { OutboundPayload, type VisualizationUpdate } from 'shared/binaryProtocol'
 import { uuidFromBits, type DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
-import type { ContextId, VisualizationConfiguration } from 'shared/lsTypes'
+import type { VisualizationConfiguration } from 'shared/lsTypes'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
 import {
   computed,
@@ -37,7 +37,7 @@ import {
 const props = defineProps<{
   node: Node
   mainModule: string
-  executionContextId: ContextId
+  executionContextId: Uuid
   languageServer: Raw<LanguageServer>
   dataServer: Raw<DataServer>
 }>()

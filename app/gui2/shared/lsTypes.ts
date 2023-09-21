@@ -176,12 +176,12 @@ export interface MethodPointer {
 
 export type ProfilingInfo = ExecutionTime
 
-interface ExecutionTime {
+export interface ExecutionTime {
   /** The time elapsed during the expression's evaluation, in nanoseconds */
   nanoTime: number
 }
 
-interface ExpressionUpdate {
+export interface ExpressionUpdate {
   /** The id of updated expression. */
   expressionId: ExpressionId
   /** The updated type of the expression. */
@@ -196,15 +196,15 @@ interface ExpressionUpdate {
   payload: ExpressionUpdatePayload
 }
 
-interface StackTraceElement {
+export interface StackTraceElement {
   functionName: string
   path?: Path
   location?: TextRange
 }
 
-type DiagnosticType = 'Error' | 'Warning'
+export type DiagnosticType = 'Error' | 'Warning'
 
-interface Diagnostic {
+export interface Diagnostic {
   /** The type of diagnostic message. */
   kind: DiagnosticType
   /** The diagnostic message. */
@@ -265,13 +265,6 @@ export interface VisualizationConfiguration {
   expression: string | MethodPointer
   /** A list of arguments to pass to the visualization expression. */
   positionalArgumentsExpressions?: string[]
-}
-
-type Messages = {
-  'file/event': { path: Path; kind: FileEventKind }
-  'text/autoSave': { path: Path }
-  'text/didChange': { edits: FileEdit[] }
-  'text/fileModifiedOnDisk': { path: Path }
 }
 
 export interface VCSSave {
@@ -387,4 +380,240 @@ export namespace response {
     context: VisualizationContext
     data: Uint8Array
   }
+}
+
+export interface LanguageServerError {
+  code: LanguageServerErrorCode
+  message: string
+  payload?: Record<string, string | number> | Diagnostic
+}
+
+export enum LanguageServerErrorCode {
+  // === Error API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/protocol/json/ErrorApi.scala
+  /** The user doesn't have access to the requested resource.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#accessdeniederror) */
+  AccessDenied = 100,
+
+  // === VCS Manager API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/vcsmanager/VcsManagerApi.scala
+  // `ContentRootNotFound` is also defined by the File Manager API with the same code, so it is omitted here.
+  /** A miscellaneous VCS error. */
+  VCS = 1000,
+  /** The project was not found in the VCS. */
+  VCSProjectNotFound = 1002,
+  /** The project is not under version control. */
+  VCSNotFound = 1003,
+  /** The requested save could not be found. */
+  SaveNotFound = 1004,
+  /** The requested project is already under version control. */
+  VCSAlreadyExists = 1005,
+
+  // === File Manager API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/filemanager/FileManagerApi.scala
+  /** A miscellaneous file system error.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filesystemerror) */
+  FileSystem = 1000,
+  /** The requested content root could not be found.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#contentrootnotfounderror) */
+  ContentRootNotFound = 1001,
+  /** The requested file does not exist.
+   *
+   *[Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filenotfound) */
+  FileNotFound = 1003,
+  /** The file trying to be created already exists.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#fileexists) */
+  FileExists = 1004,
+  /** The IO operation timed out.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#operationtimeouterror) */
+  OperationTimeoutError = 1005,
+  /** The provided path is not a directory.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#notdirectory) */
+  NotDirectory = 1006,
+  /** The provided path is not a file.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#notfile) */
+  NotFile = 1007,
+  /** The streaming file write cannot overwrite a portion of the requested file.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#cannotoverwrite) */
+  CannotOverwrite = 1008,
+  /** The requested file read was out of bounds for the file's size.
+   *
+   * The actual length of the file is returned in `payload.fileLength`.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#readoutofbounds) */
+  ReadOutOfBounds = 1009,
+  /** The project configuration cannot be decoded.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#cannotdecode) */
+  CannotDecode = 1010,
+
+  // === Execution API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/runtime/ExecutionApi.scala
+  /** The provided execution stack item could not be found.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#stackitemnotfounderror) */
+  StackItemNotFound = 2001,
+  /** The provided exeuction context could not be found.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#contextnotfounderror) */
+  ContextNotFound = 2002,
+  /** The execution stack is empty.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#emptystackerror) */
+  EmptyStack = 2003,
+  /** The stack is invalid in this context.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#invalidstackitemerror) */
+  InvalidStackItem = 2004,
+  /** The provided module could not be found.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#modulenotfounderror) */
+  ModuleNotFound = 2005,
+  /** The provided visualization could not be found.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#visualizationnotfounderror) */
+  VisualizationNotFound = 2006,
+  /** The expression specified in the {@link VisualizationConfiguration} cannot be evaluated.
+   *
+   * If relevant, a {@link Diagnostic} containing error details is returned as `payload`.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#visualizationexpressionerror) */
+  VisualizationExpression = 2007,
+
+  // === Text API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/text/TextApi.scala
+  /** A file was not opened.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#filenotopenederror) */
+  FileNotOpened = 3001,
+  /** Validation has failed for a series of text edits.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#texteditvalidationerror) */
+  TextEditValidation = 3002,
+  /** The version provided by a client does not match the version computed by the server.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#invalidversionerror) */
+  InvalidVersion = 3003,
+  /** The client doesn't hold write lock to the buffer.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#writedeniederror) */
+  WriteDenied = 3004,
+
+  // === Capability API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/capability/CapabilityApi.scala
+  /** The requested capability is not acquired.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#accessdeniederror) */
+  CapabilityNotAcquired = 5001,
+
+  // === Session API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/session/SessionApi.scala
+  /** The request could not be proccessed, beacuse the session is not initialised.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#sessionnotinitialisederror) */
+  SessionNotInitialised = 6001,
+  /** The session is already initialised.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#sessionalreadyinitialisederror) */
+  SessionAlreadyInitialised = 6002,
+
+  // === Search API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/search/SearchApi.scala
+  /** There was an unexpected error accessing the suggestions database.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#suggestionsdatabaseerror) */
+  SuggestionsDatabase = 7001,
+  /** The project was not found in the root directory.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#projectnotfounderror) */
+  ProjectNotFound = 7002,
+  /** The module name could not be resolved for the given file.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#modulenamenotresolvederror) */
+  ModuleNameNotResolved = 7003,
+  /** The requested suggestion could not be found.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#suggestionnotfounderror) */
+  SuggestionNotFound = 7004,
+
+  // === Library API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/libraries/LibraryApi.scala
+  /** The requested edition could not be found.
+   *
+   * The requested edition is returned in `payload.editionName`.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#editionnotfounderror) */
+  EditionNotFound = 8001,
+  /** A local library with the specified namespace and name combination already exists, so it cannot be created again.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#libraryalreadyexists) */
+  LibraryAlreadyExists = 8002,
+  /** Authentication to the library repository was declined.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#libraryrepositoryauthenticationerror) */
+  LibraryRepositoryAuthentication = 8003,
+  /** A request to the library repository failed.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#librarypublisherror) */
+  LibraryPublish = 8004,
+  /** Uploading the library failed for network-related reasons.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#libraryuploaderror) */
+  LibraryUpload = 8005,
+  /** Downloading the library failed for network-related reasons, or the library was not found in the repository.
+   *
+   * The requested library is returned in `payload.namespace`, `payload.name`, and `payload.version`.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#librarydownloaderror) */
+  LibraryDownload = 8006,
+  /** A local library with the specified namespace and name combination was not found on the local libraries path.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#locallibrarynotfound) */
+  LocalLibraryNotFound = 8007,
+  /** A library could not be resolved. It was not defined in the edition, and the settings did not
+   * allow to resolve local libraries, or it did not exist there either.
+   *
+   * The requested namespace and name are returned in `payload.namespace` and `payload.name`.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#librarynotresolved) */
+  LibraryNotResolved = 8008,
+  /** The chosen library name is invalid.
+   * 
+   * A similar, valid name is returned in `payload.suggestedName`.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#invalidlibraryname) */
+  InvalidLibraryName = 8009,
+  /** The library preinstall endpoint could not properly find dependencies of the requested library.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#dependencydiscoveryerror) */
+  DependencyDiscovery = 8010,
+  /** The provided version string is not a valid semver version.
+   *
+   * The requested version is returned in `payload.version`.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#invalidsemverversion) */
+  InvalidSemverVersion = 8011,
+
+  // === Refactoring API errors ===
+  // https://github.com/enso-org/enso/blob/develop/engine/language-server/src/main/scala/org/enso/languageserver/refactoring/RefactoringApi.scala
+  /** An expression with the provided ID could not be found.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#expressionnotfounderror) */
+  ExpressionNotFound = 9001,
+  /** The refactoring operation was not able to apply the generated edits.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#failedtoapplyedits) */
+  FailedToApplyEdits = 9002,
+  /** Refactoring of the given expression is not supported.
+   *
+   * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#refactoringnotsupported) */
+  RefactoringNotSupported = 9003,
 }
