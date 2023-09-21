@@ -75,7 +75,7 @@ type Time_Patterns
     Hour (representation : Numeric_Representation) is_24h:Boolean
 
     ## PRIVATE
-    AmPm
+    AM_PM
 
     ## PRIVATE
     Minute (representation : Numeric_Representation)
@@ -218,8 +218,11 @@ type Parser
                 2 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 2)
                 3 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
                 _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
-            "e" -> self.fail_invalid_pattern character count " If you want to represent the day of week as text use `ddd` for the short form and `dddd` for the long form, or use `from_java` for the Java syntax."
+            "e" -> case count of
+                1 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
+                _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
             "l" -> self.fail_invalid_pattern character count " If you want to represent the month as text use `MMM` for the short form and `MMMM` for the long form, or use `from_java` for the Java syntax."
+            "w" -> self.fail_invalid_pattern character count " If you want to use the week of year, consider using `from_iso_week_date_pattern` that handles the ISO 8601 leap week calendar."
             _ -> Nothing
 
     ## PRIVATE
@@ -233,7 +236,9 @@ type Parser
                 2 -> ISO_Week_Year_Patterns.Day_Of_Week (Numeric_Representation.Value 2)
                 3 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Short_Form)
                 _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
-            "e" -> self.fail_invalid_pattern character count " If you want to represent the day of week as text use `ddd` for the short form and `dddd` for the long form, or use `from_java` for the Java syntax."
+            "e" -> case count of
+                1 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Short_Form)
+                _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
             _ -> Nothing
 
     ## PRIVATE
@@ -252,7 +257,7 @@ type Parser
                 if count > 9 then
                     Panic.throw (Date_Time_Format_Parse_Error.Error "It is meaningless to have more than 9 digits in the fractional-of-second pattern, because at most nanosecond precision of seconds is currently supported.")
                 Time_Patterns.Fraction_Of_Second (Numeric_Representation.Value count)
-            "a" -> Time_Patterns.AmPm
+            "a" -> Time_Patterns.AM_PM
             "t" -> if count <= 3 then Time_Zone_Patterns.Time_Zone_ID else Time_Zone_Patterns.Time_Zone_Name
             "z" -> Time_Zone_Patterns.Time_Zone_Offset
             "x" -> self.fail_invalid_pattern character count " If you want to represent the time zone offset use `zz`, or use `from_java` for the Java syntax."

@@ -59,6 +59,8 @@ type Date_Time_Formatter
          The weekday names depend on the selected locale.
          Both day of week and day of month may be included in a single pattern -
          in such case the day of week is used as a sanity check.
+       - e: An alternative notation: single `e` maps to `ddd` and `ee` or more
+         map to `dddd` meaning name of day of week.
        - Q: Quarter of year.
          If only year and quarter are provided in the pattern, when parsing a
          date, the result will be the first day of that quarter.
@@ -129,6 +131,8 @@ type Date_Time_Formatter
          - ddd: Short name of the day of week (Mon-Sun).
          - dddd: Full name of the day of week (Monday-Sunday).
          The weekday names depend on the selected locale.
+       - e: An alternative notation: single `e` maps to `ddd` and `ee` or more
+         map to `dddd` meaning name of day of week.
 
        Moreover, all time and timezone pattern characters like in `Simple` case
        are supported too - in case you need to parse a date time value with the

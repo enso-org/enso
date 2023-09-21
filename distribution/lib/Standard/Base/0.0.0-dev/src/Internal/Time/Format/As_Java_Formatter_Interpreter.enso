@@ -43,7 +43,7 @@ interpret locale nodes =
                  appendOffset("+HH:MM:ss","Z");
             builder.appendLocalizedOffset TextStyle.FULL
 
-        Time_Patterns.AmPm ->
+        Time_Patterns.AM_PM ->
             builder.appendText ChronoField.AMPM_OF_DAY
         Time_Patterns.Fraction_Of_Second representation ->
             min_digits = 1
