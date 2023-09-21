@@ -126,19 +126,12 @@ object SearchProtocol {
 
   private def conversionToMethod(
     conversion: Suggestion.Conversion
-  ): Suggestion.DefinedMethod = {
-    val arg = Suggestion.Argument(
-      Suggestion.Kind.Conversion.From,
-      conversion.selfType,
-      false,
-      false,
-      None
-    )
+  ): Suggestion.DefinedMethod =
     Suggestion.DefinedMethod(
       conversion.externalId,
       conversion.module,
       conversion.name,
-      arg +: conversion.arguments,
+      conversion.arguments,
       conversion.returnType,
       conversion.returnType,
       conversion.isStatic,
@@ -146,7 +139,6 @@ object SearchProtocol {
       conversion.annotations,
       conversion.reexport
     )
-  }
 
   private def getterToMethod(
     getter: Suggestion.Getter
