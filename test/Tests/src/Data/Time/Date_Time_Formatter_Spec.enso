@@ -210,11 +210,11 @@ spec =
             Date.parse "50-03-04" "yy{2099}-MM-dd" . should_equal (Date.new 2050 3 4)
 
         Test.specify "should be able to parse a week-based year format" <|
-             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d" "1976-W53-6") . should_equal (Date.new 1977 01 01)
-             Date_Time.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d HH:mm:ss" "1978-W01-4 12:34:56") . should_equal (Date_Time.new 1978 01 05 12 34 56)
+             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d") "1976-W53-6" . should_equal (Date.new 1977 01 01)
+             Date_Time.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d HH:mm:ss") "1978-W01-4 12:34:56" . should_equal (Date_Time.new 1978 01 05 12 34 56)
 
-             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee" "1978-W01, Mon") . should_equal (Date.new 1978 01 02)
+             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee") "1978-W01, Mon" . should_equal (Date.new 1978 01 02)
              # Just week will parse to first day of the week:
-             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW" "1978-W01") . should_equal (Date.new 1978 01 02)
+             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") "1978-W01" . should_equal (Date.new 1978 01 02)
 
 main = Test_Suite.run_main spec
