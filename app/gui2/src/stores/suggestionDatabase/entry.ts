@@ -8,10 +8,11 @@ import {
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-
-export type SuggestionId = number
-
-export type UUID = string
+export type {
+  SuggestionEntryArgument,
+  SuggestionEntryScope,
+  SuggestionId,
+} from 'shared/languageServerTypes/suggestions'
 
 // The kind of a suggestion.
 export enum SuggestionKind {
@@ -21,47 +22,6 @@ export enum SuggestionKind {
   Method = 'Method',
   Function = 'Function',
   Local = 'Local',
-}
-
-// The argument of a constructor, method or function suggestion.
-export interface SuggestionEntryArgument {
-  /** The argument name. */
-  name: string
-  /** The argument type. String 'Any' is used to specify generic types. */
-  type: string
-  /** Indicates whether the argument is lazy. */
-  isSuspended: boolean
-  /** Indicates whether the argument has default value. */
-  hasDefault: boolean
-  /** Optional default value. */
-  defaultValue?: string
-  /** Optional list of possible values that this argument takes. */
-  tagValues?: string[]
-}
-
-export interface Position {
-  /**
-   * Line position in a document (zero-based).
-   */
-  line: number
-
-  /**
-   * Character offset on a line in a document (zero-based). Assuming that the
-   * line is represented as a string, the `character` value represents the gap
-   * between the `character` and `character + 1`.
-   *
-   * If the character value is greater than the line length it defaults back to
-   * the line length.
-   */
-  character: number
-}
-
-// The definition scope
-export interface SuggestionEntryScope {
-  // The start position of the definition scope
-  start: Position
-  // The end position of the definition scope
-  end: Position
 }
 
 export interface SuggestionEntry {

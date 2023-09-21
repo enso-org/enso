@@ -1,6 +1,6 @@
 import type { NonEmptyArray } from '@/util/array'
 import type { Opt } from '@/util/opt'
-import init, { parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
+import init, { parse_doc_to_json, parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
 
 const _wasm = await init()
 
@@ -447,5 +447,76 @@ export namespace Ast {
 
   export interface Error {
     message: string
+  }
+}
+
+export function parseDocs(docs: string): Doc.DocSection {
+  const json = parse_doc_to_json(docs)
+  return JSON.parse(json)
+}
+
+export namespace Doc {
+  export type HtmlString = string
+  export type Tag =
+    | 'Added'
+    | 'Advanced'
+    | 'Alias'
+    | 'Deprecated'
+    | 'Icon'
+    | 'Group'
+    | 'Modified'
+    | 'Private'
+    | 'Removed'
+    | 'TextOnly'
+    | 'Unstable'
+    | 'Upcoming'
+  export type Mark = 'Important' | 'Info' | 'Example'
+
+  export interface Argument {
+    name: string
+    description: HtmlString
+  }
+
+  export type DocSection =
+    | { Tag: DocSection.Tag }
+    | { Paragraph: DocSection.Paragraph }
+    | { List: DocSection.List }
+    | { Arguments: DocSection.Arguments }
+    | { Keyed: DocSection.Keyed }
+    | { Marked: DocSection.Marked }
+
+  export namespace DocSection {
+    /** The documentation tag. */
+    export interface Tag {
+      tag: Tag
+      body: HtmlString
+    }
+
+    /** The paragraph of the text. */
+    export interface Paragraph {
+      body: HtmlString
+    }
+
+    /** A list of items. Each item starts with a dash (`-`). */
+    export interface List {
+      items: HtmlString[]
+    }
+
+    /** A list of items, but each item is an [`Argument`]. Starts with `Arguments:` keyword. */
+    export interface Arguments {
+      args: Argument[]
+    }
+
+    /** The section that starts with the key followed by the colon and the body. */
+    export interface Keyed {
+      key: String
+      body: HtmlString
+    }
+    /** The section that starts with the mark followed by the header and the body. */
+    export interface Marked {
+      mark: Mark
+      header?: string
+      body: HtmlString
+    }
   }
 }

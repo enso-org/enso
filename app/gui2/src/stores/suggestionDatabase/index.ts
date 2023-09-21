@@ -2,6 +2,7 @@ import { findIndexOpt } from '@/util/array'
 import { isSome } from '@/util/opt'
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
+import { useProjectStore } from '../project'
 import { SuggestionKind, type SuggestionEntry, type SuggestionId } from './entry'
 
 export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
@@ -47,11 +48,12 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   ])
 
   async function initializeDb() {
-    // TODO[ao]: This is a temporary mock; soon we should load db from the language server (#7785)
-    const mockDb = await (await fetch('https://capricornus.pl/~adam/db-formatted.json')).json()
-    for (const [id, entry] of Object.entries(mockDb)) {
-      entries.set(+id, fromJson(entry, groups.value))
-    }
+    const projectStore = useProjectStore()
+    await projectStore.lsRpcConnection.acquireCapability(
+      'search/receivesSuggestionsDatabaseUpdates',
+      {},
+    )
+    projectStore.lsRpcConnection.addEventListener
   }
 
   return { entries, groups, initializeDb }

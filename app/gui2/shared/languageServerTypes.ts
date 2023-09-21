@@ -248,6 +248,8 @@ export type FileSystemObject =
       target: Path
     }
 
+export type UUID = string
+
 interface VisualizationContext {}
 
 export interface VisualizationConfiguration {
