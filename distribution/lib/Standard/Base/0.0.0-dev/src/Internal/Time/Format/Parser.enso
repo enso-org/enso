@@ -209,7 +209,8 @@ type Parser
                         1 -> Numeric_Representation.Value 1
                         2 -> Numeric_Representation.Value 2
                         3 -> Text_Representation.Short_Form
-                        _ -> Text_Representation.Long_Form
+                        4 -> Text_Representation.Long_Form
+                        _ -> self.fail_invalid_pattern character count " The month pattern takes at most 4 letters."
                     Standard_Date_Patterns.Month representation
                 # Lowercase form is reserved for minutes - handled elsewhere.
                 "m" -> Nothing
@@ -217,7 +218,8 @@ type Parser
                 1 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 1)
                 2 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 2)
                 3 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
-                _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+                4 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+                _ -> self.fail_invalid_pattern character count " The day pattern takes at most 4 letters."
             "e" -> case count of
                 1 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
                 _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
@@ -235,7 +237,8 @@ type Parser
                 1 -> ISO_Week_Year_Patterns.Day_Of_Week (Numeric_Representation.Value 1)
                 2 -> ISO_Week_Year_Patterns.Day_Of_Week (Numeric_Representation.Value 2)
                 3 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Short_Form)
-                _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+                4 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+                _ -> self.fail_invalid_pattern character count " The day pattern takes at most 4 letters."
             "e" -> case count of
                 1 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Short_Form)
                 _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)

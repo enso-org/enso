@@ -22,6 +22,10 @@ spec =
             r3.should_fail_with Date_Time_Format_Parse_Error
             r3.catch.to_display_text . should_contain "consider using `from_iso_week_date_pattern`"
 
+            r4 = Date_Time_Formatter.from "yyyy-MMMMMMM-dd"
+            r4.should_fail_with Date_Time_Format_Parse_Error
+            r4.catch.to_display_text . should_contain "at most 4"
+
         Test.specify "should report format parse failures" <|
             Date_Time_Formatter.from "yyyy[" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "yyyy{12}" . should_fail_with Date_Time_Format_Parse_Error
