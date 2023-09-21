@@ -37,7 +37,6 @@ class Passes(
       FunctionBinding,
       GenerateMethodBodies,
       BindingAnalysis,
-      PrivateModuleAnalysis.MODULE$,
       ModuleNameConflicts
     )
   )
@@ -50,6 +49,7 @@ class Passes(
       LambdaShorthandToLambda,
       ImportSymbolAnalysis,
       AmbiguousImportsAnalysis,
+      PrivateModuleAnalysis.MODULE$,
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,

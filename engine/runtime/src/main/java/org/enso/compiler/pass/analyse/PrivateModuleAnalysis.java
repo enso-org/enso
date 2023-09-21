@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
@@ -7,9 +8,11 @@ import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.expression.errors.ImportExport;
+import org.enso.compiler.core.ir.module.scope.Import;
+import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
 import org.enso.interpreter.util.ScalaConversions;
-import scala.collection.convert.AsScalaConverters;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
@@ -31,7 +34,11 @@ public class PrivateModuleAnalysis implements IRPass {
 
   @Override
   public Seq<IRPass> precursorPasses() {
-    return ScalaConversions.cons(BindingAnalysis$.MODULE$, ScalaConversions.nil());
+    List<IRPass> passes = List.of(
+        BindingAnalysis$.MODULE$,
+        ImportSymbolAnalysis$.MODULE$
+    );
+    return CollectionConverters.asScala(passes).toList();
   }
 
   @Override
@@ -40,9 +47,50 @@ public class PrivateModuleAnalysis implements IRPass {
   }
 
   @Override
-  public Module runModule(Module ir, ModuleContext moduleContext) {
-    System.out.println("Running PrtivateModuleAnalysis");
-    return ir;
+  public Module runModule(Module moduleIr, ModuleContext moduleContext) {
+    var bindingsMap = (BindingsMap) moduleIr.passData().getUnsafe(BindingAnalysis$.MODULE$, () -> "BindingAnalysis should have already run");
+    var currentPackage = moduleContext.getPackage();
+    List<Import> errors = new ArrayList<>();
+    // Check if imported modules are not private
+    bindingsMap.resolvedImports().foreach(resolvedImp -> {
+      var importedModule = resolvedImp.target().module().unsafeAsModule("should succeed");
+      var importedModuleName = importedModule.getName().toString();
+      var importedModulePackage = importedModule.getPackage();
+      if (currentPackage != null
+          && !currentPackage.equals(importedModulePackage)
+          && importedModule.isPrivate()) {
+        errors.add(ImportExport.apply(
+            resolvedImp.importDef(),
+            new ImportExport.ImportPrivateModule(importedModuleName),
+            ImportExport.apply$default$3(),
+            ImportExport.apply$default$4()
+        ));
+      }
+      return null;
+    });
+
+    // Check if we try to export anything from a private module
+    if (moduleIr.isPrivate() && !moduleIr.exports().isEmpty()) {
+      errors.add(ImportExport.apply(
+          moduleIr.exports().apply(0),
+          new ImportExport.ExportPrivateModule(moduleContext.getName().toString()),
+          ImportExport.apply$default$3(),
+          ImportExport.apply$default$4()
+      ));
+    }
+
+    scala.collection.immutable.List<Import> convertedImports =
+        errors.isEmpty() ? moduleIr.imports() : CollectionConverters.asScala(errors).toList();
+
+    return moduleIr.copy(
+        convertedImports,
+        moduleIr.exports(),
+        moduleIr.bindings(),
+        moduleIr.location(),
+        moduleIr.passData(),
+        moduleIr.diagnostics(),
+        moduleIr.id()
+    );
   }
 
   @Override

@@ -178,6 +178,13 @@ object ImportExport {
       s"Cannot export any symbol from module '$moduleName': The module is private"
   }
 
+  case class ImportPrivateModule(
+    moduleName: String
+  ) extends Reason {
+    override def message: String =
+      s"Cannot import private module '$moduleName'"
+  }
+
   /** Represents an ambiguous import resolution error, where the same symbol is imported more than once refereing
     * to different objects. The objects are represented by their physical path in the project.
     *
