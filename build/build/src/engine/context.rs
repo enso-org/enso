@@ -316,9 +316,7 @@ impl RunContext {
             if self.config.build_launcher_package() {
                 tasks.push("buildLauncherDistribution");
             }
-            sbt.call_arg(
-                Sbt::concurrent_tasks(tasks)
-            ).await?;
+            sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
         } else {
             // If we are run on a weak machine (like GH-hosted runner), we need to build things one
             // by one.
