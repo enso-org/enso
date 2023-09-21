@@ -145,6 +145,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 
 <style scoped>
 .VisualizationContainer {
+  color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
   min-width: 100%;

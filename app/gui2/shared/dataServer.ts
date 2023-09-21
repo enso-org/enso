@@ -26,6 +26,7 @@ import {
   WriteFileCommand,
 } from './binaryProtocol'
 import type { WebsocketClient } from './websocket'
+import { Uuid } from './yjsModel'
 
 export function uuidFromBits(leastSigBits: bigint, mostSigBits: bigint): string {
   const bits = (mostSigBits << 64n) | leastSigBits
@@ -50,7 +51,7 @@ const PAYLOAD_CONSTRUCTOR = {
 } satisfies Record<OutboundPayload, new () => Table>
 
 export type DataServerEvents = {
-  [K in keyof typeof PAYLOAD_CONSTRUCTOR]: (
+  [K in keyof typeof PAYLOAD_CONSTRUCTOR as K | `${K}:${string}`]: (
     arg: InstanceType<(typeof PAYLOAD_CONSTRUCTOR)[K]>,
   ) => void
 }
@@ -58,13 +59,12 @@ export type DataServerEvents = {
 export class DataServer extends ObservableV2<DataServerEvents> {
   initialized = false
   ready: Promise<void>
-  uuid
+  clientId!: string
   resolveCallbacks = new Map<string, (data: any) => void>()
 
   /** `websocket.binaryType` should be `ArrayBuffer`. */
   constructor(public websocket: WebsocketClient) {
     super()
-    this.uuid = random.uuidv4()
     if (websocket.connected) {
       this.ready = Promise.resolve()
     } else {
@@ -81,24 +81,30 @@ export class DataServer extends ObservableV2<DataServerEvents> {
         return
       }
       const binaryMessage = OutboundMessage.getRootAsOutboundMessage(new ByteBuffer(rawPayload))
-      const id = binaryMessage.correlationId()
-      if (id == null) {
-        console.warn('Data Server: Correlation ID was invalid.')
-        return
-      }
-      const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-      const callback = this.resolveCallbacks.get(uuid)
       const payloadType = binaryMessage.payloadType()
       const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
       if (payload != null) {
-        callback?.(payload)
         this.emit(`${payloadType}`, [payload])
+        const id = binaryMessage.correlationId()
+        if (id != null) {
+          const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+          this.emit(`${payloadType}:${uuid}`, [payload])
+          const callback = this.resolveCallbacks.get(uuid)
+          callback?.(payload)
+        } else if (payload instanceof VisualizationUpdate) {
+          const id = payload.visualizationContext()?.visualizationId()
+          if (id != null) {
+            const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+            this.emit(`${payloadType}:${uuid}`, [payload])
+          }
+        }
       }
     })
   }
 
-  async initialize() {
+  async initialize(clientId: Uuid) {
     if (!this.initialized) {
+      this.clientId = clientId
       await this.ready
       await this.initSession()
     }
@@ -133,13 +139,12 @@ export class DataServer extends ObservableV2<DataServerEvents> {
 
   initSession(): Promise<Success> {
     const builder = new Builder()
-    const identifierOffset = this.createUUID(builder, this.uuid)
+    const identifierOffset = this.createUUID(builder, this.clientId)
     const commandOffset = InitSessionCommand.createInitSessionCommand(builder, identifierOffset)
     return this.send<Success>(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
   }
 
   async writeFile(path: string, contents: string | ArrayBuffer | Uint8Array) {
-    await this.initialize()
     const builder = new Builder()
     const contentsOffset = builder.createString(contents)
     const pathOffset = builder.createString(path)
@@ -148,7 +153,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   }
 
   async readFile(path: string) {
-    await this.initialize()
     const builder = new Builder()
     const pathOffset = builder.createString(path)
     const command = ReadFileCommand.createReadFileCommand(builder, pathOffset)
@@ -161,7 +165,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     overwriteExisting: boolean,
     contents: string | ArrayBuffer | Uint8Array,
   ): Promise<WriteBytesReply> {
-    await this.initialize()
     const builder = new Builder()
     const bytesOffset = builder.createString(contents)
     const pathOffset = builder.createString(path)
@@ -176,7 +179,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   }
 
   async readBytes(path: string, index: bigint, length: bigint): Promise<ReadBytesReply> {
-    await this.initialize()
     const builder = new Builder()
     const pathOffset = builder.createString(path)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
@@ -185,7 +187,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   }
 
   async checksumBytes(path: string, index: bigint, length: bigint): Promise<ChecksumBytesReply> {
-    await this.initialize()
     const builder = new Builder()
     const pathOffset = builder.createString(path)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)

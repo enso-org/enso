@@ -683,7 +683,7 @@ export class ByteBuffer {
   }
 
   vectorLength(offset: Offset): Offset {
-    return this.view.getInt32(offset + this.view.getInt32(offset, true))
+    return this.view.getInt32(offset + this.view.getInt32(offset, true), true)
   }
 }
 

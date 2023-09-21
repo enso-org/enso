@@ -328,26 +328,21 @@ watch(visualizationConfiguration, async (config) => {
 })
 
 function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
-  const encodedVisualizationId = vizUpdate.visualizationContext()?.visualizationId()
-  if (encodedVisualizationId == null) {
-    return
-  }
-  const eventVisualizationId = uuidFromBits(
-    encodedVisualizationId.leastSigBits(),
-    encodedVisualizationId.mostSigBits(),
-  )
-  if (eventVisualizationId !== visualizationId.value) {
-    return
-  }
   visualizationData.value = vizUpdate.dataString() ?? undefined
 }
 
 onMounted(() => {
-  props.dataServer.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, onVisualizationUpdate)
+  props.dataServer.on(
+    `${OutboundPayload.VISUALIZATION_UPDATE}:${visualizationId.value}`,
+    onVisualizationUpdate,
+  )
 })
 
 onUnmounted(() => {
-  props.dataServer.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, onVisualizationUpdate)
+  props.dataServer.off(
+    `${OutboundPayload.VISUALIZATION_UPDATE}:${visualizationId.value}`,
+    onVisualizationUpdate,
+  )
 })
 
 function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
