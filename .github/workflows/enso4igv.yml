@@ -1,7 +1,4 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
-
-name: Enso Language Support for IGV
+name: Enso Language Support for VSCode, IGV, NetBeans
 
 on:
   push:
