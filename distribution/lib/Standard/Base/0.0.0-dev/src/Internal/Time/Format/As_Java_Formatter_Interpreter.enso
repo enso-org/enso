@@ -47,6 +47,12 @@ interpret locale nodes =
             includes_decimal_point = False
             builder.appendFraction ChronoField.NANO_OF_SECOND min_digits max_digits includes_decimal_point
 
+        Standard_Date_Patterns.Quarter _ ->
+            field = get_field_for node
+            append_field builder field node.representation
+            # We currently don't even have a way to specify day of quarter, we expect just (year, quarter) pairs - so to make them parseable, we default to first day of the quarter.
+            builder.parseDefaulting IsoFields.DAY_OF_QUARTER 1
+
         _ ->
             field = get_field_for node
             append_field builder field node.representation

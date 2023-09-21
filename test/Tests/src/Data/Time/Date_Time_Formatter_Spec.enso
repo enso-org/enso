@@ -200,7 +200,7 @@ spec =
         Test.specify "should be able to parse year-month without day" <|
             Date.parse "2022-05" "yyyy-MM" . should_equal (Date.new 2022 5 1)
 
-        Test.specify "should be able to parse a quarter without day" pending="TODO" <|
+        Test.specify "should be able to parse a quarter without day" <|
             Date.parse "Q2 of 2022" "'Q'Q 'of' yyyy" . should_equal (Date.new 2022 4 1)
 
         Test.specify "should be able to parse a day and month without year - defaulting to current year" <|
