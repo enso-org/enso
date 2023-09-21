@@ -34,7 +34,7 @@ public final class LogbackSetup extends LoggerSetup {
 
     private LogbackSetup(LoggingServiceConfig config, LoggerContext context) {
         this.config = config;
-        this.context = context;
+        this._context = context;
     }
 
     public LogbackSetup() throws MissingConfigurationField {
@@ -60,7 +60,14 @@ public final class LogbackSetup extends LoggerSetup {
     }
 
     private final LoggingServiceConfig config;
-    private final LoggerContext context;
+    private LoggerContext _context;
+
+    private LoggerContext context() {
+        if (_context == null) {
+            _context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        }
+        return _context;
+    }
 
     @Override
     public boolean setup() throws MissingConfigurationField {
@@ -122,7 +129,6 @@ public final class LogbackSetup extends LoggerSetup {
         socketAppender.setPort(port);
         if (appenderConfig != null)
             socketAppender.setReconnectionDelay(Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
-
 
         env.finalizeAppender(socketAppender);
         return true;
@@ -273,15 +279,15 @@ public final class LogbackSetup extends LoggerSetup {
     @Override
     public void teardown() {
         // TODO: disable whatever appender is now in place and replace it with console
-        context.stop();
+        context().stop();
     }
 
     private LoggerAndContext contextInit(Level level, LoggingServiceConfig config, boolean shouldResetContext) {
+        var ctx = context();
         if (shouldResetContext) {
-            context.reset();
-            context.setName("enso-custom");
+            ctx.reset();
         }
-        Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+        Logger rootLogger = ctx.getLogger(Logger.ROOT_LOGGER_NAME);
 
         Filter<ILoggingEvent> filter;
         LoggersLevels loggers = config != null ? config.getLoggers() : null;
@@ -290,7 +296,7 @@ public final class LogbackSetup extends LoggerSetup {
         } else {
             filter = null;
         }
-        return new LoggerAndContext(level, context, rootLogger, filter);
+        return new LoggerAndContext(level, ctx, rootLogger, filter);
     }
 
     private record LoggerAndContext(Level level, LoggerContext ctx, Logger logger, Filter<ILoggingEvent> filter) {

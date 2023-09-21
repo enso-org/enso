@@ -5,7 +5,6 @@ import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen, Types}
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
-import org.enso.logger.LoggerSetup
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.TypeGraph
@@ -44,7 +43,6 @@ class RuntimeServerTest
       PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
-    LoggerSetup.get().setup()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)

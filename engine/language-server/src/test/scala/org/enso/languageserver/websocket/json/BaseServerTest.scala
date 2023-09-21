@@ -45,7 +45,6 @@ import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
-import org.enso.logger.LoggerSetup
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -74,8 +73,6 @@ class BaseServerTest
   import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
-
-  LoggerSetup.get().setup()
 
   def isFileWatcherEnabled: Boolean = false
 
