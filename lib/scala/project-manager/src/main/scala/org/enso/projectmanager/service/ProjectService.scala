@@ -280,10 +280,12 @@ class ProjectService[
       openTime <- clock.nowInUtc()
       updated = project.copy(lastOpened = Some(openTime))
       _ <- repo.update(updated).mapError(toServiceFailure)
+      projectWithDefaultEdition =
+        project.copy(edition = Some(DefaultEdition.getDefaultEdition))
       sockets <- startServer(
         progressTracker,
         clientId,
-        updated,
+        projectWithDefaultEdition,
         missingComponentAction
       )
     } yield sockets
@@ -315,6 +317,7 @@ class ProjectService[
     project: Project,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
+    _       <- log.debug("Preparing to start the Language Server for [{}].", project)
     version <- resolveProjectVersion(project)
     _       <- preinstallEngine(progressTracker, version, missingComponentAction)
     sockets <- languageServerGateway
@@ -322,17 +325,14 @@ class ProjectService[
       .mapError {
         case PreviousInstanceNotShutDown =>
           ProjectOpenFailed(
-            "The previous instance of the Language Server hasn't been shut " +
-            "down yet."
+            "The previous instance of the Language Server hasn't been shut down yet."
           )
 
         case ServerBootTimedOut =>
           ProjectOpenFailed("Language server boot timed out.")
 
         case ServerBootFailed(th) =>
-          ProjectOpenFailed(
-            s"Language server boot failed. ${th.getMessage}"
-          )
+          ProjectOpenFailed(s"Language server boot failed. ${th.getMessage}")
       }
   } yield RunningLanguageServerInfo(
     version,
