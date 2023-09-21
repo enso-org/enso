@@ -10,17 +10,17 @@ polyglot java import java.time.format.DateTimeFormatter
 spec =
     Test.group "Parsing formats" <|
         Test.specify "should throw informative error for replacements of Java patterns in Simple format" <|
-            r1 = Date_Time_Formatter.from "E, d MMM yyyy"
+            r1 = Date_Time_Formatter.from "d LLL yyyy"
             r1.should_fail_with Date_Time_Format_Parse_Error
-            r1.catch.to_display_text . should_contain "use `ddd`"
+            r1.catch.to_display_text . should_contain "use `MMM`"
 
-            r2 = Date_Time_Formatter.from "d LLL yyyy"
+            r2 = Date_Time_Formatter.from "dd-MM-yyyy HH:mm:ss '['XX']'"
             r2.should_fail_with Date_Time_Format_Parse_Error
-            r2.catch.to_display_text . should_contain "use `MMM`"
+            r2.catch.to_display_text . should_contain "use `zz`"
 
-            r3 = Date_Time_Formatter.from "dd-MM-yyyy HH:mm:ss '['XX']'"
+            r3 = Date_Time_Formatter.from "yyyy-ww-dd"
             r3.should_fail_with Date_Time_Format_Parse_Error
-            r3.catch.to_display_text . should_contain "use `zz`"
+            r3.catch.to_display_text . should_contain "consider using `from_iso_week_date_pattern`"
 
         Test.specify "should report format parse failures" <|
             Date_Time_Formatter.from "yyyy[" . should_fail_with Date_Time_Format_Parse_Error
@@ -45,6 +45,12 @@ spec =
 
         Test.specify "should allow parsing Java patterns" <|
             Date.new 2020 2 1 . format (Date_Time_Formatter.from_java "E, d LLL yyyy") . should_equal "Sat, 1 Feb 2020"
+
+        Test.specify "should handle various formats" <|
+            Date.new 2023 09 21 . format "E, dd.MM.yy" . should_equal "Thu, 21.09.23"
+            Date.new 2023 09 21 . format "DDDD" . should_equal "Thursday"
+            Date.new 2023 09 21 . format (Date_Time_Formatter.from_iso_week_date_pattern "ee, 'W'WW ''yy") . should_equal "Thursday, W38 '23"
+            Date.new 2023 09 21 . format "'Q'Q ''yy{1999}" . should_equal "Q3 '23"
 
     Test.group "Parsing date/time values" <|
         Test.specify "should allow short month names" <|
