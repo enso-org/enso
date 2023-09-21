@@ -1,0 +1,4 @@
+from local.Test_Private_Modules_1 import all
+
+main =
+    Pub_Mod_Type.Value 42

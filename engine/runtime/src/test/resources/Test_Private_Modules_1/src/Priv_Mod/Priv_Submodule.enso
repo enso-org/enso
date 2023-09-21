@@ -1,0 +1,5 @@
+# No need to mark this module as private. Its parent module is private, so this
+# is private as well.
+
+type Priv_Submodule_Type
+

@@ -219,4 +219,32 @@ class ImportsTest extends PackageTest {
     outLines(2) shouldEqual "(D_Mod.Value 1)"
   }
 
+  "Private modules" should "be able to export non-private stuff" in {
+    evalTestProject(
+      "Test_Private_Modules_2"
+    ).toString shouldEqual "(Pub_Mod_Type.Value 42)"
+  }
+
+  "Private modules" should "not be able to import private modules" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Private_Modules_3"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut.filterNot(isDiagnosticLine)
+    outLines should have length 1
+    outLines.head should include(
+      "Main.enso:2:1: error: Cannot import private module."
+    )
+  }
+
+  "Private modules" should "not be able to use private modules via FQN" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Private_Modules_4"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut.filterNot(isDiagnosticLine)
+    outLines should have length 1
+    outLines.head should include(
+      "???"
+    )
+  }
+
 }

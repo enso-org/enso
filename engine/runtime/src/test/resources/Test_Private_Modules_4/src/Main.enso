@@ -1,0 +1,3 @@
+main =
+    # This FQN access fails - Priv_Mod is a private module in a different library
+    local.Test_Private_Modules_1.Priv_Mod.Type_In_Priv_Mode.Value 42 . data

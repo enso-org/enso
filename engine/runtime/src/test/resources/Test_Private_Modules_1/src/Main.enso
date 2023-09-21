@@ -1,0 +1,4 @@
+# Export some "public" stuff from this library
+#
+from local.Pub_Mod import Pub_Mod_Type
+from local.Pub_Mod export Pub_Mod_Type

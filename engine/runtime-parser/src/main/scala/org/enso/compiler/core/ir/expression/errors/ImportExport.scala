@@ -171,6 +171,13 @@ object ImportExport {
       s"No such constructor ${constructorName} in type $typeName"
   }
 
+  case class ExportPrivateModule(
+    moduleName: String
+  ) extends Reason {
+    override def message: String =
+      s"Cannot export any symbol from module '$moduleName': The module is private"
+  }
+
   /** Represents an ambiguous import resolution error, where the same symbol is imported more than once refereing
     * to different objects. The objects are represented by their physical path in the project.
     *
