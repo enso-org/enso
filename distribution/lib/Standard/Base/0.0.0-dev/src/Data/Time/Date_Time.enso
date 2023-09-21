@@ -207,7 +207,7 @@ type Date_Time
 
        ? Default Date_Time Format
          Unless you provide a custom format, the text must represent a valid
-         date-time as defined by the ISO-8601 format (see https://en.wikipedia.org/wiki/ISO_8601).make_date_time_format_selector
+         date-time as defined by the ISO-8601 format (see https://en.wikipedia.org/wiki/ISO_8601).
          If a time zone is present, it must be in the ISO-8601 Extended
          Date/Time Format (EDTF) (see https://en.wikipedia.org/wiki/ISO_8601#EDTF).
          The time zone format consists of:
