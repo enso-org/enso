@@ -149,9 +149,9 @@ impl IsTarget for Gui {
             let ensogl_app_dir = &ret.0.ensogl_app;
             create_dir_if_missing(ensogl_app_dir).await?;
             let ensogl_app_files = [
-                &content_env.wasm.0.index_js.path,
-                &content_env.wasm.0.index_d_ts.path,
-                &content_env.wasm.0.index_js_map.path,
+                &content_env.wasm.0.index_cjs.path,
+                &content_env.wasm.0.index_d_cts.path,
+                &content_env.wasm.0.index_cjs_map.path,
             ];
             for file in ensogl_app_files {
                 ide_ci::fs::copy_to(file, ensogl_app_dir)?;

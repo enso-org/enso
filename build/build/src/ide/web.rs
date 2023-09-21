@@ -9,7 +9,7 @@ use crate::project::ProcessWrapper;
 
 use anyhow::Context;
 use futures_util::future::try_join;
-use futures_util::future::try_join4;
+use futures_util::future::try_join3;
 use ide_ci::io::download_all;
 use ide_ci::ok_ready_boxed;
 use ide_ci::program::command::FallibleManipulator;
@@ -168,12 +168,13 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         build_info: &BuildInfo,
         output_path: Output,
     ) -> Result<Self> {
-        let installation = ide.install();
+        // wasm build already does this, running `npm install` twice concurrently leads to broken
+        // builds.
+        // self.npm()?.install().run_ok().await?;
         let asset_dir = TempDir::new()?;
         let assets_download = download_js_assets(&asset_dir);
         let fonts_download = fonts::install_html_fonts(&ide.cache, &ide.octocrab, &asset_dir);
-        let (wasm, _, _, _) =
-            try_join4(wasm, installation, assets_download, fonts_download).await?;
+        let (wasm, _, _) = try_join3(wasm, assets_download, fonts_download).await?;
         wasm.symlink_ensogl_dist(&ide.linked_dist)?;
         ide.write_build_info(build_info)?;
         Ok(ContentEnvironment { asset_dir, wasm, output_path })
@@ -279,11 +280,6 @@ impl IdeDesktop {
     pub fn write_build_info(&self, info: &BuildInfo) -> Result {
         let path = self.package_dir.join(&*BUILD_INFO);
         path.write_as_json(info)
-    }
-
-    pub async fn install(&self) -> Result {
-        self.npm()?.install().run_ok().await?;
-        Ok(())
     }
 
     pub async fn build_icons(&self, output_path: impl AsRef<Path>) -> Result<IconsArtifacts> {
