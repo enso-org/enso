@@ -187,13 +187,13 @@ const brushExtent = ref<BrushSelection>()
 const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
 
-const xScale = ref(axisD3Scale(data.value?.axis.x))
-const yScale = ref(axisD3Scale(data.value?.axis.y))
+const xScale = ref(axisD3Scale(data.value.axis.x))
+const yScale = ref(axisD3Scale(data.value.axis.y))
 const symbol: Symbol<unknown, Point> = d3.symbol()
 
 const margin = computed(() => {
-  const xLabel = data.value?.axis.x.label
-  const yLabel = data.value?.axis.y.label
+  const xLabel = data.value.axis.x.label
+  const yLabel = data.value.axis.y.label
   if (xLabel == null && yLabel === null) {
     return { top: 20, right: 20, bottom: 20, left: 45 }
   } else if (yLabel == null) {
@@ -214,11 +214,11 @@ const xLabelLeft = computed(
   () =>
     margin.value.left +
     boxWidth.value / 2 -
-    getTextWidth(data.value?.axis.x.label, LABEL_FONT_STYLE) / 2,
+    getTextWidth(data.value.axis.x.label, LABEL_FONT_STYLE) / 2,
 )
 const xLabelTop = computed(() => boxHeight.value + margin.value.top + 20)
 const yLabelLeft = computed(
-  () => -boxHeight.value / 2 + getTextWidth(data.value?.axis.y.label, LABEL_FONT_STYLE) / 2,
+  () => -boxHeight.value / 2 + getTextWidth(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 
@@ -234,7 +234,7 @@ function updatePreprocessor() {
 
 onMounted(updatePreprocessor)
 
-watchEffect(() => (focus.value = data.value?.focus))
+watchEffect(() => (focus.value = data.value.focus))
 
 /**
  * Helper function calculating extreme values and paddings to make sure data will fit nicely.
@@ -244,7 +244,7 @@ watchEffect(() => (focus.value = data.value?.focus))
  * than the container.
  */
 const extremesAndDeltas = computed(() => {
-  const data_ = data.value?.data ?? [{ x: 0, y: 0 }]
+  const data_ = data.value.data ?? [{ x: 0, y: 0 }]
   const [xMin = 0, xMax = 0] = d3.extent(data_, (point) => point.x)
   const [yMin = 0, yMax = 0] = d3.extent(data_, (point) => point.y)
   const dx = xMax - xMin
@@ -354,7 +354,7 @@ function zoomed(event: D3ZoomEvent<Element, unknown>) {
     .selectAll<SVGPathElement, Point>('path')
     .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
 
-  if (data.value?.points.labels === VISIBLE_POINTS) {
+  if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
       .selectAll<SVGTextElement, Point>('text')
       .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
@@ -450,7 +450,7 @@ function rescale(xScale: Scale, yScale: Scale) {
     .duration(ANIMATION_DURATION_MS)
     .attr('transform', (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
 
-  if (data.value?.points.labels === VISIBLE_POINTS) {
+  if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
       .selectAll<SVGTextElement, Point>('text')
       .transition()
@@ -481,7 +481,7 @@ function redrawData() {
         .style('fill', (d) => d.color ?? FILL_COLOR)
         .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`),
   )
-  if (data.value?.points.labels === VISIBLE_POINTS) {
+  if (data.value.points.labels === VISIBLE_POINTS) {
     const labels = d3Points.value.selectAll<SVGPathElement, unknown>('text').data(data.value.data)
     labels.join(
       (enter) => enter.append('text'),
@@ -525,7 +525,7 @@ watchEffect(() => {
     domainX = [xMin - paddingX, xMax + paddingX]
     domainY = [yMin - paddingY, yMax + paddingY]
   }
-  const axis = data.value?.axis
+  const axis = data.value.axis
   if (axis != null) {
     xScale.value = axisD3Scale(axis.x).domain(domainX).range([0, boxWidth.value])
     yScale.value = axisD3Scale(axis.y).domain(domainY).range([boxHeight.value, 0])
@@ -599,7 +599,7 @@ useEvent(document, 'scroll', endBrushing)
           <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
           <g ref="yAxisNode" class="axis-y"></g>
           <text
-            v-if="data?.axis.x.label"
+            v-if="data.axis.x.label"
             class="label label-x"
             text-anchor="end"
             :x="xLabelLeft"
@@ -607,7 +607,7 @@ useEvent(document, 'scroll', endBrushing)
             v-text="data.axis.x.label"
           ></text>
           <text
-            v-if="data?.axis.y.label"
+            v-if="data.axis.y.label"
             class="label label-y"
             text-anchor="end"
             :x="yLabelLeft"

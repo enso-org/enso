@@ -22,4 +22,3 @@ onMounted(() => useSuggestionDbStore().initializeDb())
   flex: 1;
 }
 </style>
-@/providers/guiConfig
