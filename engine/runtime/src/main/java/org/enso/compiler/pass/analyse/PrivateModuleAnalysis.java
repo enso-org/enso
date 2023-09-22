@@ -20,7 +20,7 @@ import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * Iterates through all the imports and exports and ensures that:
+ * Iterates through all the imports and exports of non-synthetic modules and ensures that:
  * <ul>
  *   <li>No private module is exported</li>
  *   <li>No private module from a different project is imported</li>
@@ -59,6 +59,10 @@ public class PrivateModuleAnalysis implements IRPass {
 
   @Override
   public Module runModule(Module moduleIr, ModuleContext moduleContext) {
+    if (moduleContext.isSynthetic()) {
+      return moduleIr;
+    }
+
     var bindingsMap = moduleContext.bindingsAnalysis();
     var currentPackage = moduleContext.getPackage();
     List<Import> importErrors = new ArrayList<>();
