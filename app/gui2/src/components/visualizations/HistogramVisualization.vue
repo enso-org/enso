@@ -99,17 +99,19 @@ interface Bin {
 </script>
 
 <script setup lang="ts">
+import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
+
 import type {
   BrushSelection,
+  D3BrushEvent,
+  D3ZoomEvent,
   ScaleContinuousNumeric,
   ScaleSequential,
   ZoomTransform,
-  D3BrushEvent,
-  D3ZoomEvent,
 } from 'd3'
 
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -118,8 +120,6 @@ import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
 
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
-
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 const shortcuts = {
   zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',

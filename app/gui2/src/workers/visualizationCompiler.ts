@@ -122,10 +122,10 @@
  * ```
  */
 
-import { parse, compileScript, compileStyle } from 'vue/compiler-sfc'
-import { transform } from 'sucrase'
 import { parse as babelParse } from '@babel/parser'
 import MagicString from 'magic-string'
+import { transform } from 'sucrase'
+import { compileScript, compileStyle, parse } from 'vue/compiler-sfc'
 
 let builtinModules = new Set<string>()
 const ids = new Set<string>()

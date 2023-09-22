@@ -4,11 +4,9 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-
 import { onMounted } from 'vue'
 
-/** Simple Warning Visualization. */
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 type Data = string[]
 

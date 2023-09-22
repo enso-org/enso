@@ -32,14 +32,14 @@ declare const sqlFormatter: typeof import('sql-formatter')
 </script>
 
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
+
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as sqlFormatter from 'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from './builtins.ts'
-
-import { computed, onMounted } from 'vue'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{

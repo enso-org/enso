@@ -56,22 +56,23 @@ declare const agGrid: typeof import('ag-grid-enterprise')
 </script>
 
 <script setup lang="ts">
-/** Table visualization. */
+import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
+
+import { useThrottleFn } from '@vueuse/core'
+
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
+
 import type {
-  GridOptions,
   ColDef,
   ColumnResizedEvent,
+  GridOptions,
   HeaderValueGetterParams,
 } from 'ag-grid-community'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
-
-import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
-import { useThrottleFn } from '@vueuse/core'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{

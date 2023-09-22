@@ -82,14 +82,14 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
+import { computed, onMounted, ref, watchEffect } from 'vue'
+
 import FindIcon from './icons/find.svg'
-import Path2Icon from './icons/path2.svg'
 import GeoMapDistanceIcon from './icons/geo_map_distance.svg'
 import GeoMapPinIcon from './icons/geo_map_pin.svg'
+import Path2Icon from './icons/path2.svg'
 
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
-
-import { computed, onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{

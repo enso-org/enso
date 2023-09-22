@@ -82,18 +82,21 @@ interface Color {
 </script>
 
 <script setup lang="ts">
-import ShowAllIcon from './icons/show_all.svg'
+import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+
 import FindIcon from './icons/find.svg'
+import ShowAllIcon from './icons/show_all.svg'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
+
 import type {
   BrushSelection,
-  ScaleContinuousNumeric,
-  SymbolType,
   D3BrushEvent,
   D3ZoomEvent,
+  ScaleContinuousNumeric,
+  SymbolType,
 } from 'd3'
 
 import { useEvent, useEventConditional } from './events.ts'
@@ -102,7 +105,6 @@ import { getTextWidth } from './measurement.ts'
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 import type { Symbol } from 'd3'
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()

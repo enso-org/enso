@@ -1,9 +1,9 @@
-import Compiler from '@/workers/visualizationCompiler?worker'
-import * as vue from 'vue'
-import { type DefineComponent } from 'vue'
-import * as vueUseCore from '@vueuse/core'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import * as useVisualizationConfig from '@/providers/useVisualizationConfig'
+import Compiler from '@/workers/visualizationCompiler?worker'
+import * as vueUseCore from '@vueuse/core'
+import * as vue from 'vue'
+import { type DefineComponent } from 'vue'
 
 import { defineStore } from 'pinia'
 

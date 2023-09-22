@@ -2,7 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 
-import { usePointer, PointerButtonMask } from '@/util/events'
+import { PointerButtonMask, usePointer } from '@/util/events'
 
 import { ref } from 'vue'
 import { useVisualizationConfig } from '../providers/visualizationConfig'

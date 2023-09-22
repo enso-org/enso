@@ -9,6 +9,7 @@ interface Data {
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
+
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 // Optional: add your own external dependencies. The @ts-expect-error is required because TypeScript
 // does not allow HTTP imports.
