@@ -118,6 +118,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
 
+import { updateableRef } from './builtins.ts'
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
@@ -128,7 +129,7 @@ const shortcuts = {
 
 const MARGIN = 25
 const AXIS_LABEL_HEIGHT = 10
-const ANIMATION_DURATION = 1000
+const ANIMATION_DURATION_MS = 400
 const DEFAULT_NUMBER_OF_BINS = 50
 const COLOR_LEGEND_WIDTH = 5
 const DEFAULT_AXES_CONFIGURATION: AxesConfiguration = {
@@ -170,22 +171,40 @@ const points = ref<number[]>([])
 const rawBins = ref<number[]>()
 const binCount = ref(DEFAULT_NUMBER_OF_BINS)
 const axis = ref(DEFAULT_AXES_CONFIGURATION)
-const focus = ref<Focus>()
+const rawFocus = ref<Focus>()
 const brushExtent = ref<BrushSelection>()
 const zoomLevel = ref(1)
-const maxY = ref(1)
+const shouldAnimate = ref(false)
 
-const originalXScale = ref(d3.scaleLinear())
-const xScale = ref(d3.scaleLinear())
-const yScale = ref(d3.scaleLinear())
-const fill = ref(d3.scaleSequential().interpolator(d3.interpolateViridis))
-const yAxis = ref(d3.axisLeft(yScale.value).tickFormat(d3.format('d')))
+const originalXScale = updateableRef(d3.scaleLinear())
+const xScale = updateableRef(d3.scaleLinear())
+const yScale = updateableRef(d3.scaleLinear())
+const fill = updateableRef(d3.scaleSequential().interpolator(d3.interpolateViridis))
+const yAxis = updateableRef(d3.axisLeft(yScale.value).tickFormat(d3.format('d')))
 watchEffect(() => yAxis.value.scale(yScale.value))
+
+const animationDuration = ref(() => (shouldAnimate.value ? ANIMATION_DURATION_MS : 0))
+const bins = computed<Bin[]>(() => {
+  if (rawBins.value != null) {
+    return rawBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
+  } else if (points.value != null) {
+    const dataDomain = originalXScale.value.domain()
+    const histogram = d3
+      .bin()
+      .domain([dataDomain[0] ?? 0, dataDomain[1] ?? 1])
+      .thresholds(originalXScale.value.ticks(binCount.value))
+    return histogram(points.value)
+  } else {
+    return []
+  }
+})
+// The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
+const maxY = computed(() => d3.max(bins.value, (d) => d.length) || 1)
 
 watchEffect(() => {
   let rawData = props.data
   if (rawData == null) {
-    console.error('Heatmap was not passed any data.')
+    console.error('Histogram was not passed any data.')
   } else {
     const isUpdate = rawData.update === 'diff'
     let newData: HistogramInnerData | number[] = []
@@ -211,7 +230,7 @@ watchEffect(() => {
       axis.value = rawData.axis
     }
     if (rawData.focus != null) {
-      focus.value = rawData.focus
+      rawFocus.value = rawData.focus
     }
     if (rawData.bins != null) {
       binCount.value = Math.max(1, rawData.bins)
@@ -297,11 +316,12 @@ watchEffect(() => d3Zoom.value.call(zoom.value))
 
 /** Helper function called on pan/scroll. */
 function zoomed(event: D3ZoomEvent<Element, unknown>) {
+  shouldAnimate.value = false
   const xScale_ = xScale.value
   const yScale_ = yScale.value
 
   function innerRescale(transformEvent: ZoomTransform) {
-    xScale_.domain(transformEvent.rescaleX(xScale_).domain())
+    xDomain.value = transformEvent.rescaleX(xScale_).domain()
     const newYDomain = transformEvent.rescaleY(yScale_).domain()
     const yMin = newYDomain[0] ?? 0
     if (yMin >= -EPSILON && yMin <= EPSILON) {
@@ -310,22 +330,23 @@ function zoomed(event: D3ZoomEvent<Element, unknown>) {
     }
     if ((newYDomain[0] ?? 0) >= 0) {
       yScale_.domain(newYDomain)
+      yScale.update()
     }
   }
 
   if (event.sourceEvent instanceof MouseEvent && event.sourceEvent.buttons === RIGHT_BUTTON) {
-    xScale_.domain(actionStartXScale.domain())
     const zoomAmount = rmbZoomValue(event.sourceEvent) / RMB_DIVIDER
     const scale = Math.exp(zoomAmount)
     const distanceScale = getScaleForZoom(scale)
-    xScale_.domain(distanceScale.rescaleX(xScale_).domain())
+    xScale_.domain(actionStartXScale.domain())
+    xDomain.value = distanceScale.rescaleX(xScale_).domain()
     zoomLevel.value = actionStartZoomLevel * scale
   } else if (event.sourceEvent instanceof WheelEvent) {
     if (event.sourceEvent.ctrlKey) {
       const zoomAmount = -event.sourceEvent.deltaY / PINCH_DIVIDER
       const scale = Math.exp(zoomAmount)
       const distanceScale = getScaleForZoom(scale)
-      xScale_.domain(distanceScale.rescaleX(xScale_).domain())
+      xDomain.value = distanceScale.rescaleX(xScale_).domain()
       zoomLevel.value *= scale
     } else {
       const distanceScale = d3.zoomIdentity.translate(
@@ -347,7 +368,6 @@ function zoomed(event: D3ZoomEvent<Element, unknown>) {
   } else {
     innerRescale(event.transform)
   }
-  rescale(xScale_, yScale_, false)
 }
 
 /** Return the zoom value computed from the initial right-mouse-button event to the current
@@ -389,18 +409,18 @@ function zoomToSelected() {
   if (brushExtent.value == null) {
     return
   }
-  focus.value = undefined
+  rawFocus.value = undefined
   const xScale_ = xScale.value
   const startRaw = brushExtent.value[0]
   const endRaw = brushExtent.value[1]
   const start = typeof startRaw === 'number' ? startRaw : startRaw[0]
   const end = typeof endRaw === 'number' ? endRaw : endRaw[0]
-  const xMin = xScale_.invert(start)
-  const xMax = xScale_.invert(end)
-  xScale_.domain([xMin, xMax])
   const selectionWidth = end - start
   zoomLevel.value *= boxWidth.value / selectionWidth
-  rescale(xScale_, yScale.value, true)
+  const xMin = xScale_.invert(start)
+  const xMax = xScale_.invert(end)
+  xDomain.value = [xMin, xMax]
+  shouldAnimate.value = true
 }
 
 function endBrushing() {
@@ -420,35 +440,6 @@ useEventConditional(
   },
 )
 
-/** Animate the chart to a new scale. */
-function rescale(xScale: Scale, yScale: Scale, shouldAnimate: boolean) {
-  const duration = shouldAnimate ? ANIMATION_DURATION : 0
-  d3XAxis.value
-    .transition()
-    .duration(duration)
-    .call(d3.axisBottom(xScale).ticks(width.value / 40))
-  const yTicks = yScale.ticks().filter(Number.isInteger)
-  d3YAxis.value
-    .transition()
-    .duration(duration)
-    .call(
-      d3
-        .axisLeft(yScale)
-        .ticks(height.value / 20)
-        .tickValues(yTicks)
-        .tickFormat(d3.format('d')),
-    )
-  d3Plot.value
-    .selectAll<SVGRectElement, Bin>('rect')
-    .transition()
-    .duration(duration)
-    .attr(
-      'transform',
-      (d) =>
-        `translate(${xScale(d.x0 ?? 0)}, ${yScale(d.length ?? 0)}) scale(${zoomLevel.value}, 1)`,
-    )
-}
-
 /**
  * Return the extrema of the data and and paddings that ensure data will fit into the
  * drawing area.
@@ -466,69 +457,32 @@ const extremesAndDeltas = computed(() => {
   return { xMin, xMax, paddingX, dx }
 })
 
-watchEffect(() => {
-  // Update the x-axis in D3.
-  const focus_ = focus.value
+const xExtents = computed<[min: number, max: number]>(() => {
   const extremesAndDeltas_ = extremesAndDeltas.value
-  let domainX: [min: number, max: number] = [
+  return [
     extremesAndDeltas_.xMin - extremesAndDeltas_.paddingX,
     extremesAndDeltas_.xMax + extremesAndDeltas_.paddingX,
   ]
-  originalXScale.value.domain(domainX).range([0, boxWidth.value])
-  if (focus_?.x != null && focus_.zoom != null) {
-    let paddingX = extremesAndDeltas_.dx / (2 * focus_.zoom)
-    domainX = [focus_.x - paddingX, focus_.x + paddingX]
-  }
-  xScale.value.domain(domainX).range([0, boxWidth.value])
-  d3XAxis.value.call(d3.axisBottom(xScale.value).ticks(width.value / 40))
 })
+
+watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 watchEffect(() => {
-  // Update the y-axis in D3.
-  const yScale_ = yScale.value
-  yScale_.range([boxHeight.value, 0])
-  if (yScale_.domain()[0] === 0) {
-    yScale_.domain([0, maxY.value])
-  }
-  fill.value.domain(yScale_.domain())
-  const yTicks = yScale_.ticks().filter(Number.isInteger)
-  yAxis.value.scale(yScale_).tickValues(yTicks)
-  d3YAxis.value.call(yAxis.value)
+  originalXScale.value.range([0, boxWidth.value]).domain(xExtents.value)
+  originalXScale.update()
 })
 
-function redrawData() {
-  const originalXScale_ = originalXScale.value
-  const xScale_ = xScale.value
-  const yScale_ = yScale.value
-  const boxHeight_ = boxHeight.value
-  const fill_ = fill.value
-  let bins: Bin[] = []
-  if (rawBins.value != null) {
-    bins = rawBins.value.map((length, i) => ({ x0: i, x1: i + 1, length }))
-  } else if (points.value != null) {
-    const dataDomain = originalXScale.value.domain()
-    const histogram = d3
-      .bin()
-      .domain([dataDomain[0] ?? 0, dataDomain[1] ?? 1])
-      .thresholds(originalXScale.value.ticks(binCount.value))
-    bins = histogram(points.value)
+const xDomain = ref<number[]>([0, 1])
+
+watchEffect(() => {
+  const focus_ = rawFocus.value
+  if (focus_?.x != null && focus_.zoom != null) {
+    let paddingX = extremesAndDeltas.value.dx / (2 * focus_.zoom)
+    xDomain.value = [focus_.x - paddingX, focus_.x + paddingX]
+  } else {
+    xDomain.value = xExtents.value
   }
-  // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
-  maxY.value = d3.max(bins, (d) => d.length) || 1
-  updateColorLegend(fill.value)
-  d3Plot.value
-    .selectAll('rect')
-    .data(bins)
-    .join(
-      (enter) => enter.append('rect').attr('x', 1),
-      (update) =>
-        update
-          .attr('transform', (d) => `translate(${xScale_(d.x0 ?? 0)}, ${yScale_(d.length ?? 0)})`)
-          .attr('width', (d) => originalXScale_(d.x1 ?? 0) - originalXScale_(d.x0 ?? 0))
-          .attr('height', (d) => Math.max(0, boxHeight_ - yScale_(d.length ?? 0)))
-          .style('fill', (d) => fill_(d.length ?? 0)),
-    )
-}
+})
 
 /**
  * Update height of the color legend to match the height of the canvas.
@@ -549,29 +503,87 @@ function updateColorLegend(colorScale: ScaleSequential<string>) {
     .attr('stop-color', (d) => d.color)
 }
 
-// ==============
-// === Update ===
-// ==============
+// =============
+// === Setup ===
+// =============
 
 onMounted(() => {
   emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
 })
 
-onMounted(() => queueMicrotask(redrawData))
-watch([width, height, maxY], () => queueMicrotask(redrawData))
-watchPostEffect(redrawData)
-
 watch([width, height], () => queueMicrotask(endBrushing))
+
+// ==============
+// === Update ===
+// ==============
+
+// === Update x axis ===
+
+watchEffect(() => {
+  xScale.value.domain(xDomain.value).range([0, boxWidth.value])
+  xScale.update()
+  d3XAxis.value
+    .transition()
+    .duration(animationDuration.value)
+    .call(d3.axisBottom(xScale.value).ticks(width.value / 40))
+})
+
+// === Update y axis ===
+
+watchEffect(() => {
+  // Update the y-axis in D3.
+  const yScale_ = yScale.value
+  yScale_.range([boxHeight.value, 0])
+  if (yScale_.domain()[0] === 0) {
+    yScale_.domain([0, maxY.value])
+    yScale.update()
+  }
+  fill.value.domain(yScale_.domain())
+  fill.update()
+  const yTicks = yScale_.ticks().filter(Number.isInteger)
+  yAxis.value.scale(yScale_).tickValues(yTicks)
+  d3YAxis.value.transition().duration(animationDuration.value).call(yAxis.value)
+})
+
+// === Update contents ===
+
+watchPostEffect(() => {
+  const originalXScale_ = originalXScale.value
+  const xScale_ = xScale.value
+  const yScale_ = yScale.value
+  const boxHeight_ = boxHeight.value
+  const fill_ = fill.value
+  const zoomLevel_ = zoomLevel.value
+  updateColorLegend(fill.value)
+  d3Plot.value
+    .selectAll('rect')
+    .data(bins.value)
+    .join(
+      (enter) => enter.append('rect').attr('x', 1),
+      (update) =>
+        update
+          .transition()
+          .duration(animationDuration.value)
+          .attr(
+            'transform',
+            (d) =>
+              `translate(${xScale_(d.x0 ?? 0)}, ${yScale_(d.length ?? 0)}) scale(${zoomLevel_}, 1)`,
+          )
+          .attr('width', (d) => originalXScale_(d.x1 ?? 0) - originalXScale_(d.x0 ?? 0))
+          .attr('height', (d) => Math.max(0, boxHeight_ - yScale_(d.length ?? 0)))
+          .style('fill', (d) => fill_(d.length ?? 0)),
+    )
+})
 
 // ======================
 // === Event handlers ===
 // ======================
 
 function fitAll() {
-  focus.value = undefined
+  rawFocus.value = undefined
   zoomLevel.value = 1
-  xScale.value.domain(originalXScale.value.domain())
-  rescale(xScale.value, yScale.value, true)
+  xDomain.value = originalXScale.value.domain()
+  shouldAnimate.value = true
 }
 
 useEvent(document, 'keydown', (event) => {

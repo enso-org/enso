@@ -99,6 +99,7 @@ import type {
   SymbolType,
 } from 'd3'
 
+import { updateableRef } from './builtins.ts'
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
@@ -127,6 +128,10 @@ const ANIMATION_DURATION_MS = 400
 const VISIBLE_POINTS = 'visible'
 const DEFAULT_LIMIT = 1024
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
+const SIZE_SCALE_MULTIPLER = 100
+const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},${
+  ACCENT_COLOR.blue * 255
+},0.8)`
 
 const ZOOM_EXTENT = [0.5, 20] satisfies BrushSelection
 const RIGHT_BUTTON = 2
@@ -142,9 +147,9 @@ const SHAPE_TO_SYMBOL: Record<string, SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<ScaleType, ScaleContinuousNumeric<number, number>> = {
-  [ScaleType.Linear]: d3.scaleLinear(),
-  [ScaleType.Logarithmic]: d3.scaleLog(),
+const SCALE_TO_D3_SCALE: Record<ScaleType, () => ScaleContinuousNumeric<number, number>> = {
+  [ScaleType.Linear]: () => d3.scaleLinear(),
+  [ScaleType.Logarithmic]: () => d3.scaleLog(),
 }
 
 const data = computed<Data>(() => {
@@ -187,11 +192,15 @@ const bounds = ref<[number, number, number, number]>()
 const brushExtent = ref<BrushSelection>()
 const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
+const shouldAnimate = ref(false)
+const xDomain = ref<[min: number, max: number]>([0, 1])
+const yDomain = ref<[min: number, max: number]>([0, 1])
 
-const xScale = ref(axisD3Scale(data.value.axis.x))
-const yScale = ref(axisD3Scale(data.value.axis.y))
+const xScale = updateableRef(axisD3Scale(data.value.axis.x))
+const yScale = updateableRef(axisD3Scale(data.value.axis.y))
 const symbol: Symbol<unknown, Point> = d3.symbol()
 
+const animationDuration = computed(() => (shouldAnimate.value ? ANIMATION_DURATION_MS : 0))
 const margin = computed(() => {
   const xLabel = data.value.axis.x.label
   const yLabel = data.value.axis.y.label
@@ -299,12 +308,13 @@ watchEffect(() => d3Zoom.value.call(zoom.value))
 
 /** Helper function called on pan/scroll. */
 function zoomed(event: D3ZoomEvent<Element, unknown>) {
+  shouldAnimate.value = false
   const xScale_ = xScale.value
   const yScale_ = yScale.value
 
   function innerRescale(distanceScale: d3.ZoomTransform) {
-    xScale_.domain(distanceScale.rescaleX(xScale_).domain())
-    yScale_.domain(distanceScale.rescaleY(yScale_).domain())
+    xDomain.value = distanceScale.rescaleX(xScale_).domain()
+    yDomain.value = distanceScale.rescaleY(yScale_).domain()
   }
 
   function getScaleForZoom(scale: number) {
@@ -347,19 +357,6 @@ function zoomed(event: D3ZoomEvent<Element, unknown>) {
   } else {
     innerRescale(event.transform)
   }
-
-  d3XAxis.value.call(d3.axisBottom(xScale_).ticks(xTicks.value))
-  d3YAxis.value.call(d3.axisLeft(yScale_).ticks(yTicks.value))
-  d3Points.value
-    .selectAll<SVGPathElement, Point>('path')
-    .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
-
-  if (data.value.points.labels === VISIBLE_POINTS) {
-    d3Points.value
-      .selectAll<SVGTextElement, Point>('text')
-      .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
-      .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
-  }
 }
 
 /**
@@ -398,6 +395,7 @@ watchEffect(() => d3Brush.value.call(brush.value))
  * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
  * Section "Brushing for zooming". */
 function zoomToSelected() {
+  shouldAnimate.value = true
   focus.value = undefined
   if (
     brushExtent.value == null ||
@@ -413,12 +411,10 @@ function zoomToSelected() {
   const xMax = xScale_.invert(xMaxRaw)
   const yMin = yScale_.invert(yMinRaw)
   const yMax = yScale_.invert(yMaxRaw)
-
   bounds.value = [xMin, yMin, xMax, yMax]
   updatePreprocessor()
-  xScale_.domain([xMin, xMax])
-  yScale_.domain([yMin, yMax])
-  rescale(xScale_, yScale_)
+  xDomain.value = [xMin, xMax]
+  yDomain.value = [yMin, yMax]
 }
 
 useEventConditional(
@@ -433,66 +429,7 @@ useEventConditional(
   },
 )
 
-/** Animate the chart to a new scale. */
-function rescale(xScale: Scale, yScale: Scale) {
-  d3XAxis.value
-    .transition()
-    .duration(ANIMATION_DURATION_MS)
-    .call(d3.axisBottom(xScale).ticks(xTicks.value))
-  d3YAxis.value
-    .transition()
-    .duration(ANIMATION_DURATION_MS)
-    .call(d3.axisLeft(yScale).ticks(yTicks.value))
-
-  d3Points.value
-    .selectAll<SVGPathElement, Point>('path')
-    .transition()
-    .duration(ANIMATION_DURATION_MS)
-    .attr('transform', (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
-
-  if (data.value.points.labels === VISIBLE_POINTS) {
-    d3Points.value
-      .selectAll<SVGTextElement, Point>('text')
-      .transition()
-      .duration(ANIMATION_DURATION_MS)
-      .attr('x', (d) => xScale(d.x) + POINT_LABEL_PADDING_X_PX)
-      .attr('y', (d) => yScale(d.y) + POINT_LABEL_PADDING_Y_PX)
-  }
-}
-
-const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},${
-  ACCENT_COLOR.blue * 255
-},0.8)`
-
-function redrawData() {
-  const xScale_ = xScale.value
-  const yScale_ = yScale.value
-  const paths = d3Points.value.selectAll<SVGPathElement, unknown>('path').data(data.value.data)
-  paths.join(
-    (enter) => enter.append('path'),
-    (update) =>
-      update
-        .attr(
-          'd',
-          symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
-        )
-        .style('fill', (d) => d.color ?? FILL_COLOR)
-        .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`),
-  )
-  if (data.value.points.labels === VISIBLE_POINTS) {
-    const labels = d3Points.value.selectAll<SVGPathElement, unknown>('text').data(data.value.data)
-    labels.join(
-      (enter) => enter.append('text'),
-      (update) =>
-        update
-          .attr('class', 'label')
-          .text((d) => d.label ?? '')
-          .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
-          .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX),
-    )
-  }
-}
+watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
 /** Helper function to match a d3 shape from its name. */
 function matchShape(d: Point) {
@@ -506,56 +443,121 @@ function matchShape(d: Point) {
  * @param axis Axis information as received in the visualization update.
  * @returns D3 scale. */
 function axisD3Scale(axis: AxisConfiguration | undefined) {
-  return axis != null ? SCALE_TO_D3_SCALE[axis.scale] : d3.scaleLinear()
+  return axis != null ? SCALE_TO_D3_SCALE[axis.scale]() : d3.scaleLinear()
 }
+
+watch(
+  () => data.value.axis.x,
+  (xAxisConfiguration) => {
+    const xScale_ = xScale.value
+    xScale.value = axisD3Scale(xAxisConfiguration).domain(xScale_.domain()).range(xScale_.range())
+  },
+)
+
+watch(
+  () => data.value.axis.y,
+  (yAxisConfiguration) => {
+    const yScale_ = yScale.value
+    yScale.value = axisD3Scale(yAxisConfiguration).domain(yScale_.domain()).range(yScale_.range())
+  },
+)
 
 watchEffect(() => {
   // Update the axes in d3.
   const { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy } = extremesAndDeltas.value
-  let domainX: [min: number, max: number]
-  let domainY: [min: number, max: number]
   const focus_ = focus.value
   if (focus_?.x != null && focus_.y != null && focus_.zoom != null) {
     const newPaddingX = dx * (1 / (2 * focus_.zoom))
     const newPaddingY = dy * (1 / (2 * focus_.zoom))
-    domainX = [focus_.x - newPaddingX, focus_.x + newPaddingX]
-    domainY = [focus_.y - newPaddingY, focus_.y + newPaddingY]
+    xDomain.value = [focus_.x - newPaddingX, focus_.x + newPaddingX]
+    yDomain.value = [focus_.y - newPaddingY, focus_.y + newPaddingY]
   } else {
-    domainX = [xMin - paddingX, xMax + paddingX]
-    domainY = [yMin - paddingY, yMax + paddingY]
+    xDomain.value = [xMin - paddingX, xMax + paddingX]
+    yDomain.value = [yMin - paddingY, yMax + paddingY]
   }
-  const axis = data.value.axis
-  xScale.value = axisD3Scale(axis.x).domain(domainX).range([0, boxWidth.value])
-  yScale.value = axisD3Scale(axis.y).domain(domainY).range([boxHeight.value, 0])
-  d3XAxis.value.call(d3.axisBottom(xScale.value).ticks(xTicks.value))
-  d3YAxis.value.call(d3.axisLeft(yScale.value).ticks(yTicks.value))
 })
 
 // ==============
 // === Update ===
 // ==============
 
-onMounted(() => queueMicrotask(redrawData))
-watch([data, width, height], () => queueMicrotask(redrawData))
-watchPostEffect(redrawData)
+// === Update x axis ===
+
+watchPostEffect(() => {
+  xScale.value.domain(xDomain.value).range([0, boxWidth.value])
+  xScale.update()
+  d3XAxis.value
+    .transition()
+    .duration(animationDuration.value)
+    .call(d3.axisBottom(xScale.value).ticks(xTicks.value))
+})
+
+// === Update y axis ===
+
+watchPostEffect(() => {
+  yScale.value.domain(yDomain.value).range([boxHeight.value, 0])
+  yScale.update()
+  d3YAxis.value
+    .transition()
+    .duration(animationDuration.value)
+    .call(d3.axisLeft(yScale.value).ticks(yTicks.value))
+})
+
+// === Update contents ===
+
+watchPostEffect(() => {
+  const xScale_ = xScale.value
+  const yScale_ = yScale.value
+  d3Points.value
+    .selectAll<SVGPathElement, unknown>('path')
+    .data(data.value.data)
+    .join(
+      (enter) => enter.append('path'),
+      (update) =>
+        update
+          .transition()
+          .duration(animationDuration.value)
+          .attr(
+            'd',
+            symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
+          )
+          .style('fill', (d) => d.color ?? FILL_COLOR)
+          .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`),
+    )
+  if (data.value.points.labels === VISIBLE_POINTS) {
+    d3Points.value
+      .selectAll<SVGPathElement, unknown>('text')
+      .data(data.value.data)
+      .join(
+        (enter) => enter.append('text').attr('class', 'label'),
+        (update) =>
+          update
+            .transition()
+            .duration(animationDuration.value)
+            .text((d) => d.label ?? '')
+            .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
+            .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX),
+      )
+  }
+})
 
 // ======================
 // === Event handlers ===
 // ======================
 
 function fitAll() {
+  shouldAnimate.value = true
   focus.value = undefined
   bounds.value = undefined
   limit.value = DEFAULT_LIMIT
-  xScale.value.domain([
+  xDomain.value = [
     extremesAndDeltas.value.xMin - extremesAndDeltas.value.paddingX,
     extremesAndDeltas.value.xMax + extremesAndDeltas.value.paddingX,
-  ])
-  yScale.value.domain([
+  ]
+  yDomain.value = [
     extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
-  ])
-  rescale(xScale.value, yScale.value)
+  ]
   updatePreprocessor()
 }
 

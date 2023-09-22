@@ -147,12 +147,6 @@ const xAxis = computed(() => {
     .tickValues(groups.value.filter((_, i) => i % xMod === 0 || i === lastGroupIndex))
 })
 
-watchEffect(() => {
-  // Update the x-axis in D3.
-  xScale.value.range([0, boxWidth.value]).domain(buckets.value.map((d) => d.group))
-  d3XAxis.value.call(xAxis.value)
-})
-
 const yAxis = computed(() => {
   const yMod = Math.max(1, Math.round(buckets.value.length / (boxHeight.value / 20)))
   const lastVariableIndex = variables.value.length - 1
@@ -162,13 +156,28 @@ const yAxis = computed(() => {
     .tickValues(variables.value.filter((_, i) => i % yMod === 0 || i === lastVariableIndex))
 })
 
+// ==============
+// === Update ===
+// ==============
+
+// === Update x axis ===
+
 watchEffect(() => {
-  // Update the y-axis in D3.
+  // Update the x-axis in D3.
+  xScale.value.range([0, boxWidth.value]).domain(buckets.value.map((d) => d.group))
+  d3XAxis.value.call(xAxis.value)
+})
+
+// === Update y axis ===
+
+watchPostEffect(() => {
   yScale.value.range([boxHeight.value, 0]).domain(buckets.value.map((d) => d.variable ?? 0))
   d3YAxis.value.call(yAxis.value)
 })
 
-function redrawData() {
+// === Update contents ===
+
+watchPostEffect(() => {
   const buckets_ = buckets.value
   const xScale_ = xScale.value
   const yScale_ = yScale.value
@@ -193,15 +202,7 @@ function redrawData() {
           .attr('x', (d) => xScale_(d.group)!)
           .attr('y', (d) => yScale_(d.variable ?? 0)!),
     )
-}
-
-// =============
-// === Setup ===
-// =============
-
-onMounted(() => queueMicrotask(redrawData))
-watch([data, width, height], () => queueMicrotask(redrawData))
-watchPostEffect(redrawData)
+})
 </script>
 
 <template>

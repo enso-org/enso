@@ -40,18 +40,16 @@ type VisualizationModule = {
 const builtinVisualizationImports: Record<string, () => Promise<VisualizationModule>> = {
   JSON: () => import('@/components/visualizations/JSONVisualization.vue') as any,
   Table: () => import('@/components/visualizations/TableVisualization.vue') as any,
-  Scatterplot: () => import('@/components/visualizations/ScatterplotVisualization.vue') as any,
   Histogram: () => import('@/components/visualizations/HistogramVisualization.vue') as any,
   Heatmap: () => import('@/components/visualizations/HeatmapVisualization.vue') as any,
   'SQL Query': () => import('@/components/visualizations/SQLVisualization.vue') as any,
-  'Geo Map': () => import('@/components/visualizations/GeoMapVisualization.vue') as any,
   Image: () => import('@/components/visualizations/ImageBase64Visualization.vue') as any,
   Warnings: () => import('@/components/visualizations/WarningsVisualization.vue') as any,
 }
 
 const dynamicVisualizationPaths: Record<string, string> = {
-  'Scatterplot 2': '/visualizations/ScatterplotVisualization.vue',
-  'Geo Map 2': '/visualizations/GeoMapVisualization.vue',
+  Scatterplot: '/visualizations/ScatterplotVisualization.vue',
+  'Geo Map': '/visualizations/GeoMapVisualization.vue',
 }
 
 export const useVisualizationStore = defineStore('visualization', () => {
@@ -122,7 +120,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
         },
       )
       worker.addEventListener('error', (event) => {
-        workerCallbacks[event.error.id]?.reject()
+        const callback = workerCallbacks[event.error?.id]
+        if (callback) {
+          callback.reject()
+        } else {
+          console.error(event)
+        }
       })
     }
     const id = workerMessageId
