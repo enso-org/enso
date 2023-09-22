@@ -370,54 +370,14 @@ public abstract class EqualsComplexNode extends Node {
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
       @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
-    try {
-      Object selfMembers = interop.getMembers(selfObject);
-      Object otherMembers = interop.getMembers(otherObject);
-      assert interop.getArraySize(selfMembers) < Integer.MAX_VALUE
-          : "Long array sizes not supported";
-      int membersSize = (int) interop.getArraySize(selfMembers);
-      if (interop.getArraySize(otherMembers) != membersSize) {
-        return false;
-      }
-
-      // Check member names
-      String[] memberNames = new String[membersSize];
-      for (int i = 0; i < membersSize; i++) {
-        String selfMemberName = interop.asString(interop.readArrayElement(selfMembers, i));
-        String otherMemberName = interop.asString(interop.readArrayElement(otherMembers, i));
-        if (!equalsNode.execute(selfMemberName, otherMemberName)) {
-          return false;
-        }
-        memberNames[i] = selfMemberName;
-      }
-
-      // Check member values
-      for (int i = 0; i < membersSize; i++) {
-        if (interop.isMemberReadable(selfObject, memberNames[i])
-            && interop.isMemberReadable(otherObject, memberNames[i])) {
-          Object selfMember =
-              valueToEnsoNode.execute(interop.readMember(selfObject, memberNames[i]));
-          Object otherMember =
-              valueToEnsoNode.execute(interop.readMember(otherObject, memberNames[i]));
-          if (!equalsNode.execute(selfMember, otherMember)) {
-            return false;
-          }
-        }
-      }
+    if (interop.isIdentical(selfObject, otherObject, interop)) {
       return true;
-    } catch (UnsupportedMessageException
-        | InvalidArrayIndexException
-        | UnknownIdentifierException e) {
-      throw new IllegalStateException(
-          String.format(
-              "One of the interop objects has probably wrongly specified interop API "
-                  + "for members. selfObject = %s ; otherObject = %s",
-              selfObject, otherObject),
-          e);
+    } else {
+      return false;
     }
   }
 
-  @Specialization(guards = {"isHostObject(selfHostObject)", "isHostObject(otherHostObject)"})
+  @Specialization(guards = {"isJavaObject(selfHostObject)", "isJavaObject(otherHostObject)"})
   boolean equalsHostObjects(
       Object selfHostObject,
       Object otherHostObject,
@@ -434,7 +394,7 @@ public abstract class EqualsComplexNode extends Node {
 
   // HostFunction is identified by a qualified name, it is not a lambda.
   // It has well-defined equality based on the qualified name.
-  @Specialization(guards = {"isHostFunction(selfHostFunc)", "isHostFunction(otherHostFunc)"})
+  @Specialization(guards = {"isJavaFunction(selfHostFunc)", "isJavaFunction(otherHostFunc)"})
   boolean equalsHostFunctions(
       Object selfHostFunc,
       Object otherHostFunc,
@@ -467,10 +427,10 @@ public abstract class EqualsComplexNode extends Node {
     if (EqualsNode.isPrimitive(left, interop) && EqualsNode.isPrimitive(right, interop)) {
       return false;
     }
-    if (isHostObject(left) && isHostObject(right)) {
+    if (isJavaObject(left) && isJavaObject(right)) {
       return false;
     }
-    if (isHostFunction(left) && isHostFunction(right)) {
+    if (isJavaFunction(left) && isJavaFunction(right)) {
       return false;
     }
     if (left instanceof Atom && right instanceof Atom) {
@@ -540,13 +500,16 @@ public abstract class EqualsComplexNode extends Node {
     if (object instanceof Atom) {
       return false;
     }
-    if (isHostObject(object)) {
+    if (isJavaObject(object)) {
       return false;
     }
     if (interop.isDate(object)) {
       return false;
     }
     if (interop.isTime(object)) {
+      return false;
+    }
+    if (interop.hasHashEntries(object)) {
       return false;
     }
     return interop.hasMembers(object);
@@ -562,13 +525,11 @@ public abstract class EqualsComplexNode extends Node {
     }
   }
 
-  @TruffleBoundary
-  boolean isHostObject(Object object) {
-    return EnsoContext.get(this).getEnvironment().isHostObject(object);
+  boolean isJavaObject(Object object) {
+    return EnsoContext.get(this).isJavaPolyglotObject(object);
   }
 
-  @TruffleBoundary
-  boolean isHostFunction(Object object) {
-    return EnsoContext.get(this).getEnvironment().isHostFunction(object);
+  boolean isJavaFunction(Object object) {
+    return EnsoContext.get(this).isJavaPolyglotFunction(object);
   }
 }

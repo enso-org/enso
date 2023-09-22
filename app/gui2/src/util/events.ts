@@ -4,24 +4,24 @@ import {
   onUnmounted,
   proxyRefs,
   ref,
-  type Ref,
   shallowRef,
   watch,
   watchEffect,
+  type Ref,
   type WatchSource,
 } from 'vue'
 import { Vec2 } from './vec2'
 
 /**
- * Add an event listener on an {@link Element} for the duration of the component's lifetime.
+ * Add an event listener on an {@link HTMLElement} for the duration of the component's lifetime.
  * @param target element on which to register the event
  * @param event name of event to register
  * @param handler event handler
  */
-export function useElementEvent<K extends keyof ElementEventMap>(
-  target: Element,
+export function useElementEvent<K extends keyof HTMLElementEventMap>(
+  target: HTMLElement,
   event: K,
-  handler: (e: ElementEventMap[K]) => void,
+  handler: (e: HTMLElementEventMap[K]) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
   onMounted(() => {
@@ -88,9 +88,33 @@ export function useWindowEventConditional<K extends keyof WindowEventMap>(
   })
 }
 
-// const hasWindow = typeof window !== 'undefined'
-// const platform = hasWindow ? window.navigator?.platform ?? '' : ''
-// const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+/**
+ * Add an event listener on document for the duration of condition being true.
+ * @param condition the condition that determines if event is bound
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  watch(condition, (conditionMet, _, onCleanup) => {
+    if (conditionMet) {
+      document.addEventListener(event, handler, options)
+      onCleanup(() => document.removeEventListener(event, handler, options))
+    }
+  })
+}
+
+const hasWindow = typeof window !== 'undefined'
+const platform = hasWindow ? window.navigator?.platform ?? '' : ''
+const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+
+export function modKey(e: KeyboardEvent): boolean {
+  return isMacLike ? e.metaKey : e.ctrlKey
+}
 
 /**
  * Get DOM node size and keep it up to date.

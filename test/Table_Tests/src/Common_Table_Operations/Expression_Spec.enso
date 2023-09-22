@@ -68,7 +68,7 @@ spec detailed setup =
             expression_test "-3" -3
             expression_test "1_000" 1000
 
-    Test.group prefix+"Expression Decimal literals" <|
+    Test.group prefix+"Expression Float literals" <|
         specify_test "should be able to add an decimal column" expression_test->
             expression_test "1.23" 1.23
             expression_test "-3.1415" -3.1415

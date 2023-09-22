@@ -1,4 +1,4 @@
-from Standard.Base import Nothing, Vector, Number, Decimal, True, False, Regression
+from Standard.Base import Nothing, Vector, Number, Float, True, False, Regression
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
@@ -13,7 +13,7 @@ spec =
     vector_compare values expected =
         values.zip expected v->e->
             case v of
-                _ : Decimal -> v.should_equal e epsilon=double_error
+                _ : Float -> v.should_equal e epsilon=double_error
                 _ -> v.should_equal e
 
     Test.group "Regression" <|

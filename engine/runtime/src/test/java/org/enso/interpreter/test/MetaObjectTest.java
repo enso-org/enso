@@ -188,7 +188,7 @@ public class MetaObjectTest extends TestBase {
       }
       switch (t.getMetaSimpleName()) {
         // represented as primitive values without meta object
-        case "Decimal" -> {}
+        case "Float" -> {}
         // has no instances
         case "Array_Proxy" -> {}
         // Warning is transparent and invisible

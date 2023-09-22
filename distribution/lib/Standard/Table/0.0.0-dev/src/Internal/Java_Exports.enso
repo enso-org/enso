@@ -4,6 +4,7 @@ import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Bits
 import project.Data.Type.Value_Type.Value_Type
 
+polyglot java import org.enso.table.data.column.builder.BigIntegerBuilder
 polyglot java import org.enso.table.data.column.builder.BoolBuilder
 polyglot java import org.enso.table.data.column.builder.DateBuilder
 polyglot java import org.enso.table.data.column.builder.DateTimeBuilder
@@ -26,6 +27,10 @@ make_long_builder : Integer -> Bits -> NumericBuilder
 make_long_builder initial_size bits=Bits.Bits_64 =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
     NumericBuilder.createLongBuilder initial_size integer_type
+
+## PRIVATE
+make_biginteger_builder : Integer -> BigIntegerBuilder
+make_biginteger_builder initial_size = BigIntegerBuilder.new initial_size
 
 ## PRIVATE
 make_string_builder : Integer -> Value_Type -> StringBuilder

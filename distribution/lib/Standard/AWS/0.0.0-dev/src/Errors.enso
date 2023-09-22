@@ -1,10 +1,48 @@
 from Standard.Base import all
 
-## An error accessing S3
-type S3_Error
+polyglot java import software.amazon.awssdk.core.exception.SdkClientException
+
+## An error in the core AWS SDK
+type AWS_SDK_Error
     ## PRIVATE
-    Error message:Text code:Text
+    Error message:Text
 
     ## PRIVATE
     to_display_text : Text
-    to_display_text self = "S3 Error: " + self.message + " (" + self.code + ")"
+    to_display_text self = "AWS SDK Error: " + self.message
+
+    ## PRIVATE
+    handle_java_errors : AWS_SDK_Error
+    handle_java_errors ~action =
+        Panic.catch SdkClientException action caught_panic->
+            Error.throw (AWS_SDK_Error.Error caught_panic.payload.getMessage)
+
+## An error accessing S3
+type S3_Error
+    ## PRIVATE
+    Error message:(Text|Nothing) code:(Text|Nothing)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        msg = if self.message.is_nothing then "S3 Error: Unknown Error" else "S3 Error: " + self.message
+        code = if self.code.is_nothing then "" else " (" + self.code + ")"
+        msg + code
+
+## An error when a S3 bucket was not found.
+type S3_Bucket_Not_Found
+    ## PRIVATE
+    Error bucket:Text
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Bucket '" + self.bucket + "' not found."
+
+## A warning that more records are available
+type More_Records_Available
+    ## PRIVATE
+    Warning message:Text
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.message

@@ -680,43 +680,46 @@ class IrToTruffle(
   // === Utility Functions ====================================================
   // ==========================================================================
 
+  private def extractAscribedType(
+    name: Name,
+    t: Expression
+  ): ReadArgumentCheckNode = t match {
+    case u: `type`.Set.Union =>
+      ReadArgumentCheckNode.oneOf(
+        name,
+        u.operands.map(extractAscribedType(name, _)).asJava
+      )
+    case i: `type`.Set.Intersection =>
+      ReadArgumentCheckNode.allOf(
+        name,
+        extractAscribedType(name, i.left),
+        extractAscribedType(name, i.right)
+      )
+    case p: Application.Prefix => extractAscribedType(name, p.function)
+    case _: Tpe.Function =>
+      ReadArgumentCheckNode.build(
+        name,
+        context.getTopScope().getBuiltins().function()
+      )
+    case t => {
+      t.getMetadata(TypeNames) match {
+        case Some(
+              BindingsMap
+                .Resolution(BindingsMap.ResolvedType(mod, tpe))
+            ) =>
+          ReadArgumentCheckNode.build(
+            name,
+            mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+          )
+        case _ => null
+      }
+    }
+  }
+
   private def checkRuntimeTypes(
     arg: DefinitionArgument
   ): ReadArgumentCheckNode = {
-    def extractAscribedType(t: Expression): ReadArgumentCheckNode = t match {
-      case u: `type`.Set.Union =>
-        ReadArgumentCheckNode.oneOf(
-          arg.name,
-          u.operands.map(extractAscribedType).asJava
-        )
-      case i: `type`.Set.Intersection =>
-        ReadArgumentCheckNode.allOf(
-          arg.name,
-          extractAscribedType(i.left),
-          extractAscribedType(i.right)
-        )
-      case p: Application.Prefix => extractAscribedType(p.function)
-      case _: Tpe.Function =>
-        ReadArgumentCheckNode.build(
-          arg.name,
-          context.getTopScope().getBuiltins().function()
-        )
-      case t => {
-        t.getMetadata(TypeNames) match {
-          case Some(
-                BindingsMap
-                  .Resolution(BindingsMap.ResolvedType(mod, tpe))
-              ) =>
-            ReadArgumentCheckNode.build(
-              arg.name,
-              mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
-            )
-          case _ => null
-        }
-      }
-    }
-
-    arg.ascribedType.map(extractAscribedType).getOrElse(null)
+    arg.ascribedType.map(extractAscribedType(arg.name, _)).getOrElse(null)
   }
 
   /** Checks if the expression has a @Builtin_Method annotation
@@ -895,9 +898,11 @@ class IrToTruffle(
               )
             case BindingsMap.ResolvedMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
-              val fun = actualModule.getScope.getMethods
-                .get(actualModule.getScope.getAssociatedType)
-                .get(method.name)
+              val fun = actualModule.getScope
+                .getMethodForType(
+                  actualModule.getScope.getAssociatedType,
+                  method.name
+                )
               assert(
                 fun != null,
                 s"exported symbol `${method.name}` needs to be registered first in the module "
@@ -982,7 +987,7 @@ class IrToTruffle(
       binding: Boolean,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
-      val runtimeExpression = ir match {
+      var runtimeExpression = ir match {
         case block: Expression.Block => processBlock(block)
         case literal: Literal        => processLiteral(literal)
         case app: Application =>
@@ -1007,8 +1012,20 @@ class IrToTruffle(
             s"Foreign expressions not yet implemented: $ir."
           )
       }
-
       runtimeExpression.setTailStatus(getTailStatus(ir))
+
+      ir match {
+        case _: Expression.Binding =>
+        case _ =>
+          val types = ir.getMetadata(TypeSignatures)
+          types.foreach { tpe =>
+            val checkNode = extractAscribedType(null, tpe.signature);
+            if (checkNode != null) {
+              runtimeExpression =
+                ReadArgumentCheckNode.wrap(runtimeExpression, checkNode)
+            }
+          }
+      }
       runtimeExpression
     }
 
@@ -1254,8 +1271,7 @@ class IrToTruffle(
                   val polyglotSymbol = mod
                     .unsafeAsModule()
                     .getScope
-                    .getPolyglotSymbols
-                    .get(symbol.name)
+                    .getPolyglotSymbol(symbol.name)
                   Either.cond(
                     polyglotSymbol != null,
                     ObjectEqualityBranchNode
@@ -1275,8 +1291,7 @@ class IrToTruffle(
                   val polyClass = mod
                     .unsafeAsModule()
                     .getScope
-                    .getPolyglotSymbols
-                    .get(typ.symbol.name)
+                    .getPolyglotSymbol(typ.symbol.name)
 
                   val polyValueOrError =
                     if (polyClass == null)
@@ -1416,8 +1431,7 @@ class IrToTruffle(
                 mod
                   .unsafeAsModule()
                   .getScope
-                  .getPolyglotSymbols
-                  .get(symbol.name)
+                  .getPolyglotSymbol(symbol.name)
               if (polySymbol != null) {
                 val argOfType = List(
                   DefinitionArgument.Specified(
@@ -1660,16 +1674,14 @@ class IrToTruffle(
             module
               .unsafeAsModule()
               .getScope
-              .getPolyglotSymbols
-              .get(symbol.name)
+              .getPolyglotSymbol(symbol.name)
           )
         case BindingsMap.ResolvedPolyglotField(symbol, name) =>
           ConstantObjectNode.build(
             symbol.module
               .unsafeAsModule()
               .getScope
-              .getPolyglotSymbols
-              .get(name)
+              .getPolyglotSymbol(name)
           )
         case BindingsMap.ResolvedMethod(_, method) =>
           throw new CompilerError(
@@ -1851,9 +1863,8 @@ class IrToTruffle(
       argumentNames: List[String],
       argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
-      val src = language.buildSource(code, scopeName)
-      val foreignCt = context.getEnvironment
-        .parseInternal(src, argumentNames: _*)
+      val src       = language.buildSource(code, scopeName)
+      val foreignCt = context.parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
           ReadLocalVariableNode.build(new FramePointer(0, slotIdx))

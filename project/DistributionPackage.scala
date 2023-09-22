@@ -246,7 +246,7 @@ object DistributionPackage {
           throw new RuntimeException(s"Cannot compile $libMajor.$libName.")
         }
       } else {
-        log.info(s"No modified files. Not generating index for ${libName} ")
+        log.debug(s"No modified files. Not generating index for ${libName}.")
       }
     }
   }

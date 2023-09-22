@@ -159,21 +159,24 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case definition.Method
                 .Conversion(
-                  Name.MethodReference(_, _, _, _, _),
-                  Name.Literal(sourceTypeName, _, _, _, _),
+                  Name.MethodReference(typePtr, _, _, _, _),
+                  _,
                   Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
                   _
-                ) if ConversionsEnabled =>
-            val typeSignature = ir.getMetadata(TypeSignatures)
+                ) =>
+            val selfType = typePtr.flatMap { typePointer =>
+              typePointer
+                .getMetadata(MethodDefinitions)
+                .map(_.target.qualifiedName)
+            }
             val conversion = buildConversion(
               body.getExternalId,
               module,
+              selfType,
               args,
-              sourceTypeName,
-              doc,
-              typeSignature
+              doc
             )
             go(tree += Tree.Node(conversion, Vector()), scope)
 
@@ -286,20 +289,25 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildConversion(
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
+    selfType: Option[QualifiedName],
     args: Seq[DefinitionArgument],
-    sourceTypeName: String,
-    doc: Option[String],
-    typeSignature: Option[TypeSignatures.Metadata]
+    doc: Option[String]
   ): Suggestion.Conversion = {
-    val typeSig = buildTypeSignatureFromMetadata(typeSignature)
-    val (methodArgs, returnTypeDef) =
-      buildFunctionArguments(args, typeSig)
+    val methodArgs =
+      args.map { arg =>
+        buildTypeSignatureFromMetadata(
+          arg.getMetadata(TypeSignatures)
+        ).headOption
+          .map(buildTypedArgument(arg, _))
+          .getOrElse(buildArgument(arg))
+      }.tail
+
     Suggestion.Conversion(
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      selfType      = sourceTypeName,
-      returnType    = buildReturnType(returnTypeDef),
+      selfType      = methodArgs.head.reprType,
+      returnType    = selfType.fold(Any)(_.toString),
       documentation = doc
     )
   }
@@ -725,7 +733,9 @@ final class SuggestionBuilder[A: IndexedSource](
     expr match {
       case Literal.Number(_, value, _, _, _) => Some(value)
       case Literal.Text(text, _, _, _)       => Some(text)
-      case _                                 => None
+      case Application.Prefix(name, path, _, _, _, _) =>
+        Some(path.map(_.value.showCode()).mkString(".") + "." + name.showCode())
+      case other => Some(other.showCode())
     }
 
   /** Build scope from the location. */
@@ -744,9 +754,6 @@ final class SuggestionBuilder[A: IndexedSource](
 }
 
 object SuggestionBuilder {
-
-  /** TODO[DB] enable conversions when they get the runtime support. */
-  private val ConversionsEnabled: Boolean = false
 
   /** Creates the suggestion builder for a module.
     *

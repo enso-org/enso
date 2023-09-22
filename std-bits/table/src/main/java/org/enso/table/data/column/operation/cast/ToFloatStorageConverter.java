@@ -5,12 +5,15 @@ import org.enso.table.data.column.builder.DoubleBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.graalvm.polyglot.Context;
+
+import java.math.BigInteger;
 
 public class ToFloatStorageConverter implements StorageConverter<Double> {
   public ToFloatStorageConverter(FloatType targetType) {
@@ -26,6 +29,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       return convertLongStorage(longStorage, problemBuilder);
     } else if (storage instanceof BoolStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemBuilder);
+    } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
+      return convertBigIntegerStorage(bigIntegerStorage, problemBuilder);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemBuilder);
     } else {
@@ -45,9 +50,11 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       } else if (NumericConverter.isCoercibleToLong(o)) {
         long x = NumericConverter.coerceToLong(o);
         builder.appendLong(x);
-      } else if (NumericConverter.isDecimalLike(o)) {
+      } else if (NumericConverter.isFloatLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
         builder.appendDouble(x);
+      } else if (o instanceof BigInteger bigInteger) {
+        builder.appendBigInteger(bigInteger);
       } else {
         problemBuilder.reportConversionFailure(o);
         builder.appendNulls(1);
@@ -94,5 +101,24 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
 
   public static double booleanAsDouble(boolean value) {
     return value ? 1.0 : 0.0;
+  }
+
+  private Storage<Double> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemBuilder problemBuilder) {
+    int n = storage.size();
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < n; i++) {
+      BigInteger value = storage.getItemBoxed(i);
+      if (value == null) {
+        builder.appendNulls(1);
+      } else {
+        builder.appendBigInteger(value);
+      }
+
+      context.safepoint();
+    }
+
+    problemBuilder.aggregateOtherProblems(builder.getProblems());
+    return builder.seal();
   }
 }

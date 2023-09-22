@@ -53,15 +53,12 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public boolean isUseGlobalCacheLocations() {
-    return context
-            .getEnvironment()
-            .getOptions()
-            .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
+    return context.isUseGlobalCache();
   }
 
   @Override
   public boolean isInteractiveMode() {
-    return context.getEnvironment().getOptions().get(RuntimeOptions.INTERACTIVE_MODE_KEY);
+    return context.isInteractiveMode();
   }
 
   @Override
@@ -101,17 +98,17 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public boolean isCreateThreadAllowed() {
-    return context.getEnvironment().isCreateThreadAllowed();
+    return context.isCreateThreadAllowed();
   }
 
   @Override
   public Thread createThread(Runnable r) {
-    return context.getEnvironment().createThread(r);
+    return context.createThread(false, r);
   }
 
   @Override
   public Thread createSystemThread(Runnable r) {
-    return context.getEnvironment().createSystemThread(r);
+    return context.createThread(true, r);
   }
 
   @Override

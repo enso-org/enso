@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.base.Text_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -76,9 +75,9 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return builder.seal();
   }
 
-  private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter();
-  private final DateTimeFormatter timeFormatter = Core_Date_Utils.defaultLocalTimeFormatter();
-  private final DateTimeFormatter dateTimeFormatter = Core_Date_Utils.defaultZonedDateTimeFormatter();
+  private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter;
+  private final DateTimeFormatter timeFormatter = Core_Date_Utils.defaultLocalTimeFormatter;
+  private final DateTimeFormatter dateTimeFormatter = Core_Date_Utils.defaultZonedDateTimeFormatter;
 
 
   private String convertDate(LocalDate date) {
@@ -140,7 +139,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = doubleStorage.getItem(i);
+        double value = doubleStorage.getItemAsDouble(i);
         builder.append(adapt(Double.toString(value), problemBuilder));
       }
 
