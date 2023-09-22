@@ -270,4 +270,36 @@ spec =
              # Just week will parse to first day of the week:
              Date.parse "1978-W01" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") . should_equal (Date.new 1978 01 02)
 
+        Test.specify "should allow to use 12h hours without am/pm and default to am, but issue a warning (only in parsing)" <|
+            f1 = Date_Time_Formatter.from "hh:mm"
+            # No warning yet.
+            Problems.assume_no_problems f1
+
+            s1 = Time_Of_Day.new 16 24 . format f1
+            s1.should_equal "04:24"
+            # No warnings on formatting.
+            Problems.assume_no_problems s1
+
+            # But warn when parsing:
+            r1 = Time_Of_Day.parse "04:24" f1
+            r1.should_equal (Time_Of_Day.new 4 24)
+            w1 = Problems.expect_only_warning Suspicious_Date_Time_Format r1
+            w1.to_display_text . should_contain "ambiguous"
+
+        Test.specify "should allow to parse MM-dd without a year, defaulting to current year but adding a warning (only in parsing)" <|
+            f1 = Date_Time_Formatter.from "dd.MM"
+
+            s1 = Date.new 2020 12 31 . format f1
+            s1.should_equal "31.12"
+            # No warnings on formatting.
+            Problems.assume_no_problems s1
+
+            # But warn when parsing:
+            r1 = Date.parse "31.12" f1
+            current_year = Date.today.year
+            r1.should_equal (Date.new current_year 12 31)
+            w1 = Problems.expect_only_warning Suspicious_Date_Time_Format r1
+            w1.to_display_text . should_contain "current year"
+
+
 main = Test_Suite.run_main spec
