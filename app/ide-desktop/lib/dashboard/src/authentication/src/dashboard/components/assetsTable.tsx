@@ -856,7 +856,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     AssetRowState,
                     backendModule.AssetId
                 >
-                    footer={<tfoot className="h-full table-row"></tfoot>}
                     scrollContainerRef={scrollContainerRef}
                     headerRowRef={headerRowRef}
                     rowComponent={AssetRow}
