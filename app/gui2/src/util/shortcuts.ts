@@ -9,7 +9,7 @@ const MOUSE_ACTIONS = [
 ] as const
 type GUIMouseAction = (typeof MOUSE_ACTIONS)[number]
 
-const KEYBOARD_ACTIONS = [] as const
+const KEYBOARD_ACTIONS = ['select-all-nodes', 'deselect-all-nodes'] as const
 type GUIKeyboardAction = (typeof KEYBOARD_ACTIONS)[number]
 
 declare module 'enso-authentication/src/dashboard/shortcuts' {
