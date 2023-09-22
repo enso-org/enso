@@ -2,6 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.testkit.TestDuration
 import nl.gn0s1s.bump.SemVer
+import io.circe.literal._
 import org.enso.projectmanager.test.Net._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
@@ -41,6 +42,35 @@ class LanguageServerGatewaySpec
       deleteProject(fooId)
       deleteProject(barId)
       deleteProject(bazId)
+    }
+
+    "report language server status" in {
+      implicit val client = new WsTestClient(address)
+      val fooId           = createProject("foo")
+      //val fooSocket       =
+      openProject(fooId)
+      client.send(s"""
+          { "jsonrpc": "2.0",
+            "method": "project/status",
+            "id": 1,
+            "params": {
+              "projectId": "$fooId"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "status" : {
+                 "open" : true,
+                 "shuttingDown" : false
+              }
+            }
+          }
+          """)
+      closeProject(fooId)
+      deleteProject(fooId)
     }
 
   }
