@@ -1,11 +1,8 @@
 /** @file Definition of hash computing functions. */
 
-// Eslint is not (and should not be) set up to recognize CommonJS imports.
-/* eslint-disable no-restricted-syntax */
-const cryptoModule = require('crypto')
-const fs = require('fs')
-const pathModule = require('path')
-/* eslint-enable no-restricted-syntax */
+import * as cryptoModule from 'node:crypto'
+import * as fs from 'node:fs'
+import * as pathModule from 'node:path'
 
 // =================
 // === Constants ===
@@ -63,8 +60,10 @@ async function writeFileChecksum(path, type) {
 // ================
 
 /** Generates checksums for all build artifacts.
- * @param {import('electron-builder').BuildResult} context - Build information. */
-exports.default = async function (context) {
+ * @param {import('electron-builder').BuildResult} context - Build information.
+ * @returns {Promise<string[]>} afterAllArtifactBuild hook result.
+ */
+export default async function (context) {
     // `context` is BuildResult, see
     // https://www.electron.build/configuration/configuration.html#buildresult
     for (const file of context.artifactPaths) {

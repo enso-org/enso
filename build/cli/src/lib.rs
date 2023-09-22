@@ -48,7 +48,6 @@ use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::Benchmarks;
 use enso_build::engine::Tests;
 use enso_build::paths::TargetTriple;
-use enso_build::prettier;
 use enso_build::project;
 use enso_build::project::backend;
 use enso_build::project::backend::Backend;
@@ -804,6 +803,17 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 exclusions.push("target/enso-build");
             }
 
+            if !dry_run {
+                // On Windows, `npm` uses junctions as symbolic links for in-workspace dependencies.
+                // Unfortunately, Git for Windows treats those as hard links. That then leads to
+                // `git clean` recursing into those linked directories, happily deleting sources of
+                // whole linked packages. Manually deleting `node_modules` before running clean
+                // prevents this from happening.
+                //
+                // Related npm issue: https://github.com/npm/npm/issues/19091
+                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("node_modules")).await?;
+            }
+
             let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
             let clean_cache = async {
                 if cache && !dry_run {
@@ -835,13 +845,12 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 .run_ok()
                 .await?;
 
-            ensogl_pack::build_ts_sources_only().await?;
-            prettier::check(&ctx.repo_root).await?;
-            let js_modules_root = ctx.repo_root.join("app/ide-desktop");
-            Npm.cmd()?.current_dir(&js_modules_root).args(["run", "lint"]).run_ok().await?;
+            Npm.cmd()?.install().run_ok().await?;
+            Npm.cmd()?.run("ci-check").run_ok().await?;
         }
         Target::Fmt => {
-            let prettier = prettier::write(&ctx.repo_root);
+            Npm.cmd()?.install().run_ok().await?;
+            let prettier = Npm.cmd()?.run("format").run_ok();
             let our_formatter =
                 enso_formatter::process_path(&ctx.repo_root, enso_formatter::Action::Format);
             let (r1, r2) = join!(prettier, our_formatter).await;

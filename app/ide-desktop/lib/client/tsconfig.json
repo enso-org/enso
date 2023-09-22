@@ -4,5 +4,12 @@
     "baseUrl": "./src",
     "esModuleInterop": true
   },
-  "include": ["../types", "."]
+  "include": [
+    ".",
+    "../content",
+    "../dashboard",
+    "../types",
+    "../../utils.ts",
+    "../../../../build.json"
+  ]
 }

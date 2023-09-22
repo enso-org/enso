@@ -1,0 +1,96 @@
+import project.Data.Locale.Locale
+import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Vector.Vector
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+
+from project.Internal.Time.Format.Parser import Common_Nodes, Standard_Date_Patterns, ISO_Week_Year_Patterns, Time_Patterns, Time_Zone_Patterns
+from project.Internal.Time.Format.Parser import Text_Representation, Numeric_Representation, Two_Digit_Year_Representation
+
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import java.time.format.DateTimeFormatterBuilder
+polyglot java import java.time.format.SignStyle
+polyglot java import java.time.format.TextStyle
+polyglot java import java.time.temporal.ChronoField
+polyglot java import java.time.temporal.IsoFields
+polyglot java import org.enso.base.Time_Utils
+
+## PRIVATE
+interpret : Locale -> Vector (Common_Nodes | Standard_Date_Patterns | ISO_Week_Year_Patterns | Time_Patterns | Time_Zone_Patterns) -> DateTimeFormatter
+interpret locale nodes =
+    builder = DateTimeFormatterBuilder.new
+    interpret_node node = case node of
+        Common_Nodes.Literal text ->
+            builder.appendLiteral text
+        Common_Nodes.Optional_Section nested_nodes ->
+            builder.optionalStart
+            nested_nodes.each interpret_node
+            builder.optionalEnd
+
+        Time_Zone_Patterns.Time_Zone_ID ->
+            builder.appendZoneId
+        Time_Zone_Patterns.Time_Zone_Name representation ->
+            builder.appendZoneText (text_representation_to_java_style representation)
+        Time_Zone_Patterns.Time_Zone_Offset pattern zero ->
+            builder.appendOffset pattern zero
+        Time_Zone_Patterns.Time_Zone_Localized_Offset representation ->
+            builder.appendLocalizedOffset (text_representation_to_java_style representation)
+        Time_Patterns.AM_PM ->
+            builder.appendText ChronoField.AMPM_OF_DAY
+        Time_Patterns.Fraction_Of_Second representation ->
+            min_digits = 1
+            max_digits = case representation.digits of
+                1 -> 9
+                digits -> digits
+            includes_decimal_point = False
+            builder.appendFraction ChronoField.NANO_OF_SECOND min_digits max_digits includes_decimal_point
+
+        Standard_Date_Patterns.Quarter _ ->
+            field = get_field_for node
+            append_field builder field node.representation
+            # We currently don't even have a way to specify day of quarter, we expect just (year, quarter) pairs - so to make them parseable, we default to first day of the quarter.
+            builder.parseDefaulting IsoFields.DAY_OF_QUARTER 1
+
+        _ ->
+            field = get_field_for node
+            append_field builder field node.representation
+
+    nodes.each interpret_node
+    builder.toFormatter locale.java_locale
+
+## PRIVATE
+get_field_for node = case node of
+    Standard_Date_Patterns.Year _         -> ChronoField.YEAR
+    Standard_Date_Patterns.Quarter _      -> IsoFields.QUARTER_OF_YEAR
+    Standard_Date_Patterns.Month _        -> ChronoField.MONTH_OF_YEAR
+    Standard_Date_Patterns.Day_Of_Month _ -> ChronoField.DAY_OF_MONTH
+    Standard_Date_Patterns.Day_Of_Week _  -> ChronoField.DAY_OF_WEEK
+
+    ISO_Week_Year_Patterns.Week_Based_Year _ -> IsoFields.WEEK_BASED_YEAR
+    ISO_Week_Year_Patterns.Week_Of_Year _    -> IsoFields.WEEK_OF_WEEK_BASED_YEAR
+    ISO_Week_Year_Patterns.Day_Of_Week _     -> ChronoField.DAY_OF_WEEK
+
+    Time_Patterns.Hour _ is24h -> case is24h of
+        True  -> ChronoField.HOUR_OF_DAY
+        False -> ChronoField.CLOCK_HOUR_OF_AMPM
+    Time_Patterns.Minute _ -> ChronoField.MINUTE_OF_HOUR
+    Time_Patterns.Second _ -> ChronoField.SECOND_OF_MINUTE
+
+    _ -> Panic.throw (Illegal_Argument.Error "Cannot extract a TemporalField from "+node.to_text)
+
+## PRIVATE
+append_field builder field representation = case representation of
+    Numeric_Representation.Value digits -> case digits of
+        2 -> builder.appendValue field 2
+        _ -> builder.appendValue field digits 19 SignStyle.NORMAL
+    text_representation : Text_Representation ->
+        builder.appendText field (text_representation_to_java_style text_representation)
+    Two_Digit_Year_Representation.Value max_year ->
+        Time_Utils.appendTwoDigitYear builder field max_year
+
+## PRIVATE
+text_representation_to_java_style representation = case representation of
+    Text_Representation.Short_Form -> TextStyle.SHORT
+    Text_Representation.Long_Form  -> TextStyle.FULL

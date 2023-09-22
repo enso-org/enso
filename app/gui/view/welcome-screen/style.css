@@ -69,7 +69,8 @@
 .enso-internal-templates-view .enso-internal-card {
   border-radius: 20px;
   color: #fcfeff;
-  box-shadow: 0px 36px 51px rgba(0, 0, 0, 0.03),
+  box-shadow:
+    0px 36px 51px rgba(0, 0, 0, 0.03),
     0px 15.0399px 21.3066px rgba(0, 0, 0, 0.0232911),
     0px 8.04107px 11.3915px rgba(0, 0, 0, 0.0197608),
     0px 4.50776px 6.38599px rgba(0, 0, 0, 0.0166035),
