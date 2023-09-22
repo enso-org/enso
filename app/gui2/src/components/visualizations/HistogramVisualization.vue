@@ -99,8 +99,6 @@ interface Bin {
 </script>
 
 <script setup lang="ts">
-import ShowAllIcon from './icons/show_all.svg'
-import FindIcon from './icons/find.svg'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
@@ -114,6 +112,7 @@ import type {
   D3ZoomEvent,
 } from 'd3'
 
+import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
 
@@ -590,10 +589,10 @@ useEvent(document, 'scroll', endBrushing)
   <VisualizationContainer :below-toolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />
+        <SvgIcon name="show_all" alt="Fit all" @click="fitAll" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
+        <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
     <div class="HistogramVisualization" @pointerdown.stop>

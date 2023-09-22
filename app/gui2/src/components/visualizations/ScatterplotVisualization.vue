@@ -82,9 +82,6 @@ interface Color {
 </script>
 
 <script setup lang="ts">
-import ShowAllIcon from './icons/show_all.svg'
-import FindIcon from './icons/find.svg'
-
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
@@ -99,6 +96,7 @@ import type {
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
+import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
 
@@ -577,10 +575,10 @@ useEvent(document, 'scroll', endBrushing)
   <VisualizationContainer :below-toolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />
+        <SvgIcon name="show_all" alt="Fit all" @click="fitAll" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
+        <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
     <div class="ScatterplotVisualization" @pointerdown.stop>

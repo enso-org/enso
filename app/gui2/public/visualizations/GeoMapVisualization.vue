@@ -420,7 +420,6 @@ function pushPoints(newPoints: Location[]) {
 
 <style>
 .GeoMapVisualization > .mapboxgl-map {
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  border-radius: 16px;
 }
 </style>

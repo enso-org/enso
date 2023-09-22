@@ -82,11 +82,7 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
-import FindIcon from './icons/find.svg'
-import Path2Icon from './icons/path2.svg'
-import GeoMapDistanceIcon from './icons/geo_map_distance.svg'
-import GeoMapPinIcon from './icons/geo_map_pin.svg'
-
+import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 import { computed, onMounted, ref, watchEffect } from 'vue'
@@ -401,10 +397,10 @@ function pushPoints(newPoints: Location[]) {
 <template>
   <VisualizationContainer :overflow="true">
     <template #toolbar>
-      <button class="image-button"><img :src="FindIcon" /></button>
-      <button class="image-button"><img :src="Path2Icon" /></button>
-      <button class="image-button"><img :src="GeoMapDistanceIcon" /></button>
-      <button class="image-button"><img :src="GeoMapPinIcon" /></button>
+      <button class="image-button"><SvgIcon name="find" /></button>
+      <button class="image-button"><SvgIcon name="path2" /></button>
+      <button class="image-button"><SvgIcon name="geo_map_distance" /></button>
+      <button class="image-button"><SvgIcon name="geo_map_pin" /></button>
     </template>
     <div ref="mapNode" class="GeoMapVisualization" @wheel.stop></div>
   </VisualizationContainer>
@@ -420,7 +416,6 @@ function pushPoints(newPoints: Location[]) {
 
 <style>
 .GeoMapVisualization > .mapboxgl-map {
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  border-radius: 16px;
 }
 </style>
