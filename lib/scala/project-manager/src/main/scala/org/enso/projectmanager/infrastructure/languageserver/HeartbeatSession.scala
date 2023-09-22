@@ -175,7 +175,7 @@ class HeartbeatSession(
 
   private def logError(throwable: Throwable, message: String): Unit = {
     if (quietErrors) {
-      logger.debug(s"$message (${throwable.getMessage})")
+      logger.debug(s"$message ({})", throwable.getMessage)
     } else {
       logger.error(message, throwable)
     }
