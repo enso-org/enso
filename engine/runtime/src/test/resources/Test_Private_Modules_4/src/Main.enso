@@ -1,3 +1,6 @@
+import project.Sub
+export project.Sub
+
 main =
-    # This FQN access fails - Priv_Mod is a private module in a different library
-    local.Test_Private_Modules_1.Priv_Mod.Type_In_Priv_Mode.Value 42 . data
+    # OK to use private submodule within the same project
+    Sub.Priv_SubMod.foo

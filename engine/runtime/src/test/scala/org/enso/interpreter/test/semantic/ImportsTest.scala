@@ -219,26 +219,44 @@ class ImportsTest extends PackageTest {
     outLines(2) shouldEqual "(D_Mod.Value 1)"
   }
 
-  "Private modules" should "be able to export non-private stuff" in {
+  "Private modules" should "be able to import and use private modules within the same project" in {
+    evalTestProject(
+      "Test_Private_Modules_1"
+    ).toString shouldEqual "42"
+  }
+
+  "Private modules" should "be able to import non-private stuff" in {
     evalTestProject(
       "Test_Private_Modules_2"
     ).toString shouldEqual "(Pub_Mod_Type.Value 42)"
   }
 
-  "Private modules" should "not be able to import private modules" in {
+  "Private modules" should "not be able to import private modules from different project" in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Private_Modules_3"
     ) should have message "Compilation aborted due to errors."
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have length 1
     outLines.head should include(
-      "Main.enso:2:1: error: Cannot import private module."
+      "Main.enso:2:1: error: Cannot import private module"
     )
   }
 
-  "Private modules" should "not be able to use private modules via FQN" in {
-    the[InterpreterException] thrownBy evalTestProject(
+  "Private modules" should "be able to use private submodules via FQN in the same project" in {
+    evalTestProject(
       "Test_Private_Modules_4"
+    ) shouldEqual 23
+  }
+
+  "Private modules" should "be able to use public submodules via FQN" in {
+    evalTestProject(
+      "Test_Private_Modules_5"
+    ) shouldEqual 42
+  }
+
+  "Private modules" should "not be able to use private submodules via FQN" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Private_Modules_6"
     ) should have message "Compilation aborted due to errors."
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have length 1
@@ -246,5 +264,4 @@ class ImportsTest extends PackageTest {
       "???"
     )
   }
-
 }

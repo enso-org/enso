@@ -171,11 +171,18 @@ object ImportExport {
       s"No such constructor ${constructorName} in type $typeName"
   }
 
-  case class ExportPrivateModule(
+  case class ExportSymbolsFromPrivateModule(
     moduleName: String
   ) extends Reason {
     override def message: String =
       s"Cannot export any symbol from module '$moduleName': The module is private"
+  }
+
+  case class ExportPrivateModule(
+    moduleName: String
+  ) extends Reason {
+    override def message: String =
+      s"Cannot export private module '$moduleName'"
   }
 
   case class ImportPrivateModule(

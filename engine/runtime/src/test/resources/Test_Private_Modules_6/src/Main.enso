@@ -1,0 +1,5 @@
+import local.Test_Private_Modules_4.Sub
+
+main =
+    # This FQN Access should fail - Sub is public, but Priv_SubMod is private submodule.
+    Sub.Priv_SubMod.foo

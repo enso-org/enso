@@ -1,0 +1,6 @@
+import local.Test_Private_Modules_4.Sub
+
+main =
+    # This FQN Access should succeed - Sub is public and Pub_SubMod is
+    # public as well.
+    Sub.Pub_SubMod.foo

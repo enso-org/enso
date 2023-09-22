@@ -90,8 +90,7 @@ class ImportExportTest
   }
 
   "Private modules" should {
-    // Blocked byhttps://github.com/enso-org/enso/issues/7867
-    "not be able to export private module" ignore {
+    "not be able to export private module" in {
       """
         |private
         |""".stripMargin
@@ -100,6 +99,7 @@ class ImportExportTest
         )
 
       val mainIr = s"""
+                      |import $namespace.$packageName.Priv_Module
                       |export $namespace.$packageName.Priv_Module
                       |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
@@ -113,8 +113,7 @@ class ImportExportTest
         .isInstanceOf[errors.ImportExport.ExportPrivateModule] shouldBe true
     }
 
-    // Blocked by https://github.com/enso-org/enso/issues/7867
-    "not be able to export anything from private module itself" ignore {
+    "not be able to export anything from private module itself" in {
       val mainIr =
         s"""
            |private
@@ -131,12 +130,11 @@ class ImportExportTest
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .isInstanceOf[errors.ImportExport.ExportPrivateModule] shouldBe true
+        .isInstanceOf[errors.ImportExport.ExportSymbolsFromPrivateModule] shouldBe true
 
     }
 
-  // Blocked by https://github.com/enso-org/enso/issues/7867
-  "not be able to export anything from private module from Main module" ignore {
+  "not be able to export anything from private module from Main module" in {
       """
         |private
         |type Type_In_Priv_Module
@@ -147,6 +145,7 @@ class ImportExportTest
 
       val mainIr =
         s"""
+           |from $namespace.$packageName.Priv_Module import Type_In_Priv_Module
            |from $namespace.$packageName.Priv_Module export Type_In_Priv_Module
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
