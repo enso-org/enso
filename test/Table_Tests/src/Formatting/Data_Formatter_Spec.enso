@@ -202,7 +202,7 @@ spec =
             formatter.format (Time_Of_Day.new) . should_equal "00:00:00"
 
         Test.specify "should allow custom date formats" <|
-            formatter = Data_Formatter.Value.with_datetime_formats date_formats=["ddd, d MMM y", Date_Time_Formatter.from_java "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm [zz]"] time_formats=["h:mma"]
+            formatter = Data_Formatter.Value.with_datetime_formats date_formats=["ddd, d MMM y", Date_Time_Formatter.from_java "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm [ZZZZ]"] time_formats=["h:mma"]
             formatter.format (Date.new 2022 06 21) . should_equal "Tue, 21 Jun 2022"
             formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=Time_Zone.utc) . should_equal "03/02/1999 04:56 GMT"
             formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=(Time_Zone.parse "America/Los_Angeles")) . should_equal "03/02/1999 04:56 GMT-08:00"
