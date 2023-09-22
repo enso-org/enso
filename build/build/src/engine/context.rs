@@ -198,7 +198,7 @@ impl RunContext {
         graalvm.install_if_missing(&self.cache).await?;
         graal::Gu.require_present().await?;
 
-        let required_components = [graal::ComponentId::NativeImage];
+        let required_components = [graal::ComponentId::NativeImage, graal::ComponentId::JS];
         // Some GraalVM components depend on Sulong and are not available on all platforms (like
         // Windows or M1 macOS). Thus, we treat them as optional. See e.g.
         // https://github.com/oracle/graalpython/issues/156
