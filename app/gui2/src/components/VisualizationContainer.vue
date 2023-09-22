@@ -149,6 +149,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   position: absolute;
   min-width: 100%;
   width: min-content;
+  color: var(--color-text);
   z-index: -1;
   border-radius: var(--radius-default);
 }
