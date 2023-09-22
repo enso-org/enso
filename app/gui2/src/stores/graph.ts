@@ -13,7 +13,7 @@ import {
   type IdMap,
   type NodeMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
 import { useProjectStore } from './project'
 
@@ -29,18 +29,6 @@ export const useGraphStore = defineStore('graph', () => {
 
   const nodes = reactive(new Map<ExprId, Node>())
   const exprNodes = reactive(new Map<ExprId, ExprId>())
-
-  proj.lsRpcConnection.on('executionContext/expressionUpdates', ({ updates }) => {
-    for (const update of updates) {
-      const node = nodes.get(update.expressionId)
-      if (node != null) {
-        if (update.type != null) {
-          node.type = update.type
-        }
-        node.hasWarnings = 'warnings' in update.payload && update.payload.warnings.count > 0
-      }
-    }
-  })
 
   useObserveYjs(text, (event) => {
     const delta = event.changes.delta
@@ -167,8 +155,6 @@ export const useGraphStore = defineStore('graph', () => {
         Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset),
         Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset + stmt.expression.length),
       ],
-      type: undefined,
-      hasWarnings: false,
     }
     identDefinitions.set(node.binding, nodeId)
     addSpanUsages(nodeId, node)
@@ -334,8 +320,6 @@ export interface Node {
   rootSpan: Span
   position: Vec2
   docRange: [Y.RelativePosition, Y.RelativePosition]
-  type: string | undefined
-  hasWarnings: boolean
 }
 
 export const enum SpanKind {
