@@ -131,7 +131,6 @@ public final class LogbackSetup extends LoggerSetup {
             String logPrefix) {
         try {
             LoggerAndContext env = contextInit(logLevel, config, true);
-
             org.enso.logger.config.FileAppender appenderConfig = config.getFileAppender();
             if (appenderConfig == null) {
                 throw new MissingConfigurationField(org.enso.logger.config.FileAppender.appenderName);
