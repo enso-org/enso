@@ -6,8 +6,12 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
 import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.No_Such_Conversion
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
@@ -206,6 +210,30 @@ type JS_Object
     to_default_visualization_data self =
         render self
 
+    ## Creates an Enso object from the JS_Object.
+    into : Any -> Any
+    into self type = case type of
+        JS_Object -> self
+        Vector -> self.to_vector
+        Map -> Map.from_pairs self.to_vector
+        _ ->
+            ## First try a conversion
+            Panic.catch No_Such_Conversion (self.to type) _->
+                ## If that fails, try to construct the type
+                meta = Meta.meta (Meta.type_of type)
+                constructors = meta.constructors
+                filtered = if self.get "constructor" != Nothing then constructors.filter c-> c.name == self.get "constructor" else constructors
+                case filtered.length of
+                    0 -> Error.throw (Illegal_Argument.Error "Unable to build a "+type.to_text+" cannot find the constructor.")
+                    1 ->
+                        constructor = filtered.at 0
+                        field_names = constructor.fields
+                        if field_names.any self.has_property then Error.throw (Illegal_Argument.Error "Missing fields for constructor.") else
+                            field_values = field_names.map n-> self.at n
+                            constructor.new field_values
+                    _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+type.to_text+" cannot find unique constructor.")
+
+
 ## PRIVATE
 type JS_Object_Comparator
     ## PRIVATE
@@ -271,6 +299,8 @@ make_enso js_object =
         _ : JS_Object ->
             parsed = case js_object.get "type" of
                 "Date" -> Date.from js_object
+                "Date_Time" -> Date_Time.from js_object
+                "Time_Of_Day" -> Time_Of_Day.from js_object
                 _ -> js_object
             if parsed.is_error then js_object else parsed
         _ -> JS_Object.Value js_object

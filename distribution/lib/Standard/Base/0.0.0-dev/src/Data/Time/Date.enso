@@ -829,7 +829,5 @@ fits_in_range start end date =
 
 ## PRIVATE
 Date.from (that:JS_Object) =
-    if that.get "type" == "Date" && ["year", "month", "day"].all that.contains_key then
-        Date.new (that.get "year") (that.get "month") (that.get "day")
-    else
+    if that.get "type" == "Date" && ["year", "month", "day"].all that.contains_key then Date.new (that.get "year") (that.get "month") (that.get "day") else
         Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date.from.")

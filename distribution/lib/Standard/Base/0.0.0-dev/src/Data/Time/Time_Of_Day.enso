@@ -471,3 +471,9 @@ type Time_Of_Day
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter =
         format.format_time self
+
+## PRIVATE
+Time_Of_Day.from (that:JS_Object) =
+    ## Must have hour and minute but second and nanosecond are optional
+    if that.get "type" == "Time_Of_Day" && ["hour", "minute"].all that.contains_key then Time_Of_Day.new (that.get "hour") (that.get "minute") (that.get "second" 0) nanosecond=(that.get "nanosecond" 0) else
+        Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Of_Day.from.")
