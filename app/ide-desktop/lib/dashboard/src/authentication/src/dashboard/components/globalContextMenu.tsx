@@ -5,7 +5,6 @@ import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
-import * as shortcuts from '../shortcuts'
 
 import ContextMenu from './contextMenu'
 import MenuEntry from './menuEntry'
@@ -51,7 +50,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             )}
             <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.uploadFiles}
+                action="upload-files"
                 doAction={() => {
                     if (filesInputRef.current?.isConnected === true) {
                         filesInputRef.current.click()
@@ -78,7 +77,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             />
             <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.newProject}
+                action="new-project"
                 doAction={() => {
                     unsetModal()
                     dispatchAssetListEvent({
@@ -93,7 +92,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             {backend.type !== backendModule.BackendType.local && (
                 <MenuEntry
                     hidden={hidden}
-                    action={shortcuts.KeyboardAction.newFolder}
+                    action="new-folder"
                     doAction={() => {
                         unsetModal()
                         dispatchAssetListEvent({
@@ -108,7 +107,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 <MenuEntry
                     hidden={hidden}
                     disabled
-                    action={shortcuts.KeyboardAction.newDataConnector}
+                    action="new-data-connector"
                     doAction={() => {
                         // No backend support yet.
                     }}

@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.tsx",
     "./src/platform": "./src/platform.ts",
+    "./src/dashboard/shortcuts": "./src/dashboard/shortcuts.tsx",
     "./tailwind.css": "./tailwind.css"
   },
   "scripts": {

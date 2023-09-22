@@ -44,7 +44,7 @@ import * as authServiceModule from '../authentication/service'
 import * as backend from '../dashboard/backend'
 import * as hooks from '../hooks'
 import * as localBackend from '../dashboard/localBackend'
-import * as shortcutsModule from '../dashboard/shortcuts'
+import * as shortcuts from '../dashboard/shortcuts'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -106,6 +106,7 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
+    shortcutRegistry: shortcuts.ShortcutRegistry
     logger: loggerProvider.Logger
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
@@ -162,6 +163,7 @@ export default function App(props: AppProps) {
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
     const {
+        shortcutRegistry,
         logger,
         supportsLocalBackend,
         isAuthenticationDisabled,
@@ -174,16 +176,13 @@ function AppRouter(props: AppProps) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
-    const [shortcuts] = React.useState(() => shortcutsModule.ShortcutRegistry.createWithDefaults())
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             const isTargetEditable =
                 event.target instanceof HTMLInputElement ||
                 (event.target instanceof HTMLElement && event.target.isContentEditable)
-            const shouldHandleEvent = isTargetEditable
-                ? !shortcutsModule.isTextInputEvent(event)
-                : true
-            if (shouldHandleEvent && shortcuts.handleKeyboardEvent(event)) {
+            const shouldHandleEvent = isTargetEditable ? !shortcuts.isTextInputEvent(event) : true
+            if (shouldHandleEvent && shortcutRegistry.handleKeyboardEvent(event)) {
                 event.preventDefault()
                 // This is required to prevent the event from propagating to the event handler
                 // that focuses the search input.
@@ -194,7 +193,7 @@ function AppRouter(props: AppProps) {
         return () => {
             document.body.removeEventListener('keydown', onKeyDown)
         }
-    }, [shortcuts])
+    }, [shortcutRegistry])
     const mainPageUrl = getMainPageUrl()
     const authService = React.useMemo(() => {
         const authConfig = { navigate, ...props }
@@ -253,7 +252,7 @@ function AppRouter(props: AppProps) {
                             projectManagerUrl={projectManagerUrl}
                         >
                             <modalProvider.ModalProvider>
-                                <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>
+                                <shortcutsProvider.ShortcutsProvider shortcuts={shortcutRegistry}>
                                     {routes}
                                 </shortcutsProvider.ShortcutsProvider>
                             </modalProvider.ModalProvider>

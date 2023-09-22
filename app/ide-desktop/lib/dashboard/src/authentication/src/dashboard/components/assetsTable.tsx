@@ -14,7 +14,6 @@ import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as permissions from '../permissions'
 import * as presenceModule from '../presence'
-import * as shortcuts from '../shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
 import * as style from '../style'
@@ -903,8 +902,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         <MenuEntry
                                             action={
                                                 backend.type === backendModule.BackendType.local
-                                                    ? shortcuts.KeyboardAction.deleteAll
-                                                    : shortcuts.KeyboardAction.moveAllToTrash
+                                                    ? 'delete-all'
+                                                    : 'move-all-to-trash'
                                             }
                                             doAction={doDeleteAll}
                                         />

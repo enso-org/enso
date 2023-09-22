@@ -11,7 +11,6 @@ import * as localBackend from '../localBackend'
 import * as localStorageModule from '../localStorage'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
-import * as shortcutsModule from '../shortcuts'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
@@ -257,7 +256,8 @@ export default function Dashboard(props: DashboardProps) {
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
-            [shortcutsModule.KeyboardAction.closeModal]: () => {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'close-modal': () => {
                 unsetModal()
                 if (modalRef.current == null) {
                     // eslint-disable-next-line no-restricted-syntax

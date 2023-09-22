@@ -4,7 +4,6 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
-import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 // ====================
@@ -42,7 +41,8 @@ export default function EditableSpan(props: EditableSpanProps) {
     React.useEffect(() => {
         if (editable) {
             return shortcuts.registerKeyboardHandlers({
-                [shortcutsModule.KeyboardAction.cancelEditName]: () => {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'cancel-edit-name': () => {
                     onCancel()
                     inputRef.current?.blur()
                 },

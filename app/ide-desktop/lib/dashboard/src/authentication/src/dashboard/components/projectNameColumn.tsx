@@ -15,7 +15,6 @@ import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as permissions from '../permissions'
 import * as presence from '../presence'
-import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as validation from '../validation'
 
@@ -227,7 +226,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             onClick={event => {
                 if (rowState.isEditingName || isOtherUserUsingProject) {
                     // The project should neither be edited nor opened in these cases.
-                } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.open, event)) {
+                } else if (shortcuts.matchesMouseAction('open', event)) {
                     // It is a double click; open the project.
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
@@ -235,7 +234,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         shouldAutomaticallySwitchPage: true,
                         runInBackground: false,
                     })
-                } else if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.run, event)) {
+                } else if (shortcuts.matchesMouseAction('run', event)) {
                     dispatchAssetEvent({
                         type: assetEventModule.AssetEventType.openProject,
                         id: asset.id,
@@ -245,8 +244,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (
                     !isRunning &&
                     eventModule.isSingleClick(event) &&
-                    (selected ||
-                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
+                    (selected || shortcuts.matchesMouseAction('edit-name', event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,

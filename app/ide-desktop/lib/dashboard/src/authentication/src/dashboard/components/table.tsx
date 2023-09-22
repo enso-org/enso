@@ -4,7 +4,6 @@
 import * as React from 'react'
 
 import * as set from '../../set'
-import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as tableColumn from './tableColumn'
@@ -146,14 +145,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
             if (
-                !shortcuts.matchesMouseAction(
-                    shortcutsModule.MouseAction.selectAdditional,
-                    event
-                ) &&
-                !shortcuts.matchesMouseAction(
-                    shortcutsModule.MouseAction.selectAdditionalRange,
-                    event
-                ) &&
+                !shortcuts.matchesMouseAction('select-additional', event) &&
+                !shortcuts.matchesMouseAction('select-additional-range', event) &&
                 selectedKeys.size !== 0
             ) {
                 setSelectedKeys(new Set())
@@ -199,20 +192,13 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     return selectedItems.map(getKey)
                 }
             }
-            if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectRange, event)) {
+            if (shortcuts.matchesMouseAction('select-range', event)) {
                 setSelectedKeys(new Set(getNewlySelectedKeys()))
-            } else if (
-                shortcuts.matchesMouseAction(
-                    shortcutsModule.MouseAction.selectAdditionalRange,
-                    event
-                )
-            ) {
+            } else if (shortcuts.matchesMouseAction('select-additional-range', event)) {
                 setSelectedKeys(
                     oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
                 )
-            } else if (
-                shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectAdditional, event)
-            ) {
+            } else if (shortcuts.matchesMouseAction('select-additional', event)) {
                 setSelectedKeys(oldSelectedItems => {
                     const newItems = new Set(oldSelectedItems)
                     if (oldSelectedItems.has(key)) {

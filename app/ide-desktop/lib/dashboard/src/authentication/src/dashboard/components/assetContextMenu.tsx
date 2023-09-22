@@ -9,7 +9,6 @@ import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as permissions from '../permissions'
 import * as remoteBackendModule from '../remoteBackend'
-import * as shortcuts from '../shortcuts'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
@@ -104,7 +103,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     !isOtherUserUsingProject && (
                         <MenuEntry
                             hidden={hidden}
-                            action={shortcuts.KeyboardAction.open}
+                            action="open"
                             doAction={() => {
                                 unsetModal()
                                 dispatchAssetEvent({
@@ -120,7 +119,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     backend.type === backendModule.BackendType.remote && (
                         <MenuEntry
                             hidden={hidden}
-                            action={shortcuts.KeyboardAction.run}
+                            action="run"
                             doAction={() => {
                                 unsetModal()
                                 dispatchAssetEvent({
@@ -138,7 +137,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     !isOtherUserUsingProject && (
                         <MenuEntry
                             hidden={hidden}
-                            action={shortcuts.KeyboardAction.close}
+                            action="close"
                             doAction={() => {
                                 unsetModal()
                                 dispatchAssetEvent({
@@ -152,7 +151,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     backend.type === backendModule.BackendType.local && (
                         <MenuEntry
                             hidden={hidden}
-                            action={shortcuts.KeyboardAction.uploadToCloud}
+                            action="upload-to-cloud"
                             doAction={async () => {
                                 unsetModal()
                                 if (accessToken == null) {
@@ -203,7 +202,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                             asset.type !== backendModule.AssetType.project &&
                             asset.type !== backendModule.AssetType.directory
                         }
-                        action={shortcuts.KeyboardAction.rename}
+                        action="rename"
                         doAction={() => {
                             setRowState(oldRowState => ({
                                 ...oldRowState,
@@ -216,7 +215,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 <MenuEntry
                     hidden={hidden}
                     disabled
-                    action={shortcuts.KeyboardAction.snapshot}
+                    action="snapshot"
                     doAction={() => {
                         // No backend support yet.
                     }}
@@ -226,8 +225,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         hidden={hidden}
                         action={
                             backend.type === backendModule.BackendType.local
-                                ? shortcuts.KeyboardAction.delete
-                                : shortcuts.KeyboardAction.moveToTrash
+                                ? 'delete'
+                                : 'move-to-trash'
                         }
                         doAction={() => {
                             setModal(
@@ -243,7 +242,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 {managesThisAsset && self != null && (
                     <MenuEntry
                         hidden={hidden}
-                        action={shortcuts.KeyboardAction.share}
+                        action="share"
                         doAction={() => {
                             setModal(
                                 <ManagePermissionsModal
@@ -266,7 +265,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     <MenuEntry
                         hidden={hidden}
                         disabled
-                        action={shortcuts.KeyboardAction.label}
+                        action="label"
                         doAction={() => {
                             // No backend support yet.
                         }}
@@ -279,7 +278,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 <MenuEntry
                     hidden={hidden}
                     disabled
-                    action={shortcuts.KeyboardAction.duplicate}
+                    action="duplicate"
                     doAction={() => {
                         // No backend support yet.
                     }}
@@ -287,7 +286,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 <MenuEntry
                     hidden={hidden}
                     disabled
-                    action={shortcuts.KeyboardAction.copy}
+                    action="copy"
                     doAction={() => {
                         // No backend support yet.
                     }}
@@ -296,7 +295,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     <MenuEntry
                         hidden={hidden}
                         disabled
-                        action={shortcuts.KeyboardAction.cut}
+                        action="cut"
                         doAction={() => {
                             // No backend support yet.
                         }}
@@ -305,7 +304,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 <MenuEntry
                     hidden={hidden}
                     disabled
-                    action={shortcuts.KeyboardAction.download}
+                    action="download"
                     doAction={() => {
                         // No backend support yet.
                     }}
