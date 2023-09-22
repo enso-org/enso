@@ -64,7 +64,7 @@ enum ScaleType {
 
 interface AxisConfiguration {
   label: string
-  scale: ScaleType
+  scale?: ScaleType
 }
 
 interface AxesConfiguration {
@@ -457,8 +457,8 @@ function rescale(xScale: Scale, yScale: Scale) {
 }
 
 const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},${
-  ACCENT_COLOR.blue * 255
+const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${
+  ACCENT_COLOR.blue
 },0.8)`
 
 function redrawData() {
@@ -502,7 +502,7 @@ function matchShape(d: Point) {
  * @param axis Axis information as received in the visualization update.
  * @returns D3 scale. */
 function axisD3Scale(axis: AxisConfiguration | undefined) {
-  return axis != null ? SCALE_TO_D3_SCALE[axis.scale] : d3.scaleLinear()
+  return axis?.scale != null ? SCALE_TO_D3_SCALE[axis.scale] ?? d3.scaleLinear() : d3.scaleLinear()
 }
 
 watchEffect(() => {

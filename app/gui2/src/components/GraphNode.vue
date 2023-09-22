@@ -329,7 +329,9 @@ watch(visualizationConfiguration, async (config) => {
 })
 
 function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
-  visualizationData.value = vizUpdate.dataString() ?? undefined
+  const json = vizUpdate.dataString()
+  const newData = json != null ? JSON.parse(json) : undefined
+  visualizationData.value = newData
 }
 
 onMounted(() => {
@@ -447,7 +449,7 @@ watch(
     />
     <component
       :is="visualization"
-      v-if="isVisualizationVisible && visualization"
+      v-if="isVisualizationVisible && visualization && visualizationData"
       :data="visualizationData"
       @update:preprocessor="updatePreprocessor"
     />
