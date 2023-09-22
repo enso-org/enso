@@ -2,7 +2,8 @@
 
 [![Enso Language Support for IGV](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml/badge.svg)](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
 
-Searching for **VSCode** support? Read more about [VSCode extension for Enso here](vscode.md).
+Searching for **VSCode** support? Read more about
+[VSCode extension for Enso here](vscode.md).
 
 [Enso language](http://enso.org) runtime engine is built on top of
 [GraalVM](http://graalvm.org) and its _Truffle framework_. Enso, as a good
@@ -150,5 +151,5 @@ NetBeans based application.
 
 ## VSCode Extension
 
-There is also a VSCode extension for Enso.
-Read more about the extension [here](vscode.md).
+There is also a VSCode extension for Enso. Read more about the extension
+[here](vscode.md).
