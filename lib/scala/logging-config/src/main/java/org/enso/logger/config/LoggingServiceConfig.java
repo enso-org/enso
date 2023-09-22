@@ -150,6 +150,8 @@ public class LoggingServiceConfig implements BaseConfig {
         + (defaultAppenderName == null ? "unknown" : defaultAppenderName)
         + ", logLevel: "
         + logLevel.orElseGet(() -> "default")
+        + ", log-to-file: "
+        + logToFile()
         + ", server: "
         + server;
   }

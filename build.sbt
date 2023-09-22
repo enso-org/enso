@@ -882,6 +882,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case _                  => MergeStrategy.first
     },
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
+    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
@@ -1156,6 +1157,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
           .map(_.data)
           .mkString(File.pathSeparator)
       Seq(
+        s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
         s"-Dtruffle.class.path.append=$runtimeClasspath",
         s"-Duser.dir=${file(".").getCanonicalPath}"
       )
@@ -1758,7 +1760,9 @@ lazy val launcher = project
     (Test / testOnly) := (Test / testOnly)
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
-      .evaluated
+      .evaluated,
+    Test / fork := true,
+    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)

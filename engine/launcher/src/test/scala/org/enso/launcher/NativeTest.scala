@@ -93,12 +93,15 @@ trait NativeTest
     )
   }
 
+  /** Returns a relative path to the root directory of the project. */
+  def rootDirectory: Path = Path.of("../../")
+
   /** Returns the expected location of the launcher binary compiled by the
     * Native Image. This binary can be copied into various places to test its
     * functionality.
     */
   def baseLauncherLocation: Path =
-    Path.of(".").resolve(OS.executableName("enso"))
+    rootDirectory.resolve(OS.executableName("enso"))
 
   /** Creates a copy of the tested launcher binary at the specified location.
     *
