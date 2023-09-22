@@ -15,7 +15,6 @@
     "composite": true,
     "baseUrl": ".",
     "allowImportingTsExtensions": true,
-    "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "paths": {

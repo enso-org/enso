@@ -9,23 +9,23 @@ interface Data {
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 import { computed } from 'vue'
 
-const props = defineProps<{ data: Data | string }>()
-
-const data = computed<Data>(() =>
-  typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
-)
+const props = defineProps<{ data: Data }>()
 
 const DEFAULT_MEDIA_TYPE = 'image/png'
+
+const src = computed(
+  () => `data:${props.data.mediaType ?? DEFAULT_MEDIA_TYPE};base64,${props.data.base64}`,
+)
 </script>
 
 <template>
   <VisualizationContainer :below-node="true">
     <div class="ImageVisualization">
-      <img :src="`data:${data.mediaType ?? DEFAULT_MEDIA_TYPE};base64,${data.base64}`" />
+      <img :src="src" />
     </div>
   </VisualizationContainer>
 </template>

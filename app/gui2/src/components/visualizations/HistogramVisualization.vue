@@ -114,13 +114,13 @@ import type {
   D3ZoomEvent,
 } from 'd3'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
-import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
 
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 const shortcuts = {
   zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
@@ -146,7 +146,7 @@ const MID_BUTTON = 1
 const MID_BUTTON_CLICKED = 4
 const SCROLL_WHEEL = 0
 
-const props = defineProps<{ data: Data | string }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
@@ -184,8 +184,7 @@ const yAxis = ref(d3.axisLeft(yScale.value).tickFormat(d3.format('d')))
 watchEffect(() => yAxis.value.scale(yScale.value))
 
 watchEffect(() => {
-  let rawData: Data | undefined =
-    typeof props.data === 'string' ? JSON.parse(props.data) : props.data
+  let rawData = props.data
   if (rawData == null) {
     console.error('Heatmap was not passed any data.')
   } else {
@@ -561,7 +560,7 @@ onMounted(() => {
 
 onMounted(() => queueMicrotask(redrawData))
 watch([width, height, maxY], () => queueMicrotask(redrawData))
-watchEffect(redrawData)
+watchPostEffect(redrawData)
 
 watch([width, height], () => queueMicrotask(endBrushing))
 

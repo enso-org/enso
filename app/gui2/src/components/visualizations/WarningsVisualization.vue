@@ -4,15 +4,15 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
-import { computed, onMounted } from 'vue'
+import { onMounted } from 'vue'
 
 /** Simple Warning Visualization. */
 
 type Data = string[]
 
-const props = defineProps<{ data: Data | string }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
@@ -20,10 +20,6 @@ const emit = defineEmits<{
 onMounted(() => {
   emit('update:preprocessor', 'Standard.Visualization.Warnings', 'process_to_json_text')
 })
-
-const data = computed<Data>(() =>
-  typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
-)
 </script>
 
 <template>

@@ -67,13 +67,13 @@ import type {
   HeaderValueGetterParams,
 } from 'ag-grid-community'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
-import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
 
 import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
 import { useThrottleFn } from '@vueuse/core'
 
-const props = defineProps<{ data: Data | string }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
@@ -108,9 +108,6 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   suppressFieldDotNotation: true,
 })
 
-const data = computed<Data>(() =>
-  typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
-)
 const isFirstPage = computed(() => page.value === 0)
 const isLastPage = computed(() => page.value === pageLimit.value - 1)
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
@@ -140,7 +137,7 @@ onMounted(() => {
 })
 
 watch(
-  () => [data.value, config.value.width, config.value.fullscreen],
+  () => [props.data, config.value.width, config.value.fullscreen],
   () => {
     throttledUpdateTableSize(undefined)
   },
@@ -255,7 +252,7 @@ function toRender(content: unknown) {
 }
 
 watchEffect(() => {
-  const data_ = data.value
+  const data_ = props.data
   const options = agGridOptions.value
   if (options.api == null) {
     return

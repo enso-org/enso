@@ -36,35 +36,32 @@ declare const sqlFormatter: typeof import('sql-formatter')
 // eslint-disable-next-line no-redeclare
 import * as sqlFormatter from 'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from './builtins.ts'
 
 import { computed, onMounted } from 'vue'
 
-const props = defineProps<{ data: Data | string }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
 const theme: Theme = DEFAULT_THEME
 
-const data = computed<Data>(() =>
-  typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
-)
 const language = computed(() =>
-  data.value.dialect != null && sqlFormatter.supportedDialects.includes(data.value.dialect)
-    ? data.value.dialect
+  props.data.dialect != null && sqlFormatter.supportedDialects.includes(props.data.dialect)
+    ? props.data.dialect
     : 'sql',
 )
 const formatted = computed(() => {
-  if (data.value.error != null) {
+  if (props.data.error != null) {
     return undefined
   }
-  const params = data.value.interpolations.map((param) =>
+  const params = props.data.interpolations.map((param) =>
     renderInterpolationParameter(theme, param),
   )
 
-  return sqlFormatter.format(data.value.code, {
+  return sqlFormatter.format(props.data.code, {
     params: params,
     language: language.value,
   })

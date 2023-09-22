@@ -46,12 +46,12 @@ declare var d3: typeof import('d3')
 // eslint-disable-next-line no-redeclare
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
-import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
 
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
-const props = defineProps<{ data: Data | string }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
@@ -61,20 +61,19 @@ const config = useVisualizationConfig()
 const MARGIN = { top: 20, right: 20, bottom: 20, left: 25 }
 
 const data = computed(() => {
-  const newData: Data = typeof props.data === 'string' ? JSON.parse(props.data) : props.data
-  if (newData == null) {
+  if (props.data == null) {
     console.error('Heatmap was not passed any data.')
     return []
-  } else if (newData.update === 'diff') {
-    if (newData.data != null) {
-      return newData.data
+  } else if (props.data.update === 'diff') {
+    if (props.data.data != null) {
+      return props.data.data
     }
-  } else if (newData.data != null) {
-    return newData.data
-  } else if (Array.isArray(newData)) {
-    return newData
-  } else if (newData.json != null && Array.isArray(newData.json)) {
-    return newData.json
+  } else if (props.data.data != null) {
+    return props.data.data
+  } else if (Array.isArray(props.data)) {
+    return props.data
+  } else if (props.data.json != null && Array.isArray(props.data.json)) {
+    return props.data.json
   }
   return []
 })
@@ -205,7 +204,7 @@ function redrawData() {
 
 onMounted(() => queueMicrotask(redrawData))
 watch([data, width, height], () => queueMicrotask(redrawData))
-watchEffect(redrawData)
+watchPostEffect(redrawData)
 </script>
 
 <template>
