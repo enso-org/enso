@@ -1,0 +1,28 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Vector.Vector
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Meta
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+
+from project.Internal.Time.Format.Parser import all
+
+## PRIVATE
+type Analyzer
+    ## PRIVATE
+    Value (nodes : Vector (Common_Nodes | Standard_Date_Patterns | ISO_Week_Year_Patterns | Time_Patterns | Time_Zone_Patterns))
+
+    ## PRIVATE
+       Checks if the given node is contained as one of the nodes, ignoring the optional ones.
+    has_required : Any -> Boolean
+    has_required self constructor =
+        meta_ctor = Meta.meta constructor
+        if meta_ctor.is_a Meta.Constructor . not then
+            Panic.throw (Illegal_Argument.Error "Expected a constructor, but got: "+meta_ctor.to_text)
+        self.nodes.any node->
+            case Meta.meta node of
+                atom : Meta.Atom ->
+                    atom.constructor == meta_ctor
+                _ -> False
