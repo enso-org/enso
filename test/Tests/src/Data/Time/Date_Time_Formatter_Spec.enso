@@ -45,13 +45,18 @@ spec =
             w1.to_display_text . should_contain "Did you mean 'M'"
             Date.parse "2020-01-02" f1 . should_fail_with Time_Error
 
-            f2 = Date_Time_Formatter.from "HH:MM:SS"
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "yyyymmdd")
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "yyyy-mm-dd hh:mm:ss")
+
+            f2 = Date_Time_Formatter.from "HH:MM[:SS]"
             w2 = Problems.expect_only_warning Suspicious_Date_Time_Format f2
             w2.to_display_text . should_contain "Did you mean 'm'"
 
             Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "HH:MM")
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "hh:MM:ss")
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "hhMMss")
 
-            f3 = Date_Time_Formatter.from "HH:mm:ss.S"
+            f3 = Date_Time_Formatter.from "HH:mm:ss[.S]"
             w3 = Problems.expect_only_warning Suspicious_Date_Time_Format f3
             w3.to_display_text . should_contain "'f' instead"
 
