@@ -757,8 +757,8 @@ lazy val filewatcher = project
       "commons-io"     % "commons-io"        % commonsIoVersion,
       "org.scalatest" %% "scalatest"         % scalatestVersion % Test
     ),
-    Test/fork := true,
-    Test/javaOptions ++= testLogProviderOptions
+    Test / fork := true,
+    Test / javaOptions ++= testLogProviderOptions
   )
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
@@ -769,9 +769,9 @@ lazy val `logging-truffle-connector` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.slf4j"           % "slf4j-api"   % slf4jVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.slf4j"           % "slf4j-api"               % slf4jVersion,
+      "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
     )
   )
   .dependsOn(`logging-utils`)
