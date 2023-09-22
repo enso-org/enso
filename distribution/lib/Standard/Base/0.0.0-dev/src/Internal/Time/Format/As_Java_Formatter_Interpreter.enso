@@ -55,7 +55,7 @@ interpret locale nodes prepare_defaults=True =
     nodes.each interpret_node
 
     if prepare_defaults then
-        analyzer = Analyzer.Value nodes
+        analyzer = Analyzer.new nodes
 
         if analyzer.has_required Standard_Date_Patterns.Year && analyzer.has_required Standard_Date_Patterns.Month then
             if analyzer.has_required Standard_Date_Patterns.Day_Of_Month . not then
@@ -72,6 +72,9 @@ interpret locale nodes prepare_defaults=True =
 
         if analyzer.has_required Standard_Date_Patterns.Year && analyzer.has_required Standard_Date_Patterns.Quarter then
             builder.parseDefaulting IsoFields.DAY_OF_QUARTER 1
+
+        if analyzer.has_12h && analyzer.has_24h.not && analyzer.has_ampm.not then
+            builder.parseDefaulting ChronoField.AMPM_OF_DAY 0
 
     builder.toFormatter locale.java_locale
 

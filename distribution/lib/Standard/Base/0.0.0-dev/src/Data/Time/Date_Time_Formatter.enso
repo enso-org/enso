@@ -124,7 +124,7 @@ type Date_Time_Formatter
     from_simple_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_simple_pattern pattern:Text locale:Locale=Locale.default =
         parsed = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern
-        analyzer = Analyzer.Value parsed
+        analyzer = Analyzer.new parsed
         java_formatter = analyzer.validate_after_parsing <|
             As_Java_Formatter_Interpreter.interpret locale parsed
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE)
@@ -174,7 +174,7 @@ type Date_Time_Formatter
     from_iso_week_date_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_iso_week_date_pattern pattern:Text locale:Locale=Locale.default =
         parsed = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern
-        analyzer = Analyzer.Value parsed
+        analyzer = Analyzer.new parsed
         java_formatter = analyzer.validate_after_parsing <|
             As_Java_Formatter_Interpreter.interpret locale parsed
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE)
