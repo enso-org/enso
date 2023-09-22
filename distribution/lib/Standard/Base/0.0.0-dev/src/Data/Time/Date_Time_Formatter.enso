@@ -6,6 +6,7 @@ import project.Data.Time.Errors.Date_Time_Format_Parse_Error
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -23,7 +24,7 @@ polyglot java import org.enso.base.time.FormatterKind
 
 type Date_Time_Formatter
     ## PRIVATE
-    Value (underlying : EnsoDateTimeFormatter)
+    Value (underlying : EnsoDateTimeFormatter) (~deferred_parsing_warnings = [])
 
     ## Creates a formatter from a simple date-time format pattern.
 
@@ -127,7 +128,7 @@ type Date_Time_Formatter
         analyzer = Analyzer.new parsed
         java_formatter = analyzer.validate_after_parsing <|
             As_Java_Formatter_Interpreter.interpret locale parsed
-        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE)
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## Creates a formatter from a pattern for the ISO 8601 leap week calendar.
 
@@ -177,7 +178,7 @@ type Date_Time_Formatter
         analyzer = Analyzer.new parsed
         java_formatter = analyzer.validate_after_parsing <|
             As_Java_Formatter_Interpreter.interpret locale parsed
-        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE)
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## ADVANCED
        Creates a formatter from a Java `DateTimeFormatter` instance or a text
@@ -284,15 +285,18 @@ type Date_Time_Formatter
 
     ## PRIVATE
     parse_date self (text:Text) = self.handle_java_errors <|
-        self.underlying.parseLocalDate text
+        self.with_parsing_warnings <|
+            self.underlying.parseLocalDate text
 
     ## PRIVATE
     parse_date_time self (text:Text) = self.handle_java_errors <|
-        self.underlying.parseZonedDateTime text
+        self.with_parsing_warnings <|
+            self.underlying.parseZonedDateTime text
 
     ## PRIVATE
     parse_time self (text:Text) = self.handle_java_errors <|
-        self.underlying.parseLocalTime text
+        self.with_parsing_warnings <|
+            self.underlying.parseLocalTime text
 
     ## PRIVATE
     format_date self (date:Date) = self.handle_java_errors <|
@@ -305,6 +309,18 @@ type Date_Time_Formatter
     ## PRIVATE
     format_time self (time:Time_Of_Day) = self.handle_java_errors <|
         self.underlying.formatLocalTime time
+
+    ## PRIVATE
+       Adds parsing warnings, if any, to the result of `continuation`.
+    with_parsing_warnings self ~continuation =
+        Problem_Behavior.Report_Warning.attach_problems_after continuation self.deferred_parsing_warnings
+
+    ## PRIVATE
+       Returns the `underlying` formatter, also ensuring that parse-only
+       warnings are attached to it, to be propagated.
+    get_java_formatter_for_parsing : EnsoDateTimeFormatter
+    get_java_formatter_for_parsing self =
+        self.with_parsing_warnings self.underlying
 
 ## PRIVATE
 Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =

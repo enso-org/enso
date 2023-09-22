@@ -54,6 +54,16 @@ type Analyzer
         Problem_Behavior.Report_Warning.attach_problems_after continuation problem_builder.to_vector
 
     ## PRIVATE
+       Prepares a list of warnings that are only reported when parsing using the
+       formatter.
+    get_parsing_only_warnings : Vector
+    get_parsing_only_warnings self =
+        problem_builder = Vector.new_builder
+        self.check_missing_ampm_in_hour_parse problem_builder
+        self.check_missing_year_in_date_parse problem_builder
+        problem_builder.to_vector
+
+    ## PRIVATE
     check_possible_m_mismatches self problem_builder =
         pattern_nodes = self.flattened
         pattern_nodes.each_with_index ix-> value-> case value of
@@ -80,7 +90,7 @@ type Analyzer
             Time_Patterns.Second _ -> True
             _ -> False
         if seconds.length == 2 then
-            problem_builder.append (Suspicious_Date_Time_Format.Warning "Two second patterns have been detected ('s'/'S'). Our simple format treats seconds in a case-insensitive way. If you want to indicate a fraction of a second, use 'f' instead. (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+            problem_builder.append (Suspicious_Date_Time_Format.Warning "Two Second patterns have been detected ('s'/'S'). Our simple format treats seconds in a case-insensitive way. If you want to indicate a fraction of a second, use 'f' instead. (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
 
     ## PRIVATE
     has_24h : Boolean
@@ -107,3 +117,21 @@ type Analyzer
     check_24h_and_ampm_collision self problem_builder =
         if self.has_24h && self.has_ampm && self.has_12h.not then
             problem_builder.append (Suspicious_Date_Time_Format.Warning "A 24-hour pattern 'H' is used with an AM/PM pattern. Did you mean 'h' for 12-hour format? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+    ## PRIVATE
+    check_missing_ampm_in_hour_parse self problem_builder =
+        if self.has_12h && self.has_ampm.not then
+            problem_builder.append (Suspicious_Date_Time_Format.Warning "A 12-hour pattern 'h' is used without an AM/PM pattern. Without it, the 12-hour pattern is ambiguous - the hours will default to AM. Did you mean 'H' for 24-hour format? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+    ## PRIVATE
+    has_day_and_month_but_not_year : Boolean
+    has_day_and_month_but_not_year self =
+        has_month = self.has_required Standard_Date_Patterns.Month
+        has_day = self.has_required Standard_Date_Patterns.Day_Of_Month
+        has_year = self.has_required Standard_Date_Patterns.Year
+        has_month && has_day && has_year.not
+
+    ## PRIVATE
+    check_missing_year_in_date_parse self problem_builder =
+        if self.has_day_and_month_but_not_year then
+            problem_builder.append (Suspicious_Date_Time_Format.Warning "A date pattern with a day and month but without a year has been detected. The year will default to the current year - note that the results may change over time. (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")

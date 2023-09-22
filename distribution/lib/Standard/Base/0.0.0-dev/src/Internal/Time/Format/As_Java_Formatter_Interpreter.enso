@@ -61,10 +61,9 @@ interpret locale nodes prepare_defaults=True =
             if analyzer.has_required Standard_Date_Patterns.Day_Of_Month . not then
                 builder.parseDefaulting ChronoField.DAY_OF_MONTH 1
 
-        if analyzer.has_required Standard_Date_Patterns.Month && analyzer.has_required Standard_Date_Patterns.Day_Of_Month then
-            if analyzer.has_required Standard_Date_Patterns.Year . not then
-                current_year = Date.today.year
-                builder.parseDefaulting ChronoField.YEAR current_year
+        if analyzer.has_day_and_month_but_not_year then
+            current_year = Date.today.year
+            builder.parseDefaulting ChronoField.YEAR current_year
 
         if analyzer.has_required ISO_Week_Year_Patterns.Week_Based_Year && analyzer.has_required ISO_Week_Year_Patterns.Week_Of_Year then
             if analyzer.has_required ISO_Week_Year_Patterns.Day_Of_Week . not then
