@@ -1,25 +1,25 @@
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
-import { defineStore } from 'pinia'
-import { map, set } from 'lib0'
-import { Vec2 } from '@/util/vec2'
-import { assertNever, assert } from '@/util/assert'
-import { useProjectStore } from './project'
-import * as Y from 'yjs'
+import { assert, assertNever } from '@/util/assert'
 import { useObserveYjs } from '@/util/crdt'
+import { parseEnso } from '@/util/ffi'
+import type { Opt } from '@/util/opt'
+import { Vec2 } from '@/util/vec2'
+import * as map from 'lib0/map'
+import * as set from 'lib0/set'
+import { defineStore } from 'pinia'
 import {
+  rangeIntersects,
   type ContentRange,
   type ExprId,
   type IdMap,
   type NodeMetadata,
-  rangeIntersects,
-} from 'shared/yjs-model'
-import type { Opt } from '@/util/opt'
-import { parseEnso } from '@/util/ffi'
+} from 'shared/yjsModel'
+import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import * as Y from 'yjs'
+import { useProjectStore } from './project'
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
 
-  proj.setProjectName('test')
   proj.setObservedFileName('Main.enso')
 
   const text = computed(() => proj.module?.contents)
@@ -79,47 +79,50 @@ export const useGraphStore = defineStore('graph', () => {
   watchEffect(() => {})
 
   function updateState(affectedRanges?: ContentRange[]) {
-    if (proj.module == null) return
-    const idMap = proj.module.getIdMap()
-    const meta = proj.module.metadata
-    const text = proj.module.contents
-    const textContentLocal = textContent.value
-    const parsed = parseBlock(0, textContentLocal, idMap)
+    const module = proj.module
+    if (module == null) return
+    module.doc.transact(() => {
+      const idMap = module.getIdMap()
+      const meta = module.metadata
+      const text = module.contents
+      const textContentLocal = textContent.value
+      const parsed = parseBlock(0, textContentLocal, idMap)
 
-    _parsed.value = parsed
-    _parsedEnso.value = parseEnso(textContentLocal)
+      _parsed.value = parsed
+      _parsedEnso.value = parseEnso(textContentLocal)
 
-    const accessed = idMap.accessedSoFar()
+      const accessed = idMap.accessedSoFar()
 
-    for (const nodeId of nodes.keys()) {
-      if (!accessed.has(nodeId)) {
-        nodeDeleted(nodeId)
-      }
-    }
-    idMap.finishAndSynchronize()
-
-    for (const stmt of parsed) {
-      const id = stmt.id
-      const exprRange: ContentRange = [stmt.exprOffset, stmt.exprOffset + stmt.expression.length]
-
-      if (affectedRanges != null) {
-        while (affectedRanges[0]?.[1] < exprRange[0]) {
-          affectedRanges.shift()
+      for (const nodeId of nodes.keys()) {
+        if (!accessed.has(nodeId)) {
+          nodeDeleted(nodeId)
         }
-        if (affectedRanges.length === 0) break
-        const nodeAffected = rangeIntersects(exprRange, affectedRanges[0])
-        if (!nodeAffected) continue
       }
+      idMap.finishAndSynchronize()
 
-      const nodeMeta = meta.get(id)
-      const nodeContent = textContentLocal.substring(exprRange[0], exprRange[1])
-      const node = nodes.get(id)
-      if (node == null) {
-        nodeInserted(stmt, text, nodeContent, nodeMeta)
-      } else {
-        nodeUpdated(node, stmt, text, nodeContent, nodeMeta)
+      for (const stmt of parsed) {
+        const exprRange: ContentRange = [stmt.exprOffset, stmt.exprOffset + stmt.expression.length]
+
+        if (affectedRanges != null) {
+          while (affectedRanges[0]?.[1] < exprRange[0]) {
+            affectedRanges.shift()
+          }
+          if (affectedRanges.length === 0) break
+          const nodeAffected = rangeIntersects(exprRange, affectedRanges[0])
+          if (!nodeAffected) continue
+        }
+
+        const nodeId = stmt.expression.id
+        const node = nodes.get(nodeId)
+        const nodeMeta = meta.get(nodeId)
+        const nodeContent = textContentLocal.substring(exprRange[0], exprRange[1])
+        if (node == null) {
+          nodeInserted(stmt, text, nodeContent, nodeMeta)
+        } else {
+          nodeUpdated(node, stmt, text, nodeContent, nodeMeta)
+        }
       }
-    }
+    })
   }
 
   useObserveYjs(metadata, (event) => {
@@ -129,11 +132,13 @@ export const useGraphStore = defineStore('graph', () => {
         const data = meta.get(id)
         const node = nodes.get(id as ExprId)
         if (data != null && node != null) {
-          const pos = new Vec2(data.x, data.y)
+          const pos = new Vec2(data.x, -data.y)
           if (!node.position.equals(pos)) {
             node.position = pos
           }
         }
+      } else {
+        console.log(op)
       }
     }
   })
@@ -142,20 +147,20 @@ export const useGraphStore = defineStore('graph', () => {
   const identUsages = reactive(new Map<string, Set<ExprId>>())
 
   function nodeInserted(stmt: Statement, text: Y.Text, content: string, meta: Opt<NodeMetadata>) {
-    console.log('nodeInserted', stmt.id)
+    const nodeId = stmt.expression.id
     const node: Node = {
       content,
       binding: stmt.binding ?? '',
       rootSpan: stmt.expression,
-      position: meta == null ? Vec2.Zero() : new Vec2(meta.x, meta.y),
+      position: meta == null ? Vec2.Zero() : new Vec2(meta.x, -meta.y),
       docRange: [
         Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset),
         Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset + stmt.expression.length),
       ],
     }
-    identDefinitions.set(node.binding, stmt.id)
-    addSpanUsages(stmt.id, node)
-    nodes.set(stmt.id, node)
+    identDefinitions.set(node.binding, nodeId)
+    addSpanUsages(nodeId, node)
+    nodes.set(nodeId, node)
   }
 
   function nodeUpdated(
@@ -165,7 +170,6 @@ export const useGraphStore = defineStore('graph', () => {
     content: string,
     meta: Opt<NodeMetadata>,
   ) {
-    console.log('nodeUpdated', stmt.id)
     clearSpanUsages(stmt.id, node)
     node.content = content
     if (node.binding !== stmt.binding) {
@@ -178,8 +182,8 @@ export const useGraphStore = defineStore('graph', () => {
     } else {
       node.rootSpan = stmt.expression
     }
-    if (meta != null && !node.position.equals(new Vec2(meta.x, meta.y))) {
-      node.position = new Vec2(meta.x, meta.y)
+    if (meta != null && !node.position.equals(new Vec2(meta.x, -meta.y))) {
+      node.position = new Vec2(meta.x, -meta.y)
     }
   }
 
@@ -249,17 +253,17 @@ export const useGraphStore = defineStore('graph', () => {
     return edges
   })
 
-  function createNode(position: Vec2): Opt<ExprId> {
+  function createNode(position: Vec2, expression: string): Opt<ExprId> {
     const mod = proj.module
     if (mod == null) return
     const { contents } = mod
 
     const meta: NodeMetadata = {
       x: position.x,
-      y: position.y,
+      y: -position.y,
     }
     const ident = generateUniqueIdent()
-    const content = `${ident} = x`
+    const content = `${ident} = ${expression}`
     return mod.insertNewNode(contents.length, content, meta)
   }
 
@@ -288,7 +292,7 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodePosition(id: ExprId, position: Vec2) {
     const node = nodes.get(id)
     if (node == null) return
-    proj.module?.updateNodeMetadata(id, { x: position.x, y: position.y })
+    proj.module?.updateNodeMetadata(id, { x: position.x, y: -position.y })
   }
 
   return {
@@ -398,10 +402,10 @@ interface Statement {
 function parseBlock(offset: number, content: string, idMap: IdMap): Statement[] {
   const stmtRegex = /^( *)(([a-zA-Z0-9_]+) *= *)?(.*)$/gm
   const stmts: Statement[] = []
-  content.replace(stmtRegex, (stmt, ident, beforeExpr, binding, expr, index) => {
+  content.replace(stmtRegex, (stmt, indent, beforeExpr, binding, expr, index) => {
     if (stmt.trim().length === 0) return stmt
-    const pos = offset + index + ident.length
-    const id = idMap.getOrInsertUniqueId([pos, pos + stmt.length])
+    const pos = offset + index + indent.length
+    const id = idMap.getOrInsertUniqueId([pos, pos + stmt.length - indent.length])
     const exprOffset = pos + (beforeExpr?.length ?? 0)
     stmts.push({
       id,

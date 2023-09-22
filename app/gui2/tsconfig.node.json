@@ -1,8 +1,16 @@
 {
   "extends": "@tsconfig/node18/tsconfig.json",
-  "include": ["vite.config.*", "vitest.config.*", "playwright.config.*"],
+  "include": [
+    "vite.config.*",
+    "vitest.config.*",
+    "playwright.config.*",
+    "eslint.config.js",
+    "ydoc-server/**/*",
+    "shared/**/*",
+    "e2e/**/*",
+    "node.env.d.ts"
+  ],
   "compilerOptions": {
-    "composite": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "types": ["node"]

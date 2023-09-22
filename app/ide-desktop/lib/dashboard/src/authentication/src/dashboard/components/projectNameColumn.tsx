@@ -13,6 +13,7 @@ import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
+import * as permissions from '../permissions'
 import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
@@ -66,7 +67,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const canExecute =
         backend.type === backendModule.BackendType.local ||
         (ownPermission != null &&
-            backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
+            permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
     const isOtherUserUsingProject =
         backend.type !== backendModule.BackendType.local &&
         asset.projectState.opened_by != null &&

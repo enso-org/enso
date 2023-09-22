@@ -2,7 +2,7 @@
 import type { Edge } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
 import { clamp } from '@vueuse/core'
-import type { ExprId } from 'shared/yjs-model'
+import type { ExprId } from 'shared/yjsModel'
 import { computed } from 'vue'
 
 const props = defineProps<{

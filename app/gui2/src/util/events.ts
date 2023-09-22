@@ -4,10 +4,10 @@ import {
   onUnmounted,
   proxyRefs,
   ref,
-  type Ref,
   shallowRef,
   watch,
   watchEffect,
+  type Ref,
   type WatchSource,
 } from 'vue'
 import { Vec2 } from './vec2'
@@ -108,9 +108,13 @@ export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
   })
 }
 
-// const hasWindow = typeof window !== 'undefined'
-// const platform = hasWindow ? window.navigator?.platform ?? '' : ''
-// const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+const hasWindow = typeof window !== 'undefined'
+const platform = hasWindow ? window.navigator?.platform ?? '' : ''
+const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+
+export function modKey(e: KeyboardEvent): boolean {
+  return isMacLike ? e.metaKey : e.ctrlKey
+}
 
 /**
  * Get DOM node size and keep it up to date.
