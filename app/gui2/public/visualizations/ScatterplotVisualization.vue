@@ -461,7 +461,7 @@ function rescale(xScale: Scale, yScale: Scale) {
 }
 
 const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
+const FILL_COLOR = `rgba(${ACCENT_COLOR.red}, ${ACCENT_COLOR.green}, ${ACCENT_COLOR.blue}, 0.8)`
 
 function redrawData() {
   if (data.value == null) {
