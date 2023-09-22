@@ -64,6 +64,10 @@ spec =
             Problems.assume_no_problems (Date_Time_Formatter.from "MM")
             Problems.assume_no_problems (Date_Time_Formatter.from "YYYY-MM-DD")
 
+            f4 = Date_Time_Formatter.from "HH:mma"
+            w4 = Problems.expect_only_warning Suspicious_Date_Time_Format f4
+            w4.to_display_text . should_contain "Did you mean 'h'"
+
     Test.group "Formatting date/time values" <|
         Test.specify "should allow printing month names" <|
             d = Date.new 2020 6 30
