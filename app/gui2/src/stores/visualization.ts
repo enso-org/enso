@@ -81,7 +81,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           event: MessageEvent<
             | { type: 'style'; code: string }
             | { type: 'raw-import'; path: string; value: unknown }
-            | { type: 'url-import'; path: string; mimeType: string; value: string }
+            | { type: 'url-import'; path: string; mimeType: string; value: BlobPart }
             | { type: 'import'; path: string; code: string }
             | { type: 'compilation-result'; id: number; path: string }
           >,
