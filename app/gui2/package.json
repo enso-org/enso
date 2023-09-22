@@ -16,12 +16,18 @@
     "preinstall": "npm run build-rust-ffi"
   },
   "dependencies": {
+    "@codemirror/gutter": "^0.19.9",
     "@vueuse/core": "^10.4.1",
+    "codemirror": "^6.0.1",
+    "install": "^0.13.0",
     "lib0": "^0.2.83",
+    "npm": "^10.1.0",
     "pinia": "^2.1.6",
     "postcss-nesting": "^12.0.1",
     "vue": "^3.3.4",
+    "vue-codemirror": "^6.1.1",
     "ws": "^8.13.0",
+    "y-codemirror.next": "^0.3.2",
     "y-protocols": "^1.0.5",
     "y-textarea": "^1.0.0",
     "y-websocket": "^1.5.0",

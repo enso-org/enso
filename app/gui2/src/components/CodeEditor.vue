@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useWindowEvent } from '@/util/events'
+import { EditorState } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
+import { basicSetup } from 'codemirror'
+// y-codemirror.next does not provide type information. See https://github.com/yjs/y-codemirror.next/issues/27
+// @ts-ignore
+import { yCollab } from 'y-codemirror.next'
+import { useGraphStore } from '@/stores/graph'
+import * as Y from 'yjs'
 
-const emit = defineEmits<{
-  codeUpdate: [code: string]
-}>()
+let graphStore = useGraphStore()
 
-const content = ref('')
+// == Keyboard shortcut to toggle the CodeEditor ==
+
 const shown = ref(false)
-
-watchEffect(() => {
-  emit('codeUpdate', content.value)
-})
-
-const textArea = ref<HTMLElement>()
 const rootElement = ref<HTMLElement>()
 
 useWindowEvent('keydown', (e) => {
+  console.log('keydown', e)
   const graphEditorInFocus = document.activeElement === document.body
   const codeEditorInFocus = rootElement.value?.contains(document.activeElement)
   const validFocus = graphEditorInFocus || codeEditorInFocus
@@ -27,39 +29,61 @@ useWindowEvent('keydown', (e) => {
   }
 })
 
-watchEffect(
-  () => {
-    /// If the code editor is shown, focus the text area to allow typing.
-    if (shown.value) {
-      textArea.value?.focus()
-    }
-  },
-  { flush: 'post' },
-)
+// == CodeMirror editor setup  ==
+
+const codeMirrorEl = ref(null)
+const editorView = ref<EditorView>()
+onMounted(() => {
+  watch(
+    () => graphStore.proj.module,
+    (module) => {
+      const yText = module?.contents
+      if (!yText) {
+        console.error('No module content available')
+        return
+      }
+      const undoManager = new Y.UndoManager(yText)
+      const state = EditorState.create({
+        doc: yText.toString(),
+        extensions: [basicSetup, yCollab(yText, null, { undoManager })],
+      })
+      if (!codeMirrorEl.value) {
+        console.error('Parent element for CodeMirror not found')
+        return
+      }
+      editorView.value = new EditorView({
+        parent: codeMirrorEl.value,
+        state,
+      })
+    },
+  )
+})
 </script>
 
 <template>
-  <div v-if="shown" ref="rootElement" class="CodeEditor" @keydown.enter.stop>
-    <textarea ref="textArea" v-model="content"></textarea>
+  <div v-show="shown" ref="rootElement" class="CodeEditor" @keydown.enter.stop>
+    <div ref="codeMirrorEl" class="codemirror-container"></div>
   </div>
 </template>
 
-<style scoped>
+<style>
 .CodeEditor {
   position: absolute;
   bottom: 0;
   left: 0;
+  width: 50%;
+  height: 30%;
 }
-
-.CodeEditor > textarea {
-  background-color: rgba(1, 1, 1, 0.1);
-  border: none;
-  resize: none;
-  width: 500px;
-  height: 500px;
+.codemirror-container {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.3);
 }
-
-.CodeEditor > textarea:focus {
-  outline: none !important;
+.cm-editor {
+  width: 100%;
+  height: 100%;
+}
+.cm-gutters {
+  display: none !important;
 }
 </style>
