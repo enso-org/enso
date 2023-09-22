@@ -82,6 +82,8 @@ interface Color {
 </script>
 
 <script setup lang="ts">
+import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+
 import FindIcon from './icons/find.svg'
 import ShowAllIcon from './icons/show_all.svg'
 
@@ -104,7 +106,6 @@ import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import type { Symbol } from 'd3'
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
 const emit = defineEmits<{

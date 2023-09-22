@@ -1,6 +1,3 @@
-import Compiler from '@/workers/visualizationCompiler?worker'
-import * as vueUseCore from '@vueuse/core'
-import type { VisualizationConfiguration } from 'shared/languageServerTypes'
 import * as vue from 'vue'
 import { type DefineComponent } from 'vue'
 
@@ -8,6 +5,9 @@ import { defineStore } from 'pinia'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import * as useVisualizationConfig from '@/providers/useVisualizationConfig'
+import Compiler from '@/workers/visualizationCompiler?worker'
+import * as vueUseCore from '@vueuse/core'
+import type { VisualizationConfiguration } from 'shared/languageServerTypes'
 
 /** A module containing the default visualization function. */
 const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'

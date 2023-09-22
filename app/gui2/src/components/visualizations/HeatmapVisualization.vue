@@ -39,8 +39,7 @@ declare var d3: typeof import('d3')
 </script>
 
 <script setup lang="ts">
-/** Heatmap Visualization. */
-// TODO refactor this to avoid loading on startup. See issue #985 .
+import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
@@ -48,8 +47,6 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
-
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{

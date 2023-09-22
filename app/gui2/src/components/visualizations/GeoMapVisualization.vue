@@ -82,10 +82,10 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
+import { computed, onMounted, ref, watchEffect } from 'vue'
+
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-
-import { computed, onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{

@@ -4,9 +4,9 @@ export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-
 import { onMounted } from 'vue'
+
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 type Data = Record<string, unknown>
 

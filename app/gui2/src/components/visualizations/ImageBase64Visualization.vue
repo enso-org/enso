@@ -9,9 +9,9 @@ interface Data {
 </script>
 
 <script setup lang="ts">
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-
 import { computed } from 'vue'
+
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 const props = defineProps<{ data: Data }>()
 
