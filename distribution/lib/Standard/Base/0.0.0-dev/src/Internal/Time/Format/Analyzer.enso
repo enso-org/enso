@@ -1,9 +1,12 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
+import project.Data.Time.Errors.Suspicious_Date_Time_Format
 import project.Data.Vector.Vector
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
+import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
@@ -26,3 +29,53 @@ type Analyzer
                 atom : Meta.Atom ->
                     atom.constructor == meta_ctor
                 _ -> False
+
+    ## PRIVATE
+       Runs basic validations that can happen on construction of the formatter, regardless of the context.
+    validate_after_parsing self ~continuation =
+        problem_builder = Vector.new_builder
+        self.check_possible_m_mismatches problem_builder
+        self.check_possible_seconds_aliasing problem_builder
+        Problem_Behavior.Report_Warning.attach_problems_after continuation problem_builder.to_vector
+
+    ## PRIVATE
+       Returns a new vector where nesting of optional segments is removed and
+       literal segments are removed - thus just a chain of pattern nodes remains.
+       It is impossible to tell which ones were optional, but it may be a more
+       suitable form for some checks.
+    flatten_and_simplify self =
+        get_pattern_nodes node = case node of
+            Common_Nodes.Optional_Section inner -> inner.flat_map get_pattern_nodes
+            Common_Nodes.Literal _ -> []
+            _ -> [node]
+
+        self.nodes.flat_map get_pattern_nodes
+
+    ## PRIVATE
+    check_possible_m_mismatches self problem_builder =
+        pattern_nodes = self.flatten_and_simplify
+        pattern_nodes.each_with_index ix-> value-> case value of
+            Standard_Date_Patterns.Month _ ->
+                # Warns only if surrounded from both sides or if it has a time node on the left and is the last node.
+                has_time_on_left = pattern_nodes.get ix-1 . is_a Time_Patterns
+                has_time_on_right_or_is_last =
+                    next = pattern_nodes.get ix+1
+                    next.is_nothing || next.is_a Time_Patterns
+                if has_time_on_left && has_time_on_right_or_is_last then
+                    problem_builder.append (Suspicious_Date_Time_Format.Warning "A Month pattern 'M' is used next to time patterns. Did you mean 'm' for minutes? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+            Time_Patterns.Minute _ ->
+                has_date_on_both_sides = (pattern_nodes.get ix-1 . is_a Standard_Date_Patterns) && (pattern_nodes.get ix+1 . is_a Standard_Date_Patterns)
+                if has_date_on_both_sides then
+                    problem_builder.append (Suspicious_Date_Time_Format.Warning "A Minute pattern 'm' is used between date patterns. Did you mean 'M' for months? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+            _ -> Nothing
+
+    ## PRIVATE
+    check_possible_seconds_aliasing self problem_builder =
+        pattern_nodes = self.flatten_and_simplify
+        seconds = pattern_nodes.filter node-> case node of
+            Time_Patterns.Second _ -> True
+            _ -> False
+        if seconds.length == 2 then
+            problem_builder.append (Suspicious_Date_Time_Format.Warning "Two second patterns have been detected ('s'/'S'). Our simple format treats seconds in a case-insensitive way. If you want to indicate a fraction of a second, use 'f' instead. (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")

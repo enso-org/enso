@@ -1,8 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
+from Standard.Base.Data.Time.Errors import Date_Time_Format_Parse_Error, Suspicious_Date_Time_Format
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -34,6 +35,29 @@ spec =
             Date_Time_Formatter.from "{baz}" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "]" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "'" . should_fail_with Date_Time_Format_Parse_Error
+
+        Test.specify "should gracefully handle Java pattern errors" <|
+            Date_Time_Formatter.from_java "}}{{,.,..} INVALID PATTERN FORMAT" . should_fail_with Illegal_Argument
+
+        Test.specify "should warn about likely M/m mistakes" <|
+            f1 = Date_Time_Formatter.from "yyyy-mm-dd"
+            w1 = Problems.expect_only_warning Suspicious_Date_Time_Format f1
+            w1.to_display_text . should_contain "Did you mean 'M'"
+            Date.parse "2020-01-02" f1 . should_fail_with Time_Error
+
+            f2 = Date_Time_Formatter.from "HH:MM:SS"
+            w2 = Problems.expect_only_warning Suspicious_Date_Time_Format f2
+            w2.to_display_text . should_contain "Did you mean 'm'"
+
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "HH:MM")
+
+            f3 = Date_Time_Formatter.from "HH:mm:ss.S"
+            w3 = Problems.expect_only_warning Suspicious_Date_Time_Format f3
+            w3.to_display_text . should_contain "'f' instead"
+
+            Problems.assume_no_problems (Date_Time_Formatter.from "mm")
+            Problems.assume_no_problems (Date_Time_Formatter.from "MM")
+            Problems.assume_no_problems (Date_Time_Formatter.from "YYYY-MM-DD")
 
     Test.group "Formatting date/time values" <|
         Test.specify "should allow printing month names" <|

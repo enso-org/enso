@@ -2,6 +2,7 @@ import project.Data.Locale.Locale
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Errors.Date_Time_Format_Parse_Error
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -10,16 +11,16 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
-import project.Internal.Time.Format.Tokenizer.Tokenizer
-import project.Internal.Time.Format.Parser
+import project.Internal.Time.Format.Analyzer.Analyzer
 import project.Internal.Time.Format.As_Java_Formatter_Interpreter
+import project.Internal.Time.Format.Parser
+import project.Internal.Time.Format.Tokenizer.Tokenizer
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import org.enso.base.time.EnsoDateTimeFormatter
 polyglot java import org.enso.base.time.FormatterKind
 
-## TODO compatibility check? can do Date can do Time?
 type Date_Time_Formatter
     ## PRIVATE
     Value (underlying : EnsoDateTimeFormatter)
@@ -120,9 +121,12 @@ type Date_Time_Formatter
 
              Date.parse "1 Nov '95" "d MMM ''yy{2099}" == (Date.new 2095 11 01)
     @locale Locale.default_widget
+    from_simple_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_simple_pattern pattern:Text locale:Locale=Locale.default =
-        java_formatter = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern |>
-            As_Java_Formatter_Interpreter.interpret locale
+        parsed = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern
+        analyzer = Analyzer.Value parsed
+        java_formatter = analyzer.validate_after_parsing <|
+            As_Java_Formatter_Interpreter.interpret locale parsed
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE)
 
     ## Creates a formatter from a pattern for the ISO 8601 leap week calendar.
@@ -167,9 +171,12 @@ type Date_Time_Formatter
 
              Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") "1978-W01" == (Date.new 1978 01 02)
     @locale Locale.default_widget
+    from_iso_week_date_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_iso_week_date_pattern pattern:Text locale:Locale=Locale.default =
-        java_formatter = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern |>
-            As_Java_Formatter_Interpreter.interpret locale
+        parsed = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern
+        analyzer = Analyzer.Value parsed
+        java_formatter = analyzer.validate_after_parsing <|
+            As_Java_Formatter_Interpreter.interpret locale parsed
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE)
 
     ## ADVANCED
@@ -186,13 +193,14 @@ type Date_Time_Formatter
          pattern. If not specified, defaults to `Locale.default`. If passing a
          `DateTimeFormatter` instance and this argument is set, it will
          overwrite the original locale of that formatter.
+    from_java : Text|DateTimeFormatter -> Locale -> Date_Time_Formatter ! Illegal_Argument
     from_java pattern (locale:Locale|Nothing=Nothing) = case pattern of
         java_formatter : DateTimeFormatter ->
             amended_formatter = case locale of
                 Nothing -> java_formatter
                 _ : Locale -> java_formatter.withLocale locale.java_locale
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new amended_formatter Nothing FormatterKind.RAW_JAVA)
-        _ : Text ->
+        _ : Text -> Illegal_Argument.handle_java_exception <|
             java_locale = (locale.if_nothing Locale.default).java_locale
             java_formatter = DateTimeFormatter.ofPattern pattern java_locale
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.RAW_JAVA)
@@ -203,6 +211,7 @@ type Date_Time_Formatter
 
        For example, it may parse date of the form `2011-12-03 10:15:30+01:00[Europe/Paris]`,
        as well as `2011-12-03T10:15:30` assuming the default timezone.
+    default_enso_zoned_date_time : Date_Time_Formatter
     default_enso_zoned_date_time =
         Date_Time_Formatter.Value EnsoDateTimeFormatter.default_enso_zoned_date_time_formatter
 
@@ -210,6 +219,7 @@ type Date_Time_Formatter
        The date and time parts may be separated by a single space or a `T`.
 
        For example, it may parse date of the form `2011-12-03 10:15:30+01:00[Europe/Paris]`.
+    iso_zoned_date_time : Date_Time_Formatter
     iso_zoned_date_time =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_ZONED_DATE_TIME "iso_zoned_date_time")
 
@@ -217,6 +227,7 @@ type Date_Time_Formatter
        The date and time parts may be separated by a single space or a `T`.
 
        For example, it may parse date of the form `2011-12-03 10:15:30+01:00`.
+    iso_offset_date_time : Date_Time_Formatter
     iso_offset_date_time =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_OFFSET_DATE_TIME "iso_offset_date_time")
 
@@ -225,18 +236,21 @@ type Date_Time_Formatter
 
        For example, it may parse date of the form `2011-12-03 10:15:30`. The
        timezone will be set to `Time_Zone.system`.
+    iso_local_date_time : Date_Time_Formatter
     iso_local_date_time =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_LOCAL_DATE_TIME "iso_local_date_time")
 
     ## The ISO 8601 format for date.
 
        For example, it may parse date of the form `2011-12-03`.
+    iso_date : Date_Time_Formatter
     iso_date =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_DATE "iso_date")
 
     ## The ISO 8601 format for time.
 
        For example, it may parse time of the form `10:15:30`.
+    iso_time : Date_Time_Formatter
     iso_time =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_TIME "iso_time")
 
@@ -255,6 +269,7 @@ type Date_Time_Formatter
             Nothing -> "Date_Time_Formatter.from_java " + self.underlying.getFormatter.to_text
 
     ## Parses a human-readable representation of this formatter.
+    to_display_text : Text
     to_display_text self = self.to_text
 
     ## Returns a copy of this formatter with a changed locale.
@@ -294,14 +309,3 @@ type Date_Time_Formatter
 ## PRIVATE
 Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =
     Date_Time_Formatter.from_simple_pattern that locale
-
-## PRIVATE
-type Date_Time_Format_Parse_Error
-    ## PRIVATE
-       Indicates an error during parsing of a date time format pattern.
-    Error message
-
-    ## PRIVATE
-    to_display_text : Text
-    to_display_text self =
-        "Error parsing date/time format pattern: " + self.message
