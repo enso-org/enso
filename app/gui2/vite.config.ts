@@ -6,7 +6,7 @@ import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, Plugin } from 'vite'
 import topLevelAwait from 'vite-plugin-top-level-await'
 import * as tailwindConfig from '../ide-desktop/lib/dashboard/tailwind.config'
-import { createGatewayServer } from './server'
+import { createGatewayServer } from './ydoc-server'
 
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
@@ -14,6 +14,9 @@ const projectManagerUrl = 'ws://127.0.0.1:30535'
 export default defineConfig({
   cacheDir: '../../node_modules/.cache/vite',
   plugins: [vue(), gatewayServer(), topLevelAwait()],
+  optimizeDeps: {
+    entries: 'index.html',
+  },
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -42,7 +45,7 @@ export default defineConfig({
 
 function gatewayServer(): Plugin {
   return {
-    name: 'y-websocket-server',
+    name: 'gateway-server',
     configureServer(server) {
       if (server.httpServer == null) return
 

@@ -37,22 +37,12 @@ export class DistributedProject {
     return Array.from(this.modules.keys())
   }
 
-  // observe(callback: (update: ProjectUpdate) => void) {
-  //   return this.doc.on('update', callback)
-  // }
-
   findModuleByDocId(id: string): string | null {
     for (const [name, doc] of this.modules.entries()) {
       if (doc.guid === id) return name
     }
     return null
   }
-
-  // async findModuleByName(name: string): Promise<number | null> {
-  //   await this.doc.whenLoaded
-  //   const index = this.moduleNames().indexOf(name)
-  //   return index < 0 ? null : index
-  // }
 
   async openModule(name: string): Promise<DistributedModule | null> {
     const doc = this.modules.get(name)
@@ -321,4 +311,59 @@ export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
 
 export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
   return a[0] <= b[1] && a[1] >= b[0]
+}
+
+if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest
+  type RangeTest = { a: ContentRange; b: ContentRange }
+
+  const equalRanges: RangeTest[] = [
+    { a: [0, 0], b: [0, 0] },
+    { a: [0, 1], b: [0, 1] },
+    { a: [-5, 5], b: [-5, 5] },
+  ]
+
+  const totalOverlap: RangeTest[] = [
+    { a: [0, 1], b: [0, 0] },
+    { a: [0, 2], b: [2, 2] },
+    { a: [-1, 1], b: [1, 1] },
+    { a: [0, 2], b: [0, 1] },
+    { a: [-10, 10], b: [-3, 7] },
+    { a: [0, 5], b: [1, 2] },
+    { a: [3, 5], b: [3, 4] },
+  ]
+
+  const reverseTotalOverlap: RangeTest[] = totalOverlap.map(({ a, b }) => ({ a: b, b: a }))
+
+  const noOverlap: RangeTest[] = [
+    { a: [0, 1], b: [2, 3] },
+    { a: [0, 1], b: [-1, -1] },
+    { a: [5, 6], b: [2, 3] },
+    { a: [0, 2], b: [-2, -1] },
+    { a: [-5, -3], b: [9, 10] },
+    { a: [-3, 2], b: [3, 4] },
+  ]
+
+  const partialOverlap: RangeTest[] = [
+    { a: [0, 3], b: [-1, 1] },
+    { a: [0, 1], b: [-1, 0] },
+    { a: [0, 0], b: [-1, 0] },
+    { a: [0, 2], b: [1, 4] },
+    { a: [-8, 0], b: [0, 10] },
+  ]
+
+  test.each([...equalRanges, ...totalOverlap])('Range $a should enclose $b', ({ a, b }) =>
+    expect(rangeEncloses(a, b)).toBe(true),
+  )
+  test.each([...noOverlap, ...partialOverlap, ...reverseTotalOverlap])(
+    'Range $a should not enclose $b',
+    ({ a, b }) => expect(rangeEncloses(a, b)).toBe(false),
+  )
+  test.each([...equalRanges, ...totalOverlap, ...reverseTotalOverlap, ...partialOverlap])(
+    'Range $a should intersect $b',
+    ({ a, b }) => expect(rangeIntersects(a, b)).toBe(true),
+  )
+  test.each([...noOverlap])('Range $a should not intersect $b', ({ a, b }) =>
+    expect(rangeIntersects(a, b)).toBe(false),
+  )
 }

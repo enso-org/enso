@@ -1,4 +1,3 @@
-import { fileName } from '@/util/file'
 import Compiler from '@/workers/visualizationCompiler?worker'
 import * as vueUseCore from '@vueuse/core'
 import type { VisualizationConfiguration } from 'shared/lsTypes'
@@ -35,7 +34,7 @@ window.__visualizationModules = moduleCache
 
 export type Visualization = DefineComponent<
   // Props
-  { data: {} | undefined },
+  { data: {} },
   {},
   {},
   {},
@@ -43,33 +42,41 @@ export type Visualization = DefineComponent<
   {},
   {},
   // Emits
-  { 'update:preprocessor': (module: string, method: string, ...args: string[]) => void }
+  {
+    'update:preprocessor': (module: string, method: string, ...args: string[]) => void
+  }
 >
 type VisualizationModule = {
   default: Visualization
-  name?: string
-  inputType?: string
+  name: string
+  inputType: string
   scripts?: string[]
   styles?: string[]
 }
 
-const builtinVisualizationPaths: Record<string, string> = {
-  JSON: '/visualizations/JSONVisualization.vue',
-  Table: '/visualizations/TableVisualization.vue',
-  Scatterplot: '/visualizations/ScatterplotVisualization.vue',
-  Histogram: '/visualizations/HistogramVisualization.vue',
-  Heatmap: '/visualizations/HeatmapVisualization.vue',
-  'SQL Query': '/visualizations/SQLVisualization.vue',
-  'Geo Map': '/visualizations/GeoMapVisualization.vue',
-  Image: '/visualizations/ImageBase64Visualization.vue',
-  Warnings: '/visualizations/WarningsVisualization.vue',
+const builtinVisualizationImports: Record<string, () => Promise<VisualizationModule>> = {
+  JSON: () => import('@/components/visualizations/JSONVisualization.vue') as any,
+  Table: () => import('@/components/visualizations/TableVisualization.vue') as any,
+  Scatterplot: () => import('@/components/visualizations/ScatterplotVisualization.vue') as any,
+  Histogram: () => import('@/components/visualizations/HistogramVisualization.vue') as any,
+  Heatmap: () => import('@/components/visualizations/HeatmapVisualization.vue') as any,
+  'SQL Query': () => import('@/components/visualizations/SQLVisualization.vue') as any,
+  'Geo Map': () => import('@/components/visualizations/GeoMapVisualization.vue') as any,
+  Image: () => import('@/components/visualizations/ImageBase64Visualization.vue') as any,
+  Warnings: () => import('@/components/visualizations/WarningsVisualization.vue') as any,
+}
+
+const dynamicVisualizationPaths: Record<string, string> = {
+  'Scatterplot 2': '/visualizations/ScatterplotVisualization.vue',
+  'Geo Map 2': '/visualizations/GeoMapVisualization.vue',
 }
 
 export const useVisualizationStore = defineStore('visualization', () => {
-  // TODO: Figure out how to list visualizations defined by a project.
-  const paths = { ...builtinVisualizationPaths }
-  let cache: Record<string, any> = {}
-  const types = Object.keys(paths)
+  // TODO [sb]: Figure out how to list visualizations defined by a project.
+  const imports = { ...builtinVisualizationImports }
+  const paths = { ...dynamicVisualizationPaths }
+  let cache: Record<string, VisualizationModule> = {}
+  const types = [...Object.keys(imports), ...Object.keys(paths)]
   let worker: Worker | undefined
   let workerMessageId = 0
   const workerCallbacks: Record<
@@ -77,8 +84,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
     { resolve: (result: VisualizationModule) => void; reject: () => void }
   > = {}
 
-  function register(name: string, inputType: string) {
-    console.log(`registering visualization: name=${name}, inputType=${inputType}`)
+  function register(module: VisualizationModule) {
+    console.log(`registering visualization: name=${module.name}, inputType=${module.inputType}`)
   }
 
   async function compile(path: string) {
@@ -91,7 +98,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           event: MessageEvent<
             | { type: 'style'; code: string }
             | { type: 'raw-import'; path: string; value: unknown }
-            | { type: 'url-import'; path: string; mimeType: string; value: string }
+            | { type: 'url-import'; path: string; mimeType: string; value: BlobPart }
             | { type: 'import'; path: string; code: string }
             | { type: 'compilation-result'; id: number; path: string }
           >,
@@ -182,20 +189,23 @@ export const useVisualizationStore = defineStore('visualization', () => {
 
   // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
   async function get(type: string) {
-    let component: Visualization = cache[type]
-    if (component == null) {
-      const path = paths[type]
-      if (path == null) {
-        return
-      }
-      const module = await compile(path)
-      // TODO[sb]: fallback to name based on path to visualization.
-      register(module.name ?? fileName(path) ?? type, module.inputType ?? 'Any')
-      await loadScripts(module)
-      component = module.default
-      cache[type] = component
+    let module = cache[type]
+    if (module == null) {
+      module = await imports[type]?.()
     }
-    return component
+    if (module == null) {
+      const path = paths[type]
+      if (path != null) {
+        module = await compile(path)
+      }
+    }
+    if (module == null) {
+      return
+    }
+    register(module)
+    await loadScripts(module)
+    cache[type] = module
+    return module.default
   }
 
   function clear() {

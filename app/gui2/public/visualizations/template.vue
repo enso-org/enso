@@ -2,18 +2,21 @@
 export const name = '<name here>'
 export const inputType = '<allowed input type(s) here>'
 
-// Optional: Move the type `Data` here if it errors when placed in the `script setup` block.
+interface Data {
+  dataType: 'here'
+}
 </script>
 
 <script setup lang="ts">
 import VisualizationContainer from 'builtins/VisualizationContainer.vue'
-import { computed, onMounted } from 'vue'
-// Optional
+import { onMounted } from 'vue'
+// Optional: add your own external dependencies. The @ts-expect-error is required because TypeScript
+// does not allow HTTP imports.
 // @ts-expect-error
 import dependency from 'http://<js dependency here>'
 
 const props = defineProps<{
-  data: Data | string | undefined
+  data: Data
 }>()
 const emit = defineEmits<{
   // Optional:
@@ -24,12 +27,6 @@ const emit = defineEmits<{
 onMounted(() => {
   emit('update:preprocessor', '<module path here>', '<method name here>', '<optional args here>')
 })
-
-type Data = { dataType: 'here' }
-
-const data = computed<Data | undefined>(() =>
-  typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
-)
 </script>
 
 <template>

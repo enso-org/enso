@@ -18,7 +18,7 @@ import type {
   TextFileContents,
   VisualizationConfiguration,
   response,
-} from './lsTypes'
+} from './languageServerTypes'
 import type { Uuid } from './yjsModel'
 
 /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md) */
@@ -54,6 +54,8 @@ export class LanguageServer extends ObservableV2<Notifications> {
     }
   }
 
+  // The "magic bag of holding" generic that is only present in the return type is UNSOUND.
+  // However, it is SAFE, as the return type of the API is statically known.
   private request<T>(method: string, params: object): Promise<T> {
     return this.client.request({ method, params })
   }

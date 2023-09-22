@@ -128,7 +128,7 @@ type Connection
 
     ## PRIVATE
        Gets a list of the table types
-    table_types : [Text]
+    table_types : Vector Text
     table_types self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
@@ -355,6 +355,7 @@ type Connection
         if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+                stmt.toString.write "C:\Temp\MyQueries.sql" on_existing_file=Existing_File_Behavior.Append
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False

@@ -16,6 +16,7 @@ import org.enso.projectmanager.control.core.{
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.{
+  LanguageServerStatus,
   MissingComponentAction,
   ProjectMetadata,
   RunningLanguageServerInfo
@@ -147,13 +148,14 @@ class ProjectService[
   ): F[ProjectServiceFailure, Unit] =
     isServerRunning(projectId)
       .flatMap {
-        case false => CovariantFlatMap[F].pure(())
-        case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
+        case (false, _)    => CovariantFlatMap[F].pure(())
+        case (true, true)  => ErrorChannel[F].fail(CannotRemoveClosingProject)
+        case (true, false) => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 
   private def isServerRunning(
     projectId: UUID
-  ): F[ProjectServiceFailure, Boolean] =
+  ): F[ProjectServiceFailure, (Boolean, Boolean)] =
     languageServerGateway
       .isRunning(projectId)
       .mapError(_ => ProjectOperationTimeout)
@@ -186,7 +188,7 @@ class ProjectService[
   ): F[ProjectServiceFailure, Unit] = {
     val cmd = new MoveProjectDirCmd[F](projectId, newName, repo, log)
     CovariantFlatMap[F]
-      .ifM(isServerRunning(projectId))(
+      .ifM(isServerRunning(projectId).map(_._1))(
         ifTrue = for {
           _ <- log.debug(
             "Registering shutdown hook to rename the project [{}] " +
@@ -519,4 +521,20 @@ class ProjectService[
 
   }
 
+  /** Retrieve project info.
+    *
+    * @param clientId  the requester id
+    * @param projectId the project id
+    * @return either failure or [[LanguageServerStatus]] representing success
+    */
+  override def getProjectStatus(
+    clientId: UUID,
+    projectId: UUID
+  ): F[ProjectServiceFailure, LanguageServerStatus] = {
+    log.debug(s"Retrieving the state of project [{}].", projectId)
+    languageServerGateway
+      .isRunning(projectId)
+      .map(e => LanguageServerStatus(e._1, e._2))
+      .mapError(_ => LanguageServerFailure("failed to retrieve project state"))
+  }
 }

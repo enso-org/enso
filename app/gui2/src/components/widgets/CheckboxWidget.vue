@@ -4,8 +4,8 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
 </script>
 
 <template>
-  <div class="Checkbox" @click="emit('update:modelValue', !modelValue)">
-    <div :class="{ hidden: !modelValue }"></div>
+  <div class="Checkbox" @click="emit('update:modelValue', !props.modelValue)">
+    <div :class="{ hidden: !props.modelValue }"></div>
   </div>
 </template>
 

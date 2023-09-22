@@ -12,16 +12,16 @@ import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
+import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
-import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
-import * as utils from '../../utils'
 import * as tailwindConfig from './tailwind.config'
+import * as utils from '../../utils'
 
 // =================
 // === Constants ===
@@ -129,7 +129,7 @@ export function bundlerOptions(args: Arguments) {
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         pure: ['assert'],
-        sourcemap: true as NonNullable<esbuild.BuildOptions['sourcemap']>,
+        sourcemap: true,
         minify: !devMode,
         metafile: trueBoolean,
         format: 'esm',

@@ -5,12 +5,12 @@
 import * as semver from 'semver'
 import * as toastify from 'react-toastify'
 
+import * as app from 'ensogl-runner/src/runner'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 import * as dashboard from 'enso-authentication'
 import * as detect from 'enso-common/src/detect'
 
-import * as app from '../../../../../target/ensogl-pack/linked-dist'
 import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
@@ -141,7 +141,7 @@ function displayDeprecatedVersionDialog() {
 // ========================
 
 /** Nested configuration options with `string` values. */
-interface StringConfig {
+export interface StringConfig {
     [key: string]: StringConfig | string
 }
 

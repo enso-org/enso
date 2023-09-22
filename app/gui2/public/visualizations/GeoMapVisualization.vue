@@ -91,14 +91,10 @@ import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 
 import { computed, onMounted, ref, watchEffect } from 'vue'
 
-const props = defineProps<{ data: Data | string | undefined }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:processor': [module: string, method: string]
 }>()
-
-const data = computed<Data | undefined>(() =>
-  typeof props.data === 'string' ? JSON.parse(props.data) : props.data,
-)
 
 /** GeoMap Visualization. */
 
@@ -143,7 +139,7 @@ const viewState = computed(() => ({
 }))
 
 watchEffect(() => {
-  if (data.value && updateState(data.value)) {
+  if (updateState(props.data)) {
     updateMap()
     updateLayers()
   }
@@ -424,7 +420,6 @@ function pushPoints(newPoints: Location[]) {
 
 <style>
 .GeoMapVisualization > .mapboxgl-map {
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  border-radius: 16px;
 }
 </style>

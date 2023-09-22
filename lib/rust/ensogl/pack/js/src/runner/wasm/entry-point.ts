@@ -77,7 +77,10 @@ export class EntryPoint {
 // ============================
 
 export class BeforeMainEntryPoint extends EntryPoint {
-    constructor(strippedName: string, public priority: number) {
+    constructor(
+        strippedName: string,
+        public priority: number
+    ) {
         super(strippedName)
         this.prefix = BEFORE_MAIN_ENTRY_POINT_PREFIX
     }

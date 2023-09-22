@@ -30,6 +30,7 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
@@ -216,7 +217,12 @@ public abstract class ReadArgumentCheckNode extends Node {
       this.expectedType = expectedType;
     }
 
-    @Specialization(rewriteOn = InvalidAssumptionException.class)
+    @Specialization
+  Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
+    throw panicSentinel;
+  }
+
+  @Specialization(rewriteOn = InvalidAssumptionException.class)
     Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {
       var ret = findAmongTypes(v);
       if (ret != null) {
@@ -282,6 +288,9 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     private Pair<Function, Type> findConversion(Type from) {
+      if (expectedType == from) {
+        return null;
+      }
       var ctx = EnsoContext.get(this);
 
       if (getRootNode() instanceof EnsoRootNode root) {

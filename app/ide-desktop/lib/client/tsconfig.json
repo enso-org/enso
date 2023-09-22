@@ -6,10 +6,10 @@
   },
   "include": [
     ".",
-    "../types",
     "../content",
+    "../dashboard",
+    "../types",
     "../../utils.ts",
-    "../../build.json",
-    "../dashboard/esbuild-config.ts"
-  ],
+    "../../../../build.json"
+  ]
 }

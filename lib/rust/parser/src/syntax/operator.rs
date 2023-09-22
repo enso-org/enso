@@ -17,6 +17,8 @@ use crate::syntax::token::Token;
 pub struct Precedence<'s> {
     nospace_builder: ExpressionBuilder<'s>,
     builder:         ExpressionBuilder<'s>,
+    /// Parses child blocks. Stores no semantic state, but is reused for performance.
+    child:           Option<Box<Precedence<'s>>>,
 }
 
 impl<'s> Default for Precedence<'s> {
@@ -31,6 +33,7 @@ impl<'s> Precedence<'s> {
         Self {
             nospace_builder: ExpressionBuilder { nospace: true, ..default() },
             builder:         ExpressionBuilder { nospace: false, ..default() },
+            child:           default(),
         }
     }
 
@@ -67,8 +70,11 @@ impl<'s> Precedence<'s> {
             syntax::Item::Token(token) =>
                 self.nospace_builder.operand(syntax::tree::to_ast(token).into()),
             syntax::Item::Tree(tree) => self.nospace_builder.operand(tree.into()),
-            syntax::Item::Block(lines) =>
-                self.nospace_builder.operand(syntax::item::build_block(lines).into()),
+            syntax::Item::Block(lines) => {
+                let mut child = self.child.take().unwrap_or_default();
+                self.nospace_builder.operand(syntax::item::build_block(lines, &mut child).into());
+                self.child = Some(child);
+            }
         }
     }
 
@@ -89,24 +95,6 @@ impl<'s> Extend<syntax::Item<'s>> for Precedence<'s> {
             self.push(token);
         }
     }
-}
-
-/// Take [`Item`] stream, resolve operator precedence and return the final AST.
-///
-/// The precedence resolution algorithm is based on the Shunting yard algorithm[1], extended to
-/// handle operator sections.
-/// [1]: https://en.wikipedia.org/wiki/Shunting_yard_algorithm
-pub fn resolve_operator_precedence(items: NonEmptyVec<syntax::Item<'_>>) -> syntax::Tree<'_> {
-    resolve_operator_precedence_if_non_empty(items).unwrap()
-}
-
-/// If the input sequence is non-empty, return the result of applying
-/// [`resolve_operator_precedence`] to it.
-pub fn resolve_operator_precedence_if_non_empty<'s>(
-    items: impl IntoIterator<Item = syntax::Item<'s>>,
-) -> Option<syntax::Tree<'s>> {
-    let mut precedence = Precedence::new();
-    precedence.resolve(items)
 }
 
 // Returns `true` for an item if that item should not follow any other item in a no-space group
@@ -434,7 +422,7 @@ impl<'s> ExpressionBuilder<'s> {
     }
 }
 
-/// Classify an item as an operator, or operand; this is used in [`resolve_operator_precedence`] to
+/// Classify an item as an operator, or operand; this is used in [`Precedence::resolve`] to
 /// merge consecutive nodes of the same type.
 #[derive(PartialEq, Eq, Debug)]
 enum ItemType {

@@ -1,22 +1,4 @@
 <script setup lang="ts">
-import CircularMenu from '@/components/CircularMenu.vue'
-import NodeSpan from '@/components/NodeSpan.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
-import type { Node } from '@/stores/graph'
-import { Rect } from '@/stores/rect'
-import {
-  DEFAULT_VISUALIZATION_CONFIGURATION,
-  useVisualizationStore,
-  type Visualization,
-} from '@/stores/visualization'
-import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
-import type { Vec2 } from '@/util/vec2'
-import * as random from 'lib0/random'
-import { OutboundPayload, type VisualizationUpdate } from 'shared/binaryProtocol'
-import { uuidFromBits, type DataServer } from 'shared/dataServer'
-import type { LanguageServer } from 'shared/languageServer'
-import type { VisualizationConfiguration } from 'shared/lsTypes'
-import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
 import {
   computed,
   onMounted,
@@ -29,10 +11,29 @@ import {
   watchEffect,
   type Raw,
 } from 'vue'
+
+import CircularMenu from '@/components/CircularMenu.vue'
+import NodeSpan from '@/components/NodeSpan.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import {
   provideVisualizationConfig,
   type VisualizationConfig,
-} from '../providers/visualizationConfig'
+} from '@/providers/visualizationConfig'
+import type { Node } from '@/stores/graph'
+import { Rect } from '@/stores/rect'
+import {
+  DEFAULT_VISUALIZATION_CONFIGURATION,
+  useVisualizationStore,
+  type Visualization,
+} from '@/stores/visualization'
+import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
+import type { Vec2 } from '@/util/vec2'
+import * as random from 'lib0/random'
+import { OutboundPayload, type VisualizationUpdate } from 'shared/binaryProtocol'
+import { type DataServer } from 'shared/dataServer'
+import type { LanguageServer } from 'shared/languageServer'
+import type { VisualizationConfiguration } from 'shared/languageServerTypes'
+import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
 
 const props = defineProps<{
   node: Node

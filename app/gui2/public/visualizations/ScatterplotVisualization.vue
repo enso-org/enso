@@ -58,8 +58,8 @@ interface PointsConfiguration {
 }
 
 enum ScaleType {
-  linear = 'linear',
-  logarithmic = 'logarithmic',
+  Linear = 'linear',
+  Logarithmic = 'logarithmic',
 }
 
 interface AxisConfiguration {
@@ -104,9 +104,9 @@ import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
 
 import type { Symbol } from 'd3'
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
-const props = defineProps<{ data: Partial<Data> | number[] | string | undefined }>()
+const props = defineProps<{ data: Partial<Data> | number[] }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
@@ -142,16 +142,12 @@ const SHAPE_TO_SYMBOL: Record<string, SymbolType> = {
 }
 
 const SCALE_TO_D3_SCALE: Record<ScaleType, ScaleContinuousNumeric<number, number>> = {
-  [ScaleType.linear]: d3.scaleLinear(),
-  [ScaleType.logarithmic]: d3.scaleLog(),
+  [ScaleType.Linear]: d3.scaleLinear(),
+  [ScaleType.Logarithmic]: d3.scaleLog(),
 }
 
-const data = computed<Data | undefined>(() => {
-  let rawData: Partial<Data> | number[] | undefined =
-    typeof props.data === 'string' ? JSON.parse(props.data) : props.data
-  if (rawData == null) {
-    return
-  }
+const data = computed<Data>(() => {
+  let rawData = props.data
   const unfilteredData = Array.isArray(rawData)
     ? rawData.map((y, index) => ({ x: index, y }))
     : rawData.data ?? []
@@ -166,8 +162,8 @@ const data = computed<Data | undefined>(() => {
     rawData = {}
   }
   const axis: AxesConfiguration = rawData.axis ?? {
-    x: { label: '', scale: ScaleType.linear },
-    y: { label: '', scale: ScaleType.linear },
+    x: { label: '', scale: ScaleType.Linear },
+    y: { label: '', scale: ScaleType.Linear },
   }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
@@ -465,9 +461,7 @@ function rescale(xScale: Scale, yScale: Scale) {
 }
 
 const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${
-  ACCENT_COLOR.blue
-},0.8)`
+const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
 
 function redrawData() {
   if (data.value == null) {
@@ -546,7 +540,7 @@ watchEffect(() => {
 
 onMounted(() => queueMicrotask(redrawData))
 watch([data, width, height], () => queueMicrotask(redrawData))
-watchEffect(redrawData)
+watchPostEffect(redrawData)
 
 // ======================
 // === Event handlers ===

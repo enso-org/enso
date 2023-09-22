@@ -141,7 +141,7 @@ type Map key value
     remove : Any -> Map ! No_Such_Key
     remove self key =
         Panic.catch Any (self.remove_builtin key) _->
-            Error.throw No_Such_Key.Error self key
+            Error.throw (No_Such_Key.Error self key)
 
     ## GROUP Selections
        Gets the value associated with `key` in this map, or throws a

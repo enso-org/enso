@@ -1,7 +1,6 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as React from 'react'
 
-import * as backend from '../backend'
 import * as permissionsModule from '../permissions'
 
 // =================

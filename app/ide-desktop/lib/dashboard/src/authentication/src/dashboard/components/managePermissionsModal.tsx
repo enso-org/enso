@@ -8,6 +8,7 @@ import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as permissionsModule from '../permissions'
 import * as modalProvider from '../../providers/modal'
+import * as permissionsModule from '../permissions'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
@@ -28,7 +29,7 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 
 /** Props for a {@link ManagePermissionsModal}. */
 export interface ManagePermissionsModalProps<
-    Asset extends backendModule.AnyAsset = backendModule.AnyAsset
+    Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
     item: Asset
     setItem: React.Dispatch<React.SetStateAction<Asset>>
@@ -44,7 +45,7 @@ export interface ManagePermissionsModalProps<
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
 export default function ManagePermissionsModal<
-    Asset extends backendModule.AnyAsset = backendModule.AnyAsset
+    Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
     const { item, setItem, self, doRemoveSelf, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
