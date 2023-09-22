@@ -6,7 +6,6 @@ import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
-import * as permissionsModule from '../permissions'
 import * as modalProvider from '../../providers/modal'
 import * as permissionsModule from '../permissions'
 

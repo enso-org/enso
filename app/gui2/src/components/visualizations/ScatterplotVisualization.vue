@@ -104,7 +104,6 @@ import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
 
 import type { Symbol } from 'd3'
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
 const emit = defineEmits<{
