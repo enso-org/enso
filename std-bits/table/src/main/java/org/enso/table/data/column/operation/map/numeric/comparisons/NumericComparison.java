@@ -169,7 +169,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
           yield runBigIntegerZip(left, right, problemBuilder);
         }
         case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
-        case default -> runMixedZip(lhs, arg, problemBuilder);
+        default -> runMixedZip(lhs, arg, problemBuilder);
       };
 
       case BigIntegerStorage lhs -> {
@@ -184,11 +184,11 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
             yield runBigIntegerZip(left, right, problemBuilder);
           }
           case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
-          case default -> runMixedZip(lhs, arg, problemBuilder);
+          default -> runMixedZip(lhs, arg, problemBuilder);
         };
       }
 
-      case default ->
+      default ->
           throw new IllegalStateException("Unsupported lhs storage: " + storage.getClass().getCanonicalName());
     };
   }

@@ -1,0 +1,307 @@
+import project.Data.Locale.Locale
+import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Time_Error.Time_Error
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+
+import project.Internal.Time.Format.Tokenizer.Tokenizer
+import project.Internal.Time.Format.Parser
+import project.Internal.Time.Format.As_Java_Formatter_Interpreter
+
+polyglot java import java.lang.Exception as JException
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import org.enso.base.time.EnsoDateTimeFormatter
+polyglot java import org.enso.base.time.FormatterKind
+
+## TODO compatibility check? can do Date can do Time?
+type Date_Time_Formatter
+    ## PRIVATE
+    Value (underlying : EnsoDateTimeFormatter)
+
+    ## Creates a formatter from a simple date-time format pattern.
+
+       Every letter in the pattern is interpreted as a pattern character as
+       described in the table below. Any character that is not a letter in the
+       pattern is treated as a literal character. If a sequence of letters needs
+       to be put in as a literal, it can be escaped using single quotes. Use two
+       single quotes in a row to represent a single quote in the result. As
+       explained below, curly braces can have special meaning (see 'yy'); to
+       enter a literal curly brace, put it inside a quoted literal.
+
+       Pattern characters are interpreted case insensitively, with the exception
+       of `M/m' and 'H/h'.
+
+       Date pattern characters:
+       - y: Year. The number of pattern letters determines the minimum number of
+         digits.
+         - y: The year using any number of digits.
+         - yy: The year, using at most two digits. The default range is
+           1950-2049, but this can be changed by including the end year in
+           braces e.g. `yy{2099}`.
+         - yyyy: The year, using exactly four digits.
+       - M: Month of year. The number of pattern letters determines the format:
+         - M: Any number (1-12).
+         - MM: Month number with zero padding required (01-12).
+         - MMM: Short name of the month (Jan-Dec).
+         - MMMM: Full name of the month (January-December).
+         The month names depend on the selected locale.
+       - d: Day. The number of pattern letters determines the format:
+         - d: Any number (1-31).
+         - dd: Day number with zero padding required (01-31).
+         - ddd: Short name of the day of week (Mon-Sun).
+         - dddd: Full name of the day of week (Monday-Sunday).
+         The weekday names depend on the selected locale.
+         Both day of week and day of month may be included in a single pattern -
+         in such case the day of week is used as a sanity check.
+       - e: An alternative notation: single `e` maps to `ddd` and `ee` or more
+         map to `dddd` meaning name of day of week.
+       - Q: Quarter of year.
+         If only year and quarter are provided in the pattern, when parsing a
+         date, the result will be the first day of that quarter.
+
+       Time pattern characters:
+       - H: 24h hour of day (0-23).
+       - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+         between AM and PM.
+       - m: Minute of hour.
+       - s: Second of minute.
+       - f: Fractional part of the second. The number of pattern letters
+         determines the number of digits. If one letter is used, any number of
+         digits will be accepted.
+       - a: AM/PM marker.
+
+       Time zone pattern characters:
+       - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
+         -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
+       - Z: Zone offset.
+         - Z, ZZ, ZZZ: A short offset form (+HHmm).
+           No offset is indicated by "+0000". This can be customized by setting
+           an alternative no offset string in curly braces, e.g. `zz{Z}`.
+         - ZZZZ: Localized offset (e.g. GMT-08:00).
+         - ZZZZZ: A full offset form (+HH:mm:ss).
+           No offset is indicated by "Z". This can be customized as above, e.g.
+           `ZZZZZ{0}`.
+       - v: Time zone name (same as TTTT).
+       - V: Time zone ID (same as T).
+
+       Some parts, like fractions of a second may not be required. The square
+       brackets `[]` can be used to surround such optional sections.
+
+       > Example
+         Parsing date/time values
+
+             Date_Time.parse "2021-10-12T12:34:56.789+0200" "yyyy-MM-dd'T'HH:mm:ss.fZ" == (Date_Time.new 2021 10 12 12 34 56 millisecond=789 zone=(Time_Zone.new hours=2))
+             Date.parse "Tue, 12 Oct 2021" "ddd, d MMM yyyy" == (Date.new 2021 10 12)
+             Date_Time.parse "12/10/2021 5:34 PM" "d/M/Y h:mm a" == (Date_Time.new 2021 10 12 17 34 00)
+
+       > Example
+         Note that the default locale may not support full-length day/month names, so you may need to set a specific locale for this to work.
+
+             Date.parse "Thursday, 1 October '98" (Date_Time_Formatter.from "dddd, d MMMM ''yy" Locale.uk) == (Date.new 1998 10 01)
+
+       > Example
+         Omitting the day will yield the first day of the month.
+
+             Date.parse "2021-10" "yyyy-MM" == (Date.new 2021 10 01)
+
+       > Example
+         Omitting the year will yield the current year.
+
+             Date.parse "10-12" "MM-dd" == (Date.new (Date.today.year) 10 12)
+
+       > Example
+         Parsing a two-digit year with a custom base year.
+
+             Date.parse "1 Nov '95" "d MMM ''yy{2099}" == (Date.new 2095 11 01)
+    @locale Locale.default_widget
+    from_simple_pattern pattern:Text locale:Locale=Locale.default =
+        java_formatter = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern |>
+            As_Java_Formatter_Interpreter.interpret locale
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE)
+
+    ## Creates a formatter from a pattern for the ISO 8601 leap week calendar.
+
+       The ISO 8601 leap week calendar is a variation of the ISO 8601 calendar
+       that defines a leap week as the week that contains the 29th of February.
+       This calendar is used by some European and Middle Eastern countries.
+
+       The pattern is a sequence of letters and symbols that are interpreted as
+       follows:
+       - Y: The week based year.
+         - In case the year is parsed in two digit mode (`YY`), the default
+           range is 1950-2049, but this can be changed by including the end year
+           in braces e.g. `YY{2099}`
+       - w: Week of year.
+       - d: Day of week.
+         - d: Numeric day of week (1-7). 1 is Monday.
+         - dd: Numeric day of week with zero padding (01-07).
+         - ddd: Short name of the day of week (Mon-Sun).
+         - dddd: Full name of the day of week (Monday-Sunday).
+         The weekday names depend on the selected locale.
+       - e: An alternative notation: single `e` maps to `ddd` and `ee` or more
+         map to `dddd` meaning name of day of week.
+
+       Moreover, all time and timezone pattern characters like in `Simple` case
+       are supported too - in case you need to parse a date time value with the
+       date part in ISO week date format.
+
+       The same as in the `Simple` pattern, the single quotes can be used to
+       escape letter literals and square brackets can be used to indicate
+       optional sections.
+
+       > Example
+         Parsing a date in the ISO week date format
+
+             Date.parse "1976-W53-6" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d") == (Date.new 1977 01 01)
+             Date.parse "1978-W01, Mon" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee") == (Date.new 1978 01 02)
+             Date_Time.parse "1978-W01-4 12:34:56" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d HH:mm:ss") == (Date_Time.new 1978 01 05 12 34 56)
+
+       > Example
+         Omitting the day of the week will result in the first day of that week.
+
+             Date.parse (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") "1978-W01" == (Date.new 1978 01 02)
+    @locale Locale.default_widget
+    from_iso_week_date_pattern pattern:Text locale:Locale=Locale.default =
+        java_formatter = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern |>
+            As_Java_Formatter_Interpreter.interpret locale
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE)
+
+    ## ADVANCED
+       Creates a formatter from a Java `DateTimeFormatter` instance or a text
+       pattern parsed using the Java parser: `DateTimeFormatter.ofPattern`.
+
+       See the Java documentation for explanation of the pattern format:
+       https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/format/DateTimeFormatter.html#patterns
+
+       Arguments:
+       - pattern: The pattern string to parse using the Java pattern rules, or
+         an existing `DateTimeFormatter` instance.
+       - locale: A locale to use when constructing the formatter from a text
+         pattern. If not specified, defaults to `Locale.default`. If passing a
+         `DateTimeFormatter` instance and this argument is set, it will
+         overwrite the original locale of that formatter.
+    from_java pattern (locale:Locale|Nothing=Nothing) = case pattern of
+        java_formatter : DateTimeFormatter ->
+            amended_formatter = case locale of
+                Nothing -> java_formatter
+                _ : Locale -> java_formatter.withLocale locale.java_locale
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new amended_formatter Nothing FormatterKind.RAW_JAVA)
+        _ : Text ->
+            java_locale = (locale.if_nothing Locale.default).java_locale
+            java_formatter = DateTimeFormatter.ofPattern pattern java_locale
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.RAW_JAVA)
+        _ -> Error.throw (Illegal_Argument.Error "The pattern must either be a string or a Java DateTimeFormatter instance.")
+
+    ## The default format for date-time used in Enso.
+       It acts as `ISO_Zoned_Date_Time` but both offset and timezone are optional.
+
+       For example, it may parse date of the form `2011-12-03 10:15:30+01:00[Europe/Paris]`,
+       as well as `2011-12-03T10:15:30` assuming the default timezone.
+    default_enso_zoned_date_time =
+        Date_Time_Formatter.Value EnsoDateTimeFormatter.default_enso_zoned_date_time_formatter
+
+    ## The ISO 8601 format for date-time with offset and timezone.
+       The date and time parts may be separated by a single space or a `T`.
+
+       For example, it may parse date of the form `2011-12-03 10:15:30+01:00[Europe/Paris]`.
+    iso_zoned_date_time =
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_ZONED_DATE_TIME "iso_zoned_date_time")
+
+    ## The ISO 8601 format for date-time with offset.
+       The date and time parts may be separated by a single space or a `T`.
+
+       For example, it may parse date of the form `2011-12-03 10:15:30+01:00`.
+    iso_offset_date_time =
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_OFFSET_DATE_TIME "iso_offset_date_time")
+
+    ## The ISO 8601 format for date-time without a timezone.
+       The date and time parts may be separated by a single space or a `T`.
+
+       For example, it may parse date of the form `2011-12-03 10:15:30`. The
+       timezone will be set to `Time_Zone.system`.
+    iso_local_date_time =
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_LOCAL_DATE_TIME "iso_local_date_time")
+
+    ## The ISO 8601 format for date.
+
+       For example, it may parse date of the form `2011-12-03`.
+    iso_date =
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_DATE "iso_date")
+
+    ## The ISO 8601 format for time.
+
+       For example, it may parse time of the form `10:15:30`.
+    iso_time =
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_TIME "iso_time")
+
+    ## Returns a text representation of this formatter.
+    to_text : Text
+    to_text self = case self.underlying.getFormatterKind of
+        FormatterKind.CONSTANT ->
+            "Date_Time_Formatter." + self.underlying.getOriginalPattern
+        FormatterKind.SIMPLE ->
+            # TODO locale too?
+            "Date_Time_Formatter.from_simple_pattern " + self.underlying.getOriginalPattern.pretty
+        FormatterKind.ISO_WEEK_DATE ->
+            "Date_Time_Formatter.from_iso_week_date_pattern " + self.underlying.getOriginalPattern.pretty
+        FormatterKind.RAW_JAVA -> case self.underlying.getOriginalPattern of
+            original_pattern : Text -> "Date_Time_Formatter.from_java " + original_pattern.pretty
+            Nothing -> "Date_Time_Formatter.from_java " + self.underlying.getFormatter.to_text
+
+    ## Parses a human-readable representation of this formatter.
+    to_display_text self = self.to_text
+
+    ## Returns a copy of this formatter with a changed locale.
+    with_locale : Locale -> Date_Time_Formatter
+    with_locale self (locale : Locale) =
+        Date_Time_Formatter.Value (self.underlying.withLocale locale.java_locale)
+
+    ## PRIVATE
+    handle_java_errors self ~action =
+        Panic.catch JException action caught_panic->
+            Error.throw (Time_Error.Error caught_panic.payload.getMessage caught_panic.payload)
+
+    ## PRIVATE
+    parse_date self (text:Text) = self.handle_java_errors <|
+        self.underlying.parseLocalDate text
+
+    ## PRIVATE
+    parse_date_time self (text:Text) = self.handle_java_errors <|
+        self.underlying.parseZonedDateTime text
+
+    ## PRIVATE
+    parse_time self (text:Text) = self.handle_java_errors <|
+        self.underlying.parseLocalTime text
+
+    ## PRIVATE
+    format_date self (date:Date) = self.handle_java_errors <|
+        self.underlying.formatLocalDate date
+
+    ## PRIVATE
+    format_date_time self (date_time:Date_Time) = self.handle_java_errors <|
+        self.underlying.formatZonedDateTime date_time
+
+    ## PRIVATE
+    format_time self (time:Time_Of_Day) = self.handle_java_errors <|
+        self.underlying.formatLocalTime time
+
+## PRIVATE
+Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =
+    Date_Time_Formatter.from_simple_pattern that locale
+
+## PRIVATE
+type Date_Time_Format_Parse_Error
+    ## PRIVATE
+       Indicates an error during parsing of a date time format pattern.
+    Error message
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "Error parsing date/time format pattern: " + self.message

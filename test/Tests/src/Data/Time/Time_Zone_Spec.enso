@@ -37,7 +37,7 @@ spec =
                 JS_Object.from_pairs [["type", "Time_Zone"], ["constructor", "new"], ["id", "UTC"]] . to_text
         Test.specify "should throw error when parsing invalid zone id" <|
             case Time_Zone.parse "foo" . catch of
-                Time_Error.Error msg ->
+                Time_Error.Error msg _ ->
                     msg . should_equal "Unknown time-zone ID: foo"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)

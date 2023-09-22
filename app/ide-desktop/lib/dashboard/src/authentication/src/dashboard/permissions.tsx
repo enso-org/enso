@@ -4,6 +4,36 @@ import * as backend from './backend'
 /** This file MUST be `.tsx` even though it does not contain JSX, in order for Tailwind to include
  * the classes in this file. */
 
+// ========================
+// === PermissionAction ===
+// ========================
+
+/** Backend representation of user permission types. */
+export enum PermissionAction {
+    own = 'Own',
+    admin = 'Admin',
+    edit = 'Edit',
+    read = 'Read',
+    readAndDocs = 'Read_docs',
+    readAndExec = 'Read_exec',
+    view = 'View',
+    viewAndDocs = 'View_docs',
+    viewAndExec = 'View_exec',
+}
+
+/** Whether each {@link PermissionAction} can execute a project. */
+export const PERMISSION_ACTION_CAN_EXECUTE: Record<PermissionAction, boolean> = {
+    [PermissionAction.own]: true,
+    [PermissionAction.admin]: true,
+    [PermissionAction.edit]: true,
+    [PermissionAction.read]: false,
+    [PermissionAction.readAndDocs]: false,
+    [PermissionAction.readAndExec]: true,
+    [PermissionAction.view]: false,
+    [PermissionAction.viewAndDocs]: false,
+    [PermissionAction.viewAndExec]: true,
+}
+
 // ==================
 // === Permission ===
 // ==================
@@ -42,18 +72,18 @@ export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
 }
 
 /** Precedences for each permission action. A lower number means a higher priority. */
-export const PERMISSION_ACTION_PRECEDENCE: Readonly<Record<backend.PermissionAction, number>> = {
+export const PERMISSION_ACTION_PRECEDENCE: Readonly<Record<PermissionAction, number>> = {
     // These are not magic numbers - they are just a sequence of numbers.
     /* eslint-disable @typescript-eslint/no-magic-numbers */
-    [backend.PermissionAction.own]: 0,
-    [backend.PermissionAction.admin]: 1,
-    [backend.PermissionAction.edit]: 2,
-    [backend.PermissionAction.read]: 3,
-    [backend.PermissionAction.readAndDocs]: 4,
-    [backend.PermissionAction.readAndExec]: 5,
-    [backend.PermissionAction.view]: 6,
-    [backend.PermissionAction.viewAndDocs]: 7,
-    [backend.PermissionAction.viewAndExec]: 8,
+    [PermissionAction.own]: 0,
+    [PermissionAction.admin]: 1,
+    [PermissionAction.edit]: 2,
+    [PermissionAction.read]: 3,
+    [PermissionAction.readAndDocs]: 4,
+    [PermissionAction.readAndExec]: 5,
+    [PermissionAction.view]: 6,
+    [PermissionAction.viewAndDocs]: 7,
+    [PermissionAction.viewAndExec]: 8,
     /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
@@ -62,88 +92,86 @@ export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
-/** The corresponding {@link Permissions} for each {@link backend.PermissionAction}. */
-export const FROM_PERMISSION_ACTION: Readonly<
-    Record<backend.PermissionAction, Readonly<Permissions>>
-> = {
-    [backend.PermissionAction.own]: { type: Permission.owner },
-    [backend.PermissionAction.admin]: { type: Permission.admin },
-    [backend.PermissionAction.edit]: { type: Permission.edit },
-    [backend.PermissionAction.read]: {
+/** The corresponding {@link Permissions} for each {@link PermissionAction}. */
+export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Readonly<Permissions>>> = {
+    [PermissionAction.own]: { type: Permission.owner },
+    [PermissionAction.admin]: { type: Permission.admin },
+    [PermissionAction.edit]: { type: Permission.edit },
+    [PermissionAction.read]: {
         type: Permission.read,
         execute: false,
         docs: false,
     },
-    [backend.PermissionAction.readAndDocs]: {
+    [PermissionAction.readAndDocs]: {
         type: Permission.read,
         execute: false,
         docs: true,
     },
-    [backend.PermissionAction.readAndExec]: {
+    [PermissionAction.readAndExec]: {
         type: Permission.read,
         execute: true,
         docs: false,
     },
-    [backend.PermissionAction.view]: {
+    [PermissionAction.view]: {
         type: Permission.view,
         execute: false,
         docs: false,
     },
-    [backend.PermissionAction.viewAndDocs]: {
+    [PermissionAction.viewAndDocs]: {
         type: Permission.view,
         execute: false,
         docs: true,
     },
-    [backend.PermissionAction.viewAndExec]: {
+    [PermissionAction.viewAndExec]: {
         type: Permission.view,
         execute: true,
         docs: false,
     },
 }
 
-/** The corresponding {@link backend.PermissionAction} for each {@link Permission}.
+/** The corresponding {@link PermissionAction} for each {@link Permission}.
  * Assumes no docs sub-permission and no execute sub-permission. */
-export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, backend.PermissionAction>> = {
-    [Permission.owner]: backend.PermissionAction.own,
-    [Permission.admin]: backend.PermissionAction.admin,
-    [Permission.edit]: backend.PermissionAction.edit,
-    [Permission.read]: backend.PermissionAction.read,
-    [Permission.view]: backend.PermissionAction.view,
+export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAction>> = {
+    [Permission.owner]: PermissionAction.own,
+    [Permission.admin]: PermissionAction.admin,
+    [Permission.edit]: PermissionAction.edit,
+    [Permission.read]: PermissionAction.read,
+    [Permission.view]: PermissionAction.view,
     // SHould never happen, but provide a fallback just in case.
-    [Permission.delete]: backend.PermissionAction.view,
+    [Permission.delete]: PermissionAction.view,
 }
 
 /** The equivalent backend `PermissionAction` for a `Permissions`. */
-export function toPermissionAction(permissions: Permissions): backend.PermissionAction {
+export function toPermissionAction(permissions: Permissions): PermissionAction {
     switch (permissions.type) {
         case Permission.owner: {
-            return backend.PermissionAction.own
+            return PermissionAction.own
         }
         case Permission.admin: {
-            return backend.PermissionAction.admin
+            return PermissionAction.admin
         }
         case Permission.edit: {
-            return backend.PermissionAction.edit
+            return PermissionAction.edit
         }
         case Permission.read: {
             return permissions.execute
                 ? permissions.docs
                     ? /* should never happen, but use a fallback value */
-                      backend.PermissionAction.readAndExec
-                    : backend.PermissionAction.readAndExec
+                      PermissionAction.readAndExec
+                    : PermissionAction.readAndExec
                 : permissions.docs
-                ? backend.PermissionAction.readAndDocs
-                : backend.PermissionAction.read
+                ? PermissionAction.readAndDocs
+                : PermissionAction.read
         }
         case Permission.view: {
             return permissions.execute
                 ? permissions.docs
                     ? /* should never happen, but use a fallback value */
-                      backend.PermissionAction.viewAndExec
-                    : backend.PermissionAction.viewAndExec
+                      PermissionAction.viewAndExec
+                    : PermissionAction.viewAndExec
                 : permissions.docs
-                ? backend.PermissionAction.viewAndDocs
-                : backend.PermissionAction.view
+                ? PermissionAction.viewAndDocs
+                : PermissionAction.view
         }
     }
 }
@@ -214,7 +242,7 @@ export function tryGetSingletonOwnerPermission(
                       user_name: owner.name,
                       /* eslint-enable @typescript-eslint/naming-convention */
                   },
-                  permission: backend.PermissionAction.own,
+                  permission: PermissionAction.own,
               },
           ]
         : []

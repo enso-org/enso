@@ -3,11 +3,18 @@
   "include": ["env.d.ts", "src/**/*", "src/**/*.json", "src/**/*.vue", "shared/**/*"],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
+    "resolvePackageJsonExports": false,
     "composite": true,
+    "outDir": "../../node_modules/.cache/tsc",
     "baseUrl": ".",
+    "types": ["vitest/importMeta"],
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "types": ["vitest/importMeta"]
-  }
+    }
+  },
+  "references": [
+    {
+      "path": "../ide-desktop/lib/dashboard/tsconfig.json"
+    }
+  ]
 }

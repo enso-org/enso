@@ -1619,7 +1619,12 @@ type Column
        Arguments:
        - format: The type-dependent format string to use to format the values.
          If `format` is `""` or `Nothing`, .to_text is used to format the value.
+         In case of date/time columns, the format can also be a
+         `Date_Time_Formatter`.
        - locale: The locale in which the format should be interpreted.
+         If a `Date_Time_Formatter` is provided for `format` and the `locale` is
+         set to anything else than `Locale.default`, then that locale will
+         override the formatters locale.
 
        ! Error Conditions
 
@@ -1637,15 +1642,7 @@ type Column
 
        ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
 
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
-
-         Note that the format string can specify decimal point and digit
-         separators, but these characters are interpreted in the context of the
-         Locale used. The format string specifies their location, but the Locale
-         has the final decision about which characters are used.
+          See `Date_Time_Formatter` for more details.
 
        ? `Value_Type.Integer`, `Value_Type.Float` format strings
 
@@ -1695,26 +1692,17 @@ type Column
              input.format "#,##0.00" locale=(Locale.new "fr")
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
-    format : Text | Column -> Locale -> Column ! Illegal_Argument
-    format self format=Nothing locale=Locale.default =
-        create_formatter = make_value_formatter_for_value_type self.value_type locale
-
+    format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
+    format self (format : Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default =
         new_column = case format of
-            "" ->
-                formatter = .to_text
-                Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
-            Nothing ->
-                formatter = .to_text
-                Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
-            _ : Text ->
-                formatter = create_formatter
-                formatter.if_not_error <|
-                    Column_Ops.map_over_storage self (formatter format=format) make_string_builder on_problems=Problem_Behavior.Report_Error
             format_column : Column -> Value_Type.expect_text format_column <|
-                formatter = create_formatter
+                formatter = make_value_formatter_for_value_type self.value_type locale
                 formatter.if_not_error <|
-                    Column_Ops.map_2_over_storage self format_column formatter make_string_builder
-            _ -> Error.throw <| Illegal_Argument.Error <| "Unsupported format type: " + format.to_text
+                    formatter_flipped value format = formatter format value
+                    Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
+            _ ->
+                formatter = make_value_formatter_for_value_type self.value_type locale format
+                Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
         new_column
 
     ## GROUP Standard.Base.Conversions

@@ -9,14 +9,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-parser = { path = "../../../lib/rust/parser" }
-serde_json = { workspace = true }
 wasm-bindgen = { workspace = true }
-
-#[profile.release]
-#debug = false
-#strip = true
-#lto = true
-#codegen-units = 1
-#opt-level = "z"
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = ['-Os']
+serde_json = { workspace = true }
+console_error_panic_hook = { workspace = true }

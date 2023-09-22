@@ -1,12 +1,12 @@
 import { assert } from '@/util/assert'
 import {
+  isIdentifier,
+  isQualifiedName,
   qnLastSegment,
   qnParent,
+  qnSplit,
   type Identifier,
   type QualifiedName,
-  qnSplit,
-  isQualifiedName,
-  isIdentifier,
 } from '@/util/qualifiedName'
 
 export type SuggestionId = number

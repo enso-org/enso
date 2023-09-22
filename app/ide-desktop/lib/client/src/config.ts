@@ -26,7 +26,10 @@ const DEFAULT_PORT = 8080
 export class WindowSize {
     static separator = 'x'
     /** Create a new {@link WindowSize}. */
-    constructor(public width: number, public height: number) {}
+    constructor(
+        public width: number,
+        public height: number
+    ) {}
 
     /** Constructor of the default window size. */
     static default(): WindowSize {

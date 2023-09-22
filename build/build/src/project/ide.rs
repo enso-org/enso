@@ -146,13 +146,11 @@ impl Ide {
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Artifact>> {
         let BuildInput { version, project_manager, gui, electron_target, artifact_name: _ } = input;
-        let repo_root = context.repo_root.clone();
         let ide_desktop = ide_desktop_from_context(context);
         let target_os = self.target_os;
         let target_arch = self.target_arch;
         async move {
             let (gui, project_manager) = try_join!(gui, project_manager)?;
-            gui.symlink_ensogl_dist(&repo_root)?;
             ide_desktop
                 .dist(&gui, &project_manager, &output_path, target_os, electron_target)
                 .await?;

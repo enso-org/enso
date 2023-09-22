@@ -7,7 +7,7 @@ import * as dom from '../dom/dom'
 // =========================
 
 export class HelpScreenSection {
-    description?: string
+    description?: string | undefined
     name: string
     entries: HelpScreenEntry[]
     constructor(cfg: { name: string; description?: string; entries: HelpScreenEntry[] }) {
@@ -26,7 +26,7 @@ export class HelpScreenSection {
 export class HelpScreenEntry {
     name: string
     values: string[]
-    href?: string
+    href?: string | undefined
 
     constructor(name: string, values: string[], href?: string) {
         this.name = name

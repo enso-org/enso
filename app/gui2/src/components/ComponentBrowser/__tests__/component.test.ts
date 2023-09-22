@@ -1,19 +1,19 @@
 import { expect, test } from 'vitest'
 
 import {
+  compareSuggestions,
+  labelOfEntry,
+  type MatchedSuggestion,
+} from '@/components/ComponentBrowser/component'
+import {
   makeCon,
   makeMethod,
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/entry'
-import {
-  compareSuggestions,
-  labelOfEntry,
-  type MatchedSuggestion,
-} from '@/components/ComponentBrowser/component'
-import { Filtering } from '../filtering'
 import shuffleSeed from 'shuffle-seed'
+import { Filtering } from '../filtering'
 
 test.each([
   [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],

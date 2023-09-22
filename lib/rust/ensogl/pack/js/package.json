@@ -15,24 +15,22 @@
     "build": "We are using tsup to be able to generate the bundled .d.ts file. It is the only solution that works. See the following link for reference: https://github.com/Microsoft/TypeScript/issues/4433"
   },
   "scripts": {
-    "typecheck": "npx tsc --noEmit",
-    "build": "npx --yes tsup src/runner/index.ts --format=cjs --dts --sourcemap",
-    "build-asset-extractor": "npx --yes tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --dts --sourcemap",
-    "build-runtime-libs": "npx --yes esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
-    "lint": "npx --yes eslint src"
+    "typecheck": "tsc --noEmit",
+    "build-asset-extractor": "tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --sourcemap",
+    "build-runtime-libs": "esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
+    "lint": "eslint src"
   },
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^5.47.1",
-    "@typescript-eslint/parser": "^5.47.1",
-    "esbuild": "^0.16.12",
-    "eslint": "^8.30.0",
-    "eslint-plugin-jsdoc": "^39.6.4",
-    "ts-node": "^10.9.1",
-    "tsup": "^6.5.0",
-    "typescript": "^4.9.4"
+    "@typescript-eslint/eslint-plugin": "^6.7.2",
+    "@typescript-eslint/parser": "^6.7.2",
+    "esbuild": "^0.19.3",
+    "eslint": "^8.49.0",
+    "eslint-plugin-jsdoc": "^46.8.1",
+    "tsup": "^7.2.0",
+    "typescript": "~5.2.2"
   },
   "dependencies": {
     "spectorjs": "^0.9.27"

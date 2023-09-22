@@ -1,6 +1,6 @@
 /** @file Application debug information. */
 
-import BUILD_INFO from '../../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
 
 // =================
 // === Constants ===

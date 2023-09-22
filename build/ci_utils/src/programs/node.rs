@@ -29,16 +29,10 @@ impl NpmCommand {
         self
     }
     pub fn workspace(&mut self, workspace: impl AsRef<OsStr>) -> &mut Self {
-        self.arg("--workspace").arg(workspace);
-        self
+        self.arg("--workspace").arg(workspace)
     }
-    pub fn run(
-        &mut self,
-        script_name: impl AsRef<OsStr>,
-        args: impl IntoIterator<Item: AsRef<OsStr>>,
-    ) -> &mut Self {
-        self.arg("run").arg(script_name).args(args);
-        self
+    pub fn run(&mut self, script_name: impl AsRef<OsStr>) -> &mut Self {
+        self.arg("run").arg(script_name)
     }
 }
 

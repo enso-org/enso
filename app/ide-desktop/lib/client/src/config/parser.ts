@@ -3,15 +3,15 @@
 import chalk from 'chalk'
 import stringLength from 'string-length'
 
-import yargs from 'yargs/yargs'
-import yargsModule from 'yargs'
+// eslint-disable-next-line no-restricted-syntax
+import yargs, { Options } from 'yargs'
 
 import * as contentConfig from 'enso-content-config'
 
 import * as config from 'config'
 import * as fileAssociations from 'file-associations'
 import * as naming from 'naming'
-import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../../../build.json' assert { type: 'json' }
 
 const logger = contentConfig.logger
 
@@ -206,7 +206,10 @@ function wordWrap(str: string, width: number): string[] {
 /** Represents a command line option to be passed to the Chrome instance powering Electron. */
 export class ChromeOption {
     /** Create a {@link ChromeOption}. */
-    constructor(public name: string, public value?: string) {}
+    constructor(
+        public name: string,
+        public value?: string
+    ) {}
 
     /** Return the option as it would appear on the command line. */
     display(): string {
@@ -275,20 +278,18 @@ function argvAndChromeOptions(processArgs: string[]): ArgvAndChromeOptions {
 export function parseArgs(clientArgs: string[] = fileAssociations.CLIENT_ARGUMENTS) {
     const args = config.CONFIG
     const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
-    const yargsOptions = args
-        .optionsRecursive()
-        .reduce((opts: Record<string, yargsModule.Options>, option) => {
-            opts[naming.camelToKebabCase(option.qualifiedName())] = {
-                ...option,
-                requiresArg: ['string', 'array'].includes(option.type),
-                default: null,
-                // Required because yargs defines `defaultDescription`
-                // as `string | undefined`, not `string | null`.
-                // eslint-disable-next-line no-restricted-syntax
-                defaultDescription: option.defaultDescription ?? undefined,
-            }
-            return opts
-        }, {})
+    const yargsOptions = args.optionsRecursive().reduce((opts: Record<string, Options>, option) => {
+        opts[naming.camelToKebabCase(option.qualifiedName())] = {
+            ...option,
+            requiresArg: ['string', 'array'].includes(option.type),
+            default: null,
+            // Required because yargs defines `defaultDescription`
+            // as `string | undefined`, not `string | null`.
+            // eslint-disable-next-line no-restricted-syntax
+            defaultDescription: option.defaultDescription ?? undefined,
+        }
+        return opts
+    }, {})
 
     const optParser = yargs()
         .version(false)
