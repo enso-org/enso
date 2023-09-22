@@ -35,7 +35,7 @@ In_Memory_Column.should_equal self expected frames_to_skip=0 =
                 Test.fail "Expected column name "+expected.name+", but got "+self.name+" (at "+loc+")."
             if self.length != expected.length then
                 Test.fail "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+" (at "+loc+")."
-            self.to_vector.should_equal expected.to_vector
+            self.to_vector.should_equal expected.to_vector 2+frames_to_skip
         _ -> Test.fail "Got a Column, but expected a "+expected.to_display_text+' (at '+loc+').'
 
 Database_Table.should_equal : Database_Table -> Integer -> Test_Result
