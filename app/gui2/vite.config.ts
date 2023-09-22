@@ -1,47 +1,55 @@
-import { fileURLToPath } from 'node:url'
-
-import { defineConfig, Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
-import { WebSocketServer } from 'ws'
+import tailwindcss from 'tailwindcss'
+import tailwindcssNesting from 'tailwindcss/nesting'
+import { defineConfig, Plugin } from 'vite'
 import topLevelAwait from 'vite-plugin-top-level-await'
+import * as tailwindConfig from '../ide-desktop/lib/dashboard/tailwind.config'
+import { createGatewayServer } from './ydoc-server'
+
+const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue(), yWebsocketServer(), topLevelAwait()],
+  cacheDir: '../../node_modules/.cache/vite',
+  plugins: [vue(), gatewayServer(), topLevelAwait()],
+  optimizeDeps: {
+    entries: 'index.html',
+  },
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // workaround for @open-rpc/client-js bug: https://github.com/open-rpc/client-js/issues/310
+      events: 'shared/event.ts',
     },
   },
+  define: {
+    REDIRECT_OVERRIDE: JSON.stringify('http://localhost:8080'),
+    PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
+    global: 'window',
+    IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV !== 'production'),
+  },
+  assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {
     postcss: {
-      plugins: [postcssNesting],
+      plugins: [tailwindcssNesting(postcssNesting()), tailwindcss({ config: tailwindConfig })],
     },
+  },
+  build: {
+    // dashboard chunk size is larger than the default warning limit
+    chunkSizeWarningLimit: 700,
   },
 })
 
-const roomNameRegex = /^[a-z0-9-]+$/i
-
-function yWebsocketServer(): Plugin {
+function gatewayServer(): Plugin {
   return {
-    name: 'y-websocket-server',
+    name: 'gateway-server',
     configureServer(server) {
       if (server.httpServer == null) return
-      const { setupWSConnection } = require('./node_modules/y-websocket/bin/utils')
-      const wss = new WebSocketServer({ noServer: true })
-      wss.on('connection', setupWSConnection)
-      server.httpServer.on('upgrade', (request, socket, head) => {
-        if (request.url != null && request.url.startsWith('/room/')) {
-          const docName = request.url.slice(6)
-          if (roomNameRegex.test(docName)) {
-            wss.handleUpgrade(request, socket, head, (ws) => {
-              wss.emit('connection', ws, request, { docName })
-            })
-          }
-        }
-      })
+
+      createGatewayServer(server.httpServer)
     },
   }
 }

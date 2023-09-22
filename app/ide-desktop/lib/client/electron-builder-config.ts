@@ -8,7 +8,6 @@
 
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
 
 import * as electronBuilder from 'electron-builder'
 import * as electronNotarize from 'electron-notarize'
@@ -19,9 +18,10 @@ import * as common from 'enso-common'
 
 import * as fileAssociations from './file-associations'
 import * as paths from './paths'
+import computeHashes from './tasks/computeHashes.mjs'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
-import BUILD_INFO from '../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =============
 // === Types ===
@@ -213,8 +213,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             // https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
             sign: false,
         },
-        afterAllArtifactBuild: path.join('tasks', 'computeHashes.cjs'),
-
+        afterAllArtifactBuild: computeHashes,
         afterPack: ctx => {
             if (passedArgs.platform === electronBuilder.Platform.MAC) {
                 // Make the subtree writable, so we can sign the binaries.

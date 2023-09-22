@@ -1,9 +1,9 @@
 /** @file Configuration options for the application. */
 
-import * as debug from 'runner/debug'
+import * as debug from './debug'
 
-import { logger } from 'runner/log'
-import * as jsonCfg from './config.json'
+import { logger } from './log'
+import * as jsonCfg from './config.json' assert { type: 'json' }
 
 export const DEFAULT_ENTRY_POINT = 'ide'
 
@@ -192,7 +192,11 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
     description: string
     options: Options = {} as Options
     groups: Groups = {} as Groups
-    constructor(cfg?: { description?: string; options?: Options; groups?: Groups }) {
+    constructor(cfg?: {
+        description?: string | undefined
+        options?: Options | undefined
+        groups?: Groups | undefined
+    }) {
         this.description = cfg?.description ?? 'No description.'
         const options = cfg?.options
         if (options != null) {

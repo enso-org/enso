@@ -13,7 +13,7 @@ import {
 import { FileHandle } from 'fs/promises'
 import { Abortable } from 'node:events'
 import { promises as fs } from 'fs'
-import * as log from 'runner/log'
+import * as log from '../runner/log'
 import { Stream } from 'node:stream'
 
 // ================
