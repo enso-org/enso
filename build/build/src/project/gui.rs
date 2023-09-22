@@ -135,6 +135,8 @@ impl IsTarget for Gui {
             }
 
             let ide = ide_desktop_from_context(&context);
+            self.npm()?.install().run_ok().await?;
+
             let wasm = Wasm.get(context, inner.wasm);
             let content_env =
                 ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
