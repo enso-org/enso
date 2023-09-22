@@ -434,11 +434,6 @@ impl Artifact {
         Self(RepoRootDistWasm::new_root(path))
     }
 
-    /// The main JS bundle to load WASM and JS wasm-pack bundles.
-    pub fn ensogl_app(&self) -> &Path {
-        &self.0.index_cjs
-    }
-
     /// Files that should be shipped in the Gui bundle.
     pub fn files_to_ship(&self) -> Vec<&Path> {
         // We explicitly deconstruct object, so when new fields are added, we will be forced to
@@ -446,9 +441,6 @@ impl Artifact {
         let RepoRootDistWasm {
             path: _,
             dynamic_assets,
-            index_cjs: _,
-            index_d_cts: _,
-            index_cjs_map: _,
             pkg_js,
             pkg_js_map,
             pkg_wasm: _,

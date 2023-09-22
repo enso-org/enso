@@ -53,8 +53,6 @@ pub mod env {
         ENSO_BUILD_ICONS, PathBuf;
         /// List of files that should be copied to the Gui.
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
-        /// The main JS bundle to load WASM and JS wasm-pack bundles.
-        ENSO_BUILD_GUI_ENSOGL_APP, PathBuf;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
         ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
@@ -189,7 +187,6 @@ impl<Assets: AsRef<Path>, Output: AsRef<Path>> FallibleManipulator
         command
             .set_env(env::ENSO_BUILD_GUI, self.output_path.as_ref())?
             .set_env(env::ENSO_BUILD_GUI_WASM_ARTIFACTS, &artifacts_for_gui)?
-            .set_env(env::ENSO_BUILD_GUI_ENSOGL_APP, &self.wasm.ensogl_app())?
             .set_env(env::ENSO_BUILD_GUI_ASSETS, self.asset_dir.as_ref())?;
         Ok(())
     }

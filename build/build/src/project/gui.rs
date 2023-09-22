@@ -17,7 +17,6 @@ use crate::BoxFuture;
 
 use derivative::Derivative;
 use futures_util::future::try_join;
-use ide_ci::fs::tokio::create_dir_if_missing;
 use ide_ci::ok_ready_boxed;
 
 
@@ -138,21 +137,8 @@ impl IsTarget for Gui {
             ide.npm()?.install().run_ok().await?;
 
             let wasm = Wasm.get(context, inner.wasm);
-            let content_env =
-                ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
-
-            let ret = Artifact::new(destination.clone());
-            let ensogl_app_dir = &ret.0.ensogl_app;
-            create_dir_if_missing(ensogl_app_dir).await?;
-            let ensogl_app_files = [
-                &content_env.wasm.0.index_cjs.path,
-                &content_env.wasm.0.index_d_cts.path,
-                &content_env.wasm.0.index_cjs_map.path,
-            ];
-            for file in ensogl_app_files {
-                ide_ci::fs::copy_to(file, ensogl_app_dir)?;
-            }
-            Ok(ret)
+            ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
+            Ok(Artifact::new(destination.clone()))
         }
         .boxed()
     }
