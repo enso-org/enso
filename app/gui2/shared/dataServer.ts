@@ -19,14 +19,14 @@ import {
   ReadBytesReply,
   ReadFileCommand,
   Success,
-  Table,
   VisualizationUpdate,
   WriteBytesCommand,
   WriteBytesReply,
   WriteFileCommand,
+  type Table,
 } from './binaryProtocol'
 import type { WebsocketClient } from './websocket'
-import { Uuid } from './yjsModel'
+import type { Uuid } from './yjsModel'
 
 export function uuidFromBits(leastSigBits: bigint, mostSigBits: bigint): string {
   const bits = (mostSigBits << 64n) | leastSigBits

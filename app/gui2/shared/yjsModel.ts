@@ -8,14 +8,6 @@ declare const brandExprId: unique symbol
 export type ExprId = Uuid & { [brandExprId]: never }
 export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
 
-export interface YObject<
-  T extends Record<K, unknown>,
-  K extends keyof T & string = keyof T & string,
-> extends Y.Map<any> {
-  get<K extends keyof T & string>(key: K): T[K]
-  set<K extends keyof T & string, V extends T[K] = T[K]>(key: K, value: V): V
-}
-
 export interface NodeMetadata {
   x: number
   y: number
@@ -82,11 +74,7 @@ export class DistributedModule {
   doc: Y.Doc
   contents: Y.Text
   idMap: Y.Map<Uint8Array>
-  nodeMetadata: Y.Map<NodeMetadata>
-  metadata: YObject<{
-    initialEndLine: number
-    initialEndColumn: number
-  }>
+  metadata: Y.Map<NodeMetadata>
 
   static async load(doc: Y.Doc) {
     doc.load()
@@ -98,19 +86,18 @@ export class DistributedModule {
     this.doc = doc
     this.contents = this.doc.getText('contents')
     this.idMap = this.doc.getMap('idMap')
-    this.nodeMetadata = this.doc.getMap('node-metadata')
     this.metadata = this.doc.getMap('metadata')
   }
 
   insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length]
+    const range = [offset, offset + content.length] as const
     const newId = random.uuidv4() as ExprId
     this.doc.transact(() => {
       this.contents.insert(offset, content + '\n')
       const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
       const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
       this.idMap.set(newId, encodeRange([start, end]))
-      this.nodeMetadata.set(newId, meta)
+      this.metadata.set(newId, meta)
     })
     return newId
   }
@@ -137,8 +124,8 @@ export class DistributedModule {
   }
 
   updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
-    const existing = this.nodeMetadata.get(id) ?? { x: 0, y: 0 }
-    this.nodeMetadata.set(id, { ...existing, ...meta })
+    const existing = this.metadata.get(id) ?? { x: 0, y: 0 }
+    this.metadata.set(id, { ...existing, ...meta })
   }
 
   getIdMap(): IdMap {

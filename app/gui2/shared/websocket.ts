@@ -19,7 +19,7 @@ const messageReconnectTimeout = 30000
 
 const setupWS = (wsclient: WebsocketClient) => {
   if (wsclient.shouldConnect && wsclient.ws === null) {
-    // @ts-expect-error I don't know why `lib` is misconfigured.
+    // @ts-ignore I don't know why `lib` is misconfigured.
     const websocket = new WebSocket(wsclient.url)
     const binaryType = wsclient.binaryType
     let pingTimeout: any = null

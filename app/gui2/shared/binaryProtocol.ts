@@ -472,7 +472,7 @@ export class Builder {
     // Write out the current vtable.
     for (; i >= 0; i--) {
       // Offset relative to the start of the table.
-      this.addInt16(this.vtable[i] != 0 ? vtableloc - this.vtable[i] : 0)
+      this.addInt16(this.vtable[i] != 0 ? vtableloc - this.vtable[i]! : 0)
     }
 
     const standardFields = 2 // The fields below:
@@ -484,14 +484,14 @@ export class Builder {
     let existingVtable = 0
     const vt1 = this.space
     outerLoop: for (i = 0; i < this.vtables.length; i++) {
-      const vt2 = this.bb.view.byteLength - this.vtables[i]
+      const vt2 = this.bb.view.byteLength - this.vtables[i]!
       if (len == this.bb.view.getInt16(vt2, true)) {
         for (let j = SIZEOF_SHORT; j < len; j += SIZEOF_SHORT) {
           if (this.bb.view.getInt16(vt1 + j, true) != this.bb.view.getInt16(vt2 + j, true)) {
             continue outerLoop
           }
         }
-        existingVtable = this.vtables[i]
+        existingVtable = this.vtables[i]!
         break
       }
     }
@@ -599,7 +599,7 @@ export class Builder {
     this.startVector(1, utf8.length, 1)
     this.bb.position = this.space -= utf8.length
     for (let i = 0, offset = this.space, bytes = this.bb.view; i < utf8.length; i++) {
-      bytes.setUint8(offset++, utf8[i])
+      bytes.setUint8(offset++, utf8[i]!)
     }
     return this.endVector()
   }
@@ -622,7 +622,7 @@ export class Builder {
     for (let i = 0; i < list.length; ++i) {
       const val = list[i]
 
-      if (val !== null) {
+      if (val != null) {
         ret.push(this.createObjectOffset(val))
       } else {
         throw new TypeError('FlatBuffers: Argument for createObjectOffsetList cannot contain null.')
@@ -1308,8 +1308,9 @@ export class VisualizationUpdate implements Table {
 
   static createDataVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
+    // An iterator is more type-safe, but less performant.
     for (let i = data.length - 1; i >= 0; i--) {
-      builder.addInt8(data[i])
+      builder.addInt8(data[i]!)
     }
     return builder.endVector()
   }
@@ -1389,8 +1390,9 @@ export class Path implements Table {
 
   static createSegmentsVector(builder: Builder, data: Offset[]): Offset {
     builder.startVector(4, data.length, 4)
+    // An iterator is more type-safe, but less performant.
     for (let i = data.length - 1; i >= 0; i--) {
-      builder.addOffset(data[i])
+      builder.addOffset(data[i]!)
     }
     return builder.endVector()
   }
@@ -1479,8 +1481,9 @@ export class WriteFileCommand implements Table {
 
   static createContentsVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
+    // An iterator is more type-safe, but less performant.
     for (let i = data.length - 1; i >= 0; i--) {
-      builder.addInt8(data[i])
+      builder.addInt8(data[i]!)
     }
     return builder.endVector()
   }
@@ -1616,8 +1619,9 @@ export class FileContentsReply implements Table {
 
   static createContentsVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
+    // An iterator is more type-safe, but less performant.
     for (let i = data.length - 1; i >= 0; i--) {
-      builder.addInt8(data[i])
+      builder.addInt8(data[i]!)
     }
     return builder.endVector()
   }
@@ -1723,8 +1727,9 @@ export class WriteBytesCommand implements Table {
 
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
+    // An iterator is more type-safe, but less performant.
     for (let i = data.length - 1; i >= 0; i--) {
-      builder.addInt8(data[i])
+      builder.addInt8(data[i]!)
     }
     return builder.endVector()
   }
@@ -1926,8 +1931,9 @@ export class ReadBytesReply implements Table {
 
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
+    // An iterator is more type-safe, but less performant.
     for (let i = data.length - 1; i >= 0; i--) {
-      builder.addInt8(data[i])
+      builder.addInt8(data[i]!)
     }
     return builder.endVector()
   }
@@ -2117,8 +2123,9 @@ export class EnsoDigest implements Table {
 
   static createBytesVector(builder: Builder, data: number[] | Uint8Array): Offset {
     builder.startVector(1, data.length, 1)
+    // An iterator is more type-safe, but less performant.
     for (let i = data.length - 1; i >= 0; i--) {
-      builder.addInt8(data[i])
+      builder.addInt8(data[i]!)
     }
     return builder.endVector()
   }

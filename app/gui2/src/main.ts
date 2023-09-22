@@ -10,6 +10,8 @@ import { createPinia } from 'pinia'
 import { createApp, type App } from 'vue'
 import AppRoot from './App.vue'
 
+import * as dashboard from 'enso-authentication'
+
 const params = decodeQueryParams(location.href)
 
 // Temporary hardcode
@@ -42,8 +44,6 @@ function stopApp() {
 }
 
 const appRunner = { runApp, stopApp }
-
-const dashboard = await import('enso-authentication')
 
 /** The entrypoint into the IDE. */
 function main() {

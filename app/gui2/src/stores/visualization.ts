@@ -1,6 +1,6 @@
 import Compiler from '@/workers/visualizationCompiler?worker'
 import * as vueUseCore from '@vueuse/core'
-import type { VisualizationConfiguration } from 'shared/lsTypes'
+import type { VisualizationConfiguration } from 'shared/languageServerTypes'
 import * as vue from 'vue'
 import { type DefineComponent } from 'vue'
 

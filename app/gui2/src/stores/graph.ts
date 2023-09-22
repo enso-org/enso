@@ -93,7 +93,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (module == null) return
     module.doc.transact(() => {
       const idMap = module.getIdMap()
-      const meta = module.nodeMetadata
+      const meta = module.metadata
       const text = module.contents
       const textContentLocal = textContent.value
       const parsed = parseBlock(0, textContentLocal, idMap)
