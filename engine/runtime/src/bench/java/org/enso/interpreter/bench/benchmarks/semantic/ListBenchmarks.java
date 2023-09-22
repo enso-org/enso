@@ -111,7 +111,7 @@ public class ListBenchmarks {
               Nil -> acc
               Cons x xs -> @Tail_Call sum_int xs acc+x
 
-      sum_multi list (acc:Text|Decimal|Integer|Any) =
+      sum_multi list (acc:Text|Float|Integer|Any) =
           case list of
               Nil -> acc
               Cons x xs -> @Tail_Call sum_multi xs acc+x

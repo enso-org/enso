@@ -6,6 +6,7 @@ import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
@@ -100,21 +101,16 @@ type Time_Of_Day
 
        Arguments:
        - text: The text to parse as a time of day.
-       - pattern: The pattern to use for parsing the input text.
-       - locale: The locale in which the pattern should be interpreted.
+       - format: A pattern describing how to parse the text,
+         or a `Date_Time_Formatter`.
 
        Returns a `Time_Error` if the provided text cannot be parsed using the
        default format.
 
-       ? Pattern Syntax
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
-
        ? Default Time Format
-         The text must represent a valid time and is parsed using the ISO-8601
-         extended local time format. The format consists of:
+         Unless you provide a custom format, the text must represent a valid
+         time and is parsed using the ISO-8601 extended local time format.
+         The format consists of:
 
          - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
            digits.
@@ -130,6 +126,19 @@ type Time_Of_Day
          - A decimal point
          - One to nine digits for the nano-of-second. As many digits will be output
            as required.
+
+       ? Pattern Syntax
+         If the pattern is provided as `Text`, it is parsed using the format
+         described below. See `Date_Time_Formatter` for more options.
+         - H: 24h hour of day (0-23).
+         - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+           between AM and PM.
+         - m: Minute of hour.
+         - s: Second of minute.
+         - f: Fractional part of the second. The number of pattern letters
+           determines the number of digits. If one letter is used, any number of
+           digits will be accepted.
+         - a: AM/PM marker.
 
        > Example
          Get the time 15:05:30.
@@ -160,17 +169,10 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
-    @pattern make_time_format_selector
-    @locale Locale.default_widget
-    parse : Text -> Text -> Locale -> Time_Of_Day ! Time_Error
-    parse text:Text pattern:Text="" locale:Locale=Locale.default =
-        result = Panic.recover Any <|
-            formatter = if pattern.is_empty then Time_Utils.default_time_of_day_formatter else
-                Time_Utils.make_formatter pattern locale.java_locale
-            Time_Utils.parse_time_of_day text.trim formatter
-        result . map_error <| case _ of
-            err : JException -> Time_Error.Error err.getMessage
-            ex -> ex
+    @format make_time_format_selector
+    parse : Text -> Date_Time_Formatter -> Time_Of_Day ! Time_Error
+    parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.iso_time =
+        format.parse_time text
 
     ## GROUP Metadata
        Get the hour portion of the time of day.
@@ -415,15 +417,21 @@ type Time_Of_Day
        Format this time of day using the provided formatter pattern.
 
        Arguments:
-       - pattern: The pattern specifying how to format the time of day.
-       - locale: The locale in which the format should be interpreted.
-         (Defaults to Locale.default.)
+       - format: A pattern describing how to format the text,
+         or a `Date_Time_Formatter`.
 
        ? Pattern Syntax
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
+         If the pattern is provided as `Text`, it is parsed using the format
+         described below. See `Date_Time_Formatter` for more options.
+         - H: 24h hour of day (0-23).
+         - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+           between AM and PM.
+         - m: Minute of hour.
+         - s: Second of minute.
+         - f: Fractional part of the second. The number of pattern letters
+           determines the number of digits. If one letter is used, any number of
+           digits will be accepted.
+         - a: AM/PM marker.
 
        > Example
          Format "16:21:10" as "16:21:00.1234"
@@ -459,10 +467,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
-    @pattern (value-> make_time_format_selector value)
-    @locale Locale.default_widget
-    format : Text -> Locale -> Text
-    format self pattern:Text locale:Locale=Locale.default =
-        formatter = if pattern.is_empty then Time_Utils.default_time_of_day_formatter else
-            Time_Utils.make_formatter pattern locale.java_locale
-        Time_Utils.time_of_day_format self formatter
+    @format (value-> make_time_format_selector value)
+    format : Date_Time_Formatter -> Text
+    format self format:Date_Time_Formatter =
+        format.format_time self

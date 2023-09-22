@@ -7,6 +7,7 @@ use crate::model::execution_context::VisualizationUpdateData;
 
 use super::response;
 
+use double_representation::name::QualifiedNameRef;
 use enso_suggestion_database::entry::argument_tag_values;
 use enso_suggestion_database::SuggestionDatabase;
 use ide_view::graph_editor::component::node::input::widget;
@@ -27,6 +28,7 @@ pub fn deserialize_widget_definitions(
     data: &VisualizationUpdateData,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
+    in_module: QualifiedNameRef,
 ) -> (Vec<ArgumentWidgetConfig>, Vec<failure::Error>) {
     match serde_json::from_slice::<response::WidgetDefinitions>(data) {
         Ok(response) => {
@@ -35,7 +37,8 @@ pub fn deserialize_widget_definitions(
                     let msg = "Failed to deserialize widget data for argument";
                     e.context(format!("{msg} '{}'", arg.name))
                 })?;
-                let meta = widget.map(|resp| to_configuration(resp, db, parser));
+                let meta =
+                    widget.map(|resp| to_configuration(resp, db, parser, in_module.clone_ref()));
                 let argument_name = arg.name.into_owned();
                 Ok(ArgumentWidgetConfig { argument_name, config: meta })
             });
@@ -58,10 +61,11 @@ fn to_configuration(
     resp: response::WidgetDefinition,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
+    in_module: QualifiedNameRef,
 ) -> widget::Configuration {
     widget::Configuration {
         display:  resp.display,
-        kind:     to_kind(resp.inner, db, parser),
+        kind:     to_kind(resp.inner, db, parser, in_module),
         has_port: true,
     }
 }
@@ -70,10 +74,11 @@ fn to_kind(
     inner: response::WidgetKindDefinition,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
+    in_module: QualifiedNameRef,
 ) -> widget::DynConfig {
     match inner {
         response::WidgetKindDefinition::SingleChoice { label, values } => {
-            let (choices, arguments) = to_choices_and_arguments(values, db, parser);
+            let (choices, arguments) = to_choices_and_arguments(values, db, parser, in_module);
             widget::single_choice::Config {
                 label: label.map(Into::into),
                 choices: Rc::new(choices),
@@ -83,7 +88,7 @@ fn to_kind(
         }
         response::WidgetKindDefinition::ListEditor { item_widget, item_default } =>
             widget::list_editor::Config {
-                item_widget:  Some(Rc::new(to_configuration(*item_widget, db, parser))),
+                item_widget:  Some(Rc::new(to_configuration(*item_widget, db, parser, in_module))),
                 item_default: ImString::from(item_default).into(),
             }
             .into(),
@@ -95,17 +100,20 @@ fn to_choices_and_arguments(
     choices: Vec<response::Choice>,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
+    in_module: QualifiedNameRef,
 ) -> (Vec<widget::Choice>, Vec<widget::single_choice::ChoiceArgConfig>) {
     let mut args = Vec::new();
 
     let expressions = choices.iter().map(|c| c.value.as_ref());
-    let as_tags = argument_tag_values(expressions, db, parser);
+    let as_tags = argument_tag_values(expressions, db, parser, in_module.clone_ref());
 
     let entries = choices
         .into_iter()
         .enumerate()
         .zip(as_tags)
-        .map(|((index, choice), tag)| to_widget_choice(choice, index, db, parser, tag, &mut args))
+        .map(|((index, choice), tag)| {
+            to_widget_choice(choice, index, db, parser, tag, &mut args, in_module.clone_ref())
+        })
         .collect();
     (entries, args)
 }
@@ -117,6 +125,7 @@ fn to_widget_choice(
     parser: &parser::Parser,
     tag: span_tree::TagValue,
     arguments: &mut Vec<widget::single_choice::ChoiceArgConfig>,
+    in_module: QualifiedNameRef,
 ) -> widget::Choice {
     let value: ImString = tag.expression.into();
     let label = choice.label.map_or_else(|| value.clone(), |label| label.into());
@@ -126,7 +135,7 @@ fn to_widget_choice(
         match arg.data.widget {
             Ok(None) => {}
             Ok(Some(config)) => {
-                let configuration = to_configuration(config, db, parser);
+                let configuration = to_configuration(config, db, parser, in_module.clone_ref());
                 let arg = widget::single_choice::ChoiceArgConfig {
                     choice_index,
                     name: arg.name.into(),

@@ -17,7 +17,7 @@ sum_tco = sum_to ->
     res
 
 sum_tco_decimal = sum_to ->
-    s = sum_to.to_decimal
+    s = sum_to.to_float
     summator = acc -> current ->
         if current >= s then acc else
             @Tail_Call summator acc+current current+1.0

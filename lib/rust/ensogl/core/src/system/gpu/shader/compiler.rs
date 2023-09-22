@@ -849,9 +849,10 @@ impl Controller {
 
 impl ControllerData {
     fn run(&mut self, context: &Context, time: animation::TimeInfo) -> bool {
-        let was_busy = !context.shader_compiler.idle();
-        let result = context.shader_compiler.run(time);
-        let now_idle = context.shader_compiler.idle();
+        let compiler = context.shader_compiler();
+        let was_busy = !compiler.idle();
+        let result = compiler.run(time);
+        let now_idle = compiler.idle();
         if was_busy && now_idle {
             self.on_idle.run_all();
         }

@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Value_Type, Aggregate_Column
+from Standard.Table import Aggregate_Column, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection

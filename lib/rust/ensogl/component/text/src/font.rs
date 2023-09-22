@@ -4,8 +4,8 @@
 use crate::prelude::*;
 
 use ensogl_core::display::scene;
+use ensogl_core::display::world::Context;
 use ensogl_core::system::gpu;
-#[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::texture;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
@@ -937,32 +937,63 @@ profiler::metadata_logger!("GlyphCacheMiss", log_miss(GlyphCacheMiss));
 // === FontWithGpuData ===
 // =======================
 
-#[cfg(target_arch = "wasm32")]
-type AtlasTexture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
-
-#[cfg(not(target_arch = "wasm32"))]
-type AtlasTexture = f32;
-
 /// A font with associated GPU-stored data.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Deref)]
 pub struct FontWithGpuData {
     #[deref]
     pub font:             Font,
-    /// The glyph atlas.
-    pub atlas:            gpu::Uniform<AtlasTexture>,
+    pub atlas:            gpu::Uniform<Option<gpu::Texture>>,
     pub opacity_increase: gpu::Uniform<f32>,
     pub opacity_exponent: gpu::Uniform<f32>,
+    context:              Rc<RefCell<Option<Context>>>,
 }
 
 impl FontWithGpuData {
-    fn new(font: Font, hinting: Hinting, context: &Context) -> Self {
+    fn new(font: Font, hinting: Hinting) -> Self {
         let Hinting { opacity_increase, opacity_exponent } = hinting;
-        let texture = get_texture(context);
-        let atlas = gpu::Uniform::new(texture);
         let opacity_increase = gpu::Uniform::new(opacity_increase);
         let opacity_exponent = gpu::Uniform::new(opacity_exponent);
-        Self { font, atlas, opacity_exponent, opacity_increase }
+        let atlas = gpu::Uniform::new(default());
+        let context = default();
+        Self { font, atlas, opacity_exponent, opacity_increase, context }
+    }
+
+    fn set_context_and_update(&self, context: Option<&Context>) {
+        *self.context.borrow_mut() = context.cloned();
+        self.update_atlas();
+    }
+
+    /// Upload the current atlas to the GPU if it is dirty (contains more glyphs than the currently-
+    /// uploaded version); drop the `gpu::Texture` if context has been lost.
+    #[profile(Debug)]
+    fn update_atlas(&self) {
+        if let Some(context) = self.context.borrow().as_ref() {
+            let num_glyphs = self.font.msdf_texture().glyphs();
+            let gpu_tex_glyphs = self
+                .atlas
+                .with_item(|texture| texture.as_ref().map_or_default(|texture| texture.layers()));
+            let texture_changed = gpu_tex_glyphs as u32 != num_glyphs;
+            if texture_changed {
+                let glyph_size = self.font.msdf_texture().size();
+                let texture = gpu::Texture::new(
+                    context,
+                    texture::AnyInternalFormat::Rgb8,
+                    texture::AnyItemType::u8,
+                    glyph_size.x() as i32,
+                    glyph_size.y() as i32,
+                    num_glyphs as i32,
+                    default(),
+                );
+                if let Ok(texture) = texture.as_ref() {
+                    self.font
+                        .with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
+                }
+                self.atlas.set(texture.ok());
+            }
+        } else {
+            self.atlas.set(None);
+        }
     }
 }
 
@@ -973,10 +1004,11 @@ impl FontWithGpuData {
 // ================
 
 /// Stores all loaded fonts.
-#[derive(Debug, Clone)]
-#[derive(CloneRef)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Registry {
-    fonts: Rc<HashMap<Name, FontWithGpuData>>,
+    network:            frp::Network,
+    fonts:              Rc<HashMap<Name, FontWithGpuData>>,
+    set_context_handle: ensogl_core::display::world::ContextHandler,
 }
 
 impl Registry {
@@ -1000,65 +1032,49 @@ impl Registry {
         self.fonts.get(&name).cloned()
     }
 
-    fn from_fonts(fonts: impl IntoIterator<Item = (Name, Font)>) -> Self {
-        let scene = scene();
+    fn new(
+        scene: &ensogl_core::display::Scene,
+        fonts: impl IntoIterator<Item = (Name, Font)>,
+    ) -> Self {
+        let context = scene.context.borrow();
+        let context = context.as_ref();
         let scene_shape = scene.shape().value();
-        let context = get_context(&scene);
-        let fonts = fonts
+        let fonts: HashMap<_, _> = fonts
             .into_iter()
             .map(|(name, font)| {
-                debug!("Loading font: {:?}", name);
                 let hinting = Hinting::for_font(&name, scene_shape);
-                (name, FontWithGpuData::new(font, hinting, &context))
+                let font = FontWithGpuData::new(font, hinting);
+                font.set_context_and_update(context);
+                (name, font)
             })
             .collect();
         let fonts = Rc::new(fonts);
-        Self { fonts }
+        let fonts_ = Rc::clone(&fonts);
+        let set_context_handle = scene.on_set_context(move |context| {
+            for font in fonts_.values() {
+                font.set_context_and_update(context);
+            }
+        });
+        let network = frp::Network::new("font::Registry");
+        let on_before_rendering = ensogl_core::animation::on_before_rendering();
+        frp::extend! { network
+            eval_ on_before_rendering([fonts] Self::update(&fonts));
+        }
+        Self { network, fonts, set_context_handle }
+    }
+
+    fn update(fonts: impl AsRef<HashMap<Name, FontWithGpuData>>) {
+        for font in fonts.as_ref().values() {
+            font.update_atlas()
+        }
     }
 }
 
 impl scene::Extension for Registry {
-    fn init(_scene: &scene::Scene) -> Self {
-        Self::default()
-    }
-}
-
-impl Default for Registry {
-    fn default() -> Self {
+    fn init(scene: &scene::Scene) -> Self {
         let fonts = Embedded::default().into_fonts();
-        Self::from_fonts(fonts)
+        Self::new(scene, fonts)
     }
-}
-
-
-// === Context helpers ===
-
-#[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone, Copy, CloneRef, Debug, Default)]
-/// Mocked version of WebGL context.
-pub struct Context;
-
-#[cfg(not(target_arch = "wasm32"))]
-fn get_context(_scene: &scene::Scene) -> Context {
-    Context
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn get_texture(_context: &Context) -> AtlasTexture {
-    0.0
-}
-
-#[cfg(target_arch = "wasm32")]
-use ensogl_core::display::world::Context;
-
-#[cfg(target_arch = "wasm32")]
-fn get_context(scene: &scene::Scene) -> Context {
-    scene.context.borrow().as_ref().unwrap().clone_ref()
-}
-
-#[cfg(target_arch = "wasm32")]
-fn get_texture(context: &Context) -> AtlasTexture {
-    gpu::Texture::new(context, (0, 0))
 }
 
 

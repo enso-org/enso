@@ -12,6 +12,7 @@ import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
+import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
@@ -19,6 +20,7 @@ import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
+import * as tailwindConfig from './tailwind.config'
 import * as utils from '../../utils'
 
 // =================
@@ -26,7 +28,6 @@ import * as utils from '../../utils'
 // =================
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
-const TAILWIND_CONFIG_PATH = path.resolve(THIS_PATH, 'tailwind.config.ts')
 
 // =============================
 // === Environment variables ===
@@ -51,25 +52,25 @@ export function argumentsFromEnv(): Arguments {
 // =======================
 
 /** A plugin to process all CSS files with Tailwind CSS. */
-function esbuildPluginGenerateTailwind(): esbuild.Plugin {
+export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     return {
         name: 'enso-generate-tailwind',
         setup: build => {
             const cssProcessor = postcss([
                 tailwindcss({
-                    config: TAILWIND_CONFIG_PATH,
+                    config: tailwindConfig,
                 }),
                 tailwindcssNesting(),
             ])
             build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
-                console.log(`Processing CSS file '${loadArgs.path}'.`)
+                // console.log(`Processing CSS file '${loadArgs.path}'.`)
                 const content = await fs.readFile(loadArgs.path, 'utf8')
                 const result = await cssProcessor.process(content, { from: loadArgs.path })
-                console.log(`Processed CSS file '${loadArgs.path}'.`)
+                // console.log(`Processed CSS file '${loadArgs.path}'.`)
                 return {
                     contents: result.content,
                     loader: 'css',
-                    watchFiles: [loadArgs.path, TAILWIND_CONFIG_PATH],
+                    watchFiles: [loadArgs.path],
                 }
             })
         },
@@ -93,19 +94,20 @@ export function bundlerOptions(args: Arguments) {
         outdir: outputPath,
         outbase: 'src',
         loader: {
-            // The CSS file needs to import a single SVG as a data URL.
-            // For `bundle.ts` and `watch.ts`, `index.js` also includes various SVG icons
-            // which need to be bundled.
-            // The `dataurl` loader replaces the import with the file, as a data URL. Using the
-            // `file` loader, which copies the file and replaces the import with the path,
-            // is an option, however this loader avoids adding extra files to the bundle.
             /* eslint-disable @typescript-eslint/naming-convention */
-            '.svg': 'dataurl',
             // The `file` loader copies the file, and replaces the import with the path to the file.
             '.png': 'file',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         plugins: [
+            // The CSS file needs to import a single SVG as a data URL.
+            // For `bundle.ts` and `watch.ts`, `index.js` also includes various SVG icons
+            // which need to be bundled.
+            // Depending on file size, choose between `dataurl` and `file` loaders.
+            // The `dataurl` loader replaces the import with the file, as a data URL. Using the
+            // `file` loader, which copies the file and replaces the import with the path.
+            /* eslint-disable @typescript-eslint/naming-convention */
+            esbuildPluginInlineImage({ extensions: ['svg'] }),
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
             // This is not strictly needed because the cloud frontend does not use
@@ -125,7 +127,7 @@ export function bundlerOptions(args: Arguments) {
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         pure: ['assert'],
-        sourcemap: trueBoolean,
+        sourcemap: true,
         minify: !devMode,
         metafile: trueBoolean,
         format: 'esm',

@@ -139,7 +139,6 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
             }
             return new String[] {
               "  return context",
-              "      .getEnvironment()",
               "      .asGuestValue(" + qual + "." + name + "(" + paramsApplied + "));"
             };
           }

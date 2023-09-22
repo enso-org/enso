@@ -1,8 +1,11 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.CachedLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -10,8 +13,9 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "<=", description = "Comparison of numbers.")
-public abstract class LessOrEqualNode extends Node {
+public abstract class LessOrEqualNode extends IntegerNode {
 
+  @Override
   abstract Object execute(Object self, Object that);
 
   static LessOrEqualNode build() {
@@ -46,6 +50,15 @@ public abstract class LessOrEqualNode extends Node {
   @Specialization
   boolean doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
     return BigIntegerOps.compare(self.getValue(), that.getValue()) <= 0;
+  }
+
+  @Specialization(guards = "isForeignNumber(iop, that)")
+  Object doInterop(
+      Object self,
+      TruffleObject that,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Cached LessOrEqualNode delegate) {
+    return super.doInterop(self, that, iop, delegate);
   }
 
   @Fallback

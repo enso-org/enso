@@ -56,7 +56,6 @@ public abstract class RegexCompileNode extends Node {
   @TruffleBoundary
   Object compile(String pattern, String options) {
     var ctx = EnsoContext.get(this);
-    var env = ctx.getEnvironment();
     var s = "Flavor=ECMAScript/" + pattern + "/" + options;
     var src =
         Source.newBuilder("regex", s, "myRegex")
@@ -65,7 +64,7 @@ public abstract class RegexCompileNode extends Node {
             .build();
 
     try {
-      var regex = env.parseInternal(src).call();
+      var regex = ctx.parseInternal(src).call();
       return regex;
     } catch (AbstractTruffleException e) {
       Builtins builtins = ctx.getBuiltins();

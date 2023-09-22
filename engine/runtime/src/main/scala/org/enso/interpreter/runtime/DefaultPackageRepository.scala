@@ -181,7 +181,7 @@ private class DefaultPackageRepository(
     isLibrary: Boolean
   ): Unit = {
     val extensions = pkg.listPolyglotExtensions("java")
-    extensions.foreach(context.getEnvironment.addToHostClassPath)
+    extensions.foreach(context.addToClassPath)
 
     val (regularModules, syntheticModulesMetadata) = pkg
       .listSources()
@@ -285,10 +285,8 @@ private class DefaultPackageRepository(
       s"Loading library $libraryName from " +
       s"[${MaskedPath(root.location).applyMasking()}]."
     )
-    val rootFile = context.getEnvironment.getInternalTruffleFile(
-      root.location.toAbsolutePath.normalize.toString
-    )
-    val pkg = packageManager.loadPackage(rootFile).get
+    val rootFile = context.findLibraryRootPath(root)
+    val pkg      = packageManager.loadPackage(rootFile).get
     registerPackageInternal(
       libraryName    = libraryName,
       libraryVersion = libraryVersion,

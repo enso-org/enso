@@ -81,7 +81,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
             ctx.moduleReference(),
-            Type("Foo", List(), false)
+            Type("Foo", List("a", "b", "c"), List(), false)
           )
         )
       )
@@ -116,7 +116,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
             ctx.moduleReference(),
-            Type("Foo", List(), false)
+            Type("Foo", List("a", "b", "c"), List(), false)
           )
         )
       )
@@ -124,7 +124,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
             ctx.moduleReference(),
-            Type("Bar", List(), false)
+            Type("Bar", List(), List(), false)
           )
         )
       )
@@ -138,7 +138,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
             ctx.moduleReference(),
-            Type("Bar", List(), false)
+            Type("Bar", List(), List(), false)
           )
         )
       )
@@ -152,7 +152,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
             ctx.moduleReference(),
-            Type("Foo", List(), false)
+            Type("Foo", List("a", "b", "c"), List(), false)
           )
         )
       )

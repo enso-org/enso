@@ -70,7 +70,7 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {
     showDelete?: boolean
-    selfPermission: backend.PermissionAction
+    selfPermission: permissions.PermissionAction
     type: permissions.Permission
     assetType: backend.AssetType
     style?: React.CSSProperties
@@ -93,7 +93,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 {PERMISSION_TYPE_DATA.filter(
                     data =>
                         (showDelete ? true : data.type !== permissions.Permission.delete) &&
-                        (selfPermission === backend.PermissionAction.own
+                        (selfPermission === permissions.PermissionAction.own
                             ? true
                             : data.type !== permissions.Permission.owner)
                 ).map(data => (

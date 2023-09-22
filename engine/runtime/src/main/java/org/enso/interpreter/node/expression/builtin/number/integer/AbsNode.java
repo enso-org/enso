@@ -2,15 +2,12 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "abs", description = "Absolute value of a number")
-public abstract class AbsNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
+public abstract class AbsNode extends IntegerNode {
 
   public static AbsNode build() {
     return AbsNodeGen.create();
@@ -39,6 +36,6 @@ public abstract class AbsNode extends Node {
 
   @Fallback
   Object doOther(Object self) {
-    throw IntegerUtils.throwTypeErrorIfNotInt(self, this);
+    throw throwTypeErrorIfNotInt(self, this);
   }
 }

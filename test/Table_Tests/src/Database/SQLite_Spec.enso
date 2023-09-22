@@ -211,16 +211,16 @@ sqlite_specific_spec prefix connection setup =
                 do_op Number.negative_infinity op . should_equal Number.negative_infinity
 
         Test.specify "round returns the correct type" <|
-            do_round 231.2 1 . should_be_a Decimal
-            do_round 231.2 0 . should_be_a Decimal
-            do_round 231.2 . should_be_a Decimal
-            do_round 231.2 -1 . should_be_a Decimal
+            do_round 231.2 1 . should_be_a Float
+            do_round 231.2 0 . should_be_a Float
+            do_round 231.2 . should_be_a Float
+            do_round 231.2 -1 . should_be_a Float
 
         Test.specify "round returns the correct type" <|
-            do_round 231 1 . should_be_a Decimal
-            do_round 231 0 . should_be_a Decimal
-            do_round 231 . should_be_a Decimal
-            do_round 231 -1 . should_be_a Decimal
+            do_round 231 1 . should_be_a Float
+            do_round 231 0 . should_be_a Float
+            do_round 231 . should_be_a Float
+            do_round 231 -1 . should_be_a Float
 
 sqlite_spec connection prefix =
     name_counter = Ref.new 0

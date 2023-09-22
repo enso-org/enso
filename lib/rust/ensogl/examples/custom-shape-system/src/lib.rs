@@ -74,7 +74,7 @@ pub fn main() {
             let _keep_alive = &navigator;
             i += 1;
             if i == 5 {
-                if let Some(program) = view.sprite.borrow().symbol.shader().program() {
+                if let Some(program) = view.sprite.borrow().symbol.shader.borrow_mut().program() {
                     debug!("\n\nVERTEX:\n{}", program.shader.vertex.code);
                     debug!("\n\nFRAGMENT:\n{}", program.shader.fragment.code);
                 }

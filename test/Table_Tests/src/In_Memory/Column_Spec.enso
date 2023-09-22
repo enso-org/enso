@@ -102,8 +102,8 @@ spec =
         Test.specify "will coerce integers to decimals by default, to get a numeric column" <|
             c1 = Column.from_vector "X" [1, 2.0]
             c1.value_type . should_equal Value_Type.Float
-            c1.at 0 . should_be_a Decimal
-            c1.at 1 . should_be_a Decimal
+            c1.at 0 . should_be_a Float
+            c1.at 1 . should_be_a Float
             c1.at 0 . is_a Integer . should_be_false
 
         Test.specify "will preserve the types if the column is Mixed" <|
@@ -111,20 +111,20 @@ spec =
             c1.value_type . should_equal Value_Type.Mixed
             c1.at 0 . should_be_a Text
             c1.at 1 . should_be_a Integer
-            c1.at 2 . should_be_a Decimal
+            c1.at 2 . should_be_a Float
 
         Test.specify "will preserve the types if the column is Mixed (2)" pending="ToDo: disabled due to issue #7352" <|
             c2 = Column.from_vector "X" [1, 2.0, "a"]
             c2.value_type . should_equal Value_Type.Mixed
             c2.at 0 . should_be_a Integer
-            c2.at 1 . should_be_a Decimal
+            c2.at 1 . should_be_a Float
             c2.at 2 . should_be_a Text
 
         Test.specify "should allow to set a specific type at construction" <|
             c1 = Column.from_vector "X" [1, 2] Value_Type.Float
             c1.value_type . should_equal Value_Type.Float
-            c1.at 0 . should_be_a Decimal
-            c1.at 1 . should_be_a Decimal
+            c1.at 0 . should_be_a Float
+            c1.at 1 . should_be_a Float
             c1.to_vector . should_equal [1.0, 2.0]
 
             # Even if we have only integers, we force the value_type to be reported as Mixed.
@@ -290,7 +290,7 @@ spec =
         do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
 
         Test.specify "round returns the correct type" <|
-            do_round 231.2 1 . should_be_a Decimal
+            do_round 231.2 1 . should_be_a Float
             do_round 231.2 0 . should_be_a Integer
             do_round 231.2 . should_be_a Integer
             do_round 231.2 -1 . should_be_a Integer

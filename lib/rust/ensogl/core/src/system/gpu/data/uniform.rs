@@ -8,9 +8,7 @@ use enum_dispatch::*;
 
 use crate::system::gpu::Context;
 
-use enso_shapely::shared;
 use upload::UniformUpload;
-use web_sys::WebGlTexture;
 use web_sys::WebGlUniformLocation;
 
 
@@ -35,66 +33,65 @@ pub trait UniformValue = Sized where Uniform<Self>: Into<AnyUniform>;
 // === UniformScope ===
 // ====================
 
-shared! { UniformScope
-
 /// A scope containing set of uniform values.
 #[derive(Debug, Default)]
-pub struct UniformScopeData {
+pub struct UniformScope {
     map: HashMap<String, AnyUniform>,
 }
 
-impl {
+impl UniformScope {
     /// Constructor.
     pub fn new() -> Self {
         default()
     }
 
     /// Look up uniform by name.
-    pub fn get<Name:Str>(&self, name:Name) -> Option<AnyUniform> {
+    pub fn get<Name: Str>(&self, name: Name) -> Option<AnyUniform> {
         self.map.get(name.as_ref()).cloned()
     }
 
     /// Checks if uniform of a given name was defined in this scope.
-    pub fn contains<Name:Str>(&self, name:Name) -> bool {
+    pub fn contains<Name: Str>(&self, name: Name) -> bool {
         self.map.contains_key(name.as_ref())
     }
 
     /// Add a new uniform with a given name and initial value. Returns `None` if the name is in use.
-    pub fn add<Name, Value, Input>(&mut self, name:Name, input:Input) -> Option<Uniform<Value>>
+    pub fn add<Name, Value, Input>(&mut self, name: Name, input: Input) -> Option<Uniform<Value>>
     where
         Name: Str,
         Input: Into<Uniform<Value>>,
-        Value: UniformValue {
-        self.add_or_else(name, input, Some, |_,_,_| None)
+        Value: UniformValue, {
+        self.add_or_else(name, input, Some, |_, _, _| None)
     }
 
     /// Add a new uniform with a given name and initial value. Panics if the name is in use.
-    pub fn add_or_panic<Name, Value, Input>(&mut self, name:Name, input:Input) -> Uniform<Value>
+    pub fn add_or_panic<Name, Value, Input>(&mut self, name: Name, input: Input) -> Uniform<Value>
     where
-        Name:Str,
+        Name: Str,
         Input: Into<Uniform<Value>>,
-        Value:UniformValue {
-        self.add_or_else(name,input,|t|{t},|name,_,_| {
-            panic!("Trying to override uniform '{}'.", name.as_ref())
-        })
+        Value: UniformValue, {
+        self.add_or_else(
+            name,
+            input,
+            |t| t,
+            |name, _, _| panic!("Trying to override uniform '{}'.", name.as_ref()),
+        )
     }
 
     pub fn add_uniform<Name, Value>(&mut self, name: Name, uniform: &Uniform<Value>)
     where
         Name: Str,
-        Value: UniformValue {
+        Value: UniformValue, {
         self.add::<Name, Value, _>(name, uniform);
     }
 
-    pub fn add_uniform_or_panic<Name, Value>(&mut self, name:Name, uniform:&Uniform<Value>)
+    pub fn add_uniform_or_panic<Name, Value>(&mut self, name: Name, uniform: &Uniform<Value>)
     where
-        Name:Str,
-        Value:UniformValue {
+        Name: Str,
+        Value: UniformValue, {
         self.add_or_panic::<Name, Value, _>(name, uniform);
     }
-}}
 
-impl UniformScopeData {
     /// Adds a new uniform with a given name and initial value. In case the name was already in use,
     /// it fires the `on_exist` function. Otherwise, it fires the `on_fresh` function on the newly
     /// created uniform.
@@ -141,18 +138,6 @@ impl UniformScopeData {
     }
 }
 
-impl UniformScope {
-    /// Gets an existing uniform or adds a new one in case it was missing. Returns `None` if the
-    /// uniform exists but its type does not match the requested one.
-    pub fn set<Name, Value>(&self, name: Name, value: Value) -> Option<Uniform<Value>>
-    where
-        Name: Str,
-        Value: UniformValue,
-        for<'t> &'t Uniform<Value>: TryFrom<&'t AnyUniform>, {
-        self.rc.borrow_mut().set(name, value)
-    }
-}
-
 
 
 // ===============
@@ -169,68 +154,47 @@ impl UniformScope {
 //       Please note that currently a special uniform 'zoom' is modified in the render loop. See
 //       the `scene::View` implementation to learn more.
 
-shared! { Uniform
-
 /// An uniform value.
-#[derive(Debug)]
-pub struct UniformData<Value> {
-    value: Value,
-    // dirty: bool,
+#[derive(Debug, CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct Uniform<Value> {
+    value: Rc<RefCell<Value>>,
 }
 
-impl<Value> {
+impl<Value> Uniform<Value> {
     /// Constructor.
-    pub fn new(value:Value) -> Self {
+    pub fn new(value: Value) -> Self {
+        let value = Rc::new(RefCell::new(value));
         // let dirty = true;
-        Self {value}
+        Self { value }
     }
 
     /// Sets the value of this uniform.
-    pub fn set(&mut self, value:Value) {
+    pub fn set(&self, value: Value) {
         // self.set_dirty();
-        self.value = value;
+        *self.value.borrow_mut() = value;
     }
 
     /// Modifies the value of this uniform.
-    pub fn modify(&mut self, f: impl FnOnce(&mut Value)) {
-        f(&mut self.value);
+    pub fn modify(&self, f: impl FnOnce(&mut Value)) {
+        f(&mut *self.value.borrow_mut());
     }
-
-//    /// Checks whether the uniform was changed and not yet updated.
-//    pub fn check_dirty(&self) -> bool {
-//        self.dirty
-//    }
-
-//    /// Sets the dirty flag.
-//    pub fn set_dirty(&mut self) {
-//        self.dirty = true;
-//    }
-//
-//    /// Clears the dirty flag.
-//    pub fn unset_dirty(&mut self) {
-//        self.dirty = false;
-//    }
 }
 
-impl<Value:Clone> {
+impl<Value: Clone> Uniform<Value> {
     /// Reads the value of this uniform.
     pub fn get(&self) -> Value {
-        self.value.clone()
+        self.value.borrow().clone()
     }
-}}
+}
 
 impl<Value> Uniform<Value> {
     pub fn swap(&self, that: &Self) {
-        self.rc.borrow_mut().swap(&mut *that.rc.borrow_mut())
+        if !Rc::ptr_eq(&self.value, &that.value) {
+            mem::swap(&mut *self.value.borrow_mut(), &mut *that.value.borrow_mut())
+        }
     }
 }
-
-impl<Value> UniformData<Value> {
-    pub fn swap(&mut self, that: &mut Self) {
-        mem::swap(self, that)
-    }
-}
-
 
 impl<T> From<T> for Uniform<T> {
     fn from(t: T) -> Self {
@@ -250,7 +214,7 @@ impl<T> HasItem for Uniform<T> {
 
 impl<T> WithItemRef for Uniform<T> {
     fn with_item<R>(&self, f: impl FnOnce(&Self::Item) -> R) -> R {
-        f(&self.rc.borrow().value)
+        f(&self.value.borrow())
     }
 }
 
@@ -295,13 +259,7 @@ pub trait AnyPrimUniformOps {
 
 impl<Value: UniformUpload> AnyPrimUniformOps for Uniform<Value> {
     fn upload(&self, context: &Context, location: &WebGlUniformLocation) {
-        self.rc.borrow().upload(context, location)
-    }
-}
-
-impl<Value: UniformUpload> AnyPrimUniformOps for UniformData<Value> {
-    fn upload(&self, context: &Context, location: &WebGlUniformLocation) {
-        self.value.upload_uniform(context, location)
+        self.value.borrow().upload_uniform(context, location)
     }
 }
 
@@ -311,117 +269,30 @@ impl<Value: UniformUpload> AnyPrimUniformOps for UniformData<Value> {
 // === AnyTextureUniform ===
 // =========================
 
-macro_rules! define_any_texture_uniform {
-    ( [ $([$storage:ident $internal_format:ident $item_type:ident])* ] ) => { paste! {
-        #[allow(non_camel_case_types)]
-        #[derive(Clone,CloneRef,Debug)]
-        pub enum AnyTextureUniform {
-            $([<$storage _ $internal_format _ $item_type >]
-                (Uniform<Texture<$storage,$internal_format,$item_type>>)),*
-        }
-
-        impl AnyTextureUniform {
-            pub fn try_swap(&self, that:&Self) -> bool {
-                match (self,that) {
-                    $(
-                        ( Self::[<$storage _ $internal_format _ $item_type >](a)
-                        , Self::[<$storage _ $internal_format _ $item_type >](b)
-                        ) => {a.swap(b); true},
-                    )*
-                    _ => false
-                }
-            }
-        }
-
-        impl TextureOps for AnyTextureUniform {
-            fn bind_texture_unit
-            (&self, context:&Context, unit:TextureUnit) -> TextureBindGuard {
-                match self {
-                    $(
-                        Self::[<$storage _ $internal_format _ $item_type >](t) =>
-                            t.bind_texture_unit(context,unit)
-                    ),*
-                }
-            }
-
-            fn gl_texture(&self) -> WebGlTexture {
-                match self {
-                    $(Self::[<$storage _ $internal_format _ $item_type >](t) => t.gl_texture()),*
-                }
-            }
-
-            fn get_format(&self) -> AnyFormat {
-                match self {
-                    $(Self::[<$storage _ $internal_format _ $item_type >](t) => t.get_format()),*
-                }
-            }
-
-            fn get_item_type(&self) -> AnyItemType {
-                match self {
-                    $(Self::[<$storage _ $internal_format _ $item_type >](t) => t.get_item_type()),*
-                }
-            }
-        }
-
-        $(
-            impl From<Uniform<Texture<$storage,$internal_format,$item_type>>>
-            for AnyTextureUniform {
-                fn from(t:Uniform<Texture<$storage,$internal_format,$item_type>>) -> Self {
-                    Self::[<$storage _ $internal_format _ $item_type >](t)
-                }
-            }
-
-            impl<'t> TryFrom<&'t AnyTextureUniform>
-            for &'t Uniform<Texture<$storage,$internal_format,$item_type>> {
-                type Error = TypeMismatch;
-                fn try_from(value:&'t AnyTextureUniform) -> Result<Self,Self::Error> {
-                    match value {
-                        AnyTextureUniform::[<$storage _ $internal_format _ $item_type >](t) => Ok(t),
-                        _ => Err(TypeMismatch),
-                    }
-                }
-            }
-        )*
-    }}
+#[allow(non_camel_case_types)]
+#[derive(Clone, CloneRef, Debug)]
+pub struct AnyTextureUniform {
+    texture: Uniform<Option<Texture>>,
 }
 
-macro_rules! define_get_or_add_gpu_texture_dyn {
-    ( [ $([$internal_format:ident $item_type:ident])* ] ) => {
-        pub fn get_or_add_gpu_texture_dyn<P:Into<GpuOnlyData>>
-        ( context         : &Context
-        , scope           : &UniformScope
-        , name            : &str
-        , internal_format : AnyInternalFormat
-        , item_type       : AnyItemType
-        , provider        : P
-        , parameters      : Option<Parameters>
-        ) -> AnyTextureUniform {
-            let provider = provider.into();
-            match (internal_format,item_type) {
-                $((AnyInternalFormat::$internal_format, AnyItemType::$item_type) => {
-                    let mut texture =
-                        Texture::<GpuOnly,$internal_format,$item_type>::new(&context,provider);
-                    if let Some(parameters) = parameters {
-                        texture.set_parameters(parameters);
-                    }
-                    let uniform = scope.set(name,texture).unwrap();
-                    uniform.into()
-                })*
-                _ => panic!("Invalid internal format and item type combination ({:?},{:?}).",
-                    internal_format,item_type)
-            }
-        }
+impl AnyTextureUniform {
+    pub fn texture(&self) -> Option<Ref<Texture>> {
+        Ref::filter_map(self.texture.value.borrow(), |texture| texture.as_ref()).ok()
     }
 }
 
-macro_rules! generate {
-    ( [ $([$internal_format:ident $item_type:ident])* ] ) => {
-        define_any_texture_uniform!{[ $([GpuOnly $internal_format $item_type])* ]}
-        define_get_or_add_gpu_texture_dyn!{[ $([$internal_format $item_type])* ]}
+impl From<Uniform<Option<Texture>>> for AnyTextureUniform {
+    fn from(texture: Uniform<Option<Texture>>) -> Self {
+        Self { texture }
     }
 }
 
-crate::with_all_texture_types! ([generate _]);
+impl<'t> TryFrom<&'t AnyTextureUniform> for &'t Uniform<Option<Texture>> {
+    type Error = TypeMismatch;
+    fn try_from(value: &'t AnyTextureUniform) -> Result<Self, Self::Error> {
+        Ok(&value.texture)
+    }
+}
 
 
 
@@ -456,13 +327,7 @@ impl<T: Into<AnyPrimUniform>> IntoAnyUniform for T {
     }
 }
 
-impl<S, I, T> IntoAnyUniform for Uniform<Texture<S, I, T>>
-where
-    S: StorageRelation<I, T>,
-    I: InternalFormat,
-    T: ItemType,
-    Uniform<Texture<S, I, T>>: Into<AnyTextureUniform>,
-{
+impl IntoAnyUniform for Uniform<Option<Texture>> {
     fn into_any_uniform(self) -> AnyUniform {
         AnyUniform::Texture(self.into())
     }
@@ -484,10 +349,7 @@ macro_rules! generate_prim_type_downcasts {
 crate::with_all_prim_types!([[generate_prim_type_downcasts][]]);
 
 
-impl<'t, S: StorageRelation<I, T>, I: InternalFormat, T: ItemType> TryFrom<&'t AnyUniform>
-    for &'t Uniform<Texture<S, I, T>>
-where &'t Uniform<Texture<S, I, T>>: TryFrom<&'t AnyTextureUniform, Error = TypeMismatch>
-{
+impl<'t> TryFrom<&'t AnyUniform> for &'t Uniform<Option<Texture>> {
     type Error = TypeMismatch;
     fn try_from(value: &'t AnyUniform) -> Result<Self, Self::Error> {
         match value {

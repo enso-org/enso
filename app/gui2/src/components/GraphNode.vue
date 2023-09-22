@@ -1,19 +1,19 @@
 <script setup lang="ts">
+import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
-
+import SvgIcon from '@/components/SvgIcon.vue'
+import {
+  provideVisualizationConfig,
+  type VisualizationConfig,
+} from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useVisualizationStore, type Visualization } from '@/stores/visualization'
 import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
-import type { ContentRange, ExprId } from 'shared/yjs-model'
 import type { Vec2 } from '@/util/vec2'
-
-import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-import {
-  provideVisualizationConfig,
-  type VisualizationConfig,
-} from '../providers/visualizationConfig'
+import type { ContentRange, ExprId } from 'shared/yjsModel'
 
 const props = defineProps<{
   node: Node
@@ -390,7 +390,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
       @update:type="visualizationType = $event"
     />
     <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">
-      <div class="icon" @pointerdown="handleClick">@ &nbsp;</div>
+      <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
       <div
         ref="editableRootNode"
         class="editable"
@@ -414,6 +414,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
 
 <style scoped>
 .GraphNode {
+  color: red;
   position: absolute;
 }
 
@@ -436,6 +437,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
 .binding {
   user-select: none;
   margin-right: 10px;
+  color: black;
   position: absolute;
   right: 100%;
   top: 50%;
@@ -457,8 +459,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
 .icon {
   color: white;
   cursor: grab;
-  width: unset;
-  height: unset;
+  margin-right: 10px;
 }
 
 .GraphNode.dragging,

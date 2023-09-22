@@ -237,7 +237,7 @@ spec = Test.group "Dataflow Warnings" <|
         warned.has_warnings.should_be_true
         warned.has_warnings warning_type=Integer . should_be_true
         warned.has_warnings warning_type=Number . should_be_true
-        warned.has_warnings warning_type=Decimal . should_be_false
+        warned.has_warnings warning_type=Float . should_be_false
         warned.has_warnings warning_type=Text . should_be_true
         warned.has_warnings warning_type=Nothing . should_be_true
         warned.has_warnings warning_type=Unimplemented . should_be_true

@@ -5,12 +5,13 @@ import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 
 import { useGraphStore } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
-import { useWindowEvent } from '@/util/events'
+import { modKey, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange, ExprId } from 'shared/yjs-model'
-import { reactive, ref, watchEffect } from 'vue'
+import type { ContentRange, ExprId } from 'shared/yjsModel'
+import { reactive, ref } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -19,10 +20,9 @@ const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
-
-watchEffect(() => {
-  console.log(`execution mode changed to '${mode.value}'.`)
-})
+const projectStore = useProjectStore()
+const componentBrowserVisible = ref(false)
+const componentBrowserPosition = ref(Vec2.Zero())
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -48,17 +48,31 @@ function keyboardBusy() {
   return document.activeElement != document.body
 }
 
-useWindowEvent('keypress', (e) => {
+useWindowEvent('keydown', (e) => {
   if (keyboardBusy()) return
   const pos = navigator.sceneMousePos
-  if (pos == null) return
 
-  switch (e.key) {
-    case 'n': {
-      const n = graphStore.createNode(pos)
-      if (n == null) return
-      graphStore.setNodeContent(n, 'hello "world"! 123 + x')
-      break
+  if (modKey(e)) {
+    switch (e.key) {
+      case 'z':
+        projectStore.undoManager.undo()
+        break
+      case 'y':
+        projectStore.undoManager.redo()
+        break
+    }
+  } else {
+    switch (e.key) {
+      case 'Enter':
+        if (pos != null && !componentBrowserVisible.value) {
+          componentBrowserPosition.value = pos
+          componentBrowserVisible.value = true
+        }
+        break
+      case 'n': {
+        if (pos != null) graphStore.createNode(pos, 'hello "world"! 123 + x')
+        break
+      }
     }
   }
 })
@@ -99,7 +113,12 @@ function moveNode(id: ExprId, delta: Vec2) {
         @movePosition="moveNode(id, $event)"
       />
     </div>
-    <ComponentBrowser :navigator="navigator" />
+    <ComponentBrowser
+      v-if="componentBrowserVisible"
+      :navigator="navigator"
+      :position="componentBrowserPosition"
+      @finished="componentBrowserVisible = false"
+    />
     <TopBar
       v-model:mode="mode"
       :title="title"
@@ -117,7 +136,7 @@ function moveNode(id: ExprId, delta: Vec2) {
 .viewport {
   position: relative;
   contain: layout;
-  overflow: hidden;
+  overflow: clip;
 }
 
 svg {

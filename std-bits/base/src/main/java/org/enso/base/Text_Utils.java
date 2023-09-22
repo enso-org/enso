@@ -636,6 +636,13 @@ public class Text_Utils {
   }
 
   /**
+   * Checks if the given string consists only of letters.
+   */
+  public static boolean is_all_letters(String text) {
+    return text.codePoints().allMatch(UCharacter::isLetter);
+  }
+
+  /**
    * Replaces all provided spans within the text with {@code newSequence}.
    *
    * @param str the string to process

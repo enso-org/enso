@@ -4,6 +4,11 @@
   "compilerOptions": {
     "composite": true,
     "lib": [],
-    "types": ["node", "jsdom"]
-  }
+    "types": ["node", "jsdom", "vitest/importMeta"]
+  },
+  "references": [
+    {
+      "path": "../ide-desktop/lib/dashboard/tsconfig.json"
+    }
+  ]
 }
