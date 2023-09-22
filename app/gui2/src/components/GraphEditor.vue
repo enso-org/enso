@@ -130,7 +130,7 @@ function moveNode(id: ExprId, delta: Vec2) {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="console.log('\'execute\' button clicked.')"
     />
-    <CodeEditor ref="codeEditor" @codeUpdate="codeUpdate" />
+    <CodeEditor ref="codeEditor" />
   </div>
 </template>
 
