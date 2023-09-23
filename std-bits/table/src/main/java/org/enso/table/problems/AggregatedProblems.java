@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.table.data.table.problems.ColumnAggregatedProblems;
 
+@Deprecated
 public class AggregatedProblems {
   private final List<Problem> problems;
   private final int maxSize;
