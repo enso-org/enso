@@ -323,7 +323,7 @@ public class Table {
 
     // TODO problemAggregator needs to be passed downwards, but we do the migration step by step
     if (joinResult != null) {
-      joinResult.problems().addToAggregator(problemAggregator);
+      AggregatedProblems.addToAggregator(joinResult.problems(), problemAggregator);
     }
 
     problemAggregator.reportAll(nameDeduplicator.getProblems());
@@ -356,7 +356,7 @@ public class Table {
       newColumns[leftColumnCount + i] = right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
     }
 
-    joinResult.problems().addToAggregator(problemAggregator);
+    AggregatedProblems.addToAggregator(joinResult.problems(), problemAggregator);
     problemAggregator.reportAll(nameDeduplicator.getProblems());
     return new Table(newColumns);
   }

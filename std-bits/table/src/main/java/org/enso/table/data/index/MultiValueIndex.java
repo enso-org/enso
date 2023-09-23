@@ -115,8 +115,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       }
     }
 
-    this.problems.addToAggregator(problemAggregator);
-    IntStream.range(0, length).forEach(i -> columns[i].getProblems().addToAggregator(problemAggregator));
+    AggregatedProblems.addToAggregator(this.problems, problemAggregator);
+    IntStream.range(0, length).forEach(i -> AggregatedProblems.addToAggregator(columns[i].getProblems(), problemAggregator));
 
     return new Table(
         IntStream.range(0, length)

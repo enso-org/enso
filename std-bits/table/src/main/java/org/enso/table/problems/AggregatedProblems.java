@@ -102,9 +102,13 @@ public class AggregatedProblems {
    *     parts.
    */
   @Deprecated
-  public void addToAggregator(ProblemAggregator aggregator) {
+  public static void addToAggregator(AggregatedProblems problems, ProblemAggregator aggregator) {
+    if (problems == null) {
+      return;
+    }
+
     // Merely creating this class registers it to the parent and will ensure the problems will be added when summarizing.
-    new AggregatedProblemsProxyAggregator(aggregator, this);
+    new AggregatedProblemsProxyAggregator(aggregator, problems);
   }
 
   private static class AggregatedProblemsProxyAggregator extends ProblemAggregator {
