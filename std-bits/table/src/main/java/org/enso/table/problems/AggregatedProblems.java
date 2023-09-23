@@ -1,8 +1,9 @@
 package org.enso.table.problems;
 
+import org.enso.table.data.table.problems.ColumnAggregatedProblems;
+
 import java.util.ArrayList;
 import java.util.List;
-import org.enso.table.data.table.problems.ColumnAggregatedProblems;
 
 @Deprecated
 public class AggregatedProblems {
@@ -92,5 +93,36 @@ public class AggregatedProblems {
       result.add(p);
     }
     return result;
+  }
+
+  /**
+   * A helper method for migration from {@link AggregatedProblems} to {@link ProblemAggregator} in an easy way.
+   *
+   * @deprecated It will be removed together with {@link AggregatedProblems}, but can be used to perform migration in
+   *     parts.
+   */
+  @Deprecated(forRemoval = true)
+  public void addToAggregator(ProblemAggregator aggregator) {
+    // Merely creating this class registers it to the parent and will ensure the problems will be added when summarizing.
+    new AggregatedProblemsProxyAggregator(aggregator, this);
+  }
+
+  private static class AggregatedProblemsProxyAggregator extends ProblemAggregator {
+
+    private final AggregatedProblems problemsToAdd;
+
+    protected AggregatedProblemsProxyAggregator(ProblemAggregator parent, AggregatedProblems problemsToAdd) {
+      super(parent);
+      this.problemsToAdd = problemsToAdd;
+    }
+
+    @Override
+    public ProblemSummary summarize() {
+      var baseSummary = super.summarize();
+      List<Problem> problems = new ArrayList<>(baseSummary.problems());
+      problems.addAll(problemsToAdd.problems);
+      long count = baseSummary.allProblemsCount() + problemsToAdd.count;
+      return new ProblemSummary(problems, count);
+    }
   }
 }
