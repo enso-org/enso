@@ -18,6 +18,7 @@ polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
+polyglot java import org.enso.table.problems.ProblemAggregator
 polyglot java import org.enso.table.problems.AggregatedProblems
 polyglot java import org.enso.table.problems.WithAggregatedProblems
 polyglot java import org.enso.table.util.problems.DuplicateNames
@@ -91,3 +92,23 @@ unpack_value_with_aggregated_problems on_problems with_problems (problem_mapping
     problems = parse_aggregated_problems with_problems.problems problem_mapping
     on_problems.attach_problems_before problems <|
         with_problems.value
+
+## PRIVATE
+unpack_problem_summary problem_summary =
+    problems_array = problem_summary.problems
+    count = problem_summary.allProblemsCount
+    ## TODO [RW, GT] In the next iterations we will want to remove
+       `translate_problem` in favour of constructing Enso problem instances
+       directly in Java code. To do so, we will need https://github.com/enso-org/enso/issues/7797
+    parsed = problems_array . map translate_problem
+    if count == parsed.length then parsed else
+        parsed + [Additional_Warnings.Error (count - parsed.length)]
+
+## PRIVATE
+   This is the new preferred way of running Java methods that may report problems.
+with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
+with_problem_aggregator on_problems f =
+    ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
+    aggregator = ProblemAggregator.makeTopLevelAggregator
+    result = f aggregator
+    on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
