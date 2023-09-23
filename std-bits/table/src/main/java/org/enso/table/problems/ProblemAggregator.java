@@ -12,6 +12,12 @@ public class ProblemAggregator {
     directlyReportedProblems.add(problem);
   }
 
+  /** A helper method, I'm not sure if we should have it, but it helps during migration. */
+  @Deprecated
+  public void reportAll(List<Problem> problems) {
+    directlyReportedProblems.addAll(problems);
+  }
+
   /**
    * A summary that includes gathered problems and a count.
    * <p>

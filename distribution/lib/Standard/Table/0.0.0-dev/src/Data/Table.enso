@@ -676,12 +676,9 @@ type Table
 
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
-            java_table = index.makeTable new_columns
-            new_table = Table.Value java_table
-
-            on_problems.attach_problems_after new_table <|
-                problems = java_table.getProblems
-                Java_Problems.parse_aggregated_problems problems
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                java_table = index.makeTable new_columns java_problem_aggregator
+                Table.Value java_table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
@@ -812,10 +809,9 @@ type Table
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
-            self.java_table.distinct java_columns text_folding_strategy
-        on_problems.attach_problems_after (Table.Value java_table) <|
-            problems = java_table.getProblems
-            Java_Problems.parse_aggregated_problems problems
+            Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.distinct java_columns text_folding_strategy java_aggregator
+        Table.Value java_table
 
     ## GROUP Standard.Base.Conversions
        Parses columns within a Table to a specific value type.
@@ -1566,11 +1562,9 @@ type Table
             right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
 
             java_conditions = join_resolution.conditions
-            new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
-
-            on_problems.attach_problems_after (Table.Value new_java_table) <|
-                problems = new_java_table.getProblems
-                Java_Problems.parse_aggregated_problems problems
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+            Table.Value new_java_table
 
     ## ALIAS cartesian join
        GROUP Standard.Base.Calculations
@@ -1615,9 +1609,9 @@ type Table
                     [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
                 False -> []
             on_problems.attach_problems_before limit_problems <|
-                new_java_table = self.java_table.crossJoin right.java_table right_prefix
-                renaming_problems = new_java_table.getProblems |> Java_Problems.parse_aggregated_problems
-                on_problems.attach_problems_before renaming_problems (Table.Value new_java_table)
+                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.crossJoin right.java_table right_prefix java_aggregator
+                Table.Value new_java_table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1682,9 +1676,9 @@ type Table
             problems = if (left_row_count == right_row_count) || report_mismatch.not then [] else
                 [Row_Count_Mismatch.Error left_row_count right_row_count]
             on_problems.attach_problems_before problems <|
-                new_java_table = self.java_table.zip right.java_table keep_unmatched_bool right_prefix
-                renaming_problems = new_java_table.getProblems |> Java_Problems.parse_aggregated_problems
-                on_problems.attach_problems_before renaming_problems (Table.Value new_java_table)
+                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
+                Table.Value new_java_table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
@@ -2022,25 +2016,24 @@ type Table
                     Aggregate_Column_Helper.default_aggregate_column_name c
                 Aggregate_Column_Helper.java_aggregator col_name c
 
-            result = case matched_name.is_empty of
-                True ->
-                    group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
-                    index = self.java_table.indexFromColumns java_key_columns
-                    index.makeTable (group_by + data_columns)
-                False ->
-                    aggregate_names = validated_values.map c->
-                        if c.new_name != "" then c.new_name else (name_mapper c)
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                case matched_name.is_empty of
+                    True ->
+                        group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
+                        index = self.java_table.indexFromColumns java_key_columns
+                        new_java_table = index.makeTable (group_by + data_columns) java_problem_aggregator
+                        Table.Value new_java_table
+                    False ->
+                        aggregate_names = validated_values.map c->
+                            if c.new_name != "" then c.new_name else (name_mapper c)
 
-                    too_many_columns caught_panic =
-                        inner_panic = caught_panic.payload
-                        Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
-                    Panic.catch TooManyColumnsException handler=too_many_columns <|
-                        Invalid_Column_Names.handle_java_exception <|
-                            self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
-
-            on_problems.attach_problems_after (Table.Value result) <|
-                problems = result.getProblems
-                Java_Problems.parse_aggregated_problems problems
+                        too_many_columns caught_panic =
+                            inner_panic = caught_panic.payload
+                            Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
+                        Panic.catch TooManyColumnsException handler=too_many_columns <|
+                            Invalid_Column_Names.handle_java_exception <|
+                                new_java_table = self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names java_problem_aggregator
+                                Table.Value new_java_table
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.

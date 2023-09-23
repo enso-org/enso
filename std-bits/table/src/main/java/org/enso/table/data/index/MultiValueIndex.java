@@ -12,12 +12,16 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final int keyColumnsLength;
   private final Map<KeyType, List<Integer>> locs;
+
+  // We should remove this. But in a separate commit.
+  @Deprecated
   private final AggregatedProblems problems;
 
   public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
@@ -82,7 +86,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     }
   }
 
-  public Table makeTable(Aggregator[] columns) {
+  // TODO we will move problemAggregator to the constructor later
+  public Table makeTable(Aggregator[] columns, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     final int length = columns.length;
     final int size = locs.size();
@@ -110,17 +115,13 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       }
     }
 
-    // Merge Problems
-    AggregatedProblems[] problems = new AggregatedProblems[1 + length];
-    problems[0] = this.problems;
-    IntStream.range(0, length).forEach(i -> problems[i + 1] = columns[i].getProblems());
-    AggregatedProblems merged = AggregatedProblems.merge(problems);
+    this.problems.addToAggregator(problemAggregator);
+    IntStream.range(0, length).forEach(i -> columns[i].getProblems().addToAggregator(problemAggregator));
 
     return new Table(
         IntStream.range(0, length)
             .mapToObj(i -> new Column(columns[i].getName(), storage[i].seal()))
-            .toArray(Column[]::new),
-        merged);
+            .toArray(Column[]::new));
   }
 
   public AggregatedProblems getProblems() {

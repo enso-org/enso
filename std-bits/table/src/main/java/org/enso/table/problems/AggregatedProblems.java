@@ -101,7 +101,7 @@ public class AggregatedProblems {
    * @deprecated It will be removed together with {@link AggregatedProblems}, but can be used to perform migration in
    *     parts.
    */
-  @Deprecated(forRemoval = true)
+  @Deprecated
   public void addToAggregator(ProblemAggregator aggregator) {
     // Merely creating this class registers it to the parent and will ensure the problems will be added when summarizing.
     new AggregatedProblemsProxyAggregator(aggregator, this);

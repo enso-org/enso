@@ -10,6 +10,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.TooManyColumnsException;
 import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 
@@ -103,7 +104,7 @@ public class CrossTabIndex {
     return yKeyNumberer.size();
   }
 
-  public Table makeCrossTabTable(Aggregator[] aggregates, String[] aggregateNames) {
+  public Table makeCrossTabTable(Aggregator[] aggregates, String[] aggregateNames, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
@@ -198,16 +199,13 @@ public class CrossTabIndex {
       offset += aggregates.length;
     }
 
-    // Merge Problems
-    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 2];
-    problems[0] = combinedIndex.getProblems();
-    problems[1] = AggregatedProblems.of(outputTableNameDeduplicator.getProblems());
-    for (int i = 0; i < aggregates.length; i++) {
-      problems[i + 2] = aggregates[i].getProblems();
+    // TODO this is not how we will be merging problems - instead the aggregator should be passed downwards to each call; but we do all step by step
+    combinedIndex.getProblems().addToAggregator(problemAggregator);
+    problemAggregator.reportAll(outputTableNameDeduplicator.getProblems());
+    for (Aggregator aggregate : aggregates) {
+      aggregate.getProblems().addToAggregator(problemAggregator);
       context.safepoint();
     }
-    AggregatedProblems merged = AggregatedProblems.merge(problems);
-
-    return new Table(output, merged);
+    return new Table(output);
   }
 }
