@@ -53,7 +53,9 @@ pub enum Scripts {
 ///
 /// Provides helper methods for calling gui2-related commands.
 #[async_trait]
-pub trait Locate {
+pub trait Locate: Clone + Send + Sync + 'static {
+    fn repo_root(&self) -> &Path;
+
     fn package_dir(&self) -> &Path;
 
     /// Prepare command that will run `npm` in the new GUI's directory.
@@ -95,27 +97,30 @@ pub trait Locate {
         args: impl IntoIterator<Item: AsRef<OsStr>>,
     ) -> BoxFuture<Result> {
         self.run_cmd(|c| {
-            c.run(script.as_ref(), args);
+            c.run(script.as_ref()).args(args);
         })
     }
 }
 
 
 impl Locate for RepoRootAppGui2 {
+    fn repo_root(&self) -> &Path {
+        // Go up twice, because `app/gui2` is two levels below the root.
+        self.parent().unwrap().parent().unwrap()
+    }
+
     fn package_dir(&self) -> &Path {
         self.as_ref()
     }
 }
 
 impl Locate for crate::paths::generated::RepoRoot {
+    fn repo_root(&self) -> &Path {
+        self.as_ref()
+    }
+
     fn package_dir(&self) -> &Path {
         self.app.gui_2.as_ref()
-    }
-}
-
-impl Locate for Path {
-    fn package_dir(&self) -> &Path {
-        self
     }
 }
 
@@ -127,9 +132,9 @@ impl Locate for Path {
 
 /// Run steps that should be done along with the "lint"
 pub fn lint(path: &impl Locate) -> BoxFuture<'static, Result> {
-    let path = path.package_dir().to_owned();
+    let path = path.clone();
     async move {
-        path.install().await?;
+        crate::web::install(path.repo_root()).await?;
         path.run_script(Scripts::TypeCheck).await?;
         path.run_script(Scripts::Lint).await
     }
@@ -137,18 +142,18 @@ pub fn lint(path: &impl Locate) -> BoxFuture<'static, Result> {
 }
 
 pub fn unit_tests(path: &impl Locate) -> BoxFuture<'static, Result> {
-    let path = path.package_dir().to_owned();
+    let path = path.clone();
     async move {
-        path.install().await?;
+        crate::web::install(path.repo_root()).await?;
         path.run_script_with(Scripts::TestUnit, ["run"]).await
     }
     .boxed()
 }
 
 pub fn end_to_end_tests(path: &impl Locate) -> BoxFuture<'static, Result> {
-    let path = path.package_dir().to_owned();
+    let path = path.clone();
     async move {
-        path.install().await?;
+        crate::web::install(path.repo_root()).await?;
         let install_playwright = ["playwright", "install"];
         path.adjust_cmd(Npx.cmd()?).args(install_playwright).run_ok().await?;
         path.run_script_with(Scripts::TestE2e, ["run"]).await

@@ -11,13 +11,15 @@ use enso_build::project::gui2::Gui2;
 
 source_args_hlp!(Target, "ide2", BuildInput);
 
-#[derive(Args, Clone, Debug, PartialEq)]
-pub struct BuildInput {
-    #[clap(flatten)]
-    pub(crate) ide: crate::arg::ide::BuildInput,
-    #[clap(flatten)]
-    pub gui:        Source<Gui2>,
-}
+pub type BuildInput = crate::arg::ide::BuildInput<Gui2>;
+
+// #[derive(Args, Clone, Debug, PartialEq)]
+// pub struct BuildInput {
+//     #[clap(flatten)]
+//     pub(crate) ide: crate::arg::ide::BuildInput,
+//     #[clap(flatten)]
+//     pub gui:        Source<Gui2>,
+// }
 
 #[derive(Subcommand, Clone, Debug)]
 pub enum Command {

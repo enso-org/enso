@@ -1,11 +1,9 @@
 use crate::prelude::*;
 
-use crate::paths::generated::RepoRoot;
 use crate::project::gui::ide_desktop_from_context;
 use crate::project::gui::GuiBuildWithWatchedWasm;
-use crate::project::Context;
+use crate::project::{Context, IsArtifact};
 use crate::project::Gui;
-use crate::project::IsArtifact;
 use crate::source::WatchTargetJob;
 
 use ide_ci::actions::artifacts::upload_compressed_directory;
@@ -93,25 +91,6 @@ impl Artifact {
     }
 }
 
-pub trait IsGuiArtifact: IsArtifact + Debug {
-    fn symlink_ensogl_dist(&self, repo_root: &RepoRoot) -> Result;
-}
-
-impl IsGuiArtifact for crate::project::gui::Artifact {
-    fn symlink_ensogl_dist(&self, repo_root: &RepoRoot) -> Result {
-        self.symlink_ensogl_dist(&repo_root.target.ensogl_pack.linked_dist)
-    }
-}
-impl IsGuiArtifact for crate::project::gui2::Artifact {
-    fn symlink_ensogl_dist(&self, repo_root: &RepoRoot) -> Result {
-        let old_gui = crate::project::gui::Artifact::new(&repo_root.dist.gui);
-        // Old gui dir must exist
-        ensure!(old_gui.exists(), "Old GUI distribution does not exist at {}.", old_gui.display());
-        IsGuiArtifact::symlink_ensogl_dist(&old_gui, repo_root)
-    }
-}
-
-
 #[derive(derivative::Derivative)]
 #[derivative(Debug)]
 pub struct BuildInput<GuiArtifact> {
@@ -139,10 +118,10 @@ impl Default for Ide {
 }
 
 impl Ide {
-    pub fn build<GuiArtifact: IsGuiArtifact>(
+    pub fn build(
         &self,
         context: &Context,
-        input: BuildInput<GuiArtifact>,
+        input: BuildInput<impl IsArtifact>,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Artifact>> {
         let BuildInput { version, project_manager, gui, electron_target, artifact_name: _ } = input;
@@ -180,30 +159,3 @@ impl Ide {
         .boxed()
     }
 }
-
-
-// impl IsTarget for Ide {
-//     type BuildInput = BuildInput;
-//     type Output = Artifact;
-//
-//     fn artifact_name(&self) -> &str {
-//         // Version is not part of the name intentionally. We want to refer to PM bundles as
-//         // artifacts without knowing their version.
-//         static NAME: LazyLock<String> = LazyLock::new(|| format!("gui-{}", TARGET_OS));
-//         &*NAME
-//     }
-//
-//     fn build(
-//         &self,
-//         input: Self::BuildInput,
-//         output_path: impl AsRef<Path> + Send + Sync + 'static,
-//     ) -> BoxFuture<'static, Result<Self::Output>> {
-//         let ide_desktop = crate::ide::web::IdeDesktop::new(&input.repo_root.app.ide_desktop);
-//         async move {
-//             let (gui, project_manager) = try_join(input.gui, input.project_manager).await?;
-//             ide_desktop.dist(&gui, &project_manager, &output_path).await?;
-//             Ok(Artifact::new(&input.version, output_path.as_ref()))
-//         }
-//         .boxed()
-//     }
-// }

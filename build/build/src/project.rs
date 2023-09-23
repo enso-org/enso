@@ -50,7 +50,7 @@ pub fn path_to_extract() -> Option<PathBuf> {
 /// A built target, contained under a single directory.
 ///
 /// The `AsRef<Path>` trait must return that directory path.
-pub trait IsArtifact: Clone + AsRef<Path> + Sized + Send + Sync + 'static {}
+pub trait IsArtifact: Clone + AsRef<Path> + Debug + Sized + Send + Sync + 'static {}
 
 /// Plain artifact is just a folder with... things.
 #[derive(Clone, Derivative)]

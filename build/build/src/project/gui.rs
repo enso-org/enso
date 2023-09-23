@@ -134,7 +134,7 @@ impl IsTarget for Gui {
             }
 
             let ide = ide_desktop_from_context(&context);
-            ide.npm()?.install().run_ok().await?;
+            crate::web::install(&ide.repo_root).await?;
 
             let wasm = Wasm.get(context, inner.wasm);
             ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
