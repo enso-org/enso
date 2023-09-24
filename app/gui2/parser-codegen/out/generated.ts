@@ -898,3 +898,9 @@ export class ArgumentType extends LazyObject {
     get typeNode(): Tree { return Tree.read(this.lazyObjectData.seek(40).readPointer()); }
     debug(): any { return { ...super.debug(), operator: debugHelper(this.operator), typeNode: debugHelper(this.typeNode) }; }
 }
+
+function deserializeTree(data: ArrayBuffer): Tree {
+  const buffer = new Uint8Array(data)
+  const cursor = new Cursor(buffer, buffer.length - 4)
+  return Tree.read(cursor.readPointer())
+}
