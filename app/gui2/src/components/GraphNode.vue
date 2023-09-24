@@ -7,9 +7,11 @@ import { usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
+import { shortcutRegistry } from '../util/shortcuts'
 
 const props = defineProps<{
   node: Node
+  selected: boolean
 }>()
 
 const emit = defineEmits<{
@@ -18,6 +20,8 @@ const emit = defineEmits<{
   updateContent: [range: ContentRange, content: string]
   movePosition: [delta: Vec2]
   delete: []
+  replaceSelection: []
+  'update:selected': [selected: boolean]
 }>()
 
 const rootNode = ref<HTMLElement>()
@@ -244,11 +248,19 @@ onUpdated(() => {
   }
 })
 
-function handleClick(e: PointerEvent) {
-  if (e.shiftKey) {
-    emit('delete')
-    e.preventDefault()
-    e.stopPropagation()
+// TODO [sb]: restore delete functionality (DELETE key)
+function handleClick(event: PointerEvent) {
+  if (shortcutRegistry.matchesMouseAction('replace-nodes-selection', event)) {
+    emit('replaceSelection')
+  } else if (shortcutRegistry.matchesMouseAction('add-to-nodes-selection', event)) {
+    emit('update:selected', true)
+  } else if (shortcutRegistry.matchesMouseAction('remove-from-nodes-selection', event)) {
+    emit('update:selected', false)
+  } else if (
+    shortcutRegistry.matchesMouseAction('toggle-nodes-selection', event) ||
+    shortcutRegistry.matchesMouseAction('invert-nodes-selection', event)
+  ) {
+    emit('update:selected', !props.selected)
   }
 }
 </script>
@@ -258,8 +270,9 @@ function handleClick(e: PointerEvent) {
     ref="rootNode"
     class="Node"
     :style="{ transform }"
-    :class="{ dragging: dragPointer.dragging }"
+    :class="{ dragging: dragPointer.dragging, selected }"
     v-on="dragPointer.events"
+    @pointerdown.stop
   >
     <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
     <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
@@ -294,9 +307,15 @@ function handleClick(e: PointerEvent) {
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  background: #222;
+  background: #596b81;
+  background-clip: padding-box;
   padding: 5px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
+}
+
+.Node.selected {
+  border: var(--selected-node-border-width) solid rgb(89 107 129 / 20%);
+  margin: calc(0px - var(--selected-node-border-width));
 }
 
 .binding {

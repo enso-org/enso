@@ -11,7 +11,8 @@ import { modKey, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { shortcutRegistry } from '../util/shortcuts'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -26,6 +27,7 @@ const componentBrowserPosition = ref(Vec2.Zero())
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
+const selectedNodes = reactive(new Set<ExprId>())
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)
@@ -87,10 +89,35 @@ function moveNode(id: ExprId, delta: Vec2) {
   const newPosition = node.position.addScaled(delta, 1 / navigator.scale)
   graphStore.setNodePosition(id, newPosition)
 }
+
+const unregisterKeyboardHandlers = ref<() => void>()
+
+onMounted(() => {
+  shortcutRegistry.registerKeyboardHandlers({
+    'select-all-nodes': () => {
+      for (const id of graphStore.nodes.keys()) {
+        selectedNodes.add(id)
+      }
+    },
+    'deselect-all-nodes': () => {
+      selectedNodes.clear()
+    },
+  })
+})
+
+onUnmounted(() => {
+  unregisterKeyboardHandlers.value?.()
+})
 </script>
 
 <template>
-  <div ref="viewportNode" class="viewport" v-on="navigator.events" @mousemove="updateMousePos">
+  <div
+    ref="viewportNode"
+    class="viewport"
+    v-on="navigator.events"
+    @mousemove="updateMousePos"
+    @pointerdown="$event.button === 0 && selectedNodes.clear()"
+  >
     <svg :viewBox="navigator.viewBox">
       <GraphEdge
         v-for="(edge, index) in graphStore.edges"
@@ -106,6 +133,9 @@ function moveNode(id: ExprId, delta: Vec2) {
         v-for="[id, node] in graphStore.nodes"
         :key="id"
         :node="node"
+        :selected="selectedNodes.has(id)"
+        @update:selected="$event ? selectedNodes.add(id) : selectedNodes.delete(id)"
+        @replaceSelection="selectedNodes.clear(), selectedNodes.add(id)"
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"

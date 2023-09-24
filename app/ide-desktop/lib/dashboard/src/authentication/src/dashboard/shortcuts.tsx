@@ -299,6 +299,26 @@ export class ShortcutRegistry {
         )
     }
 
+    registerNewKeyboardActions<NewActions extends KeyboardAction>(
+        newActions: readonly NewActions[],
+        newShortcuts: Record<NewActions, KeyboardShortcut[]>
+    ) {
+        this.keyboardActions.push(...newActions)
+        Object.assign(this.keyboardShortcuts, newShortcuts)
+        for (const action of newActions) {
+            this.allKeyboardHandlers[action] = []
+        }
+        this.updateKeyboardShortcutsByKey()
+    }
+
+    registerNewMouseActions<NewActions extends MouseAction>(
+        newActions: readonly NewActions[],
+        newShortcuts: Record<NewActions, MouseShortcut[]>
+    ) {
+        this.mouseActions.push(...newActions)
+        Object.assign(this.mouseShortcuts, newShortcuts)
+    }
+
     /** Return `true` if the shortcut is being triggered by the keyboard event. */
     matchesKeyboardShortcut(
         this: void,
@@ -320,7 +340,7 @@ export class ShortcutRegistry {
         const button: number = shortcut.button
         return (
             button === event.button &&
-            event.detail >= shortcut.clicks &&
+            Math.max(event.detail, 1) >= shortcut.clicks &&
             modifiersMatchEvent(shortcut, event)
         )
     }
@@ -367,19 +387,15 @@ export class ShortcutRegistry {
         this.keyboardShortcutsByKey = {}
         for (const shortcuts of Object.values(this.keyboardShortcuts)) {
             for (const shortcut of shortcuts) {
-                const byKey = this.keyboardShortcutsByKey[shortcut.key.toUpperCase()]
-                if (byKey != null) {
-                    byKey.unshift(shortcut)
-                } else {
-                    this.keyboardShortcutsByKey[shortcut.key.toUpperCase()] = [shortcut]
-                }
+                const byKey = (this.keyboardShortcutsByKey[shortcut.key.toUpperCase()] ??= [])
+                byKey.unshift(shortcut)
             }
         }
     }
 
     /** Regenerate {@link ShortcutRegistry.activeKeyboardHandlers}. */
     updateActiveKeyboardHandlers() {
-        for (const action of KEYBOARD_ACTIONS) {
+        for (const action of this.keyboardActions) {
             const handlers = this.allKeyboardHandlers[action]
             this.activeKeyboardHandlers[action] = handlers[handlers.length - 1] ?? null
         }
@@ -393,7 +409,7 @@ export class ShortcutRegistry {
             Record<KeyboardAction, (event: KeyboardEvent | React.KeyboardEvent) => boolean | void>
         >
     ) {
-        for (const action of KEYBOARD_ACTIONS) {
+        for (const action of this.keyboardActions) {
             const handler = handlers[action]
             if (handler != null) {
                 this.allKeyboardHandlers[action].push(handler)
@@ -417,7 +433,11 @@ export class ShortcutRegistry {
 
 /** A shorthand for creating a {@link KeyboardShortcut}. Should only be used in
  * {@link DEFAULT_KEYBOARD_SHORTCUTS}. */
-function keybind(action: KeyboardAction, modifiers: ModifierKey[], key: string): KeyboardShortcut {
+export function keybind(
+    action: KeyboardAction,
+    modifiers: ModifierKey[],
+    key: string
+): KeyboardShortcut {
     return {
         key,
         action,
@@ -430,7 +450,7 @@ function keybind(action: KeyboardAction, modifiers: ModifierKey[], key: string):
 
 /** A shorthand for creating a {@link MouseShortcut}. Should only be used in
  * {@link DEFAULT_MOUSE_SHORTCUTS}. */
-function mousebind(
+export function mousebind(
     action: MouseAction,
     modifiers: ModifierKey[],
     button: MouseButton,
