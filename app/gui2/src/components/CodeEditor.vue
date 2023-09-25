@@ -37,15 +37,17 @@ onMounted(() => {
   watch(
     () => graphStore.proj.module,
     (module) => {
+      // Note that this only works while we do not switch documents at runtime and have a single module.
       const yText = module?.contents
       if (!yText) {
         console.error('No module content available')
         return
       }
-      const undoManager = new Y.UndoManager(yText)
+      const undoManager = graphStore.proj.undoManager
+      const awareness = graphStore.proj.awareness
       const state = EditorState.create({
         doc: yText.toString(),
-        extensions: [basicSetup, yCollab(yText, null, { undoManager })],
+        extensions: [basicSetup, yCollab(yText, awareness, { undoManager })],
       })
       if (!codeMirrorEl.value) {
         console.error('Parent element for CodeMirror not found')
