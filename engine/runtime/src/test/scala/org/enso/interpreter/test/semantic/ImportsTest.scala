@@ -257,7 +257,7 @@ class ImportsTest extends PackageTest {
   "Private modules" should "not be able to use private submodules via FQN" in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Private_Modules_6"
-    ) should have message "Compilation aborted due to errors."
+    ) should have message "No_Such_Method.Error"
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines should have length 1
     outLines.head should include(
