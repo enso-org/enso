@@ -39,7 +39,7 @@ declare var d3: typeof import('d3')
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { computed, onMounted, ref, watchEffect, watchPostEffect } from 'vue'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare

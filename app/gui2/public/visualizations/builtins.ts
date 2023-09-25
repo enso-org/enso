@@ -31,23 +31,3 @@ export const DEFAULT_THEME: Theme = {
     return { red, green, blue, alpha: 1 }
   },
 }
-
-interface UpdateableRef<T> extends Ref<T> {
-  update(): void
-}
-
-/** A Vue ref which can be updated. */
-export function updateableRef<T>(value: T) {
-  const ref_ = ref({ value })
-  return {
-    get value() {
-      return ref_.value.value
-    },
-    set value(value) {
-      ref_.value = { value }
-    },
-    update() {
-      ref_.value = { value: ref_.value.value }
-    },
-  }
-}

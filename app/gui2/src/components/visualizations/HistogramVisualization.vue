@@ -515,7 +515,7 @@ watch([boxWidth, boxHeight], () => {
 
 // === Update x axis ===
 
-watchEffect(() =>
+watchPostEffect(() =>
   d3XAxis.value
     .transition()
     .duration(animationDuration.value)
@@ -526,11 +526,14 @@ watchEffect(() =>
 
 watchEffect(() => {
   if (yDomain.value[0] === 0 && yDomain.value[1] !== yMax.value) {
+    shouldAnimate.value = true
     yDomain.value = [0, yMax.value]
   }
 })
 
-watchEffect(() => d3YAxis.value.transition().duration(animationDuration.value).call(yAxis.value))
+watchPostEffect(() =>
+  d3YAxis.value.transition().duration(animationDuration.value).call(yAxis.value),
+)
 
 // === Update contents ===
 

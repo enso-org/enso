@@ -99,7 +99,6 @@ import type {
   SymbolType,
 } from 'd3'
 
-import { updateableRef } from './builtins.ts'
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
@@ -195,9 +194,16 @@ const focus = ref<Focus>()
 const shouldAnimate = ref(false)
 const xDomain = ref<[min: number, max: number]>([0, 1])
 const yDomain = ref<[min: number, max: number]>([0, 1])
+const xRange = ref<[min: number, max: number]>([0, 1])
+const yRange = ref<[min: number, max: number]>([0, 1])
 
-const xScale = updateableRef(axisD3Scale(data.value.axis.x))
-const yScale = updateableRef(axisD3Scale(data.value.axis.y))
+const xScale = computed(() =>
+  axisD3Scale(data.value.axis.x).domain(xDomain.value).range([0, boxWidth.value]),
+)
+const yScale = computed(() =>
+  axisD3Scale(data.value.axis.y).domain(yDomain.value).range([boxHeight.value, 0]),
+)
+
 const symbol: Symbol<unknown, Point> = d3.symbol()
 
 const animationDuration = computed(() => (shouldAnimate.value ? ANIMATION_DURATION_MS : 0))
@@ -446,22 +452,6 @@ function axisD3Scale(axis: AxisConfiguration | undefined) {
   return axis != null ? SCALE_TO_D3_SCALE[axis.scale]() : d3.scaleLinear()
 }
 
-watch(
-  () => data.value.axis.x,
-  (xAxisConfiguration) => {
-    const xScale_ = xScale.value
-    xScale.value = axisD3Scale(xAxisConfiguration).domain(xScale_.domain()).range(xScale_.range())
-  },
-)
-
-watch(
-  () => data.value.axis.y,
-  (yAxisConfiguration) => {
-    const yScale_ = yScale.value
-    yScale.value = axisD3Scale(yAxisConfiguration).domain(yScale_.domain()).range(yScale_.range())
-  },
-)
-
 watchEffect(() => {
   // Update the axes in d3.
   const { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy } = extremesAndDeltas.value
@@ -483,25 +473,21 @@ watchEffect(() => {
 
 // === Update x axis ===
 
-watchPostEffect(() => {
-  xScale.value.domain(xDomain.value).range([0, boxWidth.value])
-  xScale.update()
+watchPostEffect(() =>
   d3XAxis.value
     .transition()
     .duration(animationDuration.value)
-    .call(d3.axisBottom(xScale.value).ticks(xTicks.value))
-})
+    .call(d3.axisBottom(xScale.value).ticks(xTicks.value)),
+)
 
 // === Update y axis ===
 
-watchPostEffect(() => {
-  yScale.value.domain(yDomain.value).range([boxHeight.value, 0])
-  yScale.update()
+watchPostEffect(() =>
   d3YAxis.value
     .transition()
     .duration(animationDuration.value)
-    .call(d3.axisLeft(yScale.value).ticks(yTicks.value))
-})
+    .call(d3.axisLeft(yScale.value).ticks(yTicks.value)),
+)
 
 // === Update contents ===
 
@@ -511,33 +497,25 @@ watchPostEffect(() => {
   d3Points.value
     .selectAll<SVGPathElement, unknown>('path')
     .data(data.value.data)
-    .join(
-      (enter) => enter.append('path'),
-      (update) =>
-        update
-          .transition()
-          .duration(animationDuration.value)
-          .attr(
-            'd',
-            symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
-          )
-          .style('fill', (d) => d.color ?? FILL_COLOR)
-          .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`),
+    .join((enter) => enter.append('path'))
+    .transition()
+    .duration(animationDuration.value)
+    .attr(
+      'd',
+      symbol.type(matchShape).size((d) => (d.size ?? 1.0) * SIZE_SCALE_MULTIPLER),
     )
+    .style('fill', (d) => d.color ?? FILL_COLOR)
+    .attr('transform', (d) => `translate(${xScale_(d.x)}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
       .selectAll<SVGPathElement, unknown>('text')
       .data(data.value.data)
-      .join(
-        (enter) => enter.append('text').attr('class', 'label'),
-        (update) =>
-          update
-            .transition()
-            .duration(animationDuration.value)
-            .text((d) => d.label ?? '')
-            .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
-            .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX),
-      )
+      .join((enter) => enter.append('text').attr('class', 'label'))
+      .transition()
+      .duration(animationDuration.value)
+      .text((d) => d.label ?? '')
+      .attr('x', (d) => xScale_(d.x) + POINT_LABEL_PADDING_X_PX)
+      .attr('y', (d) => yScale_(d.y) + POINT_LABEL_PADDING_Y_PX)
   }
 })
 
