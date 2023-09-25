@@ -10,8 +10,9 @@ import type { Rect } from '@/stores/rect'
 import { modKey, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
+import type { MouseAction } from 'enso-authentication/src/dashboard/shortcuts'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watchEffect } from 'vue'
 import { shortcutRegistry } from '../util/shortcuts'
 import CustomCursor from './CustomCursor.vue'
 import SelectionBrush from './SelectionBrush.vue'
@@ -29,7 +30,7 @@ const componentBrowserPosition = ref(Vec2.Zero())
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
-const selectedNodes = reactive(new Set<ExprId>())
+const selectedNodes = ref(new Set<ExprId>())
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)
@@ -86,11 +87,69 @@ function moveNode(id: ExprId, delta: Vec2) {
 const cursorPos = ref({ x: 0, y: 0 })
 const selectionStart = ref<Vec2>()
 const selectionSize = ref<Vec2>()
+const initiallySelectedNodes = ref(selectedNodes)
+const initialMouseAction = ref<MouseAction>()
 
 const selection = usePointer((pos) => {
   cursorPos.value = pos.absolute
   selectionStart.value = pos.initial
   selectionSize.value = pos.relative
+})
+
+const intersectingNodes = computed<Set<ExprId>>(() => {
+  if (!selection.dragging || selectionStart.value == null || selectionSize.value == null) {
+    return new Set()
+  }
+  const left = selectionStart.value.x + Math.min(selectionSize.value.x, 0)
+  const right = left + Math.abs(selectionSize.value.x)
+  const top = selectionStart.value.y + Math.min(selectionSize.value.y, 0)
+  const bottom = top + Math.abs(selectionSize.value.y)
+  const intersectingNodes = new Set<ExprId>()
+  for (const [id, rect] of nodeRects) {
+    const rectLeft = rect.pos.x
+    const rectRight = rectLeft + rect.size.x
+    const rectTop = rect.pos.y
+    const rectBottom = rectTop + rect.size.y
+    if (left <= rectRight || right >= rectLeft || top <= rectBottom || bottom >= rectTop) {
+      intersectingNodes.add(id)
+    }
+  }
+  return intersectingNodes
+})
+
+watchEffect(() => {
+  if (initialMouseAction.value == null) {
+    return
+  }
+  let newSelectedNodes: Set<ExprId>
+  switch (initialMouseAction.value) {
+    case 'replace-nodes-selection': {
+      newSelectedNodes = new Set(intersectingNodes.value)
+      break
+    }
+    case 'add-to-nodes-selection': {
+      newSelectedNodes = new Set([...initiallySelectedNodes.value, ...intersectingNodes.value])
+      break
+    }
+    case 'remove-from-nodes-selection': {
+      newSelectedNodes = new Set(initiallySelectedNodes.value)
+      for (const id of intersectingNodes.value) {
+        newSelectedNodes.delete(id)
+      }
+      break
+    }
+    case 'toggle-nodes-selection': {
+      newSelectedNodes = new Set(initiallySelectedNodes.value)
+      for (const id of intersectingNodes.value) {
+        newSelectedNodes.delete(id)
+      }
+      break
+    }
+    default: {
+      return
+    }
+  }
+  selectedNodes.value = newSelectedNodes
 })
 
 const unregisterKeyboardHandlers = ref<() => void>()
@@ -99,11 +158,11 @@ onMounted(() => {
   shortcutRegistry.registerKeyboardHandlers({
     'select-all-nodes': () => {
       for (const id of graphStore.nodes.keys()) {
-        selectedNodes.add(id)
+        selectedNodes.value.add(id)
       }
     },
     'deselect-all-nodes': () => {
-      selectedNodes.clear()
+      selectedNodes.value.clear()
     },
   })
 })
