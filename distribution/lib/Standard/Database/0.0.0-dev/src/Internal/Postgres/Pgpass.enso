@@ -21,7 +21,7 @@ polyglot java import java.lang.StringBuilder as Java_String_Builder
    - host: The hostname of the database server.
    - port: The port of the database server.
    - database: The database to connect to.
-read : Text -> Integer -> Text -> Text -> [Pair Text Text]
+read : Text -> Integer -> Text -> Text -> Vector (Pair Text Text)
 read host port database username=Nothing =
     pgpass_file = locate
     if pgpass_file.is_nothing || (verify pgpass_file . not) then [] else

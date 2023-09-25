@@ -1,14 +1,31 @@
 from Standard.Base import all
+import Standard.Base.Errors.No_Such_Key.No_Such_Key
+import Standard.Base.Network.HTTP.Response_Body.Response_Body
+import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.AWS_Credential.AWS_Credential
+import project.Errors.AWS_SDK_Error
+import project.Errors.More_Records_Available
+import project.Errors.S3_Bucket_Not_Found
 import project.Errors.S3_Error
 import project.Internal.Auth
 
+polyglot java import java.io.IOException
+polyglot java import software.amazon.awssdk.core.exception.SdkClientException
+polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
+polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
+polyglot java import software.amazon.awssdk.services.s3.model.HeadObjectRequest
+polyglot java import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
+polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketException
+polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
-## GROUP Standard.Base.Input
-   Gets the list of the S3 bucket names.
+## Gets the list of the S3 bucket names.
+
+   Arguments:
+   - credentials: AWS credentials. If not provided, the default credentials will
+     be used.
 @credentials AWS_Credential.default_widget
 list_buckets : AWS_Credential | Nothing -> Vector Text ! S3_Error
 list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
@@ -16,15 +33,120 @@ list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
 
+## Gets the list of the items inside a bucket.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - prefix: the prefix of keys to match.
+   - max_count: the maximum number of items to return. The default is 1000.
+   - credentials: AWS credentials. If not provided, the default credentials will
+     be used.
+@credentials AWS_Credential.default_widget
+list_objects : Text -> Text -> AWS_Credential | Nothing -> Integer -> Vector Text ! S3_Error
+list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max_count=1000 =
+    read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
+
+## Reads an S3 bucket returning a pair of vectors, one with common prefixes and
+   one with object keys.
+@credentials AWS_Credential.default_widget
+read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error
+read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
+    client = make_client credentials
+
+    per_request = Math.min max_count 1000
+    request = ListObjectsV2Request.builder.bucket bucket . maxKeys per_request . delimiter delimiter . prefix prefix . build
+
+    iterator request count current prefixes first =
+        response = client.listObjectsV2 request
+
+        if response.is_error then response else
+            ## Note the AWS API does not limit the count of common prefixes.
+            common_prefixes = if first then response.commonPrefixes.map _.prefix else prefixes
+            result = current + (response.contents.map _.key)
+
+            if response.isTruncated.not then Pair.new common_prefixes result else
+                new_count = count + result.length
+                if new_count >= max_count then (Warning.attach (More_Records_Available.Warning "Not all keys returned. Additional objects found.") (Pair.new common_prefixes result)) else
+                    new_items = Math.min (Math.max 0 max_count-new_count) 1000
+                    new_request = request.toBuilder.continuationToken response.nextContinuationToken . maxKeys new_items . build
+                    @Tail_Call iterator new_request new_count result common_prefixes False
+
+    iterator request 0 [] [] True
+
+## Gets the metadata of a bucket or object.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - key: the key of the object.
+   - credentials: AWS credentials. If not provided, the default credentials will
+     be used.
+head : Text -> Text -> AWS_Credential | Nothing -> Map Text Any ! S3_Error
+head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing =
+    client = make_client credentials
+    response = case key == "" of
+        True ->
+            request = HeadBucketRequest.builder.bucket bucket . build
+            handle_s3_errors bucket=bucket <| client.headBucket request
+        False ->
+            request = HeadObjectRequest.builder.bucket bucket . key key . build
+            handle_s3_errors bucket=bucket key=key <| client.headObject request
+
+    pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
+    Map.from_vector pairs
+
+## ADVANCED
+   Gets an object from an S3 bucket.
+   Returns a raw stream which can be read once.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - key: the key of the object.
+   - credentials: AWS credentials. If not provided, the default credentials will
+     be used.
+get_object : Text -> Text -> AWS_Credential | Nothing -> Any ! S3_Error
+get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+    request = GetObjectRequest.builder.bucket bucket . key key . build
+
+    client = make_client credentials
+    response = client.getObject request
+
+    inner_response = response.response
+    mime_type = inner_response.contentType
+    s3_uri = URI.parse ("s3://" + bucket + "/" + key)
+    input_stream = Input_Stream.new response (handle_io_errors s3_uri)
+    Response_Body.Raw_Stream input_stream mime_type s3_uri
+
 ## PRIVATE
-handle_s3_errors : Function -> Any ! S3_Error
-handle_s3_errors  ~action =
-    Panic.catch S3Exception action caught_panic->
-        aws_error = caught_panic.payload.awsErrorDetails
-        Error.throw (S3_Error.Error aws_error.errorMessage aws_error.errorCode)
+   Splits a S3 URI into bucket and key.
+parse_uri : Text -> Pair Text Text | Nothing
+parse_uri uri =
+    if uri.starts_with "s3://" . not then Nothing else
+        no_prefix = uri.drop 5
+        index_of = no_prefix.index_of "/"
+        if index_of == 0 then Nothing else
+            if index_of.is_nothing then Pair.new no_prefix "" else
+                Pair.new (no_prefix.take index_of) (no_prefix.drop index_of+1)
+
+## PRIVATE
+handle_s3_errors : Text -> Text -> Function -> Any ! S3_Error | AWS_SDK_Error
+handle_s3_errors ~action bucket="" key="" =
+    s3_inner_handler caught_panic =
+        error = if bucket!="" && caught_panic.payload.is_a NoSuchBucketException then S3_Bucket_Not_Found.Error bucket else
+            if bucket!="" && key!="" && caught_panic.payload.is_a NoSuchKeyException then No_Such_Key.Error bucket key else
+                aws_error = caught_panic.payload.awsErrorDetails
+                S3_Error.Error aws_error.errorMessage aws_error.errorCode
+        Error.throw error
+    s3_handler = Panic.catch S3Exception handler=s3_inner_handler
+    AWS_SDK_Error.handle_java_errors <| s3_handler <| action
 
 ## PRIVATE
 make_client : (AWS_Credential | Nothing) -> S3Client
 make_client credentials:(AWS_Credential | Nothing) =
     provider = Auth.create_provider credentials
     S3Client.builder.credentialsProvider provider . build
+
+## PRIVATE
+   Utility method for running an action with Java exceptions mapping.
+handle_io_errors uri:URI ~action =
+    Panic.catch IOException action caught_panic->
+        S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text

@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import project.Connection.Connection_Options.Connection_Options
-import project.Internal.SQLite.SQLite_Connection
+import project.Internal.SQLite.SQLite_Connection.SQLite_Connection
 
 type SQLite_Details
     ## Connect to a SQLite DB File or InMemory DB.
@@ -15,7 +15,7 @@ type SQLite_Details
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options -> SQLite_Connection.SQLite_Connection
+    connect : Connection_Options -> SQLite_Connection
     connect self options =
         properties = options.merge self.jdbc_properties
         SQLite_Connection.create self.jdbc_url properties

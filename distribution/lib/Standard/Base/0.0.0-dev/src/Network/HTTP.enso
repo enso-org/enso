@@ -35,7 +35,8 @@ polyglot java import java.nio.file.Path
 polyglot java import org.enso.base.Http_Utils
 
 type HTTP
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Create a new instance of the HTTP client.
 
        Arguments:
@@ -66,7 +67,6 @@ type HTTP
         HTTP.Value timeout follow_redirects proxy version
 
     ## PRIVATE
-
        An HTTP client.
 
        Arguments:
@@ -77,99 +77,17 @@ type HTTP
     Value timeout follow_redirects proxy version
 
     ## ADVANCED
-       Create a request
+       Sends a request using the HTTP client.
+       The response body will contain a raw Input_Stream which can be read once.
+       Please note, this must be closed after use (either directly or via the
+       helpers on Response_Body).
 
        Arguments:
        - req: The HTTP request to send using `self` HTTP client.
-       - try_auto_parse_response: If true, attempt to auto-parse the result
-         body.
-
-       > Example
-         Send a Get request with headers.
-         Note: This example will send a network request.
-
-             import Standard.Base.Network.HTTP.HTTP
-             import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
-             import Standard.Base.Network.HTTP.Request.Request
-
-             example_request =
-                 req = Request.new HTTP_Method.Get "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
-                 res = Examples.http_client.request req
-                 res.body
-
-       > Example
-         Open a connection and send a Post request with form.
-         Note: This example will send a network request.
-
-             import Standard.Base.Network.HTTP.Request.Request
-             import Standard.Base.Network.HTTP.Request_Body.Request_Body
-             import Standard.Examples
-
-             example_request =
-                 req = Request.post "http://httpbin.org/post" Body.Empty
-                 with_form = req.with_form (Map.from_vector [["key", "value"]])
-                 with_header = with_form.with_header "X-Trace-Id" "123456789"
-                 res = Examples.http_client.request with_header
-                 res.code
-
-       > Example
-         Send a Post request with urlencoded form data.
-         Note: This example will send a network request.
-
-             import Standard.Base.Network.HTTP.Request.Request
-             import Standard.Base.Network.HTTP.Request_Body.Request_Body
-             import Standard.Examples
-
-             example_request =
-                 form = Map.from_vector [["name", "John Doe"], ["license.txt", enso_project.root / "LICENSE"]]
-                 req = Request.post "http://httpbin.org/post" Request_Body.Empty . with_form form
-                 Examples.http_client.request req
-
-       > Example
-         Send a Post request with form encoded as "multipart/form-data".
-         Note: This example will send a network request.
-
-             import Standard.Base.Network.HTTP.Header.Header
-             import Standard.Base.Network.HTTP.Request.Request
-             import Standard.Base.Network.HTTP.Request_Body.Request_Body
-             import Standard.Examples
-
-             example_request =
-                 form = Map.from_vector [["name", "John Doe"], ["license.txt", enso_project.root / "LICENSE"]]
-                 req = Request.post "http://httpbin.org/post" Request_Body.Empty
-                 with_form = req.with_form form
-                 with_headers = with_form.with_headers [Header.multipart_form_data]
-                 Examples.http_client.request with_headers
-
-       > Example
-         Configure HTTP client and send a Post request with form.
-         Note: This example will send a network request.
-
-             import Standard.Base.Data.Time.Duration.Duration
-             import Standard.Base.Network.HTTP.HTTP
-             import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
-             import Standard.Base.Network.HTTP.Request.Request
-
-             example_request =
-                 form = Map.from_vector [["name", "John Doe"]]
-                 req = Request.new HTTP_Method.Post "http://httpbin.org/post" . with_form form
-                 http = HTTP.new (timeout = (Duration.new seconds=30))
-                 http.request req
-
-       > Example
-         Send a Get request with headers, and auto-parse the result
-         Note: This example will send a network request.
-
-             import Standard.Base.Network.HTTP.HTTP
-             import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
-             import Standard.Base.Network.HTTP.Request.Request
-
-             example_request =
-                 req = Request.new HTTP_Method.Get "http://httpbin.org/get" try_auto_parse_response=True
-                 res = Examples.http_client.request req
-                 res.body
+       - error_on_failure_code: Whether or not to throw an error if the response
+         code is not a success code.
     request : Request -> Boolean -> Response ! Request_Error
-    request self req try_auto_parse_response=False =
+    request self req error_on_failure_code=True =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
             if fetch_methods.contains req.method || Context.Output.is_enabled then action else
@@ -222,31 +140,27 @@ type HTTP
                 all_headers.map h-> builder.header h.name h.value
 
                 http_request = builder.build
-                body_handler = HttpResponse.BodyHandlers . ofByteArray
+                body_handler = HttpResponse.BodyHandlers . ofInputStream
 
                 response = Response.Value (self.internal_http_client.send http_request body_handler)
-
-                if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text)) else
-                    if try_auto_parse_response.not then response else
-                        response.decode if_unsupported=response . catch handler=(_->response)
+                if error_on_failure_code.not || response.code.is_success then response else
+                    Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text))
 
     ## PRIVATE
-
        Static helper for get-like methods
     fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+    fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
-            HTTP.new.request request try_auto_parse_response
+            HTTP.new.request request
 
     ## PRIVATE
-
        Static helper for post-like methods
     post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+    post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
-            HTTP.new.request request try_auto_parse_response
+            HTTP.new.request request
 
     ## PRIVATE
 

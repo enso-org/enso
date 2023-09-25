@@ -575,11 +575,12 @@ impl Entry {
         &self,
         suggestion_db: &SuggestionDatabase,
         parser: &parser::Parser,
+        in_module: QualifiedNameRef,
     ) -> span_tree::generate::context::CalledMethodInfo {
         let parameters = self
             .arguments
             .iter()
-            .map(|arg| to_span_tree_param(arg, suggestion_db, parser))
+            .map(|arg| to_span_tree_param(arg, suggestion_db, parser, in_module.clone_ref()))
             .collect();
         span_tree::generate::context::CalledMethodInfo {
             is_static: self.is_static,
@@ -896,9 +897,14 @@ pub fn to_span_tree_param(
     param_info: &Argument,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
+    in_module: QualifiedNameRef,
 ) -> span_tree::ArgumentInfo {
-    let tag_values =
-        argument_tag_values(param_info.tag_values.iter().map(|s| s.as_str()), db, parser);
+    let tag_values = argument_tag_values(
+        param_info.tag_values.iter().map(|s| s.as_str()),
+        db,
+        parser,
+        in_module,
+    );
     span_tree::ArgumentInfo {
         // TODO [mwu] Check if database actually do must always have both of these filled.
         name: Some(param_info.name.clone()),
@@ -955,6 +961,7 @@ pub fn argument_tag_values<'a, E>(
     raw_expressions: E,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
+    in_module: QualifiedNameRef,
 ) -> Vec<span_tree::TagValue>
 where
     E: IntoIterator<Item = &'a str>,
@@ -973,10 +980,7 @@ where
                 let label = chain_to_label(&chain);
                 let qualified_name = entry.qualified_name();
                 let required_import = Some(qualified_name.to_string());
-                // As we don't generate `this`, we will never follow the code path where
-                // `in_module` is used. That's why passing `default()` is valid.
-                let in_module = default();
-                let expression = entry.code_to_insert(false, in_module);
+                let expression = entry.code_to_insert(true, in_module.clone_ref());
                 let expression = if entry.arguments.is_empty() {
                     expression.to_string()
                 } else {
@@ -1463,7 +1467,8 @@ mod test {
         let parser = Parser::new();
         let db = SuggestionDatabase::new_empty();
         let expressions = expression_and_expected_label.iter().map(|(expr, _)| *expr);
-        let tag_values = argument_tag_values(expressions, &db, &parser);
+        let in_module = default();
+        let tag_values = argument_tag_values(expressions, &db, &parser, in_module);
         let expected_values = expression_and_expected_label
             .iter()
             .map(|(expression, label)| span_tree::TagValue {

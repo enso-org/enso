@@ -173,7 +173,9 @@ list_directory directory name_filter=Nothing recursive=False =
          Data.fetch URL . body . to_file file
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    HTTP.fetch uri method headers try_auto_parse_response
+    response = HTTP.fetch uri method headers
+    if try_auto_parse_response.not then response.with_materialized_body else
+        response.decode if_unsupported=response.with_materialized_body
 
 ## ALIAS upload, http post
    GROUP Input
@@ -270,7 +272,9 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    HTTP.post uri body method headers try_auto_parse_response
+    response = HTTP.post uri body method headers
+    if try_auto_parse_response.not then response.with_materialized_body else
+        response.decode if_unsupported=response.with_materialized_body
 
 ## ALIAS download, http get
    GROUP Input

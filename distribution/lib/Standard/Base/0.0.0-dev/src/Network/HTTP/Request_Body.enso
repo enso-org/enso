@@ -42,6 +42,4 @@ type Request_Body
 
 Request_Body.from (that:Text) = Request_Body.Text that
 Request_Body.from (that:File) = Request_Body.Binary that
-# TODO: determine if this is needed.
-Request_Body.from (that:Request_Body) = that
 Request_Body.from (that:Any) = Request_Body.Json that

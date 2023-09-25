@@ -485,7 +485,7 @@ spec =
             test_file = enso_project.data / "does_not_exist.txt"
             Data.post url_post (Request_Body.Binary test_file) . should_fail_with Request_Error
 
-    Test.group "Headers" <|
+    Test.group "Headers" pending=pending_has_url <|
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_post = base_url_with_slash + "post"
 

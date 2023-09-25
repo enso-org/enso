@@ -4,8 +4,8 @@ import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Bits
 import project.Data.Type.Value_Type.Value_Type
 
-polyglot java import org.enso.table.data.column.storage.type.IntegerType
 polyglot java import org.enso.base.polyglot.NumericConverter
+polyglot java import org.enso.table.data.column.storage.type.IntegerType
 
 ## PRIVATE
    Finds the most specific `Value_Type` that can be used to hold the given

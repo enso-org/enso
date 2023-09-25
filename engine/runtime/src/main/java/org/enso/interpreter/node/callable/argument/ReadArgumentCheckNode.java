@@ -288,6 +288,9 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     private Pair<Function, Type> findConversion(Type from) {
+      if (expectedType == from) {
+        return null;
+      }
       var ctx = EnsoContext.get(this);
 
       if (getRootNode() instanceof EnsoRootNode root) {

@@ -440,7 +440,6 @@ hit ratio.
 > The actionables for this section are:
 >
 > - Evolve the cache by storing the results of intermediate expressions
->
 > - Evolve the cache eviction strategy implementation by employing more
 >   information of the stored values
 
