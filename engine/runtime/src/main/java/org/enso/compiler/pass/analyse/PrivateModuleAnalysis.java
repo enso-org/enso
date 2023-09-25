@@ -12,6 +12,7 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
+import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.QualifiedName;
@@ -63,7 +64,7 @@ public class PrivateModuleAnalysis implements IRPass {
       return moduleIr;
     }
 
-    var bindingsMap = moduleContext.bindingsAnalysis();
+    var bindingsMap = (BindingsMap) moduleIr.passData().get(BindingAnalysis$.MODULE$).get();
     var currentPackage = moduleContext.getPackage();
     List<Import> importErrors = new ArrayList<>();
     List<Export> exportErrors = new ArrayList<>();
