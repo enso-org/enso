@@ -2420,3 +2420,7 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
     case format of
         _ : Delimited_Format -> Delimited_Writer.write_text that format
         _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+
+## PRIVATE
+   Conversion method to a Table from a Vector.
+Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
