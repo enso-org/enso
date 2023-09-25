@@ -11,7 +11,6 @@ import { modKey, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { MouseAction } from 'enso-authentication/src/dashboard/shortcuts'
-import { watch } from 'fs'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, reactive, ref, watchEffect } from 'vue'
 import { shortcutRegistry } from '../util/shortcuts'
@@ -221,7 +220,9 @@ onUnmounted(() => {
     @pointerdown="
       selection.events.pointerdown($event), $event.button === 0 && selectedNodes.clear()
     "
-    @mousemove="(cursorPos.x = $event.clientX), (cursorPos.y = $event.clientY)"
+    @pointermove="
+      (cursorPos.x = $event.clientX), (cursorPos.y = $event.clientY)
+    "
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdge
