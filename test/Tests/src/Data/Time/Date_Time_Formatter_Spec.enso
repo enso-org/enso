@@ -105,6 +105,12 @@ spec =
             dt2.format "yyyy/MM/dd HH:mm:ss ZZ{Z}" . should_equal "2020/01/02 12:00:00 -1000"
             dt2.format "yyyy/MM/dd HH:mm:ss ZZZZZ{<no offset>}" . should_equal "2020/01/02 12:00:00 -10:00"
 
+        Test.specify "should work with optional parts" <|
+            f = Date_Time_Formatter.from "[('Date:' yyyy-MM-dd)][('Time:' HH:mm)]"
+            Date_Time.new 2020 01 02 12 30 . format f . should_equal "(Date: 2020-01-02)(Time: 12:30)"
+            Date.new 2020 01 02 . format f . should_equal "(Date: 2020-01-02)"
+            Time_Of_Day.new 12 30 . format f . should_equal "(Time: 12:30)"
+
     Test.group "Parsing date/time values" <|
         Test.specify "should allow short month names" <|
             Date.parse "30. Jun 2020" "d. MMM yyyy" . should_equal (Date.new 2020 6 30)
@@ -353,5 +359,19 @@ spec =
             c6 = c5.format "dd.MM"
             c6.to_vector . should_equal ["25.12", "31.07"]
             Problems.assume_no_problems c6
+
+        Test.specify "should allow nested patterns" <|
+            # Difference between a nested pattern and two optional patterns next to each other.
+            Date.parse "2023-01-02 XY" "yyyy-MM-dd ['X']['Y']" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 X"  "yyyy-MM-dd ['X']['Y']" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 Y"  "yyyy-MM-dd ['X']['Y']" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 XY" "yyyy-MM-dd ['X'['Y']]" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 X"  "yyyy-MM-dd ['X'['Y']]" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 Y"  "yyyy-MM-dd ['X'['Y']]" . should_fail_with Time_Error
+
+            Time_Of_Day.parse "12:00:22.33" "HH:mm[:ss[.f]]" . should_equal (Time_Of_Day.new 12 0 22 330)
+
+        Test.specify "should allow to parse even when some patterns are unused" <|
+            "2020-01-02 14:55".parse_date "yyyy-MM-dd HH:mm" . should_equal (Date.new 2020 1 2)
 
 main = Test_Suite.run_main spec
