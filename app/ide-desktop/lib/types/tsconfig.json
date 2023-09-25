@@ -1,7 +1,6 @@
 {
-  "comments": "unfortunately, glob has errors in its type definitions",
   "compilerOptions": {
-    "skipLibCheck": true
+    "skipLibCheck": false
   },
   "extends": "../../tsconfig.json"
 }
