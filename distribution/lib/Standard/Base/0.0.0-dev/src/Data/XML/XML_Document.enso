@@ -1,8 +1,9 @@
 import project.Errors.File_Error.File_Error
 import project.IO
+import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.Input_Stream.Input_Stream
 import project.Data.Text.Text
-from project.System.File import File, Input_Stream
 
 polyglot java import javax.xml.parsers.DocumentBuilderFactory
 polyglot java import javax.xml.parsers.DocumentBuilder
