@@ -137,28 +137,3 @@ impl IsTarget for Gui2 {
         .boxed()
     }
 }
-
-
-
-// ============
-// === Test ===
-// ============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::paths::generated::RepoRootAppGui2;
-    use crate::repo::deduce_repository_path;
-
-    #[tokio::test]
-    async fn foo() -> Result {
-        setup_logging()?;
-        let repo_root = deduce_repository_path()?;
-        info!("repo_root = {}", repo_root.display());
-        let gui2 = RepoRootAppGui2::new(&repo_root);
-        gui2.install().await?;
-        unit_tests(&gui2).await?;
-        // gui2.run_script(Scripts::Build).await?;
-        Ok(())
-    }
-}

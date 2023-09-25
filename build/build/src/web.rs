@@ -1,12 +1,12 @@
 //! Module for managing the web parts of our codebase.
-
 //! This refers to JS/TS components, such as the Vue.js-based GUI, as well as the Electron client
 //! application.
-
 
 use crate::prelude::*;
 
 use ide_ci::programs::Npm;
+
+
 
 /// This method invokes `npm install` in the root repository.
 ///

@@ -1,4 +1,3 @@
-
 //! Project Manager tests.
 
 // === Non-Standard Linter Configuration ===

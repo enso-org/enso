@@ -24,7 +24,7 @@ jobs:
           conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+        uses: jetli/wasm-pack-action@v0.3.0
         with:
           version: v0.10.2
       - name: Expose Artifact API and context information.
@@ -588,7 +588,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 build --wasm-source current-ci-run --backend-source current-ci-run --gui-upload-artifact false
+      - run: ./run ide2 build --backend-source current-ci-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
@@ -647,7 +647,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 build --wasm-source current-ci-run --backend-source current-ci-run --gui-upload-artifact false
+      - run: ./run ide2 build --backend-source current-ci-run
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -713,7 +713,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 build --wasm-source current-ci-run --backend-source current-ci-run --gui-upload-artifact false
+      - run: ./run ide2 build --backend-source current-ci-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}

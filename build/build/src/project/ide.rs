@@ -2,8 +2,12 @@ use crate::prelude::*;
 
 use crate::project::gui::ide_desktop_from_context;
 use crate::project::gui::GuiBuildWithWatchedWasm;
-use crate::project::{Context, IsArtifact};
+
+
+
+use crate::project::Context;
 use crate::project::Gui;
+use crate::project::IsArtifact;
 use crate::source::WatchTargetJob;
 
 use ide_ci::actions::artifacts::upload_compressed_directory;

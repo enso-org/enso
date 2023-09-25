@@ -623,8 +623,22 @@ impl Processor {
     ) -> BoxFuture<'static, Result<ide2::Artifact>> {
         let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
 
+        let build_info_get = self.js_build_info();
+        let build_info_path = self.context.inner.repo_root.join(&*enso_build::ide::web::BUILD_INFO);
+
+        let build_info = async move {
+            let build_info = build_info_get.await?;
+            build_info_path.write_as_json(&build_info)
+        };
+
+        let gui = self.get(gui);
+
         let input = ide::BuildInput {
-            gui: self.get(gui),
+            gui: async move {
+                build_info.await?;
+                gui.await
+            }
+            .boxed(),
             project_manager: self.get(project_manager),
             version: self.triple.versions.version.clone(),
             electron_target,
