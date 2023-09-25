@@ -194,7 +194,10 @@ type HTTP
                 # Generate body publisher and optional form content boundary
                 body_publisher_and_boundary = case req.body of
                     Request_Body.Text text encoding _ ->
-                        Pair.new (body_publishers.ofString text encoding.to_java_charset) Nothing
+                        body_publisher = case encoding of
+                            Nothing -> body_publishers.ofString text
+                            _ : Encoding ->  body_publishers.ofString text encoding.to_java_charset
+                        Pair.new body_publisher Nothing
                     Request_Body.Json x ->
                         json = x.to_json
                         json.if_not_error <|
@@ -214,13 +217,13 @@ type HTTP
                     body_publisher = body_publisher_and_boundary.first
                     boundary = body_publisher_and_boundary.second
 
-                    boundary_encoding_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
+                    boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
 
                     # set method and body
                     builder.method req.method.to_http_method_name body_publisher
 
                     # set headers
-                    all_headers = headers + boundary_encoding_header_list
+                    all_headers = headers + boundary_header_list
                     all_headers.map h-> builder.header h.name h.value
 
                     http_request = builder.build
@@ -292,48 +295,45 @@ parse_headers headers =
         _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
 ## PRIVATE
+   If either encoding or content type is specified in the Request_Body, that is used as the content type header.
+   If encoding is specified without content type, "text/plain" is used as the content type.
    It is an error to specify the content type in both the request body and the header list.
-   If the body is not Request_Body.Empty, and no content type or content encoding is specified, a default is used.
+   If the body is not Request_Body.Empty, and no content type is specified, a default is used.
 resolve_headers : Request -> Vector Header
 resolve_headers req =
     is_content_type_header h = h.name . equals_ignore_case Header.content_type_header_name
-    is_content_encoding_header h = h.name . equals_ignore_case Header.content_encoding_header_name
 
     # Check for content type and encoding the Request_Body
-    request_body_content_type = case req.body of
-        Request_Body.Text _ _ content_type -> content_type
-        _ -> Nothing
-    request_body_content_encoding = case req.body of
-        Request_Body.Text _ content_encoding _ -> content_encoding
+    request_body_content_type_header = case req.body of
+        Request_Body.Text _ request_body_encoding request_body_content_type ->
+            if request_body_content_type.is_nothing && request_body_encoding.is_nothing then Nothing else
+                content_type = request_body_content_type.if_nothing "text/plain"
+                encoding = request_body_encoding.if_nothing Encoding.utf_8
+                Header.content_type content_type encoding=encoding
         _ -> Nothing
 
-    ## Raise error if content type is specified in two places;
-       otherwise, add any Request_Body settings to the header list.
+    ## Raise error if content type is specified in both the request body and
+       header list; otherwise, add any Request_Body settings to the header list.
     has_content_type_header_in_list = req.headers.any is_content_type_header
 
-    all_headers = case request_body_content_type.is_nothing.not && has_content_type_header_in_list of
-        True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Type in both the request body and request headers")
+    content_type_additions = case request_body_content_type_header.is_nothing.not && has_content_type_header_in_list of
+        True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Type/encoding in both the request body and request headers")
         False ->
-            content_type_additions = if request_body_content_type.is_nothing then [] else [Header.content_type request_body_content_type]
-            content_encoding_additions = if request_body_content_encoding.is_nothing then [] else [Header.content_encoding request_body_content_encoding.character_set]
-            req.headers + content_type_additions + content_encoding_additions
+            if request_body_content_type_header.is_nothing then [] else [request_body_content_type_header]
 
-    all_headers.if_not_error <|
-        # Add default content type and/or encoding, if one is not specified and the body is not Request_Body.Empty.
+    content_type_additions.if_not_error <|
+        all_headers = req.headers + content_type_additions
+
+        # Add default content type, if one is not specified and the body is not Request_Body.Empty.
         contains_content_type = all_headers.any is_content_type_header
-        contains_content_encoding = all_headers.any is_content_encoding_header
         is_body_empty = case req.body of
             Request_Body.Empty -> True
-            _ -> False
-        is_body_text = case req.body of
-            Request_Body.Text _ _ _ -> True
             _ -> False
         default_content_type = if is_body_empty || contains_content_type then [] else
             default = req.body.default_content_type_header
             if default.is_nothing then [] else [default]
-        default_content_encoding = if is_body_text && contains_content_encoding.not then [Header.content_encoding Encoding.utf_8.character_set] else []
 
-        all_headers + default_content_type + default_content_encoding
+        all_headers + default_content_type
 
 ## PRIVATE
 

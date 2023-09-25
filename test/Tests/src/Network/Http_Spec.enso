@@ -144,9 +144,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -246,9 +245,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-16LE",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-16LE",
                     "Content-Length": "24"
                   },
                   "origin": "127.0.0.1",
@@ -266,9 +264,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/csv",
+                    "Content-Type": "text/csv; charset=UTF-8",
                     "Content-Length": "6"
                   },
                   "origin": "127.0.0.1",
@@ -321,9 +318,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -341,9 +337,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -361,9 +356,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "application/diff",
+                    "Content-Type": "application/diff; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -399,9 +393,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -419,9 +412,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11",
                     "Custom": "asdf"
                   },
@@ -466,9 +458,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/json; charset=UTF-8",
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
@@ -486,7 +477,6 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
@@ -506,7 +496,6 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
@@ -526,9 +515,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
@@ -544,40 +532,35 @@ spec =
         Test.specify "Cannot specify content type in both body and headers" <|
             Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
 
+        Test.specify "Cannot specify content type (implicitly via explicit text encoding) in both body and headers" <|
+            Data.post url_post (Request_Body.Text "hello world" encoding=Encoding.utf_8) headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
+
     Test.group "Header resolution" <|
         Test.specify "Default content type and encoding" <|
-            expected = [Header.content_encoding 'UTF-8', Header.content_type "text/plain"]
+            expected = [Header.content_type "text/plain; charset=UTF-8"]
             resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
         Test.specify "Content type specified in body" <|
-            expected = [Header.content_type "application/json", Header.content_encoding 'UTF-8']
+            expected = [Header.content_type "application/json; charset=UTF-8"]
             resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json")) . should_contain_the_same_elements_as expected
 
         Test.specify "Content type specified in header list" <|
-            expected = [Header.content_type "application/json", Header.content_encoding 'UTF-8']
+            expected = [Header.content_type "application/json"]
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
-        Test.specify "Content encoding specified in body" <|
-            expected = [Header.content_encoding 'UTF-16LE', Header.content_type "text/plain"]
+        Test.specify "Text encoding specified in body" <|
+            expected = [Header.content_type "text/plain; charset=UTF-16LE"]
             resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" encoding=Encoding.utf_16_le)) . should_contain_the_same_elements_as expected
-
-        Test.specify "Content encoding specified in both places" <|
-            expected = [Header.content_encoding 'UTF-8', Header.content_encoding 'UTF-16LE', Header.content_type "text/plain"]
-            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_encoding "UTF-8"] (Request_Body.Text "" encoding=Encoding.utf_16_le)) . should_contain_the_same_elements_as expected
-
-        Test.specify "Content encoding specified in header list" <|
-            expected = [Header.content_type "text/plain", Header.content_encoding 'UTF-16LE', Header.content_encoding 'UTF-8']
-            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_encoding "UTF-16LE"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
         Test.specify "Can't specify content type in both places" <|
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain")) . should_fail_with Illegal_Argument
 
         Test.specify "Custom header" <|
-            expected = [Header.new "some" "header", Header.content_type "application/json", Header.content_encoding 'UTF-8']
+            expected = [Header.new "some" "header", Header.content_type "application/json; charset=UTF-8"]
             resolve_headers (Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json")) . should_contain_the_same_elements_as expected
 
         Test.specify "Multiple content types in header list are ok" <|
-            expected = [Header.content_type "application/json", Header.content_type "text/plain", Header.content_encoding 'UTF-8']
+            expected = [Header.content_type "application/json", Header.content_type "text/plain"]
             resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
 main = Test_Suite.run_main spec

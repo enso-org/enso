@@ -229,11 +229,14 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
      - File: `application/octet-stream`
      - Any other Enso object: `application/json`
 
-   ! Specifying Content Encodings
+   ! Specifying Text Encodings
 
-     The content encoding specified in the `Request_Body` is used to encode the
-     body. The `headers` list can contain additional `Content-Encoding` headers,
-     and these are sent to the server, but not used for encoding.
+     Text encoding can be specified in the `encoding` parameter to the
+     `Request_Body.Text` constructor. This value will be added to the
+     `Content-Type` header.
+
+     If a value for `encoding` is specified, but no value for `content_type` is
+     specified, then `"text/plain"` is used as the content type.
 
    > Example
      Write a text string to an HTTP endpoint.
