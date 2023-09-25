@@ -11,6 +11,7 @@ import { modKey, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { MouseAction } from 'enso-authentication/src/dashboard/shortcuts'
+import { watch } from 'fs'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, reactive, ref, watchEffect } from 'vue'
 import { shortcutRegistry } from '../util/shortcuts'
@@ -88,7 +89,7 @@ const cursorPos = ref({ x: 0, y: 0 })
 const selectionStart = ref<Vec2>()
 const selectionSize = ref<Vec2>()
 const initiallySelectedNodes = ref(selectedNodes)
-const initialMouseAction = ref<MouseAction>()
+const mouseAction = ref<MouseAction>()
 
 const selection = usePointer((pos) => {
   cursorPos.value = pos.absolute
@@ -118,11 +119,25 @@ const intersectingNodes = computed<Set<ExprId>>(() => {
 })
 
 watchEffect(() => {
-  if (initialMouseAction.value == null) {
+  if (selection.dragging) {
+    initiallySelectedNodes.value = new Set(selectedNodes.value)
+    if (shortcutRegistry.matchesMouseAction('replace-nodes-selection', event)) {
+      //
+    } else {
+      mouseAction.value = undefined
+    }
+  } else {
+    initiallySelectedNodes.value = new Set()
+    mouseAction.value = undefined
+  }
+})
+
+watchEffect(() => {
+  if (mouseAction.value == null) {
     return
   }
   let newSelectedNodes: Set<ExprId>
-  switch (initialMouseAction.value) {
+  switch (mouseAction.value) {
     case 'replace-nodes-selection': {
       newSelectedNodes = new Set(intersectingNodes.value)
       break
@@ -139,9 +154,34 @@ watchEffect(() => {
       break
     }
     case 'toggle-nodes-selection': {
-      newSelectedNodes = new Set(initiallySelectedNodes.value)
+      const initiallySelectedNodes_ = initiallySelectedNodes.value
+      newSelectedNodes = new Set(initiallySelectedNodes_)
+      let count = 0
       for (const id of intersectingNodes.value) {
-        newSelectedNodes.delete(id)
+        if (initiallySelectedNodes_.has(id)) {
+          count += 1
+        }
+      }
+      if (count * 2 <= intersectingNodes.value.size) {
+        for (const id of intersectingNodes.value) {
+          newSelectedNodes.delete(id)
+        }
+      } else {
+        for (const id of intersectingNodes.value) {
+          newSelectedNodes.add(id)
+        }
+      }
+      break
+    }
+    case 'invert-nodes-selection': {
+      const initiallySelectedNodes_ = initiallySelectedNodes.value
+      newSelectedNodes = new Set(initiallySelectedNodes_)
+      for (const id of intersectingNodes.value) {
+        if (initiallySelectedNodes_.has(id)) {
+          newSelectedNodes.delete(id)
+        } else {
+          newSelectedNodes.add(id)
+        }
       }
       break
     }
