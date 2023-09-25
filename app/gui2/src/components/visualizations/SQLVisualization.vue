@@ -106,7 +106,7 @@ function renderInterpolationParameter(theme: Theme, param: { enso_type: string; 
   let value = param.value
 
   if (actualType === TEXT_TYPE) {
-    value = "'" + value.replaceAll("'", "''") + "'"
+    value = "'" + value.replace(/'/g, "''") + "'"
   }
 
   const actualTypeColor = theme.getColorForType(actualType)
