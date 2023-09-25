@@ -11,7 +11,7 @@ type Date_Time_Format_Parse_Error
     to_display_text self =
         "Error parsing date/time format pattern: " + self.message
 
-## PRIVATE
+## A warning indicating an unexpected date time format pattern.
 type Suspicious_Date_Time_Format
     ## PRIVATE
        Indicates a warning when parsing a date time format.
