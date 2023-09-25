@@ -545,7 +545,6 @@ jobs:
     name: Package New IDE (linux)
     needs:
       - enso-build-ci-gen-job-build-backend-linux
-      - enso-build-ci-gen-job-build-wasm-linux
     runs-on:
       - self-hosted
       - Linux
@@ -606,7 +605,6 @@ jobs:
     name: Package New IDE (macos)
     needs:
       - enso-build-ci-gen-job-build-backend-macos
-      - enso-build-ci-gen-job-build-wasm-linux
     runs-on:
       - macos-latest
     steps:
@@ -670,7 +668,6 @@ jobs:
     name: Package New IDE (windows)
     needs:
       - enso-build-ci-gen-job-build-backend-windows
-      - enso-build-ci-gen-job-build-wasm-linux
     runs-on:
       - self-hosted
       - Windows

@@ -453,12 +453,13 @@ pub fn gui() -> Result<Workflow> {
             let _wasm_job = workflow.add(os, job::BuildWasm);
         }
         let project_manager_job = workflow.add(os, job::BuildBackend);
-        let add_ide_dependencies = |job: &mut Job| {
+        workflow.add_customized(os, job::PackageOldIde, |job| {
             job.needs.insert(wasm_job_linux.clone());
             job.needs.insert(project_manager_job.clone());
-        };
-        workflow.add_customized(os, job::PackageOldIde, add_ide_dependencies);
-        workflow.add_customized(os, job::PackageNewIde, add_ide_dependencies);
+        });
+        workflow.add_customized(os, job::PackageNewIde, |job| {
+            job.needs.insert(project_manager_job.clone());
+        });
     }
     Ok(workflow)
 }

@@ -2,9 +2,6 @@ use crate::prelude::*;
 
 use crate::project::gui::ide_desktop_from_context;
 use crate::project::gui::GuiBuildWithWatchedWasm;
-
-
-
 use crate::project::Context;
 use crate::project::Gui;
 use crate::project::IsArtifact;
