@@ -7,6 +7,7 @@ use enso_web::traits::*;
 use crate::controller::graph::widget::Request as WidgetRequest;
 use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
+use crate::presenter::graph::state::Node;
 use crate::presenter::graph::state::State;
 
 use double_representation::context_switch::Context;
@@ -688,8 +689,13 @@ impl ViewUpdate {
 /// [`presenter::Searcher`] and [`presenter::CallStack`] respectively).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Graph {
-    network: frp::Network,
-    model:   Rc<Model>,
+    network:               frp::Network,
+    model:                 Rc<Model>,
+    /// Force the immediate synchronization of the node view with the AST node.
+    ///
+    /// It is needed in cases when we change the assigned view id of the node, as the regular
+    /// update from the controllers will not be necessarily triggered.
+    pub force_view_update: frp::Source<ast::Id>,
 }
 
 impl Graph {
@@ -702,10 +708,13 @@ impl Graph {
         project_view: &view::project::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Graph");
+        frp::extend! { network
+            force_view_update <- source();
+        }
         let graph_editor_view = project_view.graph().clone_ref();
         let project_view_clone = project_view.clone_ref();
         let model = Rc::new(Model::new(project, controller, graph_editor_view, project_view_clone));
-        Self { network, model }.init(project_view)
+        Self { network, model, force_view_update }.init(project_view)
     }
 
     #[profile(Detail)]
@@ -803,6 +812,32 @@ impl Graph {
             eval file_upload_requested (((file,position)) model.file_dropped(file.clone_ref(),*position));
         }
 
+        // Forcefully update the view to match the state of the presenter.
+        frp::extend! { network
+            let force_view_update = self.force_view_update.clone_ref();
+            node_and_ast_id <- force_view_update.filter_map(f!([model](id)
+                Some((model.state.get_node(*id)?, *id)))
+            );
+            displayed_node <- node_and_ast_id._0();
+            view.set_node_expression <+ displayed_node.map(Node::expression_update).unwrap();
+            view.set_node_skip <+ displayed_node.map(Node::skip_update).unwrap();
+            view.set_node_freeze <+ displayed_node.map(Node::freeze_update).unwrap();
+            view.set_node_context_switch <+ displayed_node.map(Node::output_context_update).unwrap();
+            view.set_node_position <+ displayed_node.map(Node::position_update).unwrap();
+            vis_update <- displayed_node.map(Node::visualization_update).unwrap();
+            enable_vis <- vis_update.filter_map(|(id,path)| path.is_some().as_some(*id));
+            disable_vis <- vis_update.filter_map(|(id,path)| path.is_none().as_some(*id));
+            view.enable_visualization <+ enable_vis;
+            view.disable_visualization <+ disable_vis;
+            view.set_visualization <+ vis_update;
+            expression_type <- node_and_ast_id.filter_map(f!([model]((node, ast))
+                Some((node.view_id?, *ast, model.expression_type(*ast))))
+            );
+            view.set_expression_usage_type <+ expression_type;
+            view.set_node_error_status <+ displayed_node.map(Node::error_update).unwrap();
+            view.set_node_pending_status <+ displayed_node.map(Node::pending_update).unwrap();
+        }
+
         view.remove_all_nodes();
         update_view.emit(());
         self.setup_controller_notification_handlers(update_view, update_expressions);
@@ -887,11 +922,6 @@ impl Graph {
     /// node content between the controllers and the view.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) {
         self.model.state.assign_node_view_explicitly(view_id, ast_id);
-    }
-
-    /// Mark the node view as dirty, so it will be forcefully synced with the controller state.
-    pub fn mark_node_view_as_dirty(&self, ast_id: AstNodeId) {
-        self.model.state.mark_node_view_as_dirty(ast_id);
     }
 
     /// Indicate whether the given node should be automatically synced with its view.

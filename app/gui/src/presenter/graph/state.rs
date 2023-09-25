@@ -8,6 +8,7 @@ use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewConnection;
 use crate::presenter::graph::ViewNodeId;
 
+use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::SuggestionId;
@@ -26,20 +27,57 @@ use ide_view::graph_editor::EdgeEndpoint;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Node {
-    pub view_id:        Option<ViewNodeId>,
-    pub position:       Vector2,
-    pub expression:     node_view::Expression,
-    pub is_skipped:     bool,
-    pub is_frozen:      bool,
+    pub view_id: Option<ViewNodeId>,
+    pub position: Vector2,
+    pub expression: node_view::Expression,
+    pub is_skipped: bool,
+    pub is_frozen: bool,
     pub context_switch: Option<ContextSwitchExpression>,
-    pub error:          Option<node_view::Error>,
-    pub is_pending:     bool,
-    pub visualization:  Option<visualization_view::Path>,
-    pub dirty:          bool,
-
+    pub error: Option<node_view::Error>,
+    pub is_pending: bool,
+    pub visualization: Option<visualization_view::Path>,
     /// Indicate whether this node view is updated automatically by changes from the controller
     /// or view, or will be explicitly updated.
     disable_expression_auto_update: bool,
+}
+
+
+// === Prepare view updates from the node state ===
+
+#[allow(missing_docs)]
+impl Node {
+    pub fn position_update(&self) -> Option<(ViewNodeId, Vector2)> {
+        Some((self.view_id?, self.position))
+    }
+
+    pub fn expression_update(&self) -> Option<(ViewNodeId, node_view::Expression)> {
+        Some((self.view_id?, self.expression.clone()))
+    }
+
+    pub fn skip_update(&self) -> Option<(ViewNodeId, bool)> {
+        Some((self.view_id?, self.is_skipped))
+    }
+
+    pub fn freeze_update(&self) -> Option<(ViewNodeId, bool)> {
+        Some((self.view_id?, self.is_frozen))
+    }
+
+    pub fn output_context_update(&self) -> Option<(ViewNodeId, Option<bool>)> {
+        let switch = self.context_switch.as_ref().map(|expr| expr.switch == ContextSwitch::Enable);
+        Some((self.view_id?, switch))
+    }
+
+    pub fn error_update(&self) -> Option<(ViewNodeId, Option<node_view::Error>)> {
+        Some((self.view_id?, self.error.clone()))
+    }
+
+    pub fn pending_update(&self) -> Option<(ViewNodeId, bool)> {
+        Some((self.view_id?, self.is_pending))
+    }
+
+    pub fn visualization_update(&self) -> Option<(ViewNodeId, Option<visualization_view::Path>)> {
+        Some((self.view_id?, self.visualization.clone()))
+    }
 }
 
 /// The set of node states.
@@ -242,6 +280,11 @@ pub struct State {
 }
 
 impl State {
+    /// Get the node state by the AST ID.
+    pub fn get_node(&self, node: AstNodeId) -> Option<Node> {
+        self.nodes.borrow().get(node).cloned()
+    }
+
     /// Get node's view id by the AST ID.
     pub fn view_id_of_ast_node(&self, node: AstNodeId) -> Option<ViewNodeId> {
         self.nodes.borrow().get(node).and_then(|n| n.view_id)
@@ -279,13 +322,6 @@ impl State {
     /// refreshed with the data from the state.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) -> Node {
         self.nodes.borrow_mut().assign_node_view_explicitly(view_id, ast_id).clone()
-    }
-
-    /// Mark the node as dirty.
-    pub fn mark_node_view_as_dirty(&self, ast_id: AstNodeId) {
-        if let Some(node) = self.nodes.borrow_mut().get_mut(ast_id) {
-            node.dirty = true;
-        }
     }
 
     /// Checks if the node should be synced with its AST automatically.
@@ -368,13 +404,12 @@ impl<'a> ControllerChange<'a> {
         let mut nodes = self.nodes.borrow_mut();
         let displayed = nodes.get_mut_or_create(ast_id);
 
-        let dirty = displayed.dirty;
         let displayed_updated = displayed.expression != new_displayed_expr;
         let context_switch_updated = displayed.context_switch != node.info.ast_info.context_switch;
         let skip_updated = displayed.is_skipped != node.info.macros_info().skip;
         let freeze_updated = displayed.is_frozen != node.info.macros_info().freeze;
 
-        if dirty || displayed_updated || context_switch_updated || skip_updated || freeze_updated {
+        if displayed_updated || context_switch_updated || skip_updated || freeze_updated {
             debug!(
                 "Setting node expression from controller: {} -> {}",
                 displayed.expression, new_displayed_expr
@@ -383,7 +418,6 @@ impl<'a> ControllerChange<'a> {
             let new_expressions =
                 node.info.ast().iter_recursive().filter_map(|ast| ast.id).collect();
             self.expressions.borrow_mut().update_node_expressions(ast_id, new_expressions);
-            displayed.dirty = false;
             Some((displayed.view_id?, new_displayed_expr))
         } else {
             None

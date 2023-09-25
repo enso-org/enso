@@ -264,8 +264,8 @@ impl SearcherPresenter for ComponentBrowserSearcher {
             self.model
                 .graph_presenter
                 .assign_node_view_explicitly(self.model.input_view, original_node_id);
-            // Mark the original node as dirty, so its view is updated with the old expression.
-            self.model.graph_presenter.mark_node_view_as_dirty(original_node_id);
+            // Force view update so resets to the old expression.
+            self.model.graph_presenter.force_view_update.emit(original_node_id);
         }
         let node_id = self.model.mode.node_id();
         if let Err(err) = self.model.graph_controller.remove_node(node_id) {
