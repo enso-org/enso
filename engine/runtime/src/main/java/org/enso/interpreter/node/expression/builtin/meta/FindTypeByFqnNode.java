@@ -26,6 +26,6 @@ public class FindTypeByFqnNode extends Node {
         }
       }
     }
-    return ctx.getBuiltins().error().makeModuleDoesNotExistError("");
+    return ctx.getBuiltins().error().makeModuleDoesNotExistError(fqn);
   }
 }
