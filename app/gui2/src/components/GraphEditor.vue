@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
-import CodeEditor from '@/components/CodeEditor.vue'
 
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
