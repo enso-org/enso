@@ -64,8 +64,7 @@ public class SerializationManagerTest {
 
   private Package<TruffleFile> getLibraryPackage(LibraryName libraryName) {
     Path libraryPath = getLibraryPath(libraryName);
-    TruffleFile libraryFile =
-        ensoContext.getEnvironment().getInternalTruffleFile(libraryPath.toString());
+    TruffleFile libraryFile = ensoContext.getPublicTruffleFile(libraryPath.toString());
     return packageManager.loadPackage(libraryFile).get();
   }
 

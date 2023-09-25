@@ -1160,13 +1160,14 @@ class SuggestionsRepoTest
     "search suggestion by the static attribute" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          _   <- repo.insert(suggestion.module)
-          _   <- repo.insert(suggestion.tpe)
-          _   <- repo.insert(suggestion.constructor)
+          id0 <- repo.insert(suggestion.module)
+          id1 <- repo.insert(suggestion.tpe)
+          id2 <- repo.insert(suggestion.constructor)
           id3 <- repo.insert(suggestion.method)
-          _   <- repo.insert(suggestion.conversion)
-          _   <- repo.insert(suggestion.function)
-          _   <- repo.insert(suggestion.local)
+          _   <- repo.insert(suggestion.instanceMethod)
+          id5 <- repo.insert(suggestion.conversion)
+          id6 <- repo.insert(suggestion.function)
+          id7 <- repo.insert(suggestion.local)
           res <-
             repo.search(
               None,
@@ -1176,11 +1177,10 @@ class SuggestionsRepoTest
               None,
               Some(true)
             )
-        } yield (id3, res._2)
+        } yield (Seq(id0, id1, id2, id3, id5, id6, id7), res._2)
 
-        val (id3, res) =
-          Await.result(action, Timeout)
-        res should contain theSameElementsAs Seq(id3).flatten
+        val (ids, res) = Await.result(action, Timeout)
+        res should contain theSameElementsAs ids.flatten
     }
 
     "search suggestion by module and self type" taggedAs Retry in withRepo {
@@ -1231,6 +1231,32 @@ class SuggestionsRepoTest
         val (id3, res) =
           Await.result(action, Timeout)
         res should contain theSameElementsAs Seq(id3).flatten
+    }
+
+    "search suggestion by self-type and non-static attribute" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          _   <- repo.insert(suggestion.module)
+          _   <- repo.insert(suggestion.tpe)
+          _   <- repo.insert(suggestion.constructor)
+          _   <- repo.insert(suggestion.method)
+          id4 <- repo.insert(suggestion.instanceMethod)
+          _   <- repo.insert(suggestion.conversion)
+          _   <- repo.insert(suggestion.function)
+          _   <- repo.insert(suggestion.local)
+          res <-
+            repo.search(
+              None,
+              Seq(suggestion.instanceMethod.selfType),
+              None,
+              None,
+              None,
+              Some(false)
+            )
+        } yield (Seq(id4), res._2)
+
+        val (ids, res) = Await.result(action, Timeout)
+        res should contain theSameElementsAs ids.flatten
     }
 
     "search suggestion by return type and kind" taggedAs Retry in withRepo {

@@ -102,7 +102,7 @@ select_into_table_implementation source_table connection table_name primary_key 
                                will never return a name of a table that exists but
                                was created outside of a dry run.
                             connection.drop_table tmp_table_name if_exists=True
-                            internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
+                            internal_upload_table source_table connection tmp_table_name primary_key temporary=True on_problems=on_problems row_limit=dry_run_row_limit
                         temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
                         warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data."
                         Warning.attach warning temporary_table
@@ -216,7 +216,7 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
             Error.throw (Non_Unique_Primary_Key.Error primary_key example_entry example_count)
 
 ## PRIVATE
-align_structure : Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
+align_structure : Connection | Any -> Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
 align_structure connection table_or_columns = case table_or_columns of
     vector : Vector         -> align_vector_structure vector
     table : Database_Table  -> structure_from_existing_table connection table

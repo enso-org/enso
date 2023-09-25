@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Syntax_Error
 
-import Standard.Base.Network.HTTP.Form.Form
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
@@ -43,9 +42,9 @@ spec =
             req.body.should_equal (Request_Body.Json json)
             req.headers.should_equal [Header.application_json]
         Test.specify "should set form body" <|
-            body_form = [Form.text_field "key" "val"]
+            body_form = Map.from_vector [["key", "val"]]
             req = Request.get test_uri . with_form body_form
-            req.body.should_equal (Request_Body.Form (Form.new body_form))
+            req.body.should_equal (Request_Body.Form_Data body_form)
             req.headers.should_equal [Header.application_x_www_form_urlencoded]
 
 main = Test_Suite.run_main spec

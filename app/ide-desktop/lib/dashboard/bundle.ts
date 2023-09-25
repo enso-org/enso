@@ -12,6 +12,7 @@ import * as bundler from './esbuild-config'
 // =================
 
 export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
+export const ANALYZE = process.argv.includes('--analyze')
 
 // ===============
 // === Bundler ===
@@ -33,8 +34,12 @@ async function bundle() {
             path.resolve(THIS_PATH, 'src', 'index.html'),
             path.resolve(THIS_PATH, 'src', 'index.tsx')
         )
+        opts.metafile = ANALYZE
         opts.loader['.html'] = 'copy'
-        await esbuild.build(opts)
+        const result = await esbuild.build(opts)
+        if (result.metafile) {
+            console.log(await esbuild.analyzeMetafile(result.metafile))
+        }
         return
     } catch (error) {
         console.error(error)

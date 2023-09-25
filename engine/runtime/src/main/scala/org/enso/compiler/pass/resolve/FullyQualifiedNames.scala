@@ -159,6 +159,7 @@ case object FullyQualifiedNames extends IRPass {
     processExpression(
       ir,
       scopeMap,
+      List(),
       freshNameSupply,
       None,
       inlineContext.pkgRepo
@@ -179,7 +180,14 @@ case object FullyQualifiedNames extends IRPass {
           _.getMetadata(MethodDefinitions)
         )
         method.mapExpressions(
-          processExpression(_, bindings, freshNameSupply, resolution, pkgRepo)
+          processExpression(
+            _,
+            bindings,
+            List(),
+            freshNameSupply,
+            resolution,
+            pkgRepo
+          )
         )
       case tp: Definition.Type =>
         tp.copy(members =
@@ -188,6 +196,7 @@ case object FullyQualifiedNames extends IRPass {
               processExpression(
                 _,
                 bindings,
+                tp.params.map(_.name),
                 freshNameSupply,
                 bindings.resolveName(tp.name.name).toOption.map(Resolution),
                 pkgRepo
@@ -198,7 +207,7 @@ case object FullyQualifiedNames extends IRPass {
 
       case a =>
         a.mapExpressions(
-          processExpression(_, bindings, freshNameSupply, None, pkgRepo)
+          processExpression(_, bindings, List(), freshNameSupply, None, pkgRepo)
         )
     }
   }
@@ -206,13 +215,15 @@ case object FullyQualifiedNames extends IRPass {
   private def processExpression(
     ir: Expression,
     bindings: BindingsMap,
+    typeParams: List[Name],
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution],
     pkgRepo: Option[PackageRepository]
   ): Expression =
     ir.transformExpressions {
       case lit: Name.Literal =>
-        if (!lit.isMethod && !isLocalVar(lit)) {
+        val isTypeName = typeParams.find(_.name == lit.name).nonEmpty
+        if (!lit.isMethod && !isLocalVar(lit) && !isTypeName) {
           val resolution = bindings.resolveName(lit.name)
           resolution match {
             case Left(_) =>
@@ -240,6 +251,7 @@ case object FullyQualifiedNames extends IRPass {
               resolveLocalApplication(
                 app,
                 bindings,
+                typeParams,
                 freshNameSupply,
                 pkgRepo,
                 selfTypeResolution
@@ -249,6 +261,7 @@ case object FullyQualifiedNames extends IRPass {
                 processExpression(
                   _,
                   bindings,
+                  typeParams,
                   freshNameSupply,
                   selfTypeResolution,
                   pkgRepo
@@ -259,6 +272,7 @@ case object FullyQualifiedNames extends IRPass {
               processExpression(
                 _,
                 bindings,
+                typeParams,
                 freshNameSupply,
                 selfTypeResolution,
                 pkgRepo
@@ -272,6 +286,7 @@ case object FullyQualifiedNames extends IRPass {
   private def resolveLocalApplication(
     app: Application.Prefix,
     bindings: BindingsMap,
+    typeParams: List[Name],
     freshNameSupply: FreshNameSupply,
     pkgRepo: Option[PackageRepository],
     selfTypeResolution: Option[Resolution]
@@ -280,6 +295,7 @@ case object FullyQualifiedNames extends IRPass {
       processExpression(
         app.function,
         bindings,
+        typeParams,
         freshNameSupply,
         selfTypeResolution,
         pkgRepo
@@ -290,6 +306,7 @@ case object FullyQualifiedNames extends IRPass {
           processExpression(
             _,
             bindings,
+            typeParams,
             freshNameSupply,
             selfTypeResolution,
             pkgRepo

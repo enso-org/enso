@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.interop.java;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -18,6 +19,7 @@ public abstract class LookupClassNode extends Node {
   }
 
   @Specialization
+  @CompilerDirectives.TruffleBoundary
   Object doExecute(Object name, @Cached("build()") ExpectStringNode expectStringNode) {
     return EnsoContext.get(this).lookupJavaClass(expectStringNode.execute(name));
   }

@@ -60,7 +60,7 @@ type Redshift_Details
 
     ## PRIVATE
        Provides the properties for the connection.
-    jdbc_properties : [Pair Text Text]
+    jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
         credentials = case self.credentials of
             Nothing -> Pgpass.read self.host self.port self.schema

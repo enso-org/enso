@@ -12,31 +12,24 @@ import java.util.Set;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class DummyHandler implements HttpHandler {
-
-  private enum Method {
-    GET,
-    POST,
-    HEAD;
-  }
-
-  private static final Set<String> requiredHeaders =
-      Set.of("Content-length", "Content-type", "User-agent");
+  private static final Set<String> ignoredHeaders = Set.of("Host");
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
     boolean first = true;
     String contentType = null;
-    Method meth = method(exchange.getRequestMethod());
+    HttpMethod meth = HttpMethod.valueOf(exchange.getRequestMethod());
 
     String response;
-    if (meth == Method.HEAD) {
+    if (meth == HttpMethod.HEAD || meth == HttpMethod.OPTIONS) {
       response = "";
       exchange.sendResponseHeaders(200, -1);
     } else {
+      exchange.getResponseHeaders().put("Content-Type", List.of("application/json"));
       response = "{\n";
       response += "  \"headers\": {\n";
       for (Map.Entry<String, List<String>> entry : exchange.getRequestHeaders().entrySet()) {
-        if (requiredHeaders.contains(entry.getKey())) {
+        if (!ignoredHeaders.contains(entry.getKey())) {
           if (!first) {
             response += ",\n";
           } else {
@@ -57,7 +50,11 @@ public class DummyHandler implements HttpHandler {
       response += "  },\n";
       response += "  \"origin\": \"127.0.0.1\",\n";
       response += "  \"url\": \"\",\n";
-      if (meth == Method.POST) {
+      response += "  \"method\": \"" + meth + "\",\n";
+      if (meth == HttpMethod.POST
+          || meth == HttpMethod.DELETE
+          || meth == HttpMethod.PUT
+          || meth == HttpMethod.PATCH) {
         boolean isJson = contentType != null && contentType.equals("application/json");
         InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
         BufferedReader br = new BufferedReader(isr);
@@ -75,10 +72,6 @@ public class DummyHandler implements HttpHandler {
     OutputStream os = exchange.getResponseBody();
     os.write(response.getBytes());
     os.close();
-  }
-
-  private Method method(String v) {
-    return v.equals("HEAD") ? Method.HEAD : (v.equals("POST") ? Method.POST : Method.GET);
   }
 
   private String formatHeaderKey(String key) {

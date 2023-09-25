@@ -65,6 +65,16 @@ type Fool
 
 Fool.from (that : Any) = Fool.Value that
 
+type Blob
+    Text c:Text
+    Binary b:File
+    Json anything
+
+
+Blob.from (that:Text) = Blob.Text that
+Blob.from (that:File) = Blob.Binary that
+Blob.from (that:Any) = Blob.Json that
+
 spec =
     Test.group "Conversion" <|
         Test.specify "should be able to convert atoms" <|
@@ -161,6 +171,37 @@ spec =
         Test.specify "Use Any.to in Conversion_Use module" <|
             Hello.formulate_with_to [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
             Hello.formulate_with_to [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
+
+        Test.specify "Avoid parameter conversion of Blob into Blob" <|
+            blob_me (b:Blob) = b
+
+            once = blob_me "Ahoj"
+            second = blob_me once
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
+
+        Test.specify "Avoid Any.to conversion of Blob into Blob" <|
+            blob_me b = b.to Blob
+
+            once = blob_me "Ahoj"
+            second = blob_me once
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
+
+        Test.specify "Avoid inline conversion of Blob into Blob" <|
+            once = "Ahoj" : Blob
+            second = once : Blob
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
 
         Test.specify "Requesting Text & Foo" <|
             check a (n : Text & Foo) = case a of

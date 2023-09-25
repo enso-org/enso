@@ -556,7 +556,7 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization(guards = {
       "!isAtom(objectWithMembers)",
-      "!isHostObject(objectWithMembers)",
+      "!isJavaObject(objectWithMembers)",
       "interop.hasMembers(objectWithMembers)",
       "!interop.hasArrayElements(objectWithMembers)",
       "!interop.isTime(objectWithMembers)",
@@ -602,7 +602,7 @@ public abstract class HashCodeNode extends Node {
     return 0;
   }
 
-  @Specialization(guards = "isHostObject(hostObject)")
+  @Specialization(guards = "isJavaObject(hostObject)")
   long hashCodeForHostObject(
       Object hostObject,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
@@ -623,7 +623,7 @@ public abstract class HashCodeNode extends Node {
    * We get the hashcode from the qualified name.
    */
   @TruffleBoundary
-  @Specialization(guards = "isHostFunction(hostFunction)")
+  @Specialization(guards = "isJavaFunction(hostFunction)")
   long hashCodeForHostFunction(Object hostFunction,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
@@ -634,13 +634,11 @@ public abstract class HashCodeNode extends Node {
     return object instanceof Atom;
   }
 
-  @TruffleBoundary
-  boolean isHostObject(Object object) {
-    return EnsoContext.get(this).getEnvironment().isHostObject(object);
+  boolean isJavaObject(Object object) {
+    return EnsoContext.get(this).isJavaPolyglotObject(object);
   }
 
-  @TruffleBoundary
-  boolean isHostFunction(Object object) {
-    return EnsoContext.get(this).getEnvironment().isHostFunction(object);
+  boolean isJavaFunction(Object object) {
+    return EnsoContext.get(this).isJavaPolyglotFunction(object);
   }
 }

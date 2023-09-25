@@ -8,6 +8,7 @@ import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
@@ -105,17 +106,11 @@ type Date
 
        Arguments:
        - text: The text to try and parse as a date.
-       - pattern: An optional pattern describing how to parse the text.
-       - locale: The locale in which the pattern should be interpreted.
+       - format: A pattern describing how to parse the text,
+         or a `Date_Time_Formatter`.
 
        Returns a `Time_Error` if the provided `text` cannot be parsed using the
-       provided `pattern`.
-
-       ? Pattern Syntax
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
+       provided `format`.
 
        ? Default Date Formatting
          Unless you provide a custom format, the text must represent a valid date
@@ -131,6 +126,34 @@ type Date
          - A dash
          - Two digits for the day-of-month. This is pre-padded by zero to ensure two
            digits.
+
+       ? Pattern Syntax
+         If the pattern is provided as `Text`, it is parsed using the format
+         described below. See `Date_Time_Formatter` for more options.
+         - y: Year. The number of pattern letters determines the minimum number of
+           digits.
+           - y: The year using any number of digits.
+           - yy: The year, using at most two digits. The default range is
+             1950-2049, but this can be changed by including the end year in
+             braces e.g. `yy{2099}`.
+           - yyyy: The year, using exactly four digits.
+         - M: Month of year. The number of pattern letters determines the format:
+           - M: Any number (1-12).
+           - MM: Month number with zero padding required (01-12).
+           - MMM: Short name of the month (Jan-Dec).
+           - MMMM: Full name of the month (January-December).
+           The month names depend on the selected locale.
+         - d: Day. The number of pattern letters determines the format:
+           - d: Any number (1-31).
+           - dd: Day number with zero padding required (01-31).
+           - ddd: Short name of the day of week (Mon-Sun).
+           - dddd: Full name of the day of week (Monday-Sunday).
+           The weekday names depend on the selected locale.
+           Both day of week and day of month may be included in a single pattern -
+           in such case the day of week is used as a sanity check.
+         - Q: Quarter of year.
+           If only year and quarter are provided in the pattern, when parsing a
+           date, the result will be the first day of that quarter.
 
        > Example
          Parse the date of 23rd December 2020.
@@ -164,17 +187,10 @@ type Date
              example_parse_err =
                  date = Date.parse "1999-1-1" "yyyy-MM-dd"
                  date.catch Time_Error (_->Date.new 2000 1 1)
-    @pattern make_date_format_selector
-    @locale Locale.default_widget
-    parse : Text -> Text -> Locale -> Date ! Time_Error
-    parse text:Text pattern:Text="" locale:Locale=Locale.default =
-        result = Panic.recover Any <|
-            formatter = if pattern.is_empty then Time_Utils.default_date_formatter else
-                Time_Utils.make_formatter pattern locale.java_locale
-            Time_Utils.parse_date text.trim formatter
-        result . map_error <| case _ of
-            err : JException -> Time_Error.Error err.getMessage
-            ex -> ex
+    @format make_date_format_selector
+    parse : Text -> Date_Time_Formatter -> Date ! Time_Error
+    parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
+        format.parse_date text
 
     ## GROUP Metadata
        Get the year field.
@@ -709,15 +725,36 @@ type Date
        Format this date using the provided format specifier.
 
        Arguments:
-       - pattern: The text specifying the format for formatting the date.
-       - locale: The locale in which the format should be interpreted.
-         (Defaults to Locale.default.)
+       - format: A pattern describing how to format the text,
+         or a `Date_Time_Formatter`.
 
        ? Pattern Syntax
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
+         If the pattern is provided as `Text`, it is parsed using the format
+         described below. See `Date_Time_Formatter` for more options.
+         - y: Year. The number of pattern letters determines the minimum number of
+           digits.
+           - y: The year using any number of digits.
+           - yy: The year, using at most two digits. The default range is
+             1950-2049, but this can be changed by including the end year in
+             braces e.g. `yy{2099}`.
+           - yyyy: The year, using exactly four digits.
+         - M: Month of year. The number of pattern letters determines the format:
+           - M: Any number (1-12).
+           - MM: Month number with zero padding required (01-12).
+           - MMM: Short name of the month (Jan-Dec).
+           - MMMM: Full name of the month (January-December).
+           The month names depend on the selected locale.
+         - d: Day. The number of pattern letters determines the format:
+           - d: Any number (1-31).
+           - dd: Day number with zero padding required (01-31).
+           - ddd: Short name of the day of week (Mon-Sun).
+           - dddd: Full name of the day of week (Monday-Sunday).
+           The weekday names depend on the selected locale.
+           Both day of week and day of month may be included in a single pattern -
+           in such case the day of week is used as a sanity check.
+         - Q: Quarter of year.
+           If only year and quarter are provided in the pattern, when parsing a
+           date, the result will be the first day of that quarter.
 
        > Example
          Format "2020-06-02" as "2 Jun 2020"
@@ -749,14 +786,11 @@ type Date
        > Example
          Format "2020-06-21" with French locale as "21. juin 2020"
 
-             example_format = Date.new 2020 6 21 . format "d. MMMM yyyy" (Locale.new "fr")
-    @pattern (value-> make_date_format_selector value)
-    @locale Locale.default_widget
-    format : Text -> Locale -> Text
-    format self pattern:Text locale=Locale.default =
-        formatter = if pattern.is_empty then Time_Utils.default_date_formatter else
-            Time_Utils.make_formatter pattern locale.java_locale
-        Time_Utils.date_format self formatter
+             example_format = Date.new 2020 6 21 . format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "fr"))
+    @format (value-> make_date_format_selector value)
+    format : Date_Time_Formatter -> Text
+    format self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
+        format.format_date self
 
 ## PRIVATE
 week_days_between start end =

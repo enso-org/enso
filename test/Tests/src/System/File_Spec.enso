@@ -739,7 +739,7 @@ spec =
 
         Test.specify "should list files in a directory" <|
             immediate = enso_project.data.list . map .to_text
-            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample-json.weird-extension", "sample-malformed.json", "sample.json", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt"])
+            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample-json.weird-extension", "sample-malformed.json", "sample.json", "sample.png", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt"])
 
             filtered1 = enso_project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
             filtered1.should_equal (resolve ["sample.txt"])

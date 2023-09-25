@@ -25,6 +25,7 @@ object ProjectServiceFailureMapper {
     case ProjectNotOpen             => ProjectNotOpenError
     case ProjectOpenByOtherPeers    => ProjectOpenByOtherPeersError
     case CannotRemoveOpenProject    => CannotRemoveOpenProjectError
+    case CannotRemoveClosingProject => CannotRemoveClosingProjectError
     case ProjectOperationTimeout    => ServiceError
     case LanguageServerFailure(msg) => LanguageServerError(msg)
     case ProjectManagerUpgradeRequiredFailure(current, required) =>

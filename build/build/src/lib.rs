@@ -58,7 +58,6 @@ pub mod httpbin;
 pub mod ide;
 pub mod paths;
 pub mod postgres;
-pub mod prettier;
 pub mod programs;
 pub mod project;
 pub mod project_manager;
