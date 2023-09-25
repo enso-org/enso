@@ -29,13 +29,13 @@ public class ScalaConversions {
     return CollectionConverters.asJava(list);
   }
 
-
   @SuppressWarnings("unchecked")
   public static <T> scala.collection.immutable.List<T> nil() {
     return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
   }
 
-  public static <T> scala.collection.immutable.List<T> cons(T head, scala.collection.immutable.List<T> tail) {
+  public static <T> scala.collection.immutable.List<T> cons(
+      T head, scala.collection.immutable.List<T> tail) {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 }

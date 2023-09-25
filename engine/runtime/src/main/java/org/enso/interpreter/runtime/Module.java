@@ -193,9 +193,7 @@ public final class Module implements EnsoObject {
     return synthetic;
   }
 
-  /**
-   * @return true iff this module is private (project-private).
-   */
+  /** @return true iff this module is private (project-private). */
   public boolean isPrivate() {
     return ir.isPrivate();
   }

@@ -53,7 +53,15 @@ sealed case class Module(
     id: Identifier                       = id
   ): Module = {
     val res =
-      Module(imports, exports, bindings, isPrivate, location, passData, diagnostics)
+      Module(
+        imports,
+        exports,
+        bindings,
+        isPrivate,
+        location,
+        passData,
+        diagnostics
+      )
     res.id = id
     res
   }

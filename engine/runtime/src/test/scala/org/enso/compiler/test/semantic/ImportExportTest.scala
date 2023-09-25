@@ -947,7 +947,9 @@ class ImportExportTest
       mainIr.exports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .isInstanceOf[errors.ImportExport.ExportSymbolsFromPrivateModule] shouldBe true
+        .isInstanceOf[
+          errors.ImportExport.ExportSymbolsFromPrivateModule
+        ] shouldBe true
 
     }
 
