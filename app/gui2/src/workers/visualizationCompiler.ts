@@ -164,7 +164,7 @@ export interface CompileError {
 // ================
 
 let builtinModules = new Set<string>()
-let alreadyCompiledModules = new Set<string>()
+const alreadyCompiledModules = new Set<string>()
 
 const assetMimetypes: Record<string, string> = {
   // === Image formats ===
@@ -211,6 +211,8 @@ const postMessage: <T>(message: T) => void = globalThis.postMessage
 function addStyle(code: string) {
   postMessage<AddStyleNotification>({ type: 'add-style-notification', code })
 }
+// This is defined to allow for future expansion.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function addRawImport(path: string, value: unknown) {
   postMessage<AddRawImportNotification>({ type: 'add-raw-import-notification', path, value })
 }
