@@ -437,4 +437,14 @@ spec =
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
 
+    Test.group "Meta.Type.find"
+        Test.specify "find boolean and use it" <|
+            fqn = "Standard.Base.Data.Boolean.Boolean"
+            typ = Meta.Type.find fqn
+            typ . is_a Meta.Type . should_be_true
+            typ.name . should_equal "Boolean"
+            #!!! typ.qualified_name . should_equal fqn
+            #!!! Meta.Type.find typ.qualified_name . should_equal typ
+            #!!! typ.constructors.length . should_equal 2
+
 main = Test_Suite.run_main spec
