@@ -75,6 +75,7 @@ const data = computed(() => {
   return []
 })
 
+const containerNode = ref<HTMLElement>()
 const pointsNode = ref<SVGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
@@ -91,8 +92,18 @@ const fill = computed(() =>
     .domain([0, d3.max(buckets.value, (d) => d.value) ?? 1]),
 )
 
-const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x))
-const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
+watchPostEffect(() => {
+  width.value = config.value.fullscreen
+    ? containerNode.value?.parentElement?.clientWidth ?? 0
+    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
+})
+const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+watchPostEffect(() => {
+  height.value = config.value.fullscreen
+    ? containerNode.value?.parentElement?.clientHeight ?? 0
+    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
+})
 const boxWidth = computed(() => Math.max(0, width.value - MARGIN.left - MARGIN.right))
 const boxHeight = computed(() => Math.max(0, height.value - MARGIN.top - MARGIN.bottom))
 
@@ -209,7 +220,7 @@ watchPostEffect(() => {
 
 <template>
   <VisualizationContainer :below-toolbar="true">
-    <div class="HeatmapVisualization">
+    <div ref="containerNode" class="HeatmapVisualization">
       <svg :width="width" :height="height">
         <g :transform="`translate(${MARGIN.left},${MARGIN.top})`">
           <g ref="xAxisNode" class="label label-x" :transform="`translate(0, ${boxHeight})`"></g>

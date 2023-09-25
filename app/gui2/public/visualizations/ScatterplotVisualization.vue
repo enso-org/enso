@@ -173,6 +173,7 @@ const data = computed<Data>(() => {
   return { axis, points, data, focus }
 })
 
+const containerNode = ref<HTMLElement>()
 const pointsNode = ref<SVGGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
@@ -216,8 +217,18 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x))
-const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
+watchPostEffect(() => {
+  width.value = config.value.fullscreen
+    ? containerNode.value?.parentElement?.clientWidth ?? 0
+    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
+})
+const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+watchPostEffect(() => {
+  height.value = config.value.fullscreen
+    ? containerNode.value?.parentElement?.clientHeight ?? 0
+    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
+})
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xTicks = computed(() => boxWidth.value / 40)
@@ -561,7 +572,7 @@ useEvent(document, 'scroll', endBrushing)
         <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
-    <div class="ScatterplotVisualization" @pointerdown.stop>
+    <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">
         <g :transform="`translate(${margin.left}, ${margin.top})`">
           <defs>

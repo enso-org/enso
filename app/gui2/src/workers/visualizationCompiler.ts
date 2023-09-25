@@ -395,7 +395,6 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
 onmessage = async (event: MessageEvent<RegisterBuiltinModulesRequest | CompileRequest>) => {
   switch (event.data.type) {
     case 'register-builtin-modules-request': {
-      console.log('what', event.data.modules)
       builtinModules = new Set(event.data.modules)
       break
     }

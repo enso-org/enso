@@ -143,6 +143,7 @@ const emit = defineEmits<{
 
 const config = useVisualizationConfig()
 
+const containerNode = ref<HTMLElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
 const plotNode = ref<SVGGElement>()
@@ -253,8 +254,18 @@ const margin = computed(() => ({
   bottom: MARGIN + (axis.value?.x?.label ? AXIS_LABEL_HEIGHT : 0),
   left: MARGIN + (axis.value?.y?.label ? AXIS_LABEL_HEIGHT : 0),
 }))
-const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x))
-const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
+watchPostEffect(() => {
+  width.value = config.value.fullscreen
+    ? containerNode.value?.parentElement?.clientWidth ?? 0
+    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
+})
+const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+watchPostEffect(() => {
+  height.value = config.value.fullscreen
+    ? containerNode.value?.parentElement?.clientHeight ?? 0
+    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
+})
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
@@ -593,7 +604,7 @@ useEvent(document, 'scroll', endBrushing)
         <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected" />
       </button>
     </template>
-    <div class="HistogramVisualization" @pointerdown.stop>
+    <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">
         <rect
           class="color-legend"
