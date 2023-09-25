@@ -946,6 +946,9 @@ type Table
        Arguments:
        - columns: The selection of columns to cast.
        - value_type: The `Value_Type` to cast the column to.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -994,6 +997,47 @@ type Table
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
         selected.fold self table-> column_to_cast->
             new_column = column_to_cast.cast value_type on_problems
+            table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
+
+    ## Change the value type of table columns to a more specific one, based on
+       their contents.
+
+       This is most useful for `Mixed` type columns and will allow to narrow
+       down the type if all values in the column fit a more specific type.
+
+       Arguments:
+       - columns: The selection of columns to convert.
+       - use_smallest: If `True`, the smallest type that can fit all values will
+         be used. Defaults to `False`. See the rules below.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Auto Type Selection Rules
+
+         - If a `Mixed` column can be assigned a single type, like `Char` or
+           `Integer`, that will be used.
+         - Text columns that are variable length and have no length limit set
+           will get assigned a max length of 255 if all values fit that size.
+           - Text columns are not parsed. To do that, use the `parse` method.
+         - Integer columns will be assigned the smallest size that can fit all
+           values (down to Integer 16-bit, but not Byte).
+         - However, if `use_smallest` is set to `True`, then:
+           - If all text columns have the same length, the type will become
+             fixed length.
+           - The maximum size of a variable length column will be set to be
+             exactly the length of its longest element.
+           - An integer column may be converted into `Byte` if all values are
+             small enough.
+           - `Float` columns are not changed, as it could mean a loss of
+             accuracy.
+    auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> Table
+    auto_value_types self columns=self.column_names use_smallest=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+        selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
+        selected.fold self table-> column_to_cast->
+            new_column = column_to_cast.auto_value_type use_smallest
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions

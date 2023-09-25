@@ -1762,6 +1762,37 @@ type Column
             on_problems.attach_problems_before problems <|
                 Column.from_storage self.name new_storage
 
+    ## Change the value type of the column to a more specific one, based on its
+       contents.
+
+       Arguments:
+       - use_smallest: If `True`, the smallest type that can fit all values will
+         be used. Defaults to `False`. See the rules below.
+
+       ? Auto Type Selection Rules
+
+         - If a `Mixed` column can be assigned a single type, like `Char` or
+           `Integer`, that will be used.
+         - Text columns that are variable length and have no length limit set
+           will get assigned a max length of 255 if all values fit that size.
+           - Text columns are not parsed. To do that, use the `parse` method.
+         - Integer columns will be assigned the smallest size that can fit all
+           values (down to Integer 16-bit, but not Byte).
+         - However, if `use_smallest` is set to `True`, then:
+           - If all text columns have the same length, the type will become
+             fixed length.
+           - The maximum size of a variable length column will be set to be
+             exactly the length of its longest element.
+           - An integer column may be converted into `Byte` if all values are
+             small enough.
+           - `Float` columns are not changed, as it could mean a loss of
+             accuracy.
+    auto_value_type : Boolean -> Column
+    auto_value_type self use_smallest=False =
+        # TODO use_smallest etc.
+        new_value_type = self.inferred_precise_value_type
+        self.cast new_value_type
+
     ## ALIAS transform column
 
        Applies `function` to each item in this column and returns the column
