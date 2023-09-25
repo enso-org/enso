@@ -414,17 +414,12 @@ impl RunContext {
                     "std-benchmarks/Benchmark/compile",
                 ]);
             }
+
+            let build_command = (!tasks.is_empty()).then_some(Sbt::concurrent_tasks(tasks));
+
             // We want benchmarks to run only after the other build tasks are done, as they are
             // really CPU-heavy.
-            let build_command = (!tasks.is_empty()).then_some(Sbt::concurrent_tasks(tasks));
-            let empty_benchmarks = BTreeSet::new();
-            // Run benchmarks only on Linux
-            let benchmark_tasks = if TARGET_OS == OS::Linux {
-                &empty_benchmarks
-            } else {
-                &self.config.execute_benchmarks
-            };
-            let benchmark_tasks = benchmark_tasks.iter().flat_map(|b| b.sbt_task());
+            let benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
             let command_sequence = build_command.as_deref().into_iter().chain(benchmark_tasks);
             let final_command = Sbt::sequential_tasks(command_sequence);
             if !final_command.is_empty() {
