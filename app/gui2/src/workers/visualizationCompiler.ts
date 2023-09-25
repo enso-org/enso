@@ -123,22 +123,12 @@
  */
 
 import { parse as babelParse } from '@babel/parser'
+import hash from 'hash-sum'
 import MagicString from 'magic-string'
 import { transform } from 'sucrase'
 import { compileScript, compileStyle, parse } from 'vue/compiler-sfc'
 
 let builtinModules = new Set<string>()
-const ids = new Set<string>()
-function generateId() {
-  for (;;) {
-    const id = Math.floor(Math.random() * 0xffffffff)
-      .toString(16)
-      .padStart(8, '0')
-    if (!ids.has(id)) {
-      return id
-    }
-  }
-}
 
 function addStyle(code: string) {
   postMessage({ type: 'style', code })
@@ -173,7 +163,7 @@ async function importVue(path: string) {
   const raw = await (await fetch(path)).text()
   const filename = path.match(/[^/\\]+$/)?.[0]!
   const parsed = parse(raw, { filename })
-  const id = generateId()
+  const id = hash(raw)
   for (const style of parsed.descriptor.styles) {
     addStyle(
       compileStyle({ filename, source: style.content, id, scoped: style.scoped ?? false }).code,
@@ -255,7 +245,7 @@ async function compileVisualization(path: string, addStyle: (code: string) => vo
   const filename = path.match(/[^/\\]+$/)?.[0]!
   const dir = path.replace(/[^/\\]+$/, '')
   const text = await (await fetch(path)).text()
-  const id = generateId()
+  const id = hash(text)
   const parsed = parse(text, { filename })
   for (const style of parsed.descriptor.styles) {
     addStyle(
