@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { useGraphStore } from '@/stores/graph'
 import { useWindowEvent } from '@/util/events'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { onMounted, ref, watch } from 'vue'
-import { useGraphStore } from '@/stores/graph'
 // y-codemirror.next does not provide type information. See https://github.com/yjs/y-codemirror.next/issues/27
 // @ts-ignore
 import { yCollab } from 'y-codemirror.next'
