@@ -281,7 +281,8 @@ type Date_Time_Formatter
     ## PRIVATE
     handle_java_errors self ~action =
         Panic.catch JException action caught_panic->
-            Error.throw (Time_Error.Error caught_panic.payload.getMessage caught_panic.payload)
+            message = caught_panic.payload.getMessage + " (Expected date/time format: " + self.pattern_approximation_as_text + ")"
+            Error.throw (Time_Error.Error message caught_panic.payload)
 
     ## PRIVATE
     parse_date self (text:Text) = self.handle_java_errors <|
@@ -321,6 +322,26 @@ type Date_Time_Formatter
     get_java_formatter_for_parsing : EnsoDateTimeFormatter
     get_java_formatter_for_parsing self =
         self.with_parsing_warnings self.underlying
+
+    ## PRIVATE
+       Returns a pattern that is associated with this formatter.
+
+       For formatters created using `from_simple_pattern` and
+       `from_iso_week_date_pattern` or `from_java` with a Text pattern this will
+       just be the pattern. For constants, it will be a pattern that best
+       resembles that constant. For formatters created from a Java formatter
+       instance, this will be the text representation of that formatter.
+    pattern_approximation_as_text : Text
+    pattern_approximation_as_text self =
+        case self.underlying.toString of
+            "default_enso_zoned_date_time" -> "(default) yyyy-MM-dd HH:mm[:ss[.f]][ZZZZZ]['['VV']']"
+            "iso_zoned_date_time" -> "(ISO zoned date time) yyyy-MM-dd'T'HH:mm:ss[.f]ZZZZZ'['VV']'"
+            "iso_offset_date_time" -> "(ISO offset date time) yyyy-MM-dd'T'HH:mm:ss[.f]ZZZZZ"
+            "iso_local_date_time" -> "(ISO local date time) yyyy-MM-dd'T'HH:mm:ss[.f]"
+            "iso_date" -> "(ISO date) yyyy-MM-dd"
+            "iso_time" -> "(ISO time) HH:mm[:ss[.f]]"
+            other -> other
+
 
 ## PRIVATE
 Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =

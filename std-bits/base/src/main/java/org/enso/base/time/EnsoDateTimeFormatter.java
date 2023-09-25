@@ -100,7 +100,7 @@ public class EnsoDateTimeFormatter {
     return switch (formatterKind) {
       case SIMPLE -> originalPattern;
       case ISO_WEEK_DATE -> "(ISO Week Date Format) " + originalPattern;
-      case RAW_JAVA -> "(Java Format Pattern) " + originalPattern;
+      case RAW_JAVA -> "(Java DateTimeFormatter) " + (originalPattern != null ? originalPattern : formatter.toString());
       case CONSTANT -> originalPattern;
     };
   }

@@ -267,6 +267,27 @@ spec =
              # Just week will parse to first day of the week:
              Date.parse "1978-W01" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") . should_equal (Date.new 1978 01 02)
 
+        Test.specify "should include the pattern in the parse failure message" <|
+            r1 = "1999.01.02".parse_date
+            r1.should_fail_with Time_Error
+            r1.to_display_text . should_contain "Expected date/time format: (ISO date) yyyy-MM-dd"
+
+            r2 = "FOOBAR".parse_date "yyyy.MM.dd"
+            r2.should_fail_with Time_Error
+            r2.to_display_text . should_contain "Expected date/time format: yyyy.MM.dd"
+
+            r3 = "FOOBAR".parse_date_time
+            r3.should_fail_with Time_Error
+            r3.to_display_text . should_contain "Expected date/time format: (default) yyyy-MM-dd HH:mm[:ss[.f]][ZZZZZ]['['VV']']"
+
+            r4 = "FOOBAR".parse_time_of_day
+            r4.should_fail_with Time_Error
+            r4.to_display_text . should_contain "Expected date/time format: (ISO time) HH:mm[:ss[.f]]"
+
+            r5 = Date.parse "FOOBAR" (Date_Time_Formatter.from_java DateTimeFormatter.ISO_ORDINAL_DATE)
+            r5.should_fail_with Time_Error
+            r5.to_display_text . should_contain "Expected date/time format: (Java DateTimeFormatter) ParseCaseSensitive(false)Value(Year,4,10,EXCEEDS_PAD)'-'Value(DayOfYear,3)[Offset(+HH:MM:ss,'Z')]"
+
         Test.specify "should allow to use 12h hours without am/pm and default to am, but issue a warning (only in parsing)" <|
             f1 = Date_Time_Formatter.from "hh:mm"
             # No warning yet.
