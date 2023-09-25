@@ -57,13 +57,13 @@ pub fn run_script(repo_root: impl AsRef<Path>, script: Script) -> BoxFuture<'sta
 
 /// The list of NPM workspaces that are part of the root repository.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::AsRefStr)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Workspace {
-    #[strum(serialize = "app/ide-desktop")]
-    IdeDesktop,
-    #[strum(serialize = "app/ide-desktop/lib/src/authentication")]
-    Authentication,
-    #[strum(serialize = "app/gui2")]
-    Gui2,
-    #[strum(serialize = "lib/rust/ensogl/pack/js")]
-    EnsoGlPack,
+    EnsoGui2,
+}
+
+impl AsRef<OsStr> for Workspace {
+    fn as_ref(&self) -> &OsStr {
+        AsRef::<str>::as_ref(self).as_ref()
+    }
 }

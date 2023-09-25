@@ -4,7 +4,6 @@
 
 use crate::prelude::*;
 
-use crate::paths::generated::RepoRootAppGui2;
 use crate::paths::generated::RepoRootAppGui2Dist;
 use crate::paths::generated::RepoRootDistGui2Assets;
 use crate::project::Context;
@@ -13,11 +12,8 @@ use crate::project::IsTarget;
 use crate::source::WithDestination;
 
 use ide_ci::ok_ready_boxed;
-use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
-use ide_ci::programs::Npx;
-use std::process::Stdio;
 
 
 
@@ -43,85 +39,10 @@ pub enum Scripts {
     BuildRustFfi,
 }
 
-
-
-// ================
-// === Location ===
-// ================
-
-/// Convenience trait for types that allow us locating the new GUI sources.
-///
-/// Provides helper methods for calling gui2-related commands.
-#[async_trait]
-pub trait Locate: Clone + Send + Sync + 'static {
-    fn repo_root(&self) -> &Path;
-
-    fn package_dir(&self) -> &Path;
-
-    /// Prepare command that will run `npm` in the new GUI's directory.
-    fn npm(&self) -> Result<NpmCommand> {
-        Ok(self.adjust_cmd(Npm.cmd()?))
-    }
-
-    /// Set common data for commands run in the new GUI's directory.
-    fn adjust_cmd<Cmd: IsCommandWrapper>(&self, cmd: Cmd) -> Cmd {
-        cmd.with_current_dir(self.package_dir()).with_stdin(Stdio::null())
-    }
-
-    /// Run an NPM command in the new GUI's directory.
-    fn run_cmd(&self, adjust_cmd: impl FnOnce(&mut NpmCommand)) -> BoxFuture<Result> {
-        self.npm()
-            .and_then_async(|mut cmd| {
-                adjust_cmd(&mut cmd);
-                cmd.run_ok()
-            })
-            .boxed()
-    }
-
-    /// Run `npm install` in the new GUI's directory.
-    fn install(&self) -> BoxFuture<Result> {
-        self.run_cmd(|c| {
-            c.install();
-        })
-    }
-
-    /// Run `npm run <script>` in the new GUI's directory.
-    fn run_script(&self, script: Scripts) -> BoxFuture<Result> {
-        self.run_script_with(script, EMPTY_ARGS)
-    }
-
-    /// Run `npm run <script> <args>` in the new GUI's directory.
-    fn run_script_with(
-        &self,
-        script: Scripts,
-        args: impl IntoIterator<Item: AsRef<OsStr>>,
-    ) -> BoxFuture<Result> {
-        self.run_cmd(|c| {
-            c.run(script.as_ref()).args(args);
-        })
-    }
-}
-
-
-impl Locate for RepoRootAppGui2 {
-    fn repo_root(&self) -> &Path {
-        // Go up twice, because `app/gui2` is two levels below the root.
-        self.parent().unwrap().parent().unwrap()
-    }
-
-    fn package_dir(&self) -> &Path {
-        self.as_ref()
-    }
-}
-
-impl Locate for crate::paths::generated::RepoRoot {
-    fn repo_root(&self) -> &Path {
-        self.as_ref()
-    }
-
-    fn package_dir(&self) -> &Path {
-        self.app.gui_2.as_ref()
-    }
+pub fn script(repo_root: impl AsRef<Path>, script: Scripts) -> Result<NpmCommand> {
+    let mut ret = Npm.cmd()?;
+    ret.current_dir(repo_root).workspace(crate::web::Workspace::EnsoGui2).run(script.as_ref());
+    Ok(ret)
 }
 
 
@@ -131,32 +52,21 @@ impl Locate for crate::paths::generated::RepoRoot {
 // ================
 
 /// Run steps that should be done along with the "lint"
-pub fn lint(path: &impl Locate) -> BoxFuture<'static, Result> {
-    let path = path.clone();
+pub fn lint(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    let repo_root = repo_root.as_ref().to_owned();
     async move {
-        crate::web::install(path.repo_root()).await?;
-        path.run_script(Scripts::TypeCheck).await?;
-        path.run_script(Scripts::Lint).await
+        crate::web::install(&repo_root).await?;
+        script(&repo_root, Scripts::TypeCheck)?.run_ok().await?;
+        script(&repo_root, Scripts::Lint)?.run_ok().await
     }
     .boxed()
 }
 
-pub fn unit_tests(path: &impl Locate) -> BoxFuture<'static, Result> {
-    let path = path.clone();
+pub fn unit_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
+    let repo_root = repo_root.as_ref().to_owned();
     async move {
-        crate::web::install(path.repo_root()).await?;
-        path.run_script_with(Scripts::TestUnit, ["run"]).await
-    }
-    .boxed()
-}
-
-pub fn end_to_end_tests(path: &impl Locate) -> BoxFuture<'static, Result> {
-    let path = path.clone();
-    async move {
-        crate::web::install(path.repo_root()).await?;
-        let install_playwright = ["playwright", "install"];
-        path.adjust_cmd(Npx.cmd()?).args(install_playwright).run_ok().await?;
-        path.run_script_with(Scripts::TestE2e, ["run"]).await
+        crate::web::install(&repo_root).await?;
+        script(&repo_root, Scripts::TestUnit)?.arg("run").run_ok().await
     }
     .boxed()
 }
@@ -214,12 +124,11 @@ impl IsTarget for Gui2 {
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let WithDestination { inner: _, destination } = job;
         async move {
-            let gui2 = &context.repo_root.app.gui_2;
-            gui2.install().await?;
-            gui2.run_script(Scripts::BuildRustFfi).await?;
-            gui2.run_script(Scripts::Build).await?;
+            let repo_root = &context.repo_root;
+            crate::web::install(repo_root).await?;
+            script(repo_root, Scripts::Build)?.run_ok().await?;
             ide_ci::fs::mirror_directory(
-                &gui2.dist,
+                &repo_root.app.gui_2.dist,
                 &destination.join(RepoRootDistGui2Assets::segment_name()),
             )
             .await?;

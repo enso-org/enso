@@ -92,7 +92,6 @@ use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
 use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
-use ide_ci::programs::Npm;
 use std::time::Duration;
 use tempfile::tempdir;
 use tokio::process::Child;
@@ -343,17 +342,6 @@ impl Processor {
         }
     }
 
-    // pub fn handle_engine(&self, engine: arg::engine::Target) -> BoxFuture<'static, Result> {
-    //     self.get(engine.source).void_ok().boxed()
-    // }
-    //
-    // pub fn handle_project_manager(
-    //     &self,
-    //     project_manager: arg::project_manager::Target,
-    // ) -> BoxFuture<'static, Result> {
-    //     self.get(project_manager.source).void_ok().boxed()
-    // }
-
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
@@ -367,7 +355,7 @@ impl Processor {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
             arg::gui2::Command::Test => gui2::unit_tests(&self.repo_root),
-            arg::gui2::Command::TestE2e => gui2::end_to_end_tests(&self.repo_root),
+            // arg::gui2::Command::TestE2e => gui2::end_to_end_tests(&self.repo_root),
         }
     }
 
@@ -764,41 +752,8 @@ impl Resolvable for Backend {
                 Ok(backend::BuildInput { external_runtime, versions })
             })
             .boxed()
-        // ok_ready_boxed(backend::BuildInput { versions: ctx.triple.versions.clone() })
     }
 }
-
-// impl Resolvable for ProjectManager {
-//     fn prepare_target(_context: &Processor) -> Result<Self> {
-//         Ok(ProjectManager)
-//     }
-//
-//     fn resolve(
-//         ctx: &Processor,
-//         _from: <Self as IsTargetSource>::BuildInput,
-//     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-//         ok_ready_boxed(project_manager::BuildInput {
-//             repo_root: ctx.repo_root().path,
-//             versions:  ctx.triple.versions.clone(),
-//         })
-//     }
-// }
-//
-// impl Resolvable for Engine {
-//     fn prepare_target(_context: &Processor) -> Result<Self> {
-//         Ok(Engine)
-//     }
-//
-//     fn resolve(
-//         ctx: &Processor,
-//         _from: <Self as IsTargetSource>::BuildInput,
-//     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-//         ok_ready_boxed(engine::BuildInput {
-//             repo_root: ctx.repo_root().path,
-//             versions:  ctx.triple.versions.clone(),
-//         })
-//     }
-// }
 
 pub trait WatchResolvable: Resolvable + IsWatchableSource + IsWatchable {
     fn resolve_watch(
