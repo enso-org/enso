@@ -1,14 +1,14 @@
 <script setup lang="ts">
+import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { default as SvgIcon } from '@/components/SvgIcon.vue'
+import { default as ToggleIcon } from '@/components/ToggleIcon.vue'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useApproach } from '@/util/animation'
 import { useResizeObserver } from '@/util/events'
-import { type Component, makeComponentList } from '@/components/ComponentBrowser/component'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import SvgIcon from '@/components/SvgIcon.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
-import { useApproach } from '@/util/animation'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { Filtering } from '@/components/ComponentBrowser/filtering'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32

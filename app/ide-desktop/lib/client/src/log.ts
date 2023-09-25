@@ -9,10 +9,10 @@
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 
+import * as linkedDist from 'ensogl-runner/src/runner'
+
 import * as contentConfig from 'enso-content-config'
 import * as paths from 'paths'
-
-import * as linkedDist from '../../../../../target/ensogl-pack/linked-dist'
 
 // ================
 // === Log File ===

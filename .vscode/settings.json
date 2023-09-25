@@ -6,6 +6,16 @@
   "auto-snippets.snippets": [
     { "language": "vue", "snippet": "Vue single-file component" }
   ],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "eslint.experimental.useFlatConfig": true,
+  "eslint.useESLintClass": true,
+  "[javascript][typescript][typescriptreact][vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "eslint.workingDirectories": [
+    "./app/gui2",
+    "./app/gui2/ide-desktop"
+  ],
   "files.watcherExclude": {
     "**/target": true
   }

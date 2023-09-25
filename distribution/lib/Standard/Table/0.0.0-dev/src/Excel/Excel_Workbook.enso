@@ -2,12 +2,14 @@ from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
+import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
+import project.Excel.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
 
 polyglot java import org.apache.poi.ss.usermodel.Workbook
@@ -27,13 +29,26 @@ type Excel_Workbook
         file_obj = File.new file . normalize
         File_Error.handle_java_exceptions file_obj <| Excel_Reader.handle_bad_format file_obj <|
             file_obj.with_input_stream [File_Access.Read] stream->
-                stream.with_java_stream java_stream->
-                    workbook = ExcelReader.readWorkbook java_stream xls_format
-                    Excel_Workbook.Value workbook file_obj xls_format headers
+                Excel_Workbook.from_stream stream xls_format headers file_obj
+
+    ## PRIVATE
+       ADVANCED
+       Load an Input_Stream as a connection to an Excel workbook.
+
+       Arguments:
+       - stream: The stream to load.
+       - xls_format: Whether to use the old XLS format (default is XLSX).
+       - headers: Whether to use the first row as headers (default is to infer).
+       - file: Optional file reference.
+    from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
+    from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
+        stream.with_java_stream java_stream->
+            workbook = ExcelReader.readWorkbook java_stream xls_format
+            Excel_Workbook.Value workbook file xls_format headers
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value workbook:Workbook file:File xls_format:Boolean headers:(Boolean|Infer)
+    Value workbook:Workbook (file:(File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
@@ -41,7 +56,7 @@ type Excel_Workbook
 
     ## Returns the name of the current database (or catalog).
     database : Text
-    database self = self.file.path
+    database self = if self.file.is_nothing then "" else self.file.path
 
     ## Returns a new Connection with the specified database set as default.
 
@@ -151,3 +166,30 @@ type Excel_Workbook
         Excel_Reader.prepare_reader_table Report_Warning <| case query of
             _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit
             _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit
+
+    ## GROUP Standard.Base.Input
+       Read an Excel_Section from the Workbook
+
+       Arguments:
+       - section: the section to read.
+    read_section : Excel_Section -> (Excel_Workbook | Table | Vector)
+    read_section self section =
+        java_headers = Excel_Reader.make_java_headers self.headers
+        case section of
+            Excel_Section.Workbook -> self
+            Excel_Section.Sheet_Names -> self.sheet_names
+            Excel_Section.Range_Names -> self.named_ranges
+            Excel_Section.Worksheet sheet skip_rows row_limit ->
+                sheet_name = case sheet of
+                    _ : Text -> sheet
+                    _ : Integer ->
+                        names = self.sheet_names
+                        if (sheet < 1 || sheet >= names.length) then Error.throw (Illegal_Argument.Error "Worksheet index out of range.") else
+                            names.at (sheet - 1)
+                    _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
+                Excel_Reader.prepare_reader_table Report_Warning <|
+                    ExcelReader.readRangeByName self.workbook sheet_name java_headers skip_rows row_limit
+            Excel_Section.Cell_Range address skip_rows row_limit ->
+                Excel_Reader.prepare_reader_table Report_Warning <| case address of
+                    _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit
+                    _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit

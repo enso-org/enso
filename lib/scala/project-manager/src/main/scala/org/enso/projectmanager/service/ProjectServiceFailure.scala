@@ -59,6 +59,10 @@ object ProjectServiceFailure {
     */
   case object CannotRemoveOpenProject extends ProjectServiceFailure
 
+  /** Signals that removal of project failed because project is still shutting down.
+    */
+  case object CannotRemoveClosingProject extends ProjectServiceFailure
+
   /** Signals operation timeout.
     */
   case object ProjectOperationTimeout extends ProjectServiceFailure

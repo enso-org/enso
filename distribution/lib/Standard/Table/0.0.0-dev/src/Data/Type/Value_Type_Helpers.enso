@@ -98,7 +98,7 @@ find_common_type types strict =
    method returns `Nothing` if the value is `Nothing` - so the caller can
    try to treat this value as fitting any type, or accordingly to specific
    semantics of each method.
-find_argument_type : Any -> Value_Type | Nothing
+find_argument_type : Any -> Boolean -> Value_Type | Nothing
 find_argument_type value infer_precise_type=True = if Nothing == value then Nothing else
     case is_column value of
         False -> Enso_Types.most_specific_value_type value use_smallest=True

@@ -20,7 +20,7 @@ class MessageHandler(protocolFactory: ProtocolFactory, controller: ActorRef)
     * @return the actor behavior.
     */
   override def receive: Receive = {
-    case MessageHandler.Connected(webConnection) =>
+    case MessageHandler.Connected(webConnection, _) =>
       unstashAll()
       context.become(established(webConnection, Map()))
     case _ => stash()
@@ -38,8 +38,8 @@ class MessageHandler(protocolFactory: ProtocolFactory, controller: ActorRef)
   ): Receive = {
     case MessageHandler.WebMessage(msg) =>
       handleWebMessage(msg, webConnection, awaitingResponses)
-    case MessageHandler.Disconnected =>
-      controller ! MessageHandler.Disconnected
+    case MessageHandler.Disconnected(port) =>
+      controller ! MessageHandler.Disconnected(port)
       context.stop(self)
     case request: Request[Method, Any] =>
       issueRequest(request, webConnection, awaitingResponses)
@@ -192,10 +192,10 @@ object MessageHandler {
   /** A control message used for [[MessageHandler]] initializations
     * @param webConnection the actor representing the web.
     */
-  case class Connected(webConnection: ActorRef)
+  case class Connected(webConnection: ActorRef, port: Int)
 
   /** A control message used to notify the controller about
     * the connection being closed.
     */
-  case object Disconnected
+  case class Disconnected(port: Int)
 }

@@ -71,36 +71,6 @@ export const Subject = newtype.newtypeConstructor<Subject>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
-// ========================
-// === PermissionAction ===
-// ========================
-
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    admin = 'Admin',
-    edit = 'Edit',
-    read = 'Read',
-    readAndDocs = 'Read_docs',
-    readAndExec = 'Read_exec',
-    view = 'View',
-    viewAndDocs = 'View_docs',
-    viewAndExec = 'View_exec',
-}
-
-/** Whether each {@link PermissionAction} can execute a project. */
-export const PERMISSION_ACTION_CAN_EXECUTE: Record<PermissionAction, boolean> = {
-    [PermissionAction.own]: true,
-    [PermissionAction.admin]: true,
-    [PermissionAction.edit]: true,
-    [PermissionAction.read]: false,
-    [PermissionAction.readAndDocs]: false,
-    [PermissionAction.readAndExec]: true,
-    [PermissionAction.view]: false,
-    [PermissionAction.viewAndDocs]: false,
-    [PermissionAction.viewAndExec]: true,
-}
-
 // =============
 // === Types ===
 // =============
@@ -356,7 +326,7 @@ export interface SimpleUser {
 /** User permission for a specific user. */
 export interface UserPermission {
     user: User
-    permission: PermissionAction
+    permission: permissions.PermissionAction
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -571,7 +541,7 @@ export interface InviteUserRequestBody {
 export interface CreatePermissionRequestBody {
     userSubjects: Subject[]
     resourceId: AssetId
-    action: PermissionAction | null
+    action: permissions.PermissionAction | null
 }
 
 /** HTTP request body for the "create directory" endpoint. */

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
 
 from Standard.Table import Table, Data_Formatter, Column
 from Standard.Table.Data.Type.Value_Type import Value_Type, Auto
@@ -91,13 +92,13 @@ spec =
             t8.at "dates" . to_vector . should_equal [Date.new 2022 5 7, Date.new 2001 1 1, Date.new 2010 12 31]
 
         Test.specify "should parse date and time in various formats" <|
-            opts = Data_Formatter.Value date_formats=["d.M.y", "d MMM y[ G]", "E, d MMM y"] datetime_formats=["yyyy-MM-dd'T'HH:mm:ss", "dd/MM/yyyy HH:mm"] time_formats=["H:mm:ss.n", "h:mma"]
+            opts = Data_Formatter.Value.with_datetime_formats date_formats=["d.M.y", (Date_Time_Formatter.from_java "d MMM y[ G]"), "ddd, d MMM y"] datetime_formats=["yyyy-MM-dd HH:mm:ss", "dd/MM/yyyy HH:mm"] time_formats=["H:mm:ss.f", "h:mma"]
 
             t1 = Table.new [["dates", ["1.2.476", "10 Jan 1900 AD", "Tue, 3 Jun 2008"]]]
             t2 = t1.parse format=opts type=Value_Type.Date
             t2.at "dates" . to_vector . should_equal [Date.new 476 2 1, Date.new 1900 1 10, Date.new 2008 6 3]
 
-            t3 = Table.new [["datetimes", ["2011-12-03T10:15:30", "31/12/2012 22:33"]]]
+            t3 = Table.new [["datetimes", ["2011-12-03 10:15:30", "31/12/2012 22:33"]]]
             t4 = t3.parse format=opts type=Value_Type.Date_Time
             t4.at "datetimes" . to_vector . should_equal [Date_Time.new 2011 12 3 10 15 30, Date_Time.new 2012 12 31 22 33]
 
@@ -566,9 +567,9 @@ spec =
 
         Test.specify "should handle invalid format strings gracefully" <|
             c1 = Column.from_vector "date" ["5/7/2022", "1/1/2000", "12/31/2010"]
-            c1.parse type=Value_Type.Date "M/d/fqsrf" . should_fail_with Illegal_Argument
-            c1.parse type=Value_Type.Time "HH:mm:ss.fff" . should_fail_with Illegal_Argument
-            c1.parse type=Value_Type.Date_Time "M/d/fqsrf HH:mm:ss.fff" . should_fail_with Illegal_Argument
+            c1.parse type=Value_Type.Date "M/d/fqsrf" . should_fail_with Date_Time_Format_Parse_Error
+            c1.parse type=Value_Type.Time "ęęę" . should_fail_with Date_Time_Format_Parse_Error
+            c1.parse type=Value_Type.Date_Time "M/d/fqsrf HH:mm:ss.fff" . should_fail_with Date_Time_Format_Parse_Error
 
         Test.specify "should correctly work in Auto mode" <|
             c1 = Column.from_vector "A" ["1", "2", "3"]

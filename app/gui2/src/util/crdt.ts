@@ -40,8 +40,22 @@ interface SubdocsEvent {
   removed: Set<Y.Doc>
 }
 
-export function attachProvider(url: string, room: string, doc: Y.Doc, awareness: Awareness) {
-  const provider = new WebsocketProvider(url, room, doc, { awareness })
+/**
+ * URL query parameters used in gateway server websocket connection.
+ */
+export type ProviderParams = {
+  /** URL for the project's language server RPC connection. */
+  ls: string
+}
+
+export function attachProvider(
+  url: string,
+  room: string,
+  params: ProviderParams,
+  doc: Y.Doc,
+  awareness: Awareness,
+) {
+  const provider = new WebsocketProvider(url, room, doc, { awareness, params })
   const onSync = () => doc.emit('sync', [true])
   const onDrop = () => doc.emit('sync', [false])
 
@@ -49,8 +63,7 @@ export function attachProvider(url: string, room: string, doc: Y.Doc, awareness:
 
   function onSubdocs(e: SubdocsEvent) {
     e.loaded.forEach((subdoc) => {
-      const subdocRoom = `${room}--${subdoc.guid}`
-      attachedSubdocs.set(subdoc, attachProvider(url, subdocRoom, subdoc, awareness))
+      attachedSubdocs.set(subdoc, attachProvider(url, subdoc.guid, params, subdoc, awareness))
     })
     e.removed.forEach((subdoc) => {
       const subdocProvider = attachedSubdocs.get(subdoc)

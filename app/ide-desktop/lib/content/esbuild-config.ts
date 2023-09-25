@@ -16,13 +16,12 @@ import * as url from 'node:url'
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
-import esbuildPluginAlias from 'esbuild-plugin-alias'
 import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import * as utils from '../../utils'
-import BUILD_INFO from '../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =================
 // === Constants ===
@@ -54,8 +53,6 @@ export interface Arguments extends PassthroughArguments {
     assetsPath: string
     /** Path where bundled files are output. */
     outputPath: string
-    /** The main JS bundle to load WASM and JS wasm-pack bundles. */
-    ensoglAppPath: string
 }
 
 /** Get arguments from the environment. */
@@ -63,8 +60,7 @@ export function argumentsFromEnv(passthroughArguments: PassthroughArguments): Ar
     const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
     const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
     const outputPath = pathModule.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
-    const ensoglAppPath = utils.requireEnv('ENSO_BUILD_GUI_ENSOGL_APP')
-    return { ...passthroughArguments, wasmArtifacts, assetsPath, outputPath, ensoglAppPath }
+    return { ...passthroughArguments, wasmArtifacts, assetsPath, outputPath }
 }
 
 // ===================
@@ -89,7 +85,6 @@ function git(command: string): string {
 export function bundlerOptions(args: Arguments) {
     const {
         outputPath,
-        ensoglAppPath,
         wasmArtifacts,
         assetsPath,
         devMode,
@@ -156,7 +151,6 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
-            esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
             esbuildPluginTime(),
         ],
         define: {

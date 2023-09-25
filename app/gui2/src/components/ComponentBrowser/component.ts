@@ -1,13 +1,13 @@
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
   type SuggestionEntry,
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { Filtering, type MatchResult } from './filtering'
-import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/opt'
+import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
+import { Filtering, type MatchResult } from './filtering'
 
 export interface Component {
   suggestionId: SuggestionId

@@ -61,7 +61,7 @@ public final class EnsoFile implements EnsoObject {
     return this.truffleFile.newOutputStream(openOptions);
   }
 
-  @Builtin.Method
+  @Builtin.Method(name = "input_stream_builtin")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
   @Builtin.ReturningGuestObject

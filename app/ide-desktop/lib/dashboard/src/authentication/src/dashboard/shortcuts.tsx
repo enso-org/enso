@@ -293,8 +293,9 @@ export class ShortcutRegistry {
         shortcut: MouseShortcut,
         event: MouseEvent | React.MouseEvent
     ) {
+        const button: number = shortcut.button
         return (
-            shortcut.button === event.button &&
+            button === event.button &&
             event.detail >= shortcut.clicks &&
             modifiersMatchEvent(shortcut, event)
         )
