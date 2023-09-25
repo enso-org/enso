@@ -7,12 +7,14 @@ import TopBar from '@/components/TopBar.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
-import { modKey, useWindowEvent } from '@/util/events'
+import { modKey, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { shortcutRegistry } from '../util/shortcuts'
+import CustomCursor from './CustomCursor.vue'
+import SelectionBrush from './SelectionBrush.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -35,15 +37,6 @@ function updateNodeRect(id: ExprId, rect: Rect) {
 
 function updateExprRect(id: ExprId, rect: Rect) {
   exprRects.set(id, rect)
-}
-
-const circlePos = ref(Vec2.Zero())
-
-function updateMousePos() {
-  const pos = navigator.sceneMousePos
-  if (pos != null) {
-    circlePos.value = pos
-  }
 }
 
 function keyboardBusy() {
@@ -90,6 +83,16 @@ function moveNode(id: ExprId, delta: Vec2) {
   graphStore.setNodePosition(id, newPosition)
 }
 
+const cursorPos = ref({ x: 0, y: 0 })
+const selectionStart = ref<Vec2>()
+const selectionSize = ref<Vec2>()
+
+const selection = usePointer((pos) => {
+  cursorPos.value = pos.absolute
+  selectionStart.value = pos.initial
+  selectionSize.value = pos.relative
+})
+
 const unregisterKeyboardHandlers = ref<() => void>()
 
 onMounted(() => {
@@ -114,9 +117,12 @@ onUnmounted(() => {
   <div
     ref="viewportNode"
     class="viewport"
+    :class="{ selecting: selection.dragging }"
     v-on="navigator.events"
-    @mousemove="updateMousePos"
-    @pointerdown="$event.button === 0 && selectedNodes.clear()"
+    @pointerdown="
+      selection.events.pointerdown($event), $event.button === 0 && selectedNodes.clear()
+    "
+    @mousemove="(cursorPos.x = $event.clientX), (cursorPos.y = $event.clientY)"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdge
@@ -143,6 +149,12 @@ onUnmounted(() => {
         @movePosition="moveNode(id, $event)"
       />
     </div>
+    <SelectionBrush
+      v-if="selection.dragging && selectionStart && selectionSize"
+      :start="selectionStart"
+      :size="selectionSize"
+    />
+    <CustomCursor v-else v-bind="cursorPos" />
     <ComponentBrowser
       v-if="componentBrowserVisible"
       :navigator="navigator"
@@ -167,6 +179,7 @@ onUnmounted(() => {
   position: relative;
   contain: layout;
   overflow: clip;
+  cursor: none;
 }
 
 svg {
