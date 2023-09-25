@@ -1,7 +1,6 @@
 import * as ts from "typescript"
 import {SyntaxKind} from "typescript"
 import * as fs from "fs"
-//import * as decoding from 'lib0/decoding'
 
 type Schema = {
   types: [string: Schema.Type]

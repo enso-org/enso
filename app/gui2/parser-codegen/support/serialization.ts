@@ -15,12 +15,10 @@ export const builtin = {
 } as const
 
 export class Cursor {
-  private readonly blob: Uint8Array
-  private readonly address: number
+  private readonly blob: DataView
 
-  constructor(blob: Uint8Array, address: number) {
-    this.blob = blob
-    this.address = address
+  constructor(buffer: ArrayBuffer, address: number) {
+    this.blob = new DataView(buffer, address)
   }
 
   * readSequence<T>(
@@ -68,28 +66,19 @@ export class Cursor {
   }
 
   readPointer(): Cursor {
-    return new Cursor(this.blob, this.readU32())
+    return new Cursor(this.blob.buffer, this.readU32())
   }
 
   readU8(): number {
-    return this.blob.at(this.address)!
+    return this.blob.getUint8(0)!
   }
 
   readU32(): number {
-    return this.readU8()
-      | (this.seek(1).readU8() << 8)
-      | (this.seek(2).readU8() << 16)
-      | (this.seek(3).readU8() << 24)
+    return this.blob.getUint32(0, true)!
   }
 
   readI32(): number {
-    const raw = this.readU32()
-    const value = raw & 0x7fff_ffff
-    if (value === raw) {
-      return value
-    } else {
-      return -value
-    }
+    return this.blob.getInt32(0, true)!
   }
 
   readU64(): number {
@@ -109,20 +98,19 @@ export class Cursor {
     case 1:
       return true
     default:
-      throw new Error(`Invalid boolean: 0x${value.toString(16)} @ 0x${this.address.toString(16)}.`)
+      throw new Error(`Invalid boolean: 0x${value.toString(16)} @ 0x${this.blob.byteOffset.toString(16)}.`)
     }
   }
 
   readString(): string {
     const data = this.readPointer()
     const len = data.readU32()
-    const stringData = data.seek(4)
-    const bytes = stringData.blob.slice(stringData.address, stringData.address + len)
+    const bytes = data.blob.buffer.slice(data.blob.byteOffset + 4, data.blob.byteOffset + 4 + len)
     return new TextDecoder().decode(bytes)
   }
 
   seek(offset: number): Cursor {
-    return new Cursor(this.blob, this.address + offset)
+    return new Cursor(this.blob.buffer, this.blob.byteOffset + offset)
   }
 }
 
