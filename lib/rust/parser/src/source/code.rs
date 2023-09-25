@@ -12,9 +12,8 @@ use crate::prelude::*;
 #[derive(Clone, Default, Eq, PartialEq, Serialize, Reflect, Deserialize, Deref)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
-    #[serde(serialize_with = "crate::serialization::serialize_cow")]
-    #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
-    #[reflect(as = "crate::serialization::Code", flatten, hide)]
+    #[reflect(skip)]
+    #[serde(skip)]
     #[deref]
     pub repr:  Cow<'s, str>,
     #[reflect(hide)]
@@ -113,6 +112,8 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
 /// The length of a [`Code`] object.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct Length {
+    #[reflect(skip)]
+    #[serde(skip)]
     utf8:  usize,
     utf16: usize,
 }

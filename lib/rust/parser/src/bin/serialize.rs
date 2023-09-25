@@ -19,6 +19,6 @@ pub fn main() {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
     let ast = enso_parser::Parser::new().run(&input);
-    let blob = enso_parser::format::serialize(&ast, &input).unwrap();
+    let blob = enso_parser::format::serialize(&ast).unwrap();
     std::io::stdout().lock().write_all(&blob).unwrap();
 }

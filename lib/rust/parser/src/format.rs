@@ -33,12 +33,13 @@ use serde::ser::SerializeSeq;
 const RECURSION_LIMIT: usize = 1024;
 
 
+
 // =================
 // === Serialize ===
 // =================
 
-pub fn serialize<'s>(value: &crate::syntax::Tree<'s>, code: &'s str) -> Result<Vec<u8>> {
-    let mut serializer = Serializer::new(code.as_ptr());
+pub fn serialize<T: Serialize>(value: T) -> Result<Vec<u8>> {
+    let mut serializer = Serializer::new();
     value.serialize(&mut serializer)?;
     serializer.heap.append(&mut serializer.stack);
     Ok(serializer.heap)
@@ -59,20 +60,11 @@ pub struct Serializer {
     recursion_depth: usize,
     object_depth: usize,
     parent_structs: Vec<ParentStruct>,
-    // TODO: Subtract this from Cow `begin` fields.
-    base_address: usize,
 }
 
 impl Serializer {
-    fn new(base: *const u8) -> Self {
-        Self {
-            heap: Default::default(),
-            stack: Default::default(),
-            recursion_depth: Default::default(),
-            object_depth: Default::default(),
-            parent_structs: Default::default(),
-            base_address: base as usize,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     fn object_serializer(&mut self) -> Result<ObjectSerializer> {
@@ -507,6 +499,6 @@ mod test {
         }
         // Note that if recursion is not adequately limited the expected failure mode is aborting
         // due to stack overflow. We are just checking `is_err` here for good measure.
-        assert!(super::serialize(&Cyclic::new(), "").is_err());
+        assert!(super::serialize(&Cyclic::new()).is_err());
     }
 }
