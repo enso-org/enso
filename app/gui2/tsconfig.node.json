@@ -13,6 +13,6 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["node"]
+    "types": ["node", "vitest/importMeta"]
   }
 }

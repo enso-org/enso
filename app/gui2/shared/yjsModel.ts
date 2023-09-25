@@ -92,7 +92,7 @@ export class DistributedModule {
   insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
     const range = [offset, offset + content.length]
     const newId = random.uuidv4() as ExprId
-    this.doc.transact(() => {
+    this.transact(() => {
       this.contents.insert(offset, content + '\n')
       const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0]!)
       const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1]!)
@@ -113,7 +113,7 @@ export class DistributedModule {
     const end = range == null ? exprEnd : exprStart + range[1]
     if (start > end) throw new Error('Invalid range')
     if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
-    this.doc.transact(() => {
+    this.transact(() => {
       if (content.length > 0) {
         this.contents.insert(start, content)
       }
@@ -121,6 +121,10 @@ export class DistributedModule {
         this.contents.delete(start + content.length, end - start)
       }
     })
+  }
+
+  transact<T>(fn: () => T): T {
+    return this.doc.transact(fn)
   }
 
   updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
@@ -276,7 +280,7 @@ function encodeRange(range: RelativeRange): Uint8Array {
   return encoding.toUint8Array(encoder)
 }
 
-function decodeRange(buffer: Uint8Array): RelativeRange {
+export function decodeRange(buffer: Uint8Array): RelativeRange {
   const decoder = decoding.createDecoder(buffer)
   const startLen = decoding.readUint8(decoder)
   const start = decoding.readUint8Array(decoder, startLen)

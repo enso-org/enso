@@ -40,8 +40,8 @@ export const useProjectStore = defineStore('project', () => {
   const awareness = new Awareness(doc)
 
   const config = useGuiConfig()
-  const projectId = config.value.startup?.project
-  if (projectId == null) throw new Error('Missing project ID')
+  const projectName = config.value.startup?.project
+  if (projectName == null) throw new Error('Missing project name.')
 
   const lsUrls = resolveLsUrl(config.value)
 
@@ -103,6 +103,7 @@ export const useProjectStore = defineStore('project', () => {
     setObservedFileName(name: string) {
       observedFileName.value = name
     },
+    name: projectName,
     module,
     undoManager,
     awareness,

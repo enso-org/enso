@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useGraphStore } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import { useWindowEvent } from '@/util/events'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
@@ -8,9 +8,8 @@ import { onMounted, ref, watch } from 'vue'
 // y-codemirror.next does not provide type information. See https://github.com/yjs/y-codemirror.next/issues/27
 // @ts-ignore
 import { yCollab } from 'y-codemirror.next'
-import * as Y from 'yjs'
 
-let graphStore = useGraphStore()
+const projectStore = useProjectStore()
 
 // == Keyboard shortcut to toggle the CodeEditor ==
 
@@ -35,7 +34,7 @@ const codeMirrorEl = ref(null)
 const editorView = ref<EditorView>()
 onMounted(() => {
   watch(
-    () => graphStore.proj.module,
+    () => projectStore.module,
     (module) => {
       // Note that this only works while we do not switch documents at runtime and have a single module.
       const yText = module?.contents
@@ -43,8 +42,8 @@ onMounted(() => {
         console.error('No module content available')
         return
       }
-      const undoManager = graphStore.proj.undoManager
-      const awareness = graphStore.proj.awareness
+      const undoManager = projectStore.undoManager
+      const awareness = projectStore.awareness
       const state = EditorState.create({
         doc: yText.toString(),
         extensions: [basicSetup, yCollab(yText, awareness, { undoManager })],

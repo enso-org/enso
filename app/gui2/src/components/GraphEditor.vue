@@ -16,7 +16,6 @@ import { reactive, ref } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
-const title = ref('Test Project')
 const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
@@ -78,8 +77,12 @@ useWindowEvent('keydown', (e) => {
   }
 })
 
-function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
-  graphStore.replaceNodeSubexpression(id, range, content)
+function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
+  graphStore.batchUpdate(() => {
+    for (const [range, content] of updates) {
+      graphStore.replaceNodeSubexpression(id, range, content)
+    }
+  })
 }
 
 function moveNode(id: ExprId, delta: Vec2) {
@@ -110,7 +113,7 @@ function moveNode(id: ExprId, delta: Vec2) {
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
-        @updateContent="(range, c) => updateNodeContent(id, range, c)"
+        @updateContent="(updates) => updateNodeContent(id, updates)"
         @movePosition="moveNode(id, $event)"
       />
     </div>
@@ -122,7 +125,7 @@ function moveNode(id: ExprId, delta: Vec2) {
     />
     <TopBar
       v-model:mode="mode"
-      :title="title"
+      :title="projectStore.name"
       :modes="EXECUTION_MODES"
       :breadcrumbs="['main', 'ad_analytics']"
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"

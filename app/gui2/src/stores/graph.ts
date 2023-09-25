@@ -283,6 +283,10 @@ export const useGraphStore = defineStore('graph', () => {
     proj.module?.replaceExpressionContent(id, content)
   }
 
+  function batchUpdate<T>(fn: () => void) {
+    return proj.module?.transact(fn)
+  }
+
   function replaceNodeSubexpression(id: ExprId, range: ContentRange, content: string) {
     const node = nodes.get(id)
     if (node == null) return
@@ -298,7 +302,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     _parsed,
     _parsedEnso: _parsedEnso,
-    proj,
+    batchUpdate,
     nodes,
     exprNodes,
     edges,
