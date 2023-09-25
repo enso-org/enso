@@ -72,8 +72,6 @@ interface AxesConfiguration {
   y: AxisConfiguration
 }
 
-type Scale = ScaleContinuousNumeric<number, number>
-
 interface Color {
   red: number
   green: number
@@ -194,8 +192,6 @@ const focus = ref<Focus>()
 const shouldAnimate = ref(false)
 const xDomain = ref<[min: number, max: number]>([0, 1])
 const yDomain = ref<[min: number, max: number]>([0, 1])
-const xRange = ref<[min: number, max: number]>([0, 1])
-const yRange = ref<[min: number, max: number]>([0, 1])
 
 const xScale = computed(() =>
   axisD3Scale(data.value.axis.x).domain(xDomain.value).range([0, boxWidth.value]),
