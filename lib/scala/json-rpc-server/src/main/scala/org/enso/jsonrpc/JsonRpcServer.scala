@@ -36,11 +36,15 @@ class JsonRpcServer(
 
   implicit val ec: ExecutionContext = system.dispatcher
 
-  private def newUser(): Flow[Message, Message, NotUsed] = {
+  private def newUser(port: Int): Flow[Message, Message, NotUsed] = {
     val messageHandler =
       system.actorOf(
         Props(
-          new MessageHandlerSupervisor(clientControllerFactory, protocolFactory)
+          new MessageHandlerSupervisor(
+            clientControllerFactory,
+            protocolFactory,
+            port
+          )
         ),
         s"message-handler-supervisor-${UUID.randomUUID()}"
       )
@@ -61,9 +65,9 @@ class JsonRpcServer(
         .to(
           Sink.actorRef[MessageHandler.WebMessage](
             messageHandler,
-            MessageHandler.Disconnected,
-            { _: Any =>
-              MessageHandler.Disconnected
+            MessageHandler.Disconnected(port),
+            { _: Throwable =>
+              MessageHandler.Disconnected(port)
             }
           )
         )
@@ -77,7 +81,7 @@ class JsonRpcServer(
           OverflowStrategy.fail
         )
         .mapMaterializedValue { outActor =>
-          messageHandler ! MessageHandler.Connected(outActor)
+          messageHandler ! MessageHandler.Connected(outActor, port)
           NotUsed
         }
         .map((outMsg: MessageHandler.WebMessage) => TextMessage(outMsg.message))
@@ -88,10 +92,10 @@ class JsonRpcServer(
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
   }
 
-  private val route: Route = {
+  private def route(port: Int): Route = {
     val webSocketEndpoint =
       path(config.path) {
-        get { handleWebSocketMessages(newUser()) }
+        get { handleWebSocketMessages(newUser(port)) }
       }
 
     optionalEndpoints.foldLeft(webSocketEndpoint) { (chain, next) =>
@@ -109,7 +113,7 @@ class JsonRpcServer(
   def bind(interface: String, port: Int): Future[Http.ServerBinding] =
     Http()
       .newServerAt(interface, port)
-      .bind(route)
+      .bind(route(port))
 }
 
 object JsonRpcServer {
@@ -138,6 +142,6 @@ object JsonRpcServer {
       Config(outgoingBufferSize = 1000, lazyMessageTimeout = 10.seconds)
   }
 
-  case class WebConnect(webActor: ActorRef)
+  case class WebConnect(webActor: ActorRef, port: Int)
 
 }

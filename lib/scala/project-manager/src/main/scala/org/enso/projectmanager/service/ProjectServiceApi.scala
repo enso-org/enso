@@ -1,10 +1,10 @@
 package org.enso.projectmanager.service
 
 import java.util.UUID
-
 import akka.actor.ActorRef
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{
+  LanguageServerStatus,
   MissingComponentAction,
   ProjectMetadata,
   RunningLanguageServerInfo
@@ -66,6 +66,17 @@ trait ProjectServiceApi[F[+_, +_]] {
     projectId: UUID,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo]
+
+  /** Retrieve project status.
+    *
+    * @param clientId  the requester id
+    * @param projectId the project id
+    * @return either failure or [[LanguageServerStatus]] representing success
+    */
+  def getProjectStatus(
+    clientId: UUID,
+    projectId: UUID
+  ): F[ProjectServiceFailure, LanguageServerStatus]
 
   /** Closes a project. Tries to shut down the Language Server.
     *

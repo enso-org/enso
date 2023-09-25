@@ -54,8 +54,10 @@ public class SimpleHTTPBin {
     try {
       int port = Integer.valueOf(args[1]);
       server = new SimpleHTTPBin(host, port);
-      server.addHandler("/get", new DummyHandler());
-      server.addHandler("/post", new DummyHandler());
+      for (HttpMethod method : HttpMethod.values()) {
+        String path = "/" + method.toString().toLowerCase();
+        server.addHandler(path, new DummyHandler());
+      }
 
       final SimpleHTTPBin server1 = server;
       SignalHandler stopServerHandler =

@@ -1,4 +1,9 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["../types", "."]
+  "include": ["../types", ".", "../../utils.ts"],
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false,
+    "outDir": "../../../../node_modules/.cache/tsc"
+  }
 }

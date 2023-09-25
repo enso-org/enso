@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.System.File.Input_Stream
+import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
@@ -81,6 +81,12 @@ read_file file section headers on_problems xls_format=False =
 handle_bad_format file ~action =
     bad_format caught_panic =
         Error.throw (File_Error.Corrupted_Format file caught_panic.payload.getMessage caught_panic.payload)
-    Panic.catch UnsupportedFileFormatException handler=bad_format <|
-        Panic.catch NotOLE2FileException handler=bad_format <|
+    handle_bad_format_with_handler bad_format action
+
+## PRIVATE
+   A helper that handles the Java exceptions reported when a malformed XLS file
+   is opened.
+handle_bad_format_with_handler handler ~action =
+    Panic.catch UnsupportedFileFormatException handler=handler <|
+        Panic.catch NotOLE2FileException handler=handler <|
             action

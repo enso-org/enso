@@ -513,8 +513,10 @@ impl Context for Handle {
         let info = self.computed_value_info_registry().get(&id)?;
         let method_call = info.method_call.as_ref()?;
         let suggestion_db = self.project.suggestion_db();
+        let in_module = self.module_qualified_name();
         let maybe_entry = suggestion_db.lookup_by_method_pointer(method_call).map(|(id, entry)| {
-            let invocation_info = entry.invocation_info(&suggestion_db, &self.parser());
+            let invocation_info =
+                entry.invocation_info(&suggestion_db, &self.parser(), in_module.as_ref());
             invocation_info.with_suggestion_id(id).with_called_on_type(false)
         });
 
@@ -526,7 +528,8 @@ impl Context for Handle {
             let defined_on_type = method_call.defined_on_type.strip_suffix(".type")?.to_owned();
             let method_call = MethodPointer { defined_on_type, ..method_call.clone() };
             let (id, entry) = suggestion_db.lookup_by_method_pointer(&method_call)?;
-            let invocation_info = entry.invocation_info(&suggestion_db, &self.parser());
+            let invocation_info =
+                entry.invocation_info(&suggestion_db, &self.parser(), in_module.as_ref());
             Some(invocation_info.with_suggestion_id(id).with_called_on_type(true))
         })
     }

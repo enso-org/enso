@@ -49,7 +49,7 @@ type SanityCheck<
         [Type in keyof typeof AssetListEventType]: AssetListBaseEvent<
             (typeof AssetListEventType)[Type]
         >
-    } = AssetListEvents
+    } = AssetListEvents,
     // eslint-disable-next-line no-restricted-syntax
 > = T
 

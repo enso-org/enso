@@ -24,6 +24,19 @@ from project.Internal.Result_Set import read_column
 from project.Internal.Upload_Table import first_column_name_in_structure
 
 type Postgres_Connection
+    ## PRIVATE
+
+       Creates a Postgres connection based on a URL, properties and a dialect.
+
+       Arguments:
+       - url: The URL to connect to.
+       - properties: A vector of properties for the connection.
+       - make_new: a function that returns a new connection.
+    create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Connection
+    create url properties make_new =
+        jdbc_connection = JDBC_Connection.create url properties
+        entity_naming_properties = Postgres_Entity_Naming_Properties.new jdbc_connection
+        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new
 
     ## PRIVATE
 
@@ -42,7 +55,7 @@ type Postgres_Connection
     close self = self.connection.close
 
     ## Returns the list of databases (or catalogs) for the connection.
-    databases : [Text]
+    databases : Vector Text
     databases self =
         self.connection.jdbc_connection.with_connection connection->
             result_set = connection.createStatement.executeQuery "select datname from pg_database where datname not in ('template0', 'template1')"
@@ -244,17 +257,3 @@ type Postgres_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
-
-## PRIVATE
-
-   Creates a Postgres connection based on a URL, properties and a dialect.
-
-   Arguments:
-   - url: The URL to connect to.
-   - properties: A vector of properties for the connection.
-   - make_new: a function that returns a new connection.
-create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Connection
-create url properties make_new =
-    jdbc_connection = JDBC_Connection.create url properties
-    entity_naming_properties = Postgres_Entity_Naming_Properties.new jdbc_connection
-    Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new

@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.command.Command
-import org.enso.polyglot.RuntimeOptions
 import org.enso.text.Sha3_224VersionCalculator
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
@@ -17,9 +16,8 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
     extends CommandProcessor {
 
   private val isSequential =
-    interpreterContext.executionService.getContext.getEnvironment.getOptions
-      .get(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY)
-      .booleanValue()
+    interpreterContext.executionService.getContext
+      .isInterpreterSequentialCommandExection()
 
   private val locking = new ReentrantLocking(
     interpreterContext.executionService.getLogger

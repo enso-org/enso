@@ -14,7 +14,7 @@
 
          example_fetch =
              out_file = Examples.scratch_file
-             res = HTTP.fetch "http://httpbin.org/bytes/1024" . to_file out_file
+             res = HTTP.fetch "http://httpbin.org/bytes/1024" . body . to_file out_file
 
    > Example
      Send authenticated Get request (note the use of TLS).
@@ -25,7 +25,7 @@
 
          example_get =
             headers = [Header.authorization_basic "user" "pass"]
-            HTTP.fetch "https://httpbin.org/basic-auth/user/pass" headers
+            HTTP.fetch "https://httpbin.org/basic-auth/user/pass" headers=headers
 
    > Example
      Send a Post request with binary data.
@@ -38,7 +38,7 @@
          example_post =
              body = Request_Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
-             HTTP.new.post "http://httpbin.org/post" body [header_binary]
+             HTTP.new.post "http://httpbin.org/post" body headers=[header_binary]
 
    > Example
      Parse URI text.

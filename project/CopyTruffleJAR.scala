@@ -83,6 +83,11 @@ object CopyTruffleJAR {
     libraryUpdates: UpdateReport,
     log: ManagedLogger
   ): Boolean = {
+    val version = System.getProperty("java.version").split("\\.");
+    if (Integer.parseInt(version(0)) >= 21) {
+      // skip all checks on GraalVM for JDK21 and newer
+      return false;
+    }
     var truffleInstancesFound = 0
     var restartRequired       = false
     libraryUpdates.allFiles.foreach { f =>

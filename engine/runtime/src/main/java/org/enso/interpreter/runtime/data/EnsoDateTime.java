@@ -12,11 +12,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -168,10 +168,10 @@ public final class EnsoDateTime implements EnsoObject {
     return new EnsoDate(dateTime.toLocalDate());
   }
 
-  @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
+  @Builtin.Method(description = "Return a text representation of this date-time.")
   @CompilerDirectives.TruffleBoundary
   public Text toText() {
-    return Text.create(DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime));
+    return Text.create(Core_Date_Utils.defaultZonedDateTimeFormatter.format(dateTime));
   }
 
   @ExportMessage
@@ -227,7 +227,7 @@ public final class EnsoDateTime implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public Object toDisplayString(boolean allowSideEffects) {
-    return DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime);
+    return Core_Date_Utils.defaultZonedDateTimeFormatter.format(dateTime);
   }
 
   // 15. October 1582

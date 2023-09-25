@@ -179,14 +179,14 @@ limit_data limit data = case limit of
             extreme + data.take (Index_Sub_Range.Sample (limit - extreme.length))
 
 ## PRIVATE
-json_from_table : Table -> [Integer]|Nothing -> Integer|Nothing -> Text
+json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_table table bounds limit =
     data = table.point_data |> bound_data bounds |> limit_data limit
     axes = table.axes
     JS_Object.from_pairs [[data_field, data], [axis_field, axes]] . to_json
 
 ## PRIVATE
-json_from_vector : Vector Any -> [Integer]|Nothing -> Integer|Nothing -> Text
+json_from_vector : Vector Any -> Vector Integer | Nothing -> Integer | Nothing -> Text
 json_from_vector vec bounds limit =
     data = vec.point_data |> bound_data bounds |> limit_data limit
     JS_Object.from_pairs [[data_field, data], [axis_field, Nothing]] . to_json

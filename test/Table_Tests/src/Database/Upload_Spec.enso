@@ -17,11 +17,11 @@ from Standard.Database.Errors import all
 from Standard.Database.Internal.Upload_Table import default_key_columns
 import Standard.Database.Data.Column_Constraint.Column_Constraint
 
-from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
+from Standard.Test import Test, Test_Suite, Problems
+from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 import project.Database.Helpers.Name_Generator
-from project.Database.Helpers.Execution_Context import run_with_and_without_output
 
 polyglot java import org.enso.table_test_helpers.ExplodingStorage
 polyglot java import org.enso.table_test_helpers.ExplodingStoragePayload
