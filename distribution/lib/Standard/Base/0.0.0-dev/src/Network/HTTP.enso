@@ -217,7 +217,7 @@ resolve_headers : Request -> Vector Header
 resolve_headers req =
     is_content_type_header h = h.name . equals_ignore_case Header.content_type_header_name
 
-    # Check for content type and encoding the Request_Body
+    # Check for content type and encoding in the Request_Body.
     request_body_content_type_header = case req.body of
         Request_Body.Text _ request_body_encoding request_body_content_type ->
             if request_body_content_type.is_nothing && request_body_encoding.is_nothing then Nothing else
