@@ -58,7 +58,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         switch (event.type) {
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.newFolder:
-            case assetEventModule.AssetEventType.newSecret:
+            case assetEventModule.AssetEventType.newDataConnector:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:

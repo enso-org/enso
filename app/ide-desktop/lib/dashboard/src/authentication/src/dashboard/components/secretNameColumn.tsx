@@ -70,7 +70,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.newSecret: {
+            case assetEventModule.AssetEventType.newDataConnector: {
                 if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Secrets cannot be created on the local backend')

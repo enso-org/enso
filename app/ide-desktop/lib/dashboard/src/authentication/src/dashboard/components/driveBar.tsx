@@ -15,6 +15,7 @@ import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 import Button from './button'
+import NewDataConnectorModal from './newDataConnectorModal'
 
 // ================
 // === DriveBar ===
@@ -24,6 +25,7 @@ import Button from './button'
 export interface DriveBarProps {
     doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
+    doCreateDataConnector: (name: string, value: string) => void
     doUploadFiles: (files: File[]) => void
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
 }
@@ -31,9 +33,15 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-    const { doCreateProject, doCreateDirectory, doUploadFiles, dispatchAssetEvent } = props
+    const {
+        doCreateProject,
+        doCreateDirectory,
+        doCreateDataConnector,
+        doUploadFiles,
+        dispatchAssetEvent,
+    } = props
     const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
 
@@ -81,12 +89,12 @@ export default function DriveBar(props: DriveBarProps) {
                     )}
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
-                            disabled
+                            active
                             image={AddConnectorIcon}
-                            error="Not implemented yet."
                             disabledOpacityClassName="opacity-20"
-                            onClick={() => {
-                                // No backend support yet.
+                            onClick={event => {
+                                event.stopPropagation()
+                                setModal(<NewDataConnectorModal doCreate={doCreateDataConnector} />)
                             }}
                         />
                     )}

@@ -704,7 +704,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
             }
-            case assetListEventModule.AssetListEventType.newSecret: {
+            case assetListEventModule.AssetListEventType.newDataConnector: {
                 const placeholderItem: backendModule.SecretAsset = {
                     id: backendModule.SecretId(uniqueString.uniqueString()),
                     title: event.name,
@@ -731,7 +731,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                           )
                 )
                 dispatchAssetEvent({
-                    type: assetEventModule.AssetEventType.newSecret,
+                    type: assetEventModule.AssetEventType.newDataConnector,
                     placeholderId: placeholderItem.id,
                     value: event.value,
                 })
