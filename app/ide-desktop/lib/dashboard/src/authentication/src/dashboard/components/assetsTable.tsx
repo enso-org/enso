@@ -1,6 +1,5 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
-import * as toastify from 'react-toastify'
 
 import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
@@ -22,7 +21,6 @@ import * as uniqueString from '../../uniqueString'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
-import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import AssetRow from './assetRow'
@@ -189,11 +187,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         isListingLocalDirectoryAndWillFail,
         isListingRemoteDirectoryAndWillFail,
     } = props
-    const logger = loggerProvider.useLogger()
     const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
+    const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
@@ -276,6 +274,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     const overwriteAssets = React.useCallback(
         (newAssets: backendModule.AnyAsset[]) => {
+            setInitialized(true)
             setAssetTree(
                 newAssets.map(asset => ({
                     key: asset.id,
@@ -287,7 +286,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             // The project name here might also be a string with project id, e.g. when opening
             // a project file from explorer on Windows.
             const isInitialProject = (asset: backendModule.AnyAsset) =>
-                asset.title === initialProjectName || asset.id === initialProjectName
+                asset.title === nameOfProjectToImmediatelyOpen ||
+                asset.id === nameOfProjectToImmediatelyOpen
             if (nameOfProjectToImmediatelyOpen != null) {
                 const projectToLoad = newAssets
                     .filter(backendModule.assetIsProject)
@@ -299,6 +299,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         shouldAutomaticallySwitchPage: true,
                         runInBackground: false,
                     })
+                } else {
+                    toastAndLog(`Could not find project '${nameOfProjectToImmediatelyOpen}'`)
                 }
                 setNameOfProjectToImmediatelyOpen(null)
             }
@@ -312,24 +314,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 return []
             })
-            if (!initialized) {
-                setInitialized(true)
-                if (initialProjectName != null) {
-                    if (!newAssets.some(isInitialProject)) {
-                        const errorMessage = `No project named '${initialProjectName}' was found.`
-                        toastify.toast.error(errorMessage)
-                        logger.error(`Error opening project on startup: ${errorMessage}`)
-                    }
-                }
-            }
         },
         [
-            initialized,
-            initialProjectName,
-            logger,
             nameOfProjectToImmediatelyOpen,
             /* should never change */ setNameOfProjectToImmediatelyOpen,
             /* should never change */ dispatchAssetEvent,
+            /* should never change */ toastAndLog,
         ]
     )
 
@@ -376,7 +366,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     React.useEffect(() => {
-        setInitialized(true)
         const savedExtraColumns = localStorage.get(localStorageModule.LocalStorageKey.extraColumns)
         if (savedExtraColumns != null) {
             setExtraColumns(new Set(savedExtraColumns))
