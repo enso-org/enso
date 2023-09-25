@@ -322,14 +322,16 @@ useDocumentEvent('keydown', (event) => {
 })
 
 watchEffect(async (onCleanup) => {
-  let shouldSwitchVisualization = true
-  onCleanup(() => {
-    shouldSwitchVisualization = false
-  })
-  const component = await visualizationStore.get(visualizationType.value)
-  if (shouldSwitchVisualization) {
-    visualization.value = component
-    visualizationData.value = queuedVisualizationData.value
+  if (isVisualizationVisible.value) {
+    let shouldSwitchVisualization = true
+    onCleanup(() => {
+      shouldSwitchVisualization = false
+    })
+    const component = await visualizationStore.get(visualizationType.value)
+    if (shouldSwitchVisualization) {
+      visualization.value = component
+      visualizationData.value = queuedVisualizationData.value
+    }
   }
 })
 
