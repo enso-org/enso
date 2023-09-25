@@ -377,6 +377,11 @@ export namespace response {
     context: VisualizationContext
     data: Uint8Array
   }
+
+  export interface getSuggestionDatabase {
+    entries: []
+    currentVersion: number
+  }
 }
 
 export interface LanguageServerError {

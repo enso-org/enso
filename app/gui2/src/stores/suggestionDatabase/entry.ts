@@ -1,4 +1,5 @@
 import { assert } from '@/util/assert'
+import type { Doc } from '@/util/ffi'
 import {
   isIdentifier,
   isQualifiedName,
@@ -8,6 +9,11 @@ import {
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import type {
+  SuggestionEntryArgument,
+  SuggestionEntryScope,
+} from 'shared/languageServerTypes/suggestions'
+export type { Doc } from '@/util/ffi'
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -46,7 +52,7 @@ export interface SuggestionEntry {
   /// A module reexporting this entity.
   reexportedIn?: QualifiedName
   /// A list of documentation sections associated with object.
-  documentation: string
+  documentation: Doc.Section[]
   /// A scope where this suggestion is visible.
   scope?: SuggestionEntryScope
   /// A name of a custom icon to use when displaying the entry.
@@ -70,7 +76,7 @@ function makeSimpleEntry(
     aliases: [],
     arguments: [],
     returnType,
-    documentation: '',
+    documentation: [],
   }
 }
 

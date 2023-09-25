@@ -1,4 +1,5 @@
 import type { Opt } from './opt'
+import { Err, Ok, unwrap, type Result } from './result'
 
 declare const identifierBrand: unique symbol
 declare const qualifiedNameBrand: unique symbol
@@ -13,8 +14,8 @@ export function isIdentifier(str: string): str is Identifier {
   return identifierRegex.test(str)
 }
 
-export function tryIdentifier(str: string): Opt<Identifier> {
-  return isIdentifier(str) ? str : null
+export function tryIdentifier(str: string): Result<Identifier> {
+  return isIdentifier(str) ? Ok(str) : Err(`"${str}" is not a valid identifier`)
 }
 
 /** A string representing a valid qualified name of our language.
@@ -29,8 +30,8 @@ export function isQualifiedName(str: string): str is QualifiedName {
   return qnRegex.test(str)
 }
 
-export function tryQualifiedName(str: string): Opt<QualifiedName> {
-  return isQualifiedName(str) ? str : null
+export function tryQualifiedName(str: string): Result<QualifiedName> {
+  return isQualifiedName(str) ? Ok(str) : Err(`"${str}" is not a valid qualified name`)
 }
 
 /** Split the qualified name to parent and last segment (name). */
@@ -109,14 +110,13 @@ if (import.meta.vitest) {
   ])(
     "Qualified name '%s' parent is '%s' and the last segment is '%s'",
     (name, parent, lastSegment) => {
-      const qn = tryQualifiedName(name)
-      expect(qn).not.toBeNull()
-      expect(qnLastSegment(qn!)).toBe(lastSegment)
-      expect(qnParent(qn!)).toBe(parent)
-      expect(qnSplit(qn!)).toStrictEqual([parent, lastSegment])
+      const qn = unwrap(tryQualifiedName(name))
+      expect(qnLastSegment(qn)).toBe(lastSegment)
+      expect(qnParent(qn)).toBe(parent)
+      expect(qnSplit(qn)).toStrictEqual([parent, lastSegment])
       if (parent != null) {
-        const qnParent = tryQualifiedName(parent)
-        const qnLastSegment = tryIdentifier(lastSegment)
+        const qnParent = unwrap(tryQualifiedName(parent))
+        const qnLastSegment = unwrap(tryIdentifier(lastSegment))
         expect(qnParent).not.toBeNull()
         expect(qnLastSegment).not.toBeNull()
         expect(qnJoin(qnParent!, qnLastSegment!)).toBe(qn)
@@ -129,8 +129,7 @@ if (import.meta.vitest) {
     ['local.Project.elem', true],
     ['local.Project.Module.elem', false],
   ])('qnIsTopElement(%s) returns %s', (name, result) => {
-    const qn = tryQualifiedName(name)
-    expect(qn).not.toBeNull()
-    expect(qnIsTopElement(name as QualifiedName)).toBe(result)
+    const qn = unwrap(tryQualifiedName(name))
+    expect(qnIsTopElement(qn)).toBe(result)
   })
 }

@@ -335,22 +335,22 @@ namespace suggestionDatabaseUpdateVariant {
     /**
      * The module name to update.
      */
-    module?: FieldUpdate<String>
+    module?: FieldUpdate<string>
 
     /**
      * The self type to update.
      */
-    selfType?: FieldUpdate<String>
+    selfType?: FieldUpdate<string>
 
     /**
      * The return type to update.
      */
-    returnType?: FieldUpdate<String>
+    returnType?: FieldUpdate<string>
 
     /**
      * The documentation string to update.
      */
-    documentation?: FieldUpdate<String>
+    documentation?: FieldUpdate<string>
 
     /**
      * The scope to update.
@@ -360,6 +360,6 @@ namespace suggestionDatabaseUpdateVariant {
     /**
      * The reexport field to update.
      */
-    reexport?: FieldUpdate<String>
+    reexport?: FieldUpdate<string>
   }
 }

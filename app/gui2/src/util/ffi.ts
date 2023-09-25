@@ -450,7 +450,7 @@ export namespace Ast {
   }
 }
 
-export function parseDocs(docs: string): Doc.DocSection {
+export function parseDocs(docs: string): Doc.Section[] {
   const json = parse_doc_to_json(docs)
   return JSON.parse(json)
 }
@@ -477,18 +477,18 @@ export namespace Doc {
     description: HtmlString
   }
 
-  export type DocSection =
-    | { Tag: DocSection.Tag }
-    | { Paragraph: DocSection.Paragraph }
-    | { List: DocSection.List }
-    | { Arguments: DocSection.Arguments }
-    | { Keyed: DocSection.Keyed }
-    | { Marked: DocSection.Marked }
+  export type Section =
+    | { Tag: Section.Tag }
+    | { Paragraph: Section.Paragraph }
+    | { List: Section.List }
+    | { Arguments: Section.Arguments }
+    | { Keyed: Section.Keyed }
+    | { Marked: Section.Marked }
 
-  export namespace DocSection {
+  export namespace Section {
     /** The documentation tag. */
     export interface Tag {
-      tag: Tag
+      tag: Doc.Tag
       body: HtmlString
     }
 
