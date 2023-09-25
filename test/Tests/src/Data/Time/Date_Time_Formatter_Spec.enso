@@ -285,6 +285,16 @@ spec =
             w1.to_display_text . should_contain "default to AM"
             w1.to_display_text . should_contain "Did you mean 'H'"
 
+        Test.specify "the warning should be removable as indicated in the message" <|
+            f1 = Date_Time_Formatter.from "hh:mm"
+            r1 = Time_Of_Day.parse "04:24" f1
+            w1 = Problems.expect_only_warning Suspicious_Date_Time_Format r1
+            w1.to_display_text . should_contain "You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`"
+
+            r2 = r1.remove_warnings Suspicious_Date_Time_Format
+            r2.should_equal (Time_Of_Day.new 4 24)
+            Problems.assume_no_problems r2
+
         Test.specify "should allow to parse MM-dd without a year, defaulting to current year but adding a warning (only in parsing)" <|
             f1 = Date_Time_Formatter.from "dd.MM"
 
