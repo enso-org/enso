@@ -40,9 +40,6 @@ export default function NewDataConnectorModal(props: ConfirmDeleteModalProps) {
     return (
         <Modal centered className="bg-dim">
             <div
-                ref={element => {
-                    element?.focus()
-                }}
                 tabIndex={-1}
                 className="relative rounded-2xl pointer-events-auto"
                 onKeyDown={event => {
@@ -62,23 +59,28 @@ export default function NewDataConnectorModal(props: ConfirmDeleteModalProps) {
                         // delete an important asset.
                         onSubmit()
                     }}
-                    className="relative shadow-soft rounded-2xl w-96 px-4 py-2"
+                    className="relative flex flex-col shadow-soft gap-2 rounded-2xl w-96 px-4 py-2"
                 >
-                    <h1 className="text-base font-semibold">New Data Connector</h1>
-                    <div className="m-2">Name</div>
-                    <input
-                        value={name}
-                        onChange={() => {
-                            setName(name)
-                        }}
-                    ></input>
-                    <div className="m-2">Value</div>
-                    <input
-                        value={value}
-                        onChange={() => {
-                            setValue(value)
-                        }}
-                    ></input>
+                    <h1 className="text-sm font-semibold">New Data Connector</h1>
+                    <div className="flex">
+                        <div className="w-10 h-6 mx-2 py-1">Name</div>
+                        <input
+                            autoFocus
+                            className="grow rounded-full h-6 px-4"
+                            onInput={event => {
+                                setName(event.currentTarget.value)
+                            }}
+                        />
+                    </div>
+                    <div className="flex">
+                        <div className="w-10 h-6 mx-2 py-1">Value</div>
+                        <input
+                            className="grow rounded-full h-6 px-4"
+                            onInput={event => {
+                                setValue(event.currentTarget.value)
+                            }}
+                        />
+                    </div>
                     <div className="m-1">
                         <button
                             type="submit"
