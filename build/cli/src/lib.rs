@@ -424,7 +424,14 @@ impl Processor {
                     test_standard_library: true,
                     test_java_generated_from_rust: true,
                     build_benchmarks: true,
-                    execute_benchmarks: once(Benchmarks::Runtime).collect(),
+                    execute_benchmarks: {
+                        // Run benchmarks only on Linux.
+                        let mut ret = BTreeSet::new();
+                        if TARGET_OS == OS::Linux {
+                            ret.insert(Benchmarks::Runtime);
+                        }
+                        ret
+                    },
                     execute_benchmarks_once: true,
                     check_enso_benchmarks: true,
                     verify_packages: true,
