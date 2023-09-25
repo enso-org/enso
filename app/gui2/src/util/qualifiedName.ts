@@ -87,20 +87,20 @@ if (import.meta.vitest) {
   const invalidIdentifiers = ['', '1', '1Abc', '1_', 'abA!']
 
   test.each(validIdentifiers)("'%s' is a valid identifier", (name) =>
-    expect(tryIdentifier(name)).toStrictEqual(name as Identifier),
+    expect(unwrap(tryIdentifier(name))).toStrictEqual(name as Identifier),
   )
   test.each(invalidIdentifiers)("'%s' is an invalid identifier", (name) =>
-    expect(tryIdentifier(name)).toBeNull(),
+    expect(tryIdentifier(name).ok).toBe(false),
   )
 
   test.each(validIdentifiers.concat('A._', 'a19_r14.zz9z', 'a.b.c.d.e.F'))(
     "'%s' is a valid qualified name",
-    (name) => expect(tryQualifiedName(name)).toStrictEqual(name as QualifiedName),
+    (name) => expect(unwrap(tryQualifiedName(name))).toStrictEqual(name as QualifiedName),
   )
 
   test.each(invalidIdentifiers.concat('.Abc', 'Abc.', '.A.b.c', 'A.b.c.', 'A.B.8.D', '_.._'))(
     "'%s' is an invalid qualified name",
-    (name) => expect(tryQualifiedName(name)).toBeNull(),
+    (name) => expect(tryQualifiedName(name).ok).toBe(false),
   )
 
   test.each([

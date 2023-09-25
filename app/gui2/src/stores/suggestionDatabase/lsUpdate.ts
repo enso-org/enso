@@ -314,11 +314,11 @@ export function applyUpdates(
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
-  test.each([{ doc: '## Foo Bar\n', expected: 'Bar' }])(
-    'Getting tag from docs case %#.',
-    ({ doc, expected }) => {
-      const sections = parseDocs(doc)
-      expect(tagValue(sections, 'Foo')).toBe(expected)
-    },
-  )
+  test.each([
+    ['## Foo Bar\n', 'Bar'],
+    ['## Some one section\n   But not tags here', null],
+  ])('Getting tag from docs case %#.', (doc, expected) => {
+    const sections = parseDocs(doc)
+    expect(tagValue(sections, 'Foo')).toBe(expected)
+  })
 }
