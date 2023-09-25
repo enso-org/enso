@@ -109,6 +109,7 @@ export default function Dashboard(props: DashboardProps) {
         let currentBackend = backend
         if (
             supportsLocalBackend &&
+            initialProjectName == null &&
             session.type !== authProvider.UserSessionType.offline &&
             localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
                 backendModule.BackendType.local
@@ -122,7 +123,11 @@ export default function Dashboard(props: DashboardProps) {
         const savedProjectStartupInfo = localStorage.get(
             localStorageModule.LocalStorageKey.projectStartupInfo
         )
-        if (savedProjectStartupInfo != null) {
+        if (initialProjectName != null) {
+            if (page === pageSwitcher.Page.editor) {
+                setPage(pageSwitcher.Page.drive)
+            }
+        } else if (savedProjectStartupInfo != null) {
             if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
                 if (session.accessToken != null) {
                     if (
