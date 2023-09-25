@@ -135,8 +135,20 @@ const buckets = computed(() => {
 const groups = computed(() => Array.from(new Set(Array.from(buckets.value, (p) => p.group))))
 const variables = computed(() => Array.from(new Set(Array.from(buckets.value, (p) => p.variable))))
 
-const xScale = ref(d3.scaleBand<number>().padding(0.05))
-const yScale = ref(d3.scaleBand<number>().padding(0.05))
+const xScale = computed(() =>
+  d3
+    .scaleBand<number>()
+    .padding(0.05)
+    .range([0, boxWidth.value])
+    .domain(buckets.value.map((d) => d.group)),
+)
+const yScale = computed(() =>
+  d3
+    .scaleBand<number>()
+    .padding(0.05)
+    .range([boxHeight.value, 0])
+    .domain(buckets.value.map((d) => d.variable ?? 0)),
+)
 
 const xAxis = computed(() => {
   const xMod = Math.max(1, Math.round(buckets.value.length / (boxWidth.value / 40)))
@@ -162,18 +174,11 @@ const yAxis = computed(() => {
 
 // === Update x axis ===
 
-watchEffect(() => {
-  // Update the x-axis in D3.
-  xScale.value.range([0, boxWidth.value]).domain(buckets.value.map((d) => d.group))
-  d3XAxis.value.call(xAxis.value)
-})
+watchPostEffect(() => d3XAxis.value.call(xAxis.value))
 
 // === Update y axis ===
 
-watchPostEffect(() => {
-  yScale.value.range([boxHeight.value, 0]).domain(buckets.value.map((d) => d.variable ?? 0))
-  d3YAxis.value.call(yAxis.value)
-})
+watchPostEffect(() => d3YAxis.value.call(yAxis.value))
 
 // === Update contents ===
 
@@ -185,23 +190,20 @@ watchPostEffect(() => {
   d3Points.value
     .selectAll('rect')
     .data(buckets_)
-    .join(
-      (enter) =>
-        enter
-          .append('rect')
-          .attr('rx', 4)
-          .attr('ry', 4)
-          .style('stroke-width', 4)
-          .style('stroke', 'none')
-          .style('opacity', 0.8)
-          .style('fill', (d) => fill_(d.value)),
-      (update) =>
-        update
-          .attr('width', xScale_.bandwidth())
-          .attr('height', yScale_.bandwidth())
-          .attr('x', (d) => xScale_(d.group)!)
-          .attr('y', (d) => yScale_(d.variable ?? 0)!),
+    .join((enter) =>
+      enter
+        .append('rect')
+        .attr('rx', 4)
+        .attr('ry', 4)
+        .style('stroke-width', 4)
+        .style('stroke', 'none')
+        .style('opacity', 0.8)
+        .style('fill', (d) => fill_(d.value)),
     )
+    .attr('width', xScale_.bandwidth())
+    .attr('height', yScale_.bandwidth())
+    .attr('x', (d) => xScale_(d.group)!)
+    .attr('y', (d) => yScale_(d.variable ?? 0)!)
 })
 </script>
 
