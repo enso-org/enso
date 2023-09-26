@@ -59,7 +59,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
   @Override
   protected BigInteger[] newUnderlyingArray(int size) {
-    return new BigInteger[0];
+    return new BigInteger[size];
   }
 
   @Override
