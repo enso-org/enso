@@ -531,3 +531,87 @@ spec setup =
             r3 = t.parse ["X", "Y"] Value_Type.Integer
             r3.should_fail_with Missing_Input_Columns
             r3.catch.criteria . should_equal ["Y"]
+
+    if setup.is_database then Test.group "Table/Column auto value type" <|
+        Test.specify "should report unsupported" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            t.auto_value_types . should_fail_with Unsupported_Database_Operation
+            t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation
+
+    if setup.is_database.not then Test.group "Table/Column auto value type" <|
+        Test.specify "should allow to narrow down types of a Mixed column" <|
+            mixer = My_Type.Value 1
+            t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]], ["mix", [1, mixer, "a"]], ["dates", [mixer, Date.new 2022, Date.new 2020]], ["datetimes", [mixer, Date_Time.new 2022 12 30 13 45, Date_Time.new 2020]], ["times", [mixer, Time_Of_Day.new 12 30, Time_Of_Day.new 13 45]], ["mixed_time", [Date.new 2022, Time_Of_Day.new 12 30, Date_Time.new 2019]], ["bools", [mixer, True, False]]]
+            t1 = t0.drop 1
+
+            t1.at "strs" . value_type . should_equal Value_Type.Mixed
+            t1.at "ints" . value_type . should_equal Value_Type.Mixed
+            t1.at "floats" . value_type . should_equal Value_Type.Mixed
+            t1.at "mix" . value_type . should_equal Value_Type.Mixed
+            t1.at "dates" . value_type . should_equal Value_Type.Mixed
+            t1.at "datetimes" . value_type . should_equal Value_Type.Mixed
+            t1.at "times" . value_type . should_equal Value_Type.Mixed
+            t1.at "mixed_time" . value_type . should_equal Value_Type.Mixed
+            t1.at "bools" . value_type . should_equal Value_Type.Mixed
+
+            t2 = t1.auto_value_types
+            t2.at "strs" . value_type . should_equal Value_Type.Char
+            t2.at "ints" . value_type . should_equal Value_Type.Integer
+            t2.at "floats" . value_type . should_equal Value_Type.Float
+            t2.at "mix" . value_type . should_equal Value_Type.Mixed
+            t2.at "dates" . value_type . should_equal Value_Type.Date
+            t2.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+            t2.at "times" . value_type . should_equal Value_Type.Time
+            t2.at "mixed_time" . value_type . should_equal Value_Type.Mixed
+            t2.at "bools" . value_type . should_equal Value_Type.Boolean
+
+        Test.specify "will only modify selected columns" <|
+            mixer = My_Type.Value 1
+            t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]]]
+            t1 = t0.drop 1
+
+            t2 = t1.auto_value_types []
+            t2.at "strs" . value_type . should_equal Value_Type.Mixed
+            t2.at "ints" . value_type . should_equal Value_Type.Mixed
+            t2.at "floats" . value_type . should_equal Value_Type.Mixed
+
+            t3 = t1.auto_value_types ["strs"]
+            t3.at "strs" . value_type . should_equal Value_Type.Char
+            t3.at "ints" . value_type . should_equal Value_Type.Mixed
+            t3.at "floats" . value_type . should_equal Value_Type.Mixed
+
+            # should match ints and floats but not strs
+            t4 = t1.auto_value_types "[if].*".to_regex
+            t4.at "strs" . value_type . should_equal Value_Type.Mixed
+            t4.at "ints" . value_type . should_equal Value_Type.Integer
+            t4.at "floats" . value_type . should_equal Value_Type.Float
+
+        Test.specify "will convert a Float column to Integer if all values can be represented as long" <|
+            t1 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [1.0, 2.5, 3.0]], ["Z", [1.0, 2.0, (2.0^100)]]]
+            t1.at "X" . value_type . should_equal Value_Type.Float
+            t1.at "Y" . value_type . should_equal Value_Type.Float
+            t1.at "Z" . value_type . should_equal Value_Type.Float
+
+            t2 = t1.auto_value_types
+            t2.at "X" . value_type . should_equal Value_Type.Integer
+            t2.at "Y" . value_type . should_equal Value_Type.Float
+            t2.at "Z" . value_type . should_equal Value_Type.Float
+
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
+
+        Test.specify "will not parse text columns" <|
+            t1 = table_builder [["X", ["1", "2", "3"]]]
+            c2 = t1.at "X" . auto_value_type
+            c2.value_type . should_equal Value_Type.Char
+
+        Test.specify "will try to find the smallest integer type to fit the value (if use_smallest=True)" <|
+            # but won't allow Byte automatically
+            Nothing
+
+        Test.specify "if all text values have the same length, will change the type to fixed-length string (if use_smallest=True)" <|
+            # test on limited and unlimited
+            Nothing
+
+        Test.specify "if all text values fit under 255 characters, will add a 255 length limit (if use_smallest=True)" <|
+            # test on limited and unlimited
+            Nothing
