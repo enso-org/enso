@@ -11,8 +11,6 @@ import { modKey, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
-import type { LanguageServer } from 'shared/languageServer'
-import type { ContextId, MethodPointer } from 'shared/languageServerTypes'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 
