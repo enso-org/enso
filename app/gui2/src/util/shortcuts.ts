@@ -5,20 +5,18 @@ import {
   keybind,
   mousebind,
 } from 'enso-authentication/src/dashboard/shortcuts'
-import { useDocumentEvent } from './events'
 
 const MOUSE_ACTIONS = [
-  'clear-nodes-selection',
   'replace-nodes-selection',
   'add-to-nodes-selection',
   'remove-from-nodes-selection',
   'toggle-nodes-selection',
   'invert-nodes-selection',
 ] as const
-type GUIMouseAction = (typeof MOUSE_ACTIONS)[number]
+export type GUIMouseAction = (typeof MOUSE_ACTIONS)[number]
 
 const KEYBOARD_ACTIONS = ['select-all-nodes', 'deselect-all-nodes'] as const
-type GUIKeyboardAction = (typeof KEYBOARD_ACTIONS)[number]
+export type GUIKeyboardAction = (typeof KEYBOARD_ACTIONS)[number]
 
 declare module 'enso-authentication/src/dashboard/shortcuts' {
   // Merge newly defined actions with existing interfaces.
@@ -34,18 +32,24 @@ shortcutRegistry.registerNewKeyboardActions(KEYBOARD_ACTIONS, {
 })
 
 shortcutRegistry.registerNewMouseActions(MOUSE_ACTIONS, {
-  'clear-nodes-selection': [mousebind('clear-nodes-selection', [], MouseButton.left, 1)],
-  'replace-nodes-selection': [mousebind('replace-nodes-selection', [], MouseButton.left, 1)],
+  'replace-nodes-selection': [
+    mousebind('replace-nodes-selection', [], MouseButton.move, 1),
+    mousebind('replace-nodes-selection', [], MouseButton.left, 1),
+  ],
   'add-to-nodes-selection': [
+    mousebind('add-to-nodes-selection', ['Shift', CTRL], MouseButton.move, 1),
     mousebind('add-to-nodes-selection', ['Shift', CTRL], MouseButton.left, 1),
   ],
   'remove-from-nodes-selection': [
-    mousebind('remove-from-nodes-selection', ['Shift', 'Alt'], MouseButton.left, 1),
+    mousebind('remove-from-nodes-selection', ['Shift', 'Alt'], MouseButton.move, 1),
+    mousebind('add-to-nodes-selection', ['Shift', CTRL], MouseButton.left, 1),
   ],
-  'toggle-nodes-selection': [mousebind('toggle-nodes-selection', ['Shift'], MouseButton.left, 1)],
+  'toggle-nodes-selection': [
+    mousebind('toggle-nodes-selection', ['Shift'], MouseButton.move, 1),
+    mousebind('toggle-nodes-selection', ['Shift'], MouseButton.left, 1),
+  ],
   'invert-nodes-selection': [
+    mousebind('invert-nodes-selection', ['Shift', CTRL, 'Alt'], MouseButton.move, 1),
     mousebind('invert-nodes-selection', ['Shift', CTRL, 'Alt'], MouseButton.left, 1),
   ],
 })
-
-// useDocumentEvent('keydown', shortcutRegistry.handleKeyboardEvent.bind(shortcutRegistry))

@@ -250,6 +250,7 @@ onUpdated(() => {
 
 // TODO [sb]: restore delete functionality (DELETE key)
 function handleClick(event: PointerEvent) {
+  console.log('what', event)
   if (shortcutRegistry.matchesMouseAction('replace-nodes-selection', event)) {
     emit('replaceSelection')
   } else if (shortcutRegistry.matchesMouseAction('add-to-nodes-selection', event)) {

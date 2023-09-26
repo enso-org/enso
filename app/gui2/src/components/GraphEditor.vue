@@ -9,10 +9,11 @@ import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { modKey, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
+import type { GUIMouseAction } from '@/util/shortcuts'
 import { Vec2 } from '@/util/vec2'
 import type { MouseAction } from 'enso-authentication/src/dashboard/shortcuts'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, reactive, ref, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
 import { shortcutRegistry } from '../util/shortcuts'
 import CustomCursor from './CustomCursor.vue'
 import SelectionBrush from './SelectionBrush.vue'
@@ -87,7 +88,7 @@ function moveNode(id: ExprId, delta: Vec2) {
 const cursorPos = ref({ x: 0, y: 0 })
 const selectionStart = ref<Vec2>()
 const selectionSize = ref<Vec2>()
-const initiallySelectedNodes = ref(selectedNodes)
+const initiallySelectedNodes = ref(new Set(selectedNodes.value))
 const mouseAction = ref<MouseAction>()
 
 const selection = usePointer((pos) => {
@@ -100,39 +101,60 @@ const intersectingNodes = computed<Set<ExprId>>(() => {
   if (!selection.dragging || selectionStart.value == null || selectionSize.value == null) {
     return new Set()
   }
-  const left = selectionStart.value.x + Math.min(selectionSize.value.x, 0)
-  const right = left + Math.abs(selectionSize.value.x)
-  const top = selectionStart.value.y + Math.min(selectionSize.value.y, 0)
-  const bottom = top + Math.abs(selectionSize.value.y)
+  const scaledWidth = selectionSize.value.x / navigator.scale
+  const left = (navigator.sceneMousePos?.x ?? 0) - Math.max(scaledWidth, 0)
+  const right = left + Math.abs(scaledWidth)
+  const scaledHeight = selectionSize.value.y / navigator.scale
+  const top = (navigator.sceneMousePos?.y ?? 0) - Math.max(scaledHeight, 0)
+  const bottom = top + Math.abs(scaledHeight)
   const intersectingNodes = new Set<ExprId>()
   for (const [id, rect] of nodeRects) {
     const rectLeft = rect.pos.x
     const rectRight = rectLeft + rect.size.x
     const rectTop = rect.pos.y
     const rectBottom = rectTop + rect.size.y
-    if (left <= rectRight || right >= rectLeft || top <= rectBottom || bottom >= rectTop) {
+    if (left <= rectRight && right >= rectLeft && top <= rectBottom && bottom >= rectTop) {
       intersectingNodes.add(id)
     }
   }
   return intersectingNodes
 })
 
-watchEffect(() => {
-  if (selection.dragging) {
-    initiallySelectedNodes.value = new Set(selectedNodes.value)
-    if (shortcutRegistry.matchesMouseAction('replace-nodes-selection', event)) {
-      //
+watch(
+  () => selection.dragging,
+  (dragging) => {
+    if (dragging) {
+      initiallySelectedNodes.value = new Set(selectedNodes.value)
     } else {
+      initiallySelectedNodes.value = new Set()
       mouseAction.value = undefined
     }
-  } else {
-    initiallySelectedNodes.value = new Set()
-    mouseAction.value = undefined
+  },
+)
+
+const nodeSelectionMouseActions: GUIMouseAction[] = [
+  'replace-nodes-selection',
+  'add-to-nodes-selection',
+  'remove-from-nodes-selection',
+  'toggle-nodes-selection',
+  'invert-nodes-selection',
+]
+
+function onPointerMove(event: MouseEvent) {
+  cursorPos.value.x = event.clientX
+  cursorPos.value.y = event.clientY
+  if (!selection.dragging) {
+    return
   }
-})
+  if (mouseAction.value == null || !shortcutRegistry.matchesMouseAction(mouseAction.value, event)) {
+    mouseAction.value = nodeSelectionMouseActions.find((action) =>
+      shortcutRegistry.matchesMouseAction(action, event),
+    )
+  }
+}
 
 watchEffect(() => {
-  if (mouseAction.value == null) {
+  if (!selection.dragging || mouseAction.value == null) {
     return
   }
   let newSelectedNodes: Set<ExprId>
@@ -217,12 +239,8 @@ onUnmounted(() => {
     class="viewport"
     :class="{ selecting: selection.dragging }"
     v-on="navigator.events"
-    @pointerdown="
-      selection.events.pointerdown($event), $event.button === 0 && selectedNodes.clear()
-    "
-    @pointermove="
-      (cursorPos.x = $event.clientX), (cursorPos.y = $event.clientY)
-    "
+    @pointerdown="selection.events.pointerdown($event), onPointerMove($event)"
+    @pointermove="onPointerMove"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdge

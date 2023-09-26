@@ -102,6 +102,7 @@ export type KeyboardAction = keyof KeyboardActions
 /** Valid mouse buttons. The values of each enum member is its corresponding value of
  * `MouseEvent.button`. */
 export enum MouseButton {
+    move = -1,
     left = 0,
     middle = 1,
     right = 2,
