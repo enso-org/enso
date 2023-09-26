@@ -532,13 +532,13 @@ spec setup =
             r3.should_fail_with Missing_Input_Columns
             r3.catch.criteria . should_equal ["Y"]
 
-    if setup.is_database then Test.group "Table/Column auto value type" <|
+    if setup.is_database then Test.group prefix+"Table/Column auto value type" <|
         Test.specify "should report unsupported" <|
             t = table_builder [["X", [1, 2, 3]]]
             t.auto_value_types . should_fail_with Unsupported_Database_Operation
             t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation
 
-    if setup.is_database.not then Test.group "Table/Column auto value type" <|
+    if setup.is_database.not then Test.group prefix+"Table/Column auto value type" <|
         Test.specify "should allow to narrow down types of a Mixed column" <|
             [True, False].each use_smallest->
                 mixer = My_Type.Value 1
@@ -673,5 +673,26 @@ spec setup =
             c6.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
 
         Test.specify "if all text values fit under 255 characters, will add a 255 length limit (if use_smallest=True)" <|
-            # test on limited and unlimited
-            Nothing
+            t1 = table_builder [["short_unbounded", ["a", "bb", "ccc"]], ["long_unbounded", ["a"*100, "b"*200, "c"*300]]]
+
+            t2 = t1 . set (t1.at "short_unbounded" . cast (Value_Type.Char size=1000)) "short_1000" . set (t1.at "short_unbounded" . cast (Value_Type.Char size=10)) "short_10" . set (t1.at "long_unbounded" . cast (Value_Type.Char size=400)) "long_400" . set (t1.at "short_unbounded" . cast Value_Type.Mixed) "short_mixed"
+            t2.at "short_mixed" . value_type . should_equal Value_Type.Mixed
+
+            t3 = t2.auto_value_types use_smallest=False
+            t3.at "short_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            t3.at "short_1000" . value_type . should_equal (Value_Type.Char size=1000 variable_length=True)
+            t3.at "short_10" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+            # Mixed column gets to be text again.
+            t3.at "short_mixed" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            t3.at "long_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            t3.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
+
+            t4 = t2.auto_value_types use_smallest=True
+            # Short ones get shortened to 255 unless they were shorter already.
+            t4.at "short_unbounded" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
+            t4.at "short_1000" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
+            t4.at "short_10" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+            t4.at "short_mixed" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
+            # Long ones cannot fit in 255 so they are kept as-is.
+            t4.at "long_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            t4.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
