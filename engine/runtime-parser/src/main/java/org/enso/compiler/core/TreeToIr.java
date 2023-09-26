@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
@@ -157,6 +158,7 @@ final class TreeToIr {
         List<Definition> bindings = nil();
         List<Import> imports = nil();
         List<Export> exports = nil();
+        List<Diagnostic> diag = nil();
         for (Line line : b.getStatements()) {
           var expr = line.getExpression();
           // Documentation found among imports/exports or at the top of the module (if it starts with imports) is
@@ -173,10 +175,12 @@ final class TreeToIr {
           }
           if (expr instanceof Private priv) {
             if (priv.getBody() != null) {
-              throw new IllegalStateException("Private token with body is not yet supported: " + priv);
+              var error = translateSyntaxError(priv, Syntax.UnsupportedSyntax.apply("Private token with body"));
+              diag = cons(error, diag);
             }
             if (isPrivate) {
-              throw new IllegalStateException("Private token specified more than once: " + priv);
+              var error = translateSyntaxError(priv, Syntax.UnsupportedSyntax.apply("Private token specified more than once"));
+              diag = cons(error, diag);
             }
             isPrivate = true;
             continue;
@@ -188,7 +192,7 @@ final class TreeToIr {
             default -> bindings = translateModuleSymbol(expr, bindings);
           }
         }
-        yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate, getIdentifiedLocation(module), meta(), diag());
+        yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate, getIdentifiedLocation(module), meta(), DiagnosticStorage.apply(diag));
       }
       default -> new Module(
         nil(), nil(),
