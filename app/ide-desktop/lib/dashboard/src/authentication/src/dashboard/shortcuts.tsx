@@ -300,6 +300,7 @@ export class ShortcutRegistry {
         )
     }
 
+    /** Add new keyboard actions, and their corresponding shortcuts. */
     registerNewKeyboardActions<NewActions extends KeyboardAction>(
         newActions: readonly NewActions[],
         newShortcuts: Record<NewActions, KeyboardShortcut[]>
@@ -312,6 +313,7 @@ export class ShortcutRegistry {
         this.updateKeyboardShortcutsByKey()
     }
 
+    /** Add new mouse actions, and their corresponding shortcuts. */
     registerNewMouseActions<NewActions extends MouseAction>(
         newActions: readonly NewActions[],
         newShortcuts: Record<NewActions, MouseShortcut[]>
@@ -388,8 +390,12 @@ export class ShortcutRegistry {
         this.keyboardShortcutsByKey = {}
         for (const shortcuts of Object.values(this.keyboardShortcuts)) {
             for (const shortcut of shortcuts) {
-                const byKey = (this.keyboardShortcutsByKey[shortcut.key.toUpperCase()] ??= [])
-                byKey.unshift(shortcut)
+                const byKey = this.keyboardShortcutsByKey[shortcut.key.toUpperCase()]
+                if (byKey != null) {
+                    byKey.unshift(shortcut)
+                } else {
+                    this.keyboardShortcutsByKey[shortcut.key.toUpperCase()] = [shortcut]
+                }
             }
         }
     }
@@ -473,7 +479,7 @@ export function mousebind(
 // =================
 
 /** The equivalent of the `Control` key for the current platform. */
-export const CTRL = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
+export const CTRL: 'Ctrl' | 'Meta' = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
 
 /** The key known as the `Delete` key for the current platform. */
 export const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'

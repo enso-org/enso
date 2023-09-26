@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
-
 const props = defineProps<{
   x: number
   y: number
