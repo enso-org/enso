@@ -1,7 +1,6 @@
 package org.enso.projectmanager.protocol
 
 import akka.actor.ActorRef
-import nl.gn0s1s.bump.SemVer
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
@@ -9,6 +8,7 @@ import zio.{ZAny, ZIO}
 
 import java.util.UUID
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
+import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.duration._
@@ -23,7 +23,7 @@ class ProjectShutdownSpec
     gen.reset()
   }
 
-  override val engineToInstall = Some(SemVer(0, 0, 1))
+  override val engineToInstall = Some(CurrentVersion.version)
 
   override val deleteProjectsRootAfterEachTest = false
 
