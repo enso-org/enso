@@ -1784,9 +1784,10 @@ type Column
              to be done manually through `cast`).
            - If all elements in a text column have the same length, the type
              will become fixed length.
-           - Otherwise, if a text column is variable length and unbounded, but
-             all text elements are shorter than 255 characters, the column will
-             get a max length of 255. Otherwise, the column will stay unbounded.
+           - Otherwise, if a text column is variable length, but all text
+             elements are no longer than 255 characters, the column will get a
+             max length of 255. Otherwise, the column size limit will stay
+             unchanged.
     auto_value_type : Boolean -> Column
     auto_value_type self use_smallest=False =
         # TODO use_smallest etc.

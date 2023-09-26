@@ -1030,9 +1030,10 @@ type Table
              to be done manually through `cast`).
            - If all elements in a text column have the same length, the type
              will become fixed length.
-           - Otherwise, if a text column is variable length and unbounded, but
-             all text elements are shorter than 255 characters, the column will
-             get a max length of 255. Otherwise, the column will stay unbounded.
+           - Otherwise, if a text column is variable length, but all text
+             elements are no longer than 255 characters, the column will get a
+             max length of 255. Otherwise, the column size limit will stay
+             unchanged.
     auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> Table
     auto_value_types self columns=self.column_names use_smallest=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
