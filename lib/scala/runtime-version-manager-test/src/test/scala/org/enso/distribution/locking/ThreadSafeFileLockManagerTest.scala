@@ -145,7 +145,8 @@ class ThreadSafeFileLockManagerTest
 
       val otherProcess = start(
         Seq("java", "-jar", "locking-test-helper.jar", lockFilePath.toString),
-        Seq()
+        Seq.empty,
+        Seq.empty
       )
 
       try {

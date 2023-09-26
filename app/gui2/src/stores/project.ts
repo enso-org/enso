@@ -105,6 +105,7 @@ export const useProjectStore = defineStore('project', () => {
     },
     module,
     undoManager,
+    awareness,
     lsRpcConnection: markRaw(lsRpcConnection),
   }
 })
