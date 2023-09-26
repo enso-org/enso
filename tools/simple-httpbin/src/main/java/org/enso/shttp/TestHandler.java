@@ -15,7 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.text.StringEscapeUtils;
 
-public class DummyHandler implements HttpHandler {
+public class TestHandler implements HttpHandler {
   private static final Set<String> ignoredHeaders = Set.of("Host");
 
   private static final Pattern textEncodingRegex = Pattern.compile(".*; charset=([^;]+).*");
