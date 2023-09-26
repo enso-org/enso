@@ -66,7 +66,7 @@ spec =
             deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
             "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
 
-        Test.specify "should be able to deserialize Dates" <|
+        Test.specify "should be able to deserialize Date" <|
             '{"type": "Date", "constructor": "new", "year": 2018, "month": 7, "day": 3}'.should_parse_as (Date.new 2018 7 3)
             '{"type": "Date", "year": 2025, "month": 5, "day": 12}'.should_parse_as (Date.new 2025 5 12)
             '{"type": "Date", "month": 5, "day": 12}' . should_parse_as (JS_Object.from_pairs [["type", "Date"], ["month", 5], ["day", 12]])

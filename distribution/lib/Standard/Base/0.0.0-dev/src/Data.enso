@@ -61,7 +61,7 @@ from project.System.File_Format import Auto_Detect, File_Format
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case path of
     _ : Text -> if (path.starts_with "http://") || (path.starts_with "https://") then fetch path else
-        read (File.new path)
+        read (File.new path) format on_problems
     _ -> File.new path . read format on_problems
 
 ## ALIAS load text, open text
