@@ -88,7 +88,7 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   }
 
   public static BigIntegerBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
-    int n = longBuilder.currentSize;
+    int n = longBuilder.data.length;
     BigIntegerBuilder res = new BigIntegerBuilder(n);
     for (int i = 0; i < n; i++) {
       res.appendNoGrow(BigInteger.valueOf(longBuilder.data[i]));
