@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding Range
 from Standard.Test import Bench
 import project.Vector.Array_Proxy_Bench
 import project.Vector.Distinct
@@ -23,6 +23,7 @@ import project.Json_Bench
 import project.Natural_Order_Sort
 import project.Number_Parse
 import project.Numeric
+import project.Range
 import project.Sum
 from Standard.Base.Runtime import Debug
 
