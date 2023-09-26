@@ -88,10 +88,20 @@ type Table
                         Column.from_vector (v.at 0) (v.at 1) . java_column
                 Column.Value java_col -> java_col
                 _ -> invalid_input_shape
-        if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
-            if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
-                if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
-                    Table.Value (Java_Table.new cols)
+        Panic.recover Illegal_Argument <|
+            if cols.is_empty then
+                Panic.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
+
+            if cols.distinct .getName . length != cols.length then
+                Panic.throw (Illegal_Argument.Error "Column names must be distinct.")
+
+            mismatched_size_column = cols.find if_missing=Nothing c->
+                c.getSize != cols.first.getSize
+            if mismatched_size_column.is_nothing.not then
+                msg = "All columns must have the same row count, but the column [" + mismatched_size_column.getName + "] has " + mismatched_size_column.getSize.to_text + " rows, while the column [" + cols.first.getName + "] has " + cols.first.getSize.to_text + " rows."
+                Panic.throw (Illegal_Argument.Error msg)
+
+            Table.Value (Java_Table.new cols)
 
     ## GROUP Standard.Base.Constants
        Creates a new table from a vector of column names and a vector of vectors
