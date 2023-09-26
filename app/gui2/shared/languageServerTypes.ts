@@ -1,3 +1,7 @@
+import type {
+  SuggestionsDatabaseEntry,
+  SuggestionsDatabaseUpdate,
+} from './languageServerTypes/suggestions'
 import type { ExprId, Uuid } from './yjsModel'
 
 /** Version checksum of a text file - Sha3_224 */
@@ -290,7 +294,10 @@ export type Notifications = {
     message: string
     diagnostic?: Diagnostic
   }) => void
-  'search/suggestionsDatabaseUpdate': (param: {}) => void
+  'search/suggestionsDatabaseUpdate': (param: {
+    updates: SuggestionsDatabaseUpdate[]
+    currentVersion: number
+  }) => void
   'file/event': (param: { path: Path; kind: FileEventKind }) => void
   'file/rootAdded': (param: {}) => void
   'file/rootRemoved': (param: {}) => void
@@ -378,8 +385,8 @@ export namespace response {
     data: Uint8Array
   }
 
-  export interface getSuggestionDatabase {
-    entries: []
+  export interface getSuggestionsDatabase {
+    entries: SuggestionsDatabaseEntry[]
     currentVersion: number
   }
 }
