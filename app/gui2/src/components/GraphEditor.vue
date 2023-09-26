@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
@@ -144,6 +145,7 @@ watch([suggestionDb.groups, viewportNode], ([groups, root]) => {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="console.log('\'execute\' button clicked.')"
     />
+    <CodeEditor ref="codeEditor" />
   </div>
 </template>
 
