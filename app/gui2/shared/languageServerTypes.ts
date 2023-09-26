@@ -3,8 +3,8 @@ import type { ExprId, Uuid } from './yjsModel'
 /** Version checksum of a text file - Sha3_224 */
 declare const brandChecksum: unique symbol
 export type Checksum = string & { [brandChecksum]: never }
-declare const contextIdChecksum: unique symbol
-export type ContextId = Uuid & { [contextIdChecksum]: never }
+declare const brandContextId: unique symbol
+export type ContextId = Uuid & { [brandContextId]: never }
 export type ExpressionId = ExprId
 declare const brandUtcDateTime: unique symbol
 export type UTCDateTime = string & { [brandUtcDateTime]: never }
@@ -302,7 +302,7 @@ export type StackItem = ExplicitCall | LocalCall
 export interface ExplicitCall {
   type: 'ExplicitCall'
   methodPointer: MethodPointer
-  thisArgumentExpression: string | null
+  thisArgumentExpression?: string
   positionalArgumentsExpressions: string[]
 }
 

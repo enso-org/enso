@@ -1,11 +1,12 @@
 import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { attachProvider } from '@/util/crdt'
+import type { Opt } from '@/util/opt'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import type { ContentRoot, ContextId } from 'shared/languageServerTypes'
+import type { ContentRoot, ContextId, MethodPointer } from 'shared/languageServerTypes'
 import { DistributedProject, type Uuid } from 'shared/yjsModel'
 import { computed, markRaw, ref, watchEffect } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
@@ -41,6 +42,44 @@ async function initializeLsRpcConnection(urls: LsUrls): Promise<{
   const connection = new LanguageServer(client)
   const contentRoots = (await connection.initProtocolConnection(clientId)).contentRoots
   return { connection, contentRoots }
+}
+
+/**
+ * Execution Context
+ *
+ * This class represent an execution context created in the Language Server. It creates
+ * it and pushes the initial frame upon construction.
+ *
+ * It hides the asynchronous nature of the language server. Each call is scheduled and
+ * run only when the previous call is done.
+ */
+export class ExecutionContext {
+  state: Promise<{ lsRpc: LanguageServer; id: ContextId }>
+
+  constructor(
+    lsRpc: Promise<LanguageServer>,
+    call: {
+      methodPointer: MethodPointer
+      thisArgumentExpression?: string
+      positionalArgumentsExpressions?: string[]
+    },
+  ) {
+    this.state = lsRpc.then(async (lsRpc) => {
+      const { contextId } = await lsRpc.createExecutionContext()
+      await lsRpc.pushExecutionContextItem(contextId, {
+        type: 'ExplicitCall',
+        positionalArgumentsExpressions: call.positionalArgumentsExpressions ?? [],
+        ...call,
+      })
+      return { lsRpc, id: contextId }
+    })
+  }
+
+  destroy() {
+    this.state.then(async ({ lsRpc, id }) => {
+      await lsRpc.destroyExecutionContext(id)
+    })
+  }
 }
 
 /**
@@ -115,7 +154,7 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
-  async function createExecutionContextForMain() {
+  async function createExecutionContextForMain(): Promise<Opt<ExecutionContext>> {
     if (name.value == null) {
       console.error('Cannot create execution context. Unknown project name.')
       return
@@ -134,20 +173,9 @@ export const useProjectStore = defineStore('project', () => {
       )
       return
     }
-    const executionContextId = random.uuidv4() as ContextId
-    const lsRpc = await lsRpcConnection
-    await lsRpc.createExecutionContext(executionContextId)
-    await lsRpc.pushExecutionContextItem(executionContextId, {
-      type: 'ExplicitCall',
-      methodPointer: {
-        module: mainModule,
-        definedOnType: mainModule,
-        name: 'main',
-      },
-      thisArgumentExpression: null,
-      positionalArgumentsExpressions: [],
+    return new ExecutionContext(lsRpcConnection, {
+      methodPointer: { module: mainModule, definedOnType: mainModule, name: 'main' },
     })
-    return executionContextId
   }
 
   return {
