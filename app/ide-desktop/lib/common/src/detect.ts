@@ -31,9 +31,9 @@ export function isOnWindows() {
     return /windows/i.test(navigator.userAgent)
 }
 
-/** Return whether the device is running macOS. */
+/** Return whether the device is running macOS or another Apple operating system. */
 export function isOnMacOS() {
-    return /mac os/i.test(navigator.userAgent)
+    return /mac os|iphone|ipod|ipad/i.test(navigator.userAgent)
 }
 
 /** Return whether the device is running Linux. */

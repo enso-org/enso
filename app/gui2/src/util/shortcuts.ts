@@ -15,7 +15,14 @@ const MOUSE_ACTIONS = [
 ] as const
 export type GUIMouseAction = (typeof MOUSE_ACTIONS)[number]
 
-const KEYBOARD_ACTIONS = ['select-all-nodes', 'deselect-all-nodes'] as const
+const KEYBOARD_ACTIONS = [
+  'undo',
+  'redo',
+  'open-component-browser',
+  'new-node',
+  'select-all-nodes',
+  'deselect-all-nodes',
+] as const
 export type GUIKeyboardAction = (typeof KEYBOARD_ACTIONS)[number]
 
 declare module 'enso-authentication/src/dashboard/shortcuts' {
@@ -27,6 +34,10 @@ declare module 'enso-authentication/src/dashboard/shortcuts' {
 export const shortcutRegistry = ShortcutRegistry.createWithDefaults()
 
 shortcutRegistry.registerNewKeyboardActions(KEYBOARD_ACTIONS, {
+  undo: [keybind('undo', [CTRL], 'Z')],
+  redo: [keybind('redo', [CTRL], 'Y')],
+  'open-component-browser': [keybind('open-component-browser', [], 'Enter')],
+  'new-node': [keybind('new-node', [], 'N')],
   'select-all-nodes': [keybind('select-all-nodes', [CTRL], 'A')],
   'deselect-all-nodes': [keybind('deselect-all-nodes', [], 'Escape')],
 })

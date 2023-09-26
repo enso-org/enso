@@ -108,7 +108,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     },
     scale,
     viewBox,
-    transformValue,
     transform,
     sceneMousePos,
   })

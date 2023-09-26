@@ -9,7 +9,7 @@ import SelectionBrush from '@/components/SelectionBrush.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
-import { modKey, usePointer, useWindowEvent } from '@/util/events'
+import { usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { shortcutRegistry, type GUIMouseAction } from '@/util/shortcuts'
 import { Vec2 } from '@/util/vec2'
@@ -47,31 +47,6 @@ function keyboardBusy() {
 
 useWindowEvent('keydown', (e) => {
   if (keyboardBusy()) return
-  const pos = navigator.sceneMousePos
-
-  if (modKey(e)) {
-    switch (e.key) {
-      case 'z':
-        projectStore.undoManager.undo()
-        break
-      case 'y':
-        projectStore.undoManager.redo()
-        break
-    }
-  } else {
-    switch (e.key) {
-      case 'Enter':
-        if (pos != null && !componentBrowserVisible.value) {
-          componentBrowserPosition.value = pos
-          componentBrowserVisible.value = true
-        }
-        break
-      case 'n': {
-        if (pos != null) graphStore.createNode(pos, 'hello "world"! 123 + x')
-        break
-      }
-    }
-  }
 })
 
 function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
@@ -85,17 +60,12 @@ function moveNode(id: ExprId, delta: Vec2) {
   graphStore.setNodePosition(id, newPosition)
 }
 
-const cursorPos = ref({ x: 0, y: 0 })
 const selectionStart = ref<Vec2>()
 const selectionSize = ref<Vec2>()
 const initiallySelectedNodes = ref(new Set(selectedNodes.value))
 const mouseAction = ref<MouseAction>()
 
-const selection = usePointer((pos) => {
-  cursorPos.value = pos.absolute
-  selectionStart.value = pos.initial
-  selectionSize.value = pos.relative
-})
+const selection = usePointer((pos) => (selectionSize.value = pos.relative))
 
 const intersectingNodes = computed<Set<ExprId>>(() => {
   if (!selection.dragging || selectionStart.value == null || selectionSize.value == null) {
@@ -124,6 +94,7 @@ watch(
   () => selection.dragging,
   (dragging) => {
     if (dragging) {
+      selectionStart.value = navigator.sceneMousePos ?? undefined
       initiallySelectedNodes.value = new Set(selectedNodes.value)
     } else {
       initiallySelectedNodes.value = new Set()
@@ -141,8 +112,6 @@ const nodeSelectionMouseActions: GUIMouseAction[] = [
 ]
 
 function onPointerMove(event: MouseEvent) {
-  cursorPos.value.x = event.clientX
-  cursorPos.value.y = event.clientY
   if (!selection.dragging) {
     return
   }
@@ -233,6 +202,26 @@ const unregisterKeyboardHandlers = ref<() => void>()
 
 onMounted(() => {
   shortcutRegistry.registerKeyboardHandlers({
+    undo: () => {
+      projectStore.undoManager.undo()
+    },
+    redo: () => {
+      projectStore.undoManager.redo()
+    },
+    'open-component-browser': () => {
+      if (keyboardBusy()) {
+        return false
+      }
+      if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
+        componentBrowserPosition.value = navigator.sceneMousePos
+        componentBrowserVisible.value = true
+      }
+    },
+    'new-node': () => {
+      if (navigator.sceneMousePos != null) {
+        graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
+      }
+    },
     'select-all-nodes': () => {
       for (const id of graphStore.nodes.keys()) {
         selectedNodes.value.add(id)
@@ -256,7 +245,7 @@ onUnmounted(() => {
     :class="{ selecting: selection.dragging }"
     v-on="navigator.events"
     @pointerdown="selection.events.pointerdown($event), onPointerMove($event)"
-    @pointermove="onPointerMove"
+    @pointermove="navigator.events.pointermove($event), onPointerMove($event)"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdge
@@ -282,13 +271,17 @@ onUnmounted(() => {
         @updateContent="(range, c) => updateNodeContent(id, range, c)"
         @movePosition="moveNode(id, $event)"
       />
+      <SelectionBrush
+        v-if="selection.dragging && selectionStart && selectionSize"
+        :start="selectionStart"
+        :size="selectionSize"
+      />
+      <CustomCursor
+        v-else-if="navigator.sceneMousePos"
+        :x="navigator.sceneMousePos.x"
+        :y="navigator.sceneMousePos.y"
+      />
     </div>
-    <SelectionBrush
-      v-if="selection.dragging && selectionStart && selectionSize"
-      :start="selectionStart"
-      :size="selectionSize"
-    />
-    <CustomCursor v-else v-bind="cursorPos" />
     <ComponentBrowser
       v-if="componentBrowserVisible"
       :navigator="navigator"
