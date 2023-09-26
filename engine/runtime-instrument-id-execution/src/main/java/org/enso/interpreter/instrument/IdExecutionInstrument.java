@@ -162,7 +162,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
       }
 
-      private void onExpressionReturn(Object result, Node node, EventContext context, long howLong) throws ThreadDeath {
+      private void onExpressionReturn(Object result, Node node, EventContext context, long howLong) {
         boolean isPanic = result instanceof AbstractTruffleException && !(result instanceof DataflowError);
         UUID nodeId = ((ExpressionNode) node).getId();
 

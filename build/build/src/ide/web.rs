@@ -2,18 +2,16 @@ use crate::prelude::*;
 
 use crate::ide::web::env::CSC_KEY_PASSWORD;
 use crate::paths::generated;
-use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use crate::project::gui::BuildInfo;
 use crate::project::wasm;
 use crate::project::ProcessWrapper;
 
 use anyhow::Context;
 use futures_util::future::try_join;
-use futures_util::future::try_join4;
+use futures_util::future::try_join3;
 use ide_ci::io::download_all;
 use ide_ci::ok_ready_boxed;
 use ide_ci::program::command::FallibleManipulator;
-use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
 use std::process::Stdio;
@@ -55,8 +53,6 @@ pub mod env {
         ENSO_BUILD_ICONS, PathBuf;
         /// List of files that should be copied to the Gui.
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
-        /// The main JS bundle to load WASM and JS wasm-pack bundles.
-        ENSO_BUILD_GUI_ENSOGL_APP, PathBuf;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
         ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
@@ -131,6 +127,7 @@ pub fn path_to_executable_in_pm_bundle(
 #[derive(Clone, Copy, Debug)]
 pub enum Workspaces {
     Icons,
+    IdeDesktop,
     Content,
     /// The Electron client.
     Enso,
@@ -140,6 +137,7 @@ impl AsRef<OsStr> for Workspaces {
     fn as_ref(&self) -> &OsStr {
         match self {
             Workspaces::Icons => OsStr::new("enso-icons"),
+            Workspaces::IdeDesktop => OsStr::new("enso-ide-desktop"),
             Workspaces::Content => OsStr::new("enso-content"),
             Workspaces::Enso => OsStr::new("enso"),
         }
@@ -167,13 +165,13 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         build_info: &BuildInfo,
         output_path: Output,
     ) -> Result<Self> {
-        let installation = ide.install();
+        // wasm build already does this, running `npm install` twice concurrently leads to broken
+        // builds.
+        // self.npm()?.install().run_ok().await?;
         let asset_dir = TempDir::new()?;
         let assets_download = download_js_assets(&asset_dir);
         let fonts_download = fonts::install_html_fonts(&ide.cache, &ide.octocrab, &asset_dir);
-        let (wasm, _, _, _) =
-            try_join4(wasm, installation, assets_download, fonts_download).await?;
-        wasm.symlink_ensogl_dist(&ide.linked_dist)?;
+        let (wasm, _, _) = try_join3(wasm, assets_download, fonts_download).await?;
         ide.write_build_info(build_info)?;
         Ok(ContentEnvironment { asset_dir, wasm, output_path })
     }
@@ -189,7 +187,6 @@ impl<Assets: AsRef<Path>, Output: AsRef<Path>> FallibleManipulator
         command
             .set_env(env::ENSO_BUILD_GUI, self.output_path.as_ref())?
             .set_env(env::ENSO_BUILD_GUI_WASM_ARTIFACTS, &artifacts_for_gui)?
-            .set_env(env::ENSO_BUILD_GUI_ENSOGL_APP, &self.wasm.ensogl_app())?
             .set_env(env::ENSO_BUILD_GUI_ASSETS, self.asset_dir.as_ref())?;
         Ok(())
     }
@@ -244,11 +241,10 @@ impl FallibleManipulator for ProjectManagerInfo {
 #[derivative(Debug)]
 pub struct IdeDesktop {
     pub build_sbt:   generated::RepoRootBuildSbt,
-    pub package_dir: generated::RepoRootAppIdeDesktop,
+    pub package_dir: generated::RepoRoot,
     #[derivative(Debug = "ignore")]
     pub octocrab:    Octocrab,
     pub cache:       ide_ci::cache::Cache,
-    pub linked_dist: RepoRootTargetEnsoglPackLinkedDist,
 }
 
 impl IdeDesktop {
@@ -259,10 +255,9 @@ impl IdeDesktop {
     ) -> Self {
         Self {
             build_sbt: repo_root.build_sbt.clone(),
-            package_dir: repo_root.app.ide_desktop.clone(),
+            package_dir: repo_root.clone(),
             octocrab,
             cache,
-            linked_dist: repo_root.target.ensogl_pack.linked_dist.clone(),
         }
     }
 
@@ -280,17 +275,11 @@ impl IdeDesktop {
         path.write_as_json(info)
     }
 
-    pub async fn install(&self) -> Result {
-        self.npm()?.install().run_ok().await?;
-        self.npm()?.install().arg("--workspaces").run_ok().await?;
-        Ok(())
-    }
-
     pub async fn build_icons(&self, output_path: impl AsRef<Path>) -> Result<IconsArtifacts> {
         self.npm()?
             .workspace(Workspaces::Icons)
             .set_env(env::ENSO_BUILD_ICONS, output_path.as_ref())?
-            .run("build", EMPTY_ARGS)
+            .run("build")
             .run_ok()
             .await?;
         Ok(IconsArtifacts(output_path.as_ref().into()))
@@ -307,23 +296,10 @@ impl IdeDesktop {
         output_path: P,
     ) -> Result<ContentEnvironment<TempDir, P>> {
         let env = ContentEnvironment::new(self, wasm, build_info, output_path).await?;
-        //env.apply();
         self.npm()?
             .try_applying(&env)?
             .workspace(Workspaces::Content)
-            .run("lint", EMPTY_ARGS)
-            .run_ok()
-            .await?;
-        self.npm()?
-            .try_applying(&env)?
-            .workspace(Workspaces::Content)
-            .run("typecheck", EMPTY_ARGS)
-            .run_ok()
-            .await?;
-        self.npm()?
-            .try_applying(&env)?
-            .workspace(Workspaces::Content)
-            .run("build", EMPTY_ARGS)
+            .run("build")
             .run_ok()
             .await?;
 
@@ -349,7 +325,7 @@ impl IdeDesktop {
             .npm()?
             .try_applying(&watch_environment)?
             .workspace(Workspaces::Content)
-            .run("watch", EMPTY_ARGS)
+            .run("watch")
             .spawn_intercepting()?;
         Ok(Watcher { child_process, watch_environment })
     }
@@ -386,7 +362,7 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
-            .run("build", EMPTY_ARGS)
+            .run("build")
             .run_ok();
 
         let icons_dist = TempDir::new()?;
@@ -419,7 +395,7 @@ impl IdeDesktop {
             .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
-            .run("dist", EMPTY_ARGS)
+            .run("dist")
             .arg("--")
             .arg(target_os_flag(target_os)?)
             .args(target_args)
@@ -471,7 +447,8 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_IDE, temp_dir_for_ide.path())?
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
-            .run("watch", script_args)
+            .run("watch")
+            .args(script_args)
             .run_ok()
             .await?;
 

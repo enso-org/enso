@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 // See here how to get started:
 // https://playwright.dev/docs/intro

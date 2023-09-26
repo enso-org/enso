@@ -4,7 +4,7 @@
 // === Types ===
 // =============
 
-/** Props for a {@link Column}. */
+/** Props for a {@link TableColumn}. */
 export interface TableColumnProps<T, State = never, RowState = never, Key extends string = string> {
     keyProp: Key
     item: T
@@ -16,7 +16,7 @@ export interface TableColumnProps<T, State = never, RowState = never, Key extend
     setRowState: React.Dispatch<React.SetStateAction<RowState>>
 }
 
-/** Props for a {@link Column}. */
+/** Props for a {@link TableColumn}. */
 export interface TableColumnHeadingProps<State = never> {
     state: State
 }

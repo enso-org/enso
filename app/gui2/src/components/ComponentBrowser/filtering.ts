@@ -108,8 +108,8 @@ class FilteringWithPattern {
       if (this.initialsMatchRegex.test(entry.name)) {
         return { score: MatchTypeScore.NameInitialMatch }
       }
-      const matchedAliasInitials = entry.aliases.find((alias) =>
-        this.initialsMatchRegex?.test(alias),
+      const matchedAliasInitials = entry.aliases.find(
+        (alias) => this.initialsMatchRegex?.test(alias),
       )
       if (matchedAliasInitials) {
         return { matchedAlias: matchedAliasInitials, score: MatchTypeScore.AliasInitialMatch }
@@ -183,7 +183,7 @@ class FilteringQualifiedName {
  */
 export class Filtering {
   pattern?: FilteringWithPattern
-  selfType?: QualifiedName
+  selfType?: QualifiedName | undefined
   qualifiedName?: FilteringQualifiedName
   showUnstable: boolean = false
   showLocal: boolean = false

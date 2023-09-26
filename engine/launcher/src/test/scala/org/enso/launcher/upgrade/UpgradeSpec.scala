@@ -138,11 +138,13 @@ class UpgradeSpec
     *
     * @param args arguments for the launcher
     * @param extraEnv environment variable overrides
+    * @param extraJVMProps JVM properties to append to the launcher command
     * @return wrapped process
     */
   def startLauncher(
     args: Seq[String],
-    extraEnv: Map[String, String] = Map.empty
+    extraEnv: Map[String, String]      = Map.empty,
+    extraJVMProps: Map[String, String] = Map.empty
   ): WrappedProcess = {
     val testArgs = Seq(
       "--internal-emulate-repository",
@@ -154,7 +156,8 @@ class UpgradeSpec
       extraEnv.updated("ENSO_LAUNCHER_LOCATION", realLauncherLocation.toString)
     start(
       Seq(launcherPath.toAbsolutePath.toString) ++ testArgs ++ args,
-      env.toSeq
+      env.toSeq,
+      extraJVMProps.toSeq
     )
   }
 

@@ -1,20 +1,20 @@
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
   type SuggestionEntry,
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { Filtering, type MatchResult } from './filtering'
-import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/opt'
+import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
+import { Filtering, type MatchResult } from './filtering'
 
 export interface Component {
   suggestionId: SuggestionId
   icon: string
   label: string
   match: MatchResult
-  group?: number
+  group?: number | undefined
 }
 
 export function labelOfEntry(entry: SuggestionEntry, filtering: Filtering) {
@@ -55,7 +55,7 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
   }
   const matched: MatchedSuggestion[] = Array.from(matchSuggestions())
   matched.sort(compareSuggestions)
-  return Array.from(matched, ({ id, entry, match }) => {
+  return Array.from(matched, ({ id, entry, match }): Component => {
     return {
       suggestionId: id,
       icon: entry.iconName ?? 'marketplace',

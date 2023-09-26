@@ -7,6 +7,7 @@ import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
+import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
@@ -156,23 +157,67 @@ type Date_Time
        Obtains an instance of `Time` from a text such as
        "2007-12-03T10:15:30+01:00 Europe/Paris".
 
+       This method will return a `Time_Error` if the provided time cannot be
+       parsed.
+
        Arguments:
        - text: The text representing the time to be parsed.
-       - pattern: The pattern to use for parsing the input text.
-       - locale: The locale in which the pattern should be interpreted.
+       - format: A pattern describing how to parse the text,
+         or a `Date_Time_Formatter`.
 
        ? Pattern Syntax
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
+         If the pattern is provided as `Text`, it is parsed using the format
+         described below. See `Date_Time_Formatter` for more options.
+         - y: Year. The number of pattern letters determines the minimum number of
+           digits.
+           - y: The year using any number of digits.
+           - yy: The year, using at most two digits. The default range is
+             1950-2049, but this can be changed by including the end year in
+             braces e.g. `yy{2099}`.
+           - yyyy: The year, using exactly four digits.
+         - M: Month of year. The number of pattern letters determines the format:
+           - M: Any number (1-12).
+           - MM: Month number with zero padding required (01-12).
+           - MMM: Short name of the month (Jan-Dec).
+           - MMMM: Full name of the month (January-December).
+           The month names depend on the selected locale.
+         - d: Day. The number of pattern letters determines the format:
+           - d: Any number (1-31).
+           - dd: Day number with zero padding required (01-31).
+           - ddd: Short name of the day of week (Mon-Sun).
+           - dddd: Full name of the day of week (Monday-Sunday).
+           The weekday names depend on the selected locale.
+           Both day of week and day of month may be included in a single pattern -
+           in such case the day of week is used as a sanity check.
+         - Q: Quarter of year.
+           If only year and quarter are provided in the pattern, when parsing a
+           date, the result will be the first day of that quarter.
+         - H: 24h hour of day (0-23).
+         - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+           between AM and PM.
+         - m: Minute of hour.
+         - s: Second of minute.
+         - f: Fractional part of the second. The number of pattern letters
+           determines the number of digits. If one letter is used, any number of
+           digits will be accepted.
+         - a: AM/PM marker.
+         - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
+           -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
+         - Z: Zone offset.
+           - Z, ZZ, ZZZ: A short offset form (+HHmm).
+             No offset is indicated by "+0000". This can be customized by setting
+             an alternative no offset string in curly braces, e.g. `zz{Z}`.
+           - ZZZZ: Localized offset (e.g. GMT-08:00).
+           - ZZZZZ: A full offset form (+HH:mm:ss).
+             No offset is indicated by "Z". This can be customized as above, e.g.
+             `ZZZZZ{0}`.
 
        ? Default Date_Time Format
-         The text must represent a valid date-time as defined by the ISO-8601
-         format. (See https://en.wikipedia.org/wiki/ISO_8601.) If a time zone is
-         present, it must be in the ISO-8601 Extended Date/Time Format (EDTF).
-         (See https://en.wikipedia.org/wiki/ISO_8601#EDTF.) The time zone format
-         consists of:
+         Unless you provide a custom format, the text must represent a valid
+         date-time as defined by the ISO-8601 format (see https://en.wikipedia.org/wiki/ISO_8601).
+         If a time zone is present, it must be in the ISO-8601 Extended
+         Date/Time Format (EDTF) (see https://en.wikipedia.org/wiki/ISO_8601#EDTF).
+         The time zone format consists of:
 
          - The ISO offset date time.
          - If the zone ID is not available or is a zone offset then the format is
@@ -181,9 +226,6 @@ type Date_Time
          - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
            sensitive.
          - A close square bracket ']'.
-
-       This method will return a `Time_Error` if the provided time cannot be parsed
-       using the above format.
 
        > Example
          Parse UTC time.
@@ -234,20 +276,10 @@ type Date_Time
 
              example_parse =
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
-    @pattern make_date_time_format_selector
-    @locale Locale.default_widget
-    parse : Text -> Text -> Locale -> Date_Time ! Time_Error
-    parse text:Text pattern:Text="" locale:Locale=Locale.default =
-        result = Panic.recover Any <|
-            formatter = if pattern.is_empty then Time_Utils.default_date_time_formatter else
-                Time_Utils.make_formatter pattern locale.java_locale
-
-            needs_normalised = if pattern.is_empty then True else Time_Utils.is_iso_datetime_based pattern
-            normalised = if needs_normalised then Time_Utils.normalise_iso_datetime text.trim else text.trim
-            Time_Utils.parse_date_time normalised formatter
-        result . map_error <| case _ of
-            err : JException -> Time_Error.Error err.getMessage
-            ex -> ex
+    @format make_date_time_format_selector
+    parse : Text -> Date_Time_Formatter -> Date_Time ! Time_Error
+    parse text:Text format:Date_Time_Formatter=Date_Time_Formatter.default_enso_zoned_date_time =
+        format.parse_date_time text
 
     ## GROUP Metadata
        Get the year portion of the time.
@@ -717,8 +749,9 @@ type Date_Time
        Convert to a display representation of this Date_Time.
     to_display_text : Text
     to_display_text self =
+        # TODO note that we are using a format that will not be parsed by our default formatters and needs custom formatter to be parsed. Is that OK?
         time_format = if self.nanosecond include_milliseconds=True == 0 then "HH:mm:ss" else "HH:mm:ss.n"
-        self.format "yyyy-MM-dd "+time_format+" VV"
+        self.format "yyyy-MM-dd "+time_format+" TT"
 
     ## PRIVATE
        Convert to a JavaScript Object representing a Date_Time.
@@ -737,15 +770,55 @@ type Date_Time
        Format this time as text using the specified format specifier.
 
        Arguments:
-       - pattern: The pattern that specifies how to format the time.
-       - locale: The locale in which the format should be interpreted.
-         (Defaults to Locale.default.)
+       - format: A pattern describing how to format the text,
+         or a `Date_Time_Formatter`.
 
        ? Pattern Syntax
-         A custom pattern string consists of one or more custom date and time
-         format specifiers. For example, "d MMM yyyy" will format "2011-12-03"
-         as "3 Dec 2011". See https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/time/format/DateTimeFormatter.html
-         for a complete format specification.
+         If the pattern is provided as `Text`, it is parsed using the format
+         described below. See `Date_Time_Formatter` for more options.
+         - y: Year. The number of pattern letters determines the minimum number of
+           digits.
+           - y: The year using any number of digits.
+           - yy: The year, using at most two digits. The default range is
+             1950-2049, but this can be changed by including the end year in
+             braces e.g. `yy{2099}`.
+           - yyyy: The year, using exactly four digits.
+         - M: Month of year. The number of pattern letters determines the format:
+           - M: Any number (1-12).
+           - MM: Month number with zero padding required (01-12).
+           - MMM: Short name of the month (Jan-Dec).
+           - MMMM: Full name of the month (January-December).
+           The month names depend on the selected locale.
+         - d: Day. The number of pattern letters determines the format:
+           - d: Any number (1-31).
+           - dd: Day number with zero padding required (01-31).
+           - ddd: Short name of the day of week (Mon-Sun).
+           - dddd: Full name of the day of week (Monday-Sunday).
+           The weekday names depend on the selected locale.
+           Both day of week and day of month may be included in a single pattern -
+           in such case the day of week is used as a sanity check.
+         - Q: Quarter of year.
+           If only year and quarter are provided in the pattern, when parsing a
+           date, the result will be the first day of that quarter.
+         - H: 24h hour of day (0-23).
+         - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate
+           between AM and PM.
+         - m: Minute of hour.
+         - s: Second of minute.
+         - f: Fractional part of the second. The number of pattern letters
+           determines the number of digits. If one letter is used, any number of
+           digits will be accepted.
+         - a: AM/PM marker.
+         - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,
+           -08:30), otherwise - Time zone name (e.g. Central European Time, CET).
+         - Z: Zone offset.
+           - Z, ZZ, ZZZ: A short offset form (+HHmm).
+             No offset is indicated by "+0000". This can be customized by setting
+             an alternative no offset string in curly braces, e.g. `zz{Z}`.
+           - ZZZZ: Localized offset (e.g. GMT-08:00).
+           - ZZZZZ: A full offset form (+HH:mm:ss).
+             No offset is indicated by "Z". This can be customized as above, e.g.
+             `ZZZZZ{0}`.
 
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as
@@ -754,7 +827,7 @@ type Date_Time
              from Standard.Base import Date_Time
 
              example_format =
-                Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['VV']'"
+                Date_Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['tt']'"
 
        > Example
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as
@@ -781,10 +854,7 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
-    @pattern (value-> make_date_time_format_selector value)
-    @locale Locale.default_widget
-    format : Text -> Locale -> Text
-    format self pattern:Text locale:Locale=Locale.default =
-        formatter = if pattern.is_empty then Time_Utils.default_output_date_time_formatter else
-            Time_Utils.make_formatter pattern locale.java_locale
-        Time_Utils.date_time_format self formatter
+    @format (value-> make_date_time_format_selector value)
+    format : Date_Time_Formatter -> Text
+    format self format:Date_Time_Formatter =
+        format.format_date_time self

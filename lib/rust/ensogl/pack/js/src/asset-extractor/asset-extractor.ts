@@ -1,10 +1,10 @@
 /** @file Tool for extracting sources of dynamic assets from compiled WASM binaries. */
 
 import path from 'path'
-import * as args from 'asset-extractor/args'
-import * as fs from 'asset-extractor/fs'
-import * as log from 'runner/log'
-import * as runner from 'runner/index'
+import * as args from './args'
+import * as fs from './fs'
+import * as log from '../runner/log'
+import * as runner from '../runner/index'
 
 // ===========
 // === App ===

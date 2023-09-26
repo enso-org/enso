@@ -1,12 +1,12 @@
 import { assert } from '@/util/assert'
 import {
+  isIdentifier,
+  isQualifiedName,
   qnLastSegment,
   qnParent,
+  qnSplit,
   type Identifier,
   type QualifiedName,
-  qnSplit,
-  isQualifiedName,
-  isIdentifier,
 } from '@/util/qualifiedName'
 
 export type SuggestionId = number
@@ -92,7 +92,7 @@ export interface SuggestionEntry {
   /// A name of a custom icon to use when displaying the entry.
   iconName?: string
   /// A name of a group this entry belongs to.
-  groupIndex?: number
+  groupIndex?: number | undefined
 }
 
 function makeSimpleEntry(

@@ -7,6 +7,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
+import * as permissionsModule from '../permissions'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
@@ -27,7 +28,7 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 
 /** Props for a {@link ManagePermissionsModal}. */
 export interface ManagePermissionsModalProps<
-    Asset extends backendModule.AnyAsset = backendModule.AnyAsset
+    Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
     item: Asset
     setItem: React.Dispatch<React.SetStateAction<Asset>>
@@ -43,7 +44,7 @@ export interface ManagePermissionsModalProps<
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
 export default function ManagePermissionsModal<
-    Asset extends backendModule.AnyAsset = backendModule.AnyAsset
+    Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
     const { item, setItem, self, doRemoveSelf, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
@@ -53,15 +54,15 @@ export default function ManagePermissionsModal<
     const [permissions, setPermissions] = React.useState(item.permissions ?? [])
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [email, setEmail] = React.useState<string | null>(null)
-    const [action, setAction] = React.useState(backendModule.PermissionAction.view)
+    const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
     const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const editablePermissions = React.useMemo(
         () =>
-            self.permission === backendModule.PermissionAction.own
+            self.permission === permissionsModule.PermissionAction.own
                 ? permissions
                 : permissions.filter(
-                      permission => permission.permission !== backendModule.PermissionAction.own
+                      permission => permission.permission !== permissionsModule.PermissionAction.own
                   ),
         [permissions, self.permission]
     )
@@ -78,10 +79,10 @@ export default function ManagePermissionsModal<
     )
     const isOnlyOwner = React.useMemo(
         () =>
-            self.permission === backendModule.PermissionAction.own &&
+            self.permission === permissionsModule.PermissionAction.own &&
             permissions.every(
                 permission =>
-                    permission.permission !== backendModule.PermissionAction.own ||
+                    permission.permission !== permissionsModule.PermissionAction.own ||
                     permission.user.user_email === organization?.email
             ),
         [organization?.email, permissions, self.permission]
@@ -278,7 +279,7 @@ export default function ManagePermissionsModal<
                                     disabled={willInviteNewUser}
                                     selfPermission={self.permission}
                                     typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
-                                    action={backendModule.PermissionAction.view}
+                                    action={permissionsModule.PermissionAction.view}
                                     assetType={item.type}
                                     onChange={setAction}
                                 />

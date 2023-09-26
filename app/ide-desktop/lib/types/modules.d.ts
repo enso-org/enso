@@ -49,18 +49,18 @@ declare module '*/gui/config.yaml' {
 
 declare module '@eslint/js' {
     /** A set of configurations. */
-    interface Config {
+    export interface Config {
         rules: Record<string, unknown>
     }
 
     /** Preset configurations defined by ESLint. */
-    interface EslintConfigs {
+    export interface EslintConfigs {
         all: Config
         recommended: Config
     }
 
     /** The default export of the module. */
-    interface Default {
+    export interface Default {
         configs: EslintConfigs
     }
 
@@ -98,7 +98,7 @@ declare module 'eslint-plugin-react' {
     /* eslint-enable @typescript-eslint/naming-convention */
 
     /** The default export of this ESLint plugin. */
-    interface Default {
+    export interface Default {
         rules: Record<string, object>
         configs: Configs
         deprecatedRules: DeprecatedRules
@@ -134,7 +134,7 @@ declare module 'eslint-plugin-react-hooks' {
     }
 
     /** The default export of this ESLint plugin. */
-    interface Default {
+    export interface Default {
         configs: Configs
         rules: ReactHooksRules
     }

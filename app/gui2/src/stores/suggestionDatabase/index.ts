@@ -1,8 +1,8 @@
+import { findIndexOpt } from '@/util/array'
+import { isSome } from '@/util/opt'
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 import { SuggestionKind, type SuggestionEntry, type SuggestionId } from './entry'
-import { isSome } from '@/util/opt'
-import { findIndexOpt } from '@/util/array'
 
 export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
 export const SuggestionDb = Map<SuggestionId, SuggestionEntry>
