@@ -12,8 +12,9 @@ use crate::prelude::*;
 #[derive(Clone, Default, Eq, PartialEq, Serialize, Reflect, Deserialize, Deref)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
-    #[reflect(skip)]
-    #[serde(skip)]
+    #[serde(serialize_with = "crate::serialization::serialize_cow")]
+    #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
+    #[reflect(as = "crate::serialization::Code", flatten, hide)]
     #[deref]
     pub repr:  Cow<'s, str>,
     #[reflect(hide)]
