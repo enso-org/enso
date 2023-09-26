@@ -1776,6 +1776,8 @@ type Column
          - Text columns are not parsed. To do that, use the `parse` method.
          - If a `Float` column contains only integers, it will be converted to
            an Integer column.
+         - If a `Decimal` column contains only integers that could fit in a
+           64-bit integer storage, it will be converted to an Integer column.
          - If `shrink_types` is `False` (default), no other transformations are
            applied.
          - However, if `shrink_types` is set to `True`, then:
