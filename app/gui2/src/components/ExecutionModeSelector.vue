@@ -137,7 +137,8 @@ span {
   overflow: hidden;
 
   > span {
-    padding: 0;
+    padding-top: 0;
+    padding-bottom: 0;
     max-height: 0;
   }
 }

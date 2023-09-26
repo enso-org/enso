@@ -4,10 +4,12 @@ const INITIAL_URL_KEY = `Enso-initial-url`
 
 import './assets/main.css'
 
+import { basicSetup } from 'codemirror'
 import { isMac } from 'lib0/environment'
 import { decodeQueryParams } from 'lib0/url'
 import { createPinia } from 'pinia'
 import { createApp, type App } from 'vue'
+import VueCodemirror from 'vue-codemirror'
 import AppRoot from './App.vue'
 
 const params = decodeQueryParams(location.href)
@@ -32,6 +34,7 @@ async function runApp(config: StringConfig | null, accessToken: string | null, m
   const rootProps = { config, accessToken, metadata }
   app = createApp(AppRoot, rootProps)
   app.use(createPinia())
+  app.use(VueCodemirror, { extensions: [basicSetup] })
   app.mount('#app')
 }
 

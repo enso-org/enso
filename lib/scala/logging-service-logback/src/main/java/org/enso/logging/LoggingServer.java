@@ -6,7 +6,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import org.enso.logger.LogbackSetup;
-import org.enso.logger.config.Appender;
+import org.enso.logger.config.BaseConfig;
 import org.slf4j.event.Level;
 
 class LoggingServer extends LoggingService<URI> {
@@ -19,13 +19,13 @@ class LoggingServer extends LoggingService<URI> {
     this.logServer = null;
   }
 
-  public URI start(Level level, Path path, String prefix, Appender appender) {
+  public URI start(Level level, Path path, String prefix, BaseConfig config) {
     var lc = new LoggerContext();
-    var setup = LogbackSetup.forContext(lc, appender);
 
-    logServer = new SimpleSocketServer(lc, port);
-    logServer.start();
     try {
+      var setup = LogbackSetup.forContext(lc, config);
+      logServer = new SimpleSocketServer(lc, port);
+      logServer.start();
       setup.setup(level, path, prefix, setup.getConfig());
       return new URI(null, null, "localhost", port, null, null, null);
     } catch (URISyntaxException e) {

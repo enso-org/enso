@@ -14,7 +14,7 @@ export interface Component {
   icon: string
   label: string
   match: MatchResult
-  group?: number
+  group?: number | undefined
 }
 
 export function labelOfEntry(entry: SuggestionEntry, filtering: Filtering) {
@@ -55,7 +55,7 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
   }
   const matched: MatchedSuggestion[] = Array.from(matchSuggestions())
   matched.sort(compareSuggestions)
-  return Array.from(matched, ({ id, entry, match }) => {
+  return Array.from(matched, ({ id, entry, match }): Component => {
     return {
       suggestionId: id,
       icon: entry.iconName ?? 'marketplace',
