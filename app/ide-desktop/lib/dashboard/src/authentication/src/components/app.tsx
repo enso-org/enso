@@ -106,7 +106,7 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
-    shortcutRegistry: shortcuts.ShortcutRegistry
+    shortcutRegistry?: shortcuts.ShortcutRegistry
     logger: loggerProvider.Logger
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
@@ -163,7 +163,7 @@ export default function App(props: AppProps) {
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
     const {
-        shortcutRegistry,
+        shortcutRegistry = shortcuts.ShortcutRegistry.createWithDefaults(),
         logger,
         supportsLocalBackend,
         isAuthenticationDisabled,
