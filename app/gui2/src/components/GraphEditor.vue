@@ -4,7 +4,6 @@ import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 
-import CustomCursor from '@/components/CustomCursor.vue'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -18,7 +17,8 @@ import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
-const BRUSH_PADDING_PX = 8
+const SELECTION_BRUSH_MARGIN_PX = 6
+const FALLBACK_CURSOR_POSITION = new Vec2(0, 0)
 
 const title = ref('Test Project')
 const mode = ref('design')
@@ -60,7 +60,6 @@ function moveNode(id: ExprId, delta: Vec2) {
   graphStore.setNodePosition(id, newPosition)
 }
 
-const selectionStart = ref<Vec2>()
 const selectionSize = ref<Vec2>()
 const initiallySelectedNodes = ref(new Set(selectedNodes.value))
 const mouseAction = ref<MouseAction>()
@@ -68,15 +67,17 @@ const mouseAction = ref<MouseAction>()
 const selection = usePointer((pos) => (selectionSize.value = pos.relative))
 
 const intersectingNodes = computed<Set<ExprId>>(() => {
-  if (!selection.dragging || selectionStart.value == null || selectionSize.value == null) {
+  if (!selection.dragging || selectionSize.value == null) {
     return new Set()
   }
   const scaledWidth = selectionSize.value.x / navigator.scale
-  const left = (navigator.sceneMousePos?.x ?? 0) - Math.max(scaledWidth, 0) - BRUSH_PADDING_PX
-  const right = left + Math.abs(scaledWidth) + 2 * BRUSH_PADDING_PX
+  const left =
+    (navigator.sceneMousePos?.x ?? 0) - Math.max(scaledWidth, 0) - SELECTION_BRUSH_MARGIN_PX
+  const right = left + Math.abs(scaledWidth) + 2 * SELECTION_BRUSH_MARGIN_PX
   const scaledHeight = selectionSize.value.y / navigator.scale
-  const top = (navigator.sceneMousePos?.y ?? 0) - Math.max(scaledHeight, 0) - BRUSH_PADDING_PX
-  const bottom = top + Math.abs(scaledHeight) + 2 * BRUSH_PADDING_PX
+  const top =
+    (navigator.sceneMousePos?.y ?? 0) - Math.max(scaledHeight, 0) - SELECTION_BRUSH_MARGIN_PX
+  const bottom = top + Math.abs(scaledHeight) + 2 * SELECTION_BRUSH_MARGIN_PX
   const intersectingNodes = new Set<ExprId>()
   for (const [id, rect] of nodeRects) {
     const rectLeft = rect.pos.x
@@ -94,10 +95,10 @@ watch(
   () => selection.dragging,
   (dragging) => {
     if (dragging) {
-      selectionStart.value = navigator.sceneMousePos ?? undefined
       initiallySelectedNodes.value = new Set(selectedNodes.value)
     } else {
       initiallySelectedNodes.value = new Set()
+      selectionSize.value = undefined
       mouseAction.value = undefined
     }
   },
@@ -272,14 +273,8 @@ onUnmounted(() => {
         @movePosition="moveNode(id, $event)"
       />
       <SelectionBrush
-        v-if="selection.dragging && selectionStart && selectionSize"
-        :start="selectionStart"
+        :position="navigator.sceneMousePos ?? FALLBACK_CURSOR_POSITION"
         :size="selectionSize"
-      />
-      <CustomCursor
-        v-else-if="navigator.sceneMousePos"
-        :x="navigator.sceneMousePos.x"
-        :y="navigator.sceneMousePos.y"
       />
     </div>
     <ComponentBrowser
