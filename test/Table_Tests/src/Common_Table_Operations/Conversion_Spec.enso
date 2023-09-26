@@ -540,30 +540,31 @@ spec setup =
 
     if setup.is_database.not then Test.group "Table/Column auto value type" <|
         Test.specify "should allow to narrow down types of a Mixed column" <|
-            mixer = My_Type.Value 1
-            t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]], ["mix", [1, mixer, "a"]], ["dates", [mixer, Date.new 2022, Date.new 2020]], ["datetimes", [mixer, Date_Time.new 2022 12 30 13 45, Date_Time.new 2020]], ["times", [mixer, Time_Of_Day.new 12 30, Time_Of_Day.new 13 45]], ["mixed_time", [Date.new 2022, Time_Of_Day.new 12 30, Date_Time.new 2019]], ["bools", [mixer, True, False]]]
-            t1 = t0.drop 1
+            [True, False].each use_smallest->
+                mixer = My_Type.Value 1
+                t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]], ["mix", [1, mixer, "a"]], ["dates", [mixer, Date.new 2022, Date.new 2020]], ["datetimes", [mixer, Date_Time.new 2022 12 30 13 45, Date_Time.new 2020]], ["times", [mixer, Time_Of_Day.new 12 30, Time_Of_Day.new 13 45]], ["mixed_time", [Date.new 2022, Time_Of_Day.new 12 30, Date_Time.new 2019]], ["bools", [mixer, True, False]]]
+                t1 = t0.drop 1
 
-            t1.at "strs" . value_type . should_equal Value_Type.Mixed
-            t1.at "ints" . value_type . should_equal Value_Type.Mixed
-            t1.at "floats" . value_type . should_equal Value_Type.Mixed
-            t1.at "mix" . value_type . should_equal Value_Type.Mixed
-            t1.at "dates" . value_type . should_equal Value_Type.Mixed
-            t1.at "datetimes" . value_type . should_equal Value_Type.Mixed
-            t1.at "times" . value_type . should_equal Value_Type.Mixed
-            t1.at "mixed_time" . value_type . should_equal Value_Type.Mixed
-            t1.at "bools" . value_type . should_equal Value_Type.Mixed
+                t1.at "strs" . value_type . should_equal Value_Type.Mixed
+                t1.at "ints" . value_type . should_equal Value_Type.Mixed
+                t1.at "floats" . value_type . should_equal Value_Type.Mixed
+                t1.at "mix" . value_type . should_equal Value_Type.Mixed
+                t1.at "dates" . value_type . should_equal Value_Type.Mixed
+                t1.at "datetimes" . value_type . should_equal Value_Type.Mixed
+                t1.at "times" . value_type . should_equal Value_Type.Mixed
+                t1.at "mixed_time" . value_type . should_equal Value_Type.Mixed
+                t1.at "bools" . value_type . should_equal Value_Type.Mixed
 
-            t2 = t1.auto_value_types
-            t2.at "strs" . value_type . should_equal Value_Type.Char
-            t2.at "ints" . value_type . should_equal Value_Type.Integer
-            t2.at "floats" . value_type . should_equal Value_Type.Float
-            t2.at "mix" . value_type . should_equal Value_Type.Mixed
-            t2.at "dates" . value_type . should_equal Value_Type.Date
-            t2.at "datetimes" . value_type . should_equal Value_Type.Date_Time
-            t2.at "times" . value_type . should_equal Value_Type.Time
-            t2.at "mixed_time" . value_type . should_equal Value_Type.Mixed
-            t2.at "bools" . value_type . should_equal Value_Type.Boolean
+                t2 = t1.auto_value_types use_smallest=use_smallest
+                t2.at "strs" . value_type . should_equal Value_Type.Char
+                t2.at "ints" . value_type . should_equal Value_Type.Integer
+                t2.at "floats" . value_type . should_equal Value_Type.Float
+                t2.at "mix" . value_type . should_equal Value_Type.Mixed
+                t2.at "dates" . value_type . should_equal Value_Type.Date
+                t2.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+                t2.at "times" . value_type . should_equal Value_Type.Time
+                t2.at "mixed_time" . value_type . should_equal Value_Type.Mixed
+                t2.at "bools" . value_type . should_equal Value_Type.Boolean
 
         Test.specify "will only modify selected columns" <|
             mixer = My_Type.Value 1
@@ -604,6 +605,16 @@ spec setup =
             c2 = t1.at "X" . auto_value_type
             c2.value_type . should_equal Value_Type.Char
 
+        Test.specify "will 'undo' a cast to Mixed" <|
+            t1 = table_builder [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
+            t2 = t1.cast ["X", "Y"] Value_Type.Mixed
+            t2.at "X" . value_type . should_equal Value_Type.Mixed
+            t2.at "Y" . value_type . should_equal Value_Type.Mixed
+
+            t3 = t2.auto_value_types
+            t3.at "X" . value_type . should_equal Value_Type.Integer
+            t3.at "Y" . value_type . should_equal Value_Type.Char
+
         Test.specify "will choose Decimal type if all values are integers but cannot fit long" <|
             c0 = table_builder [["X", [My_Type.Value 42, 1, 2, 2^100]]] . at "X"
             c1 = c0.drop 1
@@ -620,7 +631,7 @@ spec setup =
                 t1 = t0.drop 1
 
                 case is_mixed of
-                    True -> t1.at "Z" . value_type . should_equal Value_Type.Mixed
+                    True  -> t1.at "Z" . value_type . should_equal Value_Type.Mixed
                     False -> t1.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
                 t2 = t1.auto_value_types use_smallest=False
@@ -635,8 +646,31 @@ spec setup =
                 t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
         Test.specify "if all text values have the same length, will change the type to fixed-length string (if use_smallest=True)" <|
-            # test on limited and unlimited
-            Nothing
+            [False, True].each is_mixed->
+                prefix = if is_mixed then 42 else "FOOBARBAZ"
+                c0 = table_builder [["X", [prefix, "aa", "bb", "cc"]]] . at "X"
+                c1 = c0.drop 1
+                c1.to_vector . should_equal ["aa", "bb", "cc"]
+
+                case is_mixed of
+                    True  -> c1.value_type . should_equal Value_Type.Mixed
+                    False -> c1.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+
+                c2 = c1.auto_value_type use_smallest=False
+                c2.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+
+                c3 = c1.auto_value_type use_smallest=True
+                c3.value_type . should_equal (Value_Type.Char size=2 variable_length=False)
+
+            c4 = table_builder [["X", ["a", "x", "y"]]] . at "X" . cast (Value_Type.Char size=100 variable_length=True)
+            c4.to_vector . should_equal ["a", "x", "y"]
+            c4.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+
+            c5 = c4.auto_value_type use_smallest=False
+            c5.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+
+            c6 = c4.auto_value_type use_smallest=True
+            c6.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
 
         Test.specify "if all text values fit under 255 characters, will add a 255 length limit (if use_smallest=True)" <|
             # test on limited and unlimited
