@@ -141,5 +141,4 @@ span {
     max-height: 0;
   }
 }
-
 </style>
