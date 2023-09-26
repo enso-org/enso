@@ -29,10 +29,14 @@ import scala.jdk.javaapi.CollectionConverters;
  * Inserts errors into imports/exports IRs if the above conditions are violated.
  */
 public final class PrivateModuleAnalysis implements IRPass {
-  public static final PrivateModuleAnalysis MODULE$ = new PrivateModuleAnalysis();
+  private static final PrivateModuleAnalysis singleton = new PrivateModuleAnalysis();
   private UUID uuid;
 
   private PrivateModuleAnalysis() {}
+
+  public static PrivateModuleAnalysis getInstance() {
+    return singleton;
+  }
 
   @Override
   public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {

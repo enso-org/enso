@@ -49,7 +49,7 @@ class Passes(
       LambdaShorthandToLambda,
       ImportSymbolAnalysis,
       AmbiguousImportsAnalysis,
-      PrivateModuleAnalysis.MODULE$,
+      PrivateModuleAnalysis.getInstance(),
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,
