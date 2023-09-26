@@ -4,19 +4,18 @@ import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 
+import CustomCursor from '@/components/CustomCursor.vue'
+import SelectionBrush from '@/components/SelectionBrush.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { modKey, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
-import type { GUIMouseAction } from '@/util/shortcuts'
+import { shortcutRegistry, type GUIMouseAction } from '@/util/shortcuts'
 import { Vec2 } from '@/util/vec2'
 import type { MouseAction } from 'enso-authentication/src/dashboard/shortcuts'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
-import { shortcutRegistry } from '../util/shortcuts'
-import CustomCursor from './CustomCursor.vue'
-import SelectionBrush from './SelectionBrush.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 const BRUSH_PADDING_PX = 8
