@@ -70,6 +70,7 @@ node_modules/
 .enso-sources*
 .metals
 tools/performance/engine-benchmarks/generated_site
+*.tsbuildinfo
 
 ############################
 ## Rendered Documentation ##
@@ -108,7 +109,7 @@ bench-report*.xml
 .bloop/
 .bsp/
 project/metals.sbt
-/app/ide-desktop/build.json
+/build.json
 /app/ide-desktop/lib/client/electron-builder-config.json
 
 

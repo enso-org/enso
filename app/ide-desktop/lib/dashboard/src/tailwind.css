@@ -5,7 +5,8 @@ body {
   overflow: hidden;
   height: 100vh;
   margin: 0;
-  background: url("enso-assets/background.png") 0 0,
+  background:
+    url("enso-assets/background.png") 0 0,
     linear-gradient(rgba(255 255 255 / 80%), rgba(255 255 255 / 80%));
   background-blend-mode: lighten;
 }
@@ -70,12 +71,13 @@ body {
   background: rgba(0, 0, 0, 0);
 }
 
+/* Scoped to `.enso-dashboard .enso-chat` in tailwind config. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .enso-dashboard,
 .enso-chat {
-  @tailwind base;
-  @tailwind components;
-  @tailwind utilities;
-
   @layer components {
     .clip-path-top {
       clip-path: polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px));

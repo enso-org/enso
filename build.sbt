@@ -882,6 +882,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case _                  => MergeStrategy.first
     },
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
+    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
@@ -894,7 +895,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         )
       )
       .dependsOn(VerifyReflectionSetup.run)
-      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -1157,6 +1157,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
           .map(_.data)
           .mkString(File.pathSeparator)
       Seq(
+        s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
         s"-Dtruffle.class.path.append=$runtimeClasspath",
         s"-Duser.dir=${file(".").getCanonicalPath}"
       )
@@ -1293,55 +1294,6 @@ def runGu(logger: ManagedLogger, args: Seq[String]): String = {
   )
 }
 
-def installedGuComponents(logger: ManagedLogger): Seq[String] = {
-  val componentList = runGu(
-    logger,
-    Seq("list")
-  )
-  val components = componentList.linesIterator
-    .drop(2)
-    .map { line =>
-      line
-        .split(" ")
-        .head
-    }
-    .toList
-  logger.debug(s"Installed GU components = $components")
-  if (!components.contains("graalvm")) {
-    throw new RuntimeException(s"graalvm components is not in $components")
-  }
-  components
-}
-
-lazy val installGraalJs = taskKey[Unit]("Install graaljs GraalVM component")
-ThisBuild / installGraalJs := {
-  val logger = streams.value.log
-  if (!installedGuComponents(logger).contains("js")) {
-    logger.info("Installing js GraalVM component")
-    runGu(
-      logger,
-      Seq("install", "js")
-    )
-  }
-}
-
-lazy val installNativeImage =
-  taskKey[Unit]("Install native-image GraalVM component")
-ThisBuild / installNativeImage := {
-  val logger = streams.value.log
-  if (!installedGuComponents(logger).contains("native-image")) {
-    logger.info("Installing native-image GraalVM component")
-    runGu(
-      logger,
-      Seq("install", "native-image")
-    )
-  }
-}
-
-ThisBuild / installNativeImage := {
-  (ThisBuild / installNativeImage).result.value
-}
-
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -1413,7 +1365,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / compile) := (Compile / compile)
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .dependsOn(installGraalJs)
       .value
   )
   .settings(
@@ -1495,6 +1446,7 @@ lazy val `runtime-instrument-common` =
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
     .settings(
+      frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
@@ -1698,11 +1650,25 @@ lazy val `engine-runner` = project
           "-H:IncludeResources=.*Main.enso$",
           "--macro:truffle",
           "--language:js",
-          //          "-g",
+          // "-g",
           //          "-H:+DashboardAll",
           //          "-H:DashboardDump=runner.bgv"
           "-Dnic=nic"
-        ),
+        ) ++ (if (
+                org.graalvm.polyglot.Engine
+                  .create()
+                  .getLanguages()
+                  .containsKey("java")
+              ) {
+                Seq(
+                  "-Dorg.graalvm.launcher.home=" + System.getProperty(
+                    "java.home"
+                  ),
+                  "--language:java"
+                )
+              } else {
+                Seq()
+              }),
         mainClass = Option("org.enso.runner.Main"),
         cp        = Option("runtime.jar"),
         initializeAtRuntime = Seq(
@@ -1710,6 +1676,7 @@ lazy val `engine-runner` = project
           "io.methvin.watchservice.jna.CarbonAPI",
           "org.enso.syntax2.Parser",
           "zio.internal.ZScheduler$$anon$4",
+          "org.enso.runner.Main$",
           "sun.awt",
           "sun.java2d",
           "sun.font",
@@ -1718,7 +1685,6 @@ lazy val `engine-runner` = project
           "akka.http"
         )
       )
-      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -1762,7 +1728,6 @@ lazy val launcher = project
           "-H:IncludeResources=.*Main.enso$"
         )
       )
-      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
       .value,
@@ -1795,7 +1760,9 @@ lazy val launcher = project
     (Test / testOnly) := (Test / testOnly)
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
-      .evaluated
+      .evaluated,
+    Test / fork := true,
+    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)
@@ -2231,12 +2198,13 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "graal-sdk"               % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "com.univocity"       % "univocity-parsers"       % univocityParsersVersion,
-      "org.apache.poi"      % "poi-ooxml"               % poiOoxmlVersion,
-      "org.apache.xmlbeans" % "xmlbeans"                % xmlbeansVersion,
-      "org.antlr"           % "antlr4-runtime"          % antlrVersion
+      "org.graalvm.sdk"          % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
+      "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
+      "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
+      "org.antlr"                % "antlr4-runtime"          % antlrVersion,
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.18.0" // org.apache.poi uses log4j
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

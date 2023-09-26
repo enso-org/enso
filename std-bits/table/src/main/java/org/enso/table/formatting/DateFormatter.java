@@ -1,17 +1,16 @@
 package org.enso.table.formatting;
 
+import org.enso.base.time.EnsoDateTimeFormatter;
+import org.graalvm.polyglot.Value;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-
-import org.enso.polyglot.common_utils.Core_Date_Utils;
-import org.graalvm.polyglot.Value;
 
 public class DateFormatter implements DataFormatter {
   private final DateTimeFormatter formatter;
 
-  public DateFormatter(String formatString, Locale locale) {
-    formatter = Core_Date_Utils.make_formatter(formatString, locale);
+  public DateFormatter(EnsoDateTimeFormatter ensoFormatter) {
+    formatter = ensoFormatter.getRawJavaFormatter();
   }
 
   @Override
@@ -21,7 +20,7 @@ public class DateFormatter implements DataFormatter {
     }
 
     if (value instanceof Value v && v.isDate()) {
-        value = v.asDate();
+      value = v.asDate();
     }
 
     if (value instanceof LocalDate date) {

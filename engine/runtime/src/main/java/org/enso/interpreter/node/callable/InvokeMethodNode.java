@@ -30,6 +30,7 @@ import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.EnsoDuration;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.Type;
@@ -161,7 +162,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   Function resolveFunction(
       UnresolvedSymbol symbol, Type selfTpe, MethodResolverNode methodResolverNode) {
-    Function function = methodResolverNode.execute(selfTpe, symbol);
+    Function function = methodResolverNode.executeResolution(selfTpe, symbol);
     if (function == null) {
       return null;
     }
@@ -208,9 +209,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     Type selfTpe = typesLibrary.getType(self);
     Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
     if (function == null) {
-      var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
-      var payload = EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol);
-      throw new PanicException(payload, cause, this);
+      throw methodNotFound(symbol, self);
     }
     var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
@@ -271,6 +270,33 @@ public abstract class InvokeMethodNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
+  private PanicException methodNotFound(UnresolvedSymbol symbol, Object self) throws PanicException {
+    var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
+    var payload = EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol);
+    throw new PanicException(payload, cause, this);
+  }
+
+  @Specialization
+  Object doMultiValue(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      EnsoMultiValue self,
+      Object[] arguments,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode
+  ) {
+    var fnAndType = self.resolveSymbol(methodResolverNode, symbol);
+    if (fnAndType != null) {
+      var unwrapSelf = self.castTo(fnAndType.getRight());
+      if (unwrapSelf != null) {
+        assert arguments[0] == self;
+        arguments[0] = unwrapSelf;
+      }
+      return invokeFunctionNode.execute(fnAndType.getLeft(), frame, state, arguments);
+    }
+    throw methodNotFound(symbol, self);
+  }
+
   @Specialization
   Object doDataflowError(
       VirtualFrame frame,
@@ -280,7 +306,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     Function function =
-        methodResolverNode.execute(EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
+        methodResolverNode.executeResolution(EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
     if (errorReceiverProfile.profile(function == null)) {
       return self;
     } else {
@@ -327,9 +353,10 @@ public abstract class InvokeMethodNode extends BaseNode {
           e);
     }
 
-    Type typeOfSymbol = symbol.resolveDeclaringType(types.getType(selfWithoutWarnings));
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    if (typeOfSymbol == builtins.any()) {
+    var selfType = types.getType(selfWithoutWarnings);
+    var fnAndType = symbol.resolveFor(this, selfType);
+    var builtins = EnsoContext.get(this).getBuiltins();
+    if (fnAndType != null && fnAndType.getRight() == builtins.any()) {
       return symbol
           .getScope()
           .lookupMethodDefinition(builtins.warning().getEigentype(), symbol.getName());

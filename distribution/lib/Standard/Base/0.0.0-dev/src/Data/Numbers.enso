@@ -24,7 +24,7 @@ polyglot java import org.enso.polyglot.common_utils.Core_Math_Utils
 
 ## The root type of the Enso numeric hierarchy.
 
-   If a Number is expected, then the program can provide either a Decimal or
+   If a Number is expected, then the program can provide either a Float or
    an Integer in its place.
 @Builtin_Type
 type Number
@@ -36,7 +36,7 @@ type Number
        - that: The number to add to this.
 
        Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Adding 10 and 15.
@@ -67,7 +67,7 @@ type Number
        - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
-       need not convert between Integer and Decimal manually.
+       need not convert between Integer and Float manually.
 
        > Example
          Multiplying 3 by 5.
@@ -84,7 +84,7 @@ type Number
        - that: The number to divide this by.
 
        Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Dividing 10 by 4 to get 2.5.
@@ -118,8 +118,8 @@ type Number
          Calculate the inverse sine of 1.
 
              1.asin
-    asin : Decimal
-    asin self = Math.asin self.to_decimal
+    asin : Float
+    asin self = Math.asin self.to_float
 
     ## ALIAS inverse cosine
        GROUP Trigonometry
@@ -132,8 +132,8 @@ type Number
          Calculate the inverse cosine of 1.
 
              1.acos
-    acos : Decimal
-    acos self = Math.acos self.to_decimal
+    acos : Float
+    acos self = Math.acos self.to_float
 
     ## ALIAS inverse tangent
        GROUP Trigonometry
@@ -146,8 +146,8 @@ type Number
          Calculate the inverse tangent of 1.
 
              1.atan
-    atan : Decimal
-    atan self = Math.atan self.to_decimal
+    atan : Float
+    atan self = Math.atan self.to_float
 
     ## GROUP Trigonometry
        Computes the argument (angle) in the conversion from cartesian
@@ -162,8 +162,8 @@ type Number
          Convert the coordinates 1 and 2 to polar form.
 
              1.atan_2 2
-    atan_2 : Number -> Decimal
-    atan_2 self y = Math.atan2 self.to_decimal y.to_decimal
+    atan_2 : Number -> Float
+    atan_2 self y = Math.atan2 self.to_float y.to_float
 
     ## ALIAS sine
        GROUP Trigonometry
@@ -174,8 +174,8 @@ type Number
          Calculate the sine of 2.
 
              2.sin
-    sin : Decimal
-    sin self = Math.sin self.to_decimal
+    sin : Float
+    sin self = Math.sin self.to_float
 
     ## ALIAS cosine
        GROUP Trigonometry
@@ -186,8 +186,8 @@ type Number
          Calculate the cosine of 2.
 
              2.cos
-    cos : Decimal
-    cos self = Math.cos self.to_decimal
+    cos : Float
+    cos self = Math.cos self.to_float
 
     ## ALIAS tangent
        GROUP Trigonometry
@@ -198,8 +198,8 @@ type Number
          Calculate the tangent of 2.
 
              2.tan
-    tan : Decimal
-    tan self = Math.tan self.to_decimal
+    tan : Float
+    tan self = Math.tan self.to_float
 
     ## GROUP Trigonometry
        Computes the hyperbolic sine function.
@@ -208,8 +208,8 @@ type Number
          Calculate the hyperbolic sine of 1.
 
              1.sinh
-    sinh : Decimal
-    sinh self = Math.sinh self.to_decimal
+    sinh : Float
+    sinh self = Math.sinh self.to_float
 
     ## GROUP Trigonometry
        Computes the hyperbolic cosine function.
@@ -218,8 +218,8 @@ type Number
          Calcualte the hyperbolic cosine of 1.
 
              1.cosh
-    cosh : Decimal
-    cosh self = Math.cosh self.to_decimal
+    cosh : Float
+    cosh self = Math.cosh self.to_float
 
     ## GROUP Trigonometry
        Computes the hyperbolic tangent function.
@@ -228,8 +228,8 @@ type Number
          Calculate the hyperbolic tangent of 1.
 
              1.tanh
-    tanh : Decimal
-    tanh self = Math.tanh self.to_decimal
+    tanh : Float
+    tanh self = Math.tanh self.to_float
 
     ## ALIAS exponential
        GROUP Math
@@ -241,8 +241,8 @@ type Number
          Calculate e to the 4th power.
 
              4.exp
-    exp : Decimal
-    exp self = Math.exp self.to_decimal
+    exp : Float
+    exp self = Math.exp self.to_float
 
     ## ALIAS natural logarithm
        GROUP Math
@@ -253,8 +253,8 @@ type Number
          Calculate the natural logarithm of 2.
 
              2.ln
-    ln : Decimal
-    ln self = Math.log self.to_decimal
+    ln : Float
+    ln self = Math.log self.to_float
 
     ## ALIAS square root
        GROUP Math
@@ -265,8 +265,8 @@ type Number
          Calculate the square root of 8.
 
              8.sqrt
-    sqrt : Decimal
-    sqrt self = Math.sqrt self.to_decimal
+    sqrt : Float
+    sqrt self = Math.sqrt self.to_float
 
     ## ALIAS logarithm
        GROUP Math
@@ -280,7 +280,7 @@ type Number
          Calculate log 2 of 4.
 
              4.log 2
-    log : Number -> Decimal
+    log : Number -> Float
     log self base = self.ln / base.ln
 
     ## GROUP Conversions
@@ -357,15 +357,15 @@ type Number
     max self that = if self > that then self else that
 
     ## A constant holding the floating-point positive infinity.
-    positive_infinity : Decimal
+    positive_infinity : Float
     positive_infinity = Double.POSITIVE_INFINITY
 
     ## A constant holding the floating-point negative infinity.
-    negative_infinity : Decimal
+    negative_infinity : Float
     negative_infinity = Double.NEGATIVE_INFINITY
 
     ## A constant holding the floating-point Not-a-Number value.
-    nan : Decimal
+    nan : Float
     nan = Double.NaN
 
     ## GROUP Math
@@ -375,14 +375,14 @@ type Number
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
     is_nan self = case self of
-        _ : Decimal -> Double.isNaN self
+        _ : Float -> Double.isNaN self
         _ -> False
 
     ## GROUP Math
        Checks if the given number is infinite.
     is_infinite : Boolean
     is_infinite self = case self of
-        _ : Decimal -> Double.isInfinite self
+        _ : Float -> Double.isInfinite self
         _ -> False
 
     ## GROUP Math
@@ -393,29 +393,29 @@ type Number
             if self < 0 then -1 else 0
 
 
-## Decimal is the type of decimal numbers in Enso.
+## Float is the type of float numbers in Enso.
 
    ? Representation
-     Enso's decimal numbers are represented as IEEE754 double-precision
+     Enso's float numbers are represented as IEEE754 double-precision
      floating point numbers.
 @Builtin_Type
-type Decimal
+type Float
     ## ALIAS add, plus
        GROUP Operators
-       Adds a decimal and an arbitrary number.
+       Adds a float and an arbitrary number.
 
        Arguments:
        - that: The number to add to this.
 
        Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Adding 10.1 and 15.
 
              10.1 + 15
     + : Number -> Number
-    + self that = @Builtin_Method "Decimal.+"
+    + self that = @Builtin_Method "Float.+"
 
     ## ALIAS minus, subtract
        GROUP Operators
@@ -429,41 +429,41 @@ type Decimal
 
              2.78 - 5
     - : Number -> Number
-    - self that = @Builtin_Method "Decimal.-"
+    - self that = @Builtin_Method "Float.-"
 
     ## ALIAS multiply, product, times
        GROUP Operators
-       Multiply a decimal by an arbitrary number.
+       Multiply a float by an arbitrary number.
 
        Arguments:
        - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
-       need not convert between Integer and Decimal manually.
+       need not convert between Integer and Float manually.
 
        > Example
          Multiplying 3 by 5.27.
 
              5.27 * 3
     * : Number -> Number
-    * self that = @Builtin_Method "Decimal.*"
+    * self that = @Builtin_Method "Float.*"
 
     ## ALIAS divide
        GROUP Operators
-       Divides a decimal by an arbitrary number.
+       Divides a float by an arbitrary number.
 
        Arguments:
        - that: The number to divide this by.
 
        Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Dividing 10 by 4.5.
 
              10 / 4.5
     / : Number -> Number
-    / self that = @Builtin_Method "Decimal./"
+    / self that = @Builtin_Method "Float./"
 
     ## ALIAS modulo, modulus
        GROUP Operators
@@ -473,7 +473,7 @@ type Decimal
        - that: The number to divide this by.
 
        Modulus in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Computing the remainder when dividing 3.5 by 2.
@@ -485,7 +485,7 @@ type Decimal
 
              10.5 % 1.0 == 0.5
     % : Number -> Number ! Arithmetic_Error
-    % self that = @Builtin_Method "Decimal.%"
+    % self that = @Builtin_Method "Float.%"
 
     ## ALIAS power
        GROUP Operators
@@ -499,7 +499,7 @@ type Decimal
 
              2.2^3
     ^ : Number -> Number
-    ^ self that = @Builtin_Method "Decimal.^"
+    ^ self that = @Builtin_Method "Float.^"
 
     ## ALIAS greater than
        GROUP Operators
@@ -513,7 +513,7 @@ type Decimal
 
              10 > 7.3
     > : Number -> Boolean
-    > self that = @Builtin_Method "Decimal.>"
+    > self that = @Builtin_Method "Float.>"
 
     ## ALIAS greater than or equal
        GROUP Operators
@@ -527,7 +527,7 @@ type Decimal
 
              10 >= 7.3
     >= : Number -> Boolean
-    >= self that = @Builtin_Method "Decimal.>="
+    >= self that = @Builtin_Method "Float.>="
 
     ## ALIAS less than
        GROUP Operators
@@ -541,7 +541,7 @@ type Decimal
 
              10 < 7.3
     < : Number -> Boolean
-    < self that = @Builtin_Method "Decimal.<"
+    < self that = @Builtin_Method "Float.<"
 
     ## ALIAS less than or equal
        GROUP Operators
@@ -555,7 +555,7 @@ type Decimal
 
              10.4 <= 7
     <= : Number -> Boolean
-    <= self that = @Builtin_Method "Decimal.<="
+    <= self that = @Builtin_Method "Float.<="
 
     ## GROUP Math
        Computes the absolute value of this.
@@ -567,32 +567,32 @@ type Decimal
          Computing the absolute value of -10.63.
 
             -10.63.abs
-    abs : Decimal
-    abs self = @Builtin_Method "Decimal.abs"
+    abs : Float
+    abs self = @Builtin_Method "Float.abs"
 
     ## GROUP Rounding
        Computes the nearest integer above this number.
 
-       This method provides a means of converting a Decimal to an Integer.
+       This method provides a means of converting a Float to an Integer.
 
        > Example
          Computing the ceiling of 4.736 (which is 5).
 
              4.736.ceil
     ceil : Integer
-    ceil self = @Builtin_Method "Decimal.ceil"
+    ceil self = @Builtin_Method "Float.ceil"
 
     ## GROUP Rounding
-       Computes the nearest integer below this decimal.
+       Computes the nearest integer below this float.
 
-       This method provides a means of converting a Decimal to an Integer.
+       This method provides a means of converting a Float to an Integer.
 
        > Example
          Computing the floor of 4.323 (which is 4).
 
              4.323.floor
     floor : Integer
-    floor self = @Builtin_Method "Decimal.floor"
+    floor self = @Builtin_Method "Float.floor"
 
     ## ALIAS int
        GROUP Rounding
@@ -609,7 +609,7 @@ type Decimal
        "round towards positive infinity." If use_bankers=True, then it uses
        "round-half-even", also known as "banker's rounding".
 
-       If `decimal_places` > 0, `round` returns a `Decimal`; otherwise, it
+       If `decimal_places` > 0, `round` returns a `Float`; otherwise, it
        returns an `Integer`.
 
        If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is
@@ -653,14 +653,14 @@ type Decimal
          Use Banker's Rounding.
 
             2.5 . round use_bankers=True == 2
-    round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
+    round : Integer -> Boolean -> Integer | Float ! Illegal_Argument
     round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            Decimal.round_decimal_builtin self decimal_places use_bankers
+            Float.round_float_builtin self decimal_places use_bankers
 
     ## PRIVATE
-    round_decimal_builtin n decimal_places use_bankers = @Builtin_Method "Decimal.round"
+    round_float_builtin n decimal_places use_bankers = @Builtin_Method "Float.round"
 
     ## GROUP Operators
        Compute the negation of this.
@@ -669,36 +669,36 @@ type Decimal
          Negate 5.1 to get -5.1.
 
              5.1.negate
-    negate : Decimal
-    negate self = @Builtin_Method "Decimal.negate"
+    negate : Float
+    negate self = @Builtin_Method "Float.negate"
 
-    ## Convert this to a decimal.
+    ## Convert this to a float.
 
-       This is a no-op on decimals, but is provided for completeness of the Enso
+       This is a no-op on floats, but is provided for completeness of the Enso
        Number API.
 
        > Example
-         Convert 5.0 to a decimal to get 5.0.
+         Convert 5.0 to a float to get 5.0.
 
-             5.0.to_decimal
-    to_decimal : Decimal
-    to_decimal self = @Builtin_Method "Decimal.to_decimal"
+             5.0.to_float
+    to_float : Float
+    to_float self = @Builtin_Method "Float.to_float"
 
     ## ALIAS from text
        GROUP Conversions
 
-       Parses a textual representation of a decimal into a decimal number, returning
-       a `Number_Parse_Error` if the text does not represent a valid decimal.
+       Parses a textual representation of a float into a float number, returning
+       a `Number_Parse_Error` if the text does not represent a valid float.
 
        Arguments:
-       - text: The text to parse into a decimal.
+       - text: The text to parse into a float.
        - locale: The locale that specifies the format to use when parsing
 
        > Example
-         Parse the text "7.6" into a decimal number.
+         Parse the text "7.6" into a float number.
 
-             Decimal.parse "7.6"
-    parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
+             Float.parse "7.6"
+    parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error
     parse text locale=Nothing = case locale of
         Nothing -> Panic.catch NumberFormatException (Double.parseDouble text) _->
             Error.throw (Number_Parse_Error.Error text)
@@ -728,7 +728,7 @@ type Integer
        - that: The number to add to this.
 
        Addition in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Adding 10 and 15.
@@ -759,7 +759,7 @@ type Integer
        - that: The number to multiply this by.
 
        Multiplication in Enso will undergo automatic conversions such that you
-       need not convert between Integer and Decimal manually.
+       need not convert between Integer and Float manually.
 
        > Example
          Multiplying 3 by 5.
@@ -776,7 +776,7 @@ type Integer
        - that: The number to divide this by.
 
        Division in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        > Example
          Dividing 10 by 4 to get 2.5.
@@ -793,7 +793,7 @@ type Integer
        - that: The number to divide this by.
 
        Modulus in Enso will undergo automatic conversions such that you need
-       not convert between Integer and Decimal manually.
+       not convert between Integer and Float manually.
 
        Returns an error if the shift amount exceeds 2^32.
 
@@ -934,7 +934,7 @@ type Integer
        GROUP Rounding
 
        Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
-       compatibility with `Decimal.truncate`.
+       compatibility with `Float.truncate`.
     truncate : Integer
     truncate self = self
 
@@ -1002,14 +1002,14 @@ type Integer
     negate : Integer
     negate self = @Builtin_Method "Integer.negate"
 
-    ## Convert this to a decimal.
+    ## Convert this to a float.
 
        > Example
-         Convert 5 to a decimal to get 5.0.
+         Convert 5 to a float to get 5.0.
 
-             5.to_decimal
-    to_decimal : Decimal
-    to_decimal self = @Builtin_Method "Integer.to_decimal"
+             5.to_float
+    to_float : Float
+    to_float self = @Builtin_Method "Integer.to_float"
 
     ## GROUP Bitwise
        Computes the bitwise and (conjunction) operation between this and

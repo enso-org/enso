@@ -308,6 +308,9 @@
   centered and the delay before showing them was extended.
 - [Accurate GPU performance measurements have been implemented][6595]. It is
   possible now to track both the time spent on both the CPU and the GPU sides.
+- [Support recovery from GL context loss][7662]. This allows the application to
+  continue after an interruption to rendering, such as hibernation or movement
+  of the application window to a display rendered by a different GPU.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -323,6 +326,7 @@
 [6595]: https://github.com/enso-org/enso/pull/6595
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
+[7662]: https://github.com/enso-org/enso/pull/7662
 
 #### Enso Standard Library
 
@@ -569,6 +573,11 @@
   `Column.map` and `Column.zip`.][7637]
 - [Added `delete_rows` method to Database Table, changed the
   `update_database_table` API into `update_rows`.][7709]
+- [Added `Data.post` method to write to HTTP endpoints.][7700]
+- [Added support for S3. Using `Input_Stream` more for reading.][7776]
+- [Renamed `Decimal` to `Float`.][7807]
+- [Implemented `Date_Time_Formatter` for more user-friendly date/time format
+  parsing.][7826]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -806,7 +815,11 @@
 [7704]: https://github.com/enso-org/enso/pull/7704
 [7615]: https://github.com/enso-org/enso/pull/7615
 [7637]: https://github.com/enso-org/enso/pull/7637
+[7700]: https://github.com/enso-org/enso/pull/7700
 [7709]: https://github.com/enso-org/enso/pull/7709
+[7776]: https://github.com/enso-org/enso/pull/7776
+[7807]: https://github.com/enso-org/enso/pull/7807
+[7826]: https://github.com/enso-org/enso/pull/7826
 
 #### Enso Compiler
 
@@ -917,6 +930,7 @@
 - [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
+- [Experimental support for Espresso Java interpreter][6966]
 - [Suggestions are updated only when the type of the expression changes][6755]
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
@@ -945,7 +959,12 @@
 - [Use `numpy` & co. from Enso!][7678]
 - [Changed layout of local libraries directory, making it easier to reference
   projects next to each other][7634]
+- [Support runtime checks of intersection types][7769]
 - [Merge `Small_Integer` and `Big_Integer` types][7636]
+- [Inline type ascriptions][7796]
+- [Always persist `TRACE` level logs to a file][7825]
+- [Downloadable VSCode extension][7861]
+- [New `project/status` route for reporting LS state][7801]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1056,6 +1075,7 @@
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
+[6966]: https://github.com/enso-org/enso/pull/6966
 [6750]: https://github.com/enso-org/enso/pull/6750
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
@@ -1083,7 +1103,12 @@
 [7613]: https://github.com/enso-org/enso/pull/7613
 [7678]: https://github.com/enso-org/enso/pull/7678
 [7634]: https://github.com/enso-org/enso/pull/7634
+[7769]: https://github.com/enso-org/enso/pull/7769
 [7636]: https://github.com/enso-org/enso/pull/7636
+[7796]: https://github.com/enso-org/enso/pull/7796
+[7801]: https://github.com/enso-org/enso/pull/7801
+[7825]: https://github.com/enso-org/enso/pull/7825
+[7861]: https://github.com/enso-org/enso/pull/7861
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

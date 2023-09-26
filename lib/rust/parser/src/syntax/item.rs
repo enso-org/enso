@@ -81,11 +81,13 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
 
 /// Given a sequence of [`Line`]s belonging to one block, create an AST block node, of a type
 /// determined by the syntax of the lines in the block.
-pub fn build_block<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
+pub fn build_block<'s>(
+    lines: impl IntoIterator<Item = Line<'s>>,
+    parser: &mut operator::Precedence<'s>,
+) -> Tree<'s> {
     let mut block_builder = tree::block::Builder::new();
-    let mut precedence = operator::Precedence::new();
     for Line { newline, items } in lines {
-        block_builder.push(newline, items, &mut precedence);
+        block_builder.push(newline, items, parser);
     }
     block_builder.build()
 }

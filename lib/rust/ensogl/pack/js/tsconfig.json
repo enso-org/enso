@@ -1,5 +1,5 @@
 {
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/**/*.json"],
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "baseUrl": "./src",
@@ -10,7 +10,8 @@
     "inlineSourceMap": true,
     "lib": ["ES2021", "dom"],
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
+    "composite": true,
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
     "outDir": "dist",
@@ -22,8 +23,5 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "target": "ES2019"
-  },
-  "ts-node": {
-    "esm": true
   }
 }

@@ -101,8 +101,17 @@ impl Node {
     pub fn is_positional_insertion_point(&self) -> bool {
         self.kind.is_positional_insertion_point()
     }
+
     pub fn is_expected_argument(&self) -> bool {
         self.kind.is_expected_argument()
+    }
+
+    pub fn is_expected_operand(&self) -> bool {
+        self.kind.is_expected_operand()
+    }
+
+    pub fn is_placeholder(&self) -> bool {
+        self.is_expected_argument() || self.is_expected_operand()
     }
 }
 

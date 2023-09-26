@@ -58,7 +58,7 @@ class ModifyVisualizationCmd(
       existingVisualization.map(_.expressionId).orElse {
         val jobFilter: PartialFunction[Job[_], Option[ExpressionId]] = {
           case upsert: UpsertVisualizationJob
-              if upsert.getVisualizationId() == request.visualizationId =>
+              if upsert.visualizationId == request.visualizationId =>
             Some(upsert.key)
         }
         ctx.jobControlPlane.jobInProgress(jobFilter)

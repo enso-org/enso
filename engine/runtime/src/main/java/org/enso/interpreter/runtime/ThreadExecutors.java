@@ -59,10 +59,7 @@ final class ThreadExecutors {
 
     @Override
     public Thread newThread(Runnable r) {
-      var thread =
-          system
-              ? context.getEnvironment().createSystemThread(r)
-              : context.getEnvironment().createThread(r);
+      var thread = context.createThread(system, r);
       thread.setName(prefix + "-" + counter.incrementAndGet());
       return thread;
     }

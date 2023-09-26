@@ -1,15 +1,18 @@
 package org.enso.interpreter.test;
 
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 
+import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -21,7 +24,10 @@ public class SignatureTest extends TestBase {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = createDefaultContext();
+    ctx = defaultContextBuilder()
+        .out(OutputStream.nullOutputStream())
+        .err(OutputStream.nullOutputStream())
+        .build();
   }
 
   @AfterClass
@@ -35,13 +41,49 @@ public class SignatureTest extends TestBase {
     final Source src = Source.newBuilder("enso", """
     neg : Xyz -> Abc
     neg a = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     try {
       var module = ctx.eval(src);
-      var neg = module.invokeMember("eval_expression", "neg");
+      var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
+      fail("Expecting an exception from compilation, not: " + neg);
+    } catch (PolyglotException e) {
+      assertTrue("It is a syntax error exception", e.isSyntaxError());
+    }
+  }
+
+  @Test
+  public void wrongLiteralSignature() throws Exception {
+    final URI uri = new URI("memory://literal_signature.enso");
+    final Source src = Source.newBuilder("enso", """
+    neg a = 0 - a:Xyz
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var neg = module.invokeMember("eval_expression", "neg").execute(-1);
+      fail("Expecting an exception from compilation, not: " + neg);
+    } catch (PolyglotException e) {
+      assertTrue("It is a syntax error exception", e.isSyntaxError());
+    }
+  }
+
+  @Test
+  public void wrongExpressionSignature() throws Exception {
+    final URI uri = new URI("memory://exp_signature.enso");
+    final Source src = Source.newBuilder("enso", """
+    neg a = (0 - a):Xyz
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    try {
+      var module = ctx.eval(src);
+      var neg = module.invokeMember("eval_expression", "neg").execute(-1);
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
       assertTrue("It is a syntax error exception", e.isSyntaxError());
@@ -53,13 +95,13 @@ public class SignatureTest extends TestBase {
     final URI uri = new URI("memory://neg.enso");
     final Source src = Source.newBuilder("enso", """
     neg (a : Xyz) = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     try {
       var module = ctx.eval(src);
-      var neg = module.invokeMember("eval_expression", "neg");
+      var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
       assertTrue("It is a syntax error exception", e.isSyntaxError());
@@ -74,13 +116,13 @@ public class SignatureTest extends TestBase {
 
     err msg = Error.throw msg
     neg (a : Integer) = 0 - a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var neg = module.invokeMember("eval_expression", "neg");
-    var err = module.invokeMember("eval_expression", "err");
+    var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
+    var err = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "err");
     try {
       var res = neg.execute("Hi");
       fail("Expecting an exception, not: " + res);
@@ -116,14 +158,14 @@ public class SignatureTest extends TestBase {
 
     simple v = Int.Simple v
     complex x y = Int.Complex (x+y)
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
 
-    var simple = module.invokeMember("eval_expression", "simple");
-    var complex = module.invokeMember("eval_expression", "complex");
+    var simple = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "simple");
+    var complex = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "complex");
 
     var six = simple.execute(6);
     var seven = simple.execute(7);
@@ -159,14 +201,14 @@ public class SignatureTest extends TestBase {
 
     make arr = build <|
       arr.at 0
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
 
     var zeroValue = new Object[] { 0 };
-    var neg = module.invokeMember("eval_expression", "make").execute((Object)zeroValue);
+    var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "make").execute((Object)zeroValue);
 
     zeroValue[0] = "Wrong";
     try {
@@ -209,7 +251,7 @@ public class SignatureTest extends TestBase {
     make arr = Lazy.Value <|
       Polyglot.invoke arr "add" [ arr.length ]
       arr.at 0
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -217,7 +259,7 @@ public class SignatureTest extends TestBase {
 
     var zeroValue = new ArrayList<Integer>();
     zeroValue.add(0);
-    var lazy = module.invokeMember("eval_expression", "make").execute((Object)zeroValue);
+    var lazy = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "make").execute((Object)zeroValue);
     assertEquals("No read from zeroValue, still size 1", 1, zeroValue.size());
 
     var five = lazy.invokeMember("neg", -5);
@@ -250,12 +292,12 @@ public class SignatureTest extends TestBase {
         Singleton
 
         twice self (a : Integer) = a + a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var neg = module.invokeMember("eval_expression", "Neg.Singleton.twice");
+    var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Neg.Singleton.twice");
 
     var ten = neg.execute(5);
     assertEquals("Ten", 10, ten.asInt());
@@ -276,12 +318,12 @@ public class SignatureTest extends TestBase {
     from Standard.Base import Integer
     type Neg
         twice (a : Integer) = a + a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var neg = module.invokeMember("eval_expression", "Neg.twice");
+    var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Neg.twice");
 
     var ten = neg.execute(5);
     assertEquals("Ten", 10, ten.asInt());
@@ -303,12 +345,12 @@ public class SignatureTest extends TestBase {
     call_twice x =
         twice (a : Integer) = a + a
         twice x
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var neg = module.invokeMember("eval_expression", "call_twice");
+    var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "call_twice");
 
     var ten = neg.execute(5);
     assertEquals("Ten", 10, ten.asInt());
@@ -329,13 +371,13 @@ public class SignatureTest extends TestBase {
       Val (a : Xyz)
 
     neg = Neg.Val 10
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     try {
       var module = ctx.eval(src);
-      var neg = module.invokeMember("eval_expression", "neg");
+      var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "neg");
       fail("Expecting an exception from compilation, not: " + neg);
     } catch (PolyglotException e) {
       assertTrue("It is a syntax error exception", e.isSyntaxError());
@@ -349,13 +391,32 @@ public class SignatureTest extends TestBase {
     type Maybe a
         Nothing
         Some unwrap:a
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var some = module.invokeMember("eval_expression", "Maybe.Some 10");
+    var some = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some 10");
     assertEquals("Can read ten", 10, some.getMember("unwrap").asInt());
+  }
+
+  @Test
+  public void ascribedWithAParameterAndMethod() throws Exception {
+    final URI uri = new URI("memory://getter.enso");
+    final Source src = Source.newBuilder("enso", """
+    type Maybe a
+        Nothing
+        Some unwrap:a
+
+        get : a
+        get self = self.unwrap
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var some = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some 10");
+    assertEquals("Can get ten", 10, some.invokeMember("get").asInt());
   }
 
   @Test
@@ -367,14 +428,14 @@ public class SignatureTest extends TestBase {
     type Maybe a
         Nothing
         Some (~unwrap : Integer)
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var some = module.invokeMember("eval_expression", "Maybe.Some 10");
+    var some = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some 10");
     assertEquals("Can read ten", 10, some.getMember("unwrap").asInt());
-    var lazy = module.invokeMember("eval_expression", "Maybe.Some (2 * 5)");
+    var lazy = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some (2 * 5)");
     assertEquals("Can read first time ", 10, lazy.getMember("unwrap").asInt());
     assertEquals("Can read second time", 10, lazy.getMember("unwrap").asInt());
   }
@@ -382,19 +443,41 @@ public class SignatureTest extends TestBase {
   @Test
   public void binaryWithZero() throws Exception {
     Value module = exampleWithBinary();
-    var ok = module.invokeMember("eval_expression", "Bin.Zero Zero");
+    var ok = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Zero Zero");
     assertEquals("binary.Bin", ok.getMetaObject().getMetaQualifiedName());
     try {
-      var v = module.invokeMember("eval_expression", "Bin.Zero 'hi'");
+      var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Zero 'hi'");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
       assertTypeError("`v`", "Zero", "Text", ex.getMessage());
     }
     try {
-      var v = module.invokeMember("eval_expression", "Bin.Zero One");
+      var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Zero One");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
       assertTypeError("`v`", "Zero", "Zero", ex.getMessage());
+    }
+  }
+
+  /**
+   * The folowwing test should not end with Type_Error, but rather with Panic (Compilation error).
+   */
+  @Test
+  public void panicSentinelSupersedesTypeError() throws URISyntaxException {
+    URI uri = new URI("memory://panic_sentinel.enso");
+    var src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+    my_func (x : Integer) = x + 1
+    main = my_func (Non_Existing_Func 23)
+    """, uri.getAuthority())
+        .uri(uri)
+        .buildLiteral();
+    Value module = ctx.eval(src);
+    try {
+      module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "my_func (Non_Existing_Func 23)");
+      fail("Expecting Compile error");
+    } catch (PolyglotException e) {
+      assertContains("Compilation aborted", e.getMessage());
     }
   }
 
@@ -416,13 +499,13 @@ public class SignatureTest extends TestBase {
 
     # invokes V.mul with Integer parameter, not V!
     mix a:V b:Integer = a.mul b
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var factory = module.invokeMember("eval_expression", "create");
-    var mix = module.invokeMember("eval_expression", "mix");
+    var factory = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+    var mix = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "mix");
 
     var six = factory.execute(6);
     var fourtyTwoAsV = mix.execute(six, 7);
@@ -444,23 +527,23 @@ public class SignatureTest extends TestBase {
         One (v:One)
         Either v:(Zero | One)
         Vec v:(Integer | Range | Vector (Integer | Range))
-    """, uri.getHost()).uri(uri).buildLiteral();
+    """,uri.getAuthority()).uri(uri).buildLiteral();
     return ctx.eval(src);
   }
 
   @Test
   public void binaryWithOne() throws Exception {
     Value module = exampleWithBinary();
-    var ok = module.invokeMember("eval_expression", "Bin.One One");
+    var ok = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.One One");
     assertEquals("binary.Bin", ok.getMetaObject().getMetaQualifiedName());
     try {
-      var v = module.invokeMember("eval_expression", "Bin.One 10");
+      var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.One 10");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
       assertTypeError("`v`", "One", "Integer", ex.getMessage());
     }
     try {
-      var v = module.invokeMember("eval_expression", "Bin.One Zero");
+      var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.One Zero");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
       assertTypeError("`v`", "One", "Zero", ex.getMessage());
@@ -470,32 +553,32 @@ public class SignatureTest extends TestBase {
   @Test
   public void binaryWithEither() throws Exception {
     Value module = exampleWithBinary();
-    var ok1 = module.invokeMember("eval_expression", "Bin.Either One");
+    var ok1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Either One");
     assertEquals("binary.Bin", ok1.getMetaObject().getMetaQualifiedName());
     try {
-      var v = module.invokeMember("eval_expression", "Bin.Either 10");
+      var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Either 10");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
       assertTypeError("`v`", "Zero | One", "Integer", ex.getMessage());
     }
-    var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
+    var ok2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
   }
 
   @Test
   public void binaryWithVec() throws Exception {
     Value module = exampleWithBinary();
-    var ok1 = module.invokeMember("eval_expression", "Bin.Vec [1, 2, 3]");
+    var ok1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Vec [1, 2, 3]");
     assertEquals("binary.Bin", ok1.getMetaObject().getMetaQualifiedName());
     try {
-      var v = module.invokeMember("eval_expression", "Bin.Vec 'Hi'");
+      var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Vec 'Hi'");
       fail("Expecting an error, not " + v);
     } catch (PolyglotException ex) {
       assertTypeError("`v`", "Integer | Range | Vector", "Integer", ex.getMessage());
     }
-    var ok2 = module.invokeMember("eval_expression", "Bin.Either Zero");
+    var ok2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Either Zero");
     assertEquals("binary.Bin", ok2.getMetaObject().getMetaQualifiedName());
-    var ok3 = module.invokeMember("eval_expression", "Bin.Vec 5");
+    var ok3 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Bin.Vec 5");
     assertEquals("binary.Bin", ok3.getMetaObject().getMetaQualifiedName());
   }
 
@@ -513,12 +596,12 @@ public class SignatureTest extends TestBase {
     mix a =
       partial = V.Val 1 a
       create partial
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var mix = module.invokeMember("eval_expression", "mix");
+    var mix = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "mix");
 
     try {
       var res = mix.execute(7);
@@ -547,12 +630,12 @@ public class SignatureTest extends TestBase {
     neg x:Integer = -x
 
     mix n = neg (fn 2 a=4 n)
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var mix = module.invokeMember("eval_expression", "mix");
+    var mix = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "mix");
 
     try {
       var res = mix.execute(7);
@@ -581,12 +664,12 @@ public class SignatureTest extends TestBase {
     neg x:Integer = -x
 
     mix a = neg (fn c=(2/0) b=(a/0))
-    """, uri.getHost())
+    """,uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var mix = module.invokeMember("eval_expression", "mix");
+    var mix = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "mix");
 
     try {
       var res = mix.execute(0);
@@ -600,6 +683,48 @@ public class SignatureTest extends TestBase {
       assertContains("c=suspended.mix<arg-c>", ex.getMessage());
       assertContains("[suspended:9:28-30]", ex.getMessage());
     }
+  }
+
+  @Test
+  public void andConversions() throws Exception {
+    final URI uri = new URI("memory://and_conv.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import all
+
+    type Plus
+        Impl value dict
+
+        + self (that:Plus) = if self.dict != that.dict then Panic.throw "panic!" else
+          self.dict.plus self.value that.value
+    type Mul
+        Impl value dict
+
+        * self (that:Mul) = if self.dict != that.dict then Panic.throw "panic!" else
+          self.dict.mul self.value that.value
+
+    compute (a : Plus & Mul) (b : Plus & Mul) =
+      p = a+b
+      m = a*b
+      p:Plus + m:Plus
+
+    type BooleanPlus
+        plus a:Boolean b:Boolean = a || b
+    Plus.from(that:Boolean) = Plus.Impl that BooleanPlus
+
+    type BooleanMul
+        mul a:Boolean b:Boolean = a && b
+    Mul.from(that:Boolean) = Mul.Impl that BooleanMul
+
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var compute = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "compute");
+
+    assertTrue("true & true", compute.execute(true, true).asBoolean());
+    assertTrue("true & false", compute.execute(true, false).asBoolean());
+    assertFalse("false & false", compute.execute(false, false).asBoolean());
   }
 
   private static void assertTypeError(String expArg, String expType, String realType, String msg) {

@@ -4,15 +4,14 @@ const emit = defineEmits<{ click: [] }>()
 </script>
 
 <template>
-  <div class="NavBreadcrumb"><span v-text="text" @click="emit('click')"></span></div>
+  <div class="NavBreadcrumb"><span @click="emit('click')" v-text="props.text"></span></div>
 </template>
 
 <style scoped>
 span {
   display: inline-block;
-  height: 20px;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  height: 24px;
+  padding: 1px 0px;
 }
 
 .NavBreadcrumb {

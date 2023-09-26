@@ -65,6 +65,13 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
           timeoutConfig.bootTimeout,
           timeoutConfig.retries
         ),
+      ProjectStatus -> ProjectStatusHandler
+        .props[F](
+          clientId,
+          projectService,
+          timeoutConfig.bootTimeout,
+          timeoutConfig.retries
+        ),
       ProjectClose -> ProjectCloseHandler
         .props[F](
           clientId,
@@ -106,19 +113,19 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
     )
 
   override def receive: Receive = {
-    case JsonRpcServer.WebConnect(webActor) =>
+    case JsonRpcServer.WebConnect(webActor, port) =>
       logger.info("Client connected to Project Manager [{}]", clientId)
       unstashAll()
       context.become(connected(webActor))
-      context.system.eventStream.publish(ClientConnected(clientId))
+      context.system.eventStream.publish(ClientConnected(clientId, port))
 
     case _ => stash()
   }
 
   def connected(@unused webActor: ActorRef): Receive = {
-    case MessageHandler.Disconnected =>
+    case MessageHandler.Disconnected(port) =>
       logger.info("Client disconnected from the Project Manager [{}]", clientId)
-      context.system.eventStream.publish(ClientDisconnected(clientId))
+      context.system.eventStream.publish(ClientDisconnected(clientId, port))
       context.stop(self)
 
     case r @ Request(method, _, _) if requestHandlers.contains(method) =>

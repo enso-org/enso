@@ -62,14 +62,16 @@ fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
     }
 }
 
-fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn import_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     let mut polyglot = None;
     let mut from = None;
     let mut import = None;
     let mut all = None;
     let mut as_ = None;
     let mut hiding = None;
-    let mut parser = operator::Precedence::new();
     let mut incomplete_import = false;
     for segment in segments {
         let header = segment.header;
@@ -78,13 +80,16 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         let field = match header.code.as_ref() {
             "polyglot" => {
                 body = Some(
-                    parser.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
                 );
                 &mut polyglot
             }
             "from" => {
                 body = Some(
-                    parser.resolve(tokens).map(expect_qualified).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_qualified)
+                        .unwrap_or_else(expected_nonempty),
                 );
                 &mut from
             }
@@ -93,7 +98,7 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
                     Some(_) => expect_ident,
                     None => expect_qualified,
                 };
-                body = sequence_tree(&mut parser, tokens, expect);
+                body = sequence_tree(precedence, tokens, expect);
                 incomplete_import = body.is_none();
                 &mut import
             }
@@ -105,13 +110,13 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
             }
             "as" => {
                 body = Some(
-                    parser.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
-                    sequence_tree(&mut parser, tokens, expect_ident)
+                    sequence_tree(precedence, tokens, expect_ident)
                         .unwrap_or_else(expected_nonempty),
                 );
                 &mut hiding
@@ -148,13 +153,15 @@ fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
     }
 }
 
-fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn export_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     let mut from = None;
     let mut export = None;
     let mut all = None;
     let mut as_ = None;
     let mut hiding = None;
-    let mut parser = operator::Precedence::new();
     let mut incomplete_export = false;
     for segment in segments {
         let header = segment.header;
@@ -163,7 +170,10 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         let field = match header.code.as_ref() {
             "from" => {
                 body = Some(
-                    parser.resolve(tokens).map(expect_qualified).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_qualified)
+                        .unwrap_or_else(expected_nonempty),
                 );
                 &mut from
             }
@@ -172,7 +182,7 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
                     Some(_) => expect_ident,
                     None => expect_qualified,
                 };
-                body = sequence_tree(&mut parser, tokens, expect);
+                body = sequence_tree(precedence, tokens, expect);
                 incomplete_export = body.is_none();
                 &mut export
             }
@@ -184,13 +194,13 @@ fn export_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
             }
             "as" => {
                 body = Some(
-                    parser.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
-                    sequence_tree(&mut parser, tokens, expect_ident)
+                    sequence_tree(precedence, tokens, expect_ident)
                         .unwrap_or_else(expected_nonempty),
                 );
                 &mut hiding
@@ -217,12 +227,15 @@ pub fn if_then<'s>() -> Definition<'s> {
     crate::macro_definition! {("if", everything(), "then", everything()) if_body}
 }
 
-fn if_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn if_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     use syntax::tree::*;
     let segments = segments.mapped(|s| {
         let header = s.header;
         let body = s.result.tokens();
-        let body = match operator::resolve_operator_precedence_if_non_empty(body) {
+        let body = match precedence.resolve(body) {
             Some(Tree {
                 variant:
                     box Variant::ArgumentBlockApplication(ArgumentBlockApplication {
@@ -247,13 +260,16 @@ pub fn group<'s>() -> Definition<'s> {
     crate::macro_definition! {("(", everything(), ")", nothing()) group_body}
 }
 
-fn group_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn group_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     let (close, mut segments) = segments.pop();
     let close = into_close_symbol(close.header);
     let segment = segments.pop().unwrap();
     let open = into_open_symbol(segment.header);
     let body = segment.result.tokens();
-    let body = operator::resolve_operator_precedence_if_non_empty(body);
+    let body = precedence.resolve(body);
     syntax::Tree::group(Some(open), body, Some(close))
 }
 
@@ -262,7 +278,10 @@ fn type_def<'s>() -> Definition<'s> {
     crate::macro_definition! {("type", everything()) type_def_body}
 }
 
-fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn type_def_body<'s>(
+    matched_segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     use syntax::tree::*;
     let segment = matched_segments.pop().0;
     let header = into_ident(segment.header);
@@ -281,7 +300,6 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
         })) => syntax::Token(left_offset, code, ident),
         _ => return Tree::ident(header).with_error("Expected identifier after `type` keyword."),
     };
-    let mut precedence = operator::Precedence::new();
     let params = precedence
         .resolve_non_section(tokens)
         .map(crate::collect_arguments_inclusive)
@@ -379,14 +397,17 @@ pub fn lambda<'s>() -> Definition<'s> {
     crate::macro_definition! {("\\", everything()) lambda_body}
 }
 
-fn lambda_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn lambda_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     let (segment, _) = segments.pop();
     let operator = segment.header;
     let syntax::token::Token { left_offset, code, .. } = operator;
     let properties = syntax::token::OperatorProperties::default();
     let operator = syntax::token::operator(left_offset, code, properties);
     let arrow = segment.result.tokens();
-    let arrow = operator::resolve_operator_precedence_if_non_empty(arrow);
+    let arrow = precedence.resolve(arrow);
     syntax::Tree::lambda(operator, arrow)
 }
 
@@ -395,14 +416,16 @@ pub fn case<'s>() -> Definition<'s> {
     crate::macro_definition! {("case", everything(), "of", everything()) case_body}
 }
 
-fn case_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    use operator::resolve_operator_precedence_if_non_empty;
+fn case_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     use syntax::tree::*;
     let (of, mut rest) = segments.pop();
     let case = rest.pop().unwrap();
     let case_ = into_ident(case.header);
     let expression = case.result.tokens();
-    let expression = resolve_operator_precedence_if_non_empty(expression);
+    let expression = precedence.resolve(expression);
     let of_ = into_ident(of.header);
     let mut case_builder = CaseBuilder::default();
     let mut initial_case = vec![];
@@ -535,8 +558,11 @@ pub fn array<'s>() -> Definition<'s> {
     crate::macro_definition! {("[", everything(), "]", nothing()) array_body}
 }
 
-fn array_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    let GroupedSequence { left, first, rest, right } = grouped_sequence(segments);
+fn array_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
+    let GroupedSequence { left, first, rest, right } = grouped_sequence(segments, precedence);
     syntax::tree::Tree::array(left, first, rest, right)
 }
 
@@ -545,8 +571,11 @@ pub fn tuple<'s>() -> Definition<'s> {
     crate::macro_definition! {("{", everything(), "}", nothing()) tuple_body}
 }
 
-fn tuple_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    let GroupedSequence { left, first, rest, right } = grouped_sequence(segments);
+fn tuple_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
+    let GroupedSequence { left, first, rest, right } = grouped_sequence(segments, precedence);
     syntax::tree::Tree::tuple(left, first, rest, right)
 }
 
@@ -557,18 +586,20 @@ struct GroupedSequence<'s> {
     right: syntax::token::CloseSymbol<'s>,
 }
 
-fn grouped_sequence(segments: NonEmptyVec<MatchedSegment>) -> GroupedSequence {
+fn grouped_sequence<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> GroupedSequence<'s> {
     let (right, mut rest) = segments.pop();
     let right = into_close_symbol(right.header);
     let left = rest.pop().unwrap();
     let left_ = into_open_symbol(left.header);
-    let mut parser = operator::Precedence::new();
-    let (first, rest) = sequence(&mut parser, left.result.tokens());
+    let (first, rest) = sequence(precedence, left.result.tokens());
     GroupedSequence { left: left_, first, rest, right }
 }
 
 fn sequence<'s>(
-    parser: &mut operator::Precedence<'s>,
+    precedence: &mut operator::Precedence<'s>,
     tokens: impl IntoIterator<Item = syntax::Item<'s>>,
 ) -> (Option<syntax::Tree<'s>>, Vec<syntax::tree::OperatorDelimitedTree<'s>>) {
     use syntax::tree::*;
@@ -584,29 +615,29 @@ fn sequence<'s>(
                 *(match rest.last_mut() {
                     Some(rest) => &mut rest.body,
                     None => &mut first,
-                }) = parser.finish();
+                }) = precedence.finish();
                 let operator = syntax::Token(left_offset, code, op);
                 rest.push(OperatorDelimitedTree { operator, body: default() });
             }
             _ => {
-                parser.push(token);
+                precedence.push(token);
             }
         }
     }
     *(match rest.last_mut() {
         Some(rest) => &mut rest.body,
         None => &mut first,
-    }) = parser.finish();
+    }) = precedence.finish();
     (first, rest)
 }
 
 fn sequence_tree<'s>(
-    parser: &mut operator::Precedence<'s>,
+    precedence: &mut operator::Precedence<'s>,
     tokens: impl IntoIterator<Item = syntax::Item<'s>>,
     mut f: impl FnMut(syntax::Tree<'s>) -> syntax::Tree<'s>,
 ) -> Option<syntax::Tree<'s>> {
     use syntax::tree::*;
-    let (first, rest) = sequence(parser, tokens);
+    let (first, rest) = sequence(precedence, tokens);
     let mut invalid = first.is_none();
     let mut tree = first.map(&mut f);
     for OperatorDelimitedTree { operator, body } in rest {
@@ -623,13 +654,16 @@ fn splice<'s>() -> Definition<'s> {
     crate::macro_definition! {("`", everything(), "`", nothing()) splice_body}
 }
 
-fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn splice_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     let (close, mut segments) = segments.pop();
     let close = into_close_symbol(close.header);
     let segment = segments.pop().unwrap();
     let open = into_open_symbol(segment.header);
     let expression = segment.result.tokens();
-    let expression = operator::resolve_operator_precedence_if_non_empty(expression);
+    let expression = precedence.resolve(expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
     syntax::Tree::text_literal(default(), default(), vec![splice], default(), default())
 }
@@ -648,23 +682,29 @@ fn freeze<'s>() -> Definition<'s> {
 
 /// Macro body builder that just parses the tokens of each segment as expressions, and places them
 /// in a [`MultiSegmentApp`].
-fn capture_expressions(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn capture_expressions<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     use syntax::tree::*;
     Tree::multi_segment_app(segments.mapped(|s| {
         let header = s.header;
         let body = s.result.tokens();
-        let body = operator::resolve_operator_precedence_if_non_empty(body);
+        let body = precedence.resolve(body);
         MultiSegmentAppSegment { header, body }
     }))
 }
 
-fn foreign_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+fn foreign_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     let segment = segments.pop().0;
     let keyword = into_ident(segment.header);
     let tokens = segment.result.tokens().into_iter();
-    match try_foreign_body(keyword.clone(), tokens.clone()) {
+    match try_foreign_body(keyword.clone(), tokens.clone(), precedence) {
         Ok(foreign) => foreign,
-        Err(error) => (match operator::resolve_operator_precedence_if_non_empty(tokens) {
+        Err(error) => (match precedence.resolve(tokens) {
             Some(rhs) => syntax::Tree::app(keyword.into(), rhs),
             None => keyword.into(),
         })
@@ -675,7 +715,8 @@ fn foreign_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
 fn try_foreign_body<'s>(
     keyword: syntax::token::Ident<'s>,
     tokens: impl IntoIterator<Item = syntax::Item<'s>>,
-) -> Result<syntax::Tree, &'static str> {
+    precedence: &mut operator::Precedence<'s>,
+) -> Result<syntax::Tree<'s>, &'static str> {
     let mut tokens = tokens.into_iter();
     let language = tokens
         .next()
@@ -683,8 +724,7 @@ fn try_foreign_body<'s>(
         .and_then(try_token_into_ident)
         .ok_or("Expected an identifier specifying foreign method's language.")?;
     let expected_name = "Expected an identifier specifying foreign function's name.";
-    let function =
-        operator::resolve_operator_precedence_if_non_empty(tokens).ok_or(expected_name)?;
+    let function = precedence.resolve(tokens).ok_or(expected_name)?;
     let expected_function = "Expected a function definition after foreign declaration.";
     let box syntax::tree::Variant::OprApp(
             syntax::tree::OprApp { lhs: Some(lhs), opr: Ok(equals), rhs: Some(body) }) = function.variant else {

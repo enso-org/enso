@@ -32,7 +32,7 @@ type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & Newtype
     : NotNewtype & Omit<T, '_$type'>
 
 /** An interface that matches a type if and only if it is not a newtype. */
-interface NotNewtype {
+export interface NotNewtype {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     _$type?: never
 }

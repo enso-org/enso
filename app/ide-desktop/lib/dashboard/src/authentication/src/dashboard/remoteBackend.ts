@@ -341,7 +341,7 @@ export class RemoteBackend extends backendModule.Backend {
                         ({
                             ...asset,
                             type: asset.id.match(/^(.+?)-/)?.[1],
-                        } as backendModule.AnyAsset)
+                        }) as backendModule.AnyAsset
                 )
                 .map(asset => ({
                     ...asset,

@@ -937,7 +937,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     )
                                     return (
                                         selfPermission?.permission ===
-                                        backendModule.PermissionAction.own
+                                        permissions.PermissionAction.own
                                     )
                                 }).every(isOwner => isOwner))
                         // This is not a React component even though it contains JSX.

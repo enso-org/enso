@@ -1,7 +1,9 @@
 import project.AWS_Credential.AWS_Credential
 import project.Database.Redshift.Redshift_Details.Redshift_Details
 import project.S3.S3
+import project.S3.S3_File.S3_File
 
 export project.AWS_Credential.AWS_Credential
 export project.Database.Redshift.Redshift_Details.Redshift_Details
 export project.S3.S3
+export project.S3.S3_File.S3_File

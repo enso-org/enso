@@ -253,13 +253,15 @@ export class ShortcutRegistry {
     keyboardShortcutsByKey: Record<string, KeyboardShortcut[]> = {}
     allKeyboardHandlers: Record<
         KeyboardAction,
-        ((event: KeyboardEvent | React.KeyboardEvent) => void)[]
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void)[]
     > = makeKeyboardActionMap(() => [])
     /** The last handler (if any) for each action in
      * {@link ShortcutRegistry.allKeyboardHandlers}. */
     activeKeyboardHandlers: Record<
         KeyboardAction,
-        ((event: KeyboardEvent | React.KeyboardEvent) => void) | null
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        ((event: KeyboardEvent | React.KeyboardEvent) => boolean | void) | null
     > = makeKeyboardActionMap(() => null)
 
     /** Create a {@link ShortcutRegistry}. */
@@ -298,8 +300,9 @@ export class ShortcutRegistry {
         shortcut: MouseShortcut,
         event: MouseEvent | React.MouseEvent
     ) {
+        const button: number = shortcut.button
         return (
-            shortcut.button === event.button &&
+            button === event.button &&
             event.detail >= shortcut.clicks &&
             modifiersMatchEvent(shortcut, event)
         )
@@ -329,10 +332,12 @@ export class ShortcutRegistry {
                 if (this.matchesKeyboardShortcut(shortcut, event)) {
                     const handler = this.activeKeyboardHandlers[shortcut.action]
                     if (handler != null) {
-                        handler(event)
-                        // The matching `false` return is immediately after this loop.
-                        // eslint-disable-next-line no-restricted-syntax
-                        return true
+                        const result = handler(event)
+                        if (result !== false) {
+                            // The matching `false` return is immediately after this loop.
+                            // eslint-disable-next-line no-restricted-syntax
+                            return true
+                        }
                     }
                 }
             }
@@ -367,7 +372,8 @@ export class ShortcutRegistry {
      * these handlers. */
     registerKeyboardHandlers(
         handlers: Partial<
-            Record<KeyboardAction, (event: KeyboardEvent | React.KeyboardEvent) => void>
+            // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+            Record<KeyboardAction, (event: KeyboardEvent | React.KeyboardEvent) => boolean | void>
         >
     ) {
         for (const action of Object.values(KeyboardAction)) {

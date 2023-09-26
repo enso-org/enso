@@ -3,12 +3,11 @@ package org.enso.interpreter.node.expression.builtin.number.integer;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "bit_not", description = "Bitwise negation.")
-public abstract class BitNotNode extends Node {
+public abstract class BitNotNode extends IntegerNode {
   abstract Object execute(Object self);
 
   static BitNotNode build() {
@@ -28,6 +27,6 @@ public abstract class BitNotNode extends Node {
 
   @Fallback
   Object doOther(Object self) {
-    throw IntegerUtils.throwTypeErrorIfNotInt(self, this);
+    throw throwTypeErrorIfNotInt(self, this);
   }
 }

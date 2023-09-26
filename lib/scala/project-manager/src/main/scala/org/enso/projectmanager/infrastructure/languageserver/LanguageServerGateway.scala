@@ -38,7 +38,7 @@ trait LanguageServerGateway[F[+_, +_]] {
     version: SemVer
   ): F[ServerStartupFailure, LanguageServerSockets]
 
-  /** Stops a lang. server.
+  /** Stops a language server.
     *
     * @param clientId a requester id
     * @param projectId a project id to stop
@@ -49,12 +49,12 @@ trait LanguageServerGateway[F[+_, +_]] {
     projectId: UUID
   ): F[ServerShutdownFailure, Unit]
 
-  /** Checks if server is running for project.
+  /** Checks if server is running or shutting down for project.
     *
     * @param projectId a project id
-    * @return true if project is open
+    * @return a tuple of booleans where the first element is true if project is open, and the second element is true if the project is currently shutting down
     */
-  def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean]
+  def isRunning(projectId: UUID): F[CheckTimeout.type, (Boolean, Boolean)]
 
   /** Request a language server to rename project.
     *

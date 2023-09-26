@@ -55,7 +55,7 @@ public abstract class MultiValueKeyBase {
   private boolean findFloats() {
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
-      if (NumericConverter.isDecimalLike(value)) {
+      if (NumericConverter.isFloatLike(value)) {
         return true;
       }
     }
@@ -70,7 +70,7 @@ public abstract class MultiValueKeyBase {
     List<Integer> result = new ArrayList<>();
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
-      if (NumericConverter.isDecimalLike(value)) {
+      if (NumericConverter.isFloatLike(value)) {
         result.add(i);
       }
     }

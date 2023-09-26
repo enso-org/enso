@@ -25,6 +25,7 @@ public interface StorageConverter<T> {
       case IntegerType integerType -> new ToIntegerStorageConverter(integerType);
       case TextType textType -> new ToTextStorageConverter(textType);
       case TimeOfDayType timeOfDayType -> new ToTimeOfDayStorageConverter();
+      case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
     };
   }
 }
