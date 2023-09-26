@@ -1,7 +1,7 @@
+import type { NonEmptyArray } from '@/util/array'
+import type { Opt } from '@/util/opt'
 import init, { parse, parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
 import * as Ast2 from '../generated/ast'
-import type { NonEmptyArray } from './array'
-import type { Opt } from './opt'
 
 const _wasm = await init()
 

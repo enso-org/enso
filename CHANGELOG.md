@@ -962,6 +962,7 @@
 - [Support runtime checks of intersection types][7769]
 - [Merge `Small_Integer` and `Big_Integer` types][7636]
 - [Inline type ascriptions][7796]
+- [Always persist `TRACE` level logs to a file][7825]
 - [Downloadable VSCode extension][7861]
 - [New `project/status` route for reporting LS state][7801]
 
@@ -1106,6 +1107,7 @@
 [7636]: https://github.com/enso-org/enso/pull/7636
 [7796]: https://github.com/enso-org/enso/pull/7796
 [7801]: https://github.com/enso-org/enso/pull/7801
+[7825]: https://github.com/enso-org/enso/pull/7825
 [7861]: https://github.com/enso-org/enso/pull/7861
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
