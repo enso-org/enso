@@ -666,6 +666,25 @@ spec setup =
                 c2 = c1.auto_value_type shrink_types=shrink_types
                 c2.value_type . should_equal Value_Type.Byte
 
+        Test.specify "Decimal (scale=0, i.e. integer) columns should also be shrinked if possible and shrink_types=True" <|
+            t0 = table_builder [["X", [2^100, 1, 2, 3]], ["Y", [10, 20, 2^100, 30]], ["Z", [1, 2, 3, 4]]] . cast "Z" (Value_Type.Decimal scale=0)
+            t1 = t0.drop 1
+
+            t1.at "X" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t1.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t1.at "Z" . value_type . should_equal (Value_Type.Decimal scale=0)
+
+            t2 = t1.auto_value_types shrink_types=False
+            # Without shrinking we get an integer type, but not the smallest one - just the default 64-bit.
+            t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+            t3 = t1.auto_value_types shrink_types=True
+            t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t3.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+
         Test.specify "if all text values have the same length, will change the type to fixed-length string (if shrink_types=True)" <|
             [False, True].each is_mixed->
                 prefix = if is_mixed then 42 else "FOOBARBAZ"
