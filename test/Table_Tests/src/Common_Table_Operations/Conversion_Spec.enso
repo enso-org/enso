@@ -658,6 +658,14 @@ spec setup =
                 # Shrinking Floats also finds the smallest type that fits.
                 t3.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
 
+        Test.specify "will not return Byte columns by default, but should leave existing Byte columns intact" <|
+            c1 = table_builder [["X", [1, 2, 3]]] . at "X" . cast Value_Type.Byte
+            c1.value_type . should_equal Value_Type.Byte
+
+            [True, False].each shrink_types->
+                c2 = c1.auto_value_type shrink_types=shrink_types
+                c2.value_type . should_equal Value_Type.Byte
+
         Test.specify "if all text values have the same length, will change the type to fixed-length string (if shrink_types=True)" <|
             [False, True].each is_mixed->
                 prefix = if is_mixed then 42 else "FOOBARBAZ"
@@ -709,3 +717,26 @@ spec setup =
             # Long ones cannot fit in 255 so they are kept as-is.
             t4.at "long_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
             t4.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
+
+        Test.specify "can deal with all-null columns" <|
+            t0 = table_builder [["mix", [My_Type.Value 1, Nothing, Nothing]], ["int", [42, Nothing, Nothing]], ["str", ["a", Nothing, Nothing]], ["float", [1.5, Nothing, Nothing]]]
+            t1 = t0.drop 1
+
+            t1.at "mix" . value_type . should_equal Value_Type.Mixed
+            t1.at "int" . value_type . should_equal Value_Type.Integer
+            t1.at "float" . value_type . should_equal Value_Type.Float
+            t1.at "str" . value_type . should_equal Value_Type.Char
+
+            t2 = t1.auto_value_types shrink_types=False
+            t2.at "mix" . value_type . should_equal Value_Type.Mixed
+            t2.at "int" . value_type . should_equal Value_Type.Integer
+            t2.at "float" . value_type . should_equal Value_Type.Float
+            t2.at "str" . value_type . should_equal Value_Type.Char
+
+            t3 = t1.auto_value_types shrink_types=True
+            t3.at "mix" . value_type . should_equal Value_Type.Mixed
+            # Technically if there are no elements, then they can be fit inside of the smallest types available:
+            t3.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t3.at "float" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            # But for Text we make an exception and keep the type unbounded: 0-length fixed length string simply would not make any sense.
+            t3.at "str" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
