@@ -284,6 +284,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
     }, [loadingProjectManagerDidFail, backend.type])
 
+    React.useEffect(() => {
+        setNameOfProjectToImmediatelyOpen(initialProjectName)
+    }, [initialProjectName])
+
     const overwriteAssets = React.useCallback(
         (newAssets: backendModule.AnyAsset[]) => {
             setInitialized(true)

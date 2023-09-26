@@ -112,10 +112,7 @@ export default function Dashboard(props: DashboardProps) {
             localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
                 backendModule.BackendType.local
         ) {
-            currentBackend = new localBackend.LocalBackend(
-                projectManagerUrl,
-                localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
-            )
+            currentBackend = new localBackend.LocalBackend(projectManagerUrl)
             setBackend(currentBackend)
         }
         const savedProjectStartupInfo = localStorage.get(
@@ -174,7 +171,21 @@ export default function Dashboard(props: DashboardProps) {
                     }
                 }
             } else {
-                setProjectStartupInfo(savedProjectStartupInfo)
+                if (currentBackend.type !== backendModule.BackendType.local) {
+                    currentBackend = new localBackend.LocalBackend(projectManagerUrl)
+                }
+                void (async () => {
+                    await currentBackend.openProject(
+                        savedProjectStartupInfo.projectAsset.id,
+                        null,
+                        savedProjectStartupInfo.projectAsset.title
+                    )
+                    const project = await currentBackend.getProjectDetails(
+                        savedProjectStartupInfo.projectAsset.id,
+                        savedProjectStartupInfo.projectAsset.title
+                    )
+                    setProjectStartupInfo({ ...savedProjectStartupInfo, project })
+                })()
             }
         }
         // This MUST only run when the component is mounted.
@@ -275,7 +286,7 @@ export default function Dashboard(props: DashboardProps) {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackend.LocalBackend(projectManagerUrl, null))
+                        setBackend(new localBackend.LocalBackend(projectManagerUrl))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
