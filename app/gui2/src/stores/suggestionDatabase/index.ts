@@ -8,7 +8,7 @@ export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
 export const SuggestionDb = Map<SuggestionId, SuggestionEntry>
 
 export interface Group {
-  color: string
+  color?: string
   name: string
 }
 
@@ -37,7 +37,7 @@ function fromJson(data: any, groups: Group[]): SuggestionEntry {
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = reactive(new SuggestionDb())
   const groups = ref<Group[]>([
-    { color: '#4D9A29', name: 'Input' },
+    { name: 'Input' },
     { color: '#B37923', name: 'Web' },
     { color: '#9735B9', name: 'Parse' },
     { color: '#4D9A29', name: 'Select' },

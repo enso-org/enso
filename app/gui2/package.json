@@ -24,6 +24,8 @@
   "dependencies": {
     "@open-rpc/client-js": "^1.8.1",
     "@vueuse/core": "^10.4.1",
+    "culori": "^3.2.0",
+    "murmurhash": "^2.0.1",
     "enso-authentication": "^1.0.0",
     "isomorphic-ws": "^5.0.0",
     "lib0": "^0.2.83",

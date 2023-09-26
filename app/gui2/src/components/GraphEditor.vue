@@ -3,6 +3,8 @@ import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { colorFromString } from '@/util/colors'
 
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -11,7 +13,7 @@ import { modKey, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -23,6 +25,7 @@ const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
+const suggestionDb = useSuggestionDbStore()
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -87,6 +90,18 @@ function moveNode(id: ExprId, delta: Vec2) {
   const newPosition = node.position.addScaled(delta, 1 / navigator.scale)
   graphStore.setNodePosition(id, newPosition)
 }
+
+// === Populate CSS variables for group colors. ===
+
+watch([suggestionDb.groups, viewportNode], ([groups, root]) => {
+  if (root) {
+    for (let group of groups) {
+      const name = group.name.replace(/\s/, '-')
+      let color = group.color ?? colorFromString(name)
+      root.style.setProperty(`--group-color-${name}`, color)
+    }
+  }
+})
 </script>
 
 <template>
@@ -137,6 +152,7 @@ function moveNode(id: ExprId, delta: Vec2) {
   position: relative;
   contain: layout;
   overflow: clip;
+  --group-color-fallback: #006b8a;
 }
 
 svg {
