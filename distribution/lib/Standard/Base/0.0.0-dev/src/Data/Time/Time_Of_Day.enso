@@ -475,5 +475,8 @@ type Time_Of_Day
 ## PRIVATE
 Time_Of_Day.from (that:JS_Object) =
     ## Must have hour and minute but second and nanosecond are optional
-    if that.get "type" == "Time_Of_Day" && ["hour", "minute"].all that.contains_key then Time_Of_Day.new (that.get "hour") (that.get "minute") (that.get "second" 0) nanosecond=(that.get "nanosecond" 0) else
-        Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Of_Day.from.")
+    case that.get "type" == "Time_Of_Day" && ["hour", "minute"].all that.contains_key of
+        True ->
+            if that.contains_key "nanosecond" && (that.contains_key "second" . not) then Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Of_Day.from.") else
+                Time_Of_Day.new (that.get "hour") (that.get "minute") (that.get "second" 0) nanosecond=(that.get "nanosecond" 0)
+        False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Of_Day.from.")

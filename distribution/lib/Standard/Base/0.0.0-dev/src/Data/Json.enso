@@ -296,14 +296,19 @@ make_enso js_object =
         _ : Array ->
             proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
             Vector.from_polyglot_array proxy
-        _ : JS_Object ->
-            parsed = case js_object.get "type" of
-                "Date" -> Date.from js_object
-                "Date_Time" -> Date_Time.from js_object
-                "Time_Of_Day" -> Time_Of_Day.from js_object
-                _ -> js_object
-            if parsed.is_error then js_object else parsed
-        _ -> JS_Object.Value js_object
+        _ : JS_Object -> js_object
+        _ ->
+            wrapped = JS_Object.Value js_object
+
+            ## Handle deserializing date and time types.
+            type_name = wrapped.get "type"
+            parsed = if type_name == "Date" then Date.from wrapped else
+                if type_name == "Date_Time" then Date_Time.from wrapped else
+                    if type_name == "Time_Of_Day" then Time_Of_Day.from wrapped else
+                        wrapped
+
+            if parsed.is_error then wrapped else parsed
+
 
 ## PRIVATE
    Internal function to convert any JS_Objects into their native JS objects before passing to JS.
