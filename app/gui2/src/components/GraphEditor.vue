@@ -214,6 +214,22 @@ watchEffect(() => {
   selectedNodes.value = newSelectedNodes
 })
 
+function setSelected(id: ExprId, selected: boolean) {
+  if (selection.dragging) {
+    if (selected) {
+      initiallySelectedNodes.value.add(id)
+    } else {
+      initiallySelectedNodes.value.delete(id)
+    }
+  } else {
+    if (selected) {
+      selectedNodes.value.add(id)
+    } else {
+      selectedNodes.value.delete(id)
+    }
+  }
+}
+
 const unregisterKeyboardHandlers = ref<() => void>()
 
 onMounted(() => {
@@ -259,7 +275,7 @@ onUnmounted(() => {
         :key="id"
         :node="node"
         :selected="selectedNodes.has(id)"
-        @update:selected="$event ? selectedNodes.add(id) : selectedNodes.delete(id)"
+        @update:selected="setSelected(id, $event)"
         @replaceSelection="selectedNodes.clear(), selectedNodes.add(id)"
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"

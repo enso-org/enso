@@ -42,7 +42,7 @@ shortcutRegistry.registerNewMouseActions(MOUSE_ACTIONS, {
   ],
   'remove-from-nodes-selection': [
     mousebind('remove-from-nodes-selection', ['Shift', 'Alt'], MouseButton.move, 1),
-    mousebind('add-to-nodes-selection', ['Shift', CTRL], MouseButton.left, 1),
+    mousebind('remove-from-nodes-selection', ['Shift', 'Alt'], MouseButton.left, 1),
   ],
   'toggle-nodes-selection': [
     mousebind('toggle-nodes-selection', ['Shift'], MouseButton.move, 1),
