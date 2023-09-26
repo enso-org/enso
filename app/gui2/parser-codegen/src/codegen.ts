@@ -2,9 +2,6 @@ import * as fs from 'fs'
 import * as ts from 'typescript'
 import { factory as tsf } from 'typescript'
 
-type Schema = {
-  types: [string: Schema.Type]
-}
 module Schema {
   export type Type = {
     name: string
@@ -24,6 +21,12 @@ module Schema {
   export type Option = { class: 'option'; type: TypeRef }
   export type Result = { class: 'result'; type0: TypeRef; type1: TypeRef }
   export type PrimitiveType = 'bool' | 'u32' | 'u64' | 'i32' | 'i64' | 'char' | 'string'
+}
+type TypeGraph = {
+  [id: string]: Schema.Type
+}
+type Schema = {
+  types: TypeGraph
 }
 
 function fromSnake(ident: string, to: 'camel' | 'pascal', prefix?: string): string {
@@ -196,12 +199,13 @@ class Type {
     this.size = size
   }
 
-  static new(ref: Schema.TypeRef, types: [string: Schema.Type]): Type {
+  static new(ref: Schema.TypeRef, types: TypeGraph): Type {
     const c = ref.class
     switch (c) {
       case 'type':
         const ty = types[ref.id]
-        const parent = types[ty.parent]
+        const parentId = ty.parent
+        const parent = ty.parent != null ? types[ty.parent] : null
         const typeName = namespacedName(ty.name, parent?.name)
         const type = tsf.createTypeReferenceNode(typeName)
         if (Object.entries(ty.discriminants).length !== 0) {
@@ -286,7 +290,7 @@ function seekCursor(cursor: ts.Expression, offset: number): ts.Expression {
 function makeGetter(
   fieldName: string,
   fieldData: Schema.Field,
-  types: [string: Schema.Type],
+  types: TypeGraph,
 ): ts.GetAccessorDeclaration {
   const type = Type.new(fieldData.type, types)
   return tsf.createGetAccessorDeclaration(
@@ -314,7 +318,7 @@ function createAssignmentStatement(left: ts.Expression, right: ts.Expression): t
   )
 }
 
-function makeConcreteType(id: string, types: [string: Schema.Type]): ts.ClassDeclaration {
+function makeConcreteType(id: string, types: TypeGraph): ts.ClassDeclaration {
   const ident = tsf.createIdentifier(toPascal(types[id].name))
   const paramIdent = tsf.createIdentifier('cursor')
   const cursorParam = tsf.createParameterDeclaration(
@@ -387,7 +391,7 @@ function makeClass(
   name: ts.Identifier,
   members: ts.ClassElement[],
   id: string,
-  types: [string: Schema.Type],
+  types: TypeGraph,
 ): ts.ClassDeclaration {
   const ty = types[id]
   return tsf.createClassDeclaration(
@@ -419,7 +423,7 @@ function makeChildType(
   base: ts.Identifier,
   id: string,
   discrim: string,
-  types: [string: Schema.Type],
+  types: TypeGraph,
 ): ChildType {
   const ty: Schema.Type = types[id]
   const name = toPascal(ty.name)
@@ -555,7 +559,7 @@ function abstractTypeDeserializer(
   )
 }
 
-function makeAbstractType(id: string, types: [string: Schema.Type]) {
+function makeAbstractType(id: string, types: TypeGraph) {
   const ty = types[id]
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
@@ -654,7 +658,7 @@ emit(
       undefined,
       tsf.createNamedImports(
         Array.from(Object.entries(support), ([name, _value]) =>
-          tsf.createImportSpecifier(undefined, undefined, tsf.createIdentifier(name)),
+          tsf.createImportSpecifier(false, undefined, tsf.createIdentifier(name)),
         ),
       ),
     ),

@@ -10,10 +10,10 @@
   "scripts": {
     "generate-ast-schema": "rm -rf generated && mkdir generated && cargo run -p enso-parser-schema > generated/ast-schema.json",
     "preinstall": "npm run generate-ast-schema",
-    "start": "tsc && node dist/codegen.js generated/ast-schema.json generated/ast.ts"
+    "start": "tsc --build && node dist/codegen.js generated/ast-schema.json generated/ast.ts"
   },
   "keywords": [],
-  "devDependencies": {
+  "dependencies": {
     "typescript": "^5.2.2"
   }
 }
