@@ -392,7 +392,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
       @update:type="visualizationType = $event"
     />
     <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">
-      <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
+      <SvgIcon class="icon grab-handle" name="number_input" @pointerdown="handleClick"></SvgIcon>
       <div
         ref="editableRootNode"
         class="editable"
@@ -458,7 +458,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
   gap: 4px;
 }
 
-.icon {
+.grab-handle {
   color: white;
   cursor: grab;
   margin-right: 10px;
