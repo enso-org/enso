@@ -95,6 +95,16 @@ type Value_Type
 
        ANSI SQL: CHAR, VARCHAR, TEXT, LONGVARCHAR, NCHAR, NVARCHAR, TEXT, CLOB, NCLOB
 
+       ! Counting Characters
+
+         Note that different backends may count the text in different ways.
+         The in-memory backend treats a single grapheme cluster (e.g. 💡) as a
+         single character unit. In most database systems more complex grapheme
+         clusters may be counted as multiple characters. So there isn't a 1-1
+         correspondence between these limits across backends which may cause
+         strings to be truncated if they contain such characters and are close
+         to the limit.
+
        Arguments:
        - size: the maximum number of characters that can be stored in the
          column. It can be nothing to indicate no limit.
