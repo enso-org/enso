@@ -1754,3 +1754,7 @@ adapt_unified_column column expected_type =
    A shorthand to be able to share the implementations between in-memory and
    database.
 simple_unary_op column op_kind = column.make_unary_op op_kind
+
+## PRIVATE
+Materialized_Column.from (_:Column) =
+    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the column using `.read` before mixing it with an in-memory Table.")
