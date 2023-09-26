@@ -22,21 +22,20 @@ interface InternalCategorySwitcherItemProps {
     active?: boolean
     /** When true, the button is not clickable. */
     disabled?: boolean
+    /** A title that is only shown when `disabled` is true. */
+    hidden: boolean
     image: string
     name: string
-    /** A title that is only shown when `disabled` is true. */
-    error?: string | null
     iconClassName?: string
     onClick: () => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-    const { active = false, disabled = false, image, name, error, iconClassName, onClick } = props
+    const { active = false, disabled = false, hidden, image, name, iconClassName, onClick } = props
     return (
         <div
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`group flex items-center rounded-full gap-2 h-8 px-2 ${
+            className={`group flex items-center rounded-full gap-2 h-8 px-2 ${hidden ? 'hidden' : ''} ${
                 active ? 'bg-frame-selected' : 'text-not-selected'
             } ${
                 disabled
@@ -128,8 +127,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     key={currentCategory}
                     active={category === currentCategory}
                     disabled={category === currentCategory}
+                    hidden={IS_NOT_YET_IMPLEMENTED[currentCategory]}
                     image={CATEGORY_ICONS[currentCategory]}
-                    error={IS_NOT_YET_IMPLEMENTED[currentCategory] ? 'Not implemented yet.' : null}
                     name={currentCategory}
                     iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
                     onClick={() => {
