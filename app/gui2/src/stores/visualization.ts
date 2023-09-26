@@ -1,12 +1,25 @@
 import * as vue from 'vue'
 import { type DefineComponent } from 'vue'
 
+import * as vueUseCore from '@vueuse/core'
 import { defineStore } from 'pinia'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import * as useVisualizationConfig from '@/providers/useVisualizationConfig'
+import type {
+  AddImportNotification,
+  AddRawImportNotification,
+  AddStyleNotification,
+  AddURLImportNotification,
+  CompilationErrorResponse,
+  CompilationResultResponse,
+  CompileError,
+  CompileRequest,
+  FetchError,
+  InvalidMimetypeError,
+  RegisterBuiltinModulesRequest,
+} from '@/workers/visualizationCompiler'
 import Compiler from '@/workers/visualizationCompiler?worker'
-import * as vueUseCore from '@vueuse/core'
 import type { VisualizationConfiguration } from 'shared/languageServerTypes'
 
 /** A module containing the default visualization function. */
@@ -57,18 +70,16 @@ type VisualizationModule = {
 const builtinVisualizationImports: Record<string, () => Promise<VisualizationModule>> = {
   JSON: () => import('@/components/visualizations/JSONVisualization.vue') as any,
   Table: () => import('@/components/visualizations/TableVisualization.vue') as any,
-  Scatterplot: () => import('@/components/visualizations/ScatterplotVisualization.vue') as any,
   Histogram: () => import('@/components/visualizations/HistogramVisualization.vue') as any,
   Heatmap: () => import('@/components/visualizations/HeatmapVisualization.vue') as any,
   'SQL Query': () => import('@/components/visualizations/SQLVisualization.vue') as any,
-  'Geo Map': () => import('@/components/visualizations/GeoMapVisualization.vue') as any,
   Image: () => import('@/components/visualizations/ImageBase64Visualization.vue') as any,
   Warnings: () => import('@/components/visualizations/WarningsVisualization.vue') as any,
 }
 
 const dynamicVisualizationPaths: Record<string, string> = {
-  'Scatterplot 2': '/visualizations/ScatterplotVisualization.vue',
-  'Geo Map 2': '/visualizations/GeoMapVisualization.vue',
+  Scatterplot: '/visualizations/ScatterplotVisualization.vue',
+  'Geo Map': '/visualizations/GeoMapVisualization.vue',
 }
 
 export const useVisualizationStore = defineStore('visualization', () => {
@@ -88,33 +99,58 @@ export const useVisualizationStore = defineStore('visualization', () => {
     console.log(`registering visualization: name=${module.name}, inputType=${module.inputType}`)
   }
 
+  function postMessage<T>(worker: Worker, message: T) {
+    worker.postMessage(message)
+  }
+
   async function compile(path: string) {
     if (worker == null) {
       worker = new Compiler()
-      worker.postMessage({ type: 'register-builtin-modules', modules: Object.keys(moduleCache) })
+      postMessage<RegisterBuiltinModulesRequest>(worker, {
+        type: 'register-builtin-modules-request',
+        modules: Object.keys(moduleCache),
+      })
       worker.addEventListener(
         'message',
         async (
           event: MessageEvent<
-            | { type: 'style'; code: string }
-            | { type: 'raw-import'; path: string; value: unknown }
-            | { type: 'url-import'; path: string; mimeType: string; value: BlobPart }
-            | { type: 'import'; path: string; code: string }
-            | { type: 'compilation-result'; id: number; path: string }
+            // === Responses ===
+            | CompilationResultResponse
+            | CompilationErrorResponse
+            // === Notifications ===
+            | AddStyleNotification
+            | AddRawImportNotification
+            | AddURLImportNotification
+            | AddImportNotification
+            // === Errors ===
+            | FetchError
+            | InvalidMimetypeError
+            | CompileError
           >,
         ) => {
           switch (event.data.type) {
-            case 'style': {
+            // === Responses ===
+            case 'compilation-result-response': {
+              workerCallbacks[event.data.id]?.resolve(moduleCache[event.data.path])
+              break
+            }
+            case 'compilation-error-response': {
+              console.error(`Error compiling visualization '${event.data.path}':`, event.data.error)
+              workerCallbacks[event.data.id]?.reject()
+              break
+            }
+            // === Notifications ===
+            case 'add-style-notification': {
               const styleNode = document.createElement('style')
               styleNode.innerHTML = event.data.code
               document.head.appendChild(styleNode)
               break
             }
-            case 'raw-import': {
+            case 'add-raw-import-notification': {
               moduleCache[event.data.path] = event.data.value
               break
             }
-            case 'url-import': {
+            case 'add-url-import-notification': {
               moduleCache[event.data.path] = {
                 default: URL.createObjectURL(
                   new Blob([event.data.value], { type: event.data.mimeType }),
@@ -122,7 +158,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
               }
               break
             }
-            case 'import': {
+            case 'add-import-notification': {
               const module = import(
                 /* @vite-ignore */
                 URL.createObjectURL(new Blob([event.data.code], { type: 'text/javascript' }))
@@ -131,17 +167,27 @@ export const useVisualizationStore = defineStore('visualization', () => {
               moduleCache[event.data.path] = await module
               break
             }
-            case 'compilation-result': {
-              workerCallbacks[event.data.id]?.resolve(moduleCache[event.data.path])
+            // === Errors ===
+            case 'fetch-error': {
+              console.error(`Error fetching '${event.data.path}':`, event.data.error)
+              break
+            }
+            case 'invalid-mimetype-error': {
+              console.error(
+                `Expected mimetype of '${event.data.path}' to be '${event.data.expected}', ` +
+                  `but received '${event.data.actual}' instead`,
+              )
+              break
+            }
+            case 'compile-error': {
+              console.error(`Error compiling '${event.data.path}':`, event.data.error)
               break
             }
           }
         },
       )
       worker.addEventListener('error', (event) => {
-        if (event.error?.id) {
-          workerCallbacks[event.error.id]?.reject()
-        }
+        console.error(event.error)
       })
     }
     const id = workerMessageId
@@ -149,7 +195,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     const promise = new Promise<VisualizationModule>((resolve, reject) => {
       workerCallbacks[id] = { resolve, reject }
     })
-    worker.postMessage({ type: 'compile', id, path })
+    postMessage<CompileRequest>(worker, { type: 'compile-request', id, path })
     return await promise
   }
 

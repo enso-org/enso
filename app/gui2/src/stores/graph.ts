@@ -102,7 +102,7 @@ export const useGraphStore = defineStore('graph', () => {
         const exprRange: ContentRange = [stmt.exprOffset, stmt.exprOffset + stmt.expression.length]
 
         if (affectedRanges != null) {
-          while ((affectedRanges[0]?.[1] ?? 0) < exprRange[0]) {
+          while (affectedRanges[0]?.[1]! < exprRange[0]) {
             affectedRanges.shift()
           }
           if (affectedRanges[0] == null) break

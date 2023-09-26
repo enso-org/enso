@@ -58,7 +58,7 @@ declare const agGrid: typeof import('ag-grid-enterprise')
 <script setup lang="ts">
 import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
 
-import { useThrottleFn } from '@vueuse/core'
+import { useDebounceFn } from '@vueuse/core'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
@@ -116,33 +116,6 @@ const selectableRowLimits = computed(() =>
   [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter((r) => r <= rowCount.value),
 )
 const wasAutomaticallyAutosized = ref(false)
-
-const throttledUpdateTableSize = useThrottleFn((...args: Parameters<typeof updateTableSize>) => {
-  queueMicrotask(() => {
-    updateTableSize(...args)
-  })
-}, 500)
-
-onMounted(() => {
-  setRowLimitAndPage(1000, 0)
-
-  if ('AG_GRID_LICENSE_KEY' in window && typeof window.AG_GRID_LICENSE_KEY === 'string') {
-    agGrid.LicenseManager.setLicenseKey(window.AG_GRID_LICENSE_KEY)
-  } else {
-    console.warn('The AG_GRID_LICENSE_KEY is not defined.')
-  }
-
-  new agGrid.Grid(tableNode.value!, agGridOptions.value)
-
-  throttledUpdateTableSize(undefined)
-})
-
-watch(
-  () => [props.data, config.value.width, config.value.fullscreen],
-  () => {
-    throttledUpdateTableSize(undefined)
-  },
-)
 
 function setRowLimitAndPage(newRowLimit: number, newPage: number) {
   if (newRowLimit !== rowLimit.value || newPage !== page.value) {
@@ -255,7 +228,7 @@ function toRender(content: unknown) {
 watchEffect(() => {
   const data_ = props.data
   const options = agGridOptions.value
-  if (data_ == null || options.api == null) {
+  if (options.api == null) {
     return
   }
 
@@ -359,10 +332,8 @@ function updateTableSize(clientWidth: number | undefined) {
   }
   // Resize columns to fit the table width unless the user manually resized them.
   const cols = columnApi.getAllGridColumns().filter((c) => !c.getColDef().manuallySized)
-
   // Compute the maximum width of a column: the client width minus a small margin.
   const maxWidth = clientWidth - SIDE_MARGIN
-
   // Resize based on the data and then shrink any columns that are too wide.
   wasAutomaticallyAutosized.value = true
   columnApi.autoSizeColumns(cols, true)
@@ -401,6 +372,39 @@ function goToNextPage() {
 function goToLastPage() {
   setRowLimitAndPage(rowLimit.value, pageLimit.value - 1)
 }
+
+// ===============
+// === Updates ===
+// ===============
+
+onMounted(() => {
+  setRowLimitAndPage(1000, 0)
+  if ('AG_GRID_LICENSE_KEY' in window && typeof window.AG_GRID_LICENSE_KEY === 'string') {
+    agGrid.LicenseManager.setLicenseKey(window.AG_GRID_LICENSE_KEY)
+  } else {
+    console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+  }
+  new agGrid.Grid(tableNode.value!, agGridOptions.value)
+  setTimeout(() => updateTableSize(undefined), 0)
+})
+
+watch(
+  () => config.value.fullscreen,
+  () => queueMicrotask(() => updateTableSize(undefined)),
+)
+
+const debouncedUpdateTableSize = useDebounceFn((...args: Parameters<typeof updateTableSize>) => {
+  queueMicrotask(() => {
+    updateTableSize(...args)
+  })
+}, 500)
+
+watch(
+  () => [props.data, config.value.width],
+  () => {
+    debouncedUpdateTableSize(undefined)
+  },
+)
 </script>
 
 <template>

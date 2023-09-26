@@ -82,7 +82,9 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watchPostEffect } from 'vue'
+
+import type { Deck } from 'deck.gl'
 
 import FindIcon from './icons/find.svg'
 import GeoMapDistanceIcon from './icons/geo_map_distance.svg'
@@ -129,7 +131,7 @@ const mapStyle = ref(DEFAULT_MAP_STYLE)
 const pitch = ref(0)
 const controller = ref(true)
 const showingLabels = ref(true)
-const deckgl = ref<import('deck.gl').DeckGL>()
+const deckgl = ref<Deck>()
 
 const viewState = computed(() => ({
   longitude: longitude.value,
@@ -138,7 +140,7 @@ const viewState = computed(() => ({
   pitch: pitch.value,
 }))
 
-watchEffect(() => {
+watchPostEffect(() => {
   if (updateState(props.data)) {
     updateMap()
     updateLayers()
@@ -149,6 +151,8 @@ onMounted(() => {
   dataPoints.value = []
   emit('update:processor', 'Standard.Visualization.Geo_Map', 'process_to_json_text')
 })
+
+onUnmounted(() => deckgl.value?.finalize())
 
 /**
  * Update the internal data with the new incoming data. Does not affect anything rendered.
@@ -190,27 +194,28 @@ function updateState(data: Data) {
 
 function updateMap() {
   if (deckgl.value == null) {
-    if (mapNode.value != null) {
-      initDeckGl()
-    }
+    initDeckGl()
   } else {
     updateDeckGl()
   }
 }
 
 function initDeckGl() {
+  if (mapNode.value == null) {
+    return
+  }
   try {
     deckgl.value = new deck.DeckGL({
       // The `...{}` spread operator suppresses TypeScript's excess property errors.
       // These are valid properties, but they do not exist in the typings.
       ...{
-        container: mapNode.value!,
+        container: mapNode.value,
         mapboxApiAccessToken: TOKEN,
         mapStyle: mapStyle.value,
       },
       initialViewState: viewState.value,
       controller: controller.value,
-    })
+    }) as any
   } catch (error) {
     console.error(error)
     resetState()
@@ -249,7 +254,6 @@ function updateDeckGl() {
     console.warn('Geo Map could not update its deck.gl instance.')
     return
   }
-  // @ts-expect-error This property is protected.
   deckgl_.viewState = viewState.value
   // @ts-expect-error
   deckgl_.mapStyle = mapStyle.value

@@ -132,11 +132,9 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 <template>
   <VisualizationContainer :below-toolbar="true">
     <div class="sql-visualization scrollable">
-      <template v-if="data">
-        <pre v-if="data.error" class="sql" v-text="data.error"></pre>
-        <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->
-        <pre v-else class="sql" v-html="formatted"></pre>
-      </template>
+      <pre v-if="data.error" class="sql" v-text="data.error"></pre>
+      <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->
+      <pre v-else class="sql" v-html="formatted"></pre>
     </div>
   </VisualizationContainer>
 </template>

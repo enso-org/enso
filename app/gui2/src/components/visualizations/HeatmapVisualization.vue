@@ -39,7 +39,7 @@ declare var d3: typeof import('d3')
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { computed, onMounted, ref, watchPostEffect } from 'vue'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
@@ -75,6 +75,7 @@ const data = computed(() => {
   return []
 })
 
+const containerNode = ref<HTMLElement>()
 const pointsNode = ref<SVGElement>()
 const xAxisNode = ref<SVGGElement>()
 const yAxisNode = ref<SVGGElement>()
@@ -91,8 +92,18 @@ const fill = computed(() =>
     .domain([0, d3.max(buckets.value, (d) => d.value) ?? 1]),
 )
 
-const width = computed(() => Math.max(config.value.width ?? 0, config.value.nodeSize.x))
-const height = computed(() => config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
+watchPostEffect(() => {
+  width.value = config.value.fullscreen
+    ? containerNode.value?.parentElement?.clientWidth ?? 0
+    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
+})
+const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+watchPostEffect(() => {
+  height.value = config.value.fullscreen
+    ? containerNode.value?.parentElement?.clientHeight ?? 0
+    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
+})
 const boxWidth = computed(() => Math.max(0, width.value - MARGIN.left - MARGIN.right))
 const boxHeight = computed(() => Math.max(0, height.value - MARGIN.top - MARGIN.bottom))
 
@@ -135,8 +146,20 @@ const buckets = computed(() => {
 const groups = computed(() => Array.from(new Set(Array.from(buckets.value, (p) => p.group))))
 const variables = computed(() => Array.from(new Set(Array.from(buckets.value, (p) => p.variable))))
 
-const xScale = ref(d3.scaleBand<number>().padding(0.05))
-const yScale = ref(d3.scaleBand<number>().padding(0.05))
+const xScale = computed(() =>
+  d3
+    .scaleBand<number>()
+    .padding(0.05)
+    .range([0, boxWidth.value])
+    .domain(buckets.value.map((d) => d.group)),
+)
+const yScale = computed(() =>
+  d3
+    .scaleBand<number>()
+    .padding(0.05)
+    .range([boxHeight.value, 0])
+    .domain(buckets.value.map((d) => d.variable ?? 0)),
+)
 
 const xAxis = computed(() => {
   const xMod = Math.max(1, Math.round(buckets.value.length / (boxWidth.value / 40)))
@@ -145,12 +168,6 @@ const xAxis = computed(() => {
     .axisBottom(xScale.value)
     .tickSize(0)
     .tickValues(groups.value.filter((_, i) => i % xMod === 0 || i === lastGroupIndex))
-})
-
-watchEffect(() => {
-  // Update the x-axis in D3.
-  xScale.value.range([0, boxWidth.value]).domain(buckets.value.map((d) => d.group))
-  d3XAxis.value.call(xAxis.value)
 })
 
 const yAxis = computed(() => {
@@ -162,13 +179,21 @@ const yAxis = computed(() => {
     .tickValues(variables.value.filter((_, i) => i % yMod === 0 || i === lastVariableIndex))
 })
 
-watchEffect(() => {
-  // Update the y-axis in D3.
-  yScale.value.range([boxHeight.value, 0]).domain(buckets.value.map((d) => d.variable ?? 0))
-  d3YAxis.value.call(yAxis.value)
-})
+// ==============
+// === Update ===
+// ==============
 
-function redrawData() {
+// === Update x axis ===
+
+watchPostEffect(() => d3XAxis.value.call(xAxis.value))
+
+// === Update y axis ===
+
+watchPostEffect(() => d3YAxis.value.call(yAxis.value))
+
+// === Update contents ===
+
+watchPostEffect(() => {
   const buckets_ = buckets.value
   const xScale_ = xScale.value
   const yScale_ = yScale.value
@@ -176,37 +201,26 @@ function redrawData() {
   d3Points.value
     .selectAll('rect')
     .data(buckets_)
-    .join(
-      (enter) =>
-        enter
-          .append('rect')
-          .attr('rx', 4)
-          .attr('ry', 4)
-          .style('stroke-width', 4)
-          .style('stroke', 'none')
-          .style('opacity', 0.8)
-          .style('fill', (d) => fill_(d.value)),
-      (update) =>
-        update
-          .attr('width', xScale_.bandwidth())
-          .attr('height', yScale_.bandwidth())
-          .attr('x', (d) => xScale_(d.group)!)
-          .attr('y', (d) => yScale_(d.variable ?? 0)!),
+    .join((enter) =>
+      enter
+        .append('rect')
+        .attr('rx', 4)
+        .attr('ry', 4)
+        .style('stroke-width', 4)
+        .style('stroke', 'none')
+        .style('opacity', 0.8)
+        .style('fill', (d) => fill_(d.value)),
     )
-}
-
-// =============
-// === Setup ===
-// =============
-
-onMounted(() => queueMicrotask(redrawData))
-watch([data, width, height], () => queueMicrotask(redrawData))
-watchPostEffect(redrawData)
+    .attr('width', xScale_.bandwidth())
+    .attr('height', yScale_.bandwidth())
+    .attr('x', (d) => xScale_(d.group)!)
+    .attr('y', (d) => yScale_(d.variable ?? 0)!)
+})
 </script>
 
 <template>
   <VisualizationContainer :below-toolbar="true">
-    <div class="HeatmapVisualization">
+    <div ref="containerNode" class="HeatmapVisualization">
       <svg :width="width" :height="height">
         <g :transform="`translate(${MARGIN.left},${MARGIN.top})`">
           <g ref="xAxisNode" class="label label-x" :transform="`translate(0, ${boxHeight})`"></g>

@@ -23,7 +23,7 @@ onMounted(() => {
 <template>
   <VisualizationContainer :below-toolbar="true">
     <div class="WarningsVisualization">
-      <ul v-if="data">
+      <ul>
         <li v-if="data.length === 0">There are no warnings.</li>
         <li v-for="(warning, index) in data" :key="index" v-text="warning"></li>
       </ul>
