@@ -28,7 +28,7 @@ import scala.jdk.javaapi.CollectionConverters;
  * </ul>
  * Inserts errors into imports/exports IRs if the above conditions are violated.
  */
-public class PrivateModuleAnalysis implements IRPass {
+public final class PrivateModuleAnalysis implements IRPass {
   public static final PrivateModuleAnalysis MODULE$ = new PrivateModuleAnalysis();
   private UUID uuid;
 
