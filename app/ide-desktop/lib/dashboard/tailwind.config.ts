@@ -118,6 +118,7 @@ export const theme = {
         },
         zIndex: {
             '1': '1',
+            '3': '3',
         },
         backdropBlur: {
             xs: '2px',
