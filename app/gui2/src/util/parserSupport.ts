@@ -11,7 +11,7 @@ export class LazyObject {
 }
 
 export const builtin = {
-  Array: Array
+  Array: Array,
 } as const
 
 export class Cursor {
@@ -21,10 +21,7 @@ export class Cursor {
     this.blob = new DataView(buffer, address)
   }
 
-  * readSequence<T>(
-    readElement: (cursor: Cursor) => T,
-    elementSize: number
-  ): Iterable<T> {
+  *readSequence<T>(readElement: (cursor: Cursor) => T, elementSize: number): Iterable<T> {
     const data = this.readPointer()
     let count = data.readU32()
     let offset = 4
@@ -35,9 +32,7 @@ export class Cursor {
     }
   }
 
-  readOption<T>(
-    readElement: (cursor: Cursor) => T
-  ): T | null {
+  readOption<T>(readElement: (cursor: Cursor) => T): T | null {
     const discriminant = this.readU8()
     switch (discriminant) {
       case 0:
@@ -49,10 +44,7 @@ export class Cursor {
     }
   }
 
-  readResult<Ok, Err>(
-    readOk: (cursor: Cursor) => Ok,
-    readErr: (cursor: Cursor) => Err
-  ): Ok | Err {
+  readResult<Ok, Err>(readOk: (cursor: Cursor) => Ok, readErr: (cursor: Cursor) => Err): Ok | Err {
     const data = this.readPointer()
     const discriminant = data.readU32()
     switch (discriminant) {
@@ -93,12 +85,14 @@ export class Cursor {
   readBool(): boolean {
     const value = this.readU8()
     switch (value) {
-    case 0:
-      return false
-    case 1:
-      return true
-    default:
-      throw new Error(`Invalid boolean: 0x${value.toString(16)} @ 0x${this.blob.byteOffset.toString(16)}.`)
+      case 0:
+        return false
+      case 1:
+        return true
+      default:
+        throw new Error(
+          `Invalid boolean: 0x${value.toString(16)} @ 0x${this.blob.byteOffset.toString(16)}.`,
+        )
     }
   }
 
@@ -118,10 +112,10 @@ export function debugHelper(value: any): object | null {
   if (value === null) {
     return null
   }
-  if (typeof value["debug"] === "function") {
+  if (typeof value['debug'] === 'function') {
     return value.debug()
   }
-  if (typeof value[Symbol.iterator] === "function") {
+  if (typeof value[Symbol.iterator] === 'function') {
     return Array.from(value, debugHelper)
   }
   return value

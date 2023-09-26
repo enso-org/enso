@@ -26,9 +26,9 @@ namespace Token {
 }
 
 interface Parsed {
-    visitTree(tree: Tree, visitor: VisitTree): void;
-    tokenCode(token: Token.Any): string;
-    tokenWhitespace(token: Token.Any): number;
+    visitTree(tree: Tree, visitor: VisitTree): void
+    tokenCode(token: Token.Any): string
+    tokenWhitespace(token: Token.Any): number
 }
 
 // Tree: Visitor implementation.

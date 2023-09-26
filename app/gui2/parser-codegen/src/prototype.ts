@@ -8,16 +8,16 @@ export module Tree {
 
   export enum Type {
     Ident = 0,
-    NamedApp = 1
+    NamedApp = 1,
   }
 
   class Base extends LazyObject {
     get span(): Span {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
 
     children(): Iterable<Tree> {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
   }
 
@@ -25,7 +25,7 @@ export module Tree {
     readonly type: Type.Ident
 
     get token(): Token.Ident {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
   }
 
@@ -33,27 +33,27 @@ export module Tree {
     readonly type: Type.NamedApp
 
     get func(): Tree {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
 
     get open(): Token.OpenSymbol | undefined {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
 
     get name(): Token.Ident {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
 
     get equals(): Token.Operator {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
 
     get arg(): Tree {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
 
     get close(): Token.CloseSymbol | undefined {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
   }
 }
@@ -64,9 +64,9 @@ function switchTree(tree: Tree) {
   const span = tree.span
   switch (c) {
     case Tree.Type.Ident:
-      return "ident"
+      return 'ident'
     case Tree.Type.NamedApp:
-      return "named app"
+      return 'named app'
     default:
       const _ = c satisfies never
   }
@@ -74,11 +74,11 @@ function switchTree(tree: Tree) {
 
 export class Span extends LazyObject {
   get start(): number {
-    throw new Error("TODO")
+    throw new Error('TODO')
   }
 
   get len(): number {
-    throw new Error("TODO")
+    throw new Error('TODO')
   }
 }
 
@@ -89,7 +89,7 @@ export module Token {
     Ident,
     Operator,
     OpenSymbol,
-    CloseSymbol
+    CloseSymbol,
   }
 
   class Base {
@@ -98,7 +98,7 @@ export module Token {
     readonly type: Type
 
     get span(): Span {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
   }
 
@@ -106,7 +106,7 @@ export module Token {
     readonly type: Type.Ident
 
     get isTypeOrConstructor(): boolean {
-      throw new Error("TODO")
+      throw new Error('TODO')
     }
   }
 
