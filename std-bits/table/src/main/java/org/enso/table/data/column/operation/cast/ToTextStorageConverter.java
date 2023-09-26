@@ -75,9 +75,9 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return builder.seal();
   }
 
-  private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter();
-  private final DateTimeFormatter timeFormatter = Core_Date_Utils.defaultLocalTimeFormatter();
-  private final DateTimeFormatter dateTimeFormatter = Core_Date_Utils.defaultZonedDateTimeFormatter();
+  private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter;
+  private final DateTimeFormatter timeFormatter = Core_Date_Utils.defaultLocalTimeFormatter;
+  private final DateTimeFormatter dateTimeFormatter = Core_Date_Utils.defaultZonedDateTimeFormatter;
 
 
   private String convertDate(LocalDate date) {

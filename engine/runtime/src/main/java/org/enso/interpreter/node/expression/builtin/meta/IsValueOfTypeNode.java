@@ -88,7 +88,7 @@ public abstract class IsValueOfTypeNode extends Node {
     @Specialization
     boolean doDoubleCheck(Type expectedType, double payload) {
       var numbers = EnsoContext.get(this).getBuiltins().number();
-      return checkParentTypes(numbers.getDecimal(), expectedType);
+      return checkParentTypes(numbers.getFloat(), expectedType);
     }
 
     @Specialization

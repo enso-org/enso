@@ -7,10 +7,10 @@ import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-polyglot java import org.enso.table.data.column.builder.Builder
+polyglot java import org.enso.table.data.column.builder.Builder as Java_Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
-polyglot java import org.enso.table.data.column.storage.type.Bits as Java_Bits
 polyglot java import org.enso.table.data.column.storage.type.BigIntegerType
+polyglot java import org.enso.table.data.column.storage.type.Bits as Java_Bits
 polyglot java import org.enso.table.data.column.storage.type.BooleanType
 polyglot java import org.enso.table.data.column.storage.type.DateTimeType
 polyglot java import org.enso.table.data.column.storage.type.DateType
@@ -87,6 +87,6 @@ from_value_type_strict value_type =
 
 ## PRIVATE
    Creates a column storage builder for the given storage type.
-make_builder : StorageType -> Integer -> Builder
+make_builder : StorageType -> Integer -> Java_Builder
 make_builder storage initial_size=64 =
-    Builder.getForType storage initial_size
+    Java_Builder.getForType storage initial_size

@@ -169,7 +169,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
           yield runBigIntegerZip(left, right, problemBuilder);
         }
         case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
-        case default -> runMixedZip(lhs, arg, problemBuilder);
+        default -> runMixedZip(lhs, arg, problemBuilder);
       };
 
       case BigIntegerStorage lhs -> {
@@ -184,11 +184,11 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
             yield runBigIntegerZip(left, right, problemBuilder);
           }
           case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
-          case default -> runMixedZip(lhs, arg, problemBuilder);
+          default -> runMixedZip(lhs, arg, problemBuilder);
         };
       }
 
-      case default ->
+      default ->
           throw new IllegalStateException("Unsupported lhs storage: " + storage.getClass().getCanonicalName());
     };
   }
@@ -297,7 +297,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         if (NumericConverter.isCoercibleToDouble(x) && NumericConverter.isCoercibleToDouble(y)) {
 
           // If any of the values is decimal like, then decimal type is used for comparison.
-          if (NumericConverter.isDecimalLike(x) || NumericConverter.isDecimalLike(y)) {
+          if (NumericConverter.isFloatLike(x) || NumericConverter.isFloatLike(y)) {
             double a = NumericConverter.coerceToDouble(x);
             double b = NumericConverter.coerceToDouble(y);
             r = doDouble(a, b);

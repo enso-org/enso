@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.graalvm.collections.Pair;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
@@ -56,32 +57,16 @@ public final class UnresolvedSymbol implements EnsoObject {
    * is returned. This is useful for certain subtyping relations, such as "any constructor is a
    * subtype of Any" or "Nat is a subtype of Int, is a subtype of Number".
    *
+   * @param node the node that performs the query
    * @param type the type for which this symbol should be resolved
-   * @return the resolved function definition, or null if not found
+   * @return the resolved function definition and type it was resolved in, or null if not found
    */
-  public Function resolveFor(Node node, Type type) {
-    for (var current : type.allTypes(EnsoContext.get(node))) {
-      Function candidate = scope.lookupMethodDefinition(current, name);
-      if (candidate != null) {
-        return candidate;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Resolves the type where the symbol is declared.
-   *
-   * @param type the type for which this symbol should be resolved
-   * @return the resolved function definition, or null if not found
-   */
-  public Type resolveDeclaringType(Node node, Type type) {
-    var ctx = EnsoContext.get(node);
+  public Pair<Function, Type> resolveFor(Node node, Type type) {
     if (type != null) {
-      for (var current : type.allTypes(ctx)) {
+      for (var current : type.allTypes(EnsoContext.get(node))) {
         Function candidate = scope.lookupMethodDefinition(current, name);
         if (candidate != null) {
-          return current;
+          return Pair.create(candidate, current);
         }
       }
     }

@@ -161,7 +161,7 @@ class BuiltinTypesTest
     )
   }
 
-  it should "send updates of a Decimal type" in {
+  it should "send updates of a Float type" in {
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -182,7 +182,7 @@ class BuiltinTypesTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.DECIMAL_BUILTIN),
+      TestMessages.update(contextId, idMain, ConstantsGen.FLOAT_BUILTIN),
       context.executionComplete(contextId)
     )
   }

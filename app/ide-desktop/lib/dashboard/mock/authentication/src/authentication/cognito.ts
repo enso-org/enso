@@ -40,8 +40,21 @@ import type * as config from '../../../../src/authentication/src/authentication/
 import type * as loggerProvider from '../../../../src/authentication/src/providers/logger'
 import * as original from '../../../../src/authentication/src/authentication/cognito'
 
+// This file exports a subset of the values from the original file.
+/* eslint-disable no-restricted-syntax */
+export {
+    ConfirmSignUpErrorKind,
+    CurrentSessionErrorKind,
+    ForgotPasswordErrorKind,
+    ForgotPasswordSubmitErrorKind,
+    SignInWithPasswordErrorKind,
+    SignUpErrorKind,
+} from '../../../../src/authentication/src/authentication/cognito'
+/* eslint-enable no-restricted-syntax */
+
 import * as listen from './listen'
 
+// There are unused function parameters in this file.
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 // =================

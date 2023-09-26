@@ -1,5 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Time_Error.Time_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
 
 import Standard.Table.Data.Type.Value_Type.Bits
 
@@ -22,13 +25,13 @@ spec =
 
         Test.specify "Date with locale" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
-            expected_default = Column.from_vector "values" ["21. June 2020", "25. April 2023"]
-            expected_gb = Column.from_vector "values" ["21. Jun 2020", "25. Apr 2023"]
+            expected_default = Column.from_vector "values" ["21. Jun 2020", "25. Apr 2023"]
+            expected_gb = Column.from_vector "values" ["21. June 2020", "25. April 2023"]
             expected_fr = Column.from_vector "values" ["21. juin 2020", "25. avril 2023"]
             input.format "d. MMMM yyyy" . should_equal expected_default
-            input.format "d. MMMM yyyy" (Locale.default) . should_equal expected_default
-            input.format "d. MMMM yyyy" (Locale.new "gb") . should_equal expected_gb
-            input.format "d. MMMM yyyy" (Locale.new "fr") . should_equal expected_fr
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal expected_default
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.uk) . should_equal expected_gb
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.france) . should_equal expected_fr
 
         Test.specify "Empty/Nothing format" <|
             input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
@@ -39,7 +42,7 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
-            input.format "DDDDD" . should_fail_with Illegal_Argument
+            input.format "jjjjjj" . should_fail_with Date_Time_Format_Parse_Error
 
     Test.group "Date Column.format, with format Column" <|
         Test.specify "Date column" <|
@@ -64,8 +67,8 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25, Date.new 2023 4 26]
-            formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "FFF"]
-            input.format formats . should_fail_with Illegal_Argument
+            formats = Column.from_vector "formats" ["yyyyMMdd", "jjjjj", "FFF"]
+            input.format formats . should_fail_with Date_Time_Format_Parse_Error
 
         Test.specify "Bad format column type" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25, Date.new 2023 4 26]
@@ -86,25 +89,35 @@ spec =
 
         Test.specify "Date_Time with locale" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
-            expected_default = Column.from_vector "values" ["21. June 2020 08.10.20", "25. April 2023 14.25.02"]
-            expected_gb = Column.from_vector "values" ["21. Jun 2020 08.10.20", "25. Apr 2023 14.25.02"]
+            expected_default = Column.from_vector "values" ["21. Jun 2020 08.10.20", "25. Apr 2023 14.25.02"]
+            expected_gb = Column.from_vector "values" ["21. June 2020 08.10.20", "25. April 2023 14.25.02"]
             expected_fr = Column.from_vector "values" ["21. juin 2020 08.10.20", "25. avril 2023 14.25.02"]
             input.format "d. MMMM yyyy HH.mm.ss" . should_equal expected_default
-            input.format "d. MMMM yyyy HH.mm.ss" (Locale.default) . should_equal expected_default
-            input.format "d. MMMM yyyy HH.mm.ss" (Locale.new "gb") . should_equal expected_gb
-            input.format "d. MMMM yyyy HH.mm.ss" (Locale.new "fr") . should_equal expected_fr
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy HH.mm.ss" Locale.default) . should_equal expected_default
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy HH.mm.ss" Locale.uk) . should_equal expected_gb
+            input.format (Date_Time_Formatter.from "d. MMMM yyyy HH.mm.ss" Locale.france) . should_equal expected_fr
+
+        Test.specify "overriding the Locale with `format` argument" <|
+            formatter = Date_Time_Formatter.from "d. MMMM yyyy HH.mm.ss" Locale.france
+            input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
+            expected_fr = Column.from_vector "values" ["21. juin 2020 08.10.20", "25. avril 2023 14.25.02"]
+            expected_pl = Column.from_vector "values" ["21. czerwca 2020 08.10.20", "25. kwietnia 2023 14.25.02"]
+
+            input.format formatter . should_equal expected_fr
+            # If I provide a locale argument, it overrides what is already in the formatter:
+            input.format formatter Locale.poland . should_equal expected_pl
 
         Test.specify "Empty/Nothing format" <|
             zone = Time_Zone.parse "US/Hawaii"
             input = Column.from_vector "values" [Date_Time.new 2020 12 21 8 10 20 zone=zone, Date_Time.new 2023 4 25 14 25 2 zone=zone]
-            expected = Column.from_vector "values" ['2020-12-21T08:10:20-10:00[US/Hawaii]', '2023-04-25T14:25:02-10:00[US/Hawaii]']
+            expected = Column.from_vector "values" ['2020-12-21 08:10:20-10:00[US/Hawaii]', '2023-04-25 14:25:02-10:00[US/Hawaii]']
             input.format . should_equal expected
             input.format "" . should_equal expected
             input.format Nothing . should_equal expected
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
-            input.format "DDDDD" . should_fail_with Illegal_Argument
+            input.format "jjjjjjjj" . should_fail_with Date_Time_Format_Parse_Error
 
     Test.group "Date_Time Column.format, with format Column" <|
         Test.specify "Date_Time column" <|
@@ -124,14 +137,14 @@ spec =
             zone = Time_Zone.parse "US/Hawaii"
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20 zone=zone, Date_Time.new 2023 4 25 14 25 2 zone=zone]
             formats = Column.from_vector "formats" ["", Nothing]
-            expected = Column.from_vector "values" ['2020-06-21T08:10:20-10:00[US/Hawaii]', '2023-04-25T14:25:02-10:00[US/Hawaii]']
+            expected = Column.from_vector "values" ['2020-06-21 08:10:20-10:00[US/Hawaii]', '2023-04-25 14:25:02-10:00[US/Hawaii]']
             actual = input.format formats
             actual . should_equal expected
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2, Date_Time.new 2023 4 26 3 4 5]
-            formats = Column.from_vector "formats" ["yyyyMMdd HH.mm.ss", "DDDDD", "FFF"]
-            input.format formats . should_fail_with Illegal_Argument
+            formats = Column.from_vector "formats" ["yyyyMMdd HH.mm.ss", "jjjjj", "FFF"]
+            input.format formats . should_fail_with Date_Time_Format_Parse_Error
 
         Test.specify "Bad format column type" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
@@ -140,7 +153,7 @@ spec =
 
         Test.specify "column length mismatch" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
-            formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "w"]
+            formats = Column.from_vector "formats" ["yyyyMMdd", "jjjj", "w"]
             input.format formats . should_fail_with Illegal_Argument
 
     Test.group "Time_Of_Day Column.format, with format string" <|
@@ -167,11 +180,11 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
-            input.format "DDDDD" . should_fail_with Illegal_Argument
+            input.format "jjjj" . should_fail_with Date_Time_Format_Parse_Error
 
         Test.specify "Format for wrong date type" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
-            input.format "yyyyMMdd HH.mm.ss" . should_fail_with Illegal_Argument
+            input.format "yyyyMMdd HH.mm.ss" . should_fail_with Time_Error
 
     Test.group "Time_Of_Day Column.format, with format Column" <|
         Test.specify "Time_Of_Day column" <|
@@ -196,8 +209,8 @@ spec =
 
         Test.specify "Bad format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2, Time_Of_Day.new 3 4 5]
-            formats = Column.from_vector "formats" ["HH.mm.ss", "DDDDD", "FFF"]
-            input.format formats . should_fail_with Illegal_Argument
+            formats = Column.from_vector "formats" ["HH.mm.ss", "jjjjj", "FFF"]
+            input.format formats . should_fail_with Date_Time_Format_Parse_Error
 
         Test.specify "Bad format column type" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
@@ -206,7 +219,7 @@ spec =
 
         Test.specify "column length mismatch" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
-            formats = Column.from_vector "formats" ["yyyyMMdd", "DDDDD", "w"]
+            formats = Column.from_vector "formats" ["yyyyMMdd", "jjjjj", "w"]
             input.format formats . should_fail_with Illegal_Argument
 
     Test.group "Boolean Column.format, with format string" <|
@@ -289,7 +302,7 @@ spec =
 
         Test.specify "Format is not text" <|
             input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
-            input.format 73 . should_fail_with Illegal_Argument
+            Test.expect_panic_with (input.format 73) Type_Error
 
     Test.group "Edge cases" <|
         Test.specify "empty table is ok" <|

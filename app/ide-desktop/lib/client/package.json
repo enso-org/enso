@@ -20,7 +20,7 @@
     "@types/mime-types": "^2.1.1",
     "@types/opener": "^1.4.0",
     "chalk": "^5.2.0",
-    "create-servers": "^3.2.0",
+    "create-servers": "3.2.0",
     "electron-is-dev": "^2.0.0",
     "mime-types": "^2.1.35",
     "opener": "^1.5.2",
@@ -38,7 +38,7 @@
     "electron-builder": "^22.14.13",
     "electron-notarize": "1.2.2",
     "enso-common": "^1.0.0",
-    "esbuild": "^0.17.15",
+    "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",
     "portfinder": "^1.0.32",
     "tsx": "^3.12.6"
@@ -51,7 +51,6 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "npx --yes eslint src",
     "start": "tsx start.ts",
     "build": "tsx bundle.ts",
     "dist": "tsx dist.ts",

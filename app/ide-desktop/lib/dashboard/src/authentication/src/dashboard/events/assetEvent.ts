@@ -55,7 +55,7 @@ interface AssetEvents {
 type SanityCheck<
     T extends {
         [Type in keyof typeof AssetEventType]: AssetBaseEvent<(typeof AssetEventType)[Type]>
-    } = AssetEvents
+    } = AssetEvents,
     // eslint-disable-next-line no-restricted-syntax
 > = T
 

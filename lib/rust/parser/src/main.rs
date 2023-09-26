@@ -38,21 +38,24 @@ use enso_parser::prelude::*;
 
 fn main() {
     let args = std::env::args().skip(1);
+    let mut parser = enso_parser::Parser::new();
     if args.is_empty() {
         use std::io::Read;
         let mut input = String::new();
         std::io::stdin().read_to_string(&mut input).unwrap();
-        check_file("<stdin>", input.as_str());
+        check_file("<stdin>", input.as_str(), &mut parser);
     } else {
-        args.for_each(|path| check_file(&path, &std::fs::read_to_string(&path).unwrap()));
+        args.for_each(|path| {
+            check_file(&path, &std::fs::read_to_string(&path).unwrap(), &mut parser)
+        });
     }
 }
 
-fn check_file(path: &str, mut code: &str) {
+fn check_file(path: &str, mut code: &str, parser: &mut enso_parser::Parser) {
     if let Some((_meta, code_)) = enso_parser::metadata::parse(code) {
         code = code_;
     }
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = parser.run(code);
     let errors = RefCell::new(vec![]);
     ast.map(|tree| {
         if let enso_parser::syntax::tree::Variant::Invalid(err) = &*tree.variant {

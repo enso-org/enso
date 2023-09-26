@@ -4,6 +4,36 @@ import * as backend from './backend'
 /** This file MUST be `.tsx` even though it does not contain JSX, in order for Tailwind to include
  * the classes in this file. */
 
+// ========================
+// === PermissionAction ===
+// ========================
+
+/** Backend representation of user permission types. */
+export enum PermissionAction {
+    own = 'Own',
+    admin = 'Admin',
+    edit = 'Edit',
+    read = 'Read',
+    readAndDocs = 'Read_docs',
+    readAndExec = 'Read_exec',
+    view = 'View',
+    viewAndDocs = 'View_docs',
+    viewAndExec = 'View_exec',
+}
+
+/** Whether each {@link PermissionAction} can execute a project. */
+export const PERMISSION_ACTION_CAN_EXECUTE: Record<PermissionAction, boolean> = {
+    [PermissionAction.own]: true,
+    [PermissionAction.admin]: true,
+    [PermissionAction.edit]: true,
+    [PermissionAction.read]: false,
+    [PermissionAction.readAndDocs]: false,
+    [PermissionAction.readAndExec]: true,
+    [PermissionAction.view]: false,
+    [PermissionAction.viewAndDocs]: false,
+    [PermissionAction.viewAndExec]: true,
+}
+
 // ==================
 // === Permission ===
 // ==================
@@ -39,19 +69,6 @@ export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
     [Permission.view]: 4,
     [Permission.delete]: 1000,
     /* eslint-enable @typescript-eslint/no-magic-numbers */
-}
-
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    admin = 'Admin',
-    edit = 'Edit',
-    read = 'Read',
-    readAndDocs = 'Read_docs',
-    readAndExec = 'Read_exec',
-    view = 'View',
-    viewAndDocs = 'View_docs',
-    viewAndExec = 'View_exec',
 }
 
 /** Precedences for each permission action. A lower number means a higher priority. */

@@ -3,7 +3,6 @@
 //! post-processing effect by applying the previous output to a screen covering geometry.
 
 use crate::prelude::*;
-use crate::system::gpu::data::types::*;
 
 use crate::display::symbol::geometry::RawSprite;
 use crate::display::symbol::geometry::SpriteSystem;
@@ -44,11 +43,6 @@ impl Screen {
     /// Show the symbol. It will be rendered on next render call.
     pub fn show(&self) {
         self.sprite_system.show();
-    }
-
-    /// Local variables used by the screen object.
-    pub fn variables(&self) -> UniformScope {
-        self.sprite_system.symbol().variables().clone()
     }
 
     /// Render the shape.

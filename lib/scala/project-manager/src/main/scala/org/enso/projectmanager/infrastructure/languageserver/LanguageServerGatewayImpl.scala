@@ -85,12 +85,14 @@ class LanguageServerGatewayImpl[
   }
 
   /** @inheritdoc */
-  override def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean] = {
+  override def isRunning(
+    projectId: UUID
+  ): F[CheckTimeout.type, (Boolean, Boolean)] = {
     implicit val timeout: Timeout = Timeout(timeoutConfig.requestTimeout)
 
     Async[F]
       .fromFuture { () =>
-        (registry ? CheckIfServerIsRunning(projectId)).mapTo[Boolean]
+        (registry ? CheckIfServerIsRunning(projectId)).mapTo[(Boolean, Boolean)]
       }
       .mapError(_ => CheckTimeout)
   }

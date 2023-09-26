@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 
 import org.enso.base.Time_Utils;
+import org.enso.base.time.EnsoDateTimeFormatter;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -315,12 +316,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
+  private static final EnsoDateTimeFormatter dateTimeFormatter = EnsoDateTimeFormatter.default_enso_zoned_date_time_formatter();
+
   @Override
   public Value visitDatetime(ExpressionParser.DatetimeContext ctx) {
-    var text = Time_Utils.normalise_iso_datetime(ctx.text.getText());
+    var text = ctx.text.getText();
 
     try {
-      var dateTime = Core_Date_Utils.parseZonedDateTime(text, Time_Utils.default_date_time_formatter());
+      var dateTime = dateTimeFormatter.parseZonedDateTime(text);
       return Value.asValue(dateTime);
     } catch (DateTimeParseException ignored) {
     }

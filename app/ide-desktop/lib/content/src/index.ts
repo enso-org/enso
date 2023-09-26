@@ -5,12 +5,12 @@
 import * as semver from 'semver'
 import * as toastify from 'react-toastify'
 
+import * as app from 'ensogl-runner/src/runner'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 import * as dashboard from 'enso-authentication'
 import * as detect from 'enso-common/src/detect'
 
-import * as app from '../../../../../target/ensogl-pack/linked-dist'
 import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
@@ -141,7 +141,7 @@ function displayDeprecatedVersionDialog() {
 // ========================
 
 /** Nested configuration options with `string` values. */
-interface StringConfig {
+export interface StringConfig {
     [key: string]: StringConfig | string
 }
 
@@ -150,9 +150,7 @@ interface AuthenticationConfig {
     projectManagerUrl: string | null
     isInAuthenticationFlow: boolean
     shouldUseAuthentication: boolean
-    shouldUseNewDashboard: boolean
     initialProjectName: string | null
-    inputConfig: StringConfig | null
 }
 
 /** Contains the entrypoint into the IDE. */
@@ -258,8 +256,6 @@ class Main implements AppRunner {
         }
         if (parseOk) {
             const shouldUseAuthentication = configOptions.options.authentication.value
-            const shouldUseNewDashboard =
-                configOptions.groups.featurePreview.options.newDashboard.value
             const isOpeningMainEntryPoint =
                 configOptions.groups.startup.options.entry.value ===
                 configOptions.groups.startup.options.entry.default
@@ -275,14 +271,12 @@ class Main implements AppRunner {
                 url.searchParams.delete('startup.project')
                 history.replaceState(null, '', url.toString())
             }
-            if ((shouldUseAuthentication || shouldUseNewDashboard) && isOpeningMainEntryPoint) {
+            if (shouldUseAuthentication && isOpeningMainEntryPoint) {
                 this.runAuthentication({
                     isInAuthenticationFlow,
                     projectManagerUrl,
                     shouldUseAuthentication,
-                    shouldUseNewDashboard,
                     initialProjectName,
-                    inputConfig: inputConfig ?? null,
                 })
             } else {
                 void this.runApp(inputConfig ?? null, null)
@@ -292,6 +286,12 @@ class Main implements AppRunner {
 
     /** Begins the authentication UI flow. */
     runAuthentication(config: AuthenticationConfig) {
+        const ideElement = document.getElementById('root')
+        if (ideElement) {
+            ideElement.style.top = '-100vh'
+            ideElement.style.display = 'fixed'
+        }
+
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
          * should only have one entry point. Right now, we have two. One for the cloud
@@ -308,26 +308,15 @@ class Main implements AppRunner {
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
             projectManagerUrl: config.projectManagerUrl,
             isAuthenticationDisabled: !config.shouldUseAuthentication,
-            shouldShowDashboard: config.shouldUseNewDashboard,
+            shouldShowDashboard: true,
             initialProjectName: config.initialProjectName,
-            onAuthenticated: (accessToken: string | null) => {
+            onAuthenticated: () => {
                 if (config.isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
                     if (initialUrl != null) {
                         // This is not used past this point, however it is set to the initial URL
                         // to make refreshing work as expected.
                         history.replaceState(null, '', initialUrl)
-                    }
-                }
-                if (!config.shouldUseNewDashboard) {
-                    document.getElementById('enso-dashboard')?.remove()
-                    const ideElement = document.getElementById('root')
-                    if (ideElement) {
-                        ideElement.style.top = ''
-                        ideElement.style.display = ''
-                    }
-                    if (this.app == null) {
-                        void this.runApp(config.inputConfig, accessToken)
                     }
                 }
             },

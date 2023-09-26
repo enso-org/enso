@@ -76,7 +76,7 @@ export class UnreachableCaseError extends Error {
 }
 
 /** A function that throws an {@link UnreachableCaseError} so that it can be used
- * in an expresison.
+ * in an expression.
  * @throws {UnreachableCaseError} Always. */
 export function unreachable(value: never): never {
     throw new UnreachableCaseError(value)

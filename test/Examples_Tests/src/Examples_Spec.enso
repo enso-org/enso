@@ -76,9 +76,6 @@ spec = Test.group "Examples" <|
     Test.specify "should provide a response containing geo data" <|
         Examples.get_geo_data
 
-    Test.specify "should provide a basic HTTP client" <|
-        Examples.http_client
-
     Test.specify "should provide an example URI" <|
         Examples.uri
 

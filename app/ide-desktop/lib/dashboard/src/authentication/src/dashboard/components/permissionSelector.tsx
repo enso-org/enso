@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import type * as backend from '../backend'
+import type * as permissions from '../permissions'
 import * as permissionsModule from '../permissions'
 
 import Modal from './modal'
@@ -34,12 +35,12 @@ export interface PermissionSelectorProps {
     /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
     typeSelectorYOffsetPx?: number
     error?: string | null
-    selfPermission: permissionsModule.PermissionAction
+    selfPermission: permissions.PermissionAction
     /** If this prop changes, the internal state will be updated too. */
-    action: permissionsModule.PermissionAction
+    action: permissions.PermissionAction
     assetType: backend.AssetType
     className?: string
-    onChange: (action: permissionsModule.PermissionAction) => void
+    onChange: (action: permissions.PermissionAction) => void
     doDelete?: () => void
 }
 
@@ -61,7 +62,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
     const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
-    const setAction = (newAction: permissionsModule.PermissionAction) => {
+    const setAction = (newAction: permissions.PermissionAction) => {
         setActionRaw(newAction)
         onChange(newAction)
     }

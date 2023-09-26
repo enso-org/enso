@@ -49,6 +49,7 @@ export default function Dashboard(props: DashboardProps) {
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
+    const { modal } = modalProvider.useModal()
     const { unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -70,6 +71,7 @@ export default function Dashboard(props: DashboardProps) {
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const modalRef = React.useRef<modalProvider.Modal | null>(null)
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -83,6 +85,10 @@ export default function Dashboard(props: DashboardProps) {
     React.useEffect(() => {
         setInitialized(true)
     }, [])
+
+    React.useEffect(() => {
+        modalRef.current = modal
+    }, [modal])
 
     React.useEffect(() => {
         unsetModal()
@@ -251,9 +257,15 @@ export default function Dashboard(props: DashboardProps) {
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
-            [shortcutsModule.KeyboardAction.closeModal]: unsetModal,
+            [shortcutsModule.KeyboardAction.closeModal]: () => {
+                unsetModal()
+                if (modalRef.current == null) {
+                    // eslint-disable-next-line no-restricted-syntax
+                    return false
+                }
+            },
         })
-    }, [shortcuts, unsetModal])
+    }, [shortcuts, /* should never change */ unsetModal])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {

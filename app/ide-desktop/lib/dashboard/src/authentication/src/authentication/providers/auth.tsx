@@ -109,7 +109,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  * signing out, etc. All interactions with the authentication API should be done through this
  * interface.
  *
- * See {@link Cognito} for details on each of the authentication functions. */
+ * See {@link cognito.Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
     goOffline: (shouldShowToast?: boolean) => Promise<boolean>
     signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
@@ -417,7 +417,7 @@ export function AuthProvider(props: AuthProviderProps) {
         if (result.ok) {
             toastSuccess(MESSAGES.signInWithPasswordSuccess)
         } else {
-            if (result.val.kind === 'UserNotFound') {
+            if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
                 navigate(app.REGISTRATION_PATH)
             }
             toastError(result.val.message)

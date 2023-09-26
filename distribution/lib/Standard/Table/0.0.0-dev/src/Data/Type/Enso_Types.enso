@@ -4,8 +4,8 @@ import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Bits
 import project.Data.Type.Value_Type.Value_Type
 
-polyglot java import org.enso.table.data.column.storage.type.IntegerType
 polyglot java import org.enso.base.polyglot.NumericConverter
+polyglot java import org.enso.table.data.column.storage.type.IntegerType
 
 ## PRIVATE
    Finds the most specific `Value_Type` that can be used to hold the given
@@ -18,7 +18,7 @@ polyglot java import org.enso.base.polyglot.NumericConverter
 most_specific_value_type : Any -> Boolean -> Value_Type
 most_specific_value_type value use_smallest=False =
     case value of
-        _ : Decimal     -> Value_Type.Float Bits.Bits_64
+        _ : Float     -> Value_Type.Float Bits.Bits_64
         _ : Boolean     -> Value_Type.Boolean
         _ : Date        -> Value_Type.Date
         _ : Time_Of_Day -> Value_Type.Time

@@ -84,7 +84,7 @@ public class DoubleBuilder extends NumericBuilder {
   public void appendNoGrow(Object o) {
     if (o == null) {
       isMissing.set(currentSize++);
-    } else if (NumericConverter.isDecimalLike(o)){
+    } else if (NumericConverter.isFloatLike(o)){
       double value = NumericConverter.coerceToDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);
     } else if (NumericConverter.isCoercibleToLong(o)) {

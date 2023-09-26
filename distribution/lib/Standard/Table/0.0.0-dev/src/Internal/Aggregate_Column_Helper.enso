@@ -35,7 +35,7 @@ polyglot java import org.enso.table.aggregations.Sum as SumAggregator
    - problems: Set of any problems when validating the input
 type Validated_Aggregate_Columns
     ## PRIVATE
-    Value (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
+    Value (key_columns:(Vector Column)) (valid_columns:(Vector (Pair Text Aggregate_Column))) (problems:(Vector Any))
 
 ## PRIVATE
    Prepares an aggregation input for further processing:

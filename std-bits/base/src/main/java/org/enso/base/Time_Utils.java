@@ -31,85 +31,6 @@ public class Time_Utils {
   }
 
   /**
-   * Creates a DateTimeFormatter from a format string, supporting building standard formats.
-   *
-   * @param format format string
-   * @param locale locale needed for custom formats
-   * @return DateTimeFormatter
-   */
-  public static DateTimeFormatter make_formatter(String format, Locale locale) {
-    return Core_Date_Utils.make_formatter(format, locale);
-  }
-
-  /**
-   * Creates a DateTimeFormatter from a format string, supporting building standard formats.
-   * For Enso format, return the default output formatter.
-   *
-   * @param format format string
-   * @param locale locale needed for custom formats
-   * @return DateTimeFormatter
-   */
-  public static DateTimeFormatter make_output_formatter(String format, Locale locale) {
-    return format.equals("ENSO_ZONED_DATE_TIME")
-        ? Time_Utils.default_output_date_time_formatter()
-        : Core_Date_Utils.make_formatter(format, locale);
-  }
-
-  /**
-   * Given a format string, returns true if it is a format that is based on ISO date time.
-   *
-   * @param format format string
-   * @return True if format is based on ISO date time
-   */
-  public static boolean is_iso_datetime_based(String format) {
-    return switch (format) {
-      case "ENSO_ZONED_DATE_TIME", "ISO_ZONED_DATE_TIME", "ISO_OFFSET_DATE_TIME", "ISO_LOCAL_DATE_TIME" -> true;
-      default -> false;
-    };
-  }
-
-  /**
-   * @return default DateTimeFormatter for parsing a Date_Time.
-   */
-  public static DateTimeFormatter default_date_time_formatter() {
-    return Core_Date_Utils.defaultZonedDateTimeFormatter();
-  }
-
-  /**
-   * @return default DateTimeFormatter for parsing a Date.
-   */
-  public static DateTimeFormatter default_date_formatter() {
-    return Core_Date_Utils.defaultLocalDateFormatter();
-  }
-
-  /**
-   * @return default DateTimeFormatter for parsing a Time_Of_Day.
-   */
-  public static DateTimeFormatter default_time_of_day_formatter() {
-    return Core_Date_Utils.defaultLocalTimeFormatter();
-  }
-
-  /**
-   * @return default Date Time formatter for writing a Date_Time.
-   */
-  public static DateTimeFormatter default_output_date_time_formatter() {
-    return new DateTimeFormatterBuilder().append(DateTimeFormatter.ISO_LOCAL_DATE)
-        .appendLiteral(' ')
-        .append(DateTimeFormatter.ISO_LOCAL_TIME)
-        .toFormatter();
-  }
-
-  /**
-   * Replace space with T in ISO date time string to make it compatible with ISO format.
-   *
-   * @param dateString Raw date time string with either space or T as separator
-   * @return ISO format date time string
-   */
-  public static String normalise_iso_datetime(String dateString) {
-    return Core_Date_Utils.normaliseISODateTime(dateString);
-  }
-
-  /**
    * Format a LocalDate instance using a formatter.
    *
    * @param date the LocalDate instance to format.
@@ -140,10 +61,6 @@ public class Time_Utils {
    */
   public static String time_of_day_format(LocalTime localTime, DateTimeFormatter formatter) {
     return formatter.format(localTime);
-  }
-
-  public static String time_of_day_format_with_locale(LocalTime localTime, Object format, Locale locale) {
-    return make_output_formatter(format.toString(), locale).format(localTime);
   }
 
   public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period period) {
@@ -216,13 +133,13 @@ public class Time_Utils {
    * @param formatter the formatter to use.
    * @return parsed LocalTime instance.
    */
-  public static LocalTime parse_time_of_day(String text,DateTimeFormatter formatter) {
+  public static LocalTime parse_time_of_day(String text, DateTimeFormatter formatter) {
     return LocalTime.parse(text, formatter);
   }
 
   /**
-   * Normally this method could be done in Enso by pattern matching, but currently matching on Time
-   * types is not supported, so this is a workaround.
+   * Normally this method could be done in Enso by pattern matching, but currently matching on Time types is not
+   * supported, so this is a workaround.
    *
    * <p>TODO once the related issue is fixed, this workaround may be replaced with pattern matching
    * in Enso; <a href="https://github.com/enso-org/enso/issues/4597">Pivotal issue.</a>
@@ -314,5 +231,15 @@ public class Time_Utils {
    */
   public static ZonedDateTime unit_datetime_add(TemporalUnit unit, ZonedDateTime datetime, long amount) {
     return datetime.plus(amount, unit);
+  }
+
+  /**
+   * This helper method is needed, because calling `appendValueReduced` directly from Enso fails to convert an EnsoDate
+   * to a LocalDate due to polyglot unable to handle the polymorphism of the method.
+   */
+  public static void appendTwoDigitYear(DateTimeFormatterBuilder builder, TemporalField yearField, int maxYear) {
+    int minYear = maxYear - 99;
+    LocalDate baseDate = LocalDate.of(minYear, 1, 1);
+    builder.appendValueReduced(yearField, 2, 2, baseDate);
   }
 }

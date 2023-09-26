@@ -2,7 +2,7 @@
 import type { Edge } from '@/stores/graph'
 import type { Rect } from '@/stores/rect'
 import { clamp } from '@vueuse/core'
-import type { ExprId } from 'shared/yjs-model'
+import type { ExprId } from 'shared/yjsModel'
 import { computed } from 'vue'
 
 const props = defineProps<{
@@ -15,11 +15,11 @@ const props = defineProps<{
 const edgePath = computed(() => {
   let edge = props.edge
   const targetNodeId = props.exprNodes.get(edge.target)
-  if (targetNodeId == null) return
+  if (targetNodeId == null) return ''
   let sourceNodeRect = props.nodeRects.get(edge.source)
   let targetNodeRect = props.nodeRects.get(targetNodeId)
   let targetRect = props.exprRects.get(edge.target)
-  if (sourceNodeRect == null || targetRect == null || targetNodeRect == null) return
+  if (sourceNodeRect == null || targetRect == null || targetNodeRect == null) return ''
   let sourcePos = sourceNodeRect.center()
   let targetPos = targetRect.center().add(targetNodeRect.pos)
 

@@ -25,7 +25,6 @@ OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.tsx'),
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
-console.log('what', OPTS.define)
 OPTS.write = false
 OPTS.loader['.html'] = 'copy'
 OPTS.plugins.push({
