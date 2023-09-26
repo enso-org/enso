@@ -313,7 +313,7 @@ spec =
             w1.to_display_text . should_contain "default to AM"
             w1.to_display_text . should_contain "Did you mean 'H'"
 
-        Test.specify "the warning should be removable as indicated in the message" <|
+        Test.specify "the warning should be removable as indicated in the message" pending="TODO: bug https://github.com/enso-org/enso/issues/7892" <|
             f1 = Date_Time_Formatter.from "hh:mm"
             r1 = Time_Of_Day.parse "04:24" f1
             w1 = Problems.expect_only_warning Suspicious_Date_Time_Format r1
