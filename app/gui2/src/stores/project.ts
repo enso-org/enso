@@ -2,9 +2,11 @@ import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { attachProvider } from '@/util/crdt'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
+import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { DistributedProject } from 'shared/yjsModel'
+import type { ContentRoot } from 'shared/languageServerTypes'
+import { DistributedProject, type Uuid } from 'shared/yjsModel'
 import { markRaw, ref, watchEffect } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -28,6 +30,19 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
   throw new Error('Incomplete engine configuration')
 }
 
+async function initializeLsRpcConnection(urls: LsUrls): Promise<{
+  connection: LanguageServer
+  contentRoots: ContentRoot[]
+}> {
+  const transport = new WebSocketTransport(urls.rpcUrl)
+  const requestManager = new RequestManager([transport])
+  const client = new Client(requestManager)
+  const clientId = random.uuidv4() as Uuid
+  const connection = new LanguageServer(client)
+  const contentRoots = (await connection.initProtocolConnection(clientId)).contentRoots
+  return { connection, contentRoots }
+}
+
 /**
  * The project store synchronizes and holds the open project-related data. The synchronization is
  * performed using a CRDT data types from Yjs. Once the data is synchronized with a "LS bridge"
@@ -44,11 +59,9 @@ export const useProjectStore = defineStore('project', () => {
   if (projectId == null) throw new Error('Missing project ID')
 
   const lsUrls = resolveLsUrl(config.value)
-
-  const rpcTransport = new WebSocketTransport(lsUrls.rpcUrl)
-  const rpcRequestManager = new RequestManager([rpcTransport])
-  const rpcClient = new Client(rpcRequestManager)
-  const lsRpcConnection = new LanguageServer(rpcClient)
+  const initializedConnection = initializeLsRpcConnection(lsUrls)
+  const lsRpcConnection = initializedConnection.then(({ connection }) => connection)
+  const contentRoots = initializedConnection.then(({ contentRoots }) => contentRoots)
 
   const undoManager = new Y.UndoManager([], { doc })
 
@@ -104,6 +117,7 @@ export const useProjectStore = defineStore('project', () => {
       observedFileName.value = name
     },
     module,
+    contentRoots,
     undoManager,
     lsRpcConnection: markRaw(lsRpcConnection),
   }
