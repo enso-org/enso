@@ -19,6 +19,7 @@ import CustomCursor from './CustomCursor.vue'
 import SelectionBrush from './SelectionBrush.vue'
 
 const EXECUTION_MODES = ['design', 'live']
+const BRUSH_PADDING_PX = 8
 
 const title = ref('Test Project')
 const mode = ref('design')
@@ -102,11 +103,11 @@ const intersectingNodes = computed<Set<ExprId>>(() => {
     return new Set()
   }
   const scaledWidth = selectionSize.value.x / navigator.scale
-  const left = (navigator.sceneMousePos?.x ?? 0) - Math.max(scaledWidth, 0)
-  const right = left + Math.abs(scaledWidth)
+  const left = (navigator.sceneMousePos?.x ?? 0) - Math.max(scaledWidth, 0) - BRUSH_PADDING_PX
+  const right = left + Math.abs(scaledWidth) + 2 * BRUSH_PADDING_PX
   const scaledHeight = selectionSize.value.y / navigator.scale
-  const top = (navigator.sceneMousePos?.y ?? 0) - Math.max(scaledHeight, 0)
-  const bottom = top + Math.abs(scaledHeight)
+  const top = (navigator.sceneMousePos?.y ?? 0) - Math.max(scaledHeight, 0) - BRUSH_PADDING_PX
+  const bottom = top + Math.abs(scaledHeight) + 2 * BRUSH_PADDING_PX
   const intersectingNodes = new Set<ExprId>()
   for (const [id, rect] of nodeRects) {
     const rectLeft = rect.pos.x

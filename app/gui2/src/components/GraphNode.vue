@@ -250,7 +250,6 @@ onUpdated(() => {
 
 // TODO [sb]: restore delete functionality (DELETE key)
 function handleClick(event: PointerEvent) {
-  console.log('what', event)
   if (shortcutRegistry.matchesMouseAction('replace-nodes-selection', event)) {
     emit('replaceSelection')
   } else if (shortcutRegistry.matchesMouseAction('add-to-nodes-selection', event)) {
@@ -275,22 +274,24 @@ function handleClick(event: PointerEvent) {
     v-on="dragPointer.events"
     @pointerdown.stop
   >
-    <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
-    <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
-    <div
-      ref="editableRootNode"
-      class="editable"
-      contenteditable
-      spellcheck="false"
-      @beforeinput="editContent"
-      @pointerdown.stop
-    >
-      <NodeSpan
-        :content="node.content"
-        :span="node.rootSpan"
-        :offset="0"
-        @updateExprRect="updateExprRect"
-      />
+    <div>
+      <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
+      <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
+      <div
+        ref="editableRootNode"
+        class="editable"
+        contenteditable
+        spellcheck="false"
+        @beforeinput="editContent"
+        @pointerdown.stop
+      >
+        <NodeSpan
+          :content="node.content"
+          :span="node.rootSpan"
+          :offset="0"
+          @updateExprRect="updateExprRect"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -304,19 +305,22 @@ function handleClick(event: PointerEvent) {
 
   caret-shape: bar;
 
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  white-space: nowrap;
   background: #596b81;
   background-clip: padding-box;
-  padding: 5px 10px;
   border-radius: var(--radius-full);
 }
 
 .Node.selected {
   border: var(--selected-node-border-width) solid rgb(89 107 129 / 20%);
   margin: calc(0px - var(--selected-node-border-width));
+}
+
+.Node > div {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  white-space: nowrap;
+  padding: 5px 10px;
 }
 
 .binding {
