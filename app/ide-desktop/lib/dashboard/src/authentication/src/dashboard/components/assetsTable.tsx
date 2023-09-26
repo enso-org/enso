@@ -74,12 +74,16 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 function insertChildrenIntoAssetTreeNodeArray(
     nodes: assetTreeNode.AssetTreeNode[],
     children: backendModule.AnyAsset[],
+    directoryKey: backendModule.AssetId | null,
+    directoryId: backendModule.DirectoryId | null,
     depth: number
 ) {
     const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
     return array.splicedBefore(
         nodes.filter(node => node.item.type !== backendModule.AssetType.specialEmpty),
-        children.map(asset => assetTreeNode.assetTreeNodeFromAsset(asset, depth)),
+        children.map(asset =>
+            assetTreeNode.assetTreeNodeFromAsset(asset, directoryKey, directoryId, depth)
+        ),
         innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
     )
 }
@@ -88,7 +92,9 @@ function insertChildrenIntoAssetTreeNodeArray(
  * The list of children MUST be all of one specific asset type. */
 function insertAssetTreeNodeChildren(
     item: assetTreeNode.AssetTreeNode,
-    children: backendModule.AnyAsset[]
+    children: backendModule.AnyAsset[],
+    directoryKey: backendModule.AssetId | null,
+    directoryId: backendModule.DirectoryId | null
 ): assetTreeNode.AssetTreeNode {
     const newDepth = item.depth + 1
     return {
@@ -98,6 +104,8 @@ function insertAssetTreeNodeChildren(
                 node => node.item.type !== backendModule.AssetType.specialEmpty
             ),
             children,
+            directoryKey,
+            directoryId,
             newDepth
         ),
     }
@@ -206,6 +214,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
+    const rootDirectoryId = React.useMemo(
+        () => backend.rootDirectoryId(organization),
+        [backend, organization]
+    )
     const nodeMap = React.useMemo(
         () =>
             new Map(
@@ -279,6 +291,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                 newAssets.map(asset => ({
                     key: asset.id,
                     item: asset,
+                    directoryKey: null,
+                    directoryId: null,
                     children: null,
                     depth: 0,
                 }))
@@ -444,6 +458,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                   children: [
                                       assetTreeNode.assetTreeNodeFromAsset(
                                           backendModule.createSpecialLoadingAsset(directoryId),
+                                          key,
+                                          directoryId,
                                           item.depth + 1
                                       ),
                                   ],
@@ -483,6 +499,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         child =>
                                             assetTreeNode.assetTreeNodeFromAsset(
                                                 child,
+                                                key,
+                                                directoryId,
                                                 item.depth + 1
                                             )
                                     )
@@ -496,6 +514,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             ? [
                                                   assetTreeNode.assetTreeNodeFromAsset(
                                                       specialEmptyAsset,
+                                                      key,
+                                                      directoryId,
                                                       item.depth + 1
                                                   ),
                                               ]
@@ -552,7 +572,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? backend.rootDirectoryId(organization),
+                    parentId: event.parentId ?? rootDirectoryId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     type: backendModule.AssetType.directory,
@@ -566,11 +586,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 setAssetTree(oldAssetTree =>
                     event.parentKey == null
-                        ? insertChildrenIntoAssetTreeNodeArray(oldAssetTree, [placeholderItem], 0)
+                        ? insertChildrenIntoAssetTreeNodeArray(
+                              oldAssetTree,
+                              [placeholderItem],
+                              event.parentKey,
+                              event.parentId,
+                              0
+                          )
                         : assetTreeNode.assetTreeMap(oldAssetTree, item =>
                               item.key !== event.parentKey
                                   ? item
-                                  : insertAssetTreeNodeChildren(item, [placeholderItem])
+                                  : insertAssetTreeNodeChildren(
+                                        item,
+                                        [placeholderItem],
+                                        event.parentKey,
+                                        event.parentId
+                                    )
                           )
                 )
                 dispatchAssetEvent({
@@ -586,7 +617,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: dummyId,
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? backend.rootDirectoryId(organization),
+                    parentId: event.parentId ?? rootDirectoryId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: {
                         type: backendModule.ProjectState.placeholder,
@@ -606,11 +637,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 setAssetTree(oldAssetTree =>
                     event.parentKey == null
-                        ? insertChildrenIntoAssetTreeNodeArray(oldAssetTree, [placeholderItem], 0)
+                        ? insertChildrenIntoAssetTreeNodeArray(
+                              oldAssetTree,
+                              [placeholderItem],
+                              event.parentKey,
+                              event.parentId,
+                              0
+                          )
                         : assetTreeNode.assetTreeMap(oldAssetTree, item =>
                               item.key !== event.parentKey
                                   ? item
-                                  : insertAssetTreeNodeChildren(item, [placeholderItem])
+                                  : insertAssetTreeNodeChildren(
+                                        item,
+                                        [placeholderItem],
+                                        event.parentKey,
+                                        event.parentId
+                                    )
                           )
                 )
                 dispatchAssetEvent({
@@ -623,7 +665,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.uploadFiles: {
                 const reversedFiles = Array.from(event.files).reverse()
-                const parentId = event.parentId ?? backend.rootDirectoryId(organization)
+                const parentId = event.parentId ?? rootDirectoryId
                 const placeholderFiles = reversedFiles.filter(backendModule.fileIsNotProject).map(
                     (file): backendModule.FileAsset => ({
                         type: backendModule.AssetType.file,
@@ -665,17 +707,28 @@ export default function AssetsTable(props: AssetsTableProps) {
                               insertChildrenIntoAssetTreeNodeArray(
                                   oldAssetTree,
                                   placeholderFiles,
+                                  event.parentKey,
+                                  event.parentId,
                                   0
                               ),
                               placeholderProjects,
+                              event.parentKey,
+                              event.parentId,
                               0
                           )
                         : assetTreeNode.assetTreeMap(oldAssetTree, item =>
                               item.key !== event.parentKey
                                   ? item
                                   : insertAssetTreeNodeChildren(
-                                        insertAssetTreeNodeChildren(item, placeholderFiles),
-                                        placeholderProjects
+                                        insertAssetTreeNodeChildren(
+                                            item,
+                                            placeholderFiles,
+                                            event.parentKey,
+                                            event.parentId
+                                        ),
+                                        placeholderProjects,
+                                        event.parentKey,
+                                        event.parentId
                                     )
                           )
                 )
@@ -698,7 +751,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.SecretId(uniqueString.uniqueString()),
                     title: event.name,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: event.parentId ?? backend.rootDirectoryId(organization),
+                    parentId: event.parentId ?? rootDirectoryId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     type: backendModule.AssetType.secret,
@@ -712,11 +765,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 setAssetTree(oldAssetTree =>
                     event.parentKey == null
-                        ? insertChildrenIntoAssetTreeNodeArray(oldAssetTree, [placeholderItem], 0)
+                        ? insertChildrenIntoAssetTreeNodeArray(
+                              oldAssetTree,
+                              [placeholderItem],
+                              event.parentKey,
+                              event.parentId,
+                              0
+                          )
                         : assetTreeNode.assetTreeMap(oldAssetTree, item =>
                               item.key !== event.parentKey
                                   ? item
-                                  : insertAssetTreeNodeChildren(item, [placeholderItem])
+                                  : insertAssetTreeNodeChildren(
+                                        item,
+                                        [placeholderItem],
+                                        event.parentKey,
+                                        event.parentId
+                                    )
                           )
                 )
                 dispatchAssetEvent({
