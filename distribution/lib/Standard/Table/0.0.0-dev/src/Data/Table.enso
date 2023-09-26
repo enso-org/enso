@@ -1007,8 +1007,8 @@ type Table
 
        Arguments:
        - columns: The selection of columns to convert.
-       - use_smallest: If `True`, the smallest type that can fit all values will
-         be used. Defaults to `False`. See the rules below.
+       - shrink_types: If set `True`, smaller types will be chosen if possible,
+         according to the rules below. Defaults to `False`.
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `True`.
@@ -1022,9 +1022,9 @@ type Table
          - Text columns are not parsed. To do that, use the `parse` method.
          - If a `Float` column contains only integers, it will be converted to
            an Integer column.
-         - If `use_smallest` is `False` (default), no other transformations are
+         - If `shrink_types` is `False` (default), no other transformations are
            applied.
-         - However, if `use_smallest` is set to `True`, then:
+         - However, if `shrink_types` is set to `True`, then:
            - Integer columns will be assigned the smallest size that can fit all
              values (down to 16-bit integers; converting to the `Byte` type has
              to be done manually through `cast`).
@@ -1035,10 +1035,10 @@ type Table
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
     auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> Table
-    auto_value_types self columns=self.column_names use_smallest=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+    auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
         selected.fold self table-> column_to_cast->
-            new_column = column_to_cast.auto_value_type use_smallest
+            new_column = column_to_cast.auto_value_type shrink_types
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions

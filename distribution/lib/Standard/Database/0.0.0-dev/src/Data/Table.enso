@@ -1984,8 +1984,8 @@ type Table
 
        This operation is currently not available in the Database backend.
     auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> Table
-    auto_value_types self columns=self.column_names use_smallest=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
-        _ = [columns, use_smallest, error_on_missing_columns, on_problems]
+    auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+        _ = [columns, shrink_types, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.auto_value_types is not supported in the Database backends.")
 
     ## ALIAS drop_missing_rows, dropna

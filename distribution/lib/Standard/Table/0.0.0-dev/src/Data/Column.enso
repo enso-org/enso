@@ -1766,8 +1766,8 @@ type Column
        contents.
 
        Arguments:
-       - use_smallest: If `True`, the smallest type that can fit all values will
-         be used. Defaults to `False`. See the rules below.
+       - shrink_types: If set `True`, smaller types will be chosen if possible,
+         according to the rules below. Defaults to `False`.
 
        ? Auto Type Selection Rules
 
@@ -1776,9 +1776,9 @@ type Column
          - Text columns are not parsed. To do that, use the `parse` method.
          - If a `Float` column contains only integers, it will be converted to
            an Integer column.
-         - If `use_smallest` is `False` (default), no other transformations are
+         - If `shrink_types` is `False` (default), no other transformations are
            applied.
-         - However, if `use_smallest` is set to `True`, then:
+         - However, if `shrink_types` is set to `True`, then:
            - Integer columns will be assigned the smallest size that can fit all
              values (down to 16-bit integers; converting to the `Byte` type has
              to be done manually through `cast`).
@@ -1789,8 +1789,8 @@ type Column
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
     auto_value_type : Boolean -> Column
-    auto_value_type self use_smallest=False =
-        # TODO use_smallest etc.
+    auto_value_type self shrink_types=False =
+        # TODO shrink_types etc.
         new_value_type = self.inferred_precise_value_type
         self.cast new_value_type
 

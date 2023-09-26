@@ -1584,8 +1584,8 @@ type Column
 
        This operation is currently not available in the Database backend.
     auto_value_type : Boolean -> Column
-    auto_value_type self use_smallest=False =
-        _ = use_smallest
+    auto_value_type self shrink_types=False =
+        _ = shrink_types
         Error.throw <| Unsupported_Database_Operation.Error "`Column.auto_value_type` is not supported in the Database backends."
 
     ## PRIVATE
