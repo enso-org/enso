@@ -16,11 +16,11 @@
 //!   size: The requirement that every field have the same size representation would be too onerous.
 
 use serde::ser;
+use serde::ser::SerializeSeq;
 use serde::Serialize;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use serde::ser::SerializeSeq;
 
 
 // =================
@@ -56,12 +56,12 @@ pub fn serialize<T: Serialize>(value: T) -> Result<Vec<u8>> {
 #[derive(Debug, Default)]
 pub struct Serializer {
     /// Complete objects, located at their final addresses.
-    heap: Vec<u8>,
+    heap:            Vec<u8>,
     /// All the fields of currently-incomplete objects.
-    stack: Vec<u8>,
+    stack:           Vec<u8>,
     recursion_depth: usize,
-    object_depth: usize,
-    parent_structs: Vec<ParentStruct>,
+    object_depth:    usize,
+    parent_structs:  Vec<ParentStruct>,
 }
 
 impl Serializer {
@@ -98,7 +98,7 @@ impl Serializer {
 #[derive(Debug)]
 pub struct ObjectSerializer<'a> {
     serializer: &'a mut Serializer,
-    begin: usize,
+    begin:      usize,
 }
 
 impl<'a> ObjectSerializer<'a> {
@@ -114,7 +114,7 @@ impl<'a> ObjectSerializer<'a> {
 #[derive(Debug, Copy, Clone)]
 struct ParentStruct {
     object_depth_inside: usize,
-    begin: usize,
+    begin:               usize,
 }
 
 
@@ -208,7 +208,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_some<T>(self, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         self.serialize_u8(1)?;
         let object = self.object_serializer()?;
         value.serialize(&mut *object.serializer)?;
@@ -235,7 +235,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         value.serialize(self)
     }
 
@@ -246,8 +246,8 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         _variant: &'static str,
         value: &T,
     ) -> Result<()>
-        where
-            T: ?Sized + Serialize,
+    where
+        T: ?Sized + Serialize,
     {
         if name == "Variant"
                 && let Some(ancestor) = self.parent_structs.last()
@@ -337,7 +337,7 @@ impl ser::SerializeStruct for &'_ mut Serializer {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         value.serialize(&mut **self)
     }
 
@@ -357,7 +357,7 @@ impl ser::SerializeTuple for &'_ mut Serializer {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         value.serialize(&mut **self)
     }
 
@@ -372,7 +372,7 @@ impl ser::SerializeTupleStruct for &'_ mut Serializer {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         value.serialize(&mut **self)
     }
 
@@ -390,7 +390,7 @@ impl ser::SerializeStructVariant for ObjectSerializer<'_> {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         value.serialize(&mut *self.serializer)
     }
 
@@ -404,7 +404,7 @@ impl SerializeSeq for ObjectSerializer<'_> {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         value.serialize(&mut *self.serializer)
     }
 
@@ -418,7 +418,7 @@ impl ser::SerializeTupleVariant for ObjectSerializer<'_> {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         value.serialize(&mut *self.serializer)
     }
 
@@ -432,12 +432,12 @@ impl ser::SerializeMap for ObjectSerializer<'_> {
     type Error = Error;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         key.serialize(&mut *self.serializer)
     }
 
     fn serialize_value<T>(&mut self, value: &T) -> Result<()>
-        where T: ?Sized + Serialize {
+    where T: ?Sized + Serialize {
         value.serialize(&mut *self.serializer)
     }
 
@@ -475,7 +475,7 @@ impl Display for Error {
 
 impl ser::Error for Error {
     fn custom<T>(msg: T) -> Self
-        where T: Display {
+    where T: Display {
         Self::Custom(msg.to_string())
     }
 }
@@ -494,8 +494,8 @@ mod test {
 
     #[test]
     fn test_infinite_recursion() {
-        use std::rc::Rc;
         use std::cell::RefCell;
+        use std::rc::Rc;
         /// A serializable object containing a reference to itself.
         #[derive(Serialize)]
         struct Cyclic {

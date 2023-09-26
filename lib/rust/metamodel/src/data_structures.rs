@@ -162,7 +162,7 @@ impl<T> std::ops::IndexMut<&Key<T, MaybeBound>> for VecMap<T> {
 }
 impl<'a, T> IntoIterator for &'a VecMap<T> {
     type Item = (Key<T>, &'a T);
-    type IntoIter = impl Iterator<Item=Self::Item>;
+    type IntoIter = impl Iterator<Item = Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()

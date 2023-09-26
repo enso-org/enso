@@ -161,7 +161,7 @@ fn schema(graph: &meta::TypeGraph) -> Schema {
                         .iter()
                         .map(|(k, v)| (*k, key_to_id(v)))
                         .collect(),
-                    size: 0,
+                    size:          0,
                 })
             })
         })
@@ -188,10 +188,7 @@ fn schema(graph: &meta::TypeGraph) -> Schema {
                 .unwrap_or_else(|| data_size[&field.r#type]);
         }
         let reference = TypeRef::Type { id: id.to_owned() };
-        ty.size = reference_size
-            .get(&reference)
-            .copied()
-            .unwrap_or_else(|| data_size[&reference]);
+        ty.size = reference_size.get(&reference).copied().unwrap_or_else(|| data_size[&reference]);
     }
     Schema { types }
 }
@@ -217,14 +214,13 @@ fn compute_size(
             if let Some(size) = data_size.get(&key) {
                 *size
             } else {
-                let mut size =
-                    if let Some(id) = ty.parent.clone() {
-                        let type_ref = TypeRef::Type { id };
-                        compute_size(type_ref.clone(), types, data_size);
-                        data_size[&type_ref]
-                    } else {
-                        0
-                    };
+                let mut size = if let Some(id) = ty.parent.clone() {
+                    let type_ref = TypeRef::Type { id };
+                    compute_size(type_ref.clone(), types, data_size);
+                    data_size[&type_ref]
+                } else {
+                    0
+                };
                 for (_, field) in &ty.fields {
                     let field_size = compute_size(field.r#type.to_owned(), types, data_size);
                     size += field_size;

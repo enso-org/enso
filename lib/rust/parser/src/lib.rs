@@ -108,13 +108,13 @@ use crate::prelude::*;
 // === Export ===
 // ==============
 
+pub mod format;
 pub mod lexer;
 pub mod macros;
 pub mod metadata;
 pub mod serialization;
 pub mod source;
 pub mod syntax;
-pub mod format;
 
 
 /// Popular utilities, imported by most modules of this crate.
