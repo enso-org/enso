@@ -186,11 +186,11 @@ watchEffect(() => {
       }
       if (count * 2 <= intersectingNodes.value.size) {
         for (const id of intersectingNodes.value) {
-          newSelectedNodes.delete(id)
+          newSelectedNodes.add(id)
         }
       } else {
         for (const id of intersectingNodes.value) {
-          newSelectedNodes.add(id)
+          newSelectedNodes.delete(id)
         }
       }
       break
