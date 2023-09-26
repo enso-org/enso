@@ -51,7 +51,7 @@ public class TestHandler implements HttpHandler {
         }
         if (entry.getKey().equals("Content-type")) {
           contentType = entry.getValue().get(0);
-          String parsedTextEncoding = parsseTextEncoding(contentType);
+          String parsedTextEncoding = parseTextEncoding(contentType);
           if (parsedTextEncoding != null) {
             textEncoding = parsedTextEncoding;
           }
@@ -102,7 +102,7 @@ public class TestHandler implements HttpHandler {
     }
   }
 
-  private String parsseTextEncoding(String contentType) {
+  private String parseTextEncoding(String contentType) {
     Matcher matcher = textEncodingRegex.matcher(contentType);
     if (matcher.matches()) {
       return matcher.group(1);
