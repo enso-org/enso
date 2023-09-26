@@ -35,9 +35,9 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     const { active = false, disabled = false, hidden, image, name, iconClassName, onClick } = props
     return (
         <div
-            className={`group flex items-center rounded-full gap-2 h-8 px-2 ${hidden ? 'hidden' : ''} ${
-                active ? 'bg-frame-selected' : 'text-not-selected'
-            } ${
+            className={`group flex items-center rounded-full gap-2 h-8 px-2 ${
+                hidden ? 'hidden' : ''
+            } ${active ? 'bg-frame-selected' : 'text-not-selected'} ${
                 disabled
                     ? ''
                     : 'hover:text-primary hover:bg-frame-selected cursor-pointer hover:opacity-100'
