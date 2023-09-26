@@ -109,8 +109,6 @@ export default function Dashboard(props: DashboardProps) {
         let currentBackend = backend
         if (
             supportsLocalBackend &&
-            initialProjectName == null &&
-            session.type !== authProvider.UserSessionType.offline &&
             localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
                 backendModule.BackendType.local
         ) {
