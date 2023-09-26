@@ -32,7 +32,7 @@ public sealed interface StorageType permits AnyObjectType, BigIntegerType, Boole
       case LocalTime t -> TimeOfDayType.INSTANCE;
       case LocalDateTime d -> DateTimeType.INSTANCE;
       case ZonedDateTime d -> DateTimeType.INSTANCE;
-      default -> null;
+      default -> AnyObjectType.INSTANCE;
     };
   }
 }

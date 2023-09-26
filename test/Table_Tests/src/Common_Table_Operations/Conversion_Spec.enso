@@ -556,8 +556,9 @@ spec setup =
                 t1.at "bools" . value_type . should_equal Value_Type.Mixed
 
                 t2 = t1.auto_value_types shrink_types=shrink_types
-                t2.at "strs" . value_type . should_equal Value_Type.Char
-                t2.at "ints" . value_type . should_equal Value_Type.Integer
+                # Depending on shrink_types value the size of the Char/Integer types may vary - exact details tested elsewhere.
+                t2.at "strs" . value_type . should_be_a (Value_Type.Char ...)
+                t2.at "ints" . value_type . should_be_a (Value_Type.Integer ...)
                 t2.at "floats" . value_type . should_equal Value_Type.Float
                 t2.at "mix" . value_type . should_equal Value_Type.Mixed
                 t2.at "dates" . value_type . should_equal Value_Type.Date

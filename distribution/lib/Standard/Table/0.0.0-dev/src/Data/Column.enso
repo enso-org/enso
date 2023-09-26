@@ -1790,9 +1790,12 @@ type Column
              unchanged.
     auto_value_type : Boolean -> Column
     auto_value_type self shrink_types=False =
-        # TODO shrink_types etc.
-        new_value_type = self.inferred_precise_value_type
-        self.cast new_value_type
+        new_value_type = case shrink_types of
+            False -> self.inferred_precise_value_type
+            True ->
+                Storage.to_value_type self.java_column.getStorage.inferPreciseTypeShrunk
+        # We run with Report_Error because we do not expect any problems.
+        self.cast new_value_type on_problems=Problem_Behavior.Report_Error
 
     ## ALIAS transform column
 

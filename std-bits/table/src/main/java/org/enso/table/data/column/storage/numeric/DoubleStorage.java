@@ -26,6 +26,7 @@ import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -387,5 +388,42 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     }
 
     return new DoubleStorage(newData, newSize, newMissing);
+  }
+
+  private StorageType inferredType = null;
+
+  @Override
+  public StorageType inferPreciseType() {
+    if (inferredType == null) {
+      boolean areAllIntegers = true;
+      for (int i = 0; i < size; i++) {
+        if (isMissing.get(i)) {
+          continue;
+        }
+
+        double value = Double.longBitsToDouble(data[i]);
+        if (value % 1.0 != 0.0 && IntegerType.INT_64.fits(value)) {
+          continue;
+        } else {
+          areAllIntegers = false;
+          break;
+        }
+      }
+
+      inferredType = areAllIntegers ? IntegerType.INT_64 : getType();
+    }
+
+    return inferredType;
+  }
+
+  @Override
+  public StorageType inferPreciseTypeShrunk() {
+    StorageType inferred = inferPreciseType();
+    if (inferred instanceof IntegerType) {
+      // TODO delegate to infer smallest integer type to fit
+      return inferred;
+    } else {
+      return inferred;
+    }
   }
 }
