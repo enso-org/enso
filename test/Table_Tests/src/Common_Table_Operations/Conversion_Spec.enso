@@ -594,12 +594,17 @@ spec setup =
             t1.at "Y" . value_type . should_equal Value_Type.Float
             t1.at "Z" . value_type . should_equal Value_Type.Float
 
-            t2 = t1.auto_value_types
-            t2.at "X" . value_type . should_equal Value_Type.Integer
-            t2.at "Y" . value_type . should_equal Value_Type.Float
-            t2.at "Z" . value_type . should_equal Value_Type.Float
-
+            t2 = t1.auto_value_types shrink_types=False
             t2.at "X" . to_vector . should_equal [1, 2, 3]
+            t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Y" . value_type . should_equal Value_Type.Float
+            ## Technically, Z could get converted to Decimal type. But IMO that
+               is not desirable - at this scale the Float is no longer a
+               precise type (as not even consecutive integers are exactly
+               representable). And Decimal is expected to be precise. So such a
+               conversion should only happen by explicit request, not
+               automatically.
+            t2.at "Z" . value_type . should_equal Value_Type.Float
 
         Test.specify "will not parse text columns" <|
             t1 = table_builder [["X", ["1", "2", "3"]]]
@@ -628,23 +633,30 @@ spec setup =
         Test.specify "will try to find the smallest integer type to fit the value (if shrink_types=True)" <|
             [False, True].each is_mixed->
                 prefix = if is_mixed then "mixed" else 0
-                t0 = table_builder [["X", [prefix, 1, 2, 3]], ["Y", [prefix, 2^20, 2, 3]], ["Z", [prefix, 2^50, 2, 3]]]
+                t0 = table_builder [["X", [prefix, 1, 2, 3]], ["Y", [prefix, 2^20, 2, 3]], ["Z", [prefix, 2^50, 2, 3]], ["F", [prefix, 1.0, 2.0, 3.0]]]
                 t1 = t0.drop 1
 
                 case is_mixed of
                     True  -> t1.at "Z" . value_type . should_equal Value_Type.Mixed
                     False -> t1.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
+                case is_mixed of
+                    True  -> t1.at "F" . value_type . should_equal Value_Type.Mixed
+                    False -> t1.at "F" . value_type . should_equal Value_Type.Float
+
                 t2 = t1.auto_value_types shrink_types=False
                 t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
                 t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                t2.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
                 t3 = t1.auto_value_types shrink_types=True
                 # Even though X's values are small enough to fit in a Byte, we stick to 16-bit Integers.
                 t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
                 t3.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
                 t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                # Shrinking Floats also finds the smallest type that fits.
+                t3.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
 
         Test.specify "if all text values have the same length, will change the type to fixed-length string (if shrink_types=True)" <|
             [False, True].each is_mixed->
