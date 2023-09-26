@@ -444,6 +444,7 @@ const dragPointer = usePointer((pos, event, type) => {
         />
       </div>
     </div>
+    <div class="outputTypeName">{{ node.outputTypeName }}</div>
   </div>
 </template>
 
@@ -547,5 +548,21 @@ const dragPointer = usePointer((pos, event, type) => {
 
 .CircularMenu {
   z-index: 1;
+}
+
+.outputTypeName {
+  user-select: none;
+  position: absolute;
+  left: 50%;
+  top: 110%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none;
+  color: var(--node-color-primary);
+}
+
+.GraphNode:hover .outputTypeName {
+  opacity: 1;
 }
 </style>
