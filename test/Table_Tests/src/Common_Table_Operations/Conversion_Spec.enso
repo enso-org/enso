@@ -604,9 +604,35 @@ spec setup =
             c2 = t1.at "X" . auto_value_type
             c2.value_type . should_equal Value_Type.Char
 
+        Test.specify "will choose Decimal type if all values are integers but cannot fit long" <|
+            c0 = table_builder [["X", [My_Type.Value 42, 1, 2, 2^100]]] . at "X"
+            c1 = c0.drop 1
+
+            c1.value_type . should_equal Value_Type.Mixed
+            c2 = c1.auto_value_type
+            c2.value_type . should_be_a (Value_Type.Decimal ...)
+            c2.to_vector . should_equal [1, 2, 2^100]
+
         Test.specify "will try to find the smallest integer type to fit the value (if use_smallest=True)" <|
-            # but won't allow Byte automatically
-            Nothing
+            [False, True].each is_mixed->
+                prefix = if is_mixed then "mixed" else 0
+                t0 = table_builder [["X", [prefix, 1, 2, 3]], ["Y", [prefix, 2^20, 2, 3]], ["Z", [prefix, 2^50, 2, 3]]]
+                t1 = t0.drop 1
+
+                case is_mixed of
+                    True -> t1.at "Z" . value_type . should_equal Value_Type.Mixed
+                    False -> t1.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+                t2 = t1.auto_value_types use_smallest=False
+                t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                t2.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+                t3 = t1.auto_value_types use_smallest=True
+                # Even though X's values are small enough to fit in a Byte, we stick to 16-bit Integers.
+                t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                t3.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
 
         Test.specify "if all text values have the same length, will change the type to fixed-length string (if use_smallest=True)" <|
             # test on limited and unlimited
