@@ -397,7 +397,6 @@ export default function Dashboard(props: DashboardProps) {
                     isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
                     isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
                 />
-                <TheModal />
                 <Editor
                     hidden={page !== pageSwitcher.Page.editor}
                     supportsLocalBackend={supportsLocalBackend}
