@@ -23,5 +23,5 @@
 // =========================
 
 fn main() {
-    println!("{}", serde_json::to_string(&enso_parser_schema::types()).unwrap());
+    serde_json::to_writer(std::io::stdout(), &enso_parser_schema::types()).unwrap()
 }

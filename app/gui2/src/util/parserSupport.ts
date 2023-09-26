@@ -1,3 +1,4 @@
+// This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`.
 export class LazyObject {
   protected readonly lazyObjectData: Cursor
 

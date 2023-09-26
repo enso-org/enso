@@ -1,5 +1,4 @@
-//! Supports generation of TypeScript types corresponding to `enso-parser`'s AST types, and testing
-//! and debugging the translation process.
+//! Supports generation of a schema describing `enso-parser`'s AST types.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

@@ -7,7 +7,6 @@
 //! The core modules define the metamodels, and operations on them:
 //! - [`rust`]: A metamodel representing data models in the Rust typesystem.
 //! - [`java`]: A metamodel representing data models in the Java typesystem.
-//! - [`typescript`]: A metamodel representing data models in the TypeScript typesystem.
 //! - [`meta`]: An abstract metamodel, used to perform language-independent analysis of data models,
 //!   and as an intermediate when translating data models between language-specific metamodels.
 //!
