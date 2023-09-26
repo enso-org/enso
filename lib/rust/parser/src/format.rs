@@ -38,12 +38,14 @@ const RECURSION_LIMIT: usize = 1024;
 // === Serialize ===
 // =================
 
+/// Generate a binary representation of the value.
 pub fn serialize<T: Serialize>(value: T) -> Result<Vec<u8>> {
     let mut serializer = Serializer::new();
     value.serialize(&mut serializer)?;
     serializer.heap.append(&mut serializer.stack);
     Ok(serializer.heap)
 }
+
 
 
 // ==================
@@ -63,6 +65,7 @@ pub struct Serializer {
 }
 
 impl Serializer {
+    /// Return a new [`Serializer`].
     pub fn new() -> Self {
         Self::default()
     }
@@ -113,6 +116,7 @@ struct ParentStruct {
     object_depth_inside: usize,
     begin: usize,
 }
+
 
 
 // ==========================================
@@ -443,15 +447,21 @@ impl ser::SerializeMap for ObjectSerializer<'_> {
 }
 
 
+
 // ====================
 // === Result Types ===
 // ====================
 
-pub type Ok = ();
+type Ok = ();
 
+/// Describes a serialization failure.
 #[derive(Debug)]
 pub enum Error {
+    /// Indicates that the nested object depth of the input exceeded [`RECURSION_LIMIT`], and
+    /// serialization was aborted to prevent a stack overflow. This is not expected to occur for
+    /// "reasonable" syntax trees.
     RecursionLimitExceeded,
+    /// A serialization failure described by a message.
     Custom(String),
 }
 
@@ -470,6 +480,7 @@ impl ser::Error for Error {
     }
 }
 
+/// The result of a serialization attempt.
 pub type Result<T> = std::result::Result<T, Error>;
 
 
@@ -499,6 +510,6 @@ mod test {
         }
         // Note that if recursion is not adequately limited the expected failure mode is aborting
         // due to stack overflow. We are just checking `is_err` here for good measure.
-        assert!(super::serialize(&Cyclic::new()).is_err());
+        assert!(super::serialize(Cyclic::new()).is_err());
     }
 }

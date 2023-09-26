@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "format": "prettier --write src/ && eslint . --fix",
     "build-rust-ffi": "cd rust-ffi && wasm-pack build --release --target web",
-    "preinstall": "npm run build-rust-ffi"
+    "generate-parser-bindings": "cd parser-codegen && npm install && npm run start && cd .. && rm -rf src/generated && mkdir src/generated && cp parser-codegen/generated/ast.ts src/generated/",
+    "preinstall": "npm run build-rust-ffi && npm run generate-parser-bindings"
   },
   "dependencies": {
     "@open-rpc/client-js": "^1.8.1",

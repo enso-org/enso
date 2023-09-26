@@ -21,9 +21,9 @@ pub fn parse_to_json(code: &str) -> String {
 }
 
 #[wasm_bindgen]
-pub fn parse_to_binary(code: &str) -> Vec<u8> {
+pub fn parse(code: &str) -> Vec<u8> {
     let ast = PARSER.with(|parser| parser.run(code));
-    enso_parser::format::serialize(&ast, &code).expect("Failed to serialize AST to binary format")
+    enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format")
 }
 
 #[wasm_bindgen(start)]

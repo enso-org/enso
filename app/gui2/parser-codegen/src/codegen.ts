@@ -1,5 +1,5 @@
 import * as ts from "typescript"
-import {SyntaxKind} from "typescript"
+import { factory as tsf } from "typescript"
 import * as fs from "fs"
 
 type Schema = {
@@ -65,20 +65,20 @@ function legalizeIdent(ident: string): string {
 type ExpressionTransformer = ((expression: ts.Expression) => ts.Expression)
 
 function primitiveReader(name: string): ExpressionTransformer {
-  return cursor => ts.factory.createCallExpression(ts.factory.createPropertyAccessExpression(cursor, name), [], [])
+  return cursor => tsf.createCallExpression(tsf.createPropertyAccessExpression(cursor, name), [], [])
 }
 
 function readerTransformer(name: string): (readElement: ExpressionTransformer) => ExpressionTransformer {
-  const innerParameter = ts.factory.createIdentifier("element")
+  const innerParameter = tsf.createIdentifier("element")
   return (readElement: ExpressionTransformer) => (cursor: ts.Expression) => {
-    return ts.factory.createCallExpression(
-      ts.factory.createPropertyAccessExpression(cursor, name),
+    return tsf.createCallExpression(
+      tsf.createPropertyAccessExpression(cursor, name),
       [],
       [
-        ts.factory.createArrowFunction(
+        tsf.createArrowFunction(
           [],
           [],
-          [ts.factory.createParameterDeclaration([], undefined, innerParameter, undefined, cursorType, undefined)],
+          [tsf.createParameterDeclaration([], undefined, innerParameter, undefined, support.Cursor, undefined)],
           undefined,
           undefined,
           readElement(innerParameter)
@@ -90,20 +90,20 @@ function readerTransformer(name: string): (readElement: ExpressionTransformer) =
 
 function readerTransformer2(name: string): (readOk: ExpressionTransformer, readErr: ExpressionTransformer) => ExpressionTransformer {
   function makeArrow(reader: ExpressionTransformer, data: ts.Identifier) {
-    return ts.factory.createArrowFunction(
+    return tsf.createArrowFunction(
       [],
       [],
-      [ts.factory.createParameterDeclaration([], undefined, data, undefined, cursorType, undefined)],
+      [tsf.createParameterDeclaration([], undefined, data, undefined, support.Cursor, undefined)],
       undefined,
       undefined,
       reader(data)
     )
   }
-  const okData = ts.factory.createIdentifier("okData")
-  const errData = ts.factory.createIdentifier("errData")
+  const okData = tsf.createIdentifier("okData")
+  const errData = tsf.createIdentifier("errData")
   return (readOk: ExpressionTransformer, readErr: ExpressionTransformer) => (cursor: ts.Expression) => {
-    return ts.factory.createCallExpression(
-      ts.factory.createPropertyAccessExpression(cursor, name),
+    return tsf.createCallExpression(
+      tsf.createPropertyAccessExpression(cursor, name),
       [],
       [makeArrow(readOk, okData), makeArrow(readErr, errData)]
     )
@@ -111,21 +111,21 @@ function readerTransformer2(name: string): (readOk: ExpressionTransformer, readE
 }
 
 function readerTransformerSized(name: string): (readElement: ExpressionTransformer, size: number) => ExpressionTransformer {
-  const innerParameter = ts.factory.createIdentifier("element")
+  const innerParameter = tsf.createIdentifier("element")
   return (readElement: ExpressionTransformer, size: number) => (cursor: ts.Expression) => {
-    return ts.factory.createCallExpression(
-      ts.factory.createPropertyAccessExpression(cursor, name),
+    return tsf.createCallExpression(
+      tsf.createPropertyAccessExpression(cursor, name),
       [],
       [
-        ts.factory.createArrowFunction(
+        tsf.createArrowFunction(
           [],
           [],
-          [ts.factory.createParameterDeclaration([], undefined, innerParameter, undefined, cursorType, undefined)],
+          [tsf.createParameterDeclaration([], undefined, innerParameter, undefined, support.Cursor, undefined)],
           undefined,
           undefined,
           readElement(innerParameter)
         ),
-        ts.factory.createNumericLiteral(size)
+        tsf.createNumericLiteral(size)
       ]
     )
   }
@@ -141,8 +141,8 @@ function namespacedName(name: string, namespace?: string): string {
 
 function abstractTypeReader(name: string): ExpressionTransformer {
   return (cursor: ts.Expression) =>
-    ts.factory.createCallExpression(
-      ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier(toPascal(name)), "read"),
+    tsf.createCallExpression(
+      tsf.createPropertyAccessExpression(tsf.createIdentifier(toPascal(name)), "read"),
       [],
       [cursorMethods.readPointer(cursor)]
     )
@@ -150,8 +150,8 @@ function abstractTypeReader(name: string): ExpressionTransformer {
 
 function concreteTypeReader(name: string): ExpressionTransformer {
   return (cursor: ts.Expression) =>
-    ts.factory.createCallExpression(
-      ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier(toPascal(name)), "read"),
+    tsf.createCallExpression(
+      tsf.createPropertyAccessExpression(tsf.createIdentifier(toPascal(name)), "read"),
       [],
       [cursor]
     )
@@ -175,7 +175,7 @@ class Type {
         const ty = types[ref.id]
         const parent = types[ty.parent]
         const typeName = namespacedName(ty.name, parent?.name)
-        const type = ts.factory.createTypeReferenceNode(typeName)
+        const type = tsf.createTypeReferenceNode(typeName)
         if (Object.entries(ty.discriminants).length !== 0) {
           return new Type(type, abstractTypeReader(typeName), POINTER_SIZE)
         } else {
@@ -185,19 +185,19 @@ class Type {
         const p = ref.type
         switch (p) {
           case "bool":
-            return new Type(ts.factory.createTypeReferenceNode("boolean"), cursorMethods.readBool, 1)
+            return new Type(tsf.createTypeReferenceNode("boolean"), cursorMethods.readBool, 1)
           case "u32":
-            return new Type(ts.factory.createTypeReferenceNode("number"), cursorMethods.readU32, 4)
+            return new Type(tsf.createTypeReferenceNode("number"), cursorMethods.readU32, 4)
           case "i32":
-            return new Type(ts.factory.createTypeReferenceNode("number"), cursorMethods.readI32, 4)
+            return new Type(tsf.createTypeReferenceNode("number"), cursorMethods.readI32, 4)
           case "u64":
-            return new Type(ts.factory.createTypeReferenceNode("number"), cursorMethods.readU64, 8)
+            return new Type(tsf.createTypeReferenceNode("number"), cursorMethods.readU64, 8)
           case "i64":
-            return new Type(ts.factory.createTypeReferenceNode("number"), cursorMethods.readI64, 8)
+            return new Type(tsf.createTypeReferenceNode("number"), cursorMethods.readI64, 8)
           case "char":
-            return new Type(ts.factory.createTypeReferenceNode("number"), cursorMethods.readU32, 4)
+            return new Type(tsf.createTypeReferenceNode("number"), cursorMethods.readU32, 4)
           case "string":
-            return new Type(ts.factory.createTypeReferenceNode("string"), cursorMethods.readString, POINTER_SIZE)
+            return new Type(tsf.createTypeReferenceNode("string"), cursorMethods.readString, POINTER_SIZE)
           default:
             const _ = p satisfies never
             throw new Error("unreachable: PrimitiveType.type='" + p + "'")
@@ -216,7 +216,7 @@ class Type {
 
   static sequence(element: Type): Type {
     return new Type(
-      ts.factory.createTypeReferenceNode("Iterable", [element.type]),
+      tsf.createTypeReferenceNode("Iterable", [element.type]),
       cursorMethods.readSequence(element.reader, element.size),
       POINTER_SIZE
     )
@@ -224,7 +224,7 @@ class Type {
 
   static option(element: Type): Type {
     return new Type(
-      ts.factory.createUnionTypeNode([element.type, nullType]),
+      tsf.createUnionTypeNode([element.type, nullType]),
       cursorMethods.readOption(element.reader),
       POINTER_SIZE + 1
     )
@@ -232,7 +232,7 @@ class Type {
 
   static result(ok: Type, err: Type): Type {
     return new Type(
-      ts.factory.createUnionTypeNode([ok.type, err.type]),
+      tsf.createUnionTypeNode([ok.type, err.type]),
       cursorMethods.readResult(ok.reader, err.reader),
       POINTER_SIZE
     )
@@ -243,26 +243,26 @@ function seekCursor(cursor: ts.Expression, offset: number): ts.Expression {
   if (offset === 0) {
     return cursor
   } else {
-    return ts.factory.createCallExpression(
-      ts.factory.createPropertyAccessExpression(cursor, "seek"),
+    return tsf.createCallExpression(
+      tsf.createPropertyAccessExpression(cursor, "seek"),
       [],
-      [ts.factory.createNumericLiteral(offset)]
+      [tsf.createNumericLiteral(offset)]
     )
   }
 }
 
 function makeGetter(fieldName: string, fieldData: Schema.Field, types: [string: Schema.Type]): ts.GetAccessorDeclaration {
   const type = Type.new(fieldData.type, types)
-  return ts.factory.createGetAccessorDeclaration(
+  return tsf.createGetAccessorDeclaration(
     [],
-    ts.factory.createIdentifier(legalizeIdent(toCamel(fieldName))),
+    tsf.createIdentifier(legalizeIdent(toCamel(fieldName))),
     [],
     type.type,
-    ts.factory.createBlock([
-      ts.factory.createReturnStatement(
+    tsf.createBlock([
+      tsf.createReturnStatement(
         type.reader(
           seekCursor(
-            ts.factory.createPropertyAccessExpression(ts.factory.createThis(), cursorFieldIdent),
+            tsf.createPropertyAccessExpression(tsf.createThis(), cursorFieldIdent),
             fieldData.offset
           ),
         )
@@ -273,33 +273,33 @@ function makeGetter(fieldName: string, fieldData: Schema.Field, types: [string: 
 
 // Helper for a common case of constructing an assignment.
 function createAssignmentStatement(left: ts.Expression, right: ts.Expression): ts.Statement {
-  return ts.factory.createExpressionStatement(
-    ts.factory.createBinaryExpression(
+  return tsf.createExpressionStatement(
+    tsf.createBinaryExpression(
       left,
-      SyntaxKind.EqualsToken,
+      ts.SyntaxKind.EqualsToken,
       right,
     )
   )
 }
 
 function makeConcreteType(id: string, types: [string: Schema.Type]): ts.ClassDeclaration {
-  const ident = ts.factory.createIdentifier(toPascal(types[id].name))
-  const paramIdent = ts.factory.createIdentifier("cursor")
-  const cursorParam = ts.factory.createParameterDeclaration([], undefined, paramIdent, undefined, cursorType, undefined)
+  const ident = tsf.createIdentifier(toPascal(types[id].name))
+  const paramIdent = tsf.createIdentifier("cursor")
+  const cursorParam = tsf.createParameterDeclaration([], undefined, paramIdent, undefined, support.Cursor, undefined)
   return makeClass(
     [modifiers.export],
     ident,
     [
-      forwardToSuper(paramIdent, cursorType),
-      ts.factory.createMethodDeclaration(
+      forwardToSuper(paramIdent, support.Cursor),
+      tsf.createMethodDeclaration(
         [modifiers.static],
         undefined,
         "read",
         undefined,
         [],
         [cursorParam],
-        ts.factory.createTypeReferenceNode(ident),
-        ts.factory.createBlock([ts.factory.createReturnStatement(ts.factory.createNewExpression(ident, [], [paramIdent]))])
+        tsf.createTypeReferenceNode(ident),
+        tsf.createBlock([tsf.createReturnStatement(tsf.createNewExpression(ident, [], [paramIdent]))])
       )
     ],
     id,
@@ -308,32 +308,32 @@ function makeConcreteType(id: string, types: [string: Schema.Type]): ts.ClassDec
 }
 
 function debugValue(ident: ts.Identifier): ts.Expression {
-  const value = ts.factory.createPropertyAccessExpression(ts.factory.createThis(), ident)
-  return ts.factory.createCallExpression(ts.factory.createIdentifier("debugHelper"), [], [value])
+  const value = tsf.createPropertyAccessExpression(tsf.createThis(), ident)
+  return tsf.createCallExpression(support.debugHelper, [], [value])
 }
 
 function makeDebugFunction(fields: [string, Schema.Field][]): ts.MethodDeclaration {
-  const getterIdent = (fieldName: string) => ts.factory.createIdentifier(legalizeIdent(toCamel(fieldName)))
-  return ts.factory.createMethodDeclaration(
+  const getterIdent = (fieldName: string) => tsf.createIdentifier(legalizeIdent(toCamel(fieldName)))
+  return tsf.createMethodDeclaration(
     [],
     undefined,
     "debug",
     undefined,
     [],
     [],
-    ts.factory.createTypeReferenceNode("any"),
-    ts.factory.createBlock([
-      ts.factory.createReturnStatement(
-        ts.factory.createObjectLiteralExpression([
-          ts.factory.createSpreadAssignment(
-            ts.factory.createCallExpression(
-              ts.factory.createPropertyAccessExpression(ts.factory.createSuper(), "debug"),
+    tsf.createTypeReferenceNode("any"),
+    tsf.createBlock([
+      tsf.createReturnStatement(
+        tsf.createObjectLiteralExpression([
+          tsf.createSpreadAssignment(
+            tsf.createCallExpression(
+              tsf.createPropertyAccessExpression(tsf.createSuper(), "debug"),
               [],
               []
             )
           ),
           ...fields.map(([name, field] : [string, Schema.Field]) =>
-            ts.factory.createPropertyAssignment(getterIdent(name), debugValue(getterIdent(name)))
+            tsf.createPropertyAssignment(getterIdent(name), debugValue(getterIdent(name)))
           )
         ])
       )]
@@ -343,12 +343,12 @@ function makeDebugFunction(fields: [string, Schema.Field][]): ts.MethodDeclarati
 
 function makeClass(modifiers: ts.Modifier[], name: ts.Identifier, members: ts.ClassElement[], id: string, types: [string: Schema.Type]): ts.ClassDeclaration {
   const ty = types[id]
-  return ts.factory.createClassDeclaration(
+  return tsf.createClassDeclaration(
     modifiers,
     name,
     undefined,
-    [ts.factory.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
-      ts.factory.createExpressionWithTypeArguments(lazyObjectIdent, [])
+    [tsf.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
+      tsf.createExpressionWithTypeArguments(support.LazyObject, [])
     ])],
     [
       ...members,
@@ -368,83 +368,83 @@ type ChildType = {
 function makeChildType(parentName: string, base: ts.Identifier, id: string, discrim: string, types: [string: Schema.Type]): ChildType {
   const ty: Schema.Type = types[id]
   const name = toPascal(ty.name)
-  const ident = ts.factory.createIdentifier(name)
-  const cursorIdent = ts.factory.createIdentifier("cursor")
-  const cursorParam = ts.factory.createParameterDeclaration([], undefined, cursorIdent, undefined, cursorType, undefined)
-  const discrimInt = ts.factory.createNumericLiteral(parseInt(discrim, 10))
+  const ident = tsf.createIdentifier(name)
+  const cursorIdent = tsf.createIdentifier("cursor")
+  const cursorParam = tsf.createParameterDeclaration([], undefined, cursorIdent, undefined, support.Cursor, undefined)
+  const discrimInt = tsf.createNumericLiteral(parseInt(discrim, 10))
   return {
-    definition: ts.factory.createClassDeclaration(
+    definition: tsf.createClassDeclaration(
       [modifiers.export],
       name,
       undefined,
-      [ts.factory.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
-        ts.factory.createExpressionWithTypeArguments(base, [])
+      [tsf.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
+        tsf.createExpressionWithTypeArguments(base, [])
       ])],
       [
-        ts.factory.createPropertyDeclaration(
+        tsf.createPropertyDeclaration(
           [modifiers.readonly],
           "type",
           undefined,
-          ts.factory.createTypeReferenceNode("Type." + name),
+          tsf.createTypeReferenceNode("Type." + name),
           undefined
         ),
-        ts.factory.createConstructorDeclaration([], [
-            ts.factory.createParameterDeclaration([], undefined, cursorIdent, undefined, cursorType, undefined)
+        tsf.createConstructorDeclaration([], [
+            tsf.createParameterDeclaration([], undefined, cursorIdent, undefined, support.Cursor, undefined)
           ],
-          ts.factory.createBlock([
-            ts.factory.createExpressionStatement(ts.factory.createCallExpression(
-              ts.factory.createIdentifier("super"), [], [cursorIdent]
+          tsf.createBlock([
+            tsf.createExpressionStatement(tsf.createCallExpression(
+              tsf.createIdentifier("super"), [], [cursorIdent]
             )),
             createAssignmentStatement(
-              ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier("this"), "type"),
-              ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier("Type"), name)
+              tsf.createPropertyAccessExpression(tsf.createIdentifier("this"), "type"),
+              tsf.createPropertyAccessExpression(tsf.createIdentifier("Type"), name)
             )
           ])
         ),
-        ts.factory.createMethodDeclaration(
+        tsf.createMethodDeclaration(
           [modifiers.static],
           undefined,
           "read",
           undefined,
           [],
           [cursorParam],
-          ts.factory.createTypeReferenceNode(ident),
-          ts.factory.createBlock([ts.factory.createReturnStatement(ts.factory.createNewExpression(ident, [], [cursorIdent]))])
+          tsf.createTypeReferenceNode(ident),
+          tsf.createBlock([tsf.createReturnStatement(tsf.createNewExpression(ident, [], [cursorIdent]))])
         ),
         ...ty.fields.map(([name, field]: [string, Schema.Field]) => makeGetter(name, field, types)),
         makeDebugFunction(ty.fields)
       ]
     ),
-    reference: ts.factory.createTypeReferenceNode(name),
-    enumMember: ts.factory.createEnumMember(toPascal(types[id].name), discrimInt),
-    case: ts.factory.createCaseClause(
+    reference: tsf.createTypeReferenceNode(name),
+    enumMember: tsf.createEnumMember(toPascal(types[id].name), discrimInt),
+    case: tsf.createCaseClause(
       discrimInt,
-      [ts.factory.createReturnStatement(
-        ts.factory.createNewExpression(ident, [], [seekCursor(cursorIdent, 4)])
+      [tsf.createReturnStatement(
+        tsf.createNewExpression(ident, [], [seekCursor(cursorIdent, 4)])
       )]
     )
   }
 }
 
 function forwardToSuper(ident: ts.Identifier, type: ts.TypeNode) {
-  return ts.factory.createConstructorDeclaration([], [
-      ts.factory.createParameterDeclaration([], undefined, ident, undefined, type, undefined)
+  return tsf.createConstructorDeclaration([], [
+      tsf.createParameterDeclaration([], undefined, ident, undefined, type, undefined)
     ],
-    ts.factory.createBlock([
-      ts.factory.createExpressionStatement(ts.factory.createCallExpression(
-        ts.factory.createIdentifier("super"), [], [ident]
+    tsf.createBlock([
+      tsf.createExpressionStatement(tsf.createCallExpression(
+        tsf.createIdentifier("super"), [], [ident]
       ))
     ])
   )
 }
 
 function casesOrThrow(cases: ts.CaseClause[], error: string): ts.CaseBlock {
-  return ts.factory.createCaseBlock(
+  return tsf.createCaseBlock(
     [
       ...cases,
-      ts.factory.createDefaultClause([
-        ts.factory.createThrowStatement(
-          ts.factory.createNewExpression(ts.factory.createIdentifier("Error"), [], [ts.factory.createStringLiteral(error)])
+      tsf.createDefaultClause([
+        tsf.createThrowStatement(
+          tsf.createNewExpression(tsf.createIdentifier("Error"), [], [tsf.createStringLiteral(error)])
         )
       ])
     ]
@@ -452,16 +452,16 @@ function casesOrThrow(cases: ts.CaseClause[], error: string): ts.CaseBlock {
 }
 
 function abstractTypeDeserializer(ident: ts.Identifier, cases: ts.CaseClause[]): ts.FunctionDeclaration {
-  const cursorIdent = ts.factory.createIdentifier("cursor")
-  return ts.factory.createFunctionDeclaration(
+  const cursorIdent = tsf.createIdentifier("cursor")
+  return tsf.createFunctionDeclaration(
     [modifiers.export],
     undefined,
     "read",
     [],
-    [ts.factory.createParameterDeclaration([], undefined, cursorIdent, undefined, cursorType, undefined)],
-    ts.factory.createTypeReferenceNode(ident),
-    ts.factory.createBlock([
-      ts.factory.createSwitchStatement(
+    [tsf.createParameterDeclaration([], undefined, cursorIdent, undefined, support.Cursor, undefined)],
+    tsf.createTypeReferenceNode(ident),
+    tsf.createBlock([
+      tsf.createSwitchStatement(
         cursorMethods.readU32(cursorIdent),
         casesOrThrow(cases, "Unexpected discriminant while deserializing.")
       )
@@ -472,39 +472,44 @@ function abstractTypeDeserializer(ident: ts.Identifier, cases: ts.CaseClause[]):
 function makeAbstractType(id: string, types: [string: Schema.Type]) {
   const ty = types[id]
   const name = toPascal(ty.name)
-  const ident = ts.factory.createIdentifier(name)
-  const baseIdent = ts.factory.createIdentifier("AbstractBase")
+  const ident = tsf.createIdentifier(name)
+  const baseIdent = tsf.createIdentifier("AbstractBase")
   const childTypes = Array.from(Object.entries(ty.discriminants), ([discrim, id]: [string, string]) => makeChildType(name, baseIdent, id, discrim, types))
-  const cursorIdent = ts.factory.createIdentifier("cursor")
+  const cursorIdent = tsf.createIdentifier("cursor")
   const moduleDecl =
-    ts.factory.createModuleDeclaration(
+    tsf.createModuleDeclaration(
       [modifiers.export],
       ident,
-      ts.factory.createModuleBlock([
-        makeClass([modifiers.abstract], baseIdent, [forwardToSuper(cursorIdent, cursorType)], id, types),
-        ts.factory.createEnumDeclaration(
+      tsf.createModuleBlock([
+        makeClass([modifiers.abstract], baseIdent, [forwardToSuper(cursorIdent, support.Cursor)], id, types),
+        tsf.createEnumDeclaration(
           [modifiers.export, modifiers.const],
           "Type",
           childTypes.map(child => child.enumMember)
         ),
         ...childTypes.map(child => child.definition),
-        ts.factory.createTypeAliasDeclaration(
+        tsf.createTypeAliasDeclaration(
           [modifiers.export],
           ident,
           undefined,
-          ts.factory.createUnionTypeNode(childTypes.map(child => child.reference))
+          tsf.createUnionTypeNode(childTypes.map(child => child.reference))
         ),
         abstractTypeDeserializer(ident, childTypes.map(child => child.case))
       ])
     )
-  const abstractTypeExport = ts.factory.createTypeAliasDeclaration(
+  const abstractTypeExport = tsf.createTypeAliasDeclaration(
     [modifiers.export],
     ident,
     undefined,
-    ts.factory.createTypeReferenceNode(name + "." + name)
+    tsf.createTypeReferenceNode(name + "." + name)
   )
-  console.log(printer.printNode(ts.EmitHint.Unspecified, moduleDecl, file))
-  console.log(printer.printNode(ts.EmitHint.Unspecified, abstractTypeExport, file))
+  emit(moduleDecl)
+  emit(abstractTypeExport)
+}
+
+function emit(data: ts.Node) {
+  output += printer.printNode(ts.EmitHint.Unspecified, data, file)
+  output += "\n"
 }
 
 
@@ -512,18 +517,18 @@ function makeAbstractType(id: string, types: [string: Schema.Type]) {
 // === Main ===
 // ============
 
+const data: Schema = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+let output = "// *** THIS FILE GENERATED BY `parser-codegen` ***\n"
 const file = ts.createSourceFile("source.ts", "", ts.ScriptTarget.ESNext, false, ts.ScriptKind.TS)
 const printer = ts.createPrinter({newLine: ts.NewLineKind.LineFeed})
-const lazyObjectIdent = ts.factory.createIdentifier("LazyObject")
-const nullType = ts.factory.createTypeReferenceNode("null")
-const cursorFieldIdent = ts.factory.createIdentifier("lazyObjectData")
-const cursorType = ts.factory.createTypeReferenceNode("Cursor")
+const nullType = tsf.createTypeReferenceNode("null")
+const cursorFieldIdent = tsf.createIdentifier("lazyObjectData")
 const modifiers = {
-  export: ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
-  const: ts.factory.createModifier(ts.SyntaxKind.ConstKeyword),
-  readonly: ts.factory.createModifier(ts.SyntaxKind.ReadonlyKeyword),
-  abstract: ts.factory.createModifier(ts.SyntaxKind.AbstractKeyword),
-  static: ts.factory.createModifier(ts.SyntaxKind.StaticKeyword),
+  export: tsf.createModifier(ts.SyntaxKind.ExportKeyword),
+  const: tsf.createModifier(ts.SyntaxKind.ConstKeyword),
+  readonly: tsf.createModifier(ts.SyntaxKind.ReadonlyKeyword),
+  abstract: tsf.createModifier(ts.SyntaxKind.AbstractKeyword),
+  static: tsf.createModifier(ts.SyntaxKind.StaticKeyword),
 } as const
 const cursorMethods = {
   readString: primitiveReader("readString"),
@@ -538,14 +543,29 @@ const cursorMethods = {
   readResult: readerTransformer2("readResult"),
 } as const
 const POINTER_SIZE: number = 4
+// Symbols exported by the `parserSupport` module.
+const support = {
+  LazyObject: tsf.createIdentifier("LazyObject"),
+  Cursor: tsf.createTypeReferenceNode(tsf.createIdentifier("Cursor")),
+  debugHelper: tsf.createIdentifier("debugHelper"),
+} as const
 
-const data: Schema = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+emit(tsf.createImportDeclaration(
+  [],
+  tsf.createImportClause(
+    false,
+    undefined,
+    tsf.createNamedImports(Array.from(Object.entries(support), ([name, _value]) =>
+        tsf.createImportSpecifier(undefined, undefined, tsf.createIdentifier(name))))
+  ),
+  tsf.createStringLiteral("@/util/parserSupport", true),
+  undefined
+))
 for (const id in data.types) {
   const ty = data.types[id]
   if (ty.parent === null) {
     if (Object.entries(data.types[id].discriminants).length === 0) {
-      const decl = makeConcreteType(id, data.types)
-      console.log(printer.printNode(ts.EmitHint.Unspecified, decl, file))
+      emit(makeConcreteType(id, data.types))
     } else {
       makeAbstractType(id, data.types)
     }
@@ -553,3 +573,8 @@ for (const id in data.types) {
     // Ignore child types; they are generated when `makeAbstractType` processes the parent.
   }
 }
+output += `export function deserializeTree(data: ArrayBuffer): Tree {
+  const cursor = new Cursor(data, data.byteLength - 4)
+  return Tree.read(cursor.readPointer())
+}`
+fs.writeFileSync(process.argv[3], output)

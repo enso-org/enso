@@ -2390,19 +2390,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-parser-generate-ts"
-version = "0.1.0"
-dependencies = [
- "derivative",
- "enso-metamodel",
- "enso-parser",
- "enso-prelude",
- "enso-reflect",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "enso-parser-jni"
 version = "0.1.0"
 dependencies = [
@@ -2410,6 +2397,17 @@ dependencies = [
  "enso-parser",
  "enso-prelude",
  "jni",
+]
+
+[[package]]
+name = "enso-parser-schema"
+version = "0.1.0"
+dependencies = [
+ "enso-metamodel",
+ "enso-parser",
+ "enso-reflect",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

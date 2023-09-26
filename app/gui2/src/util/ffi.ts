@@ -1,12 +1,18 @@
-import init, { parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
+import init, { parse_to_json, parse } from '../../rust-ffi/pkg/rust_ffi'
 import type { NonEmptyArray } from './array'
 import type { Opt } from './opt'
+import * as Ast2 from '../generated/ast'
 
 const _wasm = await init()
 
 export function parseEnso(code: string): Ast.Tree {
   const json = parse_to_json(code)
   return JSON.parse(json)
+}
+
+export function parseEnso2(code: string): Ast2.Tree {
+  const blob = parse(code)
+  return Ast2.deserializeTree(blob)
 }
 
 export namespace Ast {

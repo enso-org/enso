@@ -1,22 +1,23 @@
 {
-  "name": "parser-codegen",
+  "name": "enso-parser-codegen",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
   "main": "dist/codegen.js",
   "scripts": {
-    "start": "tsc && node node_modules/.bin/babel-node dist/codegen.js"
+    "generate-ast-schema": "rm -rf generated && mkdir generated && cargo run -p enso-parser-schema > generated/ast-schema.json",
+    "preinstall": "npm run generate-ast-schema",
+    "start": "tsc && node node_modules/.bin/babel-node dist/codegen.js generated/ast-schema.json generated/ast.ts"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@babel/cli": "^7.22.15",
     "@babel/core": "^7.22.20",
     "@babel/node": "^7.22.19",
     "@babel/preset-env": "^7.22.20",
     "typescript": "^5.2.2"
-  },
-  "dependencies": {
-    "nodemon": "^3.0.1"
   }
 }

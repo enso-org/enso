@@ -1,16 +1,15 @@
-//! Generate the Java types corresponding to `enso-parser`'s AST types.
-//!
-//! # Usage
-//!
-//! Generated files will be placed in the directory given as an argument:
-//! ```console
-//! $ enso-parser-generate-ts tree/
-//! ```
+//! Supports generation of TypeScript types corresponding to `enso-parser`'s AST types, and testing
+//! and debugging the translation process.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
+#![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
+#![allow(dead_code)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -25,16 +24,17 @@ use enso_metamodel::rust;
 use enso_reflect::Reflect;
 
 
-// =============================
-// === TypeScript Generation ===
-// =============================
 
-fn main() {
-    let ast = enso_parser::syntax::Tree::reflect();
-    let (graph, _) = rust::to_meta(ast);
-    let schema = schema(&graph);
-    println!("{}", serde_json::to_string(&schema).unwrap());
+// ===================
+// === Entry Point ===
+// ===================
+
+/// Return a serializable [`Schema`] describing the parser types.
+pub fn types() -> impl serde::Serialize {
+    let (graph, _) = rust::to_meta(enso_parser::syntax::Tree::reflect());
+    schema(&graph)
 }
+
 
 
 // ==============
@@ -88,7 +88,7 @@ enum Primitive {
 fn schema(graph: &meta::TypeGraph) -> Schema {
     let mut next_type_id = 0;
     let mut next_type_id = || {
-        let result = format!("type_{}", next_type_id);
+        let result = format!("type_{next_type_id}");
         next_type_id += 1;
         result
     };

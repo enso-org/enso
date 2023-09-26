@@ -1,15 +1,12 @@
-//! Supports generation of TypeScript types corresponding to `enso-parser`'s AST types, and testing
-//! and debugging the translation process.
+//! Generate a schema representing `enso-parser`'s AST types. This schema can be used to generate
+//! AST representations and (de)serialization.
+//!
+//! The JSON schema data will be emitted to standard output.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
-#![allow(clippy::option_map_unit_fn)]
-#![allow(clippy::precedence)]
-#![allow(dead_code)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -21,7 +18,10 @@
 
 
 
-// ==============
-// === Export ===
-// ==============
+// =========================
+// === Schema Generation ===
+// =========================
 
+fn main() {
+    println!("{}", serde_json::to_string(&enso_parser_schema::types()).unwrap());
+}
