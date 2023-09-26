@@ -2353,6 +2353,7 @@ dependencies = [
  "enso-data-structures",
  "enso-metamodel",
  "enso-metamodel-lexpr",
+ "enso-parser-syntax-tree-visitor",
  "enso-prelude",
  "enso-reflect",
  "enso-shapely-macros",
@@ -2408,6 +2409,16 @@ dependencies = [
  "enso-reflect",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "enso-parser-syntax-tree-visitor"
+version = "0.1.0"
+dependencies = [
+ "enso-macro-utils",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.107",
 ]
 
 [[package]]
