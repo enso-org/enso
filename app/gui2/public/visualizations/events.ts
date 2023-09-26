@@ -1,4 +1,3 @@
-import { Vec2 } from '@/util/vec2'
 import {
   computed,
   onMounted,
@@ -13,15 +12,33 @@ import {
 } from 'vue'
 
 /**
- * Add an event listener on an {@link HTMLElement} for the duration of the component's lifetime.
+ * Add an event listener for the duration of the component's lifetime.
  * @param target element on which to register the event
  * @param event name of event to register
  * @param handler event handler
  */
-export function useElementEvent<K extends keyof HTMLElementEventMap>(
-  target: HTMLElement,
+export function useEvent<K extends keyof DocumentEventMap>(
+  target: Document,
   event: K,
-  handler: (e: HTMLElementEventMap[K]) => void,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent<K extends keyof WindowEventMap>(
+  target: Window,
+  event: K,
+  handler: (e: WindowEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  handler: (event: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent(
+  target: EventTarget,
+  event: string,
+  handler: (event: unknown) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
   onMounted(() => {
@@ -33,87 +50,63 @@ export function useElementEvent<K extends keyof HTMLElementEventMap>(
 }
 
 /**
- * Add an event listener on window for the duration of component lifetime.
- * @param event name of event to register
- * @param handler event handler
- */
-export function useWindowEvent<K extends keyof WindowEventMap>(
-  event: K,
-  handler: (e: WindowEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  onMounted(() => {
-    window.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
-    window.removeEventListener(event, handler, options)
-  })
-}
-
-/**
- * Add an event listener on document for the duration of component lifetime.
- * @param event name of event to register
- * @param handler event handler
- */
-export function useDocumentEvent<K extends keyof DocumentEventMap>(
-  event: K,
-  handler: (e: DocumentEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  onMounted(() => {
-    document.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
-    document.removeEventListener(event, handler, options)
-  })
-}
-
-/**
- * Add an event listener on window for the duration of condition being true.
+ * Add an event listener for the duration of condition being true.
+ * @param target element on which to register the event
  * @param condition the condition that determines if event is bound
  * @param event name of event to register
  * @param handler event handler
  */
-export function useWindowEventConditional<K extends keyof WindowEventMap>(
-  event: K,
-  condition: WatchSource<boolean>,
-  handler: (e: WindowEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  watch(condition, (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      window.addEventListener(event, handler, options)
-      onCleanup(() => window.removeEventListener(event, handler, options))
-    }
-  })
-}
-
-/**
- * Add an event listener on document for the duration of condition being true.
- * @param condition the condition that determines if event is bound
- * @param event name of event to register
- * @param handler event handler
- */
-export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
+export function useEventConditional<K extends keyof DocumentEventMap>(
+  target: Document,
   event: K,
   condition: WatchSource<boolean>,
   handler: (e: DocumentEventMap[K]) => void,
   options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional<K extends keyof WindowEventMap>(
+  target: Window,
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (e: WindowEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (event: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional(
+  target: EventTarget,
+  event: string,
+  condition: WatchSource<boolean>,
+  handler: (event: unknown) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional(
+  target: EventTarget,
+  event: string,
+  condition: WatchSource<boolean>,
+  handler: (event: unknown) => void,
+  options?: boolean | AddEventListenerOptions,
 ): void {
   watch(condition, (conditionMet, _, onCleanup) => {
     if (conditionMet) {
-      document.addEventListener(event, handler, options)
-      onCleanup(() => document.removeEventListener(event, handler, options))
+      target.addEventListener(event, handler, options)
+      onCleanup(() => target.removeEventListener(event, handler, options))
     }
   })
 }
 
-const hasWindow = typeof window !== 'undefined'
-const platform = hasWindow ? window.navigator?.platform ?? '' : ''
-const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+interface Position {
+  x: number
+  y: number
+}
 
-export function modKey(e: KeyboardEvent): boolean {
-  return isMacLike ? e.metaKey : e.ctrlKey
+interface Size {
+  width: number
+  height: number
 }
 
 /**
@@ -129,10 +122,10 @@ export function modKey(e: KeyboardEvent): boolean {
 export function useResizeObserver(
   elementRef: Ref<Element | undefined | null>,
   useContentRect = true,
-): Ref<Vec2> {
-  const sizeRef = shallowRef<Vec2>(Vec2.Zero())
+): Ref<Size> {
+  const sizeRef = shallowRef<Size>({ width: 0, height: 0 })
   const observer = new ResizeObserver((entries) => {
-    let rect: { width: number; height: number } | null = null
+    let rect: Size | null = null
     for (const entry of entries) {
       if (entry.target === elementRef.value) {
         if (useContentRect) {
@@ -143,7 +136,7 @@ export function useResizeObserver(
       }
     }
     if (rect != null) {
-      sizeRef.value = new Vec2(rect.width, rect.height)
+      sizeRef.value = { width: rect.width, height: rect.height }
     }
   })
 
@@ -164,13 +157,13 @@ export function useResizeObserver(
 
 export interface EventPosition {
   /** The event position at the initialization of the drag. */
-  initial: Vec2
+  initial: Position
   /** Absolute event position, equivalent to clientX/Y. */
-  absolute: Vec2
+  absolute: Position
   /** Event position relative to the initial position. Total movement of the drag so far. */
-  relative: Vec2
+  relative: Position
   /** Difference of the event position since last event. */
-  delta: Vec2
+  delta: Position
 }
 
 type PointerEventType = 'start' | 'move' | 'stop'
@@ -207,8 +200,8 @@ export function usePointer(
 ) {
   const trackedPointer: Ref<number | null> = ref(null)
   let trackedElement: Element | null = null
-  let initialGrabPos: Vec2 | null = null
-  let lastPos: Vec2 | null = null
+  let initialGrabPos: Position | null = null
+  let lastPos: Position | null = null
 
   const isTracking = () => trackedPointer.value != null
 
@@ -229,18 +222,18 @@ export function usePointer(
   function doMove(e: PointerEvent) {
     if (trackedElement != null && initialGrabPos != null && lastPos != null) {
       handler(computePosition(e, initialGrabPos, lastPos), e, 'move')
-      lastPos = new Vec2(e.clientX, e.clientY)
+      lastPos = { x: e.clientX, y: e.clientY }
     }
   }
 
-  useWindowEventConditional('pointerup', isTracking, (e: PointerEvent) => {
+  useEventConditional(window, 'pointerup', isTracking, (e: PointerEvent) => {
     if (trackedPointer.value === e.pointerId) {
       e.preventDefault()
       doStop(e)
     }
   })
 
-  useWindowEventConditional('pointermove', isTracking, (e: PointerEvent) => {
+  useEventConditional(window, 'pointermove', isTracking, (e: PointerEvent) => {
     if (trackedPointer.value === e.pointerId) {
       e.preventDefault()
       // handle release of all masked buttons as stop
@@ -264,7 +257,7 @@ export function usePointer(
         trackedPointer.value = e.pointerId
         trackedElement = e.currentTarget
         trackedElement.setPointerCapture(e.pointerId)
-        initialGrabPos = new Vec2(e.clientX, e.clientY)
+        initialGrabPos = { x: e.clientX, y: e.clientY }
         lastPos = initialGrabPos
         handler(computePosition(e, initialGrabPos, lastPos), e, 'start')
       }
@@ -277,11 +270,11 @@ export function usePointer(
   })
 }
 
-function computePosition(event: PointerEvent, initial: Vec2, last: Vec2): EventPosition {
+function computePosition(event: PointerEvent, initial: Position, last: Position): EventPosition {
   return {
     initial,
-    absolute: new Vec2(event.clientX, event.clientY),
-    relative: new Vec2(event.clientX - initial.x, event.clientY - initial.y),
-    delta: new Vec2(event.clientX - last.x, event.clientY - last.y),
+    absolute: { x: event.clientX, y: event.clientY },
+    relative: { x: event.clientX - initial.x, y: event.clientY - initial.y },
+    delta: { x: event.clientX - last.x, y: event.clientY - last.y },
   }
 }

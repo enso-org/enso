@@ -104,11 +104,11 @@ export const useGraphStore = defineStore('graph', () => {
         const exprRange: ContentRange = [stmt.exprOffset, stmt.exprOffset + stmt.expression.length]
 
         if (affectedRanges != null) {
-          while (affectedRanges[0]?.[1] < exprRange[0]) {
+          while (affectedRanges[0]?.[1]! < exprRange[0]) {
             affectedRanges.shift()
           }
           if (affectedRanges.length === 0) break
-          const nodeAffected = rangeIntersects(exprRange, affectedRanges[0])
+          const nodeAffected = rangeIntersects(exprRange, affectedRanges[0]!)
           if (!nodeAffected) continue
         }
 
@@ -374,7 +374,7 @@ function walkSpansBfs(
       if (visitChildren?.(span, spanOffset) !== false) {
         let offset = spanOffset
         for (let i = 0; i < span.children.length; i++) {
-          const child = span.children[i]
+          const child = span.children[i]!
           stack.push([child, offset])
           offset += child.length
         }

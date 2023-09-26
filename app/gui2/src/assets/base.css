@@ -34,25 +34,26 @@
   --color-text: var(--vt-c-text-light-1);
 
   --color-text-light: rgba(255, 255, 255, 0.7);
-
-  --color-widget: rgba(255, 255, 255, 0.12);
-  --color-widget-selected: rgba(255, 255, 255, 0.58);
-
-  --color-port-connected: rgba(255, 255, 255, 0.15);
-
-  --color-frame-bg: rgba(255, 255, 255, 0.3);
-
-  --color-dim: rgba(0, 0, 0, 0.25);
+  --color-app-bg: rgba(255 255 255 / 0.8);
+  --color-menu-entry-hover-bg: rgba(0 0 0 / 0.1);
+  --color-visualization-bg: rgb(255 242 242);
+  --color-dim: rgba(0 0 0 / 0.25);
+  --color-frame-bg: rgba(255 255 255 / 0.3);
+  --color-widget: rgba(255 255 255 / 0.12);
+  --color-widget-selected: rgba(255 255 255 / 0.58);
+  --color-port-connected: rgba(255 255 255 / 0.15);
 }
 
 /* non-color variables */
 :root {
+  /* The z-index of fullscreen elements that should display over the entire GUI. */
+  --z-fullscreen: 1;
+  --blur-app-bg: blur(64px);
   --disabled-opacity: 40%;
-
   /* A `border-radius` higher than all possible element sizes.
    * A `border-radius` of 100% does not work because the element becomes an ellipse. */
   --radius-full: 9999px;
-
+  --radius-default: 16px;
   --section-gap: 160px;
 }
 
@@ -66,8 +67,6 @@
 
 body {
   min-height: 100vh;
-  /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
-  background: #e4d4be;
   color: var(--color-text);
   /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
   background: #e4d4be;
@@ -104,14 +103,51 @@ body {
   cursor: pointer;
 }
 
-:focus {
-  outline: none;
-}
-
 .hidden {
   display: none;
 }
 
 .button.disabled {
   cursor: default;
+}
+
+/* Scrollbar style definitions for textual visualizations which need support for scrolling.
+ *
+ * The 11px width/height (depending on scrollbar orientation)
+ * is set so that it resembles macOS default scrollbar.
+ */
+
+.scrollable {
+  scrollbar-color: rgba(190 190 190 / 50%) transparent;
+}
+
+.scrollable::-webkit-scrollbar {
+  -webkit-appearance: none;
+}
+
+.scrollable::-webkit-scrollbar-track {
+  -webkit-box-shadow: none;
+}
+
+.scrollable::-webkit-scrollbar:vertical {
+  width: 11px;
+}
+
+.scrollable::-webkit-scrollbar:horizontal {
+  height: 11px;
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  border: 1px solid rgba(220, 220, 220, 0.5);
+  background-color: rgba(190, 190, 190, 0.5);
+}
+
+.scrollable::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0);
+}
+
+.scrollable::-webkit-scrollbar-button {
+  height: 8px;
+  width: 8px;
 }
