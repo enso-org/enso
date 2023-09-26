@@ -175,11 +175,11 @@ final class TreeToIr {
           }
           if (expr instanceof Private priv) {
             if (priv.getBody() != null) {
-              var error = translateSyntaxError(priv, Syntax.UnsupportedSyntax.apply("Private token with body"));
+              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax("Private token with body"));
               diag = cons(error, diag);
             }
             if (isPrivate) {
-              var error = translateSyntaxError(priv, Syntax.UnsupportedSyntax.apply("Private token specified more than once"));
+              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax("Private token specified more than once"));
               diag = cons(error, diag);
             }
             isPrivate = true;
