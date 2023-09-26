@@ -9,6 +9,7 @@ dist
 dist-ssr
 coverage
 *.local
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*

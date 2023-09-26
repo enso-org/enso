@@ -92,7 +92,7 @@ export interface SuggestionEntry {
   /// A name of a custom icon to use when displaying the entry.
   iconName?: string
   /// A name of a group this entry belongs to.
-  groupIndex?: number
+  groupIndex?: number | undefined
 }
 
 function makeSimpleEntry(

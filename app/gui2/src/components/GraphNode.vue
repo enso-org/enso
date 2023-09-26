@@ -1,12 +1,19 @@
 <script setup lang="ts">
+import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+
+import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import {
+  provideVisualizationConfig,
+  type VisualizationConfig,
+} from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
-import { usePointer, useResizeObserver } from '@/util/events'
+import { useVisualizationStore, type Visualization } from '@/stores/visualization'
+import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   node: Node
@@ -19,6 +26,8 @@ const emit = defineEmits<{
   movePosition: [delta: Vec2]
   delete: []
 }>()
+
+const visualizationStore = useVisualizationStore()
 
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
@@ -186,39 +195,40 @@ function saveSelections() {
 }
 
 onUpdated(() => {
-  if (selectionToRecover != null && editableRootNode.value != null) {
-    const saved = selectionToRecover
-    const root = editableRootNode.value
-    selectionToRecover = null
-    const selection = window.getSelection()
-    if (selection == null) return
+  const root = editableRootNode.value
 
-    function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
-      if (offset == null) return null
-      for (let textSpan of root.querySelectorAll<HTMLSpanElement>('span[data-span-start]')) {
-        if (textSpan.children.length > 0) continue
-        const start = parseInt(textSpan.dataset.spanStart ?? '0')
-        const text = textSpan.textContent ?? ''
-        const end = start + text.length
-        if (start <= offset && offset <= end) {
-          let remainingOffset = offset - start
-          for (let node of textSpan.childNodes) {
-            if (node instanceof Text) {
-              let length = node.data.length
-              if (remainingOffset > length) {
-                remainingOffset -= length
-              } else {
-                return {
-                  node,
-                  offset: remainingOffset,
-                }
+  function findTextNodeAtOffset(offset: number | null): { node: Text; offset: number } | null {
+    if (offset == null) return null
+    for (let textSpan of root?.querySelectorAll<HTMLSpanElement>('span[data-span-start]') ?? []) {
+      if (textSpan.children.length > 0) continue
+      const start = parseInt(textSpan.dataset.spanStart ?? '0')
+      const text = textSpan.textContent ?? ''
+      const end = start + text.length
+      if (start <= offset && offset <= end) {
+        let remainingOffset = offset - start
+        for (let node of textSpan.childNodes) {
+          if (node instanceof Text) {
+            let length = node.data.length
+            if (remainingOffset > length) {
+              remainingOffset -= length
+            } else {
+              return {
+                node,
+                offset: remainingOffset,
               }
             }
           }
         }
       }
-      return null
     }
+    return null
+  }
+
+  if (selectionToRecover != null && editableRootNode.value != null) {
+    const saved = selectionToRecover
+    selectionToRecover = null
+    const selection = window.getSelection()
+    if (selection == null) return
 
     for (let range of saved.ranges) {
       const start = findTextNodeAtOffset(range[0])
@@ -251,40 +261,167 @@ function handleClick(e: PointerEvent) {
     e.stopPropagation()
   }
 }
+
+const isCircularMenuVisible = ref(false)
+const isAutoEvaluationDisabled = ref(false)
+const isDocsVisible = ref(false)
+const isVisualizationVisible = ref(false)
+
+const visualizationType = ref('Scatterplot')
+const visualization = shallowRef<Visualization>()
+
+const queuedVisualizationData = computed<{}>(() =>
+  visualizationStore.sampleData(visualizationType.value),
+)
+const visualizationData = ref<{}>({})
+
+function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
+  return (
+    !(event.target instanceof HTMLElement) ||
+    !rootNode.value?.contains(event.target) ||
+    event.target.isContentEditable ||
+    event.target instanceof HTMLInputElement ||
+    event.target instanceof HTMLTextAreaElement
+  )
+}
+
+const visualizationConfig = ref<VisualizationConfig>({
+  fullscreen: false,
+  types: visualizationStore.types,
+  width: null,
+  height: 150, // FIXME:
+  hide() {
+    isVisualizationVisible.value = false
+  },
+  updateType(type) {
+    visualizationType.value = type
+  },
+  isCircularMenuVisible: isCircularMenuVisible.value,
+  get nodeSize() {
+    return nodeSize.value
+  },
+})
+provideVisualizationConfig(visualizationConfig)
+
+useDocumentEvent('keydown', (event) => {
+  if (isInputEvent(event)) {
+    return
+  }
+  if (event.key === ' ') {
+    if (event.shiftKey) {
+      if (isVisualizationVisible.value) {
+        visualizationConfig.value.fullscreen = !visualizationConfig.value.fullscreen
+      } else {
+        isVisualizationVisible.value = true
+        visualizationConfig.value.fullscreen = true
+      }
+    } else {
+      isVisualizationVisible.value = !isVisualizationVisible.value
+    }
+  }
+})
+
+watchEffect(async (onCleanup) => {
+  if (isVisualizationVisible.value) {
+    let shouldSwitchVisualization = true
+    onCleanup(() => {
+      shouldSwitchVisualization = false
+    })
+    const component = await visualizationStore.get(visualizationType.value)
+    if (shouldSwitchVisualization) {
+      visualization.value = component
+      visualizationData.value = queuedVisualizationData.value
+    }
+  }
+})
+
+function onBlur(event: FocusEvent) {
+  if (!(event.relatedTarget instanceof Node) || !rootNode.value?.contains(event.relatedTarget)) {
+    isCircularMenuVisible.value = false
+  }
+}
+
+function onExpressionClick(event: Event) {
+  if (isInputEvent(event)) {
+    return
+  }
+  rootNode.value?.focus()
+  isCircularMenuVisible.value = true
+}
+
+watch(
+  () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
+  () => {
+    rootNode.value?.focus()
+  },
+)
+
+function updatePreprocessor(module: string, method: string, ...args: string[]) {
+  console.log(
+    `preprocessor changed. node id: ${
+      props.node.rootSpan.id
+    } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
+  )
+}
 </script>
 
 <template>
   <div
     ref="rootNode"
-    class="Node"
+    :tabindex="-1"
+    class="GraphNode"
     :style="{ transform }"
     :class="{ dragging: dragPointer.dragging }"
-    v-on="dragPointer.events"
+    @focus="isCircularMenuVisible = true"
+    @blur="onBlur"
   >
-    <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
-    <div class="binding" @pointerdown.stop>{{ node.binding }}</div>
-    <div
-      ref="editableRootNode"
-      class="editable"
-      contenteditable
-      spellcheck="false"
-      @beforeinput="editContent"
-      @pointerdown.stop
-    >
-      <NodeSpan
-        :content="node.content"
-        :span="node.rootSpan"
-        :offset="0"
-        @updateExprRect="updateExprRect"
-      />
+    <div class="binding" @pointerdown.stop>
+      {{ node.binding }}
+    </div>
+    <CircularMenu
+      v-if="isCircularMenuVisible"
+      v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
+      v-model:is-docs-visible="isDocsVisible"
+      v-model:is-visualization-visible="isVisualizationVisible"
+    />
+    <component
+      :is="visualization"
+      v-if="isVisualizationVisible && visualization"
+      :data="visualizationData"
+      @update:preprocessor="updatePreprocessor"
+      @update:type="visualizationType = $event"
+    />
+    <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">
+      <SvgIcon class="icon" name="number_input" @pointerdown="handleClick"></SvgIcon>
+      <div
+        ref="editableRootNode"
+        class="editable"
+        contenteditable
+        spellcheck="false"
+        @beforeinput="editContent"
+        @focus="isCircularMenuVisible = true"
+        @blur="onBlur"
+        @pointerdown.stop
+      >
+        <NodeSpan
+          :content="node.content"
+          :span="node.rootSpan"
+          :offset="0"
+          @updateExprRect="updateExprRect"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.Node {
+.GraphNode {
   color: red;
   position: absolute;
+}
+
+.node {
+  position: relative;
   top: 0;
   left: 0;
 
@@ -295,11 +432,12 @@ function handleClick(e: PointerEvent) {
   align-items: center;
   white-space: nowrap;
   background: #222;
-  padding: 5px 10px;
-  border-radius: 20px;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
 }
 
 .binding {
+  user-select: none;
   margin-right: 10px;
   color: black;
   position: absolute;
@@ -310,17 +448,34 @@ function handleClick(e: PointerEvent) {
 
 .editable {
   outline: none;
+  height: 24px;
+  padding: 1px 0;
+}
+
+.container {
+  position: relative;
   display: flex;
   gap: 4px;
 }
 
 .icon {
+  color: white;
   cursor: grab;
   margin-right: 10px;
 }
 
-.Node.dragging,
-.Node.dragging .icon {
+.GraphNode.dragging,
+.GraphNode.dragging .icon {
   cursor: grabbing;
+}
+
+.visualization {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px;
+  background: #222;
+  border-radius: 16px;
 }
 </style>
