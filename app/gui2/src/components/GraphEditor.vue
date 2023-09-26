@@ -9,9 +9,11 @@ import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { modKey, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
+import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
+import type { ContextId } from 'shared/languageServerTypes'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -21,11 +23,26 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
+const executionCtx = ref<Promise<Opt<ContextId>>>()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
+
+onMounted(() => {
+  executionCtx.value = projectStore.createExecutionContextForMain()
+})
+
+onUnmounted(() => {
+  if (executionCtx.value != null) {
+    executionCtx.value.then((ctx) => {
+      if (ctx != null) {
+        projectStore.lsRpcConnection.then((rpc) => rpc.destroyExecutionContext(ctx))
+      }
+    })
+  }
+})
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)

@@ -5,9 +5,9 @@ import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import type { ContentRoot } from 'shared/languageServerTypes'
+import type { ContentRoot, ContextId } from 'shared/languageServerTypes'
 import { DistributedProject, type Uuid } from 'shared/yjsModel'
-import { markRaw, ref, watchEffect } from 'vue'
+import { computed, markRaw, ref, watchEffect } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
@@ -65,6 +65,9 @@ export const useProjectStore = defineStore('project', () => {
 
   const undoManager = new Y.UndoManager([], { doc })
 
+  const name = computed(() => config.value.startup?.project)
+  const namespace = computed(() => config.value.engine?.namespace)
+
   watchEffect((onCleanup) => {
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
@@ -112,10 +115,46 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
+  async function createExecutionContextForMain() {
+    if (name.value == null) {
+      console.error('Cannot create execution context. Unknown project name.')
+      return
+    }
+    if (namespace.value == null) {
+      console.warn(
+        'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
+      )
+    }
+    const projectName = `${namespace.value ?? 'local'}.${name.value}`
+    const mainModule = `${projectName}.Main`
+    const projectRoot = (await contentRoots).find((root) => root.type === 'Project')
+    if (projectRoot == null) {
+      console.error(
+        'Cannot create execution context. Protocol connection initialization did not return a project root.',
+      )
+      return
+    }
+    const executionContextId = random.uuidv4() as ContextId
+    const lsRpc = await lsRpcConnection
+    await lsRpc.createExecutionContext(executionContextId)
+    await lsRpc.pushExecutionContextItem(executionContextId, {
+      type: 'ExplicitCall',
+      methodPointer: {
+        module: mainModule,
+        definedOnType: mainModule,
+        name: 'main',
+      },
+      thisArgumentExpression: null,
+      positionalArgumentsExpressions: [],
+    })
+    return executionContextId
+  }
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
     },
+    createExecutionContextForMain,
     module,
     contentRoots,
     undoManager,
