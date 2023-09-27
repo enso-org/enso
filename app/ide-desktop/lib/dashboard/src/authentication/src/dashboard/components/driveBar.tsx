@@ -11,6 +11,7 @@ import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
+import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 import Button from './button'
@@ -37,23 +38,21 @@ export default function DriveBar(props: DriveBarProps) {
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
 
     React.useEffect(() => {
-        /* eslint-disable @typescript-eslint/naming-convention */
         return shortcuts.registerKeyboardHandlers({
             ...(backend.type !== backendModule.BackendType.local
                 ? {
-                      'new-folder': () => {
+                      [shortcutsModule.KeyboardAction.newFolder]: () => {
                           doCreateDirectory()
                       },
                   }
                 : {}),
-            'new-project': () => {
+            [shortcutsModule.KeyboardAction.newProject]: () => {
                 doCreateProject(null)
             },
-            'upload-files': () => {
+            [shortcutsModule.KeyboardAction.uploadFiles]: () => {
                 uploadFilesRef.current?.click()
             },
         })
-        /* eslint-enable @typescript-eslint/naming-convention */
     }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcuts])
 
     return (

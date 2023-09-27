@@ -11,6 +11,7 @@ import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
+import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as column from '../column'
@@ -107,7 +108,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
-                    (selected || shortcuts.matchesMouseAction('edit-name', event))
+                    (selected ||
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,

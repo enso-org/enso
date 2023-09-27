@@ -44,7 +44,7 @@ import * as authServiceModule from '../authentication/service'
 import * as backend from '../dashboard/backend'
 import * as hooks from '../hooks'
 import * as localBackend from '../dashboard/localBackend'
-import * as shortcuts from '../dashboard/shortcuts'
+import * as shortcutsModule from '../dashboard/shortcuts'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -174,14 +174,16 @@ function AppRouter(props: AppProps) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
-    const [shortcutRegistry] = React.useState(() => shortcuts.ShortcutRegistry.createWithDefaults())
+    const [shortcuts] = React.useState(() => shortcutsModule.ShortcutRegistry.createWithDefaults())
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             const isTargetEditable =
                 event.target instanceof HTMLInputElement ||
                 (event.target instanceof HTMLElement && event.target.isContentEditable)
-            const shouldHandleEvent = isTargetEditable ? !shortcuts.isTextInputEvent(event) : true
-            if (shouldHandleEvent && shortcutRegistry.handleKeyboardEvent(event)) {
+            const shouldHandleEvent = isTargetEditable
+                ? !shortcutsModule.isTextInputEvent(event)
+                : true
+            if (shouldHandleEvent && shortcuts.handleKeyboardEvent(event)) {
                 event.preventDefault()
                 // This is required to prevent the event from propagating to the event handler
                 // that focuses the search input.
@@ -192,7 +194,7 @@ function AppRouter(props: AppProps) {
         return () => {
             document.body.removeEventListener('keydown', onKeyDown)
         }
-    }, [shortcutRegistry])
+    }, [shortcuts])
     const mainPageUrl = getMainPageUrl()
     const authService = React.useMemo(() => {
         const authConfig = { navigate, ...props }
@@ -251,7 +253,7 @@ function AppRouter(props: AppProps) {
                             projectManagerUrl={projectManagerUrl}
                         >
                             <modalProvider.ModalProvider>
-                                <shortcutsProvider.ShortcutsProvider shortcuts={shortcutRegistry}>
+                                <shortcutsProvider.ShortcutsProvider shortcuts={shortcuts}>
                                     {routes}
                                 </shortcutsProvider.ShortcutsProvider>
                             </modalProvider.ModalProvider>

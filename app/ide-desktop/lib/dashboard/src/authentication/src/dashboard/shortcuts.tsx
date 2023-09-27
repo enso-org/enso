@@ -27,8 +27,6 @@ import * as detect from 'enso-common/src/detect'
 
 // This file MUST be a `.tsx` file so that Tailwind includes the CSS classes used here.
 
-/* eslint-disable @typescript-eslint/naming-convention */
-
 // =================
 // === Constants ===
 // =================
@@ -41,68 +39,49 @@ export const ICON_SIZE_PX = 16
 // =============
 
 /** All possible mouse actions for which shortcuts can be registered. */
-// This MUST be `as const`, because a type is derived from this constant.
-// eslint-disable-next-line no-restricted-syntax
-export const MOUSE_ACTIONS = [
-    'open',
+export enum MouseAction {
+    open = 'open',
     /** Run without opening the editor. */
-    'run',
-    'edit-name',
-    'select-additional',
-    'select-range',
-    'select-additional-range',
-] as const
-
-/** All mouse actions registered by the dashboard. */
-type DashboardMouseAction = (typeof MOUSE_ACTIONS)[number]
-/** Merge extra keys into this type to add new mouse actions. */
-export interface MouseActions extends Record<DashboardMouseAction, true> {}
-/** All mouse actions registered anywhere. */
-export type MouseAction = keyof MouseActions
+    run = 'run',
+    editName = 'edit-name',
+    selectAdditional = 'select-additional',
+    selectRange = 'select-range',
+    selectAdditionalRange = 'select-additional-range',
+}
 
 /** All possible keyboard actions for which shortcuts can be registered. */
-// This MUST be `as const`, because a type is derived from this constant.
-// eslint-disable-next-line no-restricted-syntax
-export const KEYBOARD_ACTIONS = [
-    'open',
+export enum KeyboardAction {
+    open = 'open',
     /** Run without opening the editor. */
-    'run',
-    'close',
-    'upload-to-cloud',
-    'rename',
-    'snapshot',
-    'move-to-trash',
-    'move-all-to-trash',
-    'delete',
-    'delete-all',
-    'share',
-    'label',
-    'duplicate',
-    'copy',
-    'cut',
-    'download',
-    'upload-files',
-    'new-project',
-    'new-folder',
-    'new-data-connector',
-    'close-modal',
-    'cancel-edit-name',
-    'change-your-password',
-    'sign-in',
-    'sign-out',
-] as const
-
-/** All keyboard actions registered by the dashboard. */
-type DashboardKeyboardAction = (typeof KEYBOARD_ACTIONS)[number]
-/** Merge extra keys into this type to add new keyboard actions. */
-export interface KeyboardActions extends Record<DashboardKeyboardAction, true> {}
-/** All keyboard actions registered anywhere. */
-export type KeyboardAction = keyof KeyboardActions
+    run = 'run',
+    close = 'close',
+    uploadToCloud = 'upload-to-cloud',
+    rename = 'rename',
+    snapshot = 'snapshot',
+    moveToTrash = 'move-to-trash',
+    moveAllToTrash = 'move-all-to-trash',
+    delete = 'delete',
+    deleteAll = 'delete-all',
+    share = 'share',
+    label = 'label',
+    duplicate = 'duplicate',
+    copy = 'copy',
+    cut = 'cut',
+    download = 'download',
+    uploadFiles = 'upload-files',
+    newProject = 'new-project',
+    newFolder = 'new-folder',
+    newDataConnector = 'new-data-connector',
+    closeModal = 'close-modal',
+    cancelEditName = 'cancel-edit-name',
+    changeYourPassword = 'change-your-password',
+    signIn = 'sign-in',
+    signOut = 'sign-out',
+}
 
 /** Valid mouse buttons. The values of each enum member is its corresponding value of
  * `MouseEvent.button`. */
 export enum MouseButton {
-    move = -1,
     left = 0,
     middle = 1,
     right = 2,
@@ -175,31 +154,31 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 /** Create a mapping from {@link KeyboardAction} to `T`. */
 function makeKeyboardActionMap<T>(make: () => T): Record<KeyboardAction, T> {
     return {
-        open: make(),
-        run: make(),
-        close: make(),
-        'upload-to-cloud': make(),
-        rename: make(),
-        snapshot: make(),
-        'move-to-trash': make(),
-        'move-all-to-trash': make(),
-        delete: make(),
-        'delete-all': make(),
-        share: make(),
-        label: make(),
-        duplicate: make(),
-        copy: make(),
-        cut: make(),
-        download: make(),
-        'upload-files': make(),
-        'new-project': make(),
-        'new-folder': make(),
-        'new-data-connector': make(),
-        'close-modal': make(),
-        'cancel-edit-name': make(),
-        'change-your-password': make(),
-        'sign-in': make(),
-        'sign-out': make(),
+        [KeyboardAction.open]: make(),
+        [KeyboardAction.run]: make(),
+        [KeyboardAction.close]: make(),
+        [KeyboardAction.uploadToCloud]: make(),
+        [KeyboardAction.rename]: make(),
+        [KeyboardAction.snapshot]: make(),
+        [KeyboardAction.moveToTrash]: make(),
+        [KeyboardAction.moveAllToTrash]: make(),
+        [KeyboardAction.delete]: make(),
+        [KeyboardAction.deleteAll]: make(),
+        [KeyboardAction.share]: make(),
+        [KeyboardAction.label]: make(),
+        [KeyboardAction.duplicate]: make(),
+        [KeyboardAction.copy]: make(),
+        [KeyboardAction.cut]: make(),
+        [KeyboardAction.download]: make(),
+        [KeyboardAction.uploadFiles]: make(),
+        [KeyboardAction.newProject]: make(),
+        [KeyboardAction.newFolder]: make(),
+        [KeyboardAction.newDataConnector]: make(),
+        [KeyboardAction.closeModal]: make(),
+        [KeyboardAction.cancelEditName]: make(),
+        [KeyboardAction.changeYourPassword]: make(),
+        [KeyboardAction.signIn]: make(),
+        [KeyboardAction.signOut]: make(),
     }
 }
 
@@ -280,8 +259,6 @@ export class ShortcutRegistry {
 
     /** Create a {@link ShortcutRegistry}. */
     constructor(
-        public keyboardActions: KeyboardAction[],
-        public mouseActions: MouseAction[],
         public keyboardShortcuts: Record<KeyboardAction, KeyboardShortcut[]>,
         public mouseShortcuts: Record<MouseAction, MouseShortcut[]>,
         public keyboardShortcutInfo: Record<KeyboardAction, ShortcutInfo>
@@ -292,34 +269,10 @@ export class ShortcutRegistry {
     /** Create a new {@link ShortcutRegistry} with default values. */
     static createWithDefaults() {
         return new this(
-            [...KEYBOARD_ACTIONS],
-            [...MOUSE_ACTIONS],
             { ...DEFAULT_KEYBOARD_SHORTCUTS },
             { ...DEFAULT_MOUSE_SHORTCUTS },
             { ...DEFAULT_KEYBOARD_SHORTCUT_INFO }
         )
-    }
-
-    /** Add new keyboard actions, and their corresponding shortcuts. */
-    registerNewKeyboardActions<NewActions extends KeyboardAction>(
-        newActions: readonly NewActions[],
-        newShortcuts: Record<NewActions, KeyboardShortcut[]>
-    ) {
-        this.keyboardActions.push(...newActions)
-        Object.assign(this.keyboardShortcuts, newShortcuts)
-        for (const action of newActions) {
-            this.allKeyboardHandlers[action] = []
-        }
-        this.updateKeyboardShortcutsByKey()
-    }
-
-    /** Add new mouse actions, and their corresponding shortcuts. */
-    registerNewMouseActions<NewActions extends MouseAction>(
-        newActions: readonly NewActions[],
-        newShortcuts: Record<NewActions, MouseShortcut[]>
-    ) {
-        this.mouseActions.push(...newActions)
-        Object.assign(this.mouseShortcuts, newShortcuts)
     }
 
     /** Return `true` if the shortcut is being triggered by the keyboard event. */
@@ -343,7 +296,7 @@ export class ShortcutRegistry {
         const button: number = shortcut.button
         return (
             button === event.button &&
-            Math.max(event.detail, 1) >= shortcut.clicks &&
+            event.detail >= shortcut.clicks &&
             modifiersMatchEvent(shortcut, event)
         )
     }
@@ -402,7 +355,7 @@ export class ShortcutRegistry {
 
     /** Regenerate {@link ShortcutRegistry.activeKeyboardHandlers}. */
     updateActiveKeyboardHandlers() {
-        for (const action of this.keyboardActions) {
+        for (const action of Object.values(KeyboardAction)) {
             const handlers = this.allKeyboardHandlers[action]
             this.activeKeyboardHandlers[action] = handlers[handlers.length - 1] ?? null
         }
@@ -416,7 +369,7 @@ export class ShortcutRegistry {
             Record<KeyboardAction, (event: KeyboardEvent | React.KeyboardEvent) => boolean | void>
         >
     ) {
-        for (const action of this.keyboardActions) {
+        for (const action of Object.values(KeyboardAction)) {
             const handler = handlers[action]
             if (handler != null) {
                 this.allKeyboardHandlers[action].push(handler)
@@ -440,11 +393,7 @@ export class ShortcutRegistry {
 
 /** A shorthand for creating a {@link KeyboardShortcut}. Should only be used in
  * {@link DEFAULT_KEYBOARD_SHORTCUTS}. */
-export function keybind(
-    action: KeyboardAction,
-    modifiers: ModifierKey[],
-    key: string
-): KeyboardShortcut {
+function keybind(action: KeyboardAction, modifiers: ModifierKey[], key: string): KeyboardShortcut {
     return {
         key,
         action,
@@ -457,7 +406,7 @@ export function keybind(
 
 /** A shorthand for creating a {@link MouseShortcut}. Should only be used in
  * {@link DEFAULT_MOUSE_SHORTCUTS}. */
-export function mousebind(
+function mousebind(
     action: MouseAction,
     modifiers: ModifierKey[],
     button: MouseButton,
@@ -479,86 +428,90 @@ export function mousebind(
 // =================
 
 /** The equivalent of the `Control` key for the current platform. */
-export const CTRL: 'Ctrl' | 'Meta' = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
+const CTRL = (detect.isOnMacOS() ? 'Meta' : 'Ctrl') satisfies ModifierKey
 
 /** The key known as the `Delete` key for the current platform. */
-export const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
+const DELETE = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
-    open: [keybind('open', [], 'Enter')],
-    run: [keybind('run', ['Shift'], 'Enter')],
-    close: [],
-    'upload-to-cloud': [],
-    rename: [keybind('rename', [CTRL], 'R')],
-    snapshot: [keybind('snapshot', [CTRL], 'S')],
-    'move-to-trash': [keybind('move-to-trash', [], DELETE)],
-    'move-all-to-trash': [keybind('move-all-to-trash', [], DELETE)],
-    delete: [keybind('delete', [], DELETE)],
-    'delete-all': [keybind('delete-all', [], DELETE)],
-    share: [keybind('share', [CTRL], 'Enter')],
-    label: [keybind('label', [CTRL], 'L')],
-    duplicate: [keybind('duplicate', [CTRL], 'D')],
-    copy: [keybind('copy', [CTRL], 'C')],
-    cut: [keybind('cut', [CTRL], 'X')],
-    download: [keybind('download', [CTRL, 'Shift'], 'S')],
-    'upload-files': [keybind('upload-files', [CTRL], 'U')],
-    'new-project': [keybind('new-project', [CTRL], 'N')],
-    'new-folder': [keybind('new-folder', [CTRL, 'Shift'], 'N')],
-    'new-data-connector': [keybind('new-data-connector', [CTRL, 'Alt'], 'N')],
-    'close-modal': [keybind('close-modal', [], 'Escape')],
-    'cancel-edit-name': [keybind('cancel-edit-name', [], 'Escape')],
-    'change-your-password': [],
-    'sign-in': [],
-    'sign-out': [],
+    [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
+    [KeyboardAction.run]: [keybind(KeyboardAction.run, ['Shift'], 'Enter')],
+    [KeyboardAction.close]: [],
+    [KeyboardAction.uploadToCloud]: [],
+    [KeyboardAction.rename]: [keybind(KeyboardAction.rename, [CTRL], 'R')],
+    [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
+    [KeyboardAction.moveToTrash]: [keybind(KeyboardAction.moveToTrash, [], DELETE)],
+    [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], DELETE)],
+    [KeyboardAction.delete]: [keybind(KeyboardAction.delete, [], DELETE)],
+    [KeyboardAction.deleteAll]: [keybind(KeyboardAction.deleteAll, [], DELETE)],
+    [KeyboardAction.share]: [keybind(KeyboardAction.share, [CTRL], 'Enter')],
+    [KeyboardAction.label]: [keybind(KeyboardAction.label, [CTRL], 'L')],
+    [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
+    [KeyboardAction.copy]: [keybind(KeyboardAction.copy, [CTRL], 'C')],
+    [KeyboardAction.cut]: [keybind(KeyboardAction.cut, [CTRL], 'X')],
+    [KeyboardAction.download]: [keybind(KeyboardAction.download, [CTRL, 'Shift'], 'S')],
+    [KeyboardAction.uploadFiles]: [keybind(KeyboardAction.uploadFiles, [CTRL], 'U')],
+    [KeyboardAction.newProject]: [keybind(KeyboardAction.newProject, [CTRL], 'N')],
+    [KeyboardAction.newFolder]: [keybind(KeyboardAction.newFolder, [CTRL, 'Shift'], 'N')],
+    [KeyboardAction.newDataConnector]: [
+        keybind(KeyboardAction.newDataConnector, [CTRL, 'Alt'], 'N'),
+    ],
+    [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
+    [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
+    [KeyboardAction.changeYourPassword]: [],
+    [KeyboardAction.signIn]: [],
+    [KeyboardAction.signOut]: [],
 }
 
 /** The default UI data for every keyboard shortcut. */
 const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
-    open: { name: 'Open', icon: OpenIcon },
-    run: { name: 'Run', icon: Play2Icon },
-    close: { name: 'Close', icon: CloseIcon },
-    'upload-to-cloud': { name: 'Upload To Cloud', icon: CloudToIcon },
-    rename: { name: 'Rename', icon: PenIcon },
-    snapshot: { name: 'Snapshot', icon: CameraIcon },
-    'move-to-trash': {
+    [KeyboardAction.open]: { name: 'Open', icon: OpenIcon },
+    [KeyboardAction.run]: { name: 'Run', icon: Play2Icon },
+    [KeyboardAction.close]: { name: 'Close', icon: CloseIcon },
+    [KeyboardAction.uploadToCloud]: { name: 'Upload To Cloud', icon: CloudToIcon },
+    [KeyboardAction.rename]: { name: 'Rename', icon: PenIcon },
+    [KeyboardAction.snapshot]: { name: 'Snapshot', icon: CameraIcon },
+    [KeyboardAction.moveToTrash]: {
         name: 'Move To Trash',
         icon: TrashIcon,
         colorClass: 'text-delete',
     },
-    'move-all-to-trash': {
+    [KeyboardAction.moveAllToTrash]: {
         name: 'Move All To Trash',
         icon: TrashIcon,
         colorClass: 'text-delete',
     },
-    delete: { name: 'Delete', icon: TrashIcon, colorClass: 'text-delete' },
-    'delete-all': { name: 'Delete All', icon: TrashIcon, colorClass: 'text-delete' },
-    share: { name: 'Share', icon: PeopleIcon },
-    label: { name: 'Label', icon: TagIcon },
-    duplicate: { name: 'Duplicate', icon: DuplicateIcon },
-    copy: { name: 'Copy', icon: CopyIcon },
-    cut: { name: 'Cut', icon: ScissorsIcon },
-    download: { name: 'Download', icon: DataDownloadIcon },
-    'upload-files': { name: 'Upload Files', icon: DataUploadIcon },
-    'new-project': { name: 'New Project', icon: AddNetworkIcon },
-    'new-folder': { name: 'New Folder', icon: AddFolderIcon },
-    'new-data-connector': { name: 'New Data Connector', icon: AddConnectorIcon },
+    [KeyboardAction.delete]: { name: 'Delete', icon: TrashIcon, colorClass: 'text-delete' },
+    [KeyboardAction.deleteAll]: { name: 'Delete All', icon: TrashIcon, colorClass: 'text-delete' },
+    [KeyboardAction.share]: { name: 'Share', icon: PeopleIcon },
+    [KeyboardAction.label]: { name: 'Label', icon: TagIcon },
+    [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
+    [KeyboardAction.copy]: { name: 'Copy', icon: CopyIcon },
+    [KeyboardAction.cut]: { name: 'Cut', icon: ScissorsIcon },
+    [KeyboardAction.download]: { name: 'Download', icon: DataDownloadIcon },
+    [KeyboardAction.uploadFiles]: { name: 'Upload Files', icon: DataUploadIcon },
+    [KeyboardAction.newProject]: { name: 'New Project', icon: AddNetworkIcon },
+    [KeyboardAction.newFolder]: { name: 'New Folder', icon: AddFolderIcon },
+    [KeyboardAction.newDataConnector]: { name: 'New Data Connector', icon: AddConnectorIcon },
     // These should not appear in any context menus.
-    'close-modal': { name: 'Close', icon: BlankIcon },
-    'cancel-edit-name': { name: 'Cancel Editing', icon: BlankIcon },
-    'change-your-password': { name: 'Change Your Password', icon: ChangePasswordIcon },
-    'sign-in': { name: 'Sign In', icon: SignInIcon },
-    'sign-out': { name: 'Sign Out', icon: SignOutIcon, colorClass: 'text-delete' },
+    [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
+    [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
+    [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
+    [KeyboardAction.signIn]: { name: 'Sign In', icon: SignInIcon },
+    [KeyboardAction.signOut]: { name: 'Sign Out', icon: SignOutIcon, colorClass: 'text-delete' },
 }
 
 /** The default mouse shortcuts. */
 const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
-    open: [mousebind('open', [], MouseButton.left, 2)],
-    run: [mousebind('run', ['Shift'], MouseButton.left, 2)],
-    'edit-name': [mousebind('edit-name', [CTRL], MouseButton.left, 1)],
-    'select-additional': [mousebind('select-additional', [CTRL], MouseButton.left, 1)],
-    'select-range': [mousebind('select-range', ['Shift'], MouseButton.left, 1)],
-    'select-additional-range': [
-        mousebind('select-additional-range', [CTRL, 'Shift'], MouseButton.left, 1),
+    [MouseAction.open]: [mousebind(MouseAction.open, [], MouseButton.left, 2)],
+    [MouseAction.run]: [mousebind(MouseAction.run, ['Shift'], MouseButton.left, 2)],
+    [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left, 1)],
+    [MouseAction.selectAdditional]: [
+        mousebind(MouseAction.selectAdditional, [CTRL], MouseButton.left, 1),
+    ],
+    [MouseAction.selectRange]: [mousebind(MouseAction.selectRange, ['Shift'], MouseButton.left, 1)],
+    [MouseAction.selectAdditionalRange]: [
+        mousebind(MouseAction.selectAdditionalRange, [CTRL, 'Shift'], MouseButton.left, 1),
     ],
 }

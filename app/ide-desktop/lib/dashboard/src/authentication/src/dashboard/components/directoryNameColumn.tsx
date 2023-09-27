@@ -14,6 +14,7 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
+import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 import EditableSpan from './editableSpan'
@@ -134,7 +135,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
-                    (selected || shortcuts.matchesMouseAction('edit-name', event))
+                    (selected ||
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,
