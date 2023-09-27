@@ -423,10 +423,32 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   public StorageType inferPreciseTypeShrunk() {
     StorageType inferred = inferPreciseType();
     if (inferred instanceof IntegerType) {
-      // TODO delegate to infer smallest integer type to fit
-      return inferred;
+      return findSmallestIntegerTypeThatFits();
     } else {
       return inferred;
     }
+  }
+
+  private StorageType findSmallestIntegerTypeThatFits() {
+    assert inferredType instanceof IntegerType;
+
+    final DoubleStorage parent = this;
+
+    // We create a Long storage that gets values by converting our storage.
+    ComputedNullableLongStorage longAdapter = new ComputedNullableLongStorage(size) {
+      @Override
+      protected Long computeItem(int idx) {
+        if (parent.isNa(idx)) {
+          return null;
+        }
+
+        double value = parent.getItem(idx);
+        assert value % 1.0 == 0.0 : "The value " + value + " should be a whole number (guaranteed by checks).";
+        return (long) value;
+      }
+    };
+
+    // And rely on its shrinking logic.
+    return longAdapter.inferPreciseTypeShrunk();
   }
 }
