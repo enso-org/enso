@@ -80,7 +80,8 @@ const allKeys = [
   'Enter',
   'Backspace',
   'Delete',
-  'OsBackspace', // `Delete` on macOS, `Backspace` on all other platforms.
+  // The key labeled as `Delete` - `Backspace` on macOS, `Delete` on all other platforms.
+  'OsDelete',
   'Tab',
   'ArrowUp',
   'ArrowDown',
@@ -180,7 +181,7 @@ const normalizedKeyboardSegmentLookup = Object.fromEntries<KeybindSegment | unde
   [...allModifiers, ...allPointers, ...allKeys].map((entry) => [entry.toLowerCase(), entry]),
 )
 normalizedKeyboardSegmentLookup[''] = '+'
-normalizedKeyboardSegmentLookup['osbackspace'] = isMacLike ? 'Delete' : 'Backspace'
+normalizedKeyboardSegmentLookup['osdelete'] = isMacLike ? 'Delete' : 'Backspace'
 type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
 }
@@ -421,10 +422,10 @@ if (import.meta.vitest) {
     },
     // Misc tests
     {
-      keybind: 'osbACKspACE',
+      keybind: 'osDEleTE',
       // The specific key is OS-dependent. Look it up in the samee lookup used by
       // `decomposeKeybindString` so that it is guaranteed to be the right key on all systems.
-      expected: { modifiers: [], key: normalizedKeyboardSegmentLookup['osbackspace'] },
+      expected: { modifiers: [], key: normalizedKeyboardSegmentLookup['osdelete'] },
     },
   ])('Parsing should work correctly', ({ keybind, expected }) => {
     const decomposed = decomposeKeybindString(keybind)
