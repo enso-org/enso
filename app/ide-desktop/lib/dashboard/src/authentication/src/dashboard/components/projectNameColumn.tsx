@@ -42,6 +42,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         rowState,
         setRowState,
         state: {
+            numberOfSelectedItems,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
@@ -99,10 +100,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
+                // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.newProject: {
@@ -245,7 +248,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (
                     !isRunning &&
                     eventModule.isSingleClick(event) &&
-                    (selected ||
+                    ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({

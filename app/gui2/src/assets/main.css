@@ -8,6 +8,6 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
-  font-weight: normal;
+  font-weight: 500;
   cursor: default;
 }

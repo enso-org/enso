@@ -1,5 +1,6 @@
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
+import * as random from 'lib0/random.js'
 import * as Y from 'yjs'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
@@ -90,11 +91,11 @@ export class DistributedModule {
 
   insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
     const range = [offset, offset + content.length]
-    const newId = crypto.randomUUID() as ExprId
+    const newId = random.uuidv4() as ExprId
     this.doc.transact(() => {
       this.contents.insert(offset, content + '\n')
-      const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
-      const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
+      const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0]!)
+      const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1]!)
       this.idMap.set(newId, encodeRange([start, end]))
       this.metadata.set(newId, meta)
     })
@@ -208,7 +209,7 @@ export class IdMap {
       this.accessed.add(val)
       return val
     } else {
-      const newId = crypto.randomUUID() as ExprId
+      const newId = random.uuidv4() as ExprId
       this.rangeToExpr.set(key, newId)
       this.accessed.add(newId)
       return newId
