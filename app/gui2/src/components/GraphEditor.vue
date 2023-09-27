@@ -33,6 +33,7 @@ const SELECTION_BRUSH_MARGIN_PX = 6
 const title = ref('Test Project')
 const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
+const floatingNodeContainerNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
@@ -253,6 +254,7 @@ const mouseHandler = nodeBindings.mouseHandler(
         :node="node"
         :selected="selectedNodes.has(id)"
         :is-latest-selected="id === latestSelectedNode"
+        :floating-node-container-node="floatingNodeContainerNode"
         @update:selected="setSelected(id, $event), $event && (latestSelectedNode = id)"
         @replaceSelection="selectedNodes.clear(), selectedNodes.add(id), (latestSelectedNode = id)"
         @updateRect="updateNodeRect(id, $event)"
@@ -261,6 +263,7 @@ const mouseHandler = nodeBindings.mouseHandler(
         @updateContent="(range, c) => updateNodeContent(id, range, c)"
         @movePosition="moveNode(id, $event)"
       />
+      <div ref="floatingNodeContainerNode"></div>
       <SelectionBrush
         v-if="navigator.sceneMousePos"
         :position="navigator.sceneMousePos"
