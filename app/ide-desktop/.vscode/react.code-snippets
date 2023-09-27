@@ -1,0 +1,19 @@
+{
+  "React Component": {
+    "prefix": ["$c", "component"],
+    "body": [
+      "/** Props for a {@link $1}. */",
+      "export interface $1Props {",
+      "}",
+      "",
+      "/** $2 */",
+      "export default function $1(props: $1Props) {",
+      "    return <div>$3</div>",
+      "}"
+    ]
+  },
+  "useState": {
+    "prefix": ["$s", "usestate"],
+    "body": ["const [$1, set${1/(.*)/${1:/pascalcase}/}] = React.useState($2)"]
+  }
+}
