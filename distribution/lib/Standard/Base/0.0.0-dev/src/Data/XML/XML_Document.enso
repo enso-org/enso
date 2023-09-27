@@ -40,7 +40,7 @@ type XML_Document
     ## Read an XML document from an input stream.
 
        Arguments:
-       - input_stream: the input streadm to read the XML document from.
+       - input_stream: the input stread to read the XML document from.
 
        If there is a parsing error, `XML_Error.Parse_Error` is thrown.
 
@@ -57,6 +57,18 @@ type XML_Document
                document_builder = document_builder_factory.newDocumentBuilder
                XML_Document.Value (document_builder.parse java_stream)
 
+    ## Read an XML document from a string.
+
+       Arguments:
+       - xml_string: The string to read the XML document from.
+
+       If there is a parsing error, `XML_Error.Parse_Error` is thrown.
+
+       > Example
+         Read an XML document from an string.
+
+             xml_string = "<foo></foo>"
+             doc = XML_Document.from_string xml_string
     from_string : Text -> XML_Document ! XML_Error
     from_string xml_string =
         XML_Error.handle_java_exceptions <|
