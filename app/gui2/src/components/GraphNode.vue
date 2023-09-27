@@ -429,33 +429,27 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
 .GraphNode {
   color: red;
   position: absolute;
+  border-radius: var(--radius-full);
+}
+
+.GraphNode.selected {
+  border: var(--selected-node-border-width) solid rgb(89 107 129 / 20%);
+  margin: calc(0px - var(--selected-node-border-width));
 }
 
 .node {
   position: relative;
   top: 0;
   left: 0;
-
   caret-shape: bar;
-
   background: #596b81;
   background-clip: padding-box;
   border-radius: var(--radius-full);
-}
-
-.Node.selected {
-  border: var(--selected-node-border-width) solid rgb(89 107 129 / 20%);
-  margin: calc(0px - var(--selected-node-border-width));
-}
-
-.Node > div {
   display: flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  background: #222;
   padding: 4px 8px;
-  border-radius: var(--radius-full);
 }
 
 .binding {
