@@ -22,7 +22,6 @@ const props = defineProps<{
   node: Node
   selected: boolean
   isLatestSelected: boolean
-  floatingNodeContainerNode: HTMLElement | undefined
 }>()
 
 const emit = defineEmits<{
@@ -379,48 +378,47 @@ const dragPointer = usePointer((pos, event, type) => {
 </script>
 
 <template>
-  <Teleport :to="floatingNodeContainerNode" :disabled="!isLatestSelected">
-    <div
-      ref="rootNode"
-      class="GraphNode"
-      :style="{ transform }"
-      :class="{ dragging: dragPointer.dragging, selected }"
-    >
-      <div class="binding" @pointerdown.stop>
-        {{ node.binding }}
+  <div
+    ref="rootNode"
+    class="GraphNode"
+    :style="{ transform }"
+    :class="{ dragging: dragPointer.dragging, selected }"
+  >
+    <div class="binding" @pointerdown.stop>
+      {{ node.binding }}
+    </div>
+    <CircularMenu
+      v-if="isLatestSelected"
+      v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
+      v-model:is-docs-visible="isDocsVisible"
+      v-model:is-visualization-visible="isVisualizationVisible"
+    />
+    <component
+      :is="visualization"
+      v-if="isVisualizationVisible && visualization"
+      :data="visualizationData"
+      @update:preprocessor="updatePreprocessor"
+      @update:type="visualizationType = $event"
+    />
+    <div class="node" v-on="dragPointer.events">
+      <SvgIcon class="icon grab-handle" name="number_input"></SvgIcon>
+      <div
+        ref="editableRootNode"
+        class="editable"
+        contenteditable
+        spellcheck="false"
+        @beforeinput="editContent"
+        @pointerdown.stop
+      >
+        <NodeSpan
+          :content="node.content"
+          :span="node.rootSpan"
+          :offset="0"
+          @updateExprRect="updateExprRect"
+        />
       </div>
-      <CircularMenu
-        v-if="isLatestSelected"
-        v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
-        v-model:is-docs-visible="isDocsVisible"
-        v-model:is-visualization-visible="isVisualizationVisible"
-      />
-      <component
-        :is="visualization"
-        v-if="isVisualizationVisible && visualization"
-        :data="visualizationData"
-        @update:preprocessor="updatePreprocessor"
-        @update:type="visualizationType = $event"
-      />
-      <div class="node" v-on="dragPointer.events">
-        <SvgIcon class="icon grab-handle" name="number_input"></SvgIcon>
-        <div
-          ref="editableRootNode"
-          class="editable"
-          contenteditable
-          spellcheck="false"
-          @beforeinput="editContent"
-          @pointerdown.stop
-        >
-          <NodeSpan
-            :content="node.content"
-            :span="node.rootSpan"
-            :offset="0"
-            @updateExprRect="updateExprRect"
-          />
-        </div>
-      </div></div
-  ></Teleport>
+    </div>
+  </div>
 </template>
 
 <style scoped>

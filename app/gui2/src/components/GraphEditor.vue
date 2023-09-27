@@ -33,7 +33,6 @@ const SELECTION_BRUSH_MARGIN_PX = 6
 const title = ref('Test Project')
 const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
-const floatingNodeContainerNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
@@ -138,6 +137,15 @@ function setSelected(id: ExprId, selected: boolean) {
       selectedNodes.value.delete(id)
     }
   }
+}
+
+function updateLatestSelectedNode(id: ExprId) {
+  latestSelectedNode.value = id
+  const node = graphStore.nodes.get(id)!
+  // The node MUST be deleted first, in order for it to be moved to the end of the map's iteration
+  // order.
+  graphStore.nodes.delete(id)
+  graphStore.nodes.set(id, node)
 }
 
 const graphBindingsHandler = graphBindings.keyboardHandler({
@@ -258,16 +266,16 @@ const mouseHandler = nodeBindings.mouseHandler(
         :node="node"
         :selected="selectedNodes.has(id)"
         :is-latest-selected="id === latestSelectedNode"
-        :floating-node-container-node="floatingNodeContainerNode"
-        @update:selected="setSelected(id, $event), $event && (latestSelectedNode = id)"
-        @replaceSelection="selectedNodes.clear(), selectedNodes.add(id), (latestSelectedNode = id)"
+        @update:selected="setSelected(id, $event), $event && updateLatestSelectedNode(id)"
+        @replaceSelection="
+          selectedNodes.clear(), selectedNodes.add(id), updateLatestSelectedNode(id)
+        "
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
         @updateContent="(range, c) => updateNodeContent(id, range, c)"
         @movePosition="moveNode(id, $event)"
       />
-      <div ref="floatingNodeContainerNode"></div>
       <SelectionBrush
         v-if="navigator.sceneMousePos"
         :position="navigator.sceneMousePos"
