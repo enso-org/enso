@@ -30,7 +30,6 @@ class ContextFactory {
     * @param useGlobalIrCacheLocation whether or not to use the global IR cache
     *                                 location
     * @param options additional options for the Context
-   * @param enableAssertions whether or not to enable assertion checks
     * @param executionEnvironment optional name of the execution environment to use during execution
     * @param warningsLimit maximal number of warnings reported to the user
     * @return configured Context instance
@@ -46,7 +45,6 @@ class ContextFactory {
     strictErrors: Boolean                  = false,
     useGlobalIrCacheLocation: Boolean      = true,
     enableAutoParallelism: Boolean         = false,
-    enableAssertions: Boolean              = false,
     executionEnvironment: Option[String]   = None,
     warningsLimit: Int                     = 100,
     options: java.util.Map[String, String] = java.util.Collections.emptyMap
@@ -78,7 +76,6 @@ class ContextFactory {
         useGlobalIrCacheLocation.toString
       )
       .option(RuntimeOptions.DISABLE_IR_CACHES, (!enableIrCaches).toString)
-      .option(RuntimeOptions.ENABLE_ASSERTIONS, enableAssertions.toString)
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option(RuntimeOptions.LOG_MASKING, logMasking.toString)
       .options(options)

@@ -65,7 +65,6 @@ object Main {
   private val IR_CACHES_OPTION               = "ir-caches"
   private val NO_IR_CACHES_OPTION            = "no-ir-caches"
   private val NO_READ_IR_CACHES_OPTION       = "no-read-ir-caches"
-  private val ENABLE_ASSERTIONS_OPTION       = "enable-assertions"
   private val COMPILE_OPTION                 = "compile"
   private val NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies"
   private val NO_GLOBAL_CACHE_OPTION         = "no-global-cache"
@@ -339,14 +338,6 @@ object Main {
       )
       .build()
 
-    val assertionsEnabledOption = CliOption.builder
-      .longOpt(ENABLE_ASSERTIONS_OPTION)
-      .desc(
-        "Enables runtime assertion checks (`Runtime.assert`). " +
-        "Note that these assertions are independent from JVM assertions."
-      )
-      .build()
-
     val irCachesOption = CliOption.builder
       .longOpt(IR_CACHES_OPTION)
       .desc(
@@ -437,7 +428,6 @@ object Main {
       .addOption(compileOption)
       .addOption(noCompileDependenciesOption)
       .addOption(noGlobalCacheOption)
-      .addOption(assertionsEnabledOption)
       .addOptionGroup(cacheOptionsGroup)
       .addOption(autoParallelism)
       .addOption(skipGraalVMUpdater)
@@ -590,7 +580,6 @@ object Main {
     logMasking: Boolean,
     enableIrCaches: Boolean,
     enableAutoParallelism: Boolean,
-    enableAssertions: Boolean,
     inspect: Boolean,
     dump: Boolean,
     executionEnvironment: Option[String],
@@ -634,7 +623,6 @@ object Main {
       enableIrCaches,
       strictErrors          = true,
       enableAutoParallelism = enableAutoParallelism,
-      enableAssertions      = enableAssertions,
       executionEnvironment  = executionEnvironment,
       warningsLimit         = warningsLimit,
       options               = options
@@ -1152,7 +1140,6 @@ object Main {
         logMasking,
         shouldEnableIrCaches(line),
         line.hasOption(AUTO_PARALLELISM_OPTION),
-        line.hasOption(ENABLE_ASSERTIONS_OPTION),
         line.hasOption(INSPECT_OPTION),
         line.hasOption(DUMP_GRAPHS_OPTION),
         Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
