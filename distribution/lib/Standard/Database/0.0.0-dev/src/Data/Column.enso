@@ -1756,5 +1756,6 @@ adapt_unified_column column expected_type =
 simple_unary_op column op_kind = column.make_unary_op op_kind
 
 ## PRIVATE
-Materialized_Column.from (_:Column) =
+Materialized_Column.from (that:Column) =
+    _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the column using `.read` before mixing it with an in-memory Table.")

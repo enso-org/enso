@@ -41,7 +41,7 @@ Vector.to_table : Vector | Nothing -> Table ! Type_Error
 Vector.to_table self fields=Nothing =
     Table.from_objects self fields
 
-## GROUP Standard.Base.Conversions
+## GROUP Standard.Base.Constants
    Converts an object or a Vector of object into a Table, by looking up the
    requested fields from each item.
 

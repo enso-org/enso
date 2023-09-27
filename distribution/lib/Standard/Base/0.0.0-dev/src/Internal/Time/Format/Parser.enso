@@ -160,6 +160,7 @@ type Parser
             any_pattern
         _ -> Panic.throw (Illegal_State.Error "Unexpected (here) token type: "+token.to_text)
 
+    ## PRIVATE
     fail_invalid_pattern self character count extra_message="" =
         Panic.throw (Date_Time_Format_Parse_Error.Error "The pattern "+(character*count)+" is not a valid pattern for the "+self.mode.pattern_format_name+" format."+extra_message)
 

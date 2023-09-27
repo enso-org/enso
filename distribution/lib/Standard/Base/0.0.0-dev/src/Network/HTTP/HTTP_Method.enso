@@ -50,6 +50,8 @@ type HTTP_Method
         HTTP_Method.Connect -> "CONNECT"
         HTTP_Method.Custom verb -> verb
 
+## PRIVATE
+   Converts from Text to an HTTP_Method.
 HTTP_Method.from (that:Text) = case that.to_case Case.Upper of
     "OPTIONS" -> HTTP_Method.Options
     "GET" -> HTTP_Method.Get

@@ -2410,5 +2410,6 @@ default_join_condition table join_kind = case join_kind of
     _ -> [Join_Condition.Equals table.column_names.first]
 
 ## PRIVATE
-Materialized_Table.from (_:Table) =
+Materialized_Table.from (that:Table) =
+    _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
