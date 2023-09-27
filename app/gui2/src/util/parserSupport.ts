@@ -47,7 +47,10 @@ export class Cursor {
     }
   }
 
-  readResult<Ok, Err>(readOk: (cursor: Cursor) => Ok, readErr: (cursor: Cursor) => Err): Result<Ok, Err> {
+  readResult<Ok, Err>(
+    readOk: (cursor: Cursor) => Ok,
+    readErr: (cursor: Cursor) => Err,
+  ): Result<Ok, Err> {
     const data = this.readPointer()
     const discriminant = data.readU32()
     switch (discriminant) {
