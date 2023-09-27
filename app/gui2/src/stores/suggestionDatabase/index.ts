@@ -30,8 +30,9 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   async function initializeDb() {
     const projectStore = useProjectStore()
     const lsRpc = await projectStore.lsRpcConnection
-    lsRpc.on('search/suggestionsDatabaseUpdate', ({ updates }) => {
-      applyUpdates(entries, updates, groups.value)
+    lsRpc.on('search/suggestionsDatabaseUpdates', (updates) => {
+      console.log('updates: ', updates)
+      applyUpdates(entries, updates.updates, groups.value)
     })
     await lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {})
     await lsRpc.getSuggestionsDatabase()

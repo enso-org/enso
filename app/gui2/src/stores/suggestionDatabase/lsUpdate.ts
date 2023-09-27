@@ -76,15 +76,36 @@ function getGroupIndex(
   return findIndexOpt(groups, (group) => `${group.project}.${group.name}` == normalized)
 }
 
+function documentationData(
+  docs: Opt<string>,
+  definedIn: QualifiedName,
+  groups: Group[],
+): {
+  documentation: Doc.Section[]
+  aliases: string[]
+  iconName?: string
+  groupIndex?: number
+  isPrivate: boolean
+  isUnstable: boolean
+} {
+  const documentation = docs != null ? parseDocs(docs) : []
+  const groupName = tagValue(documentation, 'Group')
+
+  return {
+    documentation,
+    aliases: tagValue(documentation, 'Alias')?.split(',') ?? [],
+    iconName: tagValue(documentation, 'Icon') ?? undefined,
+    groupIndex: groupName ? getGroupIndex(groupName, definedIn, groups) ?? undefined : undefined,
+    isPrivate: isSome(tagValue(documentation, 'Private')),
+    isUnstable:
+      isSome(tagValue(documentation, 'Unstable')) || isSome(tagValue(documentation, 'Advanced')),
+  }
+}
+
 function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<SuggestionEntry> {
   return withContext(
     () => `when creating entry from ${lsEntry}`,
     () => {
-      const documentation = lsEntry.documentation != null ? parseDocs(lsEntry.documentation) : []
-      const aliases = tagValue(documentation, 'Alias')?.split(',') ?? []
-      const iconName = tagValue(documentation, 'Icon')
-      const groupName = tagValue(documentation, 'Group')
-
       const definedIn = tryQualifiedName(lsEntry.module)
       if (!definedIn.ok) return definedIn
 
@@ -92,25 +113,39 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
         lsEntry.type == 'module' ? Ok(qnLastSegment(definedIn.value)) : tryIdentifier(lsEntry.name)
       if (!name.ok) return name
 
-      const memberOf = lsEntry.type == 'method' ? tryQualifiedName(lsEntry.selfType) : undefined
-      if (memberOf != null && !memberOf.ok) return memberOf
-
-      const selfType =
-        lsEntry.type == 'method' && !lsEntry.isStatic && memberOf ? memberOf.value : undefined
-
-      const args = argumentsFromLs(lsEntry)
-
       const returnType = (() => {
         switch (lsEntry.type) {
           case 'type':
-            return Ok(qnJoin(definedIn.value, name.value))
+            return qnJoin(definedIn.value, name.value)
           case 'module':
-            return Ok(definedIn.value)
+            return definedIn.value
           default:
-            return tryQualifiedName(lsEntry.returnType)
+            return lsEntry.returnType
         }
       })()
-      if (!returnType.ok) return returnType
+
+      const memberOf = (() => {
+        // Both self type and return type may be not a valid qualified name, because they may be a type
+        // union or a type with parameters. In that case we cannot clearly point the owning type.
+        switch (lsEntry.type) {
+          case 'method': {
+            const selfAsQn = tryQualifiedName(lsEntry.selfType)
+            if (selfAsQn.ok) return selfAsQn.value
+            else return null
+          }
+          case 'constructor': {
+            const returnTypeAsQn = tryQualifiedName(lsEntry.returnType)
+            if (returnTypeAsQn.ok) return returnTypeAsQn.value
+            else return null
+          }
+          default:
+            return null
+        }
+      })()
+
+      const selfType = lsEntry.type == 'method' && !lsEntry.isStatic ? lsEntry.selfType : undefined
+
+      const args = argumentsFromLs(lsEntry)
 
       const reexportedIn =
         lsEntry.type != 'function' && lsEntry.type != 'local' && lsEntry.reexport != null
@@ -121,24 +156,17 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
       const scope =
         lsEntry.type == 'function' || lsEntry.type == 'local' ? lsEntry.scope : undefined
 
-      const groupIndex = groupName ? getGroupIndex(groupName, definedIn.value, groups) : undefined
-
       return Ok({
         kind: kindFromLs(lsEntry),
         definedIn: definedIn.value,
-        memberOf: memberOf?.value,
-        isPrivate: isSome(tagValue(documentation, 'PRIVATE')),
-        isUnstable: isSome(tagValue(documentation, 'PRIVATE')),
+        memberOf: memberOf ?? undefined,
         name: name.value,
-        aliases,
         selfType,
         arguments: args,
-        returnType: returnType?.value,
+        returnType,
         reexportedIn: reexportedIn?.value,
-        documentation,
         scope,
-        iconName: iconName ?? undefined,
-        groupIndex: groupIndex ?? undefined,
+        ...documentationData(lsEntry.documentation, definedIn.value, groups),
       })
     },
   )
@@ -175,9 +203,10 @@ function applyFieldUpdate<K extends string, T>(
           } else {
             return Err('Received "Set" update with no value')
           }
-        default:
         case 'Remove':
           return Err(`Cannot remove non-optional field`)
+        default:
+          return Ok(undefined)
       }
     },
   )
@@ -268,27 +297,63 @@ export function applyUpdate(
           if (entry == null) {
             return Err(`Entry with id ${update.id} does not exist.`)
           }
+
+          // Update Arguments
           for (const argumentUpdate of update.arguments ?? []) {
             const updateResult = applyArgumentsUpdate(entry.arguments, argumentUpdate)
             if (!updateResult.ok) return updateResult
           }
+
+          // Update module
           const definedIn = tryMapFieldUpdate(update.module, tryQualifiedName)
           if (!definedIn.ok) return definedIn
           const definedInUpdate = applyFieldUpdate('definedIn', entry, definedIn.value)
           if (!definedInUpdate.ok) return definedInUpdate
-          const selfType = tryMapFieldUpdate(update.selfType, tryQualifiedName)
-          if (!selfType.ok) return selfType
-          applyOptFieldUpdate('memberOf', entry, selfType.value)
-          applyOptFieldUpdate('selfType', entry, selfType.value)
-          const returnType = tryMapFieldUpdate(update.returnType, tryQualifiedName)
-          if (!returnType.ok) return returnType
-          applyOptFieldUpdate('returnType', entry, selfType.value)
-          const documentation = mapFieldUpdate(update.documentation, parseDocs)
-          applyOptFieldUpdate('documentation', entry, documentation)
+          if (definedIn.value?.value != null) {
+            switch (entry.kind) {
+              case SuggestionKind.Module:
+                entry.name = qnLastSegment(entry.definedIn)
+                break
+              case SuggestionKind.Type:
+                entry.returnType = qnJoin(entry.definedIn, entry.name)
+                break
+            }
+          }
+
+          // Update selfType
+          if (entry.kind == SuggestionKind.Method) {
+            if (entry.selfType != null) applyOptFieldUpdate('selfType', entry, update.selfType)
+            const memberOf = tryMapFieldUpdate(update.selfType, tryQualifiedName)
+            if (memberOf.ok) {
+              applyOptFieldUpdate('memberOf', entry, memberOf.value)
+            } else {
+              entry.memberOf = undefined
+            }
+          }
+
+          // Update returnType
+          applyOptFieldUpdate('returnType', entry, update.returnType)
+          if (entry.kind == SuggestionKind.Constructor) {
+            const memberOf = tryMapFieldUpdate(update.returnType, tryQualifiedName)
+            if (memberOf.ok) {
+              applyOptFieldUpdate('memberOf', entry, memberOf.value)
+            } else {
+              entry.memberOf = undefined
+            }
+          }
+
+          // Update documentation
+          if (update.documentation != null) {
+            const data = documentationData(update.documentation.value, entry.definedIn, groups)
+            Object.assign(entry, data)
+          }
+
+          // Others
           applyOptFieldUpdate('scope', entry, update.scope)
           const reexport = tryMapFieldUpdate(update.reexport, tryQualifiedName)
           if (!reexport.ok) return reexport
           applyOptFieldUpdate('reexportedIn', entry, reexport.value)
+
           return Ok(undefined)
         },
       )

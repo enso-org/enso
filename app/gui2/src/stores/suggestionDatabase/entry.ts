@@ -20,6 +20,13 @@ export type {
   SuggestionId,
 } from 'shared/languageServerTypes/suggestions'
 
+/** An alias type for typename (for entry fields like `returnType`).
+ *
+ * It's not QualifiedName, because it may be a type with parameters, or
+ * a type union.
+ */
+export type Typename = string
+
 // The kind of a suggestion.
 export enum SuggestionKind {
   Module = 'Module',
@@ -38,27 +45,24 @@ export interface SuggestionEntry {
   memberOf?: QualifiedName
   isPrivate: boolean
   isUnstable: boolean
-  /// A name of suggested object.
   name: Identifier
-  /// A list of aliases.
   aliases: string[]
   /// A type of the "self" argument. This field is present only for instance methods.
-  selfType?: QualifiedName
+  selfType?: Typename
   /// Argument lists of suggested object (atom or function). If the object does not take any
   /// arguments, the list is empty.
   arguments: SuggestionEntryArgument[]
   /// A type returned by the suggested object.
-  returnType: QualifiedName
-  /// A module reexporting this entity.
+  returnType: Typename
+  /// A least-nested module reexporting this entity.
   reexportedIn?: QualifiedName
-  /// A list of documentation sections associated with object.
   documentation: Doc.Section[]
   /// A scope where this suggestion is visible.
   scope?: SuggestionEntryScope
   /// A name of a custom icon to use when displaying the entry.
   iconName?: string
-  /// A name of a group this entry belongs to.
-  groupIndex?: number | undefined
+  /// An index of a group from group list in suggestionDb store this entry belongs to.
+  groupIndex?: number
 }
 
 function makeSimpleEntry(
