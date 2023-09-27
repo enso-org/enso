@@ -1,11 +1,14 @@
 import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { attachProvider } from '@/util/crdt'
+import type { Opt } from '@/util/opt'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
+import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { DistributedProject } from 'shared/yjsModel'
-import { markRaw, ref, watchEffect } from 'vue'
+import type { ContentRoot, ContextId, MethodPointer } from 'shared/languageServerTypes'
+import { DistributedProject, type Uuid } from 'shared/yjsModel'
+import { computed, markRaw, ref, watchEffect } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
@@ -28,6 +31,58 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
   throw new Error('Incomplete engine configuration')
 }
 
+async function initializeLsRpcConnection(urls: LsUrls): Promise<{
+  connection: LanguageServer
+  contentRoots: ContentRoot[]
+}> {
+  const transport = new WebSocketTransport(urls.rpcUrl)
+  const requestManager = new RequestManager([transport])
+  const client = new Client(requestManager)
+  const clientId = random.uuidv4() as Uuid
+  const connection = new LanguageServer(client)
+  const contentRoots = (await connection.initProtocolConnection(clientId)).contentRoots
+  return { connection, contentRoots }
+}
+
+/**
+ * Execution Context
+ *
+ * This class represent an execution context created in the Language Server. It creates
+ * it and pushes the initial frame upon construction.
+ *
+ * It hides the asynchronous nature of the language server. Each call is scheduled and
+ * run only when the previous call is done.
+ */
+export class ExecutionContext {
+  state: Promise<{ lsRpc: LanguageServer; id: ContextId }>
+
+  constructor(
+    lsRpc: Promise<LanguageServer>,
+    call: {
+      methodPointer: MethodPointer
+      thisArgumentExpression?: string
+      positionalArgumentsExpressions?: string[]
+    },
+  ) {
+    this.state = lsRpc.then(async (lsRpc) => {
+      const { contextId } = await lsRpc.createExecutionContext()
+      await lsRpc.pushExecutionContextItem(contextId, {
+        type: 'ExplicitCall',
+        positionalArgumentsExpressions: call.positionalArgumentsExpressions ?? [],
+        ...call,
+      })
+      return { lsRpc, id: contextId }
+    })
+  }
+
+  destroy() {
+    this.state = this.state.then(({ lsRpc, id }) => {
+      lsRpc.destroyExecutionContext(id)
+      return { lsRpc, id }
+    })
+  }
+}
+
 /**
  * The project store synchronizes and holds the open project-related data. The synchronization is
  * performed using a CRDT data types from Yjs. Once the data is synchronized with a "LS bridge"
@@ -44,13 +99,14 @@ export const useProjectStore = defineStore('project', () => {
   if (projectId == null) throw new Error('Missing project ID')
 
   const lsUrls = resolveLsUrl(config.value)
-
-  const rpcTransport = new WebSocketTransport(lsUrls.rpcUrl)
-  const rpcRequestManager = new RequestManager([rpcTransport])
-  const rpcClient = new Client(rpcRequestManager)
-  const lsRpcConnection = new LanguageServer(rpcClient)
+  const initializedConnection = initializeLsRpcConnection(lsUrls)
+  const lsRpcConnection = initializedConnection.then(({ connection }) => connection)
+  const contentRoots = initializedConnection.then(({ contentRoots }) => contentRoots)
 
   const undoManager = new Y.UndoManager([], { doc })
+
+  const name = computed(() => config.value.startup?.project)
+  const namespace = computed(() => config.value.engine?.namespace)
 
   watchEffect((onCleanup) => {
     // For now, let's assume that the websocket server is running on the same host as the web server.
@@ -99,11 +155,37 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
+  async function createExecutionContextForMain(): Promise<Opt<ExecutionContext>> {
+    if (name.value == null) {
+      console.error('Cannot create execution context. Unknown project name.')
+      return
+    }
+    if (namespace.value == null) {
+      console.warn(
+        'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
+      )
+    }
+    const projectName = `${namespace.value ?? 'local'}.${name.value}`
+    const mainModule = `${projectName}.Main`
+    const projectRoot = (await contentRoots).find((root) => root.type === 'Project')
+    if (projectRoot == null) {
+      console.error(
+        'Cannot create execution context. Protocol connection initialization did not return a project root.',
+      )
+      return
+    }
+    return new ExecutionContext(lsRpcConnection, {
+      methodPointer: { module: mainModule, definedOnType: mainModule, name: 'main' },
+    })
+  }
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
     },
+    createExecutionContextForMain,
     module,
+    contentRoots,
     undoManager,
     awareness,
     lsRpcConnection: markRaw(lsRpcConnection),
