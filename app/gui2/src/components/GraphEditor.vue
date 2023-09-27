@@ -67,10 +67,14 @@ function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
 }
 
 function moveNode(id: ExprId, delta: Vec2) {
-  const node = graphStore.nodes.get(id)
-  if (node == null) return
-  const newPosition = node.position.addScaled(delta, 1 / navigator.scale)
-  graphStore.setNodePosition(id, newPosition)
+  const scaledDelta = delta.scale(1 / navigator.scale)
+  for (const id_ of selectedNodes.value.has(id) ? selectedNodes.value : [id]) {
+    const node = graphStore.nodes.get(id_)
+    if (node == null) {
+      continue
+    }
+    graphStore.setNodePosition(id_, node.position.add(scaledDelta))
+  }
 }
 
 const selectionSize = ref<Vec2>()
