@@ -59,7 +59,6 @@ const editableRootNode = ref<HTMLElement>()
 const visualizationId = ref(random.uuidv4() as Uuid)
 const visualizationConfiguration = ref<VisualizationConfiguration>()
 const visualizationData = ref<{}>()
-const queuedVisualizationData = ref<{}>()
 
 const isCircularMenuVisible = ref(false)
 const isAutoEvaluationDisabled = ref(false)
@@ -395,6 +394,9 @@ useDocumentEvent('keydown', (event) => {
 })
 
 watchEffect(async (onCleanup) => {
+  if (!isVisualizationVisible.value) {
+    return
+  }
   let shouldSwitchVisualization = true
   onCleanup(() => {
     shouldSwitchVisualization = false
@@ -402,7 +404,6 @@ watchEffect(async (onCleanup) => {
   const component = await visualizationStore.get(visualizationType.value)
   if (shouldSwitchVisualization) {
     visualization.value = component
-    visualizationData.value = queuedVisualizationData.value
   }
 })
 

@@ -126,9 +126,7 @@ const VISIBLE_POINTS = 'visible'
 const DEFAULT_LIMIT = 1024
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},${
-  ACCENT_COLOR.blue * 255
-},0.8)`
+const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
 
 const ZOOM_EXTENT = [0.5, 20] satisfies BrushSelection
 const RIGHT_BUTTON = 2

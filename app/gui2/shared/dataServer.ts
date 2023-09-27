@@ -95,6 +95,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
           const id = payload.visualizationContext()?.visualizationId()
           if (id != null) {
             const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+            console.log('viz', payloadType, uuid)
             this.emit(`${payloadType}:${uuid}`, [payload])
           }
         }
