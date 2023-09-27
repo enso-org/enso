@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import org.graalvm.collections.Pair;
-import org.graalvm.polyglot.Value;
 
-public abstract class Cache {
+public abstract class Cache<Key, Value> {
   protected static final int DEFAULT_LRU_SIZE = 5;
   protected final int lruSize;
 
   // Circular buffer containing the most recent cache keys.
-  private final List<Pair<String, Value>> lru;
+  private final List<Pair<Key, Value>> lru;
 
   protected Cache(int lruSize) {
     this.lruSize = lruSize;
@@ -24,7 +23,7 @@ public abstract class Cache {
   // Index into the circular buffer.
   private int nextSlot = 0;
 
-  public Value get_or_set(String key, Function<Void, Value> value_producer) {
+  public Value get_or_set(Key key, Function<Void, Value> value_producer) {
     Value value = get(key);
     if (value == null) {
       value = value_producer.apply(null);
@@ -35,9 +34,9 @@ public abstract class Cache {
   }
 
   // Visible for testing.
-  public Value get(String key) {
+  public Value get(Key key) {
     for (int i = 0; i < lruSize; ++i) {
-      Pair<String, Value> pair = lru.get(i);
+      Pair<Key, Value> pair = lru.get(i);
       if (pair != null && pair.getLeft().equals(key)) {
         return lru.get(i).getRight();
       }
