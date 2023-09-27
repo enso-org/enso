@@ -32,11 +32,11 @@ public abstract class AssertNode extends Node {
   public abstract Object execute(
       VirtualFrame frame, State state, @Suspend Object action, Object msg);
 
-  protected Assumption getAssertionsDisabledAssumption() {
-    return EnsoContext.get(this).getAssertsDisabledAssumption();
+  protected boolean isAssertionsEnabled() {
+    return EnsoContext.get(this).isAssertionsEnabled();
   }
 
-  @Specialization(assumptions = "getAssertionsDisabledAssumption()")
+  @Specialization(guards = "!isAssertionsEnabled()")
   Object doAssertionsDisabled(VirtualFrame frame, State state, Object action, Object msg) {
     return EnsoContext.get(this).getNothing();
   }
