@@ -183,7 +183,7 @@ class FilteringQualifiedName {
  */
 export class Filtering {
   pattern?: FilteringWithPattern
-  selfType?: QualifiedName
+  selfType?: QualifiedName | undefined
   qualifiedName?: FilteringQualifiedName
   showUnstable: boolean = false
   showLocal: boolean = false

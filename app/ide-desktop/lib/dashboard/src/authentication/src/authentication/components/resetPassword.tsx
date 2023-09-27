@@ -86,6 +86,7 @@ export default function ResetPassword() {
                                     id="email"
                                     type="email"
                                     name="email"
+                                    autoComplete="email"
                                     placeholder="E-Mail Address"
                                     value={email}
                                     setValue={setEmail}
@@ -108,6 +109,7 @@ export default function ResetPassword() {
                                     id="code"
                                     type="text"
                                     name="code"
+                                    autoComplete="one-time-code"
                                     placeholder="Confirmation Code"
                                     value={code}
                                     setValue={setCode}
@@ -131,6 +133,7 @@ export default function ResetPassword() {
                                     id="new_password"
                                     type="password"
                                     name="new_password"
+                                    autoComplete="new-password"
                                     placeholder="New Password"
                                     pattern={validation.PASSWORD_PATTERN}
                                     error={validation.PASSWORD_ERROR}
@@ -156,6 +159,7 @@ export default function ResetPassword() {
                                     id="new_password_confirm"
                                     type="password"
                                     name="new_password_confirm"
+                                    autoComplete="new-password"
                                     placeholder="Confirm New Password"
                                     pattern={string.regexEscape(newPassword)}
                                     error={validation.CONFIRM_PASSWORD_ERROR}
