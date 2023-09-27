@@ -339,6 +339,14 @@ export interface UpdatedDirectory {
 /** The type returned from the "create directory" endpoint. */
 export interface Directory extends DirectoryAsset {}
 
+/** Possible filters for the "list directory" endpoint. */
+export enum FilterBy {
+    all = 'All',
+    active = 'Active',
+    recent = 'Recent',
+    trashed = 'Trashed',
+}
+
 // =================
 // === AssetType ===
 // =================
@@ -594,6 +602,8 @@ export interface CreateTagRequestBody {
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
     parentId: string | null
+    filterBy: FilterBy | null
+    recentProjects: boolean
 }
 
 /** URL query string parameters for the "upload file" endpoint. */
@@ -696,33 +706,6 @@ export function stripProjectExtension(name: string) {
 export abstract class Backend {
     abstract readonly type: BackendType
 
-    /** Delete an asset of any type. */
-    async deleteAsset(asset: AnyAsset) {
-        switch (asset.type) {
-            case AssetType.directory: {
-                await this.deleteDirectory(asset.id, asset.title)
-                break
-            }
-            case AssetType.project: {
-                await this.deleteProject(asset.id, asset.title)
-                break
-            }
-            case AssetType.file: {
-                await this.deleteFile(asset.id, asset.title)
-                break
-            }
-            case AssetType.secret: {
-                await this.deleteSecret(asset.id, asset.title)
-                break
-            }
-            case AssetType.specialLoading:
-            case AssetType.specialEmpty: {
-                // Ignored. This should never happen, and because they do not exist on the backend,
-                // there are no negative consequences.
-                break
-            }
-        }
-    }
     /** Return the root directory id for the given user. */
     abstract rootDirectoryId(user: UserOrOrganization | null): DirectoryId
     /** Return a list of all users in the same organization. */
@@ -748,8 +731,10 @@ export abstract class Backend {
         body: UpdateDirectoryRequestBody,
         title: string | null
     ): Promise<UpdatedDirectory>
-    /** Delete a directory. */
-    abstract deleteDirectory(directoryId: DirectoryId, title: string | null): Promise<void>
+    /** Delete an arbitrary asset. */
+    abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
+    /** Restore an arbitrary asset from the trash. */
+    abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
     /** Return a list of projects belonging to the current user. */
     abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */
@@ -769,24 +754,18 @@ export abstract class Backend {
         body: ProjectUpdateRequestBody,
         title: string | null
     ): Promise<UpdatedProject>
-    /** Delete a project. */
-    abstract deleteProject(projectId: ProjectId, title: string | null): Promise<void>
     /** Return project memory, processor and storage usage. */
     abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
     /** Return a list of files accessible by the current user. */
     abstract listFiles(): Promise<File[]>
     /** Upload a file. */
     abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
-    /** Delete a file. */
-    abstract deleteFile(fileId: FileId, title: string | null): Promise<void>
     /** Create a secret environment variable. */
     abstract createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo>
     /** Return a secret environment variable. */
     abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
     abstract listSecrets(): Promise<SecretInfo[]>
-    /** Delete a secret environment variable. */
-    abstract deleteSecret(secretId: SecretId, title: string | null): Promise<void>
     /** Create a file tag or project tag. */
     abstract createTag(body: CreateTagRequestBody): Promise<TagInfo>
     /** Return file tags or project tags accessible by the user. */

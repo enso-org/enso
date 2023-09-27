@@ -67,7 +67,6 @@ spec setup =
                 c.value_type.is_text . should_be_true
                 c.to_vector . should_equal ["{{{MY Type [x=42] }}}", "{{{MY Type [x=X] }}}"]
 
-            # TODO what to test here?
             Test.specify "should allow to cast an integer column to a decimal type" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 c = t.at "X" . cast Value_Type.Decimal
@@ -115,6 +114,15 @@ spec setup =
                 c2.to_vector . should_equal ["15", "100", "123", "100", "100"]
                 w2 = Problems.expect_warning Conversion_Failure c2
                 w2.affected_rows_count . should_equal 4
+
+            Test.specify "should not allow 0-length Char type" <|
+                c1 = table_builder [["X", ["a", "", "bcd"]]] . at "X"
+                r1 = c1.cast (Value_Type.Char size=0 variable_length=False)
+                r1.should_fail_with Illegal_Argument
+                r1.catch.to_display_text . should_contain "positive"
+
+                r2 = c1.cast (Value_Type.Char size=0 variable_length=True)
+                r2.should_fail_with Illegal_Argument
 
     Test.group prefix+"Table/Column.cast - numeric" <|
         Test.specify "should allow to cast a boolean column to integer" <|
@@ -531,3 +539,254 @@ spec setup =
             r3 = t.parse ["X", "Y"] Value_Type.Integer
             r3.should_fail_with Missing_Input_Columns
             r3.catch.criteria . should_equal ["Y"]
+
+    if setup.is_database then Test.group prefix+"Table/Column auto value type" <|
+        Test.specify "should report unsupported" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            t.auto_value_types . should_fail_with Unsupported_Database_Operation
+            t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation
+
+    if setup.is_database.not then Test.group prefix+"Table/Column auto value type" <|
+        Test.specify "should allow to narrow down types of a Mixed column" <|
+            [True, False].each shrink_types->
+                mixer = My_Type.Value 1
+                t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]], ["mix", [1, mixer, "a"]], ["dates", [mixer, Date.new 2022, Date.new 2020]], ["datetimes", [mixer, Date_Time.new 2022 12 30 13 45, Date_Time.new 2020]], ["times", [mixer, Time_Of_Day.new 12 30, Time_Of_Day.new 13 45]], ["mixed_time", [Date.new 2022, Time_Of_Day.new 12 30, Date_Time.new 2019]], ["bools", [mixer, True, False]]]
+                t1 = t0.drop 1
+
+                t1.at "strs" . value_type . should_equal Value_Type.Mixed
+                t1.at "ints" . value_type . should_equal Value_Type.Mixed
+                t1.at "floats" . value_type . should_equal Value_Type.Mixed
+                t1.at "mix" . value_type . should_equal Value_Type.Mixed
+                t1.at "dates" . value_type . should_equal Value_Type.Mixed
+                t1.at "datetimes" . value_type . should_equal Value_Type.Mixed
+                t1.at "times" . value_type . should_equal Value_Type.Mixed
+                t1.at "mixed_time" . value_type . should_equal Value_Type.Mixed
+                t1.at "bools" . value_type . should_equal Value_Type.Mixed
+
+                t2 = t1.auto_value_types shrink_types=shrink_types
+                # Depending on shrink_types value the size of the Char/Integer types may vary - exact details tested elsewhere.
+                t2.at "strs" . value_type . should_be_a (Value_Type.Char ...)
+                t2.at "ints" . value_type . should_be_a (Value_Type.Integer ...)
+                t2.at "floats" . value_type . should_equal Value_Type.Float
+                t2.at "mix" . value_type . should_equal Value_Type.Mixed
+                t2.at "dates" . value_type . should_equal Value_Type.Date
+                t2.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+                t2.at "times" . value_type . should_equal Value_Type.Time
+                t2.at "mixed_time" . value_type . should_equal Value_Type.Mixed
+                t2.at "bools" . value_type . should_equal Value_Type.Boolean
+
+        Test.specify "will only modify selected columns" <|
+            mixer = My_Type.Value 1
+            t0 = table_builder [["strs", [mixer, "a", "b"]], ["ints", [mixer, 2, 3]], ["floats", [mixer, 1.5, 2.5]]]
+            t1 = t0.drop 1
+
+            t2 = t1.auto_value_types []
+            t2.at "strs" . value_type . should_equal Value_Type.Mixed
+            t2.at "ints" . value_type . should_equal Value_Type.Mixed
+            t2.at "floats" . value_type . should_equal Value_Type.Mixed
+
+            t3 = t1.auto_value_types ["strs"]
+            t3.at "strs" . value_type . should_equal Value_Type.Char
+            t3.at "ints" . value_type . should_equal Value_Type.Mixed
+            t3.at "floats" . value_type . should_equal Value_Type.Mixed
+
+            # should match ints and floats but not strs
+            t4 = t1.auto_value_types "[if].*".to_regex
+            t4.at "strs" . value_type . should_equal Value_Type.Mixed
+            t4.at "ints" . value_type . should_equal Value_Type.Integer
+            t4.at "floats" . value_type . should_equal Value_Type.Float
+
+        Test.specify "will convert a Float column to Integer if all values can be represented as long" <|
+            t1 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [1.0, 2.5, 3.0]], ["Z", [1.0, 2.0, (2.0^100)]]]
+            t1.at "X" . value_type . should_equal Value_Type.Float
+            t1.at "Y" . value_type . should_equal Value_Type.Float
+            t1.at "Z" . value_type . should_equal Value_Type.Float
+
+            t2 = t1.auto_value_types shrink_types=False
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
+            t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Y" . value_type . should_equal Value_Type.Float
+            ## Technically, Z could get converted to Decimal type. But IMO that
+               is not desirable - at this scale the Float is no longer a
+               precise type (as not even consecutive integers are exactly
+               representable). And Decimal is expected to be precise. So such a
+               conversion should only happen by explicit request, not
+               automatically.
+            t2.at "Z" . value_type . should_equal Value_Type.Float
+
+        Test.specify "will not parse text columns" <|
+            t1 = table_builder [["X", ["1", "2", "3"]]]
+            c2 = t1.at "X" . auto_value_type
+            c2.value_type . should_equal Value_Type.Char
+
+        Test.specify "will 'undo' a cast to Mixed" <|
+            t1 = table_builder [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
+            t2 = t1.cast ["X", "Y"] Value_Type.Mixed
+            t2.at "X" . value_type . should_equal Value_Type.Mixed
+            t2.at "Y" . value_type . should_equal Value_Type.Mixed
+
+            t3 = t2.auto_value_types
+            t3.at "X" . value_type . should_equal Value_Type.Integer
+            t3.at "Y" . value_type . should_equal Value_Type.Char
+
+        Test.specify "will choose Decimal type if all values are integers but cannot fit long" <|
+            c0 = table_builder [["X", [My_Type.Value 42, 1, 2, 2^100]]] . at "X"
+            c1 = c0.drop 1
+
+            c1.value_type . should_equal Value_Type.Mixed
+            c2 = c1.auto_value_type
+            c2.value_type . should_be_a (Value_Type.Decimal ...)
+            c2.to_vector . should_equal [1, 2, 2^100]
+
+        Test.specify "will try to find the smallest integer type to fit the value (if shrink_types=True)" <|
+            [False, True].each is_mixed->
+                prefix = if is_mixed then "mixed" else 0
+                t0 = table_builder [["X", [prefix, 1, 2, 3]], ["Y", [prefix, 2^20, 2, 3]], ["Z", [prefix, 2^50, 2, 3]], ["F", [prefix, 1.0, 2.0, 3.0]]]
+                t1 = t0.drop 1
+
+                case is_mixed of
+                    True  -> t1.at "Z" . value_type . should_equal Value_Type.Mixed
+                    False -> t1.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+                case is_mixed of
+                    True  -> t1.at "F" . value_type . should_equal Value_Type.Mixed
+                    False -> t1.at "F" . value_type . should_equal Value_Type.Float
+
+                t2 = t1.auto_value_types shrink_types=False
+                t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                t2.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                t2.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+                t3 = t1.auto_value_types shrink_types=True
+                # Even though X's values are small enough to fit in a Byte, we stick to 16-bit Integers.
+                t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+                t3.at "Y" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+                # Shrinking Floats also finds the smallest type that fits.
+                t3.at "F" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+
+        Test.specify "will not return Byte columns by default, but should leave existing Byte columns intact" <|
+            c1 = table_builder [["X", [1, 2, 3]]] . at "X" . cast Value_Type.Byte
+            c1.value_type . should_equal Value_Type.Byte
+
+            [True, False].each shrink_types->
+                c2 = c1.auto_value_type shrink_types=shrink_types
+                c2.value_type . should_equal Value_Type.Byte
+
+        Test.specify "Decimal (scale=0, i.e. integer) columns should also be shrinked if possible and shrink_types=True" <|
+            t0 = table_builder [["X", [2^100, 1, 2, 3]], ["Y", [10, 20, 2^100, 30]], ["Z", [1, 2, 3, 4]]] . cast "Z" (Value_Type.Decimal scale=0)
+            t1 = t0.drop 1
+
+            t1.at "X" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t1.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t1.at "Z" . value_type . should_equal (Value_Type.Decimal scale=0)
+
+            t2 = t1.auto_value_types shrink_types=False
+
+            # Without shrinking we get an integer type, but not the smallest one - just the default 64-bit.
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
+            t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+            t3 = t1.auto_value_types shrink_types=True
+            t3.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t3.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t3.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+
+        Test.specify "if all text values have the same length, will change the type to fixed-length string (if shrink_types=True)" <|
+            [False, True].each is_mixed->
+                prefix = if is_mixed then 42 else "FOOBARBAZ"
+                c0 = table_builder [["X", [prefix, "aa", "bb", "cc"]]] . at "X"
+                c1 = c0.drop 1
+                c1.to_vector . should_equal ["aa", "bb", "cc"]
+
+                case is_mixed of
+                    True  -> c1.value_type . should_equal Value_Type.Mixed
+                    False -> c1.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+
+                c2 = c1.auto_value_type shrink_types=False
+                c2.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+
+                c3 = c1.auto_value_type shrink_types=True
+                c3.value_type . should_equal (Value_Type.Char size=2 variable_length=False)
+
+            c4 = table_builder [["X", ["a", "x", "y"]]] . at "X" . cast (Value_Type.Char size=100 variable_length=True)
+            c4.to_vector . should_equal ["a", "x", "y"]
+            c4.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+
+            c5 = c4.auto_value_type shrink_types=False
+            c5.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+
+            c6 = c4.auto_value_type shrink_types=True
+            c6.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
+
+        Test.specify "if all text values are empty string, the type will remain unchanged" <|
+            c1 = table_builder [["X", ["", ""]]] . at "X"
+            c2 = c1.cast (Value_Type.Char size=100 variable_length=True)
+
+            c1.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            c2.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+
+            [True, False].each shrink_types->
+                c1_b = c1.auto_value_type shrink_types=shrink_types
+                c1_b.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+
+                c2_b = c2.auto_value_type shrink_types=shrink_types
+                c2_b.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+
+        Test.specify "if all text values fit under 255 characters, will add a 255 length limit (if shrink_types=True)" <|
+            t1 = table_builder [["short_unbounded", ["a", "bb", "ccc"]], ["long_unbounded", ["a"*100, "b"*200, "c"*300]]]
+
+            t2 = t1 . set (t1.at "short_unbounded" . cast (Value_Type.Char size=1000)) "short_1000" . set (t1.at "short_unbounded" . cast (Value_Type.Char size=10)) "short_10" . set (t1.at "long_unbounded" . cast (Value_Type.Char size=400)) "long_400" . set (t1.at "short_unbounded" . cast Value_Type.Mixed) "short_mixed"
+            t2.at "short_mixed" . value_type . should_equal Value_Type.Mixed
+
+            t3 = t2.auto_value_types shrink_types=False
+            t3.at "short_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            t3.at "short_1000" . value_type . should_equal (Value_Type.Char size=1000 variable_length=True)
+            t3.at "short_10" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+            # Mixed column gets to be text again.
+            t3.at "short_mixed" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            t3.at "long_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            t3.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
+
+            t4 = t2.auto_value_types shrink_types=True
+            # Short ones get shortened to 255 unless they were shorter already.
+            t4.at "short_unbounded" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
+            t4.at "short_1000" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
+            t4.at "short_10" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+            t4.at "short_mixed" . value_type . should_equal (Value_Type.Char size=255 variable_length=True)
+            # Long ones cannot fit in 255 so they are kept as-is.
+            t4.at "long_unbounded" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            t4.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
+
+        Test.specify "can deal with all-null columns" <|
+            t0 = table_builder [["mix", [My_Type.Value 1, Nothing, Nothing]], ["int", [42, Nothing, Nothing]], ["str", ["a", Nothing, Nothing]], ["float", [1.5, Nothing, Nothing]], ["decimal", [2^100, 2^10, 2]]]
+            t1 = t0.drop 1
+
+            t1.at "mix" . value_type . should_equal Value_Type.Mixed
+            t1.at "int" . value_type . should_equal Value_Type.Integer
+            t1.at "float" . value_type . should_equal Value_Type.Float
+            t1.at "str" . value_type . should_equal Value_Type.Char
+            t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
+
+            t2 = t1.auto_value_types shrink_types=False
+            t2.at "mix" . value_type . should_equal Value_Type.Mixed
+            t2.at "int" . value_type . should_equal Value_Type.Integer
+            ## Technically, if there are no elements, "all of elements" are
+               whole integers (quantification over empty domain is trivially true).
+               However, that would be rather not useful, so instead we keep the
+               original type.
+            t2.at "float" . value_type . should_equal Value_Type.Float
+            t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
+            t2.at "str" . value_type . should_equal Value_Type.Char
+
+            t3 = t1.auto_value_types shrink_types=True
+            t3.at "mix" . value_type . should_equal Value_Type.Mixed
+            # Technically, if there are no elements, then they can be fit inside of the smallest types available:
+            t3.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t3.at "float" . value_type . should_equal Value_Type.Float
+            t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
+            # But for Text we make an exception and keep the type unbounded: 0-length fixed length string simply would not make any sense.
+            t3.at "str" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)

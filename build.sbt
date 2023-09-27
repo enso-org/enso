@@ -882,6 +882,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case _                  => MergeStrategy.first
     },
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
+    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
@@ -1156,6 +1157,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
           .map(_.data)
           .mkString(File.pathSeparator)
       Seq(
+        s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
         s"-Dtruffle.class.path.append=$runtimeClasspath",
         s"-Duser.dir=${file(".").getCanonicalPath}"
       )
@@ -1758,7 +1760,9 @@ lazy val launcher = project
     (Test / testOnly) := (Test / testOnly)
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
-      .evaluated
+      .evaluated,
+    Test / fork := true,
+    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)
@@ -2194,12 +2198,13 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "graal-sdk"               % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "com.univocity"       % "univocity-parsers"       % univocityParsersVersion,
-      "org.apache.poi"      % "poi-ooxml"               % poiOoxmlVersion,
-      "org.apache.xmlbeans" % "xmlbeans"                % xmlbeansVersion,
-      "org.antlr"           % "antlr4-runtime"          % antlrVersion
+      "org.graalvm.sdk"          % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
+      "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
+      "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
+      "org.antlr"                % "antlr4-runtime"          % antlrVersion,
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.18.0" // org.apache.poi uses log4j
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

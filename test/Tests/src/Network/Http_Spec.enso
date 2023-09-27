@@ -8,6 +8,7 @@ import Standard.Base.Network.HTTP.Request_Body.Request_Body
 import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.Proxy.Proxy
 import Standard.Base.Runtime.Context
+from Standard.Base.Network.HTTP import resolve_headers
 
 import Standard.Test.Extensions
 from Standard.Test import Test, Test_Suite
@@ -62,7 +63,6 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -102,7 +102,6 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -145,9 +144,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -156,7 +154,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -168,7 +165,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/json",
                     "Content-Length": "20"
                   },
                   "origin": "127.0.0.1",
@@ -177,7 +174,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -189,7 +185,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/json",
                     "Content-Length": "20"
                   },
                   "origin": "127.0.0.1",
@@ -198,7 +194,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\":\\"asdf\\",\\"b\\":123}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -209,7 +204,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/json",
                     "Content-Length": "50"
                   },
                   "origin": "127.0.0.1",
@@ -218,7 +213,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Aaa\\",\\"s\\":\\"abc\\"}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -229,7 +223,7 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "application/json",
                     "Content-Length": "47"
                   },
                   "origin": "127.0.0.1",
@@ -238,7 +232,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"type\\":\\"Test_Type\\",\\"constructor\\":\\"Bbb\\",\\"i\\":12}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -252,9 +245,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-16LE",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-16LE",
                     "Content-Length": "24"
                   },
                   "origin": "127.0.0.1",
@@ -262,8 +254,7 @@ spec =
                   "method": "POST",
                   "form": null,
                   "files": null,
-                  "data": "H\\u0000e\\u0000l\\u0000l\\u0000o\\u0000 \\u0000W\\u0000o\\u0000r\\u0000l\\u0000d\\u0000!\\u0000",
-                  "json": null,
+                  "data": "Hello World!",
                   "args": {}
                 }
             response . should_equal expected_response
@@ -273,9 +264,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/csv",
+                    "Content-Type": "text/csv; charset=UTF-8",
                     "Content-Length": "6"
                   },
                   "origin": "127.0.0.1",
@@ -283,8 +273,7 @@ spec =
                   "method": "POST",
                   "form": null,
                   "files": null,
-                  "data": "a,b,c",
-                  "json": null,
+                  "data": "a,b,c\\n",
                   "args": {}
                 }
             response . should_equal expected_response
@@ -292,35 +281,21 @@ spec =
         Test.specify "Can perform a File POST" <|
             test_file = enso_project.data / "sample.txt"
             response = Data.post url_post (Request_Body.Binary test_file)
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
-            response.at "data" . should_equal 'Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart souffl\u00E9 jelly beans gummies.'
+            response.at "headers" . at "Content-Type" . should_equal "application/octet-stream"
+            expected_text = test_file.read_text
+            response . at "data" . should_equal expected_text
 
         Test.specify "Can perform a binary File POST" <|
             test_file = enso_project.data / "sample.png"
             response = Data.post url_post (Request_Body.Binary test_file)
-            expected_response = Json.parse <| '''
-                {
-                  "headers": {
-                    "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
-                    "Content-Length": "26905"
-                  },
-                  "origin": "127.0.0.1",
-                  "url": "",
-                  "method": "POST",
-                  "form": null,
-                  "files": null,
-                  "data": "\uFFFDPNG",
-                  "json": null,
-                  "args": {}
-                }
-            response . should_equal expected_response
+            response.at "headers" . at "Content-Type" . should_equal "application/octet-stream"
+            response.at "data" . should_start_with '\uFFFDPNG'
 
         Test.specify "Can perform a url-encoded form POST" <|
             test_file = enso_project.data / "sample.txt"
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response.at "headers" . at "Content-Type" . should_equal "application/x-www-form-urlencoded"
             response.at "data" . replace "%0D%" "%" . should_equal 'key=val&a_file=Cupcake+ipsum+dolor+sit+amet.+Caramels+tootsie+roll+cake+ice+cream.+Carrot+cake+apple+pie+gingerbread+chocolate+cake+pudding+tart+souffl%C3%A9+jelly+beans+gummies.%0A%0ATootsie+roll+chupa+chups+muffin+croissant+fruitcake+jujubes+danish+cotton+candy+danish.+Oat+cake+chocolate+fruitcake+halvah+icing+oat+cake+toffee+powder.+Pastry+drag%C3%A9e+croissant.+Ice+cream+candy+canes+dessert+muffin+sugar+plum+tart+jujubes.%0A'
 
         Test.specify "Can perform a multipart form POST" <|
@@ -328,23 +303,23 @@ spec =
             form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
             response = Data.post url_post (Request_Body.Form_Data form_data)
             response_json = response
-            response_json.at "headers" . at "Content-Type" . should_equal "text/plain"
+            response_json.at "headers" . at "Content-Type" . should_start_with "multipart/form-data; boundary="
             response_json.at "data" . is_empty . should_be_false
 
         Test.specify "Can perform a File POST with auto-conversion" <|
             test_file = enso_project.data / "sample.txt"
             response = Data.post url_post test_file
-            response.at "headers" . at "Content-Type" . should_equal "text/plain"
-            response.at "data" . should_equal 'Cupcake ipsum dolor sit amet. Caramels tootsie roll cake ice cream. Carrot cake apple pie gingerbread chocolate cake pudding tart souffl\u00E9 jelly beans gummies.'
+            response.at "headers" . at "Content-Type" . should_equal "application/octet-stream"
+            expected_text = test_file.read_text
+            response . at "data" . should_equal expected_text
 
         Test.specify "Can perform a Text POST with auto-conversion" <|
             response = Data.post url_post "hello world"
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -353,7 +328,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -363,9 +337,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -374,7 +347,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -384,9 +356,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "application/diff",
+                    "Content-Type": "application/diff; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -395,7 +366,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -406,7 +376,6 @@ spec =
                 {
                   "headers": {
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
                     "Content-Length": "0"
                   },
                   "origin": "127.0.0.1",
@@ -415,7 +384,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -425,9 +393,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11"
                   },
                   "origin": "127.0.0.1",
@@ -436,7 +403,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response.decode_as_json . should_equal expected_response
@@ -446,9 +412,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "11",
                     "Custom": "asdf"
                   },
@@ -458,7 +423,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -494,9 +458,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/json; charset=UTF-8",
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
@@ -505,7 +468,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
-                  "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
             response . should_equal expected_response
@@ -515,7 +477,6 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
@@ -526,7 +487,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
-                  "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
             response . should_equal expected_response
@@ -536,7 +496,6 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
                     "Content-Type": "application/json",
                     "Content-Length": "23"
@@ -547,7 +506,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
-                  "json": {"a": "asdf", "b": 123},
                   "args": {}
                 }
             response . should_equal expected_response
@@ -557,9 +515,8 @@ spec =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
-                    "Content-Encoding": "UTF-8",
                     "User-Agent": "Java-http-client/17.0.7",
-                    "Content-Type": "text/plain",
+                    "Content-Type": "text/plain; charset=UTF-8",
                     "Content-Length": "23"
                   },
                   "origin": "127.0.0.1",
@@ -568,7 +525,6 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "{\\"a\\": \\"asdf\\", \\"b\\": 123}",
-                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
@@ -576,22 +532,35 @@ spec =
         Test.specify "Cannot specify content type in both body and headers" <|
             Data.post url_post (Request_Body.Text "hello world" content_type="text/plain") headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
 
-        Test.specify "Header resolution" <|
-            expected0 = Request.new HTTP_Method.Get "" [Header.content_type "text/plain"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [] (Request_Body.Text "") . resolve_content_type . should_equal expected0
+        Test.specify "Cannot specify content type (implicitly via explicit text encoding) in both body and headers" <|
+            Data.post url_post (Request_Body.Text "hello world" encoding=Encoding.utf_8) headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
 
-            expected1 = Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json") . resolve_content_type . should_equal expected1
+    Test.group "Header resolution" <|
+        Test.specify "Default content type and encoding" <|
+            expected = [Header.content_type "text/plain; charset=UTF-8"]
+            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
-            expected2 = Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "") . resolve_content_type . should_equal expected2
+        Test.specify "Content type specified in body" <|
+            expected = [Header.content_type "application/json; charset=UTF-8"]
+            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" content_type="application/json")) . should_contain_the_same_elements_as expected
 
-            Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain") . resolve_content_type . should_fail_with Illegal_Argument
+        Test.specify "Content type specified in header list" <|
+            expected = [Header.content_type "application/json"]
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
-            expected3 = Request.new HTTP_Method.Get "" [Header.new "some" "header", Header.content_type "application/json"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json") . resolve_content_type . should_equal expected3
+        Test.specify "Text encoding specified in body" <|
+            expected = [Header.content_type "text/plain; charset=UTF-16LE"]
+            resolve_headers (Request.new HTTP_Method.Get "" [] (Request_Body.Text "" encoding=Encoding.utf_16_le)) . should_contain_the_same_elements_as expected
 
-            expected4 = Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")
-            Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "") . resolve_content_type . should_equal expected4
+        Test.specify "Can't specify content type in both places" <|
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json"] (Request_Body.Text "" content_type="text/plain")) . should_fail_with Illegal_Argument
+
+        Test.specify "Custom header" <|
+            expected = [Header.new "some" "header", Header.content_type "application/json; charset=UTF-8"]
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.new "some" "header"] (Request_Body.Text "" content_type="application/json")) . should_contain_the_same_elements_as expected
+
+        Test.specify "Multiple content types in header list are ok" <|
+            expected = [Header.content_type "application/json", Header.content_type "text/plain"]
+            resolve_headers (Request.new HTTP_Method.Get "" [Header.content_type "application/json", Header.content_type "text/plain"] (Request_Body.Text "")) . should_contain_the_same_elements_as expected
 
 main = Test_Suite.run_main spec

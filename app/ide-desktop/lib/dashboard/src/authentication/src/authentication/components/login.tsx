@@ -113,6 +113,7 @@ export default function Login() {
                                     id="email"
                                     type="email"
                                     name="email"
+                                    autoComplete="email"
                                     placeholder="E-Mail Address"
                                     value={email}
                                     setValue={setEmail}
@@ -137,6 +138,7 @@ export default function Login() {
                                     id="password"
                                     type="password"
                                     name="password"
+                                    autoComplete="current-password"
                                     placeholder="Password"
                                     pattern={validation.PASSWORD_PATTERN}
                                     error={validation.PASSWORD_ERROR}

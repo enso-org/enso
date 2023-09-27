@@ -6,6 +6,7 @@ export interface GuiConfig {
     preferredVersion?: string
     rpcUrl?: string
     dataUrl?: string
+    namespace?: string
   }
   startup?: {
     project?: string
