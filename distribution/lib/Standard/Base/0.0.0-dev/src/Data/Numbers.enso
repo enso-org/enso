@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Ordering.Comparable
 import project.Data.Locale.Locale
 import project.Data.Text.Text
 import project.Error.Error
@@ -1169,3 +1170,39 @@ type Number_Parse_Error
     to_display_text : Text
     to_display_text self =
         "Could not parse " + self.text.to_text + " as a double."
+
+## A wrapper type that ensures that a function may only take positive integers.
+type Positive_Integer
+    ## PRIVATE
+       This constructor should not be used by user code as it can be used to
+       break the invariants. Instead, this type should only be created by `new`
+       or conversions.
+    Value (integer : Integer)
+
+    ## PRIVATE
+       ADVANCED
+       Constructor to create a `Positive_Integer` from an `Integer` - checking
+       if it satisfies the condition. User code should prefer the
+       `Positive_Integer.from` conversion.
+    new (integer : Integer) =
+        if integer > 0 then Positive_Integer.Value integer else
+            Error.throw (Illegal_Argument.Error "Expected a positive integer, but got "+integer.to_display_text)
+
+## Allows to create a `Positive_Integer` from an `Integer`.
+   It will throw `Illegal_Argument` if the provided integer is not positive.
+Positive_Integer.from (that : Integer) = Positive_Integer.new that
+
+## PRIVATE
+Integer.from (that : Positive_Integer) = that.integer
+
+## PRIVATE
+type Positive_Integer_Comparator
+    ## PRIVATE
+    compare x y =
+        Comparable.from x.integer . compare x.integer y.integer
+
+    ## PRIVATE
+    hash x = Comparable.from x.integer . hash x.integer
+
+## PRIVATE
+Comparable.from (_:Positive_Integer) = Positive_Integer_Comparator

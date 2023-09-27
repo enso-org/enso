@@ -23,7 +23,7 @@ public abstract class StringStringOp extends BinaryMapOperation<String, Speciali
   public Storage<?> runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     int size = storage.size();
     if (arg == null) {
-      StringBuilder builder = new StringBuilder(size, TextType.variableLengthWithLimit(0));
+      StringBuilder builder = new StringBuilder(size, TextType.VARIABLE_LENGTH);
       builder.appendNulls(size);
       return builder.seal();
     } else if (arg instanceof String argString) {
