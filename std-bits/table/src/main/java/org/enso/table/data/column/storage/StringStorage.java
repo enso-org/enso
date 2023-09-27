@@ -175,18 +175,18 @@ public final class StringStorage extends SpecializedStorage<String> {
 
     long minLength = Long.MAX_VALUE;
     long maxLength = Long.MIN_VALUE;
-    long visitedCounter = 0;
     for (int i = 0; i < size(); i++) {
       String s = getItem(i);
       if (s != null) {
         long length = Text_Utils.grapheme_length(s);
         minLength = Math.min(minLength, length);
         maxLength = Math.max(maxLength, length);
-        visitedCounter++;
       }
     }
 
-    if (visitedCounter == 0) {
+    // maxLength will be <0 if all values were null and will be ==0 if all values were empty strings.
+    // In both of these cases, we avoid shrinking the type and return the original type instead.
+    if (maxLength <= 0) {
       return getType();
     }
 
