@@ -1,6 +1,4 @@
 from Standard.Base import all
-#import Standard.Base.Data.XML.XML_Document.XML_Document
-#import Standard.Base.Data.XML.XML_Document.XML_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.File_Error.File_Error
 
