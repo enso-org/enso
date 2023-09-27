@@ -113,7 +113,7 @@ watch(
   },
 )
 
-const mouseHandler = nodeBindings.useMouseHandler(
+const mouseHandler = nodeBindings.mouseHandler(
   {
     replace() {
       selectedNodes.value = new Set(intersectingNodes.value)
@@ -181,7 +181,7 @@ function setSelected(id: ExprId, selected: boolean) {
   }
 }
 
-const graphBindingsHandler = graphBindings.useKeyboardHandler({
+const graphBindingsHandler = graphBindings.keyboardHandler({
   undo() {
     projectStore.undoManager.undo()
   },
@@ -204,7 +204,7 @@ const graphBindingsHandler = graphBindings.useKeyboardHandler({
   },
 })
 
-const nodeSelectionHandler = nodeBindings.useKeyboardHandler({
+const nodeSelectionHandler = nodeBindings.keyboardHandler({
   selectAll() {
     for (const id of graphStore.nodes.keys()) {
       selectedNodes.value.add(id)

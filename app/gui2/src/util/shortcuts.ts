@@ -240,8 +240,6 @@ export function defineKeybinds<
   }
   const keyboardShortcuts: Partial<Record<Key_, Record<ModifierFlags, Set<BindingName>>>> = {}
   const mouseShortcuts: Record<PointerButtonFlags, Record<ModifierFlags, Set<BindingName>>> = []
-  const keyboardShortcutsByName: Partial<Record<BindingName, Keybind[]>> = {}
-  const mouseShortcutsByName: Partial<Record<BindingName, Mousebind[]>> = {}
 
   for (const [name_, keybindStrings] of Object.entries(bindings)) {
     const name = name_ as BindingName
@@ -249,14 +247,12 @@ export function defineKeybinds<
       const keybind = parseKeybindString(keybindString)
       switch (keybind.type) {
         case 'keybind': {
-          ;(keyboardShortcutsByName[name] ??= []).push(keybind)
           const shortcutsByKey = (keyboardShortcuts[keybind.key] ??= [])
           const shortcutsByModifier = (shortcutsByKey[keybind.modifierFlags] ??= new Set())
           shortcutsByModifier.add(name)
           break
         }
         case 'mousebind': {
-          ;(mouseShortcutsByName[name] ??= []).push(keybind)
           const shortcutsByKey = (mouseShortcuts[keybind.key] ??= [])
           const shortcutsByModifier = (shortcutsByKey[keybind.modifierFlags] ??= new Set())
           shortcutsByModifier.add(name)
@@ -266,7 +262,7 @@ export function defineKeybinds<
     }
   }
 
-  function useKeyboardHandler(
+  function keyboardHandler(
     handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: KeyboardEvent) => void>>,
     stopImmediatePropagationOnMatch = true,
     preventDefaultOnMatch = true,
@@ -297,7 +293,7 @@ export function defineKeybinds<
     }
   }
 
-  function useMouseHandler(
+  function mouseHandler(
     handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: MouseEvent) => void>>,
     stopImmediatePropagationOnMatch = true,
     preventDefaultOnMatch = true,
@@ -328,21 +324,7 @@ export function defineKeybinds<
     }
   }
 
-  function mouseMatches(event: MouseEvent, name: BindingName): boolean {
-    const eventModifierFlags = modifierFlagsForEvent(event)
-    const shortcuts = mouseShortcutsByName[name]
-    if (shortcuts == null) {
-      return false
-    }
-    for (const shortcut of shortcuts) {
-      if (shortcut.modifierFlags === eventModifierFlags && shortcut.key === event.buttons) {
-        return true
-      }
-    }
-    return false
-  }
-
-  return { useKeyboardHandler, useMouseHandler, mouseMatches }
+  return { keyboardHandler, mouseHandler }
 }
 
 /** A type predicate that narrows the potential child of the array. */
