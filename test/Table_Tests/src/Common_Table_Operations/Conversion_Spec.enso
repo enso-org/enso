@@ -675,7 +675,9 @@ spec setup =
             t1.at "Z" . value_type . should_equal (Value_Type.Decimal scale=0)
 
             t2 = t1.auto_value_types shrink_types=False
+
             # Without shrinking we get an integer type, but not the smallest one - just the default 64-bit.
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
             t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Y" . value_type . should_equal (Value_Type.Decimal scale=0)
             t2.at "Z" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
@@ -712,6 +714,20 @@ spec setup =
             c6 = c4.auto_value_type shrink_types=True
             c6.value_type . should_equal (Value_Type.Char size=1 variable_length=False)
 
+        Test.specify "if all text values are empty string, the type will remain unchanged" <|
+            c1 = table_builder [["X", ["", ""]]] . at "X"
+            c2 = c1.cast (Value_Type.Char size=100 variable_length=True)
+
+            c1.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+            c2.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+
+            [True, False].each shrink_types->
+                c1_b = c1.auto_value_type shrink_types=shrink_types
+                c1_b.value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
+
+                c2_b = c2.auto_value_type shrink_types=shrink_types
+                c2_b.value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+
         Test.specify "if all text values fit under 255 characters, will add a 255 length limit (if shrink_types=True)" <|
             t1 = table_builder [["short_unbounded", ["a", "bb", "ccc"]], ["long_unbounded", ["a"*100, "b"*200, "c"*300]]]
 
@@ -738,13 +754,14 @@ spec setup =
             t4.at "long_400" . value_type . should_equal (Value_Type.Char size=400 variable_length=True)
 
         Test.specify "can deal with all-null columns" <|
-            t0 = table_builder [["mix", [My_Type.Value 1, Nothing, Nothing]], ["int", [42, Nothing, Nothing]], ["str", ["a", Nothing, Nothing]], ["float", [1.5, Nothing, Nothing]]]
+            t0 = table_builder [["mix", [My_Type.Value 1, Nothing, Nothing]], ["int", [42, Nothing, Nothing]], ["str", ["a", Nothing, Nothing]], ["float", [1.5, Nothing, Nothing]], ["decimal", [2^100, 2^10, 2]]]
             t1 = t0.drop 1
 
             t1.at "mix" . value_type . should_equal Value_Type.Mixed
             t1.at "int" . value_type . should_equal Value_Type.Integer
             t1.at "float" . value_type . should_equal Value_Type.Float
             t1.at "str" . value_type . should_equal Value_Type.Char
+            t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
 
             t2 = t1.auto_value_types shrink_types=False
             t2.at "mix" . value_type . should_equal Value_Type.Mixed
@@ -754,6 +771,7 @@ spec setup =
                However, that would be rather not useful, so instead we keep the
                original type.
             t2.at "float" . value_type . should_equal Value_Type.Float
+            t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
             t2.at "str" . value_type . should_equal Value_Type.Char
 
             t3 = t1.auto_value_types shrink_types=True
@@ -761,5 +779,6 @@ spec setup =
             # Technically, if there are no elements, then they can be fit inside of the smallest types available:
             t3.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             t3.at "float" . value_type . should_equal Value_Type.Float
+            t1.at "decimal" . value_type . should_equal (Value_Type.Decimal scale=0)
             # But for Text we make an exception and keep the type unbounded: 0-length fixed length string simply would not make any sense.
             t3.at "str" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)
