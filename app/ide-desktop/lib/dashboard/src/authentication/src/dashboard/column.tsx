@@ -23,6 +23,7 @@ import * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
 
 import * as assetsTable from './components/assetsTable'
+import * as categorySwitcher from './components/categorySwitcher'
 import AssetNameColumn from './components/assetNameColumn'
 import ManagePermissionsModal from './components/managePermissionsModal'
 import PermissionDisplay from './components/permissionDisplay'
@@ -157,7 +158,7 @@ function SharedWithColumn(props: AssetColumnProps) {
     const {
         item: { item },
         setItem,
-        state: { dispatchAssetEvent },
+        state: { category, dispatchAssetEvent },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -166,8 +167,9 @@ function SharedWithColumn(props: AssetColumnProps) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        self?.permission === permissions.PermissionAction.own ||
-        self?.permission === permissions.PermissionAction.admin
+        category !== categorySwitcher.Category.trash &&
+        (self?.permission === permissions.PermissionAction.own ||
+            self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {

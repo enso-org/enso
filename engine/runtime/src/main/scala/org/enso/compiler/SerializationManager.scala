@@ -546,7 +546,7 @@ final class SerializationManager(compiler: Compiler) {
       pool.shutdownNow()
       Thread.sleep(100)
       compiler.context.logSerializationManager(
-        Level.WARNING,
+        debugLogLevel,
         "Serialization manager has been shut down."
       )
     }
