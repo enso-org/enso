@@ -74,7 +74,12 @@ function moveNode(id: ExprId, delta: Vec2) {
 const selectionSize = ref<Vec2>()
 const initiallySelectedNodes = ref(new Set(selectedNodes.value))
 
-const selection = usePointer((pos) => (selectionSize.value = pos.relative))
+const selection = usePointer((pos, event) => {
+  if (selection.dragging) {
+    mouseHandler(event)
+    selectionSize.value = pos.relative
+  }
+})
 
 const intersectingNodes = computed<Set<ExprId>>(() => {
   if (!selection.dragging || selectionSize.value == null) {
@@ -222,7 +227,7 @@ const nodeSelectionHandler = nodeBindings.keyboardHandler({
     class="viewport"
     :class="{ selecting: selection.dragging }"
     v-on="navigator.events"
-    @pointerdown="selection.events.pointerdown($event), selection.dragging && mouseHandler($event)"
+    @pointerdown="selection.events.pointerdown($event)"
     @pointermove="navigator.events.pointermove($event), selection.dragging && mouseHandler($event)"
   >
     <svg :viewBox="navigator.viewBox">

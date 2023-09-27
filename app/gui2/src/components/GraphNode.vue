@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
+import { nodeBindings } from '@/bindings/nodeSelection'
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -43,8 +44,30 @@ watchEffect(() => {
   }
 })
 
-const dragPointer = usePointer((event) => {
-  emit('movePosition', event.delta)
+// TODO [sb]: restore delete functionality (DELETE key)
+const mouseHandler = nodeBindings.mouseHandler({
+  replace() {
+    emit('replaceSelection')
+  },
+  add() {
+    emit('update:selected', true)
+  },
+  remove() {
+    emit('update:selected', false)
+  },
+  toggle() {
+    emit('update:selected', !props.selected)
+  },
+  invert() {
+    emit('update:selected', !props.selected)
+  },
+})
+
+const dragPointer = usePointer((pos, event, type) => {
+  emit('movePosition', pos.delta)
+  if (type === 'start') {
+    mouseHandler(event)
+  }
 })
 
 const transform = computed(() => {
@@ -257,22 +280,6 @@ onUpdated(() => {
   }
 })
 
-// TODO [sb]: restore delete functionality (DELETE key)
-function handleClick(event: PointerEvent) {
-  // if (shortcutRegistry.matchesMouseAction('replace-nodes-selection', event)) {
-  //   emit('replaceSelection')
-  // } else if (shortcutRegistry.matchesMouseAction('add-to-nodes-selection', event)) {
-  //   emit('update:selected', true)
-  // } else if (shortcutRegistry.matchesMouseAction('remove-from-nodes-selection', event)) {
-  //   emit('update:selected', false)
-  // } else if (
-  //   shortcutRegistry.matchesMouseAction('toggle-nodes-selection', event) ||
-  //   shortcutRegistry.matchesMouseAction('invert-nodes-selection', event)
-  // ) {
-  //   emit('update:selected', !props.selected)
-  // }
-}
-
 const isCircularMenuVisible = ref(false)
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
@@ -379,7 +386,6 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
 <template>
   <div
     ref="rootNode"
-    :tabindex="-1"
     class="GraphNode"
     :style="{ transform }"
     :class="{ dragging: dragPointer.dragging, selected }"
@@ -403,7 +409,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
       @update:type="visualizationType = $event"
     />
     <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">
-      <SvgIcon class="icon grab-handle" name="number_input" @pointerdown="handleClick"></SvgIcon>
+      <SvgIcon class="icon grab-handle" name="number_input"></SvgIcon>
       <div
         ref="editableRootNode"
         class="editable"
@@ -476,13 +482,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
 
 .grab-handle {
   color: white;
-  cursor: grab;
   margin-right: 10px;
-}
-
-.GraphNode.dragging,
-.GraphNode.dragging .icon {
-  cursor: grabbing;
 }
 
 .visualization {
