@@ -52,11 +52,6 @@ public abstract class AssertNode extends Node {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     var ctx = EnsoContext.get(this);
     var builtins = ctx.getBuiltins();
-    if (!interop.isExecutable(action)) {
-      return builtins
-          .error()
-          .makeTypeError(builtins.function(), TypeOfNode.getUncached().execute(action), "action");
-    }
     Object actionRes =
         thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.TAIL_DIRECT);
     try {
