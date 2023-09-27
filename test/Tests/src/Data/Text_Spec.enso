@@ -1659,5 +1659,7 @@ spec =
 
         Test.specify "should error if negative start index is too large"
             "Hello World!".substring -20 5 . should_fail_with Index_Out_Of_Bounds
+        Test.specify "should error if start index is larger than string"
+            "Hello World!".substring 20 5 . should_fail_with Index_Out_Of_Bounds
 
 main = Test_Suite.run_main spec
