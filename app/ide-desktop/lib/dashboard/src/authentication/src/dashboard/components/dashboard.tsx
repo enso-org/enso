@@ -44,7 +44,12 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, appRunner, initialProjectName, projectManagerUrl } = props
+    const {
+        supportsLocalBackend,
+        appRunner,
+        initialProjectName: rawInitialProjectName,
+        projectManagerUrl,
+    } = props
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -72,6 +77,8 @@ export default function Dashboard(props: DashboardProps) {
         hooks.useEvent<assetListEventModule.AssetListEvent>()
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
     const modalRef = React.useRef<modalProvider.Modal | null>(null)
+    // This MUST be a ref so that its value can be changed on the first tick.
+    const initialProjectNameRef = React.useRef(rawInitialProjectName)
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -118,7 +125,7 @@ export default function Dashboard(props: DashboardProps) {
         const savedProjectStartupInfo = localStorage.get(
             localStorageModule.LocalStorageKey.projectStartupInfo
         )
-        if (initialProjectName != null) {
+        if (rawInitialProjectName != null) {
             if (page === pageSwitcher.Page.editor) {
                 setPage(pageSwitcher.Page.drive)
             }
@@ -171,21 +178,7 @@ export default function Dashboard(props: DashboardProps) {
                     }
                 }
             } else {
-                if (currentBackend.type !== backendModule.BackendType.local) {
-                    currentBackend = new localBackend.LocalBackend(projectManagerUrl)
-                }
-                void (async () => {
-                    await currentBackend.openProject(
-                        savedProjectStartupInfo.projectAsset.id,
-                        null,
-                        savedProjectStartupInfo.projectAsset.title
-                    )
-                    const project = await currentBackend.getProjectDetails(
-                        savedProjectStartupInfo.projectAsset.id,
-                        savedProjectStartupInfo.projectAsset.title
-                    )
-                    setProjectStartupInfo({ ...savedProjectStartupInfo, project })
-                })()
+                initialProjectNameRef.current = savedProjectStartupInfo.projectAsset.id
             }
         }
         // This MUST only run when the component is mounted.
@@ -395,7 +388,7 @@ export default function Dashboard(props: DashboardProps) {
                 <Drive
                     hidden={page !== pageSwitcher.Page.drive}
                     page={page}
-                    initialProjectName={initialProjectName}
+                    initialProjectName={initialProjectNameRef.current}
                     query={query}
                     projectStartupInfo={projectStartupInfo}
                     queuedAssetEvents={queuedAssetEvents}
