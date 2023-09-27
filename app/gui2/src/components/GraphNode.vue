@@ -16,6 +16,8 @@ import { keyboardBusy, useDocumentEvent, usePointer, useResizeObserver } from '@
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 
+const MAXIMUM_CLICK_LENGTH_MS = 300
+
 const props = defineProps<{
   node: Node
   selected: boolean
@@ -333,7 +335,6 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
   )
 }
 
-// TODO [sb]: restore delete functionality (DELETE key)
 const mouseHandler = nodeBindings.mouseHandler({
   replace() {
     emit('replaceSelection')
@@ -352,10 +353,27 @@ const mouseHandler = nodeBindings.mouseHandler({
   },
 })
 
+const startEpochMs = ref(0)
+const startEvent = ref<PointerEvent>()
+
 const dragPointer = usePointer((pos, event, type) => {
   emit('movePosition', pos.delta)
-  if (type === 'start') {
-    mouseHandler(event)
+  switch (type) {
+    case 'start': {
+      startEpochMs.value = Number(new Date())
+      startEvent.value = event
+      event.stopImmediatePropagation()
+      break
+    }
+    case 'stop': {
+      if (
+        Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
+        startEvent.value != null
+      ) {
+        mouseHandler(startEvent.value)
+      }
+      startEpochMs.value = 0
+    }
   }
 })
 </script>

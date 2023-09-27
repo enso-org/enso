@@ -234,7 +234,7 @@ const mouseHandler = nodeBindings.mouseHandler(
     class="viewport"
     :class="{ selecting: selection.dragging }"
     v-on="navigator.events"
-    @pointerdown="selection.events.pointerdown($event)"
+    @pointerdown="selection.events.pointerdown($event), (latestSelectedNode = undefined)"
     @pointermove="navigator.events.pointermove($event), selection.dragging && mouseHandler($event)"
   >
     <svg :viewBox="navigator.viewBox">
