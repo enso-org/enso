@@ -22,6 +22,14 @@ spec =
                 doc = XML_Document.from_stream input_stream
                 doc.root_element.name . should_equal "class"
 
+        Test.specify "Can read from a string" <|
+            la = enso_project.data / "xml" / "sample.xml"
+            IO.println 'LLL'
+            IO.println la
+            xml_string = enso_project.data / "xml" / "sample.xml" . read_text
+            doc = XML_Document.from_string xml_string
+            doc.root_element.name . should_equal "class"
+
         Test.specify "Parse error" <|
             test_file = enso_project.data / "sample.txt"
             XML_Document.from_file test_file . catch . should_be_a XML_Error.Parse_Error

@@ -8,10 +8,12 @@ import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.Input_Stream.Input_Stream
 
+polyglot java import java.io.StringReader
 polyglot java import javax.xml.parsers.DocumentBuilderFactory
 polyglot java import javax.xml.parsers.DocumentBuilder
 polyglot java import org.w3c.dom.Document
 polyglot java import org.w3c.dom.Element
+polyglot java import org.xml.sax.InputSource
 polyglot java import org.xml.sax.SAXException
 polyglot java import org.xml.sax.SAXParseException
 
@@ -19,21 +21,50 @@ type XML_Document
     ## Read an XML document from a file.
 
        Arguments:
-       - file: the `File` to read the XML document from
-    from_file : File -> XML_Document ! File_Error
+       - file: the `File` to read the XML document from.
+
+       If there is an error reading the file, `File_Error` is thrown.
+
+       If there is a parsing error, `XML_Error.Parse_Error` is thrown.
+
+       > Example
+         Read an XML document in 'doc.xml'.
+
+             file = enso_project.data / "doc.xml"
+             doc = XML_Document.from_file test_file
+    from_file : File -> XML_Document ! XML_Error | File_Error
     from_file file =
         File_Error.handle_java_exceptions file <| XML_Error.handle_java_exceptions <|
             file.with_input_stream [File_Access.Read] XML_Document.from_stream
 
-    from_stream : Input_Stream -> XML_Document ! File_Error
-    from_stream input_stream =
-         XML_Error.handle_java_exceptions <|
-            input_stream.with_java_stream java_stream->
-                document_builder_factory = DocumentBuilderFactory.newInstance
-                document_builder = document_builder_factory.newDocumentBuilder
-                XML_Document.Value (document_builder.parse java_stream)
+    ## Read an XML document from an input stream.
 
-    #from_string : Text -> XML_Document ! XML_Parse_Error
+       Arguments:
+       - input_stream: the input streadm to read the XML document from.
+
+       If there is a parsing error, `XML_Error.Parse_Error` is thrown.
+
+       > Example
+         Read an XML document from an input_stream.
+
+             input_stream = get_input_stream
+             doc = XML_Document.from_stream input_stream
+    from_stream : Input_Stream -> XML_Document ! XML_Error
+    from_stream input_stream =
+        XML_Error.handle_java_exceptions <|
+           input_stream.with_java_stream java_stream->
+               document_builder_factory = DocumentBuilderFactory.newInstance
+               document_builder = document_builder_factory.newDocumentBuilder
+               XML_Document.Value (document_builder.parse java_stream)
+
+    from_string : Text -> XML_Document ! XML_Error
+    from_string xml_string =
+        XML_Error.handle_java_exceptions <|
+            string_reader = StringReader.new xml_string
+            input_source = InputSource.new string_reader
+            document_builder_factory = DocumentBuilderFactory.newInstance
+            document_builder = document_builder_factory.newDocumentBuilder
+            XML_Document.Value (document_builder.parse input_source)
 
     ## PRIVATE
     Value (java_document:Document)
