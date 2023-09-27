@@ -23,10 +23,7 @@ spec =
                 doc.root_element.name . should_equal "class"
 
         Test.specify "Can read from a string" <|
-            la = enso_project.data / "xml" / "sample.xml"
-            IO.println 'LLL'
-            IO.println la
-            xml_string = enso_project.data / "xml" / "sample.xml" . read_text
+            xml_string = enso_project.data/"xml"/"sample.xml" . read_text
             doc = XML_Document.from_string xml_string
             doc.root_element.name . should_equal "class"
 
