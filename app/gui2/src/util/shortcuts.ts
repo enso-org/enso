@@ -1,9 +1,5 @@
 import { isMacLike } from './events'
 
-// This file MUST be a `.tsx` file so that Tailwind includes the CSS classes used here.
-
-/* eslint-disable @typescript-eslint/naming-convention */
-
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
 
@@ -84,6 +80,7 @@ const allKeys = [
   'Enter',
   'Backspace',
   'Delete',
+  'OsBackspace', // `Delete` on macOS, `Backspace` on all other platforms.
   'Tab',
   'ArrowUp',
   'ArrowDown',
@@ -182,6 +179,8 @@ type KeybindSegment = Modifier | Pointer | Key
 const normalizedKeyboardSegmentLookup = Object.fromEntries<KeybindSegment | undefined>(
   [...allModifiers, ...allPointers, ...allKeys].map((entry) => [entry.toLowerCase(), entry]),
 )
+normalizedKeyboardSegmentLookup[''] = '+'
+normalizedKeyboardSegmentLookup['osbackspace'] = isMacLike ? 'Delete' : 'Backspace'
 type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
 }
@@ -340,12 +339,11 @@ function decomposeKeybindString(string: string): ModifierStringDecomposition {
   const parts = string
     .trim()
     .split(/[\s+]+/)
-    .map((part) => normalizedKeyboardSegmentLookup[part] ?? part)
+    .map((part) => normalizedKeyboardSegmentLookup[part.toLowerCase()] ?? part)
   const modifiers = parts.filter(isModifier)
   const key = parts.find((part) => !isModifier(part))
   return {
-    // If the key is blank, assume it was a `+` that was removed by the splitting regex.
-    key: key === '' ? '+' : key ?? '',
+    key: key ?? '',
     modifiers,
   }
 }
@@ -391,10 +389,45 @@ interface Mousebind {
   modifierFlags: ModifierFlags
 }
 
-// =================
-// === Constants ===
-// =================
-
-// FIXME [sb]: This should be present in the keybinds too, just like `Mod`.
-/** The key known as the `Delete` key for the current platform. */
-const delete_ = isMacLike ? 'Backspace' : 'Delete'
+if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest
+  test.each([
+    // `+`
+    { keybind: 'Mod++', expected: { modifiers: ['Mod'], key: '+' } },
+    // `+` and capitalization
+    { keybind: 'mod++', expected: { modifiers: ['Mod'], key: '+' } },
+    {
+      keybind: 'Mod+Alt+Shift+PointerMain',
+      expected: { modifiers: ['Mod', 'Alt', 'Shift'], key: 'PointerMain' },
+    },
+    // Misspelling. Assume it is an unknown key
+    {
+      keybind: 'shift+Alt+Mode+PointerMain',
+      expected: { modifiers: ['Shift', 'Alt'], key: 'Mode' },
+    },
+    // Capitalization
+    {
+      keybind: 'meta+shift+alt+mod+pointermain',
+      expected: { modifiers: ['Meta', 'Shift', 'Alt', 'Mod'], key: 'PointerMain' },
+    },
+    // Repeated keys
+    {
+      keybind: 'A+A+A+A+A+A+A+A+A+A+A+A+A+A',
+      expected: { modifiers: [], key: 'A' },
+    },
+    {
+      keybind: 'mod++++++++++++++++',
+      expected: { modifiers: ['Mod'], key: '+' },
+    },
+    // Misc tests
+    {
+      keybind: 'osbACKspACE',
+      // The specific key is OS-dependent. Look it up in the samee lookup used by
+      // `decomposeKeybindString` so that it is guaranteed to be the right key on all systems.
+      expected: { modifiers: [], key: normalizedKeyboardSegmentLookup['osbackspace'] },
+    },
+  ])('Parsing should work correctly', ({ keybind, expected }) => {
+    const decomposed = decomposeKeybindString(keybind)
+    expect(decomposed).toEqual(expected)
+  })
+}
