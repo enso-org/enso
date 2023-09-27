@@ -241,11 +241,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by
-                // `ProjectNameColumn`. `deleteMultiple` and `downloadSelected` are handled by
-                // `AssetRow`.
+                // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple` and `downloadSelected`
+                // are handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.openProject: {

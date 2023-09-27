@@ -57,6 +57,7 @@ export default function ForgotPassword() {
                                     id="email"
                                     type="email"
                                     name="email"
+                                    autoComplete="email"
                                     placeholder="E-Mail Address"
                                     value={email}
                                     setValue={setEmail}
