@@ -37,7 +37,7 @@ Text.to_uri self = URI.parse self
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-URI.fetch self method=HTTP_Method.Get headers=[] try_auto_parse=True =
+URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse=True =
     Data.fetch self method headers try_auto_parse
 
 ## ALIAS upload, http post

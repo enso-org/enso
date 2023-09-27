@@ -7,13 +7,12 @@ import project.Data.Vector.Builder as Vector_Builder
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
+import project.Internal.Time.Format.Tokenizer.Format_Token
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-
-import project.Internal.Time.Format.Tokenizer.Format_Token
 
 ## PRIVATE
 type Text_Representation
