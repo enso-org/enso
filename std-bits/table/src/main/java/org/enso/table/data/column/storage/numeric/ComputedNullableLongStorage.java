@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.index.Index;
@@ -7,13 +9,11 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
 
-import java.util.BitSet;
-import java.util.List;
-
 /**
  * Implements a storage that computes the ith stored value using some function.
  *
- * <p>This storage allows for missing values. Prefer {@link ComputedLongStorage} for non-nullable case.
+ * <p>This storage allows for missing values. Prefer {@link ComputedLongStorage} for non-nullable
+ * case.
  */
 public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   protected final int size;

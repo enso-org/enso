@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -24,8 +25,6 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
-
-import java.util.BitSet;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long> {
   public abstract long getItem(int idx);
@@ -87,17 +86,15 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   @Override
   public StorageType inferPreciseTypeShrunk() {
-    // If the type is already smallest possible, we return it unchanged (we will return 8-bit columns as-is, although
+    // If the type is already smallest possible, we return it unchanged (we will return 8-bit
+    // columns as-is, although
     // we will not shrink 16-bit columns to 8-bits even if it were possible).
     if (getType().bits().toInteger() <= 16) {
       return getType();
     }
 
-    IntegerType[] possibleTypes = new IntegerType[] {
-        IntegerType.INT_16,
-        IntegerType.INT_32,
-        IntegerType.INT_64
-    };
+    IntegerType[] possibleTypes =
+        new IntegerType[] {IntegerType.INT_16, IntegerType.INT_32, IntegerType.INT_64};
 
     int currentTypeIdx = 0;
     int n = size();

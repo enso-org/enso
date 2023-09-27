@@ -435,18 +435,20 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     final DoubleStorage parent = this;
 
     // We create a Long storage that gets values by converting our storage.
-    ComputedNullableLongStorage longAdapter = new ComputedNullableLongStorage(size) {
-      @Override
-      protected Long computeItem(int idx) {
-        if (parent.isNa(idx)) {
-          return null;
-        }
+    ComputedNullableLongStorage longAdapter =
+        new ComputedNullableLongStorage(size) {
+          @Override
+          protected Long computeItem(int idx) {
+            if (parent.isNa(idx)) {
+              return null;
+            }
 
-        double value = parent.getItem(idx);
-        assert value % 1.0 == 0.0 : "The value " + value + " should be a whole number (guaranteed by checks).";
-        return (long) value;
-      }
-    };
+            double value = parent.getItem(idx);
+            assert value % 1.0 == 0.0
+                : "The value " + value + " should be a whole number (guaranteed by checks).";
+            return (long) value;
+          }
+        };
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();

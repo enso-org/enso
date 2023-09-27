@@ -120,7 +120,8 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
         }
       }
 
-      inferredType = (allFitInLong && visitedCount > 0) ? IntegerType.INT_64 : BigIntegerType.INSTANCE;
+      inferredType =
+          (allFitInLong && visitedCount > 0) ? IntegerType.INT_64 : BigIntegerType.INSTANCE;
     }
 
     return inferredType;
@@ -143,17 +144,18 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
     final BigIntegerStorage parent = this;
 
     // We create a Long storage that gets values by converting our storage.
-    ComputedNullableLongStorage longAdapter = new ComputedNullableLongStorage(size) {
-      @Override
-      protected Long computeItem(int idx) {
-        BigInteger bigInteger = parent.getItem(idx);
-        if (bigInteger == null) {
-          return null;
-        }
+    ComputedNullableLongStorage longAdapter =
+        new ComputedNullableLongStorage(size) {
+          @Override
+          protected Long computeItem(int idx) {
+            BigInteger bigInteger = parent.getItem(idx);
+            if (bigInteger == null) {
+              return null;
+            }
 
-        return bigInteger.longValueExact();
-      }
-    };
+            return bigInteger.longValueExact();
+          }
+        };
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();

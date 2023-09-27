@@ -114,7 +114,8 @@ public final class MixedStorage extends ObjectStorage {
       return AnyObjectType.INSTANCE;
     }
 
-    // If we are able to get a more specialized storage for more specific type - we delegate to its own shrinking logic.
+    // If we are able to get a more specialized storage for more specific type - we delegate to its
+    // own shrinking logic.
     return specialized.inferPreciseTypeShrunk();
   }
 
