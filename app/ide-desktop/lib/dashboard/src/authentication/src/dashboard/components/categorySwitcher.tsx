@@ -7,6 +7,9 @@ import RootIcon from 'enso-assets/root.svg'
 import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import * as localStorageModule from '../localStorage'
+import * as localStorageProvider from '../../providers/localStorage'
+
 import SvgMask from '../../authentication/components/svgMask'
 
 // ============================
@@ -19,32 +22,33 @@ interface InternalCategorySwitcherItemProps {
     active?: boolean
     /** When true, the button is not clickable. */
     disabled?: boolean
+    /** A title that is only shown when `disabled` is true. */
+    hidden: boolean
     image: string
     name: string
-    /** A title that is only shown when `disabled` is true. */
-    error?: string | null
     iconClassName?: string
     onClick: () => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-    const { active = false, disabled = false, image, name, error, iconClassName, onClick } = props
+    const { active = false, disabled = false, hidden, image, name, iconClassName, onClick } = props
     return (
         <div
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`flex items-center rounded-full gap-2 h-8 px-2 ${
-                active ? 'bg-frame-selected' : 'text-not-selected'
-            } ${disabled ? '' : 'cursor-pointer hover:opacity-100'} ${
-                !active && disabled ? 'cursor-not-allowed' : ''
-            }`}
+            className={`group flex items-center rounded-full gap-2 h-8 px-2 ${
+                hidden ? 'hidden' : ''
+            } ${active ? 'bg-frame-selected' : 'text-not-selected'} ${
+                disabled
+                    ? ''
+                    : 'hover:text-primary hover:bg-frame-selected cursor-pointer hover:opacity-100'
+            } ${!active && disabled ? 'cursor-not-allowed' : ''}`}
             {...(disabled ? {} : { onClick })}
         >
             <SvgMask
                 src={image}
                 className={`${active ? 'text-icon-selected' : 'text-icon-not-selected'} ${
-                    iconClassName ?? ''
-                }`}
+                    disabled ? '' : 'group-hover:text-icon-selected'
+                } ${iconClassName ?? ''}`}
             />
             <span>{name}</span>
         </div>
@@ -55,8 +59,62 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 // === CategorySwitcher ===
 // ========================
 
+/** The categories available in the category switcher. */
+export enum Category {
+    recent = 'Recent',
+    drafts = 'Drafts',
+    home = 'Home',
+    root = 'Root',
+    trash = 'Trash',
+}
+
+const CATEGORIES: Category[] = [
+    Category.recent,
+    Category.drafts,
+    Category.home,
+    Category.root,
+    Category.trash,
+]
+
+const IS_NOT_YET_IMPLEMENTED: Record<Category, boolean> = {
+    [Category.recent]: false,
+    [Category.drafts]: true,
+    [Category.home]: false,
+    [Category.root]: true,
+    [Category.trash]: false,
+}
+
+const CATEGORY_ICONS: Record<Category, string> = {
+    [Category.recent]: RecentIcon,
+    [Category.drafts]: TempIcon,
+    [Category.home]: Home2Icon,
+    [Category.root]: RootIcon,
+    [Category.trash]: Trash2Icon,
+}
+
+const CATEGORY_CLASS_NAMES: Record<Category, string> = {
+    [Category.recent]: '-ml-0.5',
+    [Category.drafts]: '-ml-0.5',
+    [Category.home]: '',
+    [Category.root]: '',
+    [Category.trash]: '',
+} as const
+
+/** Props for a {@link CategorySwitcher}. */
+export interface CategorySwitcherProps {
+    category: Category
+    setCategory: (category: Category) => void
+}
+
 /** A switcher to choose the currently visible assets table category. */
-export default function CategorySwitcher() {
+export default function CategorySwitcher(props: CategorySwitcherProps) {
+    const { category, setCategory } = props
+    const { localStorage } = localStorageProvider.useLocalStorage()
+
+    React.useEffect(() => {
+        localStorage.set(localStorageModule.LocalStorageKey.driveCategory, category)
+    }, [category, /* should never change */ localStorage])
+
     return (
         <div className="flex flex-col items-start w-30">
             <div className="pl-2 pb-1.5">
@@ -64,54 +122,20 @@ export default function CategorySwitcher() {
                     Category
                 </span>
             </div>
-            <CategorySwitcherItem
-                disabled
-                image={RecentIcon}
-                name="Recent"
-                error="Not implemented yet."
-                iconClassName="-ml-0.5"
-                onClick={() => {
-                    // No backend support yet.
-                }}
-            />
-            <CategorySwitcherItem
-                disabled
-                image={TempIcon}
-                name="Drafts"
-                error="Not implemented yet."
-                iconClassName="-ml-0.5"
-                onClick={() => {
-                    // No backend support yet.
-                }}
-            />
-            <CategorySwitcherItem
-                active
-                disabled
-                image={Home2Icon}
-                name="Home"
-                onClick={() => {
-                    // Not implemented yet - waiting on implementation details to determine how to
-                    // switch back to the home category.
-                }}
-            />
-            <CategorySwitcherItem
-                disabled
-                image={RootIcon}
-                name="Root"
-                error="Not implemented yet."
-                onClick={() => {
-                    // No backend support yet.
-                }}
-            />
-            <CategorySwitcherItem
-                disabled
-                image={Trash2Icon}
-                name="Trash"
-                error="Not implemented yet."
-                onClick={() => {
-                    // No backend support yet.
-                }}
-            />
+            {CATEGORIES.map(currentCategory => (
+                <CategorySwitcherItem
+                    key={currentCategory}
+                    active={category === currentCategory}
+                    disabled={category === currentCategory}
+                    hidden={IS_NOT_YET_IMPLEMENTED[currentCategory]}
+                    image={CATEGORY_ICONS[currentCategory]}
+                    name={currentCategory}
+                    iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
+                    onClick={() => {
+                        setCategory(currentCategory)
+                    }}
+                />
+            ))}
         </div>
     )
 }

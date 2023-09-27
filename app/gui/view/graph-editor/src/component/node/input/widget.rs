@@ -1651,7 +1651,7 @@ impl<'a> TreeBuilder<'a> {
         let ptr_usage = self.pointer_usage.entry(main_ptr).or_default();
         let widget_id = main_ptr.to_identity(ptr_usage);
 
-        let is_placeholder = span_node.is_expected_argument();
+        let is_placeholder = span_node.is_expected_argument() || span_node.is_expected_operand();
         let sibling_offset = span_node.sibling_offset.as_usize();
         let usage_type = span_node.ast_id.and_then(|id| self.usage_type_map.get(&id)).cloned();
 

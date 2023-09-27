@@ -31,7 +31,7 @@ public interface DoubleArrayAdapter {
       case DoubleStorage s -> fromStorage(s);
       case AbstractLongStorage s -> fromStorage(s);
       case BigIntegerStorage s -> fromStorage(s);
-      case default -> throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
+      default -> throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
     };
   }
 

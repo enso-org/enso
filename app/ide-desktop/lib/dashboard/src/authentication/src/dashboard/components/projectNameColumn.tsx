@@ -13,6 +13,7 @@ import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
+import * as permissions from '../permissions'
 import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
@@ -41,6 +42,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         rowState,
         setRowState,
         state: {
+            numberOfSelectedItems,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
@@ -66,7 +68,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const canExecute =
         backend.type === backendModule.BackendType.local ||
         (ownPermission != null &&
-            backendModule.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
+            permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
     const isOtherUserUsingProject =
         backend.type !== backendModule.BackendType.local &&
         asset.projectState.opened_by != null &&
@@ -98,10 +100,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
+                // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.newProject: {
@@ -244,7 +248,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (
                     !isRunning &&
                     eventModule.isSingleClick(event) &&
-                    (selected ||
+                    ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({

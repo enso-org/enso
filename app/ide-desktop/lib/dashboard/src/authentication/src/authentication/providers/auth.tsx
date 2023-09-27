@@ -108,7 +108,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  * signing out, etc. All interactions with the authentication API should be done through this
  * interface.
  *
- * See {@link Cognito} for details on each of the authentication functions. */
+ * See {@link cognito.Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
     goOffline: (shouldShowToast?: boolean) => Promise<boolean>
     signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
@@ -492,7 +492,7 @@ export function AuthProvider(props: AuthProviderProps) {
         deinitializeSession()
         setInitialized(false)
         setUserSession(null)
-        localStorage.clear()
+        localStorage.clearUserSpecificEntries()
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
         await toast.toast.promise(cognito.signOut(), {

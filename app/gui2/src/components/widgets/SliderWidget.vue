@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import { PointerButtonMask, usePointer } from '@/util/events'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{ modelValue: number; min: number; max: number }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: number] }>()

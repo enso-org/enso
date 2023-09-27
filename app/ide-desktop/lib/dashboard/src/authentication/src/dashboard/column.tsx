@@ -17,11 +17,13 @@ import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
+import * as permissions from './permissions'
 import * as sorting from './sorting'
 import * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
 
 import * as assetsTable from './components/assetsTable'
+import * as categorySwitcher from './components/categorySwitcher'
 import AssetNameColumn from './components/assetNameColumn'
 import ManagePermissionsModal from './components/managePermissionsModal'
 import PermissionDisplay from './components/permissionDisplay'
@@ -109,7 +111,7 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.docs]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
 } as const
 
-/** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
+/** {@link tableColumn.TableColumnProps} for an unknown variant of {@link backend.Asset}. */
 export type AssetColumnProps = tableColumn.TableColumnProps<
     assetTreeNode.AssetTreeNode,
     assetsTable.AssetsTableState,
@@ -156,7 +158,7 @@ function SharedWithColumn(props: AssetColumnProps) {
     const {
         item: { item },
         setItem,
-        state: { dispatchAssetEvent },
+        state: { category, dispatchAssetEvent },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -165,8 +167,9 @@ function SharedWithColumn(props: AssetColumnProps) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        self?.permission === backend.PermissionAction.own ||
-        self?.permission === backend.PermissionAction.admin
+        category !== categorySwitcher.Category.trash &&
+        (self?.permission === permissions.PermissionAction.own ||
+            self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
         (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {

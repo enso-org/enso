@@ -5,8 +5,6 @@ import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as load from '../load'
 
-import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { type: 'yaml' }
-
 // =================
 // === Constants ===
 // =================
@@ -114,15 +112,10 @@ export default function Editor(props: EditorProps) {
                         }
                     }
                     const runNewProject = async () => {
-                        const engineConfig =
-                            backendType === backendModule.BackendType.remote
-                                ? {
-                                      rpcUrl: jsonAddress,
-                                      dataUrl: binaryAddress,
-                                  }
-                                : {
-                                      projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
-                                  }
+                        const engineConfig = {
+                            rpcUrl: jsonAddress,
+                            dataUrl: binaryAddress,
+                        }
                         const originalUrl = window.location.href
                         if (backendType === backendModule.BackendType.remote) {
                             // The URL query contains commandline options when running in the desktop,

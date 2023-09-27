@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2015", "DOM"],
     "skipLibCheck": false
   },
   "extends": "../../tsconfig.json"

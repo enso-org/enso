@@ -1,7 +1,4 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
-
-name: Enso Language Support for IGV
+name: Enso Language Support for VSCode, IGV, NetBeans
 
 on:
   push:
@@ -30,7 +27,7 @@ jobs:
       - name: Update project version
         working-directory: tools/enso4igv
         run: |
-          mvn versions:set -DnewVersion=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`.$GITHUB_RUN_NUMBER
+          mvn versions:set -DnewVersion=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`.`expr $GITHUB_RUN_NUMBER - 1666`
 
       - name: Build with Maven
         run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml
@@ -43,5 +40,14 @@ jobs:
       - name: Install Node.js modules
         run: mvn -B -Pvsix npm:install --file tools/enso4igv/pom.xml
 
+      - name: Update package.json version
+        run: mvn -B -Pvsix npm:exec@version --file tools/enso4igv/pom.xml
+
       - name: Build VSCode Extension
         run: mvn -B -Pvsix npm:run@vsix --file tools/enso4igv/pom.xml
+
+      - name: Archive VSCode extension
+        uses: actions/upload-artifact@v3
+        with:
+          name: VSCode Extension
+          path: tools/enso4igv/*.vsix

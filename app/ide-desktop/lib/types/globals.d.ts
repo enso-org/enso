@@ -3,7 +3,7 @@
  * monkeypatching on `window` and generated code. */
 // This file is being imported for its types.
 // eslint-disable-next-line no-restricted-syntax
-import * as buildJson from './build.json' assert { type: 'json' }
+import * as buildJson from './../../build.json' assert { type: 'json' }
 
 // =============
 // === Types ===
@@ -81,6 +81,7 @@ declare global {
             /* eslint-disable @typescript-eslint/naming-convention */
             APPLEID?: string
             APPLEIDPASS?: string
+            CLOUD_ENV?: 'npekin' | 'pbuchu' | 'production'
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }

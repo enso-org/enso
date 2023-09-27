@@ -77,7 +77,9 @@ $(function () {
             $(this)
                 .children('.ignore')
                 .on('click', makeHandler(this, data, 'copyright-ignore', 'add'))
-            $(this).children('.keep').on('click', makeHandler(this, data, 'copyright-keep', 'add'))
+            $(this)
+                .children('.keep')
+                .on('click', makeHandler(this, data, 'copyright-keep', 'add'))
             if (contexts == 1) {
                 $(this)
                     .children('.keepctx')
@@ -112,8 +114,12 @@ $(function () {
             var buttons =
                 '<button class="ignore">Ignore</button>' + '<button class="keep">Keep</button>'
             $(this).html(buttons)
-            $(this).children('.ignore').on('click', makeHandler(this, data, 'files-ignore', 'add'))
-            $(this).children('.keep').on('click', makeHandler(this, data, 'files-keep', 'add'))
+            $(this)
+                .children('.ignore')
+                .on('click', makeHandler(this, data, 'files-ignore', 'add'))
+            $(this)
+                .children('.keep')
+                .on('click', makeHandler(this, data, 'files-keep', 'add'))
         } else if (status != 'Added') {
             $(this).html('<button>Undo review</button>')
             $(this)

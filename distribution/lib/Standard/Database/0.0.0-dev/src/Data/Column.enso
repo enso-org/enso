@@ -1522,8 +1522,8 @@ type Column
     ## GROUP Standard.Base.Conversions
        Formatting values is not supported in database columns.
     @locale Locale.default_widget
-    format : Text | Column -> Locale -> Column ! Illegal_Argument
-    format self format=Nothing locale=Locale.default =
+    format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
+    format self (format : Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default =
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 

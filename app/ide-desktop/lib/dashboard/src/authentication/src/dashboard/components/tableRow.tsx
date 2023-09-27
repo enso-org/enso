@@ -41,7 +41,7 @@ export type TableRowInnerProps<
     T,
     State = never,
     RowState = never,
-    Key extends string = string
+    Key extends string = string,
 > = InternalTableRowInnerProps<T, Key> &
     ([RowState] extends never ? unknown : InternalTableRowStateProps<RowState>) &
     ([State] extends never ? unknown : StateProp<State>)
@@ -75,7 +75,7 @@ export type TableRowProps<
     T,
     State = never,
     TableRowState = never,
-    Key extends string = string
+    Key extends string = string,
 > = InternalBaseTableRowProps<T, State, TableRowState, Key> &
     ([State] extends [never] ? unknown : StateProp<State>) &
     ([TableRowState] extends [never] ? unknown : InitialRowStateProp<TableRowState>)
