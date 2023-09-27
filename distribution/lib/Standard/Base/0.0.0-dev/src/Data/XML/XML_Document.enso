@@ -11,36 +11,31 @@ polyglot java import org.w3c.dom.Document
 polyglot java import org.w3c.dom.Element
 
 type XML_Document
-    read_file : File -> XML_Document ! File_Error
-    read_file file =
-        file.with_input_stream [File_Access.Read] XML_Document.read_stream
+    ## Read an XML document from a file.
 
-    read_stream : Input_Stream -> XML_Document ! File_Error
-    read_stream input_stream =
+       Arguments:
+       - file: the `File` to read the XML document from
+    from_file : File -> XML_Document ! File_Error
+    from_file file =
+        File_Error.handle_java_exceptions file <|
+            file.with_input_stream [File_Access.Read] XML_Document.from_stream
+
+    from_stream : Input_Stream -> XML_Document ! File_Error
+    from_stream input_stream =
         input_stream.with_java_stream java_stream->
             document_builder_factory = DocumentBuilderFactory.newInstance
             document_builder = document_builder_factory.newDocumentBuilder
             XML_Document.Value (document_builder.parse java_stream)
 
+    #from_string : Text -> XML_Document ! XML_Parse_Error
+
     ## PRIVATE
     Value (java_document:Document)
-
-    ##
-        ## Static methods
-        from_file : Text -> XML_Document ! XML_Parse_Error
-        from_string : Text -> XML_Document ! XML_Parse_Error
 
     root_element : XML_Element
     root_element self =
         java_element = self.java_document.getDocumentElement
-        IO.println 'BBB'
-        IO.println self
-        IO.println self.java_document
-        IO.println self.java_document.getDocumentElement
         self.java_document.getDocumentElement.normalize
-        IO.println self
-        IO.println self.java_document
-        IO.println self.java_document.getDocumentElement
         XML_Element.Value java_element
 
 ##
@@ -60,14 +55,14 @@ type XML_Element
     ## PRIVATE
     Value (java_element:Element)
 
+    ## Gets a map of the attributes of an xml element.
+
+       Example:
+           XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attributes
+           # => Map.from_vector [["bar", "one"]]
+    #attributes : Map Text Text
+
     ##
-
-        ## Gets a map of the attributes of an xml element.
-
-           Example:
-               XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attributes
-               # => Map.from_vector [["bar", "one"]]
-        attributes : Map Text Text
 
         ## Gets the child nodes of an xml element.
 

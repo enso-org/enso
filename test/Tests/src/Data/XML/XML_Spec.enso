@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Syntax_Error
+import Standard.Base.Errors.File_Error.File_Error
 
 import Standard.Base.Data.XML.XML_Document.XML_Document
 
@@ -8,22 +9,35 @@ import Standard.Test.Extensions
 
 spec =
     Test.group "Read XML" <|
-        Test.specify "Can read from a stream" <|
+        Test.specify "Can read from a file" <|
             test_file = enso_project.data / "xml" / "sample.xml"
-            doc = XML_Document.read_file test_file
-            IO.println doc
-            IO.println (Meta.get_simple_type_name doc)
-            root = doc.root_element
-            IO.println root
-            IO.println (Meta.get_simple_type_name root)
-            IO.println root.name
-            root.name . should_equal "class"
-            #IO.println (doc.getDocumentElement)
-            #IO.println (doc.getDocumentElement.getNodeName)
-            #doc.getDocumentElement.normalize
-            #IO.println (doc.getDocumentElement)
-            #IO.println (doc.getDocumentElement.getNodeName)
-            #teachers = doc.get_elements_by_tag_name "teacher"
-            #IO.println teachers
+            doc = XML_Document.from_file test_file
+            doc.root_element.name . should_equal "class"
+
+        Test.specify "Error if file does not exist" <|
+            test_file = enso_project.data / "xml" / "sample.xmlnotexists"
+            XML_Document.from_file test_file . should_fail_with File_Error
+
+        # stream ioexc
+        # stream parse error
+
+        ##
+            Test.specify "Can read from a stream" <|
+                test_file = enso_project.data / "xml" / "sample.xml"
+                doc = XML_Document.from_file test_file
+                IO.println doc
+                IO.println (Meta.get_simple_type_name doc)
+                root = doc.root_element
+                IO.println root
+                IO.println (Meta.get_simple_type_name root)
+                IO.println root.name
+                root.name . should_equal "class"
+                #IO.println (doc.getDocumentElement)
+                #IO.println (doc.getDocumentElement.getNodeName)
+                #doc.getDocumentElement.normalize
+                #IO.println (doc.getDocumentElement)
+                #IO.println (doc.getDocumentElement.getNodeName)
+                #teachers = doc.get_elements_by_tag_name "teacher"
+                #IO.println teachers
 
 main = Test_Suite.run_main spec
