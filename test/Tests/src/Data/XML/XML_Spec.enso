@@ -26,7 +26,6 @@ spec =
 
         Test.specify "Parse error" <|
             test_file = enso_project.data / "sample.txt"
-            #XML_Document.from_file test_file . should_fail_with XML_Error
             XML_Document.from_file test_file . catch . should_be_a XML_Error.Parse_Error
 
         # stream ioexc

@@ -131,6 +131,13 @@ type XML_Error
     Other (error : Text)
 
     ## PRIVATE
+       Convert the XML_Error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = case self of
+        XML_Error.Parse_Error line_number column_number -> "The XML could not be parsed at line " + line_number.to_text + ", column " + column_number.to_text
+        XML_Error.Other error -> error
+
+    ## PRIVATE
 
        Utility method for running an action with Java exceptions mapping.
     handle_java_exceptions ~action =
