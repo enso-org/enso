@@ -186,6 +186,10 @@ spec =
             str.get 1 . should_equal facepalm
             str.get 2 . should_equal accent_1
             str.get 3 . should_equal accent_2
+            str.get_position 0 . should_equal 0
+            str.get_position 1 . should_equal 1
+            str.get_position 2 . should_equal 2
+            str.get_position 3 . should_equal 3
             str.first . should_equal kshi
             str.second . should_equal facepalm
             str.last . should_equal accent_2
@@ -200,6 +204,10 @@ spec =
             str.get -3 . should_equal facepalm
             str.get -2 . should_equal accent_1
             str.get -1 . should_equal accent_2
+            str.get_position -4 . should_equal 0
+            str.get_position -3 . should_equal 1
+            str.get_position -2 . should_equal 2
+            str.get_position -1 . should_equal 3
 
         Test.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
@@ -210,6 +218,9 @@ spec =
             str.get -5 . should_equal Nothing
             str.get 4 . should_equal Nothing
             str.get -5 "?" . should_equal "?"
+            str.get_position -5 . should_equal Nothing
+            str.get_position 4 . should_equal Nothing
+            str.get_position -5 "?" . should_equal "?"
             "".first.should_fail_with Index_Out_Of_Bounds
             "".second.should_fail_with Index_Out_Of_Bounds
             "".last.should_fail_with Index_Out_Of_Bounds
@@ -1647,5 +1658,18 @@ spec =
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Sensitive . should_equal "Ab"
             "aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
+    Test.group "Text.substring" <|
+        Test.specify "should work with all examples" <|
+            "Hello World!".substring 3 2 . should_equal "lo"
+            "Hello World!".substring 5 . should_equal " World!"
+            "Hello World!".substring 5 7 . should_equal " World!"
+            "Hello World!".substring -7 3 . should_equal " Wo"
+
+        Test.specify "should error on length 0 or less" <|
+            "Hello World!".substring 5 0 . should_fail_with Illegal_Argument
+            "Hello World!".substring 5 -2 . should_fail_with Illegal_Argument
+
+        Test.specify "should error if negative start index is too large"
+            "Hello World!".substring -20 5 . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main spec
