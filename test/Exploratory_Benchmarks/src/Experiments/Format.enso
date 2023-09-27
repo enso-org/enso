@@ -1,0 +1,30 @@
+from Standard.Base import all
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 2 5)
+
+
+type Data
+    Value ~vec
+
+    create =
+        Data.Value create_date_vector
+
+create_date_vector =
+    base = Date.new 1999 1 1
+    n = 10000
+    Vector.new n i->
+        base.date_add i Date_Period.Day
+
+collect_benches = Bench.build builder->
+    data = Data.create
+
+    builder.group "Format_Vector_Of_Dates" options group_builder->
+        group_builder.specify "Naive" <|
+            data.vec.map d-> d.format "dd.MM.yyyy"
+        group_builder.specify "Prepared_Formatter" <|
+            formatter = Date_Time_Formatter.from "dd.MM.yyyy"
+            data.vec.map d-> d.format formatter
+
+main = collect_benches . run_main
