@@ -1,6 +1,7 @@
 import { defineKeybinds } from '@/util/shortcuts'
 
 export const nodeBindings = defineKeybinds('node-selection', {
+  deleteSelected: ['Delete'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape'],
   replace: ['PointerMain'],

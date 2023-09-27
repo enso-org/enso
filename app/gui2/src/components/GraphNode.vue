@@ -12,13 +12,14 @@ import {
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useVisualizationStore, type Visualization } from '@/stores/visualization'
-import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
+import { keyboardBusy, useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 
 const props = defineProps<{
   node: Node
   selected: boolean
+  isLatestSelected: boolean
 }>()
 
 const emit = defineEmits<{
@@ -254,7 +255,6 @@ onUpdated(() => {
   }
 })
 
-const isCircularMenuVisible = ref(false)
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
@@ -267,16 +267,6 @@ const queuedVisualizationData = computed<{}>(() =>
 )
 const visualizationData = ref<{}>({})
 
-function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
-  return (
-    !(event.target instanceof HTMLElement) ||
-    !rootNode.value?.contains(event.target) ||
-    event.target.isContentEditable ||
-    event.target instanceof HTMLInputElement ||
-    event.target instanceof HTMLTextAreaElement
-  )
-}
-
 const visualizationConfig = ref<VisualizationConfig>({
   fullscreen: false,
   types: visualizationStore.types,
@@ -288,7 +278,7 @@ const visualizationConfig = ref<VisualizationConfig>({
   updateType(type) {
     visualizationType.value = type
   },
-  isCircularMenuVisible: isCircularMenuVisible.value,
+  isCircularMenuVisible: props.isLatestSelected,
   get nodeSize() {
     return nodeSize.value
   },
@@ -296,7 +286,7 @@ const visualizationConfig = ref<VisualizationConfig>({
 provideVisualizationConfig(visualizationConfig)
 
 useDocumentEvent('keydown', (event) => {
-  if (isInputEvent(event)) {
+  if (keyboardBusy()) {
     return
   }
   if (event.key === ' ') {
@@ -326,20 +316,6 @@ watchEffect(async (onCleanup) => {
     }
   }
 })
-
-function onBlur(event: FocusEvent) {
-  if (!(event.relatedTarget instanceof Node) || !rootNode.value?.contains(event.relatedTarget)) {
-    isCircularMenuVisible.value = false
-  }
-}
-
-function onExpressionClick(event: Event) {
-  if (isInputEvent(event)) {
-    return
-  }
-  rootNode.value?.focus()
-  isCircularMenuVisible.value = true
-}
 
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
@@ -389,14 +365,12 @@ const dragPointer = usePointer((pos, event, type) => {
     class="GraphNode"
     :style="{ transform }"
     :class="{ dragging: dragPointer.dragging, selected }"
-    @focus="isCircularMenuVisible = true"
-    @blur="onBlur"
   >
     <div class="binding" @pointerdown.stop>
       {{ node.binding }}
     </div>
     <CircularMenu
-      v-if="isCircularMenuVisible"
+      v-if="isLatestSelected"
       v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
       v-model:is-docs-visible="isDocsVisible"
       v-model:is-visualization-visible="isVisualizationVisible"
@@ -408,7 +382,7 @@ const dragPointer = usePointer((pos, event, type) => {
       @update:preprocessor="updatePreprocessor"
       @update:type="visualizationType = $event"
     />
-    <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">
+    <div class="node" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" name="number_input"></SvgIcon>
       <div
         ref="editableRootNode"
@@ -416,8 +390,6 @@ const dragPointer = usePointer((pos, event, type) => {
         contenteditable
         spellcheck="false"
         @beforeinput="editContent"
-        @focus="isCircularMenuVisible = true"
-        @blur="onBlur"
         @pointerdown.stop
       >
         <NodeSpan

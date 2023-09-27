@@ -42,6 +42,7 @@ const componentBrowserPosition = ref(Vec2.Zero())
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
 const selectedNodes = ref(new Set<ExprId>())
+const latestSelectedNode = ref<ExprId>()
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)
@@ -158,6 +159,11 @@ const graphBindingsHandler = graphBindings.keyboardHandler({
 })
 
 const nodeSelectionHandler = nodeBindings.keyboardHandler({
+  deleteSelected() {
+    for (const node of selectedNodes.value) {
+      graphStore.deleteNode(node)
+    }
+  },
   selectAll() {
     for (const id of graphStore.nodes.keys()) {
       selectedNodes.value.add(id)
@@ -246,8 +252,9 @@ const mouseHandler = nodeBindings.mouseHandler(
         :key="id"
         :node="node"
         :selected="selectedNodes.has(id)"
-        @update:selected="setSelected(id, $event)"
-        @replaceSelection="selectedNodes.clear(), selectedNodes.add(id)"
+        :is-latest-selected="id === latestSelectedNode"
+        @update:selected="setSelected(id, $event), $event && (latestSelectedNode = id)"
+        @replaceSelection="selectedNodes.clear(), selectedNodes.add(id), (latestSelectedNode = id)"
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
