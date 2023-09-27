@@ -1,10 +1,12 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
+import org.enso.interpreter.node.expression.builtin.error.AssertionError;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.After;
@@ -21,7 +23,7 @@ public class AssertionsTest extends TestBase {
   @BeforeClass
   public static void setupCtx() {
     ctx = TestBase.defaultContextBuilder(LanguageInfo.ID)
-        .option(RuntimeOptions.ENABLE_ASSERTIONS, "true")
+        .environment("ENSO_ENABLE_ASSERTIONS", "true")
         .out(out)
         .err(out)
         .build();
@@ -46,8 +48,30 @@ public class AssertionsTest extends TestBase {
       """);
       fail("Should throw Assertion_Error");
     } catch (PolyglotException e) {
-      // TODO: Investigate the exception
-      throw new RuntimeException(e);
+      assertTrue(e.getGuestObject().isException());
+      var panic = e.getGuestObject().as(PanicException.class);
+      assertTrue(panic.getPayload() instanceof AssertionError);
+      assertTrue(panic.getMessage().contains("Assertion Error"));
     }
+  }
+
+  @Test
+  public void assertionFailureDisplaysMessage() {
+
+  }
+
+  @Test
+  public void assertionFailureDisplaysStackTrace() {
+
+  }
+
+  @Test
+  public void assertionSuccessReturnsNothing() {
+
+  }
+
+  @Test
+  public void assertTakesForeignFunction() {
+    // TODO: Foreign function
   }
 }
