@@ -20,6 +20,7 @@ import org.enso.table.data.column.operation.map.numeric.isin.BigIntegerIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
@@ -95,5 +96,44 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
     }
 
     return cachedMaxPrecisionStored;
+  }
+
+  private StorageType inferredType = null;
+
+  @Override
+  public StorageType inferPreciseType() {
+    if (inferredType == null) {
+      boolean allFitInLong = true;
+      int visitedCount = 0;
+
+      for (int i = 0; i < size; i++) {
+        BigInteger value = data[i];
+        if (value == null) {
+          continue;
+        }
+
+        visitedCount++;
+        boolean fitsInLong = IntegerType.INT_64.fits(value);
+        if (!fitsInLong) {
+          allFitInLong = false;
+          break;
+        }
+      }
+
+      inferredType = (allFitInLong && visitedCount > 0) ? IntegerType.INT_64 : BigIntegerType.INSTANCE;
+    }
+
+    return inferredType;
+  }
+
+  @Override
+  public StorageType inferPreciseTypeShrunk() {
+    StorageType preciseType = inferPreciseType();
+    if (preciseType instanceof IntegerType) {
+      // TODO Try shrinking
+      return preciseType;
+    }
+
+    return preciseType;
   }
 }
