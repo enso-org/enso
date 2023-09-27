@@ -55,7 +55,7 @@ export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
 // eslint-disable-next-line no-restricted-syntax
 export function render(f: (message: string) => string): toastify.UpdateOptions {
     return {
-        render: ({ data }: toastify.ToastContentProps<unknown>) => f(getMessageOrToString(data)),
+        render: ({ data }) => f(getMessageOrToString(data)),
     }
 }
 

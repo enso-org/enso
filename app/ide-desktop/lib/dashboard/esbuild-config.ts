@@ -107,9 +107,7 @@ export function bundlerOptions(args: Arguments) {
             // The `dataurl` loader replaces the import with the file, as a data URL. Using the
             // `file` loader, which copies the file and replaces the import with the path.
             /* eslint-disable @typescript-eslint/naming-convention */
-            esbuildPluginInlineImage({
-                extensions: ['svg'],
-            }) as esbuild.Plugin,
+            esbuildPluginInlineImage({ extensions: ['svg'] }),
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginTime(),
             // This is not strictly needed because the cloud frontend does not use
