@@ -23,7 +23,7 @@ create_date_column =
    However, during development it may be useful to also compare a few more
    approaches as a baseline check - so they can be enabled manually by changing
    this flag.
-run_optional_benchmarks = True
+run_optional_benchmarks = False
 
 options = Bench.options . set_warmup (Bench.phase_conf 1 4) . set_measure (Bench.phase_conf 2 4)
 
