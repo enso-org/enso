@@ -225,9 +225,9 @@ class Type {
           case 'i32':
             return new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readI32, 4)
           case 'u64':
-            return new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readU64, 8)
+            return new Type(tsf.createTypeReferenceNode('bigint'), cursorMethods.readU64, 8)
           case 'i64':
-            return new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readI64, 8)
+            return new Type(tsf.createTypeReferenceNode('bigint'), cursorMethods.readI64, 8)
           case 'char':
             return new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readU32, 4)
           case 'string':

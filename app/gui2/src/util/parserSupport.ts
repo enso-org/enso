@@ -11,6 +11,8 @@ export class LazyObject {
   }
 }
 
+export type Result<T, E> = { Ok: T } | { Err: E }
+
 export const builtin = {
   Array: Array,
 } as const
@@ -45,14 +47,14 @@ export class Cursor {
     }
   }
 
-  readResult<Ok, Err>(readOk: (cursor: Cursor) => Ok, readErr: (cursor: Cursor) => Err): Ok | Err {
+  readResult<Ok, Err>(readOk: (cursor: Cursor) => Ok, readErr: (cursor: Cursor) => Err): Result<Ok, Err> {
     const data = this.readPointer()
     const discriminant = data.readU32()
     switch (discriminant) {
       case 0:
-        return readOk(data.seek(4))
+        return { Ok: readOk(data.seek(4)) }
       case 1:
-        return readErr(data.seek(4))
+        return { Err: readErr(data.seek(4)) }
       default:
         throw new Error(`Invalid Result discriminant: 0x${discriminant.toString(16)}.`)
     }
@@ -74,13 +76,12 @@ export class Cursor {
     return this.blob.getInt32(0, true)!
   }
 
-  readU64(): number {
-    const lo = this.readU32()
-    const hi = this.seek(4).readU32()
-    //if (hi !== 0) {
-    //  throw new RangeError()
-    //}
-    return lo
+  readU64(): bigint {
+    return this.blob.getBigUint64(0, true)!
+  }
+
+  readI64(): bigint {
+    return this.blob.getBigInt64(0, true)!
   }
 
   readBool(): boolean {
