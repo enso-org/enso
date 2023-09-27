@@ -749,13 +749,17 @@ spec setup =
             t2 = t1.auto_value_types shrink_types=False
             t2.at "mix" . value_type . should_equal Value_Type.Mixed
             t2.at "int" . value_type . should_equal Value_Type.Integer
+            ## Technically, if there are no elements, "all of elements" are
+               whole integers (quantification over empty domain is trivially true).
+               However, that would be rather not useful, so instead we keep the
+               original type.
             t2.at "float" . value_type . should_equal Value_Type.Float
             t2.at "str" . value_type . should_equal Value_Type.Char
 
             t3 = t1.auto_value_types shrink_types=True
             t3.at "mix" . value_type . should_equal Value_Type.Mixed
-            # Technically if there are no elements, then they can be fit inside of the smallest types available:
+            # Technically, if there are no elements, then they can be fit inside of the smallest types available:
             t3.at "int" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
-            t3.at "float" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t3.at "float" . value_type . should_equal Value_Type.Float
             # But for Text we make an exception and keep the type unbounded: 0-length fixed length string simply would not make any sense.
             t3.at "str" . value_type . should_equal (Value_Type.Char size=Nothing variable_length=True)

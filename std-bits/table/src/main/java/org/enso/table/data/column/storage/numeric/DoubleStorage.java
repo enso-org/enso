@@ -396,12 +396,14 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   public StorageType inferPreciseType() {
     if (inferredType == null) {
       boolean areAllIntegers = true;
+      int visitedNumbers = 0;
       for (int i = 0; i < size; i++) {
         if (isMissing.get(i)) {
           continue;
         }
 
         double value = Double.longBitsToDouble(data[i]);
+        visitedNumbers++;
         boolean isWholeNumber = value % 1.0 == 0.0;
         if (isWholeNumber && IntegerType.INT_64.fits(value)) {
           continue;
@@ -411,7 +413,8 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
         }
       }
 
-      inferredType = areAllIntegers ? IntegerType.INT_64 : getType();
+      // We only switch to integers if there was at least one number.
+      inferredType = (areAllIntegers && visitedNumbers > 0) ? IntegerType.INT_64 : getType();
     }
 
     return inferredType;
