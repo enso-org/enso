@@ -67,7 +67,6 @@ spec setup =
                 c.value_type.is_text . should_be_true
                 c.to_vector . should_equal ["{{{MY Type [x=42] }}}", "{{{MY Type [x=X] }}}"]
 
-            # TODO what to test here?
             Test.specify "should allow to cast an integer column to a decimal type" <|
                 t = table_builder [["X", [1, 2, 3]]]
                 c = t.at "X" . cast Value_Type.Decimal
@@ -115,6 +114,15 @@ spec setup =
                 c2.to_vector . should_equal ["15", "100", "123", "100", "100"]
                 w2 = Problems.expect_warning Conversion_Failure c2
                 w2.affected_rows_count . should_equal 4
+
+            Test.specify "should not allow 0-length Char type" <|
+                c1 = table_builder [["X", ["a", "", "bcd"]]] . at "X"
+                r1 = c1.cast (Value_Type.Char size=0 variable_length=False)
+                r1.should_fail_with Illegal_Argument
+                r1.catch.to_display_text . should_contain "positive"
+
+                r2 = c1.cast (Value_Type.Char size=0 variable_length=True)
+                r2.should_fail_with Illegal_Argument
 
     Test.group prefix+"Table/Column.cast - numeric" <|
         Test.specify "should allow to cast a boolean column to integer" <|

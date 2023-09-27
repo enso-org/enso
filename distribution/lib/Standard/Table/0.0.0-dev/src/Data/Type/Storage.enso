@@ -54,7 +54,7 @@ closest_storage_type value_type = case value_type of
         Error.throw (Illegal_Argument.Error "Value_Type.Char with fixed length must have a non-nothing size")
     Value_Type.Char max_length variable_length ->
         fixed_length = variable_length.not
-        TextType.new max_length fixed_length
+        TextType.new (max_length : Integer) fixed_length
     Value_Type.Date -> DateType.INSTANCE
     # We currently will not support storing dates without timezones in in-memory mode.
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE
