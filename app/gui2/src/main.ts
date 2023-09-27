@@ -9,7 +9,6 @@ import { decodeQueryParams } from 'lib0/url'
 import { createPinia } from 'pinia'
 import { createApp, type App } from 'vue'
 import AppRoot from './App.vue'
-import { shortcutRegistry } from './util/shortcuts'
 
 const params = decodeQueryParams(location.href)
 
@@ -68,7 +67,6 @@ function main() {
   }
   dashboard.run({
     appRunner,
-    shortcutRegistry,
     logger: console,
     supportsLocalBackend: true, // TODO
     supportsDeepLinks: false, // TODO

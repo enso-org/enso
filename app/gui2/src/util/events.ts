@@ -1,3 +1,4 @@
+import { Vec2 } from '@/util/vec2'
 import {
   computed,
   onMounted,
@@ -10,7 +11,11 @@ import {
   type Ref,
   type WatchSource,
 } from 'vue'
-import { Vec2 } from './vec2'
+
+/** Whether an element currently has keyboard focus. */
+export function keyboardBusy() {
+  return document.activeElement != document.body
+}
 
 /**
  * Add an event listener on an {@link HTMLElement} for the duration of the component's lifetime.
@@ -106,6 +111,14 @@ export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
       onCleanup(() => document.removeEventListener(event, handler, options))
     }
   })
+}
+
+const hasWindow = typeof window !== 'undefined'
+const platform = hasWindow ? window.navigator?.platform ?? '' : ''
+export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+
+export function modKey(e: KeyboardEvent): boolean {
+  return isMacLike ? e.metaKey : e.ctrlKey
 }
 
 /**

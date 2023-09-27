@@ -7,7 +7,6 @@ import { usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
-import { shortcutRegistry } from '../util/shortcuts'
 
 const props = defineProps<{
   node: Node
@@ -250,18 +249,18 @@ onUpdated(() => {
 
 // TODO [sb]: restore delete functionality (DELETE key)
 function handleClick(event: PointerEvent) {
-  if (shortcutRegistry.matchesMouseAction('replace-nodes-selection', event)) {
-    emit('replaceSelection')
-  } else if (shortcutRegistry.matchesMouseAction('add-to-nodes-selection', event)) {
-    emit('update:selected', true)
-  } else if (shortcutRegistry.matchesMouseAction('remove-from-nodes-selection', event)) {
-    emit('update:selected', false)
-  } else if (
-    shortcutRegistry.matchesMouseAction('toggle-nodes-selection', event) ||
-    shortcutRegistry.matchesMouseAction('invert-nodes-selection', event)
-  ) {
-    emit('update:selected', !props.selected)
-  }
+  // if (shortcutRegistry.matchesMouseAction('replace-nodes-selection', event)) {
+  //   emit('replaceSelection')
+  // } else if (shortcutRegistry.matchesMouseAction('add-to-nodes-selection', event)) {
+  //   emit('update:selected', true)
+  // } else if (shortcutRegistry.matchesMouseAction('remove-from-nodes-selection', event)) {
+  //   emit('update:selected', false)
+  // } else if (
+  //   shortcutRegistry.matchesMouseAction('toggle-nodes-selection', event) ||
+  //   shortcutRegistry.matchesMouseAction('invert-nodes-selection', event)
+  // ) {
+  //   emit('update:selected', !props.selected)
+  // }
 }
 </script>
 

@@ -106,7 +106,6 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
-    shortcutRegistry?: shortcuts.ShortcutRegistry
     logger: loggerProvider.Logger
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
@@ -163,7 +162,6 @@ export default function App(props: AppProps) {
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
     const {
-        shortcutRegistry = shortcuts.ShortcutRegistry.createWithDefaults(),
         logger,
         supportsLocalBackend,
         isAuthenticationDisabled,
@@ -176,6 +174,7 @@ function AppRouter(props: AppProps) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
+    const [shortcutRegistry] = React.useState(() => shortcuts.ShortcutRegistry.createWithDefaults())
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             const isTargetEditable =

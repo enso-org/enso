@@ -1,3 +1,13 @@
+<script lang="ts">
+const graphBindings = defineKeybinds('graph-editor', {
+  undo: ['Mod+Z'],
+  redo: ['Mod+Y', 'Mod+Shift+Z'],
+  dragScene: ['PointerAux', 'Mod+PointerMain'],
+  openComponentBrowser: ['Enter'],
+  newNode: ['N'],
+})
+</script>
+
 <script setup lang="ts">
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
@@ -8,17 +18,16 @@ import SelectionBrush from '@/components/SelectionBrush.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
-import { usePointer, useWindowEvent } from '@/util/events'
+import { keyboardBusy, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
-import { shortcutRegistry, type GUIMouseAction } from '@/util/shortcuts'
+import { defineKeybinds } from '@/util/shortcuts'
 import { Vec2 } from '@/util/vec2'
-import type { MouseAction } from 'enso-authentication/src/dashboard/shortcuts'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { nodeBindings } from '../bindings/nodeSelection'
 
 const EXECUTION_MODES = ['design', 'live']
 const SELECTION_BRUSH_MARGIN_PX = 6
-const FALLBACK_CURSOR_POSITION = new Vec2(0, 0)
 
 const title = ref('Test Project')
 const mode = ref('design')
@@ -41,13 +50,14 @@ function updateExprRect(id: ExprId, rect: Rect) {
   exprRects.set(id, rect)
 }
 
-function keyboardBusy() {
-  return document.activeElement != document.body
-}
-
-useWindowEvent('keydown', (e) => {
-  if (keyboardBusy()) return
+useWindowEvent('keydown', (event) => {
+  if (keyboardBusy()) {
+    return
+  }
+  graphBindingsHandler(event) || nodeSelectionHandler(event)
 })
+
+onMounted(() => viewportNode.value?.focus())
 
 function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
   graphStore.replaceNodeSubexpression(id, range, content)
@@ -62,7 +72,6 @@ function moveNode(id: ExprId, delta: Vec2) {
 
 const selectionSize = ref<Vec2>()
 const initiallySelectedNodes = ref(new Set(selectedNodes.value))
-const mouseAction = ref<MouseAction>()
 
 const selection = usePointer((pos) => (selectionSize.value = pos.relative))
 
@@ -99,54 +108,28 @@ watch(
     } else {
       initiallySelectedNodes.value = new Set()
       selectionSize.value = undefined
-      mouseAction.value = undefined
     }
   },
 )
 
-const nodeSelectionMouseActions: GUIMouseAction[] = [
-  'replace-nodes-selection',
-  'add-to-nodes-selection',
-  'remove-from-nodes-selection',
-  'toggle-nodes-selection',
-  'invert-nodes-selection',
-]
-
-function onPointerMove(event: MouseEvent) {
-  if (!selection.dragging) {
-    return
-  }
-  if (mouseAction.value == null || !shortcutRegistry.matchesMouseAction(mouseAction.value, event)) {
-    mouseAction.value = nodeSelectionMouseActions.find((action) =>
-      shortcutRegistry.matchesMouseAction(action, event),
-    )
-  }
-}
-
-watchEffect(() => {
-  if (!selection.dragging || mouseAction.value == null) {
-    return
-  }
-  let newSelectedNodes: Set<ExprId>
-  switch (mouseAction.value) {
-    case 'replace-nodes-selection': {
-      newSelectedNodes = new Set(intersectingNodes.value)
-      break
-    }
-    case 'add-to-nodes-selection': {
-      newSelectedNodes = new Set([...initiallySelectedNodes.value, ...intersectingNodes.value])
-      break
-    }
-    case 'remove-from-nodes-selection': {
-      newSelectedNodes = new Set(initiallySelectedNodes.value)
+const mouseHandler = nodeBindings.useMouseHandler(
+  {
+    replace() {
+      selectedNodes.value = new Set(intersectingNodes.value)
+    },
+    add() {
+      selectedNodes.value = new Set([...initiallySelectedNodes.value, ...intersectingNodes.value])
+    },
+    remove() {
+      const newSelectedNodes = new Set(initiallySelectedNodes.value)
       for (const id of intersectingNodes.value) {
         newSelectedNodes.delete(id)
       }
-      break
-    }
-    case 'toggle-nodes-selection': {
+      selectedNodes.value = newSelectedNodes
+    },
+    toggle() {
       const initiallySelectedNodes_ = initiallySelectedNodes.value
-      newSelectedNodes = new Set(initiallySelectedNodes_)
+      const newSelectedNodes = new Set(initiallySelectedNodes_)
       let count = 0
       for (const id of intersectingNodes.value) {
         if (initiallySelectedNodes_.has(id)) {
@@ -162,11 +145,11 @@ watchEffect(() => {
           newSelectedNodes.delete(id)
         }
       }
-      break
-    }
-    case 'invert-nodes-selection': {
+      selectedNodes.value = newSelectedNodes
+    },
+    invert() {
       const initiallySelectedNodes_ = initiallySelectedNodes.value
-      newSelectedNodes = new Set(initiallySelectedNodes_)
+      const newSelectedNodes = new Set(initiallySelectedNodes_)
       for (const id of intersectingNodes.value) {
         if (initiallySelectedNodes_.has(id)) {
           newSelectedNodes.delete(id)
@@ -174,14 +157,12 @@ watchEffect(() => {
           newSelectedNodes.add(id)
         }
       }
-      break
-    }
-    default: {
-      return
-    }
-  }
-  selectedNodes.value = newSelectedNodes
-})
+      selectedNodes.value = newSelectedNodes
+    },
+  },
+  false,
+  false,
+)
 
 function setSelected(id: ExprId, selected: boolean) {
   if (selection.dragging) {
@@ -199,43 +180,38 @@ function setSelected(id: ExprId, selected: boolean) {
   }
 }
 
-const unregisterKeyboardHandlers = ref<() => void>()
-
-onMounted(() => {
-  shortcutRegistry.registerKeyboardHandlers({
-    undo: () => {
-      projectStore.undoManager.undo()
-    },
-    redo: () => {
-      projectStore.undoManager.redo()
-    },
-    'open-component-browser': () => {
-      if (keyboardBusy()) {
-        return false
-      }
-      if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
-        componentBrowserPosition.value = navigator.sceneMousePos
-        componentBrowserVisible.value = true
-      }
-    },
-    'new-node': () => {
-      if (navigator.sceneMousePos != null) {
-        graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
-      }
-    },
-    'select-all-nodes': () => {
-      for (const id of graphStore.nodes.keys()) {
-        selectedNodes.value.add(id)
-      }
-    },
-    'deselect-all-nodes': () => {
-      selectedNodes.value.clear()
-    },
-  })
+const graphBindingsHandler = graphBindings.useKeyboardHandler({
+  undo() {
+    projectStore.undoManager.undo()
+  },
+  redo() {
+    projectStore.undoManager.redo()
+  },
+  openComponentBrowser() {
+    if (keyboardBusy()) {
+      return false
+    }
+    if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
+      componentBrowserPosition.value = navigator.sceneMousePos
+      componentBrowserVisible.value = true
+    }
+  },
+  newNode() {
+    if (navigator.sceneMousePos != null) {
+      graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
+    }
+  },
 })
 
-onUnmounted(() => {
-  unregisterKeyboardHandlers.value?.()
+const nodeSelectionHandler = nodeBindings.useKeyboardHandler({
+  selectAll() {
+    for (const id of graphStore.nodes.keys()) {
+      selectedNodes.value.add(id)
+    }
+  },
+  deselectAll() {
+    selectedNodes.value.clear()
+  },
 })
 </script>
 
@@ -245,8 +221,8 @@ onUnmounted(() => {
     class="viewport"
     :class="{ selecting: selection.dragging }"
     v-on="navigator.events"
-    @pointerdown="selection.events.pointerdown($event), onPointerMove($event)"
-    @pointermove="navigator.events.pointermove($event), onPointerMove($event)"
+    @pointerdown="selection.events.pointerdown($event), selection.dragging && mouseHandler($event)"
+    @pointermove="navigator.events.pointermove($event), selection.dragging && mouseHandler($event)"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdge
@@ -273,7 +249,8 @@ onUnmounted(() => {
         @movePosition="moveNode(id, $event)"
       />
       <SelectionBrush
-        :position="navigator.sceneMousePos ?? FALLBACK_CURSOR_POSITION"
+        v-if="navigator.sceneMousePos"
+        :position="navigator.sceneMousePos"
         :size="selectionSize"
       />
     </div>
