@@ -15,6 +15,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
@@ -59,9 +60,13 @@ public abstract class AssertNode extends Node {
         return ctx.getNothing();
       } else {
         var stackTrace = getStackTraceNode.execute(frame);
-        return builtins.error().makeAssertionError(msg, stackTrace);
+        throw new PanicException(
+            builtins.error().makeAssertionError(msg, stackTrace),
+            this
+        );
       }
     } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
       return builtins
           .error()
           .makeTypeError(
