@@ -135,11 +135,8 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
-    if (System.getenv("ENSO_ENABLE_ASSERTIONS") != null) {
-      this.assertionsEnabled = true;
-    } else {
-      this.assertionsEnabled = false;
-    }
+    this.assertionsEnabled =
+        isJvmAssertionsEnabled() || System.getenv("ENSO_ENABLE_ASSERTIONS") != null;
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig =
@@ -255,6 +252,11 @@ public final class EnsoContext {
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
   }
 
+  private static boolean isJvmAssertionsEnabled() {
+    boolean assertionsEnabled = false;
+    assert assertionsEnabled = true;
+    return assertionsEnabled;
+  }
   /**
    * Creates a truffle file for a given standard file.
    *
