@@ -1,12 +1,7 @@
 {
   "extends": "@tsconfig/node18/tsconfig.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "target": "es6",
     "sourceMap": true,
     "outDir": "dist"
   },
-  "lib": ["es2015"],
 }

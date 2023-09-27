@@ -2,12 +2,18 @@ import * as fs from 'fs'
 import * as ts from 'typescript'
 import { factory as tsf } from 'typescript'
 
+type DiscriminantMap = {
+  [discriminant: number]: string
+}
+type TypeGraph = {
+  [id: string]: Schema.Type
+}
 module Schema {
   export type Type = {
     name: string
     fields: [string, Field][]
     parent: string | null
-    discriminants: [number: string]
+    discriminants: DiscriminantMap
     size: number
   }
   export type Field = {
@@ -21,9 +27,6 @@ module Schema {
   export type Option = { class: 'option'; type: TypeRef }
   export type Result = { class: 'result'; type0: TypeRef; type1: TypeRef }
   export type PrimitiveType = 'bool' | 'u32' | 'u64' | 'i32' | 'i64' | 'char' | 'string'
-}
-type TypeGraph = {
-  [id: string]: Schema.Type
 }
 type Schema = {
   types: TypeGraph
@@ -204,7 +207,6 @@ class Type {
     switch (c) {
       case 'type':
         const ty = types[ref.id]
-        const parentId = ty.parent
         const parent = ty.parent != null ? types[ty.parent] : null
         const typeName = namespacedName(ty.name, parent?.name)
         const type = tsf.createTypeReferenceNode(typeName)
@@ -377,7 +379,7 @@ function makeDebugFunction(fields: [string, Schema.Field][]): ts.MethodDeclarati
               [],
             ),
           ),
-          ...fields.map(([name, field]: [string, Schema.Field]) =>
+          ...fields.map(([name, _field]: [string, Schema.Field]) =>
             tsf.createPropertyAssignment(getterIdent(name), debugValue(getterIdent(name))),
           ),
         ]),
