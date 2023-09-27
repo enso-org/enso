@@ -76,8 +76,9 @@ export class ExecutionContext {
   }
 
   destroy() {
-    this.state.then(async ({ lsRpc, id }) => {
-      await lsRpc.destroyExecutionContext(id)
+    this.state = this.state.then(({ lsRpc, id }) => {
+      lsRpc.destroyExecutionContext(id)
+      return { lsRpc, id }
     })
   }
 }

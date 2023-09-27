@@ -12,7 +12,7 @@ import { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -22,7 +22,7 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
-const executionCtx = ref<Opt<ExecutionContext>>()
+const executionCtx = shallowRef<ExecutionContext>()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
 
@@ -30,14 +30,13 @@ const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
 
 onMounted(async () => {
-  executionCtx.value = await projectStore.createExecutionContextForMain()
-})
-
-onUnmounted(() => {
-  if (executionCtx.value != null) {
-    executionCtx.value.destroy()
-    executionCtx.value = null
-  }
+  const executionCtxPromise = projectStore.createExecutionContextForMain()
+  onUnmounted(async () => {
+    executionCtx.value = undefined
+    const ctx = await executionCtxPromise
+    if (ctx != null) ctx.destroy()
+  })
+  executionCtx.value = (await executionCtxPromise) ?? undefined
 })
 
 function updateNodeRect(id: ExprId, rect: Rect) {
