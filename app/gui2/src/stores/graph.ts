@@ -119,7 +119,7 @@ export const useGraphStore = defineStore('graph', () => {
         if (node == null) {
           nodeInserted(stmt, text, nodeContent, nodeMeta)
         } else {
-          nodeUpdated(node, stmt, text, nodeContent, nodeMeta)
+          nodeUpdated(node, stmt, nodeContent, nodeMeta)
         }
       }
     })
@@ -163,19 +163,14 @@ export const useGraphStore = defineStore('graph', () => {
     nodes.set(nodeId, node)
   }
 
-  function nodeUpdated(
-    node: Node,
-    stmt: Statement,
-    text: Y.Text,
-    content: string,
-    meta: Opt<NodeMetadata>,
-  ) {
-    clearSpanUsages(stmt.id, node)
+  function nodeUpdated(node: Node, stmt: Statement, content: string, meta: Opt<NodeMetadata>) {
+    const nodeId = stmt.expression.id
+    clearSpanUsages(nodeId, node)
     node.content = content
     if (node.binding !== stmt.binding) {
       identDefinitions.delete(node.binding)
       node.binding = stmt.binding ?? ''
-      identDefinitions.set(node.binding, stmt.id)
+      identDefinitions.set(node.binding, nodeId)
     }
     if (node.rootSpan.id === stmt.expression.id) {
       patchSpan(node.rootSpan, stmt.expression)
@@ -185,6 +180,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (meta != null && !node.position.equals(new Vec2(meta.x, -meta.y))) {
       node.position = new Vec2(meta.x, -meta.y)
     }
+    addSpanUsages(nodeId, node)
   }
 
   function addSpanUsages(id: ExprId, node: Node) {
@@ -224,13 +220,9 @@ export const useGraphStore = defineStore('graph', () => {
 
   function patchSpan(span: Span, newSpan: Span) {
     assert(span.id === newSpan.id)
-    // TODO: deep patching of children of matching ID
     span.length = newSpan.length
     span.kind = newSpan.kind
     span.children = newSpan.children
-    // for (let i = 0; i < span.children.length; i++) {
-    //   patchSpan(span.children[i], newSpan.children[i])
-    // }
   }
 
   function generateUniqueIdent() {
@@ -283,7 +275,7 @@ export const useGraphStore = defineStore('graph', () => {
     proj.module?.replaceExpressionContent(id, content)
   }
 
-  function batchUpdate<T>(fn: () => void) {
+  function batchUpdate(fn: () => void) {
     return proj.module?.transact(fn)
   }
 

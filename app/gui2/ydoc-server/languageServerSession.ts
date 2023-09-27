@@ -1,5 +1,6 @@
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import diff from 'fast-diff'
+import { simpleDiffString } from 'lib0/diff'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import * as random from 'lib0/random'
@@ -68,8 +69,14 @@ export class LanguageServerSession extends Emitter<Events> {
       console.log('index change', changes.delta)
     })
 
-    this.ls.addEventListener('file/event', (event) => {
+    this.ls.on('file/event', (event) => {
       console.log('file/event', event)
+    })
+
+    this.ls.on('text/fileModifiedOnDisk', async (event) => {
+      const model = this.getModuleModel(event.path)
+      await model.unload()
+      await model.load()
     })
   }
 
@@ -255,6 +262,7 @@ class ModulePersistence extends Emitter<{ removed: [] }> {
         idMap.insertKnownId([index.value, index.value + size.value], id)
       }
 
+      const keysToDelete = new Set(this.model.metadata.keys())
       for (const [id, rawMeta] of Object.entries(nodeMeta ?? {})) {
         if (typeof id !== 'string') continue
         const meta = rawMeta as any
@@ -263,21 +271,32 @@ class ModulePersistence extends Emitter<{ removed: [] }> {
           y: meta?.position?.vector?.[1] ?? 0,
           vis: meta?.visualization ?? undefined,
         }
+        keysToDelete.delete(id)
         this.model.metadata.set(id, formattedMeta)
+      }
+      for (const id of keysToDelete) {
+        this.model.metadata.delete(id)
       }
 
       this.knownContent = loaded.content
       this.currentVersion = loaded.currentVersion
-      this.model.contents.delete(0, this.model.contents.length)
-      this.model.contents.insert(0, code)
+
+      const codeDiff = simpleDiffString(this.model.contents.toString(), code)
+      this.model.contents.delete(codeDiff.index, codeDiff.remove)
+      this.model.contents.insert(codeDiff.index, codeDiff.insert)
       idMap.finishAndSynchronize()
     }, this)
+  }
+
+  async unload() {
+    await this.ls.closeTextFile(this.path)
   }
 
   /** A file was removed on the LS side. */
   dispose() {
     this.model.doc.destroy()
     this.emit('removed', [])
+    this.unload()
   }
 
   handleLsUpdate() {

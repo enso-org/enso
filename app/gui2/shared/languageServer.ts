@@ -1,7 +1,5 @@
 import { Client } from '@open-rpc/client-js'
 
-import * as map from 'lib0/map'
-import * as set from 'lib0/set'
 import { SHA3 } from 'sha3'
 import { Emitter } from './event'
 import type {
@@ -27,25 +25,6 @@ export class LanguageServer extends Emitter<Notifications> {
       this.emit(notification.method as keyof Notifications, [notification.params])
     })
   }
-
-  addEventListener<K extends keyof Notifications>(
-    type: K,
-    listener: (params: Notifications[K]) => void,
-  ) {
-    const listeners = map.setIfUndefined(this.handlers, type as string, set.create)
-    listeners.add(listener)
-  }
-
-  removeEventListener<K extends keyof Notifications>(
-    type: K,
-    listener: (params: Notifications[K]) => void,
-  ) {
-    const listeners = this.handlers.get(type as string)
-    if (listeners) {
-      listeners.delete(listener)
-    }
-  }
-
   private request(method: string, params: object): Promise<any> {
     return this.client.request({ method, params })
   }

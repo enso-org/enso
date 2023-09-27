@@ -81,7 +81,6 @@ declare global {
             /* eslint-disable @typescript-eslint/naming-convention */
             APPLEID?: string
             APPLEIDPASS?: string
-            CLOUD_ENV?: 'npekin' | 'pbuchu' | 'production'
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
@@ -90,6 +89,7 @@ declare global {
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
+    const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production'
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_DEV_MODE: boolean
     // This will be `undefined` when it is not defined by esbuild.
