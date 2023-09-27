@@ -36,7 +36,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         setItem,
         selected,
         setSelected,
-        state: { assetEvents, dispatchAssetListEvent, doToggleDirectoryExpansion },
+        state: {
+            numberOfSelectedItems,
+            assetEvents,
+            dispatchAssetListEvent,
+            doToggleDirectoryExpansion,
+        },
         rowState,
         setRowState,
     } = props
@@ -85,10 +90,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to directories.
-                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
+                // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.newFolder: {
@@ -135,7 +142,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
-                    (selected ||
+                    ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({

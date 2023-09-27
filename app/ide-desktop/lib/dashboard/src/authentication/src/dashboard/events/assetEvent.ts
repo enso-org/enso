@@ -26,6 +26,7 @@ export enum AssetEventType {
     closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
+    restoreMultiple = 'restore-multiple',
     downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
 }
@@ -45,6 +46,7 @@ interface AssetEvents {
     closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
+    restoreMultiple: AssetRestoreMultipleEvent
     downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
 }
@@ -100,6 +102,11 @@ export interface AssetCancelOpeningAllProjectsEvent
 
 /** A signal to delete multiple assets. */
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
+    ids: Set<backendModule.AssetId>
+}
+
+/** A signal to restore assets from trash. */
+export interface AssetRestoreMultipleEvent extends AssetBaseEvent<AssetEventType.restoreMultiple> {
     ids: Set<backendModule.AssetId>
 }
 

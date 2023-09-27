@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Numbers.Positive_Integer
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Type.Value_Type_Helpers
@@ -95,12 +96,22 @@ type Value_Type
 
        ANSI SQL: CHAR, VARCHAR, TEXT, LONGVARCHAR, NCHAR, NVARCHAR, TEXT, CLOB, NCLOB
 
+       ! Counting Characters
+
+         Note that different backends may count the text in different ways.
+         The in-memory backend treats a single grapheme cluster (e.g. 💡) as a
+         single character unit. In most database systems more complex grapheme
+         clusters may be counted as multiple characters. So there isn't a 1-1
+         correspondence between these limits across backends which may cause
+         strings to be truncated if they contain such characters and are close
+         to the limit.
+
        Arguments:
        - size: the maximum number of characters that can be stored in the
-         column. It can be nothing to indicate no limit.
+         column. It can be nothing to indicate no limit. It cannot be 0.
        - variable_length: whether the size is a maximum or a fixed length.
          A fixed length string must have a non-nothing size.
-    Char size:(Integer|Nothing)=Nothing variable_length:Boolean=True
+    Char (size : (Positive_Integer | Nothing) = Nothing) variable_length:Boolean=True
 
     ## Date
 
@@ -383,15 +394,23 @@ type Value_Type
         Value_Type.Integer size -> "Integer (" + size.to_text + ")"
         Value_Type.Float size -> "Float (" + size.to_text + ")"
         Value_Type.Decimal precision scale -> "Decimal (precision=" + precision.to_text + ", scale=" + scale.to_text + ")"
-        Value_Type.Char size variable_length -> case variable_length of
-            True  -> "Char (variable length, max_size=" + size.to_text + ")"
-            False -> "Char (fixed length, size=" + size.to_text + ")"
+        Value_Type.Char size variable_length ->
+            size_text = case size of
+                Nothing -> "unlimited"
+                _ -> size.to Integer . to_text
+            case variable_length of
+                True  -> "Char (variable length, max_size=" + size_text + ")"
+                False -> "Char (fixed length, size=" + size_text + ")"
         Value_Type.Date -> "Date"
         Value_Type.Date_Time with_timezone -> "Date_Time (with_timezone=" + with_timezone.to_text + ")"
         Value_Type.Time -> "Time"
-        Value_Type.Binary size variable_length -> case variable_length of
-            True  -> "Binary (variable length, max_size=" + size.to_text + " bytes)"
-            False -> "Binary (fixed length, size=" + size.to_text + " bytes)"
+        Value_Type.Binary size variable_length ->
+            size_text = case size of
+                Nothing -> "unlimited"
+                _ -> size.to Integer . to_text + " bytes"
+            case variable_length of
+                True  -> "Binary (variable length, max_size=" + size_text + ")"
+                False -> "Binary (fixed length, size=" + size_text + ")"
         Value_Type.Unsupported_Data_Type type_name _ -> case type_name of
             Nothing  -> "Unsupported_Data_Type"
             _ : Text -> "Unsupported_Data_Type (" + type_name + ")"
