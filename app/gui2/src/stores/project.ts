@@ -2,20 +2,40 @@ import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { attachProvider } from '@/util/crdt'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
+import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import { WebsocketClient } from 'shared/websocket'
-import { DistributedProject } from 'shared/yjsModel'
-import { markRaw, ref, watchEffect } from 'vue'
+import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
+import {
+  markRaw,
+  onMounted,
+  onUnmounted,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+  type Ref,
+  type ShallowRef,
+} from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
+import { OutboundPayload, VisualizationUpdate } from '../../shared/binaryProtocol'
+import type { ContextId, VisualizationConfiguration } from '../../shared/languageServerTypes'
+import { DEFAULT_VISUALIZATION_CONFIGURATION } from './visualization'
 
 interface LsUrls {
   rpcUrl: string
   dataUrl: string
 }
 
+export type NodeVisualizationConfiguration = Omit<
+  VisualizationConfiguration,
+  'executionContextId' | 'visualizationModule'
+>
+
+const MAIN_DEFINITION_NAME = 'main'
 /** Endpoint used by default by a locally run Project Manager. */
 const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
 /** Default project name used by IDE on startup. */
@@ -130,6 +150,89 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
+  const clientId = random.uuidv4() as Uuid
+  const executionContextId = random.uuidv4() as ContextId
+  const mainModuleId = ref<Uuid>()
+  const mainModule = `${DEFAULT_PROJECT_NAMESPACE}.${name}.Main`
+
+  async function initializeServers() {
+    await dataConnection.initialize(clientId)
+    const projectInfo = await lsRpcConnection.initProtocolConnection(clientId)
+    const projectRoot = projectInfo.contentRoots.find((root) => root.type === 'Project')
+    if (projectRoot == null) {
+      console.error('Protocol connection initialization did not return a project root.')
+      return
+    }
+    mainModuleId.value = projectRoot.id
+    await lsRpcConnection.createExecutionContext(executionContextId)
+    await lsRpcConnection.pushExecutionContextItem(executionContextId, {
+      type: 'ExplicitCall',
+      methodPointer: {
+        module: mainModule,
+        definedOnType: mainModule,
+        name: MAIN_DEFINITION_NAME,
+      },
+      thisArgumentExpression: null,
+      positionalArgumentsExpressions: [],
+    })
+  }
+
+  const initializeServersPromise = initializeServers()
+
+  function useVisualizationData(
+    expressionId: ExprId,
+    configuration: Ref<NodeVisualizationConfiguration | undefined>,
+    visible: Ref<boolean>,
+  ): ShallowRef<{} | undefined> {
+    const id = random.uuidv4() as Uuid
+    const visualizationData = shallowRef<{}>()
+
+    watch(visible, async (visible) => {
+      if (visible) {
+        await initializeServersPromise
+        await lsRpcConnection.attachVisualization(id, expressionId, {
+          executionContextId,
+          visualizationModule: mainModule,
+          ...(configuration.value ?? DEFAULT_VISUALIZATION_CONFIGURATION),
+        })
+      } else {
+        await initializeServersPromise
+        await lsRpcConnection.detachVisualization(id, expressionId, executionContextId)
+      }
+    })
+
+    watchEffect(async () => {
+      if (configuration.value == null || !visible.value) {
+        return
+      }
+      await initializeServersPromise
+      await lsRpcConnection.modifyVisualization(id, {
+        ...configuration.value,
+        executionContextId,
+        visualizationModule: mainModule,
+      })
+    })
+
+    function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
+      const json = vizUpdate.dataString()
+      const newData = json != null ? JSON.parse(json) : undefined
+      visualizationData.value = newData
+    }
+
+    onMounted(() => {
+      dataConnection.on(
+        `${OutboundPayload.VISUALIZATION_UPDATE}:${id as string}`,
+        onVisualizationUpdate,
+      )
+    })
+
+    onUnmounted(() => {
+      dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}:${id}`, onVisualizationUpdate)
+    })
+
+    return visualizationData
+  }
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -140,5 +243,6 @@ export const useProjectStore = defineStore('project', () => {
     undoManager,
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
+    useVisualizationData,
   }
 })

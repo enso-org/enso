@@ -1,16 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  onMounted,
-  onUnmounted,
-  onUpdated,
-  reactive,
-  ref,
-  shallowRef,
-  watch,
-  watchEffect,
-  type Raw,
-} from 'vue'
+import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
@@ -21,27 +10,13 @@ import {
 } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
-import {
-  DEFAULT_VISUALIZATION_CONFIGURATION,
-  useVisualizationStore,
-  type Visualization,
-} from '@/stores/visualization'
+import { useVisualizationStore, type Visualization } from '@/stores/visualization'
 import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
-import * as random from 'lib0/random'
-import { OutboundPayload, type VisualizationUpdate } from 'shared/binaryProtocol'
-import { type DataServer } from 'shared/dataServer'
-import type { LanguageServer } from 'shared/languageServer'
-import type { VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
+import { useProjectStore, type NodeVisualizationConfiguration } from '../stores/project'
 
-const props = defineProps<{
-  node: Node
-  mainModule: string
-  executionContextId: Uuid
-  languageServer: Raw<LanguageServer>
-  dataServer: Raw<DataServer>
-}>()
+const props = defineProps<{ node: Node }>()
 
 const emit = defineEmits<{
   updateRect: [rect: Rect]
@@ -56,9 +31,7 @@ const visualizationStore = useVisualizationStore()
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
-const visualizationId = ref(random.uuidv4() as Uuid)
-const visualizationConfiguration = ref<VisualizationConfiguration>()
-const visualizationData = ref<{}>()
+const visualizationConfiguration = ref<NodeVisualizationConfiguration>()
 
 const isCircularMenuVisible = ref(false)
 const isAutoEvaluationDisabled = ref(false)
@@ -67,6 +40,13 @@ const isVisualizationVisible = ref(false)
 
 const visualizationType = ref('Scatterplot')
 const visualization = shallowRef<Visualization>()
+
+const projectStore = useProjectStore()
+const visualizationData = projectStore.useVisualizationData(
+  props.node.rootSpan.id,
+  visualizationConfiguration,
+  isVisualizationVisible,
+)
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -299,53 +279,10 @@ function handleClick(e: PointerEvent) {
 
 function updatePreprocessor(module: string, method: string, ...args: string[]) {
   visualizationConfiguration.value = {
-    executionContextId: props.executionContextId,
-    visualizationModule: props.mainModule,
     expression: { module, definedOnType: module, name: method },
     ...(args.length !== 0 ? { positionalArgumentsExpressions: args } : {}),
   }
 }
-
-watch(isVisualizationVisible, async (visible) => {
-  if (!visible) {
-    return
-  }
-  // TODO: should the old vis be detached?
-  await props.languageServer.attachVisualization(
-    visualizationId.value,
-    props.node.rootSpan.id,
-    visualizationConfiguration.value ?? {
-      executionContextId: props.executionContextId,
-      ...DEFAULT_VISUALIZATION_CONFIGURATION,
-    },
-  )
-})
-
-watch(visualizationConfiguration, async (config) => {
-  if (config != null && isVisualizationVisible.value) {
-    await props.languageServer.modifyVisualization(visualizationId.value, config)
-  }
-})
-
-function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
-  const json = vizUpdate.dataString()
-  const newData = json != null ? JSON.parse(json) : undefined
-  visualizationData.value = newData
-}
-
-onMounted(() => {
-  props.dataServer.on(
-    `${OutboundPayload.VISUALIZATION_UPDATE}:${visualizationId.value}`,
-    onVisualizationUpdate,
-  )
-})
-
-onUnmounted(() => {
-  props.dataServer.off(
-    `${OutboundPayload.VISUALIZATION_UPDATE}:${visualizationId.value}`,
-    onVisualizationUpdate,
-  )
-})
 
 function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
   return (
@@ -401,6 +338,7 @@ watchEffect(async (onCleanup) => {
   onCleanup(() => {
     shouldSwitchVisualization = false
   })
+  visualizationData.value = undefined
   const component = await visualizationStore.get(visualizationType.value)
   if (shouldSwitchVisualization) {
     visualization.value = component

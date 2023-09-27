@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
@@ -12,11 +12,7 @@ import type { Rect } from '@/stores/rect'
 import { modKey, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import * as random from 'lib0/random'
-import type { ContextId } from 'shared/languageServerTypes'
-import type { ContentRange, ExprId, Uuid } from 'shared/yjsModel'
-
-const MAIN_DEFINITION_NAME = 'main'
+import type { ContentRange, ExprId } from 'shared/yjsModel'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -28,32 +24,6 @@ const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
-const executionContextId = ref(random.uuidv4() as ContextId)
-const clientId = ref(random.uuidv4() as Uuid)
-const mainModule = `${projectStore.namespace}.${projectStore.name}.Main`
-const projectId = ref<Uuid>()
-
-onMounted(async () => {
-  await projectStore.dataConnection.initialize(clientId.value)
-  const projectInfo = await projectStore.lsRpcConnection.initProtocolConnection(clientId.value)
-  const projectRoot = projectInfo.contentRoots.find((root) => root.type === 'Project')
-  if (projectRoot == null) {
-    console.error('Protocol connection initialization did not return a project root.')
-    return
-  }
-  projectId.value = projectRoot.id
-  await projectStore.lsRpcConnection.createExecutionContext(executionContextId.value)
-  await projectStore.lsRpcConnection.pushExecutionContextItem(executionContextId.value, {
-    type: 'ExplicitCall',
-    methodPointer: {
-      module: mainModule,
-      definedOnType: mainModule,
-      name: MAIN_DEFINITION_NAME,
-    },
-    thisArgumentExpression: null,
-    positionalArgumentsExpressions: [],
-  })
-})
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -137,10 +107,6 @@ function moveNode(id: ExprId, delta: Vec2) {
         v-for="[id, node] in graphStore.nodes"
         :key="id"
         :node="node"
-        :main-module="mainModule"
-        :execution-context-id="executionContextId"
-        :language-server="projectStore.lsRpcConnection"
-        :data-server="projectStore.dataConnection"
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
