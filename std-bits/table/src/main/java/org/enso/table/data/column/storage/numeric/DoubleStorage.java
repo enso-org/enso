@@ -405,9 +405,8 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
         double value = Double.longBitsToDouble(data[i]);
         visitedNumbers++;
         boolean isWholeNumber = value % 1.0 == 0.0;
-        if (isWholeNumber && IntegerType.INT_64.fits(value)) {
-          continue;
-        } else {
+        boolean canBeInteger = isWholeNumber && IntegerType.INT_64.fits(value);
+        if (!canBeInteger) {
           areAllIntegers = false;
           break;
         }
