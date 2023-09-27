@@ -1,8 +1,8 @@
 from Standard.Base import all
+#import Standard.Base.Data.XML.XML_Document.XML_Document
+#import Standard.Base.Data.XML.XML_Document.XML_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.File_Error.File_Error
-
-import Standard.Base.Data.XML.XML_Document.XML_Document
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -17,6 +17,17 @@ spec =
         Test.specify "Error if file does not exist" <|
             test_file = enso_project.data / "xml" / "sample.xmlnotexists"
             XML_Document.from_file test_file . should_fail_with File_Error
+
+        Test.specify "Can read from a stream" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            test_file.with_input_stream [File_Access.Read] input_stream->
+                doc = XML_Document.from_stream input_stream
+                doc.root_element.name . should_equal "class"
+
+        Test.specify "Parse error" <|
+            test_file = enso_project.data / "sample.txt"
+            #XML_Document.from_file test_file . should_fail_with XML_Error
+            XML_Document.from_file test_file . catch . should_be_a XML_Error.Parse_Error
 
         # stream ioexc
         # stream parse error

@@ -1,14 +1,19 @@
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
+import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.IO
+import project.Panic.Panic
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.Input_Stream.Input_Stream
-import project.Data.Text.Text
 
 polyglot java import javax.xml.parsers.DocumentBuilderFactory
 polyglot java import javax.xml.parsers.DocumentBuilder
 polyglot java import org.w3c.dom.Document
 polyglot java import org.w3c.dom.Element
+polyglot java import org.xml.sax.SAXException
+polyglot java import org.xml.sax.SAXParseException
 
 type XML_Document
     ## Read an XML document from a file.
@@ -17,15 +22,16 @@ type XML_Document
        - file: the `File` to read the XML document from
     from_file : File -> XML_Document ! File_Error
     from_file file =
-        File_Error.handle_java_exceptions file <|
+        File_Error.handle_java_exceptions file <| XML_Error.handle_java_exceptions <|
             file.with_input_stream [File_Access.Read] XML_Document.from_stream
 
     from_stream : Input_Stream -> XML_Document ! File_Error
     from_stream input_stream =
-        input_stream.with_java_stream java_stream->
-            document_builder_factory = DocumentBuilderFactory.newInstance
-            document_builder = document_builder_factory.newDocumentBuilder
-            XML_Document.Value (document_builder.parse java_stream)
+         XML_Error.handle_java_exceptions <|
+            input_stream.with_java_stream java_stream->
+                document_builder_factory = DocumentBuilderFactory.newInstance
+                document_builder = document_builder_factory.newDocumentBuilder
+                XML_Document.Value (document_builder.parse java_stream)
 
     #from_string : Text -> XML_Document ! XML_Parse_Error
 
@@ -113,3 +119,27 @@ type XML_Element
                XML_Document.from_string '<foo><baz>hello</baz></foo>' . get_elements_by_tag_name "baz"
                # => [XML_Document.from_string "<baz>hello</baz>"]
         get_elements_by_tag_name : Text -> Vector XML_Element
+
+type XML_Error
+    # An error that indicates that the XML data could not be parsed.
+
+      Arguments:
+      - line_number: the line on which the parse failed.
+      - column_number: the column at which the parse failed.
+    Parse_Error (line_number : Integer) (column_number : Integer)
+
+    Other (error : Text)
+
+    ## PRIVATE
+
+       Utility method for running an action with Java exceptions mapping.
+    handle_java_exceptions ~action =
+        Panic.catch SAXException action caught_panic->
+            XML_Error.wrap_sax_exception caught_panic.payload
+
+    ## PRIVATE
+
+       Converts a Java `SAXException` into its Enso counterpart.
+    wrap_sax_exception sax_exception = case sax_exception of
+        _ : SAXParseException -> Error.throw (XML_Error.Parse_Error sax_exception.getLineNumber sax_exception.getColumnNumber)
+        _ -> Error.throw (XML_Error.Other "A SAXException has occurred: "+sax_exception.to_text)
