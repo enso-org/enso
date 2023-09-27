@@ -15,13 +15,6 @@ export function parseEnso2(code: string): Ast2.Tree {
   return Ast2.deserializeTree(blob)
 }
 
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-  test('equality', () => {
-    expect(2 + 2).toBe(5)
-  })
-}
-
 export namespace Ast {
   export interface Tree {
     span: Span
