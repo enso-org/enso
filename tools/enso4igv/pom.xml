@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.13-NAPSHOT</version>
+    <version>1.15-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -223,6 +223,18 @@
                                 <goals>
                                     <goal>install</goal>
                                 </goals>
+                            </execution>
+                            <execution>
+                                <id>version</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <command>version</command>
+                                    <args>
+                                        <arg>${project.version}</arg>
+                                    </args>
+                                </configuration>
                             </execution>
                             <execution>
                                 <id>vsix</id>

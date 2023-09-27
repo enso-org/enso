@@ -23,6 +23,7 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
+import * as categorySwitcher from './categorySwitcher'
 import AssetRow from './assetRow'
 import Button from './button'
 import ConfirmDeleteModal from './confirmDeleteModal'
@@ -48,13 +49,15 @@ const ASSET_TYPE_NAME_PLURAL = 'items'
 // This is a function, even though it is not syntactically a function.
 // eslint-disable-next-line no-restricted-syntax
 const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
-/** Placeholder row. */
+/** The default placeholder row. */
 const PLACEHOLDER = (
-    <span className="opacity-75">
+    <span className="opacity-75 px-1.5">
         You have no projects yet. Go ahead and create one using the button above, or open a template
         from the home screen.
     </span>
 )
+/** The placeholder row for the Trash category. */
+const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
 /** Placeholder row for directories that are empty. */
 export const EMPTY_DIRECTORY_PLACEHOLDER = (
     <span className="px-2 opacity-75">This folder is empty.</span>
@@ -111,12 +114,26 @@ function insertAssetTreeNodeChildren(
     }
 }
 
+// =============================
+// === Category to filter by ===
+// =============================
+
+const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.FilterBy | null> = {
+    [categorySwitcher.Category.recent]: null,
+    [categorySwitcher.Category.drafts]: null,
+    [categorySwitcher.Category.home]: backendModule.FilterBy.active,
+    [categorySwitcher.Category.root]: null,
+    [categorySwitcher.Category.trash]: backendModule.FilterBy.trashed,
+}
+
 // ===================
 // === AssetsTable ===
 // ===================
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
+    numberOfSelectedItems: number
+    category: categorySwitcher.Category
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
@@ -156,6 +173,7 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
     query: string
+    category: categorySwitcher.Category
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
@@ -181,6 +199,7 @@ export interface AssetsTableProps {
 export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
+        category,
         initialProjectName,
         projectStartupInfo,
         queuedAssetEvents: rawQueuedAssetEvents,
@@ -197,7 +216,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     } = props
     const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-    const { setModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
@@ -276,7 +295,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         setIsLoading(true)
-    }, [backend])
+    }, [backend, category])
 
     React.useEffect(() => {
         if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
@@ -355,7 +374,14 @@ export default function AssetsTable(props: AssetsTableProps) {
             switch (backend.type) {
                 case backendModule.BackendType.local: {
                     if (!isListingLocalDirectoryAndWillFail) {
-                        const newAssets = await backend.listDirectory({ parentId: null }, null)
+                        const newAssets = await backend.listDirectory(
+                            {
+                                parentId: null,
+                                filterBy: CATEGORY_TO_FILTER_BY[category],
+                                recentProjects: category === categorySwitcher.Category.recent,
+                            },
+                            null
+                        )
                         if (!signal.aborted) {
                             setIsLoading(false)
                             overwriteAssets(newAssets)
@@ -368,7 +394,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                         !isListingRemoteDirectoryAndWillFail &&
                         !isListingRemoteDirectoryWhileOffline
                     ) {
-                        const newAssets = await backend.listDirectory({ parentId: null }, null)
+                        const newAssets = await backend.listDirectory(
+                            {
+                                parentId: null,
+                                filterBy: CATEGORY_TO_FILTER_BY[category],
+                                recentProjects: category === categorySwitcher.Category.recent,
+                            },
+                            null
+                        )
                         if (!signal.aborted) {
                             setIsLoading(false)
                             overwriteAssets(newAssets)
@@ -380,7 +413,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
         },
-        [accessToken, organization, backend]
+        [category, accessToken, organization, backend]
     )
 
     React.useEffect(() => {
@@ -474,7 +507,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                     const abortController = new AbortController()
                     directoryListAbortControllersRef.current.set(directoryId, abortController)
                     const childAssets = await backend.listDirectory(
-                        { parentId: directoryId },
+                        {
+                            parentId: directoryId,
+                            filterBy: CATEGORY_TO_FILTER_BY[category],
+                            recentProjects: category === categorySwitcher.Category.recent,
+                        },
                         title ?? null
                     )
                     if (!abortController.signal.aborted) {
@@ -540,7 +577,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [nodeMap, backend]
+        [category, nodeMap, backend]
     )
 
     const getNewProjectName = React.useCallback(
@@ -853,6 +890,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
+            numberOfSelectedItems: selectedKeys.size,
+            category,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -866,6 +905,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCloseIde,
         }),
         [
+            selectedKeys.size,
+            category,
             sortColumn,
             sortDirection,
             assetEvents,
@@ -924,7 +965,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                     getKey={assetTreeNode.getAssetTreeNodeKey}
                     selectedKeys={selectedKeys}
                     setSelectedKeys={setSelectedKeys}
-                    placeholder={PLACEHOLDER}
+                    placeholder={
+                        category === categorySwitcher.Category.trash
+                            ? TRASH_PLACEHOLDER
+                            : PLACEHOLDER
+                    }
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,
                         className: columnModule.COLUMN_CSS_CLASS[column],
@@ -935,44 +980,94 @@ export default function AssetsTable(props: AssetsTableProps) {
                         event.preventDefault()
                         event.stopPropagation()
                         const pluralized = pluralize(innerSelectedKeys.size)
+                        // This works because all items are mutated, ensuring their value stays
+                        // up to date.
+                        const ownsAllSelectedAssets =
+                            backend.type === backendModule.BackendType.local ||
+                            (organization != null &&
+                                Array.from(innerSelectedKeys, key => {
+                                    const userPermissions = nodeMap.get(key)?.item.permissions
+                                    const selfPermission = userPermissions?.find(
+                                        permission =>
+                                            permission.user.user_email === organization.email
+                                    )
+                                    return (
+                                        selfPermission?.permission ===
+                                        permissions.PermissionAction.own
+                                    )
+                                }).every(isOwner => isOwner))
                         // This is not a React component even though it contains JSX.
                         // eslint-disable-next-line no-restricted-syntax
                         const doDeleteAll = () => {
+                            if (backend.type === backendModule.BackendType.remote) {
+                                unsetModal()
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.deleteMultiple,
+                                    ids: innerSelectedKeys,
+                                })
+                            } else {
+                                setModal(
+                                    <ConfirmDeleteModal
+                                        description={`${innerSelectedKeys.size} selected ${pluralized}`}
+                                        doDelete={() => {
+                                            innerSetSelectedKeys(new Set())
+                                            dispatchAssetEvent({
+                                                type: assetEventModule.AssetEventType
+                                                    .deleteMultiple,
+                                                ids: innerSelectedKeys,
+                                            })
+                                        }}
+                                    />
+                                )
+                            }
+                        }
+                        // This is not a React component even though it contains JSX.
+                        // eslint-disable-next-line no-restricted-syntax
+                        const doRestoreAll = () => {
+                            unsetModal()
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.restoreMultiple,
+                                ids: innerSelectedKeys,
+                            })
+                        }
+                        if (category === categorySwitcher.Category.trash) {
+                            if (innerSelectedKeys.size !== 0) {
+                                setModal(
+                                    <ContextMenus key={uniqueString.uniqueString()} event={event}>
+                                        <ContextMenu>
+                                            <MenuEntry
+                                                action={
+                                                    shortcuts.KeyboardAction.restoreAllFromTrash
+                                                }
+                                                doAction={doRestoreAll}
+                                            />
+                                        </ContextMenu>
+                                    </ContextMenus>
+                                )
+                            }
+                        } else {
+                            const deleteAction =
+                                backend.type === backendModule.BackendType.local
+                                    ? shortcuts.KeyboardAction.deleteAll
+                                    : shortcuts.KeyboardAction.moveAllToTrash
                             setModal(
-                                <ConfirmDeleteModal
-                                    description={`${innerSelectedKeys.size} selected ${pluralized}`}
-                                    doDelete={() => {
-                                        innerSetSelectedKeys(new Set())
-                                        dispatchAssetEvent({
-                                            type: assetEventModule.AssetEventType.deleteMultiple,
-                                            ids: innerSelectedKeys,
-                                        })
-                                        return Promise.resolve()
-                                    }}
-                                />
+                                <ContextMenus key={uniqueString.uniqueString()} event={event}>
+                                    {innerSelectedKeys.size !== 0 && ownsAllSelectedAssets && (
+                                        <ContextMenu>
+                                            <MenuEntry
+                                                action={deleteAction}
+                                                doAction={doDeleteAll}
+                                            />
+                                        </ContextMenu>
+                                    )}
+                                    <GlobalContextMenu
+                                        directoryKey={null}
+                                        directoryId={null}
+                                        dispatchAssetListEvent={dispatchAssetListEvent}
+                                    />
+                                </ContextMenus>
                             )
                         }
-                        setModal(
-                            <ContextMenus key={uniqueString.uniqueString()} event={event}>
-                                {innerSelectedKeys.size !== 0 && (
-                                    <ContextMenu>
-                                        <MenuEntry
-                                            action={
-                                                backend.type === backendModule.BackendType.local
-                                                    ? shortcuts.KeyboardAction.deleteAll
-                                                    : shortcuts.KeyboardAction.moveAllToTrash
-                                            }
-                                            doAction={doDeleteAll}
-                                        />
-                                    </ContextMenu>
-                                )}
-                                <GlobalContextMenu
-                                    directoryKey={null}
-                                    directoryId={null}
-                                    dispatchAssetListEvent={dispatchAssetListEvent}
-                                />
-                            </ContextMenus>
-                        )
                     }}
                 />
             </div>
