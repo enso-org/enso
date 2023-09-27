@@ -20,6 +20,8 @@ import project.Internal.Time.Format.Tokenizer.Tokenizer
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import org.enso.base.time.EnsoDateTimeFormatter
+polyglot java import org.enso.base.time.FormatterCacheKey
+polyglot java import org.enso.base.time.FormatterCache
 polyglot java import org.enso.base.time.FormatterKind
 
 type Date_Time_Formatter
@@ -124,11 +126,12 @@ type Date_Time_Formatter
     @locale Locale.default_widget
     from_simple_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_simple_pattern pattern:Text locale:Locale=Locale.default =
-        parsed = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern
-        analyzer = Analyzer.new parsed
-        java_formatter = analyzer.validate_after_parsing <|
-            As_Java_Formatter_Interpreter.interpret locale parsed
-        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
+        FormatterCache.SIMPLE_FORMAT.get_or_set (FormatterCacheKey.new pattern locale.java_locale) _->
+            parsed = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern
+            analyzer = Analyzer.new parsed
+            java_formatter = analyzer.validate_after_parsing <|
+                As_Java_Formatter_Interpreter.interpret locale parsed
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## Creates a formatter from a pattern for the ISO 8601 leap week calendar.
 
@@ -174,11 +177,12 @@ type Date_Time_Formatter
     @locale Locale.default_widget
     from_iso_week_date_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_iso_week_date_pattern pattern:Text locale:Locale=Locale.default =
-        parsed = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern
-        analyzer = Analyzer.new parsed
-        java_formatter = analyzer.validate_after_parsing <|
-            As_Java_Formatter_Interpreter.interpret locale parsed
-        Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
+        FormatterCache.ISO_WEEK_DATE_FORMAT.get_or_set (FormatterCacheKey.new pattern locale.java_locale) _->
+            parsed = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern
+            analyzer = Analyzer.new parsed
+            java_formatter = analyzer.validate_after_parsing <|
+                As_Java_Formatter_Interpreter.interpret locale parsed
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## ADVANCED
        Creates a formatter from a Java `DateTimeFormatter` instance or a text
