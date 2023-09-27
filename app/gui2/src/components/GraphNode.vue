@@ -44,32 +44,6 @@ watchEffect(() => {
   }
 })
 
-// TODO [sb]: restore delete functionality (DELETE key)
-const mouseHandler = nodeBindings.mouseHandler({
-  replace() {
-    emit('replaceSelection')
-  },
-  add() {
-    emit('update:selected', true)
-  },
-  remove() {
-    emit('update:selected', false)
-  },
-  toggle() {
-    emit('update:selected', !props.selected)
-  },
-  invert() {
-    emit('update:selected', !props.selected)
-  },
-})
-
-const dragPointer = usePointer((pos, event, type) => {
-  emit('movePosition', pos.delta)
-  if (type === 'start') {
-    mouseHandler(event)
-  }
-})
-
 const transform = computed(() => {
   let pos = props.node.position
   return `translate(${pos.x}px, ${pos.y}px)`
@@ -381,6 +355,32 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
     } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
   )
 }
+
+// TODO [sb]: restore delete functionality (DELETE key)
+const mouseHandler = nodeBindings.mouseHandler({
+  replace() {
+    emit('replaceSelection')
+  },
+  add() {
+    emit('update:selected', true)
+  },
+  remove() {
+    emit('update:selected', false)
+  },
+  toggle() {
+    emit('update:selected', !props.selected)
+  },
+  invert() {
+    emit('update:selected', !props.selected)
+  },
+})
+
+const dragPointer = usePointer((pos, event, type) => {
+  emit('movePosition', pos.delta)
+  if (type === 'start') {
+    mouseHandler(event)
+  }
+})
 </script>
 
 <template>

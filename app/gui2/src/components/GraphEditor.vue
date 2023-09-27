@@ -118,6 +118,56 @@ watch(
   },
 )
 
+function setSelected(id: ExprId, selected: boolean) {
+  if (selection.dragging) {
+    if (selected) {
+      initiallySelectedNodes.value.add(id)
+    } else {
+      initiallySelectedNodes.value.delete(id)
+    }
+  } else {
+    if (selected) {
+      selectedNodes.value.add(id)
+    } else {
+      selectedNodes.value.delete(id)
+    }
+  }
+}
+
+const graphBindingsHandler = graphBindings.keyboardHandler({
+  undo() {
+    projectStore.undoManager.undo()
+  },
+  redo() {
+    projectStore.undoManager.redo()
+  },
+  openComponentBrowser() {
+    if (keyboardBusy()) {
+      return false
+    }
+    if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
+      componentBrowserPosition.value = navigator.sceneMousePos
+      componentBrowserVisible.value = true
+    }
+  },
+  newNode() {
+    if (navigator.sceneMousePos != null) {
+      graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
+    }
+  },
+})
+
+const nodeSelectionHandler = nodeBindings.keyboardHandler({
+  selectAll() {
+    for (const id of graphStore.nodes.keys()) {
+      selectedNodes.value.add(id)
+    }
+  },
+  deselectAll() {
+    selectedNodes.value.clear()
+  },
+})
+
 const mouseHandler = nodeBindings.mouseHandler(
   {
     replace() {
@@ -169,56 +219,6 @@ const mouseHandler = nodeBindings.mouseHandler(
   false,
   false,
 )
-
-function setSelected(id: ExprId, selected: boolean) {
-  if (selection.dragging) {
-    if (selected) {
-      initiallySelectedNodes.value.add(id)
-    } else {
-      initiallySelectedNodes.value.delete(id)
-    }
-  } else {
-    if (selected) {
-      selectedNodes.value.add(id)
-    } else {
-      selectedNodes.value.delete(id)
-    }
-  }
-}
-
-const graphBindingsHandler = graphBindings.keyboardHandler({
-  undo() {
-    projectStore.undoManager.undo()
-  },
-  redo() {
-    projectStore.undoManager.redo()
-  },
-  openComponentBrowser() {
-    if (keyboardBusy()) {
-      return false
-    }
-    if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      componentBrowserPosition.value = navigator.sceneMousePos
-      componentBrowserVisible.value = true
-    }
-  },
-  newNode() {
-    if (navigator.sceneMousePos != null) {
-      graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
-    }
-  },
-})
-
-const nodeSelectionHandler = nodeBindings.keyboardHandler({
-  selectAll() {
-    for (const id of graphStore.nodes.keys()) {
-      selectedNodes.value.add(id)
-    }
-  },
-  deselectAll() {
-    selectedNodes.value.clear()
-  },
-})
 </script>
 
 <template>
