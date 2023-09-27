@@ -63,9 +63,9 @@ print_report spec config builder =
                         ## If there are additional details, we print them as well.
                         builder.append '\n\n'
                         builder.append (escape_xml details)
-                    builder.append '</failure>\n'
+                    builder.append '\n            </failure>\n'
                 Test_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
-            builder.append '</testcase>\n'
+            builder.append '        </testcase>\n'
         builder.append '    </testsuite>\n'
 
     should_print_behavior = config.print_only_failures.not || spec.behaviors.any (b -> b.result.is_fail)
