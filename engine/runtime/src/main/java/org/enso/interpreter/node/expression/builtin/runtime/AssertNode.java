@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.runtime;
 
-import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -30,14 +29,14 @@ public abstract class AssertNode extends Node {
   }
 
   public abstract Object execute(
-      VirtualFrame frame, State state, @Suspend Object action, Object msg);
+      VirtualFrame frame, State state, @Suspend Object action, Text msg);
 
   protected boolean isAssertionsEnabled() {
     return EnsoContext.get(this).isAssertionsEnabled();
   }
 
   @Specialization(guards = "!isAssertionsEnabled()")
-  Object doAssertionsDisabled(VirtualFrame frame, State state, Object action, Object msg) {
+  Object doAssertionsDisabled(VirtualFrame frame, State state, Object action, Text msg) {
     return EnsoContext.get(this).getNothing();
   }
 
@@ -46,7 +45,7 @@ public abstract class AssertNode extends Node {
       VirtualFrame frame,
       State state,
       Object action,
-      Object msg,
+      Text msg,
       @Cached("create()") ThunkExecutorNode thunkExecutorNode,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached GetStackTraceNode getStackTraceNode) {
@@ -58,14 +57,6 @@ public abstract class AssertNode extends Node {
           .error()
           .makeTypeError(builtins.function(), TypeOfNode.getUncached().execute(action), "action");
     }
-    String message;
-    try {
-      message = interop.asString(msg);
-    } catch (UnsupportedMessageException e) {
-      return builtins
-          .error()
-          .makeTypeError(builtins.text(), TypeOfNode.getUncached().execute(msg), "message");
-    }
     Object actionRes =
         thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.TAIL_DIRECT);
     try {
@@ -73,7 +64,7 @@ public abstract class AssertNode extends Node {
         return ctx.getNothing();
       } else {
         var stackTrace = getStackTraceNode.execute(frame);
-        return builtins.error().makeAssertionError(Text.create(message), stackTrace);
+        return builtins.error().makeAssertionError(msg, stackTrace);
       }
     } catch (UnsupportedMessageException e) {
       return builtins
