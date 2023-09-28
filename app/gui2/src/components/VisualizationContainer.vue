@@ -301,6 +301,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .image-button {
+  cursor: none;
   background: none;
   padding: 0;
   border: none;
@@ -308,7 +309,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .image-button.active {
-  cursor: pointer;
   opacity: unset;
 }
 
