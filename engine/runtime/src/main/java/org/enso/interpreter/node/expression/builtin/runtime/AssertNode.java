@@ -30,8 +30,7 @@ public abstract class AssertNode extends Node {
     return AssertNodeGen.create();
   }
 
-  public abstract Object execute(
-      VirtualFrame frame, State state, @Suspend Object action, Text msg);
+  public abstract Object execute(VirtualFrame frame, State state, @Suspend Object action, Text msg);
 
   @Idempotent
   protected boolean isAssertionsEnabled() {
@@ -59,19 +58,17 @@ public abstract class AssertNode extends Node {
       if (interop.asBoolean(actionRes)) {
         return ctx.getNothing();
       } else {
-        throw new PanicException(
-            builtins.error().makeAssertionError(msg),
-            this
-        );
+        throw new PanicException(builtins.error().makeAssertionError(msg), this);
       }
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
-      var typeError = builtins
-          .error()
-          .makeTypeError(
-              builtins.bool().getType(),
-              TypeOfNode.getUncached().execute(actionRes),
-              "Result of assert action");
+      var typeError =
+          builtins
+              .error()
+              .makeTypeError(
+                  builtins.bool().getType(),
+                  TypeOfNode.getUncached().execute(actionRes),
+                  "Result of assert action");
       throw new PanicException(typeError, this);
     }
   }
