@@ -1,23 +1,31 @@
+import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_State.Illegal_State
 import project.Errors.No_Such_Key.No_Such_Key
 import project.IO
+import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.Input_Stream.Input_Stream
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
 
 polyglot java import java.io.StringReader
 polyglot java import javax.xml.parsers.DocumentBuilderFactory
 polyglot java import javax.xml.parsers.DocumentBuilder
 polyglot java import javax.xml.xpath.XPathConstants
+polyglot java import javax.xml.xpath.XPathFactory
 polyglot java import org.w3c.dom.Document
 polyglot java import org.w3c.dom.Element
 polyglot java import org.w3c.dom.Node
+polyglot java import org.w3c.dom.NodeList
 polyglot java import org.w3c.dom.Text as Java_Text
 polyglot java import org.xml.sax.InputSource
 polyglot java import org.xml.sax.SAXException
@@ -101,6 +109,9 @@ type XML_Document
         # Include mime type (with encoding??) and from_stream
 
 type XML_Element
+    ## PRIVATE
+    Value (java_element:Element)
+
     ## Gets the tag of an xml element.
 
        Example:
@@ -109,88 +120,16 @@ type XML_Element
     name : Text
     name self = self.java_element.getNodeName
 
-    ## PRIVATE
-    Value (java_element:Element)
-
-    ##
-        ## Gets a map of the attributes of an xml element.
-
-           Example:
-               XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attributes
-               # => Map.from_vector [["bar", "one"]]
-        attributes : Map Text Text
-
-    ## Get an attribute of an XML element.
-
-       Arguments:
-       - name: The name of the attribute to get.
-       - if_missing: The value returned if the attribute does not exist.
-    attribute : Text -> Any -> Text | Any
-    attribute self name ~if_missing=(Error.throw (No_Such_Key.Error self key)) =
-        attr = self.java_element.getAttributeNode
-        if attr.is_nothing then if_missing else attr.getValue
-
-    ## Gets the child elements of an XML element. This ignores all non-element
-       children.
-
-       Example:
-           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . children
-           # => [XML_Document.from_string "<baz>hello</baz>"]
-    children : Vector (XML_Element | Text)
-    children self =
-        # If an Element, wrap in XML_Element. If Java_Text, extract the string.
-        convert node =
-            case node.getNodeType of
-                Node.ELEMENT_NODE -> XMLElement.Value node
-                Node.TEXT_NODE -> node.nodeValue
-        nodes = filter_children node is_element_or_non_whitespace_text . map convert
-
-    ## Gets the non-markup contents of the element.
-
-       Example:
-           XML_Document.from_string '<foo>hello</foo>' . at 0 . tag
-           # => "hello"
-    text : Text
-    text.self = self.java_element.getTextContent
-
-    ## Gets the raw XML of the element (including tag, attributes and contents).
-    outer_xml : Text ! XML_Error
-    outer_xml self = XML_Utils.outerXML self.java_element
-
-    ##
-        ## Gets the raw XML contents of the element.
-        inner_xml : Text
-
     ## Gets a child of an xml element.
 
        Example:
            XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . at 0
            # => XML_Document.from_string "<baz>hello</baz>"
-    get : Text | Integer -> Any -> Any | Text | XML_Element
-    get self key ~if_missing =
+    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector XML_Element
+    get self key ~if_missing=Nothing =
         case key of
             _ : Integer -> self.get_child_element key if_missing
-            _ : Text -> if is_attribute_key key then self.attribute (key.drop 1) else self.get_xpath_one_value key if_missing
-
-    ## PRIVATE
-    get_xpath_one_value : Text -> Any -> Any | XML_Element
-    get_xpath_one_value key ~if_missing =
-        values = get_xpath key
-        case values.length of
-            0 -> if_missing
-            1 -> values.at 0
-            n -> Error.throw (XML_Error.Multiple_Values_Found key n)
-
-    ## Get elements denoted by the given XPath key.
-
-       Arguments:
-       - key: The XPath string to use to search for elements.
-    get_xpath : Text -> Vector XML_Element
-    get_xpath self key =
-        xpath = XPathFactory.newInstance().newXPath
-        node_list = xpath.evaluate key self XPathConstants.NODE_SET
-        0.up_to (node_list.getLength) . map i->
-            node_list.item i
+            _ : Text -> if is_attribute_key key then self.attribute (key.drop 1) if_missing else self.get_xpath key
 
     ## Gets a child or attribute of an xml element.
 
@@ -205,19 +144,86 @@ type XML_Element
 
              XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . at 0
              # => XML_Document.from_string "<baz>hello</baz>"
-    at : Text | Integer -> Text | XML_Element ! Key_Not_Found | Index_Out_Of_Bounds
+    at : Text | Integer -> Text | XML_Element | Vector XML_Element ! No_Such_Key | Index_Out_Of_Bounds
     at self key =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.num_children)
             _ : Text -> Error.throw (No_Such_Key.Error self key)
         self.get key if_missing
 
+    ## Get elements denoted by the given XPath key.
+
+       Arguments:
+       - key: The XPath string to use to search for elements.
+    get_xpath : Text -> Vector XML_Element
+    get_xpath self key =
+        xpath = XPathFactory.newInstance.newXPath
+        only_wanted_nodes (nodelist_to_vector (xpath.evaluate key self.java_element XPathConstants.NODESET))
+
     ## PRIVATE
        Get the child element indicated by the index. This ignores all
        non-element children.
-    get_child_element Integer -> Any -> Any | Text | XML_Element ! Key_Not_Found
-    get_child_element n:Integer ~if_missing =
+    get_child_element : Integer -> Any -> Any | Text | XML_Element ! No_Such_Key
+    get_child_element self n:Integer ~if_missing =
         self.children.get n if_missing
+
+    ## Get an attribute of an XML element.
+
+       Arguments:
+       - name: The name of the attribute to get.
+       - if_missing: The value returned if the attribute does not exist.
+    attribute : Text -> Any -> Text | Any
+    attribute self name ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
+        attr = self.java_element.getAttributeNode name
+        if attr.is_nothing then if_missing else attr.getValue
+
+    ## PRIVATE
+       Get all children of this element.
+    all_children : Vector Any
+    all_children self = nodelist_to_vector self.java_element.getChildNodes
+
+    ##
+        ## Gets a map of the attributes of an xml element.
+
+           Example:
+               XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attributes
+               # => Map.from_vector [["bar", "one"]]
+        attributes : Map Text Text
+
+    ## Gets the child elements of an XML element. This ignores all non-element
+       children.
+
+       Example:
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . at 0 . children
+           # => [XML_Document.from_string "<baz>hello</baz>"]
+    children : Vector (XML_Element | Text)
+    children self = only_wanted_nodes self.all_children
+
+    ## Gets the non-markup contents of the element.
+
+       Example:
+           XML_Document.from_string '<foo>hello</foo>' . at 0 . tag
+           # => "hello"
+    text : Text
+    text self = self.java_element.getTextContent
+
+    ## Gets the raw XML of the element (including tag, attributes and contents).
+    outer_xml : Text ! XML_Error
+    outer_xml self = XML_Utils.outerXML self.java_element
+
+    ##
+        ## Gets the raw XML contents of the element.
+        inner_xml : Text
+
+    ##
+        ## PRIVATE
+        get_xpath_one_value : Text -> Any -> Any | XML_Element
+        get_xpath_one_value key ~if_missing =
+            values = get_xpath key
+            case values.length of
+                0 -> if_missing
+                1 -> values.at 0
+                n -> Error.throw (XML_Error.Multiple_Values_Found key n)
 
     ## Gets the number children of an xml element.
 
@@ -275,19 +281,39 @@ type XML_Error
         _ -> Error.throw (XML_Error.Other "A SAXException has occurred: "+sax_exception.to_text)
 
 ## PRIVATE
-   Return children of an element that pass a filter.
-filter_children : XML_Element -> Vector Node
-filter_children element f =
-    element.java_element.getChildNodes . filter f
+   Filter out unwanted nodes.
+   Wanted nodes are:
+   - Elements
+   - Text (if not completely whitespace)
+only_wanted_nodes : Vector Any -> Vector (Text | XML_Element)
+only_wanted_nodes nodes:(Vector Any) =
+    # If an Element, wrap in XML_Element. If Java_Text, extract the string.
+    convert node =
+        ##
+            case node.getNodeType of
+                Node.ELEMENT_NODE -> XML_Element.Value node
+                Node.TEXT_NODE -> node.nodeValue
+        if node.getNodeType == Node.ELEMENT_NODE then XML_Element.Value node else
+            if node.getNodeType == Node.TEXT_NODE then node.getNodeValue else
+                Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))
+    nodes.filter is_element_or_non_whitespace_text . map convert
 
 ## PRIVATE
    Return children of this node that pass a filter.
 is_element_or_non_whitespace_text : Node -> Boolean
 is_element_or_non_whitespace_text node =
     is_element = node.getNodeType == Node.ELEMENT_NODE
-    is_non_whitespace_text = node.getNodeType == Node.TEXT_NODE && node.nodeValue.is_whitespace
+    is_non_whitespace_text = node.getNodeType == Node.TEXT_NODE && node.getNodeValue.is_whitespace.not
+    is_element || is_non_whitespace_text
 
 ## PRIVATE
    Returns true if `key` starts with "@".
 is_attribute_key : Text -> Boolean
 is_attribute_key s = s.starts_with "@"
+
+## PRIVATE
+   Convert NodeList to Vector.
+nodelist_to_vector : NodeList -> Vector Any
+nodelist_to_vector node_list:NodeList =
+    0.up_to (node_list.getLength) . map i->
+        node_list.item i

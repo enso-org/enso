@@ -41,26 +41,57 @@ spec =
             XML_Document.from_string xml_string . catch . should_be_a XML_Error.Parse_Error
 
     Test.group "at/get" <|
-        Test.specify "Can get child elements" <|
+        Test.specify "Can get elements by index" <|
             test_file = enso_project.data / "xml" / "sample.xml"
             root = XML_Document.from_file test_file . root_element
-            teacher0 = root.at 0
-            teacher0.name . should_equal "teacher"
-            teacher0.at "@id" . should_equal "100"
-            teacher1 = root.at 1
-            teacher1.name . should_equal "teacher"
-            teacher1.at "@id" . should_equal "101"
 
-        Test.specify "Can get nested elements" <|
-            test_file = enso_project.data / "xml" / "sample.xml"
-            root = XML_Document.from_file test_file . root_element
+            root.at 0 . name . should_equal "teacher"
 
             root.at 0 . at 0 . name . should_equal "firstname"
             root.at 0 . at 1 . name . should_equal "lastname"
             root.at 0 . at 2 . name . should_equal "bio"
+            root.at 0 . at 2 . at 0 . should_equal '\n            Blah blah\n        '
 
-            root.at 2 . at 0 . name . should_equal "firstname"
-            root.at 2 . at 1 . name . should_equal "lastname"
-            root.at 2 . at 2 . name . should_equal "gpa"
+            root.at 3 . at 0 . name . should_equal "firstname"
+            root.at 3 . at 1 . name . should_equal "lastname"
+            root.at 3 . at 2 . name . should_equal "gpa"
+            root.at 3 . at 2 . at 0 . should_equal "3.99"
+
+        Test.specify "Can get element attributes" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            root = XML_Document.from_file test_file . root_element
+
+            root.at 0 . at "@id" . should_equal "100"
+            root.at 1 . at "@id" . should_equal "101"
+            root.at 2 . at "@studentId" . should_equal "1000"
+            root.at 3 . at "@studentId" . should_equal "1001"
+
+        Test.specify "Can get via xpath" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            root = XML_Document.from_file test_file . root_element
+
+            classes = root.at "/class"
+            classes.length . should_equal 1
+            classes.at 0 . name . should_equal "class"
+
+            teachers = root.at "/class/teacher"
+            teachers.length . should_equal 2
+            teachers.at 0 . at "@id" . should_equal "100"
+            teachers.at 1 . at "@id" . should_equal "101"
+
+            students = root.at "/class/student"
+            students.length . should_equal 2
+            students.at 0 . at "@studentId" . should_equal "1000"
+            students.at 1 . at "@studentId" . should_equal "1001"
+
+            root.at "/class/teacher[1]/firstname" . at 0 . text . should_equal "Mary"
+            root.at "/class/teacher[2]/firstname" . at 0 . text . should_equal "Bob"
+            root.at "/class/teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
+            root.at "/class/teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+
+            root.at "teacher[1]/firstname" . at 0 . text . should_equal "Mary"
+            root.at "teacher[2]/firstname" . at 0 . text . should_equal "Bob"
+            root.at "teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
+            root.at "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
 
 main = Test_Suite.run_main spec

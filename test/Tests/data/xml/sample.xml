@@ -14,14 +14,14 @@
             This that
         </bio>
     </teacher>
-    <studemt>
+    <student studentId="1000">
         <firstname>Alice</firstname>
         <lastname>Wright</lastname>
         <gpa>4.01</gpa>
-    </studemt>
-    <studemt>
+    </student>
+    <student studentId="1001">
         <firstname>Jessi</firstname>
         <lastname>Cooper</lastname>
         <gpa>3.99</gpa>
-    </studemt>
+    </student>
 </class>
