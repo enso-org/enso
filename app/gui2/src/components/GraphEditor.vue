@@ -23,23 +23,11 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
-const executionCtx = shallowRef<ExecutionContext>()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
-
-onMounted(async () => {
-  await projectStore.lsRpcConnection
-  const executionCtxPromise = projectStore.createExecutionContextForMain()
-  onUnmounted(async () => {
-    executionCtx.value = undefined
-    const ctx = await executionCtxPromise
-    if (ctx != null) ctx.destroy()
-  })
-  executionCtx.value = (await executionCtxPromise) ?? undefined
-})
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)

@@ -232,8 +232,14 @@ export const useProjectStore = defineStore('project', () => {
     })
   }
 
-  const executionContextId = lsRpcConnection
-    .then(() => createExecutionContextForMain())
+  const executionContextRef = shallowRef<ExecutionContext>()
+  const executionContext = lsRpcConnection
+    .then(createExecutionContextForMain)
+    .then((executionContext) => {
+      executionContextRef.value = executionContext
+      return executionContext
+    })
+  const executionContextId = executionContext
     .then((context) => context?.state)
     .then((state) => state?.id)
 
@@ -301,7 +307,7 @@ export const useProjectStore = defineStore('project', () => {
     setObservedFileName(name: string) {
       observedFileName.value = name
     },
-    createExecutionContextForMain,
+    executionContext: executionContextRef,
     module,
     contentRoots,
     undoManager,
