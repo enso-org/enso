@@ -584,6 +584,7 @@ function showAll() {
   zoomLevel.value = 1
   xDomain.value = originalXScale.value.domain()
   shouldAnimate.value = true
+  endBrushing()
 }
 
 useEvent(document, 'keydown', bindings.handler({ showAll }))

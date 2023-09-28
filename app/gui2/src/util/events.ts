@@ -277,8 +277,24 @@ export function usePointer(
     },
   }
 
+  const stopEvents = {
+    pointerdown(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointerdown(e)
+    },
+    pointerup(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointerup(e)
+    },
+    pointermove(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointermove(e)
+    },
+  }
+
   return proxyRefs({
     events,
+    stop: { events: stopEvents },
     dragging,
   })
 }

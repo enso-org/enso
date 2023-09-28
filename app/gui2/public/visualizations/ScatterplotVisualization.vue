@@ -540,6 +540,7 @@ function showAll() {
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
   ]
   updatePreprocessor()
+  endBrushing()
 }
 
 function endBrushing() {

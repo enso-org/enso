@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
 
+import { useDocumentEvent } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 
 const props = defineProps<{
@@ -9,6 +10,7 @@ const props = defineProps<{
 }>()
 
 const transition = ref(false)
+const hidden = ref(false)
 
 watchEffect(() => {
   if (props.size == null) {
@@ -18,12 +20,23 @@ watchEffect(() => {
     }, 150)
   }
 })
+
+let lastEventTarget: Element | null
+useDocumentEvent('mouseover', (event) => {
+  if (event.target instanceof Element) {
+    if (event.target === lastEventTarget) {
+      return
+    }
+    lastEventTarget = event.target
+    hidden.value = getComputedStyle(event.target).cursor !== 'none'
+  }
+})
 </script>
 
 <template>
   <div
     class="SelectionBrush"
-    :class="{ cursor: size == null, transition }"
+    :class="{ cursor: size == null, transition, hidden }"
     :style="{
       left: `${position.x - Math.max(size?.x ?? 0, 0)}px`,
       top: `${position.y - Math.max(size?.y ?? 0, 0)}px`,
@@ -46,6 +59,10 @@ watchEffect(() => {
   border-radius: var(--radius-cursor);
   border: var(--margin-brush) solid #0000;
   margin: calc(0px - var(--margin-brush));
+
+  &.hidden {
+    display: none;
+  }
 
   &.cursor {
     border: var(--radius-cursor) solid #0000;
