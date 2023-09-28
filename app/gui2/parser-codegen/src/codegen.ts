@@ -270,7 +270,7 @@ class Type {
 
   static result(ok: Type, err: Type): Type {
     return new Type(
-      tsf.createUnionTypeNode([ok.type, err.type]),
+      support.Result(ok.type, err.type),
       cursorMethods.readResult(ok.reader, err.reader),
       POINTER_SIZE,
     )
@@ -646,12 +646,19 @@ const cursorMethods = {
 } as const
 const POINTER_SIZE: number = 4
 // Symbols exported by the `parserSupport` module.
+const supportImports = {
+  LazyObject: false,
+  Cursor: false,
+  debugHelper: false,
+  Result: true,
+} as const
 const support = {
   LazyObject: tsf.createIdentifier('LazyObject'),
   Cursor: tsf.createTypeReferenceNode(tsf.createIdentifier('Cursor')),
   debugHelper: tsf.createIdentifier('debugHelper'),
+  Result: (t0: ts.TypeNode, t1: ts.TypeNode) =>
+    tsf.createTypeReferenceNode(tsf.createIdentifier('Result'), [t0, t1]),
 } as const
-
 emit(
   tsf.createImportDeclaration(
     [],
@@ -659,8 +666,8 @@ emit(
       false,
       undefined,
       tsf.createNamedImports(
-        Array.from(Object.entries(support), ([name, _value]) =>
-          tsf.createImportSpecifier(false, undefined, tsf.createIdentifier(name)),
+        Array.from(Object.entries(supportImports), ([name, isTypeOnly]) =>
+          tsf.createImportSpecifier(isTypeOnly, undefined, tsf.createIdentifier(name)),
         ),
       ),
     ),
