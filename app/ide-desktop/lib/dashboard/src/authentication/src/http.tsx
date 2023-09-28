@@ -11,6 +11,7 @@ enum HttpMethod {
     get = 'GET',
     post = 'POST',
     put = 'PUT',
+    patch = 'PATCH',
     delete = 'DELETE',
 }
 
@@ -42,6 +43,11 @@ export class Client {
     /** Send a base64-encoded binary HTTP POST request to the specified URL. */
     async postBinary<T = void>(url: string, payload: Blob) {
         return await this.request<T>(HttpMethod.post, url, payload, 'application/octet-stream')
+    }
+
+    /** Send a JSON HTTP PATCH request to the specified URL. */
+    patch<T = void>(url: string, payload: object) {
+        return this.request<T>(HttpMethod.patch, url, JSON.stringify(payload), 'application/json')
     }
 
     /** Send a JSON HTTP PUT request to the specified URL. */

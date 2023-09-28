@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
+import org.graalvm.polyglot.Context;
 
 // For now the BigInteger builder is just a stub, reusing the ObjectBuilder and adding a warning.
 public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
@@ -88,10 +89,12 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   }
 
   public static BigIntegerBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
+    BigIntegerBuilder res = new BigIntegerBuilder(longBuilder.data.length);
     int n = longBuilder.currentSize;
-    BigIntegerBuilder res = new BigIntegerBuilder(n);
+    Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
       res.appendNoGrow(BigInteger.valueOf(longBuilder.data[i]));
+      context.safepoint();
     }
     return res;
   }

@@ -100,7 +100,7 @@ export default function AssetRow(props: AssetRowProps) {
                     // Ignored. The project was already closed.
                 }
             }
-            await backend.deleteAsset(asset)
+            await backend.deleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.delete,
                 key: item.key,
@@ -111,6 +111,27 @@ export default function AssetRow(props: AssetRowProps) {
                 errorModule.tryGetMessage(error)?.slice(0, -1) ??
                     `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
             )
+        }
+    }, [
+        backend,
+        dispatchAssetListEvent,
+        asset,
+        /* should never change */ item.key,
+        /* should never change */ toastAndLog,
+    ])
+
+    const doRestore = React.useCallback(async () => {
+        // Visually, the asset is deleted from the Trash view.
+        setPresence(presenceModule.Presence.deleting)
+        try {
+            await backend.undoDeleteAsset(asset.id, asset.title)
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.delete,
+                key: item.key,
+            })
+        } catch (error) {
+            setPresence(presenceModule.Presence.present)
+            toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
         }
     }, [
         backend,
@@ -135,6 +156,12 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEventModule.AssetEventType.deleteMultiple: {
                 if (event.ids.has(item.key)) {
                     await doDelete()
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.restoreMultiple: {
+                if (event.ids.has(item.key)) {
+                    await doRestore()
                 }
                 break
             }

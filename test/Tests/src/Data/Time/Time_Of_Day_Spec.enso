@@ -66,7 +66,10 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
         Test.specify "should throw error when parsing invalid time" <|
             case parse_time "1200" . catch of
                 Time_Error.Error msg _ ->
-                    msg . should_equal "Text '1200' could not be parsed at index 2"
+                    ## This error message may or may not contain the suffix:
+                       > (Expected date/time format: (ISO time) HH:mm[:ss[.f]])
+                       That depends if the Enso or Java parse is used.
+                    msg . should_contain "Text '1200' could not be parsed at index 2"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
@@ -78,7 +81,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             time = parse_time "12:30" "HH:mm:ss"
             case time.catch of
                 Time_Error.Error msg _ ->
-                    msg . should_equal "Text '12:30' could not be parsed at index 5"
+                    msg . should_contain "Text '12:30' could not be parsed at index 5"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 

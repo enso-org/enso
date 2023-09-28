@@ -27,6 +27,7 @@
     "@vueuse/core": "^10.4.1",
     "codemirror": "^6.0.1",
     "enso-authentication": "^1.0.0",
+    "events": "^3.3.0",
     "install": "^0.13.0",
     "hash-sum": "^2.0.0",
     "isomorphic-ws": "^5.0.0",

@@ -1579,6 +1579,15 @@ type Column
         check_cast_compatibility self.value_type value_type <|
             self.internal_do_cast value_type on_problems
 
+    ## Change the value type of the column to a more specific one, based on its
+       contents.
+
+       This operation is currently not available in the Database backend.
+    auto_value_type : Boolean -> Column
+    auto_value_type self shrink_types=False =
+        _ = shrink_types
+        Error.throw <| Unsupported_Database_Operation.Error "`Column.auto_value_type` is not supported in the Database backends."
+
     ## PRIVATE
        Shares the core CAST logic between `cast` and `parse`.
     internal_do_cast : Value_Type -> Problem_Behavior -> Column

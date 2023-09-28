@@ -17,16 +17,16 @@ import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 
+import { nodeBindings } from '@/bindings/nodeSelection'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import { useGraphStore } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
+import { ExecutionContext, useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { keyboardBusy, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { nodeBindings } from '../bindings/nodeSelection'
+import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 const SELECTION_BRUSH_MARGIN_PX = 6
@@ -37,6 +37,7 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
+const executionCtx = shallowRef<ExecutionContext>()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
 
@@ -44,6 +45,16 @@ const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
 const selectedNodes = ref(new Set<ExprId>())
 const latestSelectedNode = ref<ExprId>()
+
+onMounted(async () => {
+  const executionCtxPromise = projectStore.createExecutionContextForMain()
+  onUnmounted(async () => {
+    executionCtx.value = undefined
+    const ctx = await executionCtxPromise
+    if (ctx != null) ctx.destroy()
+  })
+  executionCtx.value = (await executionCtxPromise) ?? undefined
+})
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)

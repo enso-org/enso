@@ -31,7 +31,6 @@ from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 
 polyglot java import org.enso.base.Regex_Utils
-polyglot java import org.enso.base.Replacer_Cache
 polyglot java import org.enso.base.Text_Utils
 
 type Regex
