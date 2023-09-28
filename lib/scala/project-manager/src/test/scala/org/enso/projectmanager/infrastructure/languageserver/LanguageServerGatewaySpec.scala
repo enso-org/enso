@@ -13,6 +13,8 @@ class LanguageServerGatewaySpec
     extends BaseServerSpec
     with ProjectManagementOps {
 
+  println(s"SETUP CurrentVersion.version=${CurrentVersion.version}")
+
   override val engineToInstall = Some(CurrentVersion.version)
 
   "A language server service" must {
@@ -42,6 +44,7 @@ class LanguageServerGatewaySpec
     }
 
     "report language server status" in {
+      println(s"CurrentVersion.version=${CurrentVersion.version}")
       implicit val client = new WsTestClient(address)
       val fooId           = createProject("foo")
       //val fooSocket       =
