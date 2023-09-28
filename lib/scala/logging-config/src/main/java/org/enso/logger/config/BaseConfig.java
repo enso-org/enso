@@ -11,11 +11,8 @@ public interface BaseConfig {
   /** Returns a map of appenders defined in the logger section of the config. */
   Map<String, Appender> getAppenders();
 
-  /**
-   * Returns true, if logging infrastructure should always log in verbose mode, irrespective of the
-   * log target.
-   */
-  boolean logToFile();
+  /** Returns configuration for parallel logging of messages to a log file. */
+  LogToFile logToFile();
 
   /**
    * Returns a list of custom loggers and their levels that need to be taken into account when
