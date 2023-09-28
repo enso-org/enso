@@ -114,6 +114,14 @@ impl JobArchetype for NewGuiTest {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct NewGuiBuild;
+impl JobArchetype for NewGuiBuild {
+    fn job(&self, os: OS) -> Job {
+        plain_job(&os, "New (Vue) GUI build", "gui2 build")
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct WasmTest;
 impl JobArchetype for WasmTest {
     fn job(&self, os: OS) -> Job {
@@ -249,7 +257,7 @@ impl JobArchetype for PackageNewIde {
         plain_job_customized(
             &os,
             "Package New IDE",
-            "ide2 build --backend-source current-ci-run",
+            "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
             |step| vec![expose_os_specific_signing_secret(os, step)],
         )
     }

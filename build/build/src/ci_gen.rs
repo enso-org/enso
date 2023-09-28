@@ -460,6 +460,7 @@ pub fn gui() -> Result<Workflow> {
         workflow.add_customized(os, job::PackageNewIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
+        workflow.add(os, job::NewGuiBuild);
     }
     Ok(workflow)
 }
