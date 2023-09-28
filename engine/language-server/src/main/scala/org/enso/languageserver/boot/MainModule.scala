@@ -2,6 +2,7 @@ package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
 import buildinfo.Info
+import com.typesafe.config.ConfigFactory
 import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
@@ -10,7 +11,7 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.filewatcher.WatcherAdapterFactory
-import org.enso.jsonrpc.JsonRpcServer
+import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
@@ -460,7 +461,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
-        .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
+        .Config(
+          outgoingBufferSize = 10000,
+          lazyMessageTimeout = 10.seconds,
+          secureConfig =
+            SecureConnectionConfig.fromApplicationConfig(applicationConfig())
+        ),
       List(healthCheckEndpoint, idlenessEndpoint)
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
@@ -472,7 +478,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       new BinaryConnectionControllerFactory(fileManager),
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
-        lazyMessageTimeout = 10.seconds
+        lazyMessageTimeout = 10.seconds,
+        secureConfig =
+          SecureConnectionConfig.fromApplicationConfig(applicationConfig())
       )
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
@@ -487,5 +495,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     suggestionsRepo.close()
     context.close()
     log.info("Closed Language Server main module.")
+  }
+
+  def applicationConfig(): com.typesafe.config.Config = {
+    val empty = ConfigFactory.empty().atPath("akka.https")
+    ConfigFactory
+      .load()
+      .withFallback(empty)
+      .getConfig("akka")
+      .getConfig("https")
   }
 }

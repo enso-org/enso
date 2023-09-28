@@ -18,13 +18,18 @@ object Tcp {
     * @return a port that is available to bind
     */
   @tailrec
-  def findAvailablePort(host: String, minPort: Int, maxPort: Int): Int = {
+  def findAvailablePort(
+    host: String,
+    minPort: Int,
+    maxPort: Int,
+    excludeList: Set[Int] = Set.empty
+  ): Int = {
     val random = Random.nextInt(maxPort - minPort + 1)
     val port   = minPort + random
-    if (isPortAvailable(host, port)) {
+    if (!excludeList.contains(port) && isPortAvailable(host, port)) {
       port
     } else {
-      findAvailablePort(host, minPort, maxPort)
+      findAvailablePort(host, minPort, maxPort, excludeList + port)
     }
   }
 

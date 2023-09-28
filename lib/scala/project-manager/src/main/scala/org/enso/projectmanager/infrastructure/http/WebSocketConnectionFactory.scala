@@ -13,4 +13,11 @@ trait WebSocketConnectionFactory {
     */
   def createConnection(socket: Socket): WebSocketConnection
 
+  /** Creates web socket connection.
+    *
+    * @param socket a server address
+    * @return a connection
+    */
+  def createSecureConnection(socket: Socket): WebSocketConnection
+
 }

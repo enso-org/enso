@@ -39,7 +39,9 @@ class LanguageServerProcess(
   progressTracker: ActorRef,
   descriptor: LanguageServerDescriptor,
   rpcPort: Int,
+  secureRpcPort: Option[Int],
   dataPort: Int,
+  secureDataPort: Option[Int],
   bootTimeout: FiniteDuration,
   executor: LanguageServerExecutor
 ) extends Actor
@@ -74,7 +76,9 @@ class LanguageServerProcess(
         descriptor        = descriptor,
         progressTracker   = progressTracker,
         rpcPort           = rpcPort,
+        secureRpcPort     = secureRpcPort,
         dataPort          = dataPort,
+        secureDataPort    = secureDataPort,
         lifecycleListener = LifecycleListener
       )
       context.become(startingStage)
@@ -199,7 +203,9 @@ object LanguageServerProcess {
     progressTracker: ActorRef,
     descriptor: LanguageServerDescriptor,
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     bootTimeout: FiniteDuration,
     executor: LanguageServerExecutor
   ): Props = Props(
@@ -207,7 +213,9 @@ object LanguageServerProcess {
       progressTracker,
       descriptor,
       rpcPort,
+      secureRpcPort,
       dataPort,
+      secureDataPort,
       bootTimeout,
       executor
     )

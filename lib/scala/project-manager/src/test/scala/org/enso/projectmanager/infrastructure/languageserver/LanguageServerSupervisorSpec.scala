@@ -136,7 +136,9 @@ class LanguageServerSupervisorSpec
       LanguageServerConnectionInfo(
         testHost,
         testRpcPort,
-        testDataPort
+        secureRpcPort = None,
+        testDataPort,
+        secureDataPort = None
       )
 
     val supervisionConfig =

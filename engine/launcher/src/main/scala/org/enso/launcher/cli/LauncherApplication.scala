@@ -214,13 +214,29 @@ object LauncherApplication {
             "Data port for visualization protocol. Defaults to 8081."
           )
           .withDefault(8081)
+      val secureRpcPort =
+        Opts
+          .optionalParameter[Int](
+            "secure-rpc-port",
+            "SECURE_RPC_PORT",
+            "Secure RPC port for processing all incoming connections. Defaults to 8080."
+          )
+      val secureDataPort =
+        Opts
+          .optionalParameter[Int](
+            "secure-data-port",
+            "SECURE_DATA_PORT",
+            "Secure data port for visualization protocol. Defaults to 8081."
+          )
       val additionalArgs = Opts.additionalArguments()
       (
         rootId,
         path,
         interface,
         rpcPort,
+        secureRpcPort,
         dataPort,
+        secureDataPort,
         versionOverride,
         engineLogLevel,
         systemJVMOverride,
@@ -232,7 +248,9 @@ object LauncherApplication {
           path,
           interface,
           rpcPort,
+          secureRpcPort,
           dataPort,
+          secureDataPort,
           versionOverride,
           engineLogLevel,
           systemJVMOverride,
@@ -241,10 +259,12 @@ object LauncherApplication {
         ) => (config: Config) =>
           Launcher(config).runLanguageServer(
             options = LanguageServerOptions(
-              rootId    = rootId,
-              interface = interface,
-              rpcPort   = rpcPort,
-              dataPort  = dataPort
+              rootId         = rootId,
+              interface      = interface,
+              rpcPort        = rpcPort,
+              secureRpcPort  = secureRpcPort,
+              dataPort       = dataPort,
+              secureDataPort = secureDataPort
             ),
             contentRoot         = path,
             versionOverride     = versionOverride,

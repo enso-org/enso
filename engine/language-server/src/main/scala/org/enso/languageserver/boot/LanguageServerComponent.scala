@@ -45,22 +45,57 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
         binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
         _       <- Future { logger.debug("Json RPC server initialized.") }
       } yield binding
+    val bindSecureJsonServer: Future[Option[Http.ServerBinding]] = {
+      config.secureRpcPort match {
+        case Some(port) =>
+          module.jsonRpcServer
+            .bind(config.interface, port, secure = true)
+            .map(Some(_))
+        case None =>
+          Future.successful(None)
+      }
+    }
     val bindBinaryServer =
       for {
         binding <- module.binaryServer.bind(config.interface, config.dataPort)
         _       <- Future { logger.debug("Binary server initialized.") }
       } yield binding
+
+    val bindSecureBinaryServer: Future[Option[Http.ServerBinding]] = {
+      config.secureDataPort match {
+        case Some(port) =>
+          module.binaryServer
+            .bind(config.interface, port, secure = true)
+            .map(Some(_))
+        case None =>
+          Future.successful(None)
+      }
+    }
     for {
-      jsonBinding   <- bindJsonServer
-      binaryBinding <- bindBinaryServer
+      jsonBinding         <- bindJsonServer
+      secureJsonBinding   <- bindSecureJsonServer
+      binaryBinding       <- bindBinaryServer
+      secureBinaryBinding <- bindSecureBinaryServer
       _ <- Future {
-        maybeServerCtx =
-          Some(ServerContext(sampler, module, jsonBinding, binaryBinding))
+        maybeServerCtx = Some(
+          ServerContext(
+            sampler,
+            module,
+            jsonBinding,
+            secureJsonBinding,
+            binaryBinding,
+            secureBinaryBinding
+          )
+        )
       }
       _ <- Future {
         logger.info(
-          s"Started server at json:${config.interface}:${config.rpcPort}, " +
-          s"binary:${config.interface}:${config.dataPort}"
+          s"Started server at json:${config.interface}${config.rpcPort}, ${config.secureRpcPort
+            .map(p => s"jsonss:${config.interface}$p")
+            .getOrElse("")}, " +
+          s"binary:${config.interface}:${config.dataPort}${config.secureDataPort
+            .map(p => s", binarys:${config.interface}$p")
+            .getOrElse("")}"
         )
       }
     } yield ComponentStarted
@@ -162,7 +197,9 @@ object LanguageServerComponent {
     sampler: MethodsSampler,
     mainModule: MainModule,
     jsonBinding: Http.ServerBinding,
-    binaryBinding: Http.ServerBinding
+    secureJsonBinding: Option[Http.ServerBinding],
+    binaryBinding: Http.ServerBinding,
+    secureBinaryBinding: Option[Http.ServerBinding]
   )
 
 }

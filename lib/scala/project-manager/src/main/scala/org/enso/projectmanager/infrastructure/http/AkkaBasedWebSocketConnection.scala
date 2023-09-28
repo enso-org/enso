@@ -19,12 +19,17 @@ import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
   WebSocketStreamFailure
 }
 
+import scala.annotation.unused
+
 /** An Akka-based bidirectional web socket connection.
   *
   * @param address a server address
   * @param system an actor system
   */
-class AkkaBasedWebSocketConnection(address: String)(implicit
+class AkkaBasedWebSocketConnection(
+  address: String,
+  @unused enableSecure: Boolean
+)(implicit
   system: ActorSystem
 ) extends WebSocketConnection {
 

@@ -17,7 +17,9 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 case class LanguageServerConfig(
   interface: String,
   rpcPort: Int,
+  secureRpcPort: Option[Int],
   dataPort: Int,
+  secureDataPort: Option[Int],
   contentRootUuid: UUID,
   contentRootPath: String,
   profilingConfig: ProfilingConfig,

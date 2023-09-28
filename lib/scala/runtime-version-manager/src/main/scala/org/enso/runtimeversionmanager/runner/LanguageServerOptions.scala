@@ -13,5 +13,7 @@ case class LanguageServerOptions(
   rootId: UUID,
   interface: String,
   rpcPort: Int,
-  dataPort: Int
+  secureRpcPort: Option[Int],
+  dataPort: Int,
+  secureDataPort: Option[Int]
 )

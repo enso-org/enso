@@ -9,6 +9,15 @@ class AkkaBasedWebSocketConnectionFactory(implicit system: ActorSystem)
 
   /** @inheritdoc */
   override def createConnection(socket: Socket): WebSocketConnection =
-    new AkkaBasedWebSocketConnection(s"ws://${socket.host}:${socket.port}")
+    new AkkaBasedWebSocketConnection(
+      s"ws://${socket.host}:${socket.port}",
+      false
+    )
 
+  /** @inheritdoc */
+  override def createSecureConnection(socket: Socket): WebSocketConnection =
+    new AkkaBasedWebSocketConnection(
+      s"wss://${socket.host}:${socket.port}",
+      true
+    )
 }

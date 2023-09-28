@@ -84,7 +84,12 @@ object configuration {
     * @param minPort min port for the LS
     * @param maxPort max port for the LS
     */
-  case class NetworkConfig(interface: String, minPort: Int, maxPort: Int)
+  case class NetworkConfig(
+    interface: String,
+    minPort: Int,
+    maxPort: Int,
+    enableSecure: Boolean
+  )
 
   /** A configuration object for bootloader properties.
     *
