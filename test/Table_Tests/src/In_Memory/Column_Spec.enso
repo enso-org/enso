@@ -120,12 +120,17 @@ spec =
                             (Meta.type_of got) . should_equal (Meta.type_of expected)
                             got.to_text . should_equal expected.to_text
 
+            ## Testing various permutations to ensure that the behaviour is
+               invariant to the order of the values.
+               (It used to differ depending on the order.)
             run_test ["a", 1, 2.0]
             run_test [1, 2.0, "a"]
             run_test [2.0, 1, "a"]
             run_test [2.5, 1, "a"]
             run_test [10, 1.5, "a"]
             run_test ["a", 1.5, 10]
+            run_test [2^100, 1.5, "a"]
+            run_test [1.5, 2^100, "a"]
             run_test [2, 2^100, 1.5, "a"]
             run_test [2, 2^100, 1.5, "a"]
             run_test [1.5, 2^100, 2, "a"]
