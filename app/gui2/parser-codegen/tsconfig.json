@@ -3,5 +3,5 @@
   "compilerOptions": {
     "sourceMap": true,
     "outDir": "dist"
-  },
+  }
 }
