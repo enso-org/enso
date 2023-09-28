@@ -123,25 +123,27 @@ spec =
             ## Testing various permutations to ensure that the behaviour is
                invariant to the order of the values.
                (It used to differ depending on the order.)
+            big = (2^100)+1
+            medium = (2^62)-1
             run_test ["a", 1, 2.0]
             run_test [1, 2.0, "a"]
             run_test [2.0, 1, "a"]
             run_test [2.5, 1, "a"]
             run_test [10, 1.5, "a"]
             run_test ["a", 1.5, 10]
-            run_test [2^100, 1.5, "a"]
-            run_test [1.5, 2^100, "a"]
-            run_test [2, 2^100, 1.5, "a"]
-            run_test [2, 2^100, 1.5, "a"]
-            run_test [1.5, 2^100, 2, "a"]
-            run_test [Nothing, 1.5, 2^60+1, 2, "a"]
-            run_test [2^60+1, 1.5, "a"]
-            run_test [Nothing, 2^60+1, 1.5, "a"]
+            run_test [big, 1.5, "a"]
+            run_test [1.5, big, "a"]
+            run_test [2, big, 1.5, "a"]
+            run_test [2, big, 1.5, "a"]
+            run_test [1.5, big, 2, "a"]
+            run_test [Nothing, 1.5, medium, 2, "a"]
+            run_test [medium, 1.5, "a"]
+            run_test [Nothing, medium, 1.5, "a"]
 
             big_test_vector =
-                a = Vector.fill 40 [2^60+1, 1.5, 2, 2^100, 2^60, 2^101, 2^103, 2.5]
+                a = Vector.fill 40 [medium, 1.5, 2, big, medium+123, 2^101+3, 2^103+5, 2.5]
                 b = Vector.fill 100 [Nothing]
-                c = Vector.fill 500 [2, 1.5, 2^60]
+                c = Vector.fill 500 [2, 1.5, medium]
                 d = Vector.fill 5 [2, "a", 2, 2.5]
                 (a+b+c+d).flatten
             run_test big_test_vector

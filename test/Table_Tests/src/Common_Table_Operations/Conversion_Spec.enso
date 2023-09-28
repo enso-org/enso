@@ -630,13 +630,13 @@ spec setup =
             t3.at "Y" . value_type . should_equal Value_Type.Char
 
         Test.specify "will choose Decimal type if all values are integers but cannot fit long" <|
-            c0 = table_builder [["X", [My_Type.Value 42, 1, 2, 2^100]]] . at "X"
+            c0 = table_builder [["X", [My_Type.Value 42, 1, 2, (2^100)+1]]] . at "X"
             c1 = c0.drop 1
 
             c1.value_type . should_equal Value_Type.Mixed
             c2 = c1.auto_value_type
             c2.value_type . should_be_a (Value_Type.Decimal ...)
-            c2.to_vector . should_equal [1, 2, 2^100]
+            c2.to_vector . should_equal [1, 2, (2^100)+1]
 
         Test.specify "will try to find the smallest integer type to fit the value (if shrink_types=True)" <|
             [False, True].each is_mixed->
