@@ -21,8 +21,6 @@ export default defineConfig({
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // workaround for @open-rpc/client-js bug: https://github.com/open-rpc/client-js/issues/310
-      events: 'shared/event.ts',
     },
   },
   define: {

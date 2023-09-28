@@ -56,7 +56,7 @@ public class SimpleHTTPBin {
       server = new SimpleHTTPBin(host, port);
       for (HttpMethod method : HttpMethod.values()) {
         String path = "/" + method.toString().toLowerCase();
-        server.addHandler(path, new DummyHandler());
+        server.addHandler(path, new TestHandler());
       }
 
       final SimpleHTTPBin server1 = server;

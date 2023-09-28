@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Network.HTTP.Header.Header
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
@@ -15,7 +16,7 @@ type Request_Body
        - text: The plain text in the request body.
        - encoding: the text encoding to send as a Content-Encoding header
        - content_type: the content_type to send as a Content-Type header
-    Text (text:Text) (encoding:Encoding=Encoding.utf_8) (content_type:(Text|Nothing)=Nothing)
+    Text (text:Text) (encoding:(Encoding|Nothing)=Nothing) (content_type:(Text|Nothing)=Nothing)
 
     ## Request body with an object to be sent as JSON.
 
@@ -39,6 +40,18 @@ type Request_Body
 
     ## Empty request body; used for GET
     Empty
+
+    ## PRIVATE
+       For `Request_Body.Form_Data url_encoded=False`, this returns `Nothing`,
+       because the content type must include a content boundary.
+    default_content_type_header : Header | Nothing
+    default_content_type_header self =
+        case self of
+            Request_Body.Text _ _ _ -> Header.content_type "text/plain" encoding=Encoding.utf_8
+            Request_Body.Json _ -> Header.content_type "application/json"
+            Request_Body.Binary _ -> Header.content_type "application/octet-stream"
+            Request_Body.Form_Data _ url_encoded -> if url_encoded then Header.application_x_www_form_urlencoded else Nothing
+            Request_Body.Empty -> Nothing
 
 Request_Body.from (that:Text) = Request_Body.Text that
 Request_Body.from (that:File) = Request_Body.Binary that

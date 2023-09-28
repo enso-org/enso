@@ -125,7 +125,7 @@ spec setup =
                 k x = if x == 2 then Time_Of_Day.new 13 05 else (x+1).to_text
                 r7 = c1.map k expected_value_type=Value_Type.Char
                 r7.should_fail_with Invalid_Value_Type
-                r7.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=Nothing), but got a value 13:05:00 of type Time"
+                r7.catch.to_display_text . should_contain "Expected type Char (variable length, max_size=unlimited), but got a value 13:05:00 of type Time"
 
                 l x = if x == 2 then 42 else Date.new 2022 05 x
                 r8 = c1.map l expected_value_type=Value_Type.Date

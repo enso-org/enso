@@ -40,6 +40,19 @@ public abstract class Storage<T> {
   }
 
   /**
+   * Returns the smallest type (according to Column.auto_value_type rules) that may still fit all
+   * values in this column.
+   *
+   * <p>It is a sibling of `inferPreciseType` that allows some further shrinking. It is kept
+   * separate, because `inferPreciseType` should be quick to compute (cached if needed) as it is
+   * used in typechecking of lots of operations. This one however, is only used in a specific
+   * `auto_value_type` use-case and rarely will need to be computed more than once.
+   */
+  public StorageType inferPreciseTypeShrunk() {
+    return getType();
+  }
+
+  /**
    * Returns a more specialized storage, if available.
    *
    * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
