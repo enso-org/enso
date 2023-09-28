@@ -65,7 +65,7 @@ spec =
             test_column.reverse.to_vector . should_equal expected_1.to_vector
             empty_column.reverse.to_vector . should_equal empty_column.to_vector
 
-        Test.specify "should allow to count duplicate value occurences" <|
+        Test.specify "should allow to count duplicate value occurrences" <|
             c_1 = Column.from_vector "c 1" [0, 1, 2, 2, 1, 0, 2]
             c_1.duplicate_count.to_vector.should_equal [0, 0, 0, 1, 1, 1, 2]
 
@@ -212,6 +212,10 @@ spec =
             r8 = Column.from_vector "X" [100, 1000*1000*1000] Value_Type.Byte
             r8.should_fail_with Invalid_Value_Type
             r8.catch.to_display_text.should_contain "Expected type Byte, but got a value 1000000000 of type Integer (32 bits)"
+
+            r9 = Column.from_vector "X" [100, 1.5] Value_Type.Integer
+            r9.should_fail_with Invalid_Value_Type
+            r9.catch.to_display_text.should_contain "Expected type Integer (64 bits), but got a value 1.5 of type Float"
 
         Test.specify "will not allow to construct a column with Char size=0" <|
             r1 = Column.from_vector "X" [] (Value_Type.Char size=0 variable_length=False)
