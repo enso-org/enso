@@ -1,14 +1,23 @@
 import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { DEFAULT_VISUALIZATION_CONFIGURATION } from '@/stores/visualization'
 import { attachProvider } from '@/util/crdt'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
+import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
+import type {
+  ContentRoot,
+  ContextId,
+  MethodPointer,
+  VisualizationConfiguration,
+} from 'shared/languageServerTypes'
 import { WebsocketClient } from 'shared/websocket'
 import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
 import {
+  computed,
   markRaw,
   onMounted,
   onUnmounted,
@@ -21,9 +30,6 @@ import {
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-import { OutboundPayload, VisualizationUpdate } from '../../shared/binaryProtocol'
-import type { ContextId, VisualizationConfiguration } from '../../shared/languageServerTypes'
-import { DEFAULT_VISUALIZATION_CONFIGURATION } from './visualization'
 
 interface LsUrls {
   rpcUrl: string
@@ -51,14 +57,6 @@ const VISUALIZATION_DIRECTORY = 'visualization'
  * to give it a few more tries. */
 const ATTACHING_TIMEOUT_RETRIES = 50
 
-function resolveProjectName(config: GuiConfig): string {
-  const projectName = config.startup?.project
-  if (projectName == null) {
-    throw new Error('Missing project name')
-  }
-  return projectName
-}
-
 function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
   if (engine == null) throw new Error('Missing engine configuration')
@@ -71,6 +69,67 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
   }
 
   throw new Error('Incomplete engine configuration')
+}
+
+async function initializeLsRpcConnection(
+  clientId: Uuid,
+  url: string,
+): Promise<{
+  connection: LanguageServer
+  contentRoots: ContentRoot[]
+}> {
+  const transport = new WebSocketTransport(url)
+  const requestManager = new RequestManager([transport])
+  const client = new Client(requestManager)
+  const connection = new LanguageServer(client)
+  const contentRoots = (await connection.initProtocolConnection(clientId)).contentRoots
+  return { connection, contentRoots }
+}
+
+async function initializeDataConnection(clientId: Uuid, url: string) {
+  const client = new WebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
+  const connection = new DataServer(client)
+  await connection.initialize(clientId)
+  return connection
+}
+
+/**
+ * Execution Context
+ *
+ * This class represent an execution context created in the Language Server. It creates
+ * it and pushes the initial frame upon construction.
+ *
+ * It hides the asynchronous nature of the language server. Each call is scheduled and
+ * run only when the previous call is done.
+ */
+export class ExecutionContext {
+  state: Promise<{ lsRpc: LanguageServer; id: ContextId }>
+
+  constructor(
+    lsRpc: Promise<LanguageServer>,
+    call: {
+      methodPointer: MethodPointer
+      thisArgumentExpression?: string
+      positionalArgumentsExpressions?: string[]
+    },
+  ) {
+    this.state = lsRpc.then(async (lsRpc) => {
+      const { contextId } = await lsRpc.createExecutionContext()
+      await lsRpc.pushExecutionContextItem(contextId, {
+        type: 'ExplicitCall',
+        positionalArgumentsExpressions: call.positionalArgumentsExpressions ?? [],
+        ...call,
+      })
+      return { lsRpc, id: contextId }
+    })
+  }
+
+  destroy() {
+    this.state = this.state.then(({ lsRpc, id }) => {
+      lsRpc.destroyExecutionContext(id)
+      return { lsRpc, id }
+    })
+  }
 }
 
 /**
@@ -88,20 +147,20 @@ export const useProjectStore = defineStore('project', () => {
   const projectId = config.value.startup?.project
   if (projectId == null) throw new Error('Missing project ID')
 
-  const name = resolveProjectName(config.value)
+  const clientId = random.uuidv4() as Uuid
   const lsUrls = resolveLsUrl(config.value)
-
-  const rpcTransport = new WebSocketTransport(lsUrls.rpcUrl)
-  const rpcRequestManager = new RequestManager([rpcTransport])
-  const rpcClient = new Client(rpcRequestManager)
-  const lsRpcConnection = new LanguageServer(rpcClient)
-  const dataClient = new WebsocketClient(lsUrls.dataUrl, {
-    binaryType: 'arraybuffer',
-    sendPings: false,
-  })
-  const dataConnection = new DataServer(dataClient)
+  const initializedConnection = initializeLsRpcConnection(clientId, lsUrls.rpcUrl)
+  const lsRpcConnection = initializedConnection.then(({ connection }) => connection)
+  const contentRoots = initializedConnection.then(({ contentRoots }) => contentRoots)
+  const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl)
 
   const undoManager = new Y.UndoManager([], { doc })
+
+  const name = computed(() => config.value.startup?.project)
+  const namespace = computed(() => config.value.engine?.namespace)
+
+  const executionContextId = random.uuidv4() as ContextId
+  const mainModule = computed(() => `${DEFAULT_PROJECT_NAMESPACE}.${name.value}.Main`)
 
   watchEffect((onCleanup) => {
     // For now, let's assume that the websocket server is running on the same host as the web server.
@@ -150,34 +209,29 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
-  const clientId = random.uuidv4() as Uuid
-  const executionContextId = random.uuidv4() as ContextId
-  const mainModuleId = ref<Uuid>()
-  const mainModule = `${DEFAULT_PROJECT_NAMESPACE}.${name}.Main`
-
-  async function initializeServers() {
-    await dataConnection.initialize(clientId)
-    const projectInfo = await lsRpcConnection.initProtocolConnection(clientId)
-    const projectRoot = projectInfo.contentRoots.find((root) => root.type === 'Project')
-    if (projectRoot == null) {
-      console.error('Protocol connection initialization did not return a project root.')
+  async function createExecutionContextForMain(): Promise<ExecutionContext | undefined> {
+    if (name.value == null) {
+      console.error('Cannot create execution context. Unknown project name.')
       return
     }
-    mainModuleId.value = projectRoot.id
-    await lsRpcConnection.createExecutionContext(executionContextId)
-    await lsRpcConnection.pushExecutionContextItem(executionContextId, {
-      type: 'ExplicitCall',
-      methodPointer: {
-        module: mainModule,
-        definedOnType: mainModule,
-        name: MAIN_DEFINITION_NAME,
-      },
-      thisArgumentExpression: null,
-      positionalArgumentsExpressions: [],
+    if (namespace.value == null) {
+      console.warn(
+        'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
+      )
+    }
+    const projectName = `${namespace.value ?? 'local'}.${name.value}`
+    const mainModule = `${projectName}.Main`
+    const projectRoot = (await contentRoots).find((root) => root.type === 'Project')
+    if (projectRoot == null) {
+      console.error(
+        'Cannot create execution context. Protocol connection initialization did not return a project root.',
+      )
+      return
+    }
+    return new ExecutionContext(lsRpcConnection, {
+      methodPointer: { module: mainModule, definedOnType: mainModule, name: 'main' },
     })
   }
-
-  const initializeServersPromise = initializeServers()
 
   function useVisualizationData(
     expressionId: ExprId,
@@ -189,15 +243,15 @@ export const useProjectStore = defineStore('project', () => {
 
     watch(visible, async (visible) => {
       if (visible) {
-        await initializeServersPromise
-        await lsRpcConnection.attachVisualization(id, expressionId, {
+        await (
+          await lsRpcConnection
+        ).attachVisualization(id, expressionId, {
           executionContextId,
-          visualizationModule: mainModule,
+          visualizationModule: mainModule.value,
           ...(configuration.value ?? DEFAULT_VISUALIZATION_CONFIGURATION),
         })
       } else {
-        await initializeServersPromise
-        await lsRpcConnection.detachVisualization(id, expressionId, executionContextId)
+        await (await lsRpcConnection).detachVisualization(id, expressionId, executionContextId)
       }
     })
 
@@ -205,11 +259,12 @@ export const useProjectStore = defineStore('project', () => {
       if (configuration.value == null || !visible.value) {
         return
       }
-      await initializeServersPromise
-      await lsRpcConnection.modifyVisualization(id, {
+      await (
+        await lsRpcConnection
+      ).modifyVisualization(id, {
         ...configuration.value,
         executionContextId,
-        visualizationModule: mainModule,
+        visualizationModule: mainModule.value,
       })
     })
 
@@ -219,15 +274,18 @@ export const useProjectStore = defineStore('project', () => {
       visualizationData.value = newData
     }
 
-    onMounted(() => {
-      dataConnection.on(
+    onMounted(async () => {
+      ;(await dataConnection).on(
         `${OutboundPayload.VISUALIZATION_UPDATE}:${id as string}`,
         onVisualizationUpdate,
       )
     })
 
-    onUnmounted(() => {
-      dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}:${id}`, onVisualizationUpdate)
+    onUnmounted(async () => {
+      ;(await dataConnection).off(
+        `${OutboundPayload.VISUALIZATION_UPDATE}:${id}`,
+        onVisualizationUpdate,
+      )
     })
 
     return visualizationData
@@ -237,10 +295,11 @@ export const useProjectStore = defineStore('project', () => {
     setObservedFileName(name: string) {
       observedFileName.value = name
     },
+    createExecutionContextForMain,
     module,
-    namespace: DEFAULT_PROJECT_NAMESPACE,
-    name,
+    contentRoots,
     undoManager,
+    awareness,
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,

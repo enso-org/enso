@@ -296,6 +296,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     _parsed,
     _parsedEnso: _parsedEnso,
+    proj,
     nodes,
     exprNodes,
     edges,

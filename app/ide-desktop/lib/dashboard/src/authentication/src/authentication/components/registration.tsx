@@ -75,6 +75,7 @@ export default function Registration() {
                                 id="email"
                                 type="email"
                                 name="email"
+                                autoComplete="email"
                                 placeholder="E-Mail Address"
                                 value={email}
                                 setValue={setEmail}
@@ -98,6 +99,7 @@ export default function Registration() {
                                 id="password"
                                 type="password"
                                 name="password"
+                                autoComplete="new-password"
                                 placeholder="Password"
                                 pattern={validation.PASSWORD_PATTERN}
                                 error={validation.PASSWORD_ERROR}
@@ -123,6 +125,7 @@ export default function Registration() {
                                 id="password_confirmation"
                                 type="password"
                                 name="password_confirmation"
+                                autoComplete="new-password"
                                 placeholder="Confirm Password"
                                 pattern={string.regexEscape(password)}
                                 error={validation.CONFIRM_PASSWORD_ERROR}

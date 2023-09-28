@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
-import { defineConfig, Plugin } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import topLevelAwait from 'vite-plugin-top-level-await'
 import * as tailwindConfig from '../ide-desktop/lib/dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
@@ -21,8 +21,6 @@ export default defineConfig({
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // workaround for @open-rpc/client-js bug: https://github.com/open-rpc/client-js/issues/310
-      events: 'shared/events.ts',
     },
   },
   define: {

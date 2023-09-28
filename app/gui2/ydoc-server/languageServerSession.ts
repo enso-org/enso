@@ -5,8 +5,13 @@ import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { LanguageServer } from '../shared/languageServer'
-import { Checksum, Path, response } from '../shared/languageServerTypes'
-import { DistributedModule, DistributedProject, NodeMetadata, Uuid } from '../shared/yjsModel'
+import type { Checksum, Path, response } from '../shared/languageServerTypes'
+import {
+  DistributedModule,
+  DistributedProject,
+  type NodeMetadata,
+  type Uuid,
+} from '../shared/yjsModel'
 import { WSSharedDoc } from './ydoc'
 
 const sessions = new Map<string, LanguageServerSession>()
@@ -182,11 +187,7 @@ const pushPathSegment = (path: Path, segment: string): Path => {
 
 type Mutex = ReturnType<typeof createMutex>
 
-type ModulePersistenceEvents = {
-  removed: () => void
-}
-
-class ModulePersistence extends ObservableV2<ModulePersistenceEvents> {
+class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ls: LanguageServer
   model: DistributedModule
   path: Path
@@ -220,8 +221,8 @@ class ModulePersistence extends ObservableV2<ModulePersistenceEvents> {
         code = loaded.content.slice(0, splitPoint)
         const metadataString = loaded.content.slice(splitPoint + metaTag.length)
         const metaLines = metadataString.trim().split('\n')
-        const idMapMeta = JSON.parse(metaLines[0])
-        const ideMeta = JSON.parse(metaLines[1])?.ide
+        const idMapMeta = JSON.parse(metaLines[0] ?? '{}')
+        const ideMeta = JSON.parse(metaLines[1] ?? '{"ide":{}}')?.ide
         const nodeMeta = ideMeta?.node
 
         for (const [{ index, size }, id] of idMapMeta) {

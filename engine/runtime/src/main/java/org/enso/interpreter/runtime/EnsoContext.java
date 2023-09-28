@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -463,7 +464,8 @@ public final class EnsoContext {
    */
   @TruffleBoundary
   public Object lookupJavaClass(String className) {
-    List<String> items = Arrays.asList(className.split("\\."));
+    var items = Arrays.asList(className.split("\\."));
+    var collectedExceptions = new ArrayList<Exception>();
     for (int i = items.size() - 1; i >= 0; i--) {
       String pkgName = String.join(".", items.subList(0, i));
       String curClassName = items.get(i);
@@ -478,8 +480,11 @@ public final class EnsoContext {
           return lookupHostSymbol(pkgName, fullInnerClassName);
         }
       } catch (RuntimeException | InteropException ex) {
-        logger.log(Level.WARNING, null, ex);
+        collectedExceptions.add(ex);
       }
+    }
+    for (var ex : collectedExceptions) {
+      logger.log(Level.WARNING, null, ex);
     }
     return null;
   }

@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue'
 
+import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 
 import { useGraphStore } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
+import { ExecutionContext, useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { modKey, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
@@ -22,11 +23,22 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
+const executionCtx = shallowRef<ExecutionContext>()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
+
+onMounted(async () => {
+  const executionCtxPromise = projectStore.createExecutionContextForMain()
+  onUnmounted(async () => {
+    executionCtx.value = undefined
+    const ctx = await executionCtxPromise
+    if (ctx != null) ctx.destroy()
+  })
+  executionCtx.value = (await executionCtxPromise) ?? undefined
+})
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)
@@ -130,6 +142,7 @@ function moveNode(id: ExprId, delta: Vec2) {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="console.log('\'execute\' button clicked.')"
     />
+    <CodeEditor ref="codeEditor" />
   </div>
 </template>
 

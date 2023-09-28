@@ -81,6 +81,7 @@ declare global {
             /* eslint-disable @typescript-eslint/naming-convention */
             APPLEID?: string
             APPLEIDPASS?: string
+            CLOUD_ENV?: 'npekin' | 'pbuchu' | 'production'
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }

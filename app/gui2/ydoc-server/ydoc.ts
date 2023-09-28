@@ -113,11 +113,7 @@ export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string
   })
 }
 
-type YjsConnectionEvents = {
-  close: () => void
-}
-
-class YjsConnection extends ObservableV2<YjsConnectionEvents> {
+class YjsConnection extends ObservableV2<{ close(): void }> {
   ws: WebSocket
   wsDoc: WSSharedDoc
   constructor(ws: WebSocket, wsDoc: WSSharedDoc) {

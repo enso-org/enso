@@ -124,6 +124,10 @@ export function bundlerOptions(args: Arguments) {
             /** Overrides the redirect URL for OAuth logins in the production environment.
              * This is needed for logins to work correctly under `./run gui watch`. */
             REDIRECT_OVERRIDE: 'undefined',
+            'process.env.CLOUD_ENV':
+                process.env.ENSO_CLOUD_ENV != null
+                    ? JSON.stringify(process.env.ENSO_CLOUD_ENV)
+                    : 'undefined',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         pure: ['assert'],

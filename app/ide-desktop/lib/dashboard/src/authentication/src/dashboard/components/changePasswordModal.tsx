@@ -63,6 +63,7 @@ export default function ChangePasswordModal() {
                                     id="old_password"
                                     type="password"
                                     name="old_password"
+                                    autoComplete="current-password"
                                     placeholder="Old Password"
                                     pattern={validation.PASSWORD_PATTERN}
                                     error={validation.PASSWORD_ERROR}
@@ -84,6 +85,7 @@ export default function ChangePasswordModal() {
                                     id="new_password"
                                     type="password"
                                     name="new_password"
+                                    autoComplete="new-password"
                                     placeholder="New Password"
                                     pattern={validation.PASSWORD_PATTERN}
                                     error={validation.PASSWORD_ERROR}
@@ -105,6 +107,7 @@ export default function ChangePasswordModal() {
                                     id="confirm_new_password"
                                     type="password"
                                     name="confirm_new_password"
+                                    autoComplete="new-password"
                                     placeholder="Confirm New Password"
                                     pattern={string.regexEscape(newPassword)}
                                     error={validation.CONFIRM_PASSWORD_ERROR}
