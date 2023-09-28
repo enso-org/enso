@@ -32,6 +32,22 @@ spec =
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
+    Test.group "HTTP_Method parse" <|
+        Test.specify "should be able to parse a string value into a method" <|
+            "GET" . to HTTP_Method . should_equal (HTTP_Method.Get)
+            "POST" . to HTTP_Method . should_equal (HTTP_Method.Post)
+            "PUT" . to HTTP_Method . should_equal (HTTP_Method.Put)
+            "PATCH" . to HTTP_Method . should_equal (HTTP_Method.Patch)
+
+        Test.specify "should be case insensitive" <|
+            "get" . to HTTP_Method . should_equal (HTTP_Method.Get)
+            "pOst" . to HTTP_Method . should_equal (HTTP_Method.Post)
+            "puT" . to HTTP_Method . should_equal (HTTP_Method.Put)
+            "PATCH" . to HTTP_Method . should_equal (HTTP_Method.Patch)
+
+        Test.specify "should make a custom method" <|
+            "CUSTOM" . to HTTP_Method . should_equal (HTTP_Method.Custom "CUSTOM")
+
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
             http = HTTP.new (timeout = (Duration.new seconds=30))
@@ -72,8 +88,29 @@ spec =
                 }
             response . should_equal expected_response
 
+        Test.specify "Can perform a GET with a JSON response using URI.fetch" <|
+            response = url_get.to_uri.fetch
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "0"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "method": "GET",
+                  "args": {}
+                }
+            response . should_equal expected_response
+
         Test.specify "Can perform a HEAD" <|
             response = Data.fetch url_head method=HTTP_Method.Head
+            response.code.code . should_equal 200
+            response.decode_as_text . should_equal ''
+
+        Test.specify "Can perform a HEAD via URI.fetch" <|
+            response = url_head.to_uri.fetch method=HTTP_Method.Head
             response.code.code . should_equal 200
             response.decode_as_text . should_equal ''
 
@@ -88,6 +125,22 @@ spec =
 
         Test.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
+            response.code.code . should_equal 200
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Length": "0"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "method": "GET",
+                  "args": {}
+                }
+            response.decode_as_json . should_equal expected_response
+
+        Test.specify "Can skip auto-parse with URI.fetch" <|
+            response = url_get.to_uri.fetch try_auto_parse_response=False
             response.code.code . should_equal 200
             expected_response = Json.parse <| '''
                 {
@@ -145,6 +198,27 @@ spec =
                   "form": null,
                   "files": null,
                   "data": "hello world",
+                  "args": {}
+                }
+            response . should_equal expected_response
+
+        Test.specify "Can perform a Request_Body.Text POST via URI.post" <|
+            response = url_post.to_uri.post (Request_Body.Text "hello world")
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Encoding": "UTF-8",
+                    "User-Agent": "Java-http-client/17.0.7",
+                    "Content-Type": "text/plain",
+                    "Content-Length": "11"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "method": "POST",
+                  "form": null,
+                  "files": null,
+                  "data": "hello world",
+                  "json": null,
                   "args": {}
                 }
             response . should_equal expected_response
