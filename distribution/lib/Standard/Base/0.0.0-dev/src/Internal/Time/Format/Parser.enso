@@ -2,7 +2,7 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number_Parse_Error
 import project.Data.Text.Case.Case
 import project.Data.Text.Text
-import project.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
+import project.Data.Time.Errors.Date_Time_Format_Parse_Error
 import project.Data.Vector.Builder as Vector_Builder
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -124,32 +124,25 @@ type Parser
 
     ## PRIVATE
     run self = Panic.recover Date_Time_Format_Parse_Error <|
-        result_builder = Vector.new_builder
-        go _ = case self.consume_token of
-            Nothing -> Nothing
+        go current_builder optional_nesting_level = case self.consume_token of
+            Nothing ->
+                if optional_nesting_level > 0 then
+                    Panic.throw (Illegal_State.Error "Unterminated optional section. This should have been caught by the tokenizer.")
             Format_Token.Optional_Section_Start ->
-                inner_nodes = self.run_optional
-                result_builder.append (Common_Nodes.Optional_Section inner_nodes)
-                @Tail_Call go Nothing
+                inner_builder = Vector.new_builder
+                go inner_builder (optional_nesting_level+1)
+                current_builder.append (Common_Nodes.Optional_Section inner_builder.to_vector)
+                @Tail_Call go current_builder optional_nesting_level
+            Format_Token.Optional_Section_End ->
+                if optional_nesting_level <= 0 then
+                    Panic.throw (Illegal_State.Error "Unexpected end of optional section. This should have been caught by the tokenizer.")
             other_token ->
                 parsed_node = self.parse_common_token other_token
-                result_builder.append parsed_node
-                @Tail_Call go Nothing
-        go Nothing
-        result_builder.to_vector
-
-    ## PRIVATE
-    run_optional self =
-        result_builder = Vector.new_builder
-        go _ = case self.consume_token of
-            Nothing -> Panic.throw (Illegal_State.Error "Unterminated optional section. This should have been caught by the tokenizer.")
-            Format_Token.Optional_Section_End -> Nothing
-            other_token ->
-                parsed_node = self.parse_common_token other_token
-                result_builder.append parsed_node
-                @Tail_Call go Nothing
-        go Nothing
-        result_builder.to_vector
+                current_builder.append parsed_node
+                @Tail_Call go current_builder optional_nesting_level
+        root_builder = Vector.new_builder
+        go root_builder 0
+        root_builder.to_vector
 
     ## PRIVATE
     parse_common_token self token = case token of

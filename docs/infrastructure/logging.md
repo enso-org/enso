@@ -29,6 +29,7 @@ involving the centralized logging service.
   - [Setting Up Logging](#setting-up-logging)
   - [Log Masking](#log-masking)
   - [Logging in Tests](#logging-in-tests)
+  - [Logging to file](#logging-to-file)
 
 <!-- /MarkdownTOC -->
 
@@ -346,3 +347,15 @@ information even if the object implements custom interface for masked logging.
 The Logging Service provides a helper function `TestLogger.gatherLogs` that will
 execute the closure and collect all logs reported in the specified class. That
 way it can verify that all logs are being reported within the provided code.
+
+### Logging to file
+
+By default Enso will attempt to persist (verbose) logs into a designated log
+file. This means that even though a user might be shown `WARNING` level logs in
+the console, Logs with up to `TRACE` level will be dumped into the log file. A
+user can disable this parallel logging to a file by setting the environment
+variable:
+
+```
+ENSO_LOG_TO_FILE=false project-manager ...
+```

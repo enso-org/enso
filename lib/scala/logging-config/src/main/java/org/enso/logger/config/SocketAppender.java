@@ -57,11 +57,6 @@ public final class SocketAppender extends Appender {
     return loggerSetup.setupSocketAppender(logLevel, host, port);
   }
 
-  @Override
-  public boolean setupForURI(Level logLevel, String host, int port, LoggerSetup loggerSetup) {
-    return loggerSetup.setupSocketAppender(logLevel, host, port);
-  }
-
   private static final String hostKey = "hostname";
   private static final String portKey = "port";
   private static final String reconnectionDelayKey = "reconnection-delay";

@@ -48,6 +48,7 @@ export default function Input(props: InputProps) {
                     }
                     const currentTarget = event.currentTarget
                     if (error != null) {
+                        currentTarget.setCustomValidity('')
                         currentTarget.setCustomValidity(
                             currentTarget.checkValidity() ||
                                 shouldReportValidityRef?.current === false
