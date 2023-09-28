@@ -82,7 +82,7 @@ const initiallySelectedNodes = ref(new Set(selectedNodes.value))
 const selection = usePointer((pos, event) => {
   if (selection.dragging) {
     mouseHandler(event)
-    selectionSize.value = pos.relative
+    selectionSize.value = pos.relative.scale(1 / navigator.scale)
   }
 })
 
@@ -90,14 +90,12 @@ const intersectingNodes = computed<Set<ExprId>>(() => {
   if (!selection.dragging || selectionSize.value == null) {
     return new Set()
   }
-  const scaledWidth = selectionSize.value.x / navigator.scale
-  const left =
-    (navigator.sceneMousePos?.x ?? 0) - Math.max(scaledWidth, 0) - SELECTION_BRUSH_MARGIN_PX
-  const right = left + Math.abs(scaledWidth) + 2 * SELECTION_BRUSH_MARGIN_PX
-  const scaledHeight = selectionSize.value.y / navigator.scale
-  const top =
-    (navigator.sceneMousePos?.y ?? 0) - Math.max(scaledHeight, 0) - SELECTION_BRUSH_MARGIN_PX
-  const bottom = top + Math.abs(scaledHeight) + 2 * SELECTION_BRUSH_MARGIN_PX
+  const margin = SELECTION_BRUSH_MARGIN_PX / navigator.scale
+  const margin2 = margin * 2
+  const left = (navigator.sceneMousePos?.x ?? 0) - Math.max(selectionSize.value.x, 0) - margin
+  const right = left + Math.abs(selectionSize.value.x) + margin2
+  const top = (navigator.sceneMousePos?.y ?? 0) - Math.max(selectionSize.value.y, 0) - margin
+  const bottom = top + Math.abs(selectionSize.value.y) + margin2
   const intersectingNodes = new Set<ExprId>()
   for (const [id, rect] of nodeRects) {
     const rectLeft = rect.pos.x
@@ -276,12 +274,13 @@ const mouseHandler = nodeBindings.handler(
         @updateContent="(range, c) => updateNodeContent(id, range, c)"
         @movePosition="moveNode(id, $event)"
       />
-      <SelectionBrush
-        v-if="navigator.sceneMousePos"
-        :position="navigator.sceneMousePos"
-        :size="selectionSize"
-      />
     </div>
+    <SelectionBrush
+      v-if="navigator.sceneMousePos"
+      :position="navigator.sceneMousePos.scale(navigator.scale)"
+      :size="selectionSize?.scale(navigator.scale)"
+      :style="{ transform: navigator.prescaledTransform }"
+    />
     <ComponentBrowser
       v-if="componentBrowserVisible"
       :navigator="navigator"

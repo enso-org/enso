@@ -72,6 +72,13 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       `scale(${scale.value}) translate(${transformValue.value.x}px, ${transformValue.value.y}px)`,
   )
 
+  const prescaledTransform = computed(
+    () =>
+      `translate(${transformValue.value.x * scale.value}px, ${
+        transformValue.value.y * scale.value
+      }px)`,
+  )
+
   useWindowEvent(
     'contextmenu',
     (e) => {
@@ -109,6 +116,8 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     scale,
     viewBox,
     transform,
+    /** Use this transform instead, if the element should not be scaled. */
+    prescaledTransform,
     sceneMousePos,
   })
 }
