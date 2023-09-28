@@ -115,7 +115,7 @@ type Data_Formatter
     @date_formats (make_vector_widget make_date_format_selector)
     @time_formats (make_vector_widget make_time_format_selector)
     with_datetime_formats : (Vector Date_Time_Formatter | Date_Time_Formatter) -> (Vector Date_Time_Formatter | Date_Time_Formatter) -> (Vector Date_Time_Formatter | Date_Time_Formatter) -> Data_Formatter
-    with_datetime_formats self (datetime_formats:Vector | Date_Time_Formatter = self.datetime_formats) (date_formats:Vector | Date_Time_Formatter = self.date_formats) (time_formats:Vector | Date_Time_Formatter = self.time_formats) =
+    with_datetime_formats self datetime_formats:(Vector | Date_Time_Formatter)=self.datetime_formats date_formats:(Vector | Date_Time_Formatter)=self.date_formats time_formats:(Vector | Date_Time_Formatter)=self.time_formats =
         convert_formats formats =
             vector = case formats of
                 v : Vector -> v
