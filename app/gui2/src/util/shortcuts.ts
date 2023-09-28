@@ -393,7 +393,7 @@ if (import.meta.vitest) {
       // `decomposeKeybindString` so that it is guaranteed to be the right key on all systems.
       expected: { modifiers: [], key: normalizedKeyboardSegmentLookup['osdelete'] },
     },
-  ])('Parsing should work correctly', ({ keybind, expected }) => {
+  ])('Keybinds should be parsed correctly', ({ keybind, expected }) => {
     const decomposed = decomposeKeybindString(keybind)
     expect(decomposed).toEqual(expected)
   })
