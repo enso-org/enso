@@ -262,14 +262,17 @@ export function defineKeybinds<
     }
   }
 
-  function keyboardHandler(
-    handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: KeyboardEvent) => void>>,
+  function handler<Event extends KeyboardEvent | MouseEvent | PointerEvent>(
+    handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: Event) => void>>,
     stopImmediatePropagationOnMatch = true,
     preventDefaultOnMatch = true,
-  ): (event: KeyboardEvent) => boolean {
+  ): (event: Event) => boolean {
     return (event) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
-      const keybinds = keyboardShortcuts[event.key.toLowerCase() as Key_]?.[eventModifierFlags]
+      const keybinds =
+        event instanceof KeyboardEvent
+          ? keyboardShortcuts[event.key.toLowerCase() as Key_]?.[eventModifierFlags]
+          : mouseShortcuts[event.buttons as PointerButtonFlags]?.[eventModifierFlags]
       let handle = handlers[DefaultHandler]
       if (keybinds != null) {
         for (const bindingName in handlers) {
@@ -293,38 +296,7 @@ export function defineKeybinds<
     }
   }
 
-  function mouseHandler(
-    handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: MouseEvent) => void>>,
-    stopImmediatePropagationOnMatch = true,
-    preventDefaultOnMatch = true,
-  ): (event: MouseEvent) => boolean {
-    return (event) => {
-      const eventModifierFlags = modifierFlagsForEvent(event)
-      const keybinds = mouseShortcuts[event.buttons as PointerButtonFlags]?.[eventModifierFlags]
-      let handle = handlers[DefaultHandler]
-      if (keybinds != null) {
-        for (const bindingName in handlers) {
-          if (keybinds?.has(bindingName as BindingName)) {
-            handle = handlers[bindingName as BindingName]
-            break
-          }
-        }
-      }
-      if (handle == null) {
-        return false
-      }
-      if (stopImmediatePropagationOnMatch) {
-        event.stopImmediatePropagation()
-      }
-      if (preventDefaultOnMatch) {
-        event.preventDefault()
-      }
-      handle(event)
-      return true
-    }
-  }
-
-  return { keyboardHandler, mouseHandler }
+  return { handler }
 }
 
 /** A type predicate that narrows the potential child of the array. */

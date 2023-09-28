@@ -334,7 +334,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
   )
 }
 
-const mouseHandler = nodeBindings.mouseHandler({
+const mouseHandler = nodeBindings.handler({
   replace() {
     emit('replaceSelection')
   },

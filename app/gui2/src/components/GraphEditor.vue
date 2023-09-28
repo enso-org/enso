@@ -148,7 +148,7 @@ function updateLatestSelectedNode(id: ExprId) {
   graphStore.nodes.set(id, node)
 }
 
-const graphBindingsHandler = graphBindings.keyboardHandler({
+const graphBindingsHandler = graphBindings.handler({
   undo() {
     projectStore.undoManager.undo()
   },
@@ -171,7 +171,7 @@ const graphBindingsHandler = graphBindings.keyboardHandler({
   },
 })
 
-const nodeSelectionHandler = nodeBindings.keyboardHandler({
+const nodeSelectionHandler = nodeBindings.handler({
   deleteSelected() {
     for (const node of selectedNodes.value) {
       graphStore.deleteNode(node)
@@ -187,7 +187,7 @@ const nodeSelectionHandler = nodeBindings.keyboardHandler({
   },
 })
 
-const mouseHandler = nodeBindings.mouseHandler(
+const mouseHandler = nodeBindings.handler(
   {
     replace() {
       selectedNodes.value = new Set(intersectingNodes.value)
