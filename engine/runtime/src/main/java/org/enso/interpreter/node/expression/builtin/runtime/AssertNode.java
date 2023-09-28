@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -32,6 +33,7 @@ public abstract class AssertNode extends Node {
   public abstract Object execute(
       VirtualFrame frame, State state, @Suspend Object action, Text msg);
 
+  @Idempotent
   protected boolean isAssertionsEnabled() {
     return EnsoContext.get(this).isAssertionsEnabled();
   }
