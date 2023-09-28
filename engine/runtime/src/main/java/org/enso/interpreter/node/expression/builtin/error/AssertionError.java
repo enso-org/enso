@@ -13,6 +13,6 @@ public class AssertionError extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("message", "stack_trace");
+    return List.of("message");
   }
 }

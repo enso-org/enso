@@ -112,8 +112,8 @@ public final class Error {
     return compileError.newInstance(message);
   }
 
-  public Atom makeAssertionError(Text text, EnsoObject stackTrace) {
-    return assertionError.newInstance(text, stackTrace);
+  public Atom makeAssertionError(Text text) {
+    return assertionError.newInstance(text);
   }
 
   public Atom makeIndexOutOfBounds(long index, long length) {

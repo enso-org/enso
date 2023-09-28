@@ -50,9 +50,7 @@ public abstract class AssertNode extends Node {
       Object action,
       Text msg,
       @Cached("create()") ThunkExecutorNode thunkExecutorNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached GetStackTraceNode getStackTraceNode) {
-    CompilerDirectives.transferToInterpreterAndInvalidate();
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     var ctx = EnsoContext.get(this);
     var builtins = ctx.getBuiltins();
     Object actionRes =
@@ -61,9 +59,8 @@ public abstract class AssertNode extends Node {
       if (interop.asBoolean(actionRes)) {
         return ctx.getNothing();
       } else {
-        var stackTrace = getStackTraceNode.execute(frame);
         throw new PanicException(
-            builtins.error().makeAssertionError(msg, stackTrace),
+            builtins.error().makeAssertionError(msg),
             this
         );
       }
