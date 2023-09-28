@@ -285,13 +285,13 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
-    /** Delete a project.
+    /** Delete an arbitrary asset.
      *
      * @throws An error if the JSON-RPC call fails. */
-    override async deleteProject(
-        projectId: backend.ProjectId,
-        title: string | null
-    ): Promise<void> {
+    override async deleteAsset(assetId: backend.AssetId, title: string | null): Promise<void> {
+        // This is SAFE, as the only asset type on the local backend is projects.
+        // eslint-disable-next-line no-restricted-syntax
+        const projectId = assetId as backend.ProjectId
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
@@ -335,6 +335,11 @@ export class LocalBackend extends backend.Backend {
         throw new Error('Cannot manage users, folders, files, and secrets on the local backend.')
     }
 
+    /** Do nothing. This function should never need to be called. */
+    override undoDeleteAsset(): Promise<void> {
+        return this.invalidOperation()
+    }
+
     /** Return an empty array. This function should never need to be called. */
     override listUsers() {
         return Promise.resolve([])
@@ -370,11 +375,6 @@ export class LocalBackend extends backend.Backend {
         return this.invalidOperation()
     }
 
-    /** Does nothing. This function should never need to be called. */
-    override deleteDirectory() {
-        return Promise.resolve()
-    }
-
     /** Invalid operation. */
     override checkResources() {
         return this.invalidOperation()
@@ -391,11 +391,6 @@ export class LocalBackend extends backend.Backend {
         return this.invalidOperation()
     }
 
-    /** Do nothing. This function should never need to be called. */
-    override deleteFile() {
-        return Promise.resolve()
-    }
-
     /** Invalid operation. */
     override createSecret() {
         return this.invalidOperation()
@@ -409,11 +404,6 @@ export class LocalBackend extends backend.Backend {
     /** Return an empty array. This function should never need to be called. */
     override listSecrets() {
         return Promise.resolve([])
-    }
-
-    /** Do nothing. This function should never need to be called. */
-    override deleteSecret() {
-        return Promise.resolve()
     }
 
     /** Invalid operation. */

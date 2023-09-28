@@ -88,10 +88,20 @@ type Table
                         Column.from_vector (v.at 0) (v.at 1) . java_column
                 Column.Value java_col -> java_col
                 _ -> invalid_input_shape
-        if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
-            if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
-                if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
-                    Table.Value (Java_Table.new cols)
+        Panic.recover Illegal_Argument <|
+            if cols.is_empty then
+                Panic.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
+
+            if cols.distinct .getName . length != cols.length then
+                Panic.throw (Illegal_Argument.Error "Column names must be distinct.")
+
+            mismatched_size_column = cols.find if_missing=Nothing c->
+                c.getSize != cols.first.getSize
+            if mismatched_size_column.is_nothing.not then
+                msg = "All columns must have the same row count, but the column [" + mismatched_size_column.getName + "] has " + mismatched_size_column.getSize.to_text + " rows, while the column [" + cols.first.getName + "] has " + cols.first.getSize.to_text + " rows."
+                Panic.throw (Illegal_Argument.Error msg)
+
+            Table.Value (Java_Table.new cols)
 
     ## GROUP Standard.Base.Constants
        Creates a new table from a vector of column names and a vector of vectors
@@ -946,6 +956,9 @@ type Table
        Arguments:
        - columns: The selection of columns to cast.
        - value_type: The `Value_Type` to cast the column to.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -994,6 +1007,50 @@ type Table
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
         selected.fold self table-> column_to_cast->
             new_column = column_to_cast.cast value_type on_problems
+            table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
+
+    ## Change the value type of table columns to a more specific one, based on
+       their contents.
+
+       This is most useful for `Mixed` type columns and will allow to narrow
+       down the type if all values in the column fit a more specific type.
+
+       Arguments:
+       - columns: The selection of columns to convert.
+       - shrink_types: If set `True`, smaller types will be chosen if possible,
+         according to the rules below. Defaults to `False`.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Auto Type Selection Rules
+
+         - If a `Mixed` column can be assigned a single type, like `Char` or
+           `Integer`, that will be used.
+         - Text columns are not parsed. To do that, use the `parse` method.
+         - If a `Float` column contains only integers, it will be converted to
+           an Integer column.
+         - If a `Decimal` column contains only integers that could fit in a
+           64-bit integer storage, it will be converted to an Integer column.
+         - If `shrink_types` is `False` (default), no other transformations are
+           applied.
+         - However, if `shrink_types` is set to `True`, then:
+           - Integer columns will be assigned the smallest size that can fit all
+             values (down to 16-bit integers; converting to the `Byte` type has
+             to be done manually through `cast`).
+           - If all elements in a text column have the same length, the type
+             will become fixed length.
+           - Otherwise, if a text column is variable length, but all text
+             elements are no longer than 255 characters, the column will get a
+             max length of 255. Otherwise, the column size limit will stay
+             unchanged.
+    auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> Table
+    auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+        selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
+        selected.fold self table-> column_to_cast->
+            new_column = column_to_cast.auto_value_type shrink_types
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions

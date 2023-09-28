@@ -72,7 +72,7 @@ watch(exprRect, (rect) => {
         :key="child.id"
         :content="props.content"
         :span="child"
-        :offset="childOffsets[index]"
+        :offset="childOffsets[index]!"
         @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)" /></template
     ><template v-else>{{ exprPart }}</template></span
   >

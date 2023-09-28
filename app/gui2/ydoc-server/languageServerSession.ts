@@ -1,9 +1,9 @@
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import * as map from 'lib0/map'
 import { createMutex } from 'lib0/mutex'
+import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import { Emitter } from '../shared/event'
 import { LanguageServer } from '../shared/languageServer'
 import { Checksum, Path, response } from '../shared/languageServerTypes'
 import { DistributedModule, DistributedProject, NodeMetadata, Uuid } from '../shared/yjsModel'
@@ -12,10 +12,10 @@ import { WSSharedDoc } from './ydoc'
 const sessions = new Map<string, LanguageServerSession>()
 
 type Events = {
-  error: [error: Error]
+  error: (error: Error) => void
 }
 
-export class LanguageServerSession extends Emitter<Events> {
+export class LanguageServerSession extends ObservableV2<Events> {
   clientId: Uuid
   indexDoc: WSSharedDoc
   docs: Map<string, WSSharedDoc>
@@ -182,7 +182,7 @@ const pushPathSegment = (path: Path, segment: string): Path => {
 
 type Mutex = ReturnType<typeof createMutex>
 
-class ModulePersistence extends Emitter<{ removed: [] }> {
+class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ls: LanguageServer
   model: DistributedModule
   path: Path

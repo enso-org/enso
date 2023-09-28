@@ -1,0 +1,21 @@
+from Standard.Base import all
+from Standard.Base.Runtime.Ref import Ref
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 3 2)
+
+collect_benches = Bench.build builder->
+    range_size = 100000000
+    data = 0.up_to range_size
+
+    builder.group "Range" options group_builder->
+        group_builder.specify "iterate" <|
+            cell = Ref.new 0
+            data . each _->
+                x = cell.get
+                cell.put x+1
+
+            cell.get . should_equal range_size
+
+main = collect_benches . run_main

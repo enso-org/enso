@@ -19,10 +19,10 @@ public class LongBuilderUnchecked extends LongBuilder {
     if (o == null) {
       isMissing.set(currentSize++);
     } else {
-      try {
-        long x = NumericConverter.coerceToLong(o);
-        data[currentSize++] = x;
-      } catch (UnsupportedOperationException e) {
+      Long x = NumericConverter.tryConvertingToLong(o);
+      if (x != null) {
+        appendLongNoGrow(x);
+      } else {
         throw new ValueTypeMismatchException(getType(), o);
       }
     }

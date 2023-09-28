@@ -51,7 +51,11 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             )}
             <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.uploadFiles}
+                action={
+                    backend.type === backendModule.BackendType.local
+                        ? shortcuts.KeyboardAction.uploadProjects
+                        : shortcuts.KeyboardAction.uploadFiles
+                }
                 doAction={() => {
                     if (filesInputRef.current?.isConnected === true) {
                         filesInputRef.current.click()

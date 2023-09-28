@@ -20,6 +20,7 @@ import org.enso.table.data.column.operation.map.numeric.isin.BigIntegerIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
@@ -59,7 +60,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
   @Override
   protected BigInteger[] newUnderlyingArray(int size) {
-    return new BigInteger[0];
+    return new BigInteger[size];
   }
 
   @Override
@@ -95,5 +96,68 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
     }
 
     return cachedMaxPrecisionStored;
+  }
+
+  private StorageType inferredType = null;
+
+  @Override
+  public StorageType inferPreciseType() {
+    if (inferredType == null) {
+      boolean allFitInLong = true;
+      int visitedCount = 0;
+
+      for (int i = 0; i < size; i++) {
+        BigInteger value = data[i];
+        if (value == null) {
+          continue;
+        }
+
+        visitedCount++;
+        boolean fitsInLong = IntegerType.INT_64.fits(value);
+        if (!fitsInLong) {
+          allFitInLong = false;
+          break;
+        }
+      }
+
+      inferredType =
+          (allFitInLong && visitedCount > 0) ? IntegerType.INT_64 : BigIntegerType.INSTANCE;
+    }
+
+    return inferredType;
+  }
+
+  @Override
+  public StorageType inferPreciseTypeShrunk() {
+    StorageType preciseType = inferPreciseType();
+    if (preciseType instanceof IntegerType) {
+      return findSmallestIntegerTypeThatFits();
+    }
+
+    return preciseType;
+  }
+
+  private StorageType findSmallestIntegerTypeThatFits() {
+    // This method assumes that all values _do_ fit in some integer type.
+    assert inferredType instanceof IntegerType;
+
+    final BigIntegerStorage parent = this;
+
+    // We create a Long storage that gets values by converting our storage.
+    ComputedNullableLongStorage longAdapter =
+        new ComputedNullableLongStorage(size) {
+          @Override
+          protected Long computeItem(int idx) {
+            BigInteger bigInteger = parent.getItem(idx);
+            if (bigInteger == null) {
+              return null;
+            }
+
+            return bigInteger.longValueExact();
+          }
+        };
+
+    // And rely on its shrinking logic.
+    return longAdapter.inferPreciseTypeShrunk();
   }
 }
