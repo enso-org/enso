@@ -36,7 +36,7 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   @Override
   public TypedBuilder retypeTo(StorageType type) {
     if (type instanceof FloatType) {
-      DoubleBuilder res = NumericBuilder.createDoubleBuilder(currentSize);
+      DoubleBuilder res = NumericBuilder.createInferringDoubleBuilder(currentSize);
       for (int i = 0; i < currentSize; i++) {
         if (data[i] == null) {
           res.appendNulls(1);

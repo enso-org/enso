@@ -29,13 +29,9 @@ public class DoubleBuilder extends NumericBuilder {
 
   @Override
   public void writeTo(Object[] items) {
-    for (int i = 0; i < currentSize; i++) {
-      if (isMissing.get(i)) {
-        items[i] = null;
-      } else {
-        items[i] = Double.longBitsToDouble(data[i]);
-      }
-    }
+    throw new IllegalStateException("The DoubleBuilder cannot be retyped to the Mixed type, because it would lose " +
+        "type information about integers that were converted to doubles. If recasting is needed, " +
+        "InferringDoubleBuilder should be used instead. This error leaking is a bug in the Table library.");
   }
 
   @Override
@@ -59,9 +55,11 @@ public class DoubleBuilder extends NumericBuilder {
    * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
    * used.
    */
-  static DoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
+  static InferringDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
     int currentSize = longBuilder.currentSize;
-    DoubleBuilder newBuilder = new DoubleBuilder(longBuilder.isMissing, longBuilder.data, currentSize);
+    Object[] rawData = new Object[longBuilder.data.length];
+    InferringDoubleBuilder newBuilder =
+        new InferringDoubleBuilder(longBuilder.isMissing, longBuilder.data, rawData, currentSize);
 
     // Invalidate the old builder.
     longBuilder.data = null;
@@ -74,6 +72,7 @@ public class DoubleBuilder extends NumericBuilder {
         long currentIntegerValue = newBuilder.data[i];
         double convertedFloatValue = newBuilder.convertIntegerToDouble(currentIntegerValue);
         newBuilder.data[i] = Double.doubleToRawLongBits(convertedFloatValue);
+        rawData[i] = currentIntegerValue;
       }
     }
 
@@ -84,7 +83,7 @@ public class DoubleBuilder extends NumericBuilder {
   public void appendNoGrow(Object o) {
     if (o == null) {
       isMissing.set(currentSize++);
-    } else if (NumericConverter.isFloatLike(o)){
+    } else if (NumericConverter.isFloatLike(o)) {
       double value = NumericConverter.coerceToDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);
     } else if (NumericConverter.isCoercibleToLong(o)) {
@@ -201,7 +200,7 @@ public class DoubleBuilder extends NumericBuilder {
    * <p>
    * It verifies if the integer can be exactly represented in a double, and if not, it reports a warning.
    */
-  private double convertIntegerToDouble(long integer) {
+  protected double convertIntegerToDouble(long integer) {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
@@ -214,7 +213,7 @@ public class DoubleBuilder extends NumericBuilder {
     return floatingPointValue;
   }
 
-  private double convertBigIntegerToDouble(BigInteger bigInteger) {
+  protected double convertBigIntegerToDouble(BigInteger bigInteger) {
     double floatingPointValue = bigInteger.doubleValue();
     BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
@@ -228,7 +227,7 @@ public class DoubleBuilder extends NumericBuilder {
     return floatingPointValue;
   }
 
-  private LossOfIntegerPrecision precisionLoss = null;
+  protected LossOfIntegerPrecision precisionLoss = null;
 
   @Override
   public AggregatedProblems getProblems() {
