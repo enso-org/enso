@@ -1,6 +1,13 @@
 <script lang="ts">
+import { defineKeybinds } from 'builtins'
+
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+
+const bindings = defineKeybinds('scatterplot-visualization', {
+  zoomIn: ['Mod+Z'],
+  showAll: ['Mod+A'],
+})
 
 // eslint-disable-next-line no-redeclare
 declare const d3: typeof import('d3')
@@ -111,12 +118,6 @@ const emit = defineEmits<{
 
 const config = useVisualizationConfig()
 
-// TODO [sb]: Consider switching to a global keyboard shortcut handler.
-const shortcuts = {
-  zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
-  showAll: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'a',
-}
-
 const LABEL_FONT_STYLE = '10px DejaVuSansMonoBook'
 const POINT_LABEL_PADDING_X_PX = 7
 const POINT_LABEL_PADDING_Y_PX = 2
@@ -193,6 +194,7 @@ const shouldAnimate = ref(false)
 const xDomain = ref<[min: number, max: number]>([0, 1])
 const yDomain = ref<[min: number, max: number]>([0, 1])
 
+const isBrushing = computed(() => brushExtent.value != null)
 const xScale = computed(() =>
   axisD3Scale(data.value.axis.x).domain(xDomain.value).range([0, boxWidth.value]),
 )
@@ -429,17 +431,12 @@ function zoomToSelected() {
   yDomain.value = [yMin, yMax]
 }
 
-useEventConditional(
-  document,
-  'keydown',
-  () => brushExtent.value != null,
-  (event) => {
-    if (shortcuts.zoomIn(event)) {
-      zoomToSelected()
-      endBrushing()
-    }
-  },
-)
+function zoomIn() {
+  zoomToSelected()
+  endBrushing()
+}
+
+useEventConditional(document, 'keydown', isBrushing, bindings.handler({ zoomIn }))
 
 watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
@@ -529,7 +526,7 @@ watchPostEffect(() => {
 // === Event handlers ===
 // ======================
 
-function fitAll() {
+function showAll() {
   shouldAnimate.value = true
   focus.value = undefined
   bounds.value = undefined
@@ -550,11 +547,7 @@ function endBrushing() {
   d3Brush.value.call(brush.value.move, null)
 }
 
-useEvent(document, 'keydown', (event) => {
-  if (shortcuts.showAll(event)) {
-    fitAll()
-  }
-})
+useEvent(document, 'keydown', bindings.handler({ showAll }))
 useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
@@ -565,10 +558,10 @@ useEvent(document, 'scroll', endBrushing)
   <VisualizationContainer :below-toolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />
+        <img :src="ShowAllIcon" alt="Fit all" @pointerdown="showAll" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
+        <img :src="FindIcon" alt="Zoom to selected" @pointerdown="zoomToSelected" />
       </button>
     </template>
     <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>

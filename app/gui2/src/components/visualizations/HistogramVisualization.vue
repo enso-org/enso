@@ -1,7 +1,14 @@
 <script lang="ts">
+import { defineKeybinds } from 'builtins'
+
 export const name = 'Histogram'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
+
+const bindings = defineKeybinds('scatterplot-visualization', {
+  zoomIn: ['Mod+Z'],
+  showAll: ['Mod+A'],
+})
 
 // eslint-disable-next-line no-redeclare
 declare const d3: typeof import('d3')
@@ -170,6 +177,7 @@ const shouldAnimate = ref(false)
 const xDomain = ref([0, 1])
 const yDomain = ref([0, 1])
 
+const isBrushing = computed(() => brushExtent.value != null)
 // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
 const yMax = computed(() => d3.max(bins.value, (d) => d.length) || 1)
 const originalXScale = computed(() =>
@@ -441,17 +449,12 @@ function endBrushing() {
   d3Brush.value.call(brush.value.move, null)
 }
 
-useEventConditional(
-  document,
-  'keydown',
-  () => brushExtent.value != null,
-  (event) => {
-    if (shortcuts.zoomIn(event)) {
-      zoomToSelected()
-      endBrushing()
-    }
-  },
-)
+function zoomIn() {
+  zoomToSelected()
+  endBrushing()
+}
+
+useEventConditional(document, 'keydown', isBrushing, bindings.handler({ zoomIn }))
 
 /**
  * Return the extrema of the data and and paddings that ensure data will fit into the
@@ -576,18 +579,14 @@ watchPostEffect(() => {
 // === Event handlers ===
 // ======================
 
-function fitAll() {
+function showAll() {
   rawFocus.value = undefined
   zoomLevel.value = 1
   xDomain.value = originalXScale.value.domain()
   shouldAnimate.value = true
 }
 
-useEvent(document, 'keydown', (event) => {
-  if (shortcuts.showAll(event)) {
-    fitAll()
-  }
-})
+useEvent(document, 'keydown', bindings.handler({ showAll }))
 useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
@@ -598,7 +597,7 @@ useEvent(document, 'scroll', endBrushing)
   <VisualizationContainer :below-toolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @click="fitAll" />
+        <SvgIcon name="show_all" alt="Fit all" @click="showAll" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
         <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected" />

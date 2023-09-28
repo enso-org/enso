@@ -105,19 +105,22 @@ const resizeBottomRight = usePointer((pos, _, type) => {
           }"
         >
           <div class="background"></div>
-          <button class="image-button active" @click="config.hide()">
+          <button class="image-button active" @pointerdown.stop="config.hide()">
             <SvgIcon class="icon" name="eye" />
           </button>
         </div>
         <div class="toolbar">
           <div class="background"></div>
-          <button class="image-button active" @click="config.fullscreen = !config.fullscreen">
+          <button
+            class="image-button active"
+            @pointerdown.stop="config.fullscreen = !config.fullscreen"
+          >
             <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
           </button>
           <div class="icon-container">
             <button
               class="image-button active"
-              @click.stop="isSelectorVisible = !isSelectorVisible"
+              @pointerdown.stop="isSelectorVisible = !isSelectorVisible"
             >
               <SvgIcon class="icon" name="compass" />
             </button>
