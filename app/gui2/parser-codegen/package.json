@@ -10,7 +10,7 @@
   "scripts": {
     "generate-ast-schema": "cargo run -p enso-parser-schema > generated/ast-schema.json",
     "preinstall": "npm run generate-ast-schema",
-    "start": "tsc --build && node dist/codegen.js generated/ast-schema.json generated/ast.ts"
+    "generate-bindings": "tsc --build && node dist/codegen.js generated/ast-schema.json"
   },
   "keywords": [],
   "dependencies": {
