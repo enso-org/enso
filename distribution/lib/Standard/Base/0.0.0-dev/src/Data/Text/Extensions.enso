@@ -1811,7 +1811,7 @@ Text.substring self start:Integer length:Integer=self.length =
         if length == 0 then "" else
             self_length = self.length
             fixed_start = if start < 0 then start + self_length else start
-            if fixed_start < 0 then (Error.throw (Index_Out_Of_Bounds.Error start self.length)) else
+            if fixed_start < 0 then (Error.throw (Index_Out_Of_Bounds.Error start self_length)) else
                 range = fixed_start.up_to fixed_start+length
                 self.take range
 
