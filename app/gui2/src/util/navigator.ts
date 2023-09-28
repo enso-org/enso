@@ -105,5 +105,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     viewBox,
     transform,
     sceneMousePos,
+    eventToScenePos,
   })
 }

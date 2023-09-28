@@ -25,6 +25,7 @@ const emit = defineEmits<{
   updateContent: [range: ContentRange, content: string]
   movePosition: [delta: Vec2]
   delete: []
+  updateHoveredExpr: [ExprId | null]
 }>()
 
 const visualizationStore = useVisualizationStore()
@@ -408,6 +409,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
           :span="node.rootSpan"
           :offset="0"
           @updateExprRect="updateExprRect"
+          @updateHoveredExpr="expr => emit('updateHoveredExpr', expr)"
         />
       </div>
     </div>

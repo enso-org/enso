@@ -1,57 +1,67 @@
 <script setup lang="ts">
-import type { Edge } from '@/stores/graph'
-import type { Rect } from '@/stores/rect'
-import { clamp } from '@vueuse/core'
-import type { ExprId } from 'shared/yjsModel'
 import { computed } from 'vue'
+import { Vec2 } from '@/util/vec2';
+import type { useNavigator } from "@/util/navigator";
 
 const props = defineProps<{
-  edge: Edge
-  nodeRects: Map<ExprId, Rect>
-  exprRects: Map<ExprId, Rect>
-  exprNodes: Map<ExprId, ExprId>
+  edge: { source: Vec2, target: Vec2 }
+  editing: boolean
+  navigator: ReturnType<typeof useNavigator>
+}>()
+
+const emit = defineEmits<{
+  disconnectSource: [],
+  disconnectTarget: []
 }>()
 
 const edgePath = computed(() => {
-  let edge = props.edge
-  const targetNodeId = props.exprNodes.get(edge.target)
-  if (targetNodeId == null) return ''
-  let sourceNodeRect = props.nodeRects.get(edge.source)
-  let targetNodeRect = props.nodeRects.get(targetNodeId)
-  let targetRect = props.exprRects.get(edge.target)
-  if (sourceNodeRect == null || targetRect == null || targetNodeRect == null) return ''
-  let sourcePos = sourceNodeRect.center()
-  let targetPos = targetRect.center().add(targetNodeRect.pos)
+  const source = props.edge.source
+  const target = props.edge.target
 
-  let sourceRangeX = sourceNodeRect.rangeX()
-  const EDGE_PADDING = 20
-  const sourceX = clamp(targetPos.x, sourceRangeX[0] + EDGE_PADDING, sourceRangeX[1] - EDGE_PADDING)
   const LINE_OUT = 20
   const QUAD_OUT = 50
 
-  const midpointX = (sourceX + targetPos.x) / 2
-  const midpointY = (sourcePos.y + targetPos.y) / 2
+  const midpointX = (source.x + target.x) / 2
+  const midpointY = (source.y + target.y) / 2
 
   return `
-    M ${sourceX} ${sourcePos.y}
-    L ${sourceX} ${sourcePos.y + LINE_OUT}
-    Q ${sourceX} ${sourcePos.y + QUAD_OUT} ${midpointX} ${midpointY}
-    Q ${targetPos.x} ${targetPos.y - QUAD_OUT} ${targetPos.x} ${targetPos.y - LINE_OUT}
-    L ${targetPos.x} ${targetPos.y}
+    M ${source.x} ${source.y}
+    L ${source.x} ${source.y + LINE_OUT}
+    Q ${source.x} ${source.y + QUAD_OUT} ${midpointX} ${midpointY}
+    Q ${target.x} ${target.y - QUAD_OUT} ${target.x} ${target.y - LINE_OUT}
+    L ${target.x} ${target.y}
   `
 })
+
+const classes = computed(() => {
+  return props.editing ? 'dynamic-edge' : 'static-edge';
+})
+
+function click(e: PointerEvent) {
+  if (props.editing) return
+  const pos = props.navigator.eventToScenePos(e)
+  const sqDistanceFromSource = Vec2.distanceSquare(pos, props.edge.source)
+  const sqDistanceFromTarget = Vec2.distanceSquare(pos, props.edge.target)
+  if (sqDistanceFromSource > sqDistanceFromTarget) {
+    emit('disconnectSource')
+  } else {
+    emit('disconnectTarget')
+  }
+}
 </script>
 
 <template>
-  <path :d="edgePath" stroke="black" stroke-width="4" fill="none" class="edge" />
+  <path :d="edgePath" stroke="black" stroke-width="4" fill="none" :class="classes" @pointerdown="click" />
 </template>
 
 <style scoped>
-.edge {
+.static-edge {
   stroke: tan;
 }
-
-.edge:hover {
+.static-edge:hover {
+  stroke: red;
+}
+.dynamic-edge {
   stroke: red;
 }
 </style>

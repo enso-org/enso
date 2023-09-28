@@ -25,7 +25,7 @@ export class Vec2 {
   scale(scalar: number): Vec2 {
     return new Vec2(this.x * scalar, this.y * scalar)
   }
-  distanceSquare(a: Vec2, b: Vec2): number {
+  static distanceSquare(a: Vec2, b: Vec2): number {
     const dx = a.x - b.x
     const dy = a.y - b.y
     return dx * dx + dy * dy
@@ -50,5 +50,13 @@ export class Vec2 {
   }
   max(other: Vec2): Vec2 {
     return new Vec2(Math.max(this.x, other.x), Math.max(this.y, other.y))
+  }
+
+  withX(x: number): Vec2 {
+    return new Vec2(x, this.y)
+  }
+
+  withY(y: number): Vec2 {
+    return new Vec2(this.x, y)
   }
 }

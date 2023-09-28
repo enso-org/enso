@@ -13,9 +13,11 @@ import {
   type IdMap,
   type NodeMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, reactive, ref, watch, watchEffect, type Ref } from 'vue'
 import * as Y from 'yjs'
 import { useProjectStore } from './project'
+
+export type UnconnectedEdge = ({ source?: ExprId, target?: ExprId }) & { disconnectedEdgeTarget?: ExprId }
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -29,6 +31,8 @@ export const useGraphStore = defineStore('graph', () => {
 
   const nodes = reactive(new Map<ExprId, Node>())
   const exprNodes = reactive(new Map<ExprId, ExprId>())
+
+  const unconnectedEdge: Ref<UnconnectedEdge | null> = ref(null)
 
   useObserveYjs(text, (event) => {
     const delta = event.changes.delta
@@ -242,11 +246,13 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const edges = computed(() => {
+    const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
     const edges = []
     for (const [ident, usages] of identUsages) {
       const source = identDefinitions.get(ident)
       if (source == null) continue
       for (const target of usages) {
+        if (target == disconnectedEdgeTarget) continue
         edges.push({ source, target })
       }
     }
@@ -301,6 +307,7 @@ export const useGraphStore = defineStore('graph', () => {
     proj,
     nodes,
     exprNodes,
+    unconnectedEdge,
     edges,
     identDefinitions,
     identUsages,

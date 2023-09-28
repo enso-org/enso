@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import GraphNode from '@/components/GraphNode.vue'
 import { spanKindName, type Span } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useResizeObserver } from '@/util/events'
 import { Vec2 } from '@/util/vec2'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, onUpdated, ref, shallowRef, watch } from 'vue'
+import { computed, onUpdated, ref, shallowRef, watch, type Ref } from 'vue'
 
 const props = defineProps<{
   content: string
@@ -14,6 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updateExprRect: [expr: ExprId, rect: Rect]
+  updateHoveredExpr: [ExprId | null]
 }>()
 
 const spanClass = computed(() => spanKindName(props.span.kind))
@@ -73,8 +75,15 @@ watch(exprRect, (rect) => {
         :content="props.content"
         :span="child"
         :offset="childOffsets[index]!"
-        @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)" /></template
-    ><template v-else>{{ exprPart }}</template></span
+        @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)"
+        @updateHoveredExpr="(expr) => emit('updateHoveredExpr', expr)" /></template
+    ><template v-else
+      ><span
+        @mouseenter="emit('updateHoveredExpr', props.span.id)"
+        @mouseleave="emit('updateHoveredExpr', null)"
+        >{{ exprPart }}</span
+      ></template
+    ></span
   >
 </template>
 
