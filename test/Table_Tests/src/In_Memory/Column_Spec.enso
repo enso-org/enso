@@ -106,19 +106,29 @@ spec =
             c1.at 1 . should_be_a Float
             c1.at 0 . is_a Integer . should_be_false
 
-        Test.specify "will preserve the types if the column is Mixed" <|
-            c1 = Column.from_vector "X" ["a", 1, 2.0]
-            c1.value_type . should_equal Value_Type.Mixed
-            c1.at 0 . should_be_a Text
-            c1.at 1 . should_be_a Integer
-            c1.at 2 . should_be_a Float
+        Test.specify "will preserve the types if the column is Mixed, regardless of ordering" <|
+            run_test vector =
+                Test.with_clue vector.pretty+": " <|
+                     c = Column.from_vector "X" vector
+                     c.value_type . should_equal Value_Type.Mixed
+                     c.to_vector . should_equal vector
+                     Problems.assume_no_problems c
 
-        Test.specify "will preserve the types if the column is Mixed (2)" pending="ToDo: disabled due to issue #7352" <|
-            c2 = Column.from_vector "X" [1, 2.0, "a"]
-            c2.value_type . should_equal Value_Type.Mixed
-            c2.at 0 . should_be_a Integer
-            c2.at 1 . should_be_a Float
-            c2.at 2 . should_be_a Text
+                     # Verify that types of the values are preserved.
+                     c.to_vector.zip vector got-> expected->
+                        Test.with_clue "(type of "+got.pretty+") " <|
+                            (Meta.type_of got) . should_equal (Meta.type_of expected)
+                            got.to_text . should_equal expected.to_text
+
+            run_test ["a", 1, 2.0]
+            run_test [1, 2.0, "a"]
+            run_test [2.0, 1, "a"]
+            run_test [2.5, 1, "a"]
+            run_test [10, 1.5, "a"]
+            run_test ["a", 1.5, 10]
+            run_test [2, 2^100, 1.5, "a"]
+            run_test [2, 2^100, 1.5, "a"]
+            run_test [1.5, 2^100, 2, "a"]
 
         Test.specify "should allow to set a specific type at construction" <|
             c1 = Column.from_vector "X" [1, 2] Value_Type.Float
