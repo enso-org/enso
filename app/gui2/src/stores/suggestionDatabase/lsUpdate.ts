@@ -4,6 +4,8 @@ import {
   type Doc,
   type SuggestionEntry,
   type SuggestionEntryArgument,
+  type Typename,
+  type SuggestionEntryScope,
 } from '@/stores/suggestionDatabase/entry'
 import { findIndexOpt } from '@/util/array'
 import { parseDocs } from '@/util/ffi'
@@ -14,9 +16,82 @@ import {
   tryIdentifier,
   tryQualifiedName,
   type QualifiedName,
+  type Identifier,
 } from '@/util/qualifiedName'
 import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
+
+interface UnfinishedEntry {
+  kind: SuggestionKind
+  definedIn?: QualifiedName
+  memberOf?: QualifiedName
+  isPrivate?: boolean
+  isUnstable?: boolean
+  name?: Identifier
+  aliases?: string[]
+  selfType?: Typename
+  arguments?: SuggestionEntryArgument[]
+  returnType?: Typename
+  reexportedIn?: QualifiedName
+  documentation?: Doc.Section[]
+  scope?: SuggestionEntryScope
+  iconName?: string
+  groupIndex?: number
+}
+
+
+
+class Update<Entry extends UnfinishedEntry>{
+  entry: Entry
+  groups: Group[]
+
+  constructor(entry: Entry, groups: Group[]) {
+    ;(this.entry = entry), (this.groups = groups)
+  }
+
+  
+  setLsModule(module: string): Result<Update<Entry & {} > {
+    const qn = tryQualifiedName(module)
+    if (!qn.ok) return qn
+    this.entry.definedIn = qn.value
+    switch (this.entry.kind) {
+      case SuggestionKind.Module:
+        this.entry.name = qnLastSegment(qn.value)
+        break
+      case SuggestionKind.Type:
+        this.entry.returnType = qnJoin(qn.value, this.entry.name)
+        break
+    }
+    return Ok(undefined)
+  }
+
+  private setAsOwner(type: string) {
+    const qn = tryQualifiedName(type)
+    if (qn.ok) {
+      this.entry.memberOf = qn.value
+    } else {
+      delete this.entry.memberOf
+    }
+  }
+
+  setLsSelfType(selfType: string) {
+    const isStatic = this.entry.selfType == null
+    if (!isStatic) this.entry.selfType = selfType
+    this.setAsOwner(selfType)
+  }
+
+  setLsReturnType(returnType: string) {
+    this.entry.returnType = returnType
+    if (this.entry.kind == SuggestionKind.Constructor) {
+      this.setAsOwner(returnType)
+    }
+  }
+
+  setLsDocumentation(documentation: string) {
+    const data = documentationData(documentation, this.entry.definedIn, this.groups)
+    Object.assign(this.entry, data)
+  }
+}
 
 function kindFromLs(lsEntry: lsTypes.SuggestionEntry) {
   switch (lsEntry.type) {
@@ -90,12 +165,14 @@ function documentationData(
 } {
   const documentation = docs != null ? parseDocs(docs) : []
   const groupName = tagValue(documentation, 'Group')
+  const iconName = tagValue(documentation, 'Icon')
+  const groupIndex = groupName ? getGroupIndex(groupName, definedIn, groups) : null
 
   return {
     documentation,
     aliases: tagValue(documentation, 'Alias')?.split(',') ?? [],
-    iconName: tagValue(documentation, 'Icon') ?? undefined,
-    groupIndex: groupName ? getGroupIndex(groupName, definedIn, groups) ?? undefined : undefined,
+    ...(iconName != null ? { iconName } : {}),
+    ...(groupIndex != null ? { groupIndex } : {}),
     isPrivate: isSome(tagValue(documentation, 'Private')),
     isUnstable:
       isSome(tagValue(documentation, 'Unstable')) || isSome(tagValue(documentation, 'Advanced')),
@@ -124,6 +201,12 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
         }
       })()
 
+      let entry: SuggestionEntry = {
+        definedIn: definedIn.value,
+        name: name.value,
+        ...documentationData(lsEntry.documentation, definedIn.value, groups),
+      }
+
       const memberOf = (() => {
         // Both self type and return type may be not a valid qualified name, because they may be a type
         // union or a type with parameters. In that case we cannot clearly point the owning type.
@@ -143,14 +226,14 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
         }
       })()
 
-      const selfType = lsEntry.type == 'method' && !lsEntry.isStatic ? lsEntry.selfType : undefined
+      const selfType = lsEntry.type == 'method' && !lsEntry.isStatic ? lsEntry.selfType : null
 
       const args = argumentsFromLs(lsEntry)
 
       const reexportedIn =
         lsEntry.type != 'function' && lsEntry.type != 'local' && lsEntry.reexport != null
           ? tryQualifiedName(lsEntry.reexport)
-          : undefined
+          : null
       if (reexportedIn != null && !reexportedIn.ok) return reexportedIn
 
       const scope =
@@ -166,7 +249,6 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
         returnType,
         reexportedIn: reexportedIn?.value,
         scope,
-        ...documentationData(lsEntry.documentation, definedIn.value, groups),
       })
     },
   )
@@ -304,49 +386,7 @@ export function applyUpdate(
             if (!updateResult.ok) return updateResult
           }
 
-          // Update module
-          const definedIn = tryMapFieldUpdate(update.module, tryQualifiedName)
-          if (!definedIn.ok) return definedIn
-          const definedInUpdate = applyFieldUpdate('definedIn', entry, definedIn.value)
-          if (!definedInUpdate.ok) return definedInUpdate
-          if (definedIn.value?.value != null) {
-            switch (entry.kind) {
-              case SuggestionKind.Module:
-                entry.name = qnLastSegment(entry.definedIn)
-                break
-              case SuggestionKind.Type:
-                entry.returnType = qnJoin(entry.definedIn, entry.name)
-                break
-            }
-          }
-
-          // Update selfType
-          if (entry.kind == SuggestionKind.Method) {
-            if (entry.selfType != null) applyOptFieldUpdate('selfType', entry, update.selfType)
-            const memberOf = tryMapFieldUpdate(update.selfType, tryQualifiedName)
-            if (memberOf.ok) {
-              applyOptFieldUpdate('memberOf', entry, memberOf.value)
-            } else {
-              entry.memberOf = undefined
-            }
-          }
-
-          // Update returnType
-          applyOptFieldUpdate('returnType', entry, update.returnType)
-          if (entry.kind == SuggestionKind.Constructor) {
-            const memberOf = tryMapFieldUpdate(update.returnType, tryQualifiedName)
-            if (memberOf.ok) {
-              applyOptFieldUpdate('memberOf', entry, memberOf.value)
-            } else {
-              entry.memberOf = undefined
-            }
-          }
-
-          // Update documentation
-          if (update.documentation != null) {
-            const data = documentationData(update.documentation.value, entry.definedIn, groups)
-            Object.assign(entry, data)
-          }
+          
 
           // Others
           applyOptFieldUpdate('scope', entry, update.scope)
@@ -380,10 +420,13 @@ if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
   test.each([
-    ['## Foo Bar\n', 'Bar'],
-    ['## Some one section\n   But not tags here', null],
+    ['ALIAS Bar', 'Bar'],
+    ['Some one section\n   But not tags here', null],
+    ['GROUP different tag', null],
+    ['PRIVATE\nGROUP Input\nALIAS Foo\n\nSeveral tags', 'Foo'],
   ])('Getting tag from docs case %#.', (doc, expected) => {
     const sections = parseDocs(doc)
-    expect(tagValue(sections, 'Foo')).toBe(expected)
+    console.log(JSON.stringify(sections))
+    expect(tagValue(sections, 'Alias')).toBe(expected)
   })
 }

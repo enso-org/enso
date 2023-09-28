@@ -3,7 +3,7 @@ import { Err, Ok, unwrap, type Result } from './result'
 
 declare const identifierBrand: unique symbol
 declare const qualifiedNameBrand: unique symbol
-const identifierRegexPart = '(?:[a-zA-Z_][0-9]*)+'
+const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[$%&*+,-./:;<=>?@\\^|~]+)'
 const identifierRegex = new RegExp(`^${identifierRegexPart}$`)
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
 
@@ -83,8 +83,13 @@ if (import.meta.vitest) {
     'abC',
     'a1',
     'A10_70',
+    '+',
+    '<=>',
+    '*',
+    '.',
+    '.+',
   ]
-  const invalidIdentifiers = ['', '1', '1Abc', '1_', 'abA!']
+  const invalidIdentifiers = ['', '1', '1Abc', '1_', 'abA!', '$a', 'a$']
 
   test.each(validIdentifiers)("'%s' is a valid identifier", (name) =>
     expect(unwrap(tryIdentifier(name))).toStrictEqual(name as Identifier),
@@ -93,9 +98,10 @@ if (import.meta.vitest) {
     expect(tryIdentifier(name).ok).toBe(false),
   )
 
-  test.each(validIdentifiers.concat('A._', 'a19_r14.zz9z', 'a.b.c.d.e.F'))(
-    "'%s' is a valid qualified name",
-    (name) => expect(unwrap(tryQualifiedName(name))).toStrictEqual(name as QualifiedName),
+  test.each(
+    validIdentifiers.concat('A._', 'a19_r14.zz9z', 'a.b.c.d.e.F', 'Standard.Base.Number.+'),
+  )("'%s' is a valid qualified name", (name) =>
+    expect(unwrap(tryQualifiedName(name))).toStrictEqual(name as QualifiedName),
   )
 
   test.each(invalidIdentifiers.concat('.Abc', 'Abc.', '.A.b.c', 'A.b.c.', 'A.B.8.D', '_.._'))(
