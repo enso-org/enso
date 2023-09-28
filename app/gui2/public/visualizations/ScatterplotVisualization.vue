@@ -100,8 +100,7 @@ import type {
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
-import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
+import { VisualizationContainer, useVisualizationConfig } from 'builtins'
 
 import type { Symbol } from 'd3'
 

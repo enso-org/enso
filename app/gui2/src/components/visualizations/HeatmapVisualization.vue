@@ -46,7 +46,7 @@ import { computed, onMounted, ref, watchPostEffect } from 'vue'
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{

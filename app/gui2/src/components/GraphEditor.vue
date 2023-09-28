@@ -1,4 +1,6 @@
 <script lang="ts">
+import { defineKeybinds } from '@/util/shortcuts'
+
 const graphBindings = defineKeybinds('graph-editor', {
   undo: ['Mod+Z'],
   redo: ['Mod+Y', 'Mod+Shift+Z'],
@@ -21,7 +23,6 @@ import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { keyboardBusy, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
-import { defineKeybinds } from '@/util/shortcuts'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, reactive, ref, watch } from 'vue'

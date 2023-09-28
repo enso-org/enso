@@ -107,7 +107,7 @@ import type { BrushSelection, D3BrushEvent, D3ZoomEvent, ScaleSequential, ZoomTr
 
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
 
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
