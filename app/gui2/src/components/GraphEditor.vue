@@ -31,6 +31,7 @@ const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
 
 onMounted(async () => {
+  await projectStore.lsRpcConnection
   const executionCtxPromise = projectStore.createExecutionContextForMain()
   onUnmounted(async () => {
     executionCtx.value = undefined

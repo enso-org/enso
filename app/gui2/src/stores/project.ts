@@ -159,7 +159,6 @@ export const useProjectStore = defineStore('project', () => {
   const name = computed(() => config.value.startup?.project)
   const namespace = computed(() => config.value.engine?.namespace)
 
-  const executionContextId = random.uuidv4() as ContextId
   const mainModule = computed(() => `${DEFAULT_PROJECT_NAMESPACE}.${name.value}.Main`)
 
   watchEffect((onCleanup) => {
@@ -233,6 +232,11 @@ export const useProjectStore = defineStore('project', () => {
     })
   }
 
+  const executionContextId = lsRpcConnection
+    .then(() => createExecutionContextForMain())
+    .then((context) => context?.state)
+    .then((state) => state?.id)
+
   function useVisualizationData(
     expressionId: ExprId,
     configuration: Ref<NodeVisualizationConfiguration | undefined>,
@@ -246,12 +250,14 @@ export const useProjectStore = defineStore('project', () => {
         await (
           await lsRpcConnection
         ).attachVisualization(id, expressionId, {
-          executionContextId,
+          executionContextId: (await executionContextId)!,
           visualizationModule: mainModule.value,
           ...(configuration.value ?? DEFAULT_VISUALIZATION_CONFIGURATION),
         })
       } else {
-        await (await lsRpcConnection).detachVisualization(id, expressionId, executionContextId)
+        await (
+          await lsRpcConnection
+        ).detachVisualization(id, expressionId, (await executionContextId)!)
       }
     })
 
@@ -263,7 +269,7 @@ export const useProjectStore = defineStore('project', () => {
         await lsRpcConnection
       ).modifyVisualization(id, {
         ...configuration.value,
-        executionContextId,
+        executionContextId: (await executionContextId)!,
         visualizationModule: mainModule.value,
       })
     })

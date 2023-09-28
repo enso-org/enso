@@ -21,6 +21,7 @@ export default defineConfig({
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      events$: fileURLToPath(new URL('./shared/events.ts', import.meta.url)),
     },
   },
   define: {
@@ -28,6 +29,9 @@ export default defineConfig({
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
     global: 'globalThis',
     IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV !== 'production'),
+    'process.env.CLOUD_ENV': process.env.CLOUD_ENV
+      ? JSON.stringify(process.env.CLOUD_ENV)
+      : 'undefined',
   },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {

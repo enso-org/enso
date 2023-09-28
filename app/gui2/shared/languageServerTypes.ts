@@ -252,7 +252,7 @@ interface VisualizationContext {}
 
 export interface VisualizationConfiguration {
   /** An execution context of the visualization. */
-  executionContextId: Uuid
+  executionContextId: ContextId
   /** A qualified name of the module to be used to evaluate the arguments for the visualization
    * expression. */
   visualizationModule: string
