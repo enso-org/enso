@@ -134,8 +134,17 @@ spec =
             run_test [2, 2^100, 1.5, "a"]
             run_test [2, 2^100, 1.5, "a"]
             run_test [1.5, 2^100, 2, "a"]
-            run_test [1.5, 2^60+1, 2, "a"]
+            run_test [Nothing, 1.5, 2^60+1, 2, "a"]
             run_test [2^60+1, 1.5, "a"]
+            run_test [Nothing, 2^60+1, 1.5, "a"]
+
+            big_test_vector =
+                a = Vector.fill 40 [2^60+1, 1.5, 2, 2^100, 2^60, 2^101, 2^103, 2.5]
+                b = Vector.fill 100 [Nothing]
+                c = Vector.fill 500 [2, 1.5, 2^60]
+                d = Vector.fill 5 [2, "a", 2, 2.5]
+                (a+b+c+d).flatten
+            run_test big_test_vector
 
         Test.specify "should allow to set a specific type at construction" <|
             c1 = Column.from_vector "X" [1, 2] Value_Type.Float
