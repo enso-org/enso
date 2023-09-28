@@ -592,7 +592,7 @@ LANG=C enso --run test/Tests
 Note that JVM assertions are not enabled by default, one has to pass `-ea`
 via `JAVA_OPTS` environment variable. There are also Enso-specific assertions
 (method `Runtime.assert`) that can be enabled when `ENSO_ENABLE_ASSERTIONS`
-environment variable is non-empty. If JVM assertions are enable, Enso assertions
+environment variable is set to "true". If JVM assertions are enable, Enso assertions
 are enabled as well.
 
 #### Test Dependencies

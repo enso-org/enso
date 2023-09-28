@@ -135,8 +135,7 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
-    this.assertionsEnabled =
-        isJvmAssertionsEnabled() || System.getenv("ENSO_ENABLE_ASSERTIONS") != null;
+    this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig =
@@ -250,6 +249,14 @@ public final class EnsoContext {
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
+  }
+
+  private boolean shouldAssertionsBeEnabled() {
+    var envVar = environment.getEnvironment().get("ENSO_ENABLE_ASSERTIONS");
+    if (envVar != null) {
+      return Boolean.parseBoolean(envVar);
+    }
+    return isJvmAssertionsEnabled();
   }
 
   private static boolean isJvmAssertionsEnabled() {
