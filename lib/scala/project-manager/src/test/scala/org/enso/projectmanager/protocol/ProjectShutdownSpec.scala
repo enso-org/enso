@@ -2,6 +2,7 @@ package org.enso.projectmanager.protocol
 
 import akka.actor.ActorRef
 import io.circe.literal._
+import nl.gn0s1s.bump.SemVer
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
@@ -9,7 +10,7 @@ import zio.{ZAny, ZIO}
 
 import java.util.UUID
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
-import org.enso.runtimeversionmanager.CurrentVersion
+import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.duration._
@@ -17,14 +18,17 @@ import scala.concurrent.duration._
 class ProjectShutdownSpec
     extends BaseServerSpec
     with FlakySpec
+    with OverrideTestVersionSuite
     with ProjectManagementOps {
+
+  override val testVersion: SemVer = SemVer(0, 0, 1)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     gen.reset()
   }
 
-  override val engineToInstall = Some(CurrentVersion.version)
+  override val engineToInstall = Some(SemVer(0, 0, 1))
 
   override val deleteProjectsRootAfterEachTest = false
 

@@ -2,10 +2,12 @@ package org.enso.projectmanager.protocol
 
 import akka.testkit.TestDuration
 import io.circe.literal._
+import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.CurrentVersion
+import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 import org.enso.testkit.FlakySpec
 
 import java.io.File
@@ -18,14 +20,17 @@ import scala.io.Source
 class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
+    with OverrideTestVersionSuite
     with ProjectManagementOps {
+
+  override val testVersion: SemVer = SemVer(0, 0, 1)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     gen.reset()
   }
 
-  override val engineToInstall = Some(CurrentVersion.version)
+  override val engineToInstall = Some(SemVer(0, 0, 1))
 
   override val deleteProjectsRootAfterEachTest = false
 
