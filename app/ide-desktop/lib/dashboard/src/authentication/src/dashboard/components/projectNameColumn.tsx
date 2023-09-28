@@ -315,7 +315,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className={`bg-transparent grow leading-170 h-6 px-2 py-px ${
+                className={`bg-transparent grow leading-170 h-6 py-px ${
                     rowState.isEditingName
                         ? 'cursor-text'
                         : canExecute && !isOtherUserUsingProject
