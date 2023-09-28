@@ -482,6 +482,8 @@ val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
 val junitIfVersion          = "0.13.2"
+val junitJupiterVersion     = "5.9.3"
+val junitJupiterIfVersion   = "0.11.1"
 val netbeansApiVersion      = "RELEASE180"
 val fansiVersion            = "0.4.0"
 
@@ -1334,6 +1336,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion              % Test,
       "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
+      "org.junit.jupiter"   % "junit-jupiter"         % junitJupiterVersion       % Test,
+      "net.aichler"         % "jupiter-interface"     % junitJupiterIfVersion     % Test,
       "com.lihaoyi"        %% "fansi"                 % fansiVersion
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
