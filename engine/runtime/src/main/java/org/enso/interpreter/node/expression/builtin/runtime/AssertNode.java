@@ -67,12 +67,13 @@ public abstract class AssertNode extends Node {
       }
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
-      return builtins
+      var typeError = builtins
           .error()
           .makeTypeError(
-              builtins.bool(),
+              builtins.bool().getType(),
               TypeOfNode.getUncached().execute(actionRes),
-              "Result of `action` parameter");
+              "Result of assert action");
+      throw new PanicException(typeError, this);
     }
   }
 }
