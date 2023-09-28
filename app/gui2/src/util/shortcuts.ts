@@ -262,11 +262,9 @@ export function defineKeybinds<
     }
   }
 
-  function handler<Event extends KeyboardEvent | MouseEvent | PointerEvent>(
-    handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: Event) => void>>,
-    stopImmediatePropagationOnMatch = true,
-    preventDefaultOnMatch = true,
-  ): (event: Event) => boolean {
+  function handler<Event_ extends KeyboardEvent | MouseEvent | PointerEvent>(
+    handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: Event_) => void>>,
+  ): (event: Event_) => boolean {
     return (event) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
@@ -285,13 +283,9 @@ export function defineKeybinds<
       if (handle == null) {
         return false
       }
-      if (stopImmediatePropagationOnMatch) {
-        event.stopImmediatePropagation()
-      }
-      if (preventDefaultOnMatch) {
-        event.preventDefault()
-      }
       handle(event)
+      event.stopImmediatePropagation()
+      event.preventDefault()
       return true
     }
   }

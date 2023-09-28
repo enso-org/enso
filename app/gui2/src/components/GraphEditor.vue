@@ -79,9 +79,8 @@ function moveNode(id: ExprId, delta: Vec2) {
 const selectionSize = ref<Vec2>()
 const initiallySelectedNodes = ref(new Set(selectedNodes.value))
 
-const selection = usePointer((pos, event) => {
+const selection = usePointer((pos) => {
   if (selection.dragging) {
-    mouseHandler(event)
     selectionSize.value = pos.relative.scale(1 / navigator.scale)
   }
 })
@@ -185,67 +184,63 @@ const nodeSelectionHandler = nodeBindings.handler({
   },
 })
 
-const mouseHandler = nodeBindings.handler(
-  {
-    replace() {
-      selectedNodes.value = new Set(intersectingNodes.value)
-    },
-    add() {
-      selectedNodes.value = new Set([...initiallySelectedNodes.value, ...intersectingNodes.value])
-    },
-    remove() {
-      const newSelectedNodes = new Set(initiallySelectedNodes.value)
+const mouseHandler = nodeBindings.handler({
+  replace() {
+    selectedNodes.value = new Set(intersectingNodes.value)
+  },
+  add() {
+    selectedNodes.value = new Set([...initiallySelectedNodes.value, ...intersectingNodes.value])
+  },
+  remove() {
+    const newSelectedNodes = new Set(initiallySelectedNodes.value)
+    for (const id of intersectingNodes.value) {
+      newSelectedNodes.delete(id)
+    }
+    selectedNodes.value = newSelectedNodes
+  },
+  toggle() {
+    const initiallySelectedNodes_ = initiallySelectedNodes.value
+    const newSelectedNodes = new Set(initiallySelectedNodes_)
+    let count = 0
+    for (const id of intersectingNodes.value) {
+      if (initiallySelectedNodes_.has(id)) {
+        count += 1
+      }
+    }
+    if (count * 2 <= intersectingNodes.value.size) {
+      for (const id of intersectingNodes.value) {
+        newSelectedNodes.add(id)
+      }
+    } else {
       for (const id of intersectingNodes.value) {
         newSelectedNodes.delete(id)
       }
-      selectedNodes.value = newSelectedNodes
-    },
-    toggle() {
-      const initiallySelectedNodes_ = initiallySelectedNodes.value
-      const newSelectedNodes = new Set(initiallySelectedNodes_)
-      let count = 0
-      for (const id of intersectingNodes.value) {
-        if (initiallySelectedNodes_.has(id)) {
-          count += 1
-        }
-      }
-      if (count * 2 <= intersectingNodes.value.size) {
-        for (const id of intersectingNodes.value) {
-          newSelectedNodes.add(id)
-        }
-      } else {
-        for (const id of intersectingNodes.value) {
-          newSelectedNodes.delete(id)
-        }
-      }
-      selectedNodes.value = newSelectedNodes
-    },
-    invert() {
-      const initiallySelectedNodes_ = initiallySelectedNodes.value
-      const newSelectedNodes = new Set(initiallySelectedNodes_)
-      for (const id of intersectingNodes.value) {
-        if (initiallySelectedNodes_.has(id)) {
-          newSelectedNodes.delete(id)
-        } else {
-          newSelectedNodes.add(id)
-        }
-      }
-      selectedNodes.value = newSelectedNodes
-    },
+    }
+    selectedNodes.value = newSelectedNodes
   },
-  false,
-  false,
-)
+  invert() {
+    const initiallySelectedNodes_ = initiallySelectedNodes.value
+    const newSelectedNodes = new Set(initiallySelectedNodes_)
+    for (const id of intersectingNodes.value) {
+      if (initiallySelectedNodes_.has(id)) {
+        newSelectedNodes.delete(id)
+      } else {
+        newSelectedNodes.add(id)
+      }
+    }
+    selectedNodes.value = newSelectedNodes
+  },
+})
 </script>
 
 <template>
   <div
     ref="viewportNode"
     class="viewport"
-    :class="{ selecting: selection.dragging }"
-    v-on="navigator.events"
-    @pointerdown="selection.events.pointerdown($event), (latestSelectedNode = undefined)"
-    @pointermove="navigator.events.pointermove($event), selection.dragging && mouseHandler($event)"
+    @pointerdown="(selectedNodes = new Set()), (latestSelectedNode = undefined)"
+    v-on.navigator="navigator.events"
+    v-on.selection="selection.events"
+    @pointermove="selection.dragging && mouseHandler($event)"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdge

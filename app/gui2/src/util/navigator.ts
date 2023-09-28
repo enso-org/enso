@@ -93,9 +93,15 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     events: {
       pointermove(e: PointerEvent) {
         sceneMousePos.value = eventToScenePos(e)
+        panPointer.events.pointermove(e)
+        zoomPointer.events.pointermove(e)
       },
       pointerleave() {
         sceneMousePos.value = null
+      },
+      pointerup(e: PointerEvent) {
+        panPointer.events.pointerup(e)
+        zoomPointer.events.pointerup(e)
       },
       pointerdown(e: PointerEvent) {
         panPointer.events.pointerdown(e)
