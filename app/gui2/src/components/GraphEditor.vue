@@ -5,7 +5,7 @@ import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type Edge } from '@/stores/graph'
 import { ExecutionContext, useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { modKey, useWindowEvent } from '@/util/events'
@@ -62,7 +62,7 @@ function keyboardBusy() {
 }
 
 interface Interaction {
-  cancel?(): void
+  cancel?: () => void
   handleExprClick?: (expr: ExprId) => void
   handleNodeClick?: (node: ExprId) => void
 }
@@ -115,10 +115,7 @@ function moveNode(id: ExprId, delta: Vec2) {
   graphStore.setNodePosition(id, newPosition)
 }
 
-function layoutEdge(edge: {
-  source: ExprId | undefined,
-  target: ExprId | undefined,
-}): { source: Vec2; target: Vec2 } | undefined {
+function layoutEdge(edge: Edge): { source: Vec2; target: Vec2 } | undefined {
   let target
   if (edge.target != null) {
     const targetNodeId = graphStore.exprNodes.get(edge.target)

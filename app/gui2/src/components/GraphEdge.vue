@@ -52,7 +52,8 @@ function click(e: PointerEvent) {
     stroke="black"
     stroke-width="4"
     fill="none"
-    :class="{ edge, editing: props.editing }"
+    class="edge"
+    :class="{ editing }"
     @pointerdown="click"
   />
 </template>

@@ -17,8 +17,6 @@ import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import * as Y from 'yjs'
 import { useProjectStore } from './project'
 
-export type UnconnectedEdge = { source?: ExprId, target?: ExprId, disconnectedEdgeTarget?: ExprId }
-
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
 
@@ -395,9 +393,17 @@ function walkSpansBfs(
   }
 }
 
-export interface Edge {
-  source: ExprId
-  target: ExprId
+/** An edge, which may be connected or unconnected. */
+export type Edge = {
+  source: ExprId | undefined
+  target: ExprId | undefined
+}
+
+export type UnconnectedEdge = {
+  source?: ExprId
+  target?: ExprId
+  /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
+  disconnectedEdgeTarget?: ExprId
 }
 
 interface Statement {
