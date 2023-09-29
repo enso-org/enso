@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
+import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 
 from Standard.Table import Table, Data_Formatter, Column
 from Standard.Table.Data.Type.Value_Type import Value_Type, Auto

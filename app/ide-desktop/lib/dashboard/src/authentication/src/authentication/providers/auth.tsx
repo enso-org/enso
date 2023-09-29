@@ -202,7 +202,7 @@ export function AuthProvider(props: AuthProviderProps) {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
         if (supportsLocalBackend) {
-            setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl, null))
+            setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl))
         } else {
             // Provide dummy headers to avoid errors. This `Backend` will never be called as
             // the entire UI will be disabled.
@@ -493,7 +493,7 @@ export function AuthProvider(props: AuthProviderProps) {
         deinitializeSession()
         setInitialized(false)
         setUserSession(null)
-        localStorage.clear()
+        localStorage.clearUserSpecificEntries()
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
         await toast.toast.promise(cognito.signOut(), {

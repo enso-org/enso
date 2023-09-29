@@ -57,7 +57,7 @@ export default function UserBar(props: UserBarProps) {
         setProjectAsset != null &&
         self != null
     return (
-        <div className="flex shrink-0 items-center bg-frame rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto">
+        <div className="flex shrink-0 items-center bg-frame backdrop-blur-3xl rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto">
             <Button
                 active={isHelpChatOpen}
                 image={ChatIcon}

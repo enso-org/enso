@@ -19,6 +19,8 @@ export const USERS_ME_PATH = 'users/me'
 export const LIST_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "create directory" endpoint of the Cloud backend API. */
 export const CREATE_DIRECTORY_PATH = 'directories'
+/** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
+export const UNDO_DELETE_ASSET_PATH = 'assets'
 /** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
 export const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
@@ -37,6 +39,10 @@ export const CREATE_TAG_PATH = 'tags'
 export const LIST_TAGS_PATH = 'tags'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
 export const LIST_VERSIONS_PATH = 'versions'
+/** Relative HTTP path to the "delete asset" endpoint of the Cloud backend API. */
+export function deleteAssetPath(assetId: backend.AssetId) {
+    return `assets/${assetId}`
+}
 /** Relative HTTP path to the "update directory" endpoint of the Cloud backend API. */
 export function updateDirectoryPath(directoryId: backend.DirectoryId) {
     return `directories/${directoryId}`
@@ -73,7 +79,7 @@ export function checkResourcesPath(projectId: backend.ProjectId) {
 export function deleteFilePath(fileId: backend.FileId) {
     return `files/${fileId}`
 }
-/** Relative HTTP path to the "get project" endpoint of the Cloud backend API. */
+/** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 export function getSecretPath(secretId: backend.SecretId) {
     return `secrets/${secretId}`
 }

@@ -22,6 +22,7 @@ import SignInIcon from 'enso-assets/sign_in.svg'
 import SignOutIcon from 'enso-assets/sign_out.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TrashIcon from 'enso-assets/trash.svg'
+import UntrashIcon from 'enso-assets/untrash.svg'
 
 import * as detect from 'enso-common/src/detect'
 
@@ -62,6 +63,8 @@ export enum KeyboardAction {
     moveAllToTrash = 'move-all-to-trash',
     delete = 'delete',
     deleteAll = 'delete-all',
+    restoreFromTrash = 'restore-from-trash',
+    restoreAllFromTrash = 'restore-all-from-trash',
     share = 'share',
     label = 'label',
     duplicate = 'duplicate',
@@ -69,6 +72,7 @@ export enum KeyboardAction {
     cut = 'cut',
     download = 'download',
     uploadFiles = 'upload-files',
+    uploadProjects = 'upload-projects',
     newProject = 'new-project',
     newFolder = 'new-folder',
     newDataConnector = 'new-data-connector',
@@ -152,33 +156,36 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 // =============================
 
 /** Create a mapping from {@link KeyboardAction} to `T`. */
-function makeKeyboardActionMap<T>(make: () => T): Record<KeyboardAction, T> {
+function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<KeyboardAction, T> {
     return {
-        [KeyboardAction.open]: make(),
-        [KeyboardAction.run]: make(),
-        [KeyboardAction.close]: make(),
-        [KeyboardAction.uploadToCloud]: make(),
-        [KeyboardAction.rename]: make(),
-        [KeyboardAction.snapshot]: make(),
-        [KeyboardAction.moveToTrash]: make(),
-        [KeyboardAction.moveAllToTrash]: make(),
-        [KeyboardAction.delete]: make(),
-        [KeyboardAction.deleteAll]: make(),
-        [KeyboardAction.share]: make(),
-        [KeyboardAction.label]: make(),
-        [KeyboardAction.duplicate]: make(),
-        [KeyboardAction.copy]: make(),
-        [KeyboardAction.cut]: make(),
-        [KeyboardAction.download]: make(),
-        [KeyboardAction.uploadFiles]: make(),
-        [KeyboardAction.newProject]: make(),
-        [KeyboardAction.newFolder]: make(),
-        [KeyboardAction.newDataConnector]: make(),
-        [KeyboardAction.closeModal]: make(),
-        [KeyboardAction.cancelEditName]: make(),
-        [KeyboardAction.changeYourPassword]: make(),
-        [KeyboardAction.signIn]: make(),
-        [KeyboardAction.signOut]: make(),
+        [KeyboardAction.open]: make(KeyboardAction.open),
+        [KeyboardAction.run]: make(KeyboardAction.run),
+        [KeyboardAction.close]: make(KeyboardAction.close),
+        [KeyboardAction.uploadToCloud]: make(KeyboardAction.uploadToCloud),
+        [KeyboardAction.rename]: make(KeyboardAction.rename),
+        [KeyboardAction.snapshot]: make(KeyboardAction.snapshot),
+        [KeyboardAction.moveToTrash]: make(KeyboardAction.moveToTrash),
+        [KeyboardAction.moveAllToTrash]: make(KeyboardAction.moveAllToTrash),
+        [KeyboardAction.delete]: make(KeyboardAction.delete),
+        [KeyboardAction.deleteAll]: make(KeyboardAction.deleteAll),
+        [KeyboardAction.restoreFromTrash]: make(KeyboardAction.restoreFromTrash),
+        [KeyboardAction.restoreAllFromTrash]: make(KeyboardAction.restoreAllFromTrash),
+        [KeyboardAction.share]: make(KeyboardAction.share),
+        [KeyboardAction.label]: make(KeyboardAction.label),
+        [KeyboardAction.duplicate]: make(KeyboardAction.duplicate),
+        [KeyboardAction.copy]: make(KeyboardAction.copy),
+        [KeyboardAction.cut]: make(KeyboardAction.cut),
+        [KeyboardAction.download]: make(KeyboardAction.download),
+        [KeyboardAction.uploadFiles]: make(KeyboardAction.uploadFiles),
+        [KeyboardAction.uploadProjects]: make(KeyboardAction.uploadProjects),
+        [KeyboardAction.newProject]: make(KeyboardAction.newProject),
+        [KeyboardAction.newFolder]: make(KeyboardAction.newFolder),
+        [KeyboardAction.newDataConnector]: make(KeyboardAction.newDataConnector),
+        [KeyboardAction.closeModal]: make(KeyboardAction.closeModal),
+        [KeyboardAction.cancelEditName]: make(KeyboardAction.cancelEditName),
+        [KeyboardAction.changeYourPassword]: make(KeyboardAction.changeYourPassword),
+        [KeyboardAction.signIn]: make(KeyboardAction.signIn),
+        [KeyboardAction.signOut]: make(KeyboardAction.signOut),
     }
 }
 
@@ -445,6 +452,10 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], DELETE)],
     [KeyboardAction.delete]: [keybind(KeyboardAction.delete, [], DELETE)],
     [KeyboardAction.deleteAll]: [keybind(KeyboardAction.deleteAll, [], DELETE)],
+    [KeyboardAction.restoreFromTrash]: [keybind(KeyboardAction.restoreFromTrash, [CTRL], 'R')],
+    [KeyboardAction.restoreAllFromTrash]: [
+        keybind(KeyboardAction.restoreAllFromTrash, [CTRL], 'R'),
+    ],
     [KeyboardAction.share]: [keybind(KeyboardAction.share, [CTRL], 'Enter')],
     [KeyboardAction.label]: [keybind(KeyboardAction.label, [CTRL], 'L')],
     [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
@@ -452,6 +463,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.cut]: [keybind(KeyboardAction.cut, [CTRL], 'X')],
     [KeyboardAction.download]: [keybind(KeyboardAction.download, [CTRL, 'Shift'], 'S')],
     [KeyboardAction.uploadFiles]: [keybind(KeyboardAction.uploadFiles, [CTRL], 'U')],
+    [KeyboardAction.uploadProjects]: [keybind(KeyboardAction.uploadProjects, [CTRL], 'U')],
     [KeyboardAction.newProject]: [keybind(KeyboardAction.newProject, [CTRL], 'N')],
     [KeyboardAction.newFolder]: [keybind(KeyboardAction.newFolder, [CTRL, 'Shift'], 'N')],
     [KeyboardAction.newDataConnector]: [
@@ -484,6 +496,8 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     },
     [KeyboardAction.delete]: { name: 'Delete', icon: TrashIcon, colorClass: 'text-delete' },
     [KeyboardAction.deleteAll]: { name: 'Delete All', icon: TrashIcon, colorClass: 'text-delete' },
+    [KeyboardAction.restoreFromTrash]: { name: 'Restore From Trash', icon: UntrashIcon },
+    [KeyboardAction.restoreAllFromTrash]: { name: 'Restore All From Trash', icon: UntrashIcon },
     [KeyboardAction.share]: { name: 'Share', icon: PeopleIcon },
     [KeyboardAction.label]: { name: 'Label', icon: TagIcon },
     [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
@@ -491,6 +505,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.cut]: { name: 'Cut', icon: ScissorsIcon },
     [KeyboardAction.download]: { name: 'Download', icon: DataDownloadIcon },
     [KeyboardAction.uploadFiles]: { name: 'Upload Files', icon: DataUploadIcon },
+    [KeyboardAction.uploadProjects]: { name: 'Upload Projects', icon: DataUploadIcon },
     [KeyboardAction.newProject]: { name: 'New Project', icon: AddNetworkIcon },
     [KeyboardAction.newFolder]: { name: 'New Folder', icon: AddFolderIcon },
     [KeyboardAction.newDataConnector]: { name: 'New Data Connector', icon: AddConnectorIcon },

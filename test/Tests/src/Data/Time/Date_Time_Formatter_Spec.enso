@@ -1,8 +1,11 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
+from Standard.Base.Data.Time.Errors import Date_Time_Format_Parse_Error, Suspicious_Date_Time_Format
 
-from Standard.Test import Test, Test_Suite
+from Standard.Table import Column, Value_Type
+
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -33,7 +36,40 @@ spec =
             Date_Time_Formatter.from "MM{baz}" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "{baz}" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "]" . should_fail_with Date_Time_Format_Parse_Error
+            Date_Time_Formatter.from "[]]" . should_fail_with Date_Time_Format_Parse_Error
             Date_Time_Formatter.from "'" . should_fail_with Date_Time_Format_Parse_Error
+
+        Test.specify "should gracefully handle Java pattern errors" <|
+            Date_Time_Formatter.from_java "}}{{,.,..} INVALID PATTERN FORMAT" . should_fail_with Illegal_Argument
+
+        Test.specify "should warn about likely M/m mistakes" <|
+            f1 = Date_Time_Formatter.from "yyyy-mm-dd"
+            w1 = Problems.expect_only_warning Suspicious_Date_Time_Format f1
+            w1.to_display_text . should_contain "Did you mean 'M'"
+            Date.parse "2020-01-02" f1 . should_fail_with Time_Error
+
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "yyyymmdd")
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "yyyy-mm-dd hh:mm:ss")
+
+            f2 = Date_Time_Formatter.from "HH:MM[:SS]"
+            w2 = Problems.expect_only_warning Suspicious_Date_Time_Format f2
+            w2.to_display_text . should_contain "Did you mean 'm'"
+
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "HH:MM")
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "hh:MM:ss")
+            Problems.expect_only_warning Suspicious_Date_Time_Format (Date_Time_Formatter.from "hhMMss")
+
+            f3 = Date_Time_Formatter.from "HH:mm:ss[.S]"
+            w3 = Problems.expect_only_warning Suspicious_Date_Time_Format f3
+            w3.to_display_text . should_contain "'f' instead"
+
+            Problems.assume_no_problems (Date_Time_Formatter.from "mm")
+            Problems.assume_no_problems (Date_Time_Formatter.from "MM")
+            Problems.assume_no_problems (Date_Time_Formatter.from "YYYY-MM-DD")
+
+            f4 = Date_Time_Formatter.from "HH:mma"
+            w4 = Problems.expect_only_warning Suspicious_Date_Time_Format f4
+            w4.to_display_text . should_contain "Did you mean 'h'"
 
     Test.group "Formatting date/time values" <|
         Test.specify "should allow printing month names" <|
@@ -69,6 +105,12 @@ spec =
             dt2.format "yyyy/MM/dd HH:mm:ss ZZ" . should_equal "2020/01/02 12:00:00 -1000"
             dt2.format "yyyy/MM/dd HH:mm:ss ZZ{Z}" . should_equal "2020/01/02 12:00:00 -1000"
             dt2.format "yyyy/MM/dd HH:mm:ss ZZZZZ{<no offset>}" . should_equal "2020/01/02 12:00:00 -10:00"
+
+        Test.specify "should work with optional parts" <|
+            f = Date_Time_Formatter.from "[('Date:' yyyy-MM-dd)][('Time:' HH:mm)]"
+            Date_Time.new 2020 01 02 12 30 . format f . should_equal "(Date: 2020-01-02)(Time: 12:30)"
+            Date.new 2020 01 02 . format f . should_equal "(Date: 2020-01-02)"
+            Time_Of_Day.new 12 30 . format f . should_equal "(Time: 12:30)"
 
     Test.group "Parsing date/time values" <|
         Test.specify "should allow short month names" <|
@@ -203,11 +245,6 @@ spec =
         Test.specify "should be able to parse a quarter without day" <|
             Date.parse "Q2 of 2022" "'Q'Q 'of' yyyy" . should_equal (Date.new 2022 4 1)
 
-        Test.specify "should be able to parse a day and month without year - defaulting to current year" <|
-            current_year = Date.today.year
-            Date.parse "07/23" "MM/dd" . should_equal (Date.new current_year 7 23)
-            Date.parse "14. of May" "d. 'of' MMMM" . should_equal (Date.new current_year 5 14)
-
         Test.specify "should be able to parse 2-digit year" <|
             Date.parse "22-05-06" "yy-MM-dd" . should_equal (Date.new 2022 5 6)
             Date.parse "99-01-02" "yy-MM-dd" . should_equal (Date.new 1999 1 2)
@@ -236,5 +273,115 @@ spec =
              Date.parse "1978-W01, Mon" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee") . should_equal (Date.new 1978 01 02)
              # Just week will parse to first day of the week:
              Date.parse "1978-W01" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") . should_equal (Date.new 1978 01 02)
+
+        Test.specify "should include the pattern in the parse failure message" <|
+            r1 = "1999.01.02".parse_date
+            r1.should_fail_with Time_Error
+            r1.to_display_text . should_contain "Expected date/time format: (ISO date) yyyy-MM-dd"
+
+            r2 = "FOOBAR".parse_date "yyyy.MM.dd"
+            r2.should_fail_with Time_Error
+            r2.to_display_text . should_contain "Expected date/time format: yyyy.MM.dd"
+
+            r3 = "FOOBAR".parse_date_time
+            r3.should_fail_with Time_Error
+            r3.to_display_text . should_contain "Expected date/time format: (default) yyyy-MM-dd HH:mm[:ss[.f]][ZZZZZ]['['VV']']"
+
+            r4 = "FOOBAR".parse_time_of_day
+            r4.should_fail_with Time_Error
+            r4.to_display_text . should_contain "Expected date/time format: (ISO time) HH:mm[:ss[.f]]"
+
+            r5 = Date.parse "FOOBAR" (Date_Time_Formatter.from_java DateTimeFormatter.ISO_ORDINAL_DATE)
+            r5.should_fail_with Time_Error
+            r5.to_display_text . should_contain "Expected date/time format: (Java DateTimeFormatter) ParseCaseSensitive(false)Value(Year,4,10,EXCEEDS_PAD)'-'Value(DayOfYear,3)[Offset(+HH:MM:ss,'Z')]"
+
+        Test.specify "should allow to use 12h hours without am/pm and default to am, but issue a warning (only in parsing)" <|
+            f1 = Date_Time_Formatter.from "hh:mm"
+            # No warning yet.
+            Problems.assume_no_problems f1
+
+            s1 = Time_Of_Day.new 16 24 . format f1
+            s1.should_equal "04:24"
+            # No warnings on formatting.
+            Problems.assume_no_problems s1
+
+            # But warn when parsing:
+            r1 = Time_Of_Day.parse "04:24" f1
+            r1.should_equal (Time_Of_Day.new 4 24)
+            w1 = Problems.expect_only_warning Suspicious_Date_Time_Format r1
+            w1.to_display_text . should_contain "ambiguous"
+            w1.to_display_text . should_contain "default to AM"
+            w1.to_display_text . should_contain "Did you mean 'H'"
+
+        Test.specify "the warning should be removable as indicated in the message" pending="TODO: bug https://github.com/enso-org/enso/issues/7892" <|
+            f1 = Date_Time_Formatter.from "hh:mm"
+            r1 = Time_Of_Day.parse "04:24" f1
+            w1 = Problems.expect_only_warning Suspicious_Date_Time_Format r1
+            w1.to_display_text . should_contain "You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`"
+
+            r2 = r1.remove_warnings Suspicious_Date_Time_Format
+            r2.should_equal (Time_Of_Day.new 4 24)
+            Problems.assume_no_problems r2
+
+        Test.specify "should allow to parse MM-dd without a year, defaulting to current year but adding a warning (only in parsing)" <|
+            f1 = Date_Time_Formatter.from "dd.MM"
+
+            s1 = Date.new 2020 12 31 . format f1
+            s1.should_equal "31.12"
+            # No warnings on formatting.
+            Problems.assume_no_problems s1
+
+            # But warn when parsing:
+            r1 = Date.parse "31.12" f1
+            current_year = Date.today.year
+            r1.should_equal (Date.new current_year 12 31)
+            w1 = Problems.expect_only_warning Suspicious_Date_Time_Format r1
+            w1.to_display_text . should_contain "current year"
+
+            Date.parse "07/23" "MM/dd" . should_equal (Date.new current_year 7 23)
+            Date.parse "14. of May" "d. 'of' MMMM" . should_equal (Date.new current_year 5 14)
+
+        Test.specify "should report the warnings when parsing a column as well" <|
+            c1 = Column.from_vector "strs" ["31.12", "01.01"]
+            c2 = c1.parse Value_Type.Date "dd.MM"
+            current_year = Date.today.year
+            c2.to_vector . should_equal [Date.new current_year 12 31, Date.new current_year 01 01]
+            Problems.expect_only_warning Suspicious_Date_Time_Format c2
+
+            c3 = Column.from_vector "strs" ["04:24", "16:25"]
+            t3 = c3.to_table
+            t4 = t3.parse type=Value_Type.Time format="hh:mm"
+            # The entry `16:25` does not fit the 12h format, so it is not parsed.
+            t4.at "strs" . to_vector . should_equal [Time_Of_Day.new 4 24, Nothing]
+            Problems.expect_warning Suspicious_Date_Time_Format t4
+
+            # But no warnings on format
+            c5 = Column.from_vector "Y" [Date.new 2023 12 25, Date.new 2011 07 31]
+            c6 = c5.format "dd.MM"
+            c6.to_vector . should_equal ["25.12", "31.07"]
+            Problems.assume_no_problems c6
+
+        Test.specify "should allow nested patterns" <|
+            # Difference between a nested pattern and two optional patterns next to each other.
+            Date.parse "2023-01-02 XY" "yyyy-MM-dd ['X']['Y']" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 X"  "yyyy-MM-dd ['X']['Y']" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 Y"  "yyyy-MM-dd ['X']['Y']" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 XY" "yyyy-MM-dd ['X'['Y']]" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 X"  "yyyy-MM-dd ['X'['Y']]" . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-02 Y"  "yyyy-MM-dd ['X'['Y']]" . should_fail_with Time_Error
+
+            Time_Of_Day.parse "12:00:22.33" "HH:mm[:ss[.f]]" . should_equal (Time_Of_Day.new 12 0 22 330)
+
+            very_nested = "yyyy-MM-dd ['X'['Y'[['W']'Z']][HH:mm[:ss]]]"
+            Date.parse "2023-01-02 X" very_nested . should_equal (Date.new 2023 1 2)
+            Date.parse "2023-01-03 XYWZ" very_nested . should_equal (Date.new 2023 1 3)
+            Date.parse "2023-01-04 X23:24" very_nested . should_equal (Date.new 2023 1 4)
+            Date.parse "2023-01-05 X23:24:25" very_nested . should_equal (Date.new 2023 1 5)
+            Date.parse "2023-01-06 XYZ23:24:25" very_nested . should_equal (Date.new 2023 1 6)
+            Date.parse "2023-01-07 XY" very_nested . should_equal (Date.new 2023 1 7)
+            Date.parse "2023-01-08 XZ" very_nested . should_fail_with Time_Error
+
+        Test.specify "should allow to parse even when some patterns are unused" <|
+            "2020-01-02 14:55".parse_date "yyyy-MM-dd HH:mm" . should_equal (Date.new 2020 1 2)
 
 main = Test_Suite.run_main spec

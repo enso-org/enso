@@ -7,7 +7,7 @@ import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
-import * as localBackend from '../localBackend'
+import * as localBackendModule from '../localBackend'
 import * as localStorageModule from '../localStorage'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
@@ -44,7 +44,12 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-    const { supportsLocalBackend, appRunner, initialProjectName, projectManagerUrl } = props
+    const {
+        supportsLocalBackend,
+        appRunner,
+        initialProjectName: rawInitialProjectName,
+        projectManagerUrl,
+    } = props
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -72,6 +77,7 @@ export default function Dashboard(props: DashboardProps) {
         hooks.useEvent<assetListEventModule.AssetListEvent>()
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
     const modalRef = React.useRef<modalProvider.Modal | null>(null)
+    const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -109,20 +115,20 @@ export default function Dashboard(props: DashboardProps) {
         let currentBackend = backend
         if (
             supportsLocalBackend &&
-            session.type !== authProvider.UserSessionType.offline &&
             localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
                 backendModule.BackendType.local
         ) {
-            currentBackend = new localBackend.LocalBackend(
-                projectManagerUrl,
-                localStorage.get(localStorageModule.LocalStorageKey.projectStartupInfo) ?? null
-            )
+            currentBackend = new localBackendModule.LocalBackend(projectManagerUrl)
             setBackend(currentBackend)
         }
         const savedProjectStartupInfo = localStorage.get(
             localStorageModule.LocalStorageKey.projectStartupInfo
         )
-        if (savedProjectStartupInfo != null) {
+        if (rawInitialProjectName != null) {
+            if (page === pageSwitcher.Page.editor) {
+                setPage(pageSwitcher.Page.drive)
+            }
+        } else if (savedProjectStartupInfo != null) {
             if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
                 if (session.accessToken != null) {
                     if (
@@ -171,7 +177,26 @@ export default function Dashboard(props: DashboardProps) {
                     }
                 }
             } else {
-                setProjectStartupInfo(savedProjectStartupInfo)
+                if (currentBackend.type === backendModule.BackendType.local) {
+                    setInitialProjectName(savedProjectStartupInfo.projectAsset.id)
+                } else {
+                    const localBackend = new localBackendModule.LocalBackend(projectManagerUrl)
+                    void (async () => {
+                        await localBackend.openProject(
+                            savedProjectStartupInfo.projectAsset.id,
+                            null,
+                            savedProjectStartupInfo.projectAsset.title
+                        )
+                        const project = await localBackend.getProjectDetails(
+                            savedProjectStartupInfo.projectAsset.id,
+                            savedProjectStartupInfo.projectAsset.title
+                        )
+                        setProjectStartupInfo({
+                            ...savedProjectStartupInfo,
+                            project,
+                        })
+                    })()
+                }
             }
         }
         // This MUST only run when the component is mounted.
@@ -272,7 +297,7 @@ export default function Dashboard(props: DashboardProps) {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackend.LocalBackend(projectManagerUrl, null))
+                        setBackend(new localBackendModule.LocalBackend(projectManagerUrl))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()

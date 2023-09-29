@@ -19,11 +19,11 @@ pub fn table_visualization() -> visualization::java_script::FallibleDefinition {
     let mut source =
         from_files!("java_script/helpers/loading.js", "java_script/helpers/scrollable.js");
 
-    let ag_grid_license_key = option_env!("AG_GRID_LICENSE_KEY");
+    let ag_grid_license_key = option_env!("ENSO_AG_GRID_LICENSE_KEY");
     let initializer = ag_grid_license_key.map_or_default(|ag_grid_license_key| {
-        format!(r#"const AG_GRID_LICENSE_KEY = '{ag_grid_license_key}'\n"#)
+        format!(r#"const AG_GRID_LICENSE_KEY = '{ag_grid_license_key}'"#)
     });
-    let content = format!("{initializer}\n{}", include_str!("java_script/table.js"));
+    let content = format!("{initializer}\n\n{}", include_str!("java_script/table.js"));
     source.add_file("java_script/table.js", &content);
 
     visualization::java_script::Definition::new_builtin(source)

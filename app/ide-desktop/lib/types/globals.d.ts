@@ -83,6 +83,7 @@ declare global {
             APPLEIDPASS?: string
             NODE_ENV: 'development' | 'production'
             REDIRECT_OVERRIDE?: string
+            CLOUD_ENV?: 'npekin' | 'pbuchu' | 'production'
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }

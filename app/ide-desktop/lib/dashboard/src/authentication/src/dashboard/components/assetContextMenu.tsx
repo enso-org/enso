@@ -17,6 +17,7 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import type * as assetsTable from './assetsTable'
+import * as categorySwitcher from './categorySwitcher'
 import type * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
@@ -50,7 +51,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         innerProps: {
             item,
             setItem,
-            state: { dispatchAssetEvent, dispatchAssetListEvent },
+            state: { category, dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
         },
         event,
@@ -66,9 +67,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     const self = asset.permissions?.find(
         permission => permission.user.user_email === organization?.email
     )
+    const ownsThisAsset =
+        backend.type === backendModule.BackendType.local ||
+        self?.permission === permissions.PermissionAction.own
     const managesThisAsset =
         backend.type === backendModule.BackendType.local ||
-        self?.permission === permissions.PermissionAction.own ||
+        ownsThisAsset ||
         self?.permission === permissions.PermissionAction.admin
     const isRunningProject =
         asset.type === backendModule.AssetType.project &&
@@ -94,8 +98,25 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         },
         [/* should never change */ setItem]
     )
-
-    return (
+    return category === categorySwitcher.Category.trash ? (
+        !ownsThisAsset ? null : (
+            <ContextMenus hidden={hidden} key={asset.id} event={event}>
+                <ContextMenu hidden={hidden}>
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.restoreFromTrash}
+                        doAction={() => {
+                            unsetModal()
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.restoreMultiple,
+                                ids: new Set([asset.id]),
+                            })
+                        }}
+                    />
+                </ContextMenu>
+            </ContextMenus>
+        )
+    ) : (
         <ContextMenus hidden={hidden} key={asset.id} event={event}>
             <ContextMenu hidden={hidden}>
                 {asset.type === backendModule.AssetType.project &&
@@ -221,7 +242,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
-                {managesThisAsset && !isRunningProject && !isOtherUserUsingProject && (
+                {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
                         action={
@@ -230,12 +251,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                                 : shortcuts.KeyboardAction.moveToTrash
                         }
                         doAction={() => {
-                            setModal(
-                                <ConfirmDeleteModal
-                                    description={`the ${asset.type} '${asset.title}'`}
-                                    doDelete={doDelete}
-                                />
-                            )
+                            if (backend.type === backendModule.BackendType.remote) {
+                                unsetModal()
+                                void doDelete()
+                            } else {
+                                setModal(
+                                    <ConfirmDeleteModal
+                                        description={`the ${asset.type} '${asset.title}'`}
+                                        doDelete={doDelete}
+                                    />
+                                )
+                            }
                         }}
                     />
                 )}
@@ -311,16 +337,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     }}
                 />
             </ContextMenu>
-            {asset.type === backendModule.AssetType.directory ? (
-                <GlobalContextMenu
-                    hidden={hidden}
-                    // This is SAFE, as this only exists when the item is a directory.
+            <GlobalContextMenu
+                hidden={hidden}
+                directoryKey={
+                    // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
                     // eslint-disable-next-line no-restricted-syntax
-                    directoryKey={item.key as backendModule.DirectoryId}
-                    directoryId={asset.id}
-                    dispatchAssetListEvent={dispatchAssetListEvent}
-                />
-            ) : null}
+                    (asset.type === backendModule.AssetType.directory
+                        ? item.key
+                        : item.directoryKey) as backendModule.DirectoryId
+                }
+                directoryId={
+                    asset.type === backendModule.AssetType.directory ? asset.id : item.directoryId
+                }
+                dispatchAssetListEvent={dispatchAssetListEvent}
+            />
         </ContextMenus>
     )
 }

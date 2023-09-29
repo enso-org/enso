@@ -159,10 +159,14 @@ export function bundlerOptions(args: Arguments) {
             BUILD_INFO: JSON.stringify(BUILD_INFO),
             /** Whether the application is being run locally. This enables a service worker that
              * properly serves `/index.html` to client-side routes like `/login`. */
-            ['process.env.NODE_ENV']: JSON.stringify(devMode ? 'development' : 'production'),
+            'process.env.NODE_ENV': JSON.stringify(devMode ? 'development' : 'production'),
             /** Overrides the redirect URL for OAuth logins in the production environment.
              * This is needed for logins to work correctly under `./run gui watch`. */
-            ['process.env.REDIRECT_OVERRIDE']: 'undefined',
+            'process.env.REDIRECT_OVERRIDE': 'undefined',
+            'process.env.CLOUD_ENV':
+                process.env.ENSO_CLOUD_ENV != null
+                    ? JSON.stringify(process.env.ENSO_CLOUD_ENV)
+                    : 'undefined',
             SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
             SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
         },

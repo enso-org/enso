@@ -94,7 +94,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                 : function Child() {
                       return (
                           <Modal
-                              className="fixed w-full h-full z-1"
+                              className="fixed w-full h-full"
                               onClick={() => {
                                   setTheChild(null)
                               }}
