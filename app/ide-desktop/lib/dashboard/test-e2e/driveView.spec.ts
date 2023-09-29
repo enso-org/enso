@@ -41,6 +41,5 @@ test.test('drive view', async ({ page }) => {
     await test.expect(contextMenu).toHaveScreenshot()
 
     await actions.locateMoveToTrashButton(contextMenu).click()
-    await actions.locateDeleteButton(page).click()
     await test.expect(actions.locateAssetsTableRows(page)).toHaveCount(2)
 })

@@ -47,10 +47,6 @@ export function deleteAssetPath(assetId: backend.AssetId) {
 export function updateDirectoryPath(directoryId: backend.DirectoryId) {
     return `directories/${directoryId}`
 }
-/** Relative HTTP path to the "delete directory" endpoint of the Cloud backend API. */
-export function deleteDirectoryPath(directoryId: backend.DirectoryId) {
-    return `directories/${directoryId}`
-}
 /** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
 export function closeProjectPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/close`
@@ -67,24 +63,12 @@ export function openProjectPath(projectId: backend.ProjectId) {
 export function projectUpdatePath(projectId: backend.ProjectId) {
     return `projects/${projectId}`
 }
-/** Relative HTTP path to the "delete project" endpoint of the Cloud backend API. */
-export function deleteProjectPath(projectId: backend.ProjectId) {
-    return `projects/${projectId}`
-}
 /** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
 export function checkResourcesPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/resources`
 }
-/** Relative HTTP path to the "delete file" endpoint of the Cloud backend API. */
-export function deleteFilePath(fileId: backend.FileId) {
-    return `files/${fileId}`
-}
 /** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 export function getSecretPath(secretId: backend.SecretId) {
-    return `secrets/${secretId}`
-}
-/** Relative HTTP path to the "delete secret" endpoint of the Cloud backend API. */
-export function deleteSecretPath(secretId: backend.SecretId) {
     return `secrets/${secretId}`
 }
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */

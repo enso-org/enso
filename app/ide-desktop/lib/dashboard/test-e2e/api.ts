@@ -14,14 +14,10 @@ import * as remoteBackendPaths from '../src/authentication/src/dashboard/remoteB
 /** The HTTP status code representing a bad request. */
 const HTTP_STATUS_BAD_REQUEST = 400
 /* eslint-disable no-restricted-syntax */
-/** A directory ID that is a path glob. */
-const GLOB_DIRECTORY_ID = '*' as backend.DirectoryId
+/** An asset ID that is a path glob. */
+const GLOB_ASSET_ID = '*' as backend.AssetId
 /** A projet ID that is a path glob. */
 const GLOB_PROJECT_ID = '*' as backend.ProjectId
-/** A tag ID that is a path glob. */
-const GLOB_FILE_ID = '*' as backend.FileId
-/** A tag ID that is a path glob. */
-const GLOB_SECRET_ID = '*' as backend.SecretId
 /** A tag ID that is a path glob. */
 const GLOB_TAG_ID = '*' as backend.TagId
 /* eslint-enable no-restricted-syntax */
@@ -96,6 +92,31 @@ export async function mockApi(page: test.Page) {
         }
     )
 
+    // === Unimplemented endpoints ===
+
+    await page.route(
+        BASE_URL + remoteBackendPaths.getProjectDetailsPath(GLOB_PROJECT_ID),
+        async route => {
+            await route.fulfill({
+                json: {
+                    organizationId: 'example organization id',
+                    projectId: 'example project id',
+                    name: 'example project name',
+                    state: {
+                        type: 'OpenInProgress',
+                    },
+                    packageName: 'Project_root',
+                    ideVersion: null,
+                    engineVersion: {
+                        value: '2023.2.1-nightly.2023.9.29',
+                        lifecycle: 'Development',
+                    },
+                    openedBy: 'email@email.email',
+                },
+            })
+        }
+    )
+
     // === Endpoints returning `void` ===
 
     await page.route(BASE_URL + remoteBackendPaths.INVITE_USER_PATH + '*', async route => {
@@ -104,48 +125,24 @@ export async function mockApi(page: test.Page) {
     await page.route(BASE_URL + remoteBackendPaths.CREATE_PERMISSION_PATH + '*', async route => {
         await route.fulfill()
     })
+    await page.route(BASE_URL + remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async route => {
+        await route.fulfill()
+    })
     await page.route(
-        BASE_URL + remoteBackendPaths.deleteDirectoryPath(GLOB_DIRECTORY_ID) + '*',
+        BASE_URL + remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID),
         async route => {
             await route.fulfill()
         }
     )
     await page.route(
-        BASE_URL + remoteBackendPaths.closeProjectPath(GLOB_PROJECT_ID) + '*',
+        BASE_URL + remoteBackendPaths.openProjectPath(GLOB_PROJECT_ID),
         async route => {
             await route.fulfill()
         }
     )
-    await page.route(
-        BASE_URL + remoteBackendPaths.openProjectPath(GLOB_PROJECT_ID) + '*',
-        async route => {
-            await route.fulfill()
-        }
-    )
-    await page.route(
-        BASE_URL + remoteBackendPaths.deleteProjectPath(GLOB_PROJECT_ID) + '*',
-        async route => {
-            await route.fulfill()
-        }
-    )
-    await page.route(
-        BASE_URL + remoteBackendPaths.deleteFilePath(GLOB_FILE_ID) + '*',
-        async route => {
-            await route.fulfill()
-        }
-    )
-    await page.route(
-        BASE_URL + remoteBackendPaths.deleteSecretPath(GLOB_SECRET_ID) + '*',
-        async route => {
-            await route.fulfill()
-        }
-    )
-    await page.route(
-        BASE_URL + remoteBackendPaths.deleteTagPath(GLOB_TAG_ID) + '*',
-        async route => {
-            await route.fulfill()
-        }
-    )
+    await page.route(BASE_URL + remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
+        await route.fulfill()
+    })
 
     // === Other endpoints ===
     // eslint-disable-next-line no-restricted-syntax
