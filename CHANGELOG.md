@@ -578,7 +578,6 @@
 - [Renamed `Decimal` to `Float`.][7807]
 - [Implemented `Date_Time_Formatter` for more user-friendly date/time format
   parsing.][7826]
-- [Added `Table.expand_column` and improved JSON deserialization.][7859]
 - [Implemented `Table.auto_value_types` for in-memory tables.][7908]
 - [Implemented Text.substring to easily select part of a Text field][7913]
 - [Implemented basic XML support][7947]
@@ -588,6 +587,7 @@
 - [Implemented `Table.expand_to_rows` for the in-memory backend.][8029]
 - [Added XML support for `.to Table` and `.expand_column`.][8083]
 - [Added `Previous_Value` option to `fill_nothing` and `fill_empty`.][8105]
+- [Implemented new selector for when parameter in `filter_blank_rows`, `select_blank_columns`, `remove_blank_columns`] [7935]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -830,7 +830,6 @@
 [7776]: https://github.com/enso-org/enso/pull/7776
 [7807]: https://github.com/enso-org/enso/pull/7807
 [7826]: https://github.com/enso-org/enso/pull/7826
-[7859]: https://github.com/enso-org/enso/pull/7859
 [7908]: https://github.com/enso-org/enso/pull/7908
 [7913]: https://github.com/enso-org/enso/pull/7913
 [7947]: https://github.com/enso-org/enso/pull/7947
@@ -839,6 +838,7 @@
 [8029]: https://github.com/enso-org/enso/pull/8029
 [8083]: https://github.com/enso-org/enso/pull/8083
 [8105]: https://github.com/enso-org/enso/pull/8105
+[7935]: https://github.com/enso-org/enso/pull/7935
 
 #### Enso Compiler
 
@@ -982,13 +982,9 @@
 - [Merge `Small_Integer` and `Big_Integer` types][7636]
 - [Inline type ascriptions][7796]
 - [Always persist `TRACE` level logs to a file][7825]
-- [Meta.instrument & Instrumentor API][7833]
 - [Downloadable VSCode extension][7861]
 - [New `project/status` route for reporting LS state][7801]
-- [Add Enso-specific assertions][7883]
-- [Modules can be `private`][7840]
-- [HTTPS and WSS support in Language Server][7937]
-- [Export of non-existing symbols results in error][7960]
+- [Add Enso-specific assertions][7883])
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1132,12 +1128,8 @@
 [7796]: https://github.com/enso-org/enso/pull/7796
 [7801]: https://github.com/enso-org/enso/pull/7801
 [7825]: https://github.com/enso-org/enso/pull/7825
-[7833]: https://github.com/enso-org/enso/pull/7833
 [7861]: https://github.com/enso-org/enso/pull/7861
 [7883]: https://github.com/enso-org/enso/pull/7883
-[7840]: https://github.com/enso-org/enso/pull/7840
-[7937]: https://github.com/enso-org/enso/pull/7937
-[7960]: https://github.com/enso-org/enso/pull/7960
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
