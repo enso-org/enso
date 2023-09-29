@@ -89,11 +89,20 @@ spec =
             root.at "/class/teacher[2]/firstname" . at 0 . text . should_equal "Bob"
             root.at "/class/teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
             root.at "/class/teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+            root.get "/class/teacher[23]" . should_equal []
 
             root.at "teacher[1]/firstname" . at 0 . text . should_equal "Mary"
             root.at "teacher[2]/firstname" . at 0 . text . should_equal "Bob"
             root.at "teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
             root.at "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+
+        Test.specify "get" <|
+            root.get 0 . get 0 . name . should_equal "firstname"
+            root.get 0 . get "@id" . should_equal "100"
+            root.get "/class/teacher[1]/firstname" . get 0 . text . should_equal "Mary"
+
+            root.get 0 . get 32 "if_missing" . should_equal "if_missing"
+            root.get 0 . get "@not_there" "if_missing" . should_equal "if_missing"
 
         Test.specify "Can handle a bad xpath" <|
             root.at "/qqq[[[[1" . at 0 . text . should_fail_with XML_Error
