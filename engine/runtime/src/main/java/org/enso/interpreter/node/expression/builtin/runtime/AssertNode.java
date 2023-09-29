@@ -1,20 +1,21 @@
 package org.enso.interpreter.node.expression.builtin.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
@@ -49,19 +50,35 @@ public abstract class AssertNode extends Node {
       Object action,
       Text msg,
       @Cached("create()") ThunkExecutorNode thunkExecutorNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Cached BranchProfile resultIsNotAtomProfile) {
     var ctx = EnsoContext.get(this);
     var builtins = ctx.getBuiltins();
     Object actionRes =
         thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.TAIL_DIRECT);
+    if (actionRes instanceof Atom resAtom) {
+      var isTrue = resAtom.getConstructor() == builtins.bool().getTrue();
+      if (isTrue) {
+        return ctx.getNothing();
+      } else {
+        throw new PanicException(builtins.error().makeAssertionError(msg), this);
+      }
+    } else {
+      resultIsNotAtomProfile.enter();
+      return checkResultSlowPath(actionRes, msg);
+    }
+  }
+
+  @TruffleBoundary
+  private Object checkResultSlowPath(Object actionRes, Text msg) {
+    var ctx = EnsoContext.get(this);
+    var builtins = ctx.getBuiltins();
     try {
-      if (interop.asBoolean(actionRes)) {
+      if (InteropLibrary.getUncached().asBoolean(actionRes)) {
         return ctx.getNothing();
       } else {
         throw new PanicException(builtins.error().makeAssertionError(msg), this);
       }
     } catch (UnsupportedMessageException e) {
-      CompilerDirectives.transferToInterpreter();
       var typeError =
           builtins
               .error()
