@@ -111,11 +111,6 @@ type XML_Document
     ## PRIVATE
     Value (java_document:Document)
 
-##
-    type XML_Format
-        # Implements the File_Format interface, using XML_Document.from_file
-        # Include mime type (with encoding??) and from_stream
-
 type XML_Element
     ## Gets the tag of an xml element.
 

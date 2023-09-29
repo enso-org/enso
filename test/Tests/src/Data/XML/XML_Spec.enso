@@ -161,4 +161,9 @@ spec =
         Test.specify "wildcard" <|
             root.get_elements_by_tag_name "*" . length . should_equal 20
 
+    Test.group "Data.read / File_Format" <|
+        Test.specify "Can read from a file" <|
+            doc = Data.read test_file
+            doc.root_element.name . should_equal "class"
+
 main = Test_Suite.run_main spec
