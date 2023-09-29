@@ -426,15 +426,16 @@ spec setup =
                 c3 = t2.cast "super-mix" Value_Type.Char . at "super-mix"
                 c3.value_type . should_equal Value_Type.Char
                 date_time_str = Date_Time.new 2023 12 15 19 25 . to_text
-                c3.to_vector . should_equal ["1.0", "2.25", "3", "-45.25", "2.0", "X", "2020-01-01", date_time_str, "12:30:00", "{{{MY Type [x=42] }}}", "True", Nothing, "True"]
+                c3.to_vector . should_equal ["1", "2.25", "3", "-45.25", "2.0", "X", "2020-01-01", date_time_str, "12:30:00", "{{{MY Type [x=42] }}}", "True", Nothing, "True"]
                 Problems.assume_no_problems c3
 
                 if setup.test_selection.fixed_length_text_columns then
                     c3_2 = t2.cast "super-mix" (Value_Type.Char size=2) . at "super-mix"
                     c3_2.value_type . should_equal (Value_Type.Char size=2)
-                    c3_2.to_vector . should_equal ["1.", "2.", "3", "-4", "2.", "X", "20", "20", "12", "{{", "Tr", Nothing, "Tr"]
+                    c3_2.to_vector . should_equal ["1", "2.", "3", "-4", "2.", "X", "20", "20", "12", "{{", "Tr", Nothing, "Tr"]
                     w3_2 = Problems.expect_warning Conversion_Failure c3_2
-                    w3_2.affected_rows_count . should_equal 10
+                    w3_2.affected_rows_count . should_equal 9
+                    w3_2.to_display_text . should_contain "have a text representation that does not fit the target type"
 
                 c4 = t2.cast "super-mix" Value_Type.Boolean . at "super-mix"
                 c4.value_type . should_equal Value_Type.Boolean
