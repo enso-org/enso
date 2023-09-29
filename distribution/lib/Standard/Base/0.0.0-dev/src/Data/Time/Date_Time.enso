@@ -865,5 +865,5 @@ Date_Time.from (that:JS_Object) =
     case that.get "type" == "Date_Time" && ["year", "month", "day", "hour", "minute", "second"].all that.contains_key of
         True ->
             time_zone = if that.contains_key "zone" . not then Time_Zone.system else that.get "zone" . into Time_Zone
-            Date_Time.new (that.get "year") (that.get "that.month") (that.get "day") (that.get "hour") (that.get "minute") (that.get "second") nanosecond=(that.get "nanosecond" 0) zone=time_zone
+            Date_Time.new (that.get "year") (that.get "month") (that.get "day") (that.get "hour") (that.get "minute") (that.get "second") nanosecond=(that.get "nanosecond" 0) zone=time_zone
         False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date_Time.from.")

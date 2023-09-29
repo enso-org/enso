@@ -66,6 +66,11 @@ spec =
             deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
             "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
 
+        Test.specify "should be able to deserialize using into" <|
+            Json.parse '{"first": 1, "second": 2}' . into Pair . should_equal (Pair.Value 1 2)
+            Json.parse '{"start": 15, "end": 20, "step": 3}' . into Range . should_equal (Range.Between 15 20 3)
+            Json.parse '{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}' . into Time_Zone . should_equal (Time_Zone.parse "Europe/Moscow")
+
         Test.specify "should be able to deserialize Date" <|
             '{"type": "Date", "constructor": "new", "year": 2018, "month": 7, "day": 3}'.should_parse_as (Date.new 2018 7 3)
             '{"type": "Date", "year": 2025, "month": 5, "day": 12}'.should_parse_as (Date.new 2025 5 12)
@@ -79,6 +84,14 @@ spec =
             '{"type": "Time_Of_Day", "minute": 14, "second": 47}' . should_parse_as (JS_Object.from_pairs [["type", "Time_Of_Day"], ["minute", 14], ["second", 47]])
             '{"type": "Time_Of_Day", "hour": 14, "second": 47}' . should_parse_as (JS_Object.from_pairs [["type", "Time_Of_Day"], ["hour", 14], ["second", 47]])
             '{"type": "Time_Of_Day", "hour": 18, "minute": 6, "nanosecond": 1234568}'.should_parse_as (JS_Object.from_pairs [["type", "Time_Of_Day"], ["hour", 18], ["minute", 6], ["nanosecond", 1234568]])
+
+        Test.specify "should be able to deserialize Date_Time" <|
+            tz = Time_Zone.parse "Europe/Moscow"
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"nanosecond":572104300,"zone":{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 nanosecond=572104300 zone=tz)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"zone":{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 zone=tz)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"nanosecond":572104300}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 nanosecond=572104300)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52]])
 
     Test.group "JSON Serialization" <|
         Test.specify "should print JSON structures to valid json" <|

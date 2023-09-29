@@ -19,8 +19,8 @@ from project.Data.Boolean import Boolean, False, True
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import org.enso.base.time.EnsoDateTimeFormatter
-polyglot java import org.enso.base.time.FormatterCacheKey
 polyglot java import org.enso.base.time.FormatterCache
+polyglot java import org.enso.base.time.FormatterCacheKey
 polyglot java import org.enso.base.time.FormatterKind
 
 type Date_Time_Formatter

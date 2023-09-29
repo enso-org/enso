@@ -138,7 +138,7 @@ type JS_Object
     ## GROUP Logical
        Returns True iff the Map contains the given `key`.
     contains_key : Text -> Boolean
-    contains_key self key = has_property self.js_object key
+    contains_key self key:Text = has_property self.js_object key
 
     ## Get a value for a key of the object, or a default value if that key is not present.
 
@@ -147,7 +147,7 @@ type JS_Object
        - if_missing: The value to return if the key is not found.
     @key make_field_name_selector
     get : Text -> Any -> JS_Object | Boolean | Number | Nothing | Text | Vector
-    get self key ~if_missing=Nothing =
+    get self key:Text ~if_missing=Nothing =
         if (has_property self.js_object key) . not then if_missing else
             value = get_value self.js_object key
             make_enso value
@@ -160,7 +160,7 @@ type JS_Object
        - key: The key to get.
     @key make_field_name_selector
     at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! No_Such_Key
-    at self key = self.get key (Error.throw (No_Such_Key.Error self key))
+    at self key:Text = self.get key (Error.throw (No_Such_Key.Error self key))
 
     ## GROUP Metadata
        Get the keys of the object.
@@ -212,26 +212,26 @@ type JS_Object
 
     ## Creates an Enso object from the JS_Object.
     into : Any -> Any
-    into self type = case type of
+    into self target_type = case target_type of
         JS_Object -> self
         Vector -> self.to_vector
         Map -> Map.from_pairs self.to_vector
         _ ->
             ## First try a conversion
-            Panic.catch No_Such_Conversion (self.to type) _->
+            Panic.catch No_Such_Conversion (self.to target_type) _->
                 ## If that fails, try to construct the type
-                meta = Meta.meta (Meta.type_of type)
-                constructors = meta.constructors
-                filtered = if self.get "constructor" != Nothing then constructors.filter c-> c.name == self.get "constructor" else constructors
+                meta = Meta.meta target_type
+                meta_type = if meta.is_a Meta.Type then meta else Meta.meta (Meta.type_of target_type)
+                constructors = meta_type.constructors
+                filtered = if self.contains_key "constructor" then constructors.filter c-> c.name == self.get "constructor" else constructors
                 case filtered.length of
-                    0 -> Error.throw (Illegal_Argument.Error "Unable to build a "+type.to_text+" cannot find the constructor.")
+                    0 -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find the constructor.")
                     1 ->
                         constructor = filtered.at 0
                         field_names = constructor.fields
-                        if field_names.any self.has_property then Error.throw (Illegal_Argument.Error "Missing fields for constructor.") else
-                            field_values = field_names.map n-> self.at n
-                            constructor.new field_values
-                    _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+type.to_text+" cannot find unique constructor.")
+                        if field_names.all self.contains_key then constructor.new (field_names.map self.at) else
+                            Error.throw (Illegal_Argument.Error "Missing fields for constructor.")
+                    _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
 
 
 ## PRIVATE

@@ -304,7 +304,7 @@ spec =
             response . should_equal expected_response
 
         Test.specify "Can perform a File POST" <|
-            test_file = enso_pr ject.data / "sample.txt"
+            test_file = enso_project.data / "sample.txt"
             response = Data.post url_post (Request_Body.Binary test_file)
             response.at "headers" . at "Content-Type" . should_equal "application/octet-stream"
             expected_text = test_file.read_text
