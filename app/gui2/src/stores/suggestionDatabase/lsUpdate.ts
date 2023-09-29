@@ -21,6 +21,7 @@ import {
 } from '@/util/qualifiedName'
 import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
+import { documentationData, type DocumentationData } from './documentation'
 
 interface UnfinishedEntry {
   kind: SuggestionKind
@@ -38,15 +39,6 @@ interface UnfinishedEntry {
   scope?: SuggestionEntryScope
   iconName?: string
   groupIndex?: number
-}
-
-interface DocumentationData {
-  documentation: Doc.Section[]
-  aliases: string[]
-  iconName?: string
-  groupIndex?: number
-  isPrivate: boolean
-  isUnstable: boolean
 }
 
 function setLsName(
@@ -118,22 +110,16 @@ function setLsDocumentation(
   documentation: Opt<string>,
   groups: Group[],
 ): asserts entry is UnfinishedEntry & { definedIn: QualifiedName } & DocumentationData {
-  entry.documentation = documentation != null ? parseDocs(documentation) : []
-  const groupName = tagValue(entry.documentation, 'Group')
-  const groupIndex = groupName ? getGroupIndex(groupName, entry.definedIn, groups) : null
-  if (groupIndex != null) entry.groupIndex = groupIndex
-  const iconName = tagValue(entry.documentation, 'Icon')
-  if (iconName != null) entry.iconName = iconName
-  entry.aliases = tagValue(entry.documentation, 'Alias')?.split(',') ?? []
-  entry.isPrivate = isSome(tagValue(entry.documentation, 'Private'))
-  entry.isUnstable =
-    isSome(tagValue(entry.documentation, 'Unstable')) ||
-    isSome(tagValue(entry.documentation, 'Advanced'))
+  const data = documentationData(documentation, entry.definedIn, groups)
+  Object.assign(entry, data)
+  // Removing optional fields. I don't know a better way to do this.
+  if (data.groupIndex == null) delete entry.groupIndex
+  if (data.iconName == null) delete entry.iconName
 }
 
 function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<SuggestionEntry> {
   return withContext(
-    () => `when creating entry from ${JSON.stringify(lsEntry)}`,
+    () => `when creating entry`,
     () => {
       switch (lsEntry.type) {
         case 'function': {
@@ -150,13 +136,13 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
         }
         case 'module': {
           const entry = {
-            kind: SuggestionKind.Function,
+            kind: SuggestionKind.Module,
             name: 'MODULE' as Identifier,
             arguments: [],
             returnType: '',
           }
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-          if (lsEntry.reexport != null && setLsReexported(entry, lsEntry.reexport))
+          if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
             return Err('Invalid reexported module name')
           setLsDocumentation(entry, lsEntry.documentation, groups)
           assert(entry.returnType !== '') // Should be overwriten
@@ -166,7 +152,7 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
           const entry = { kind: SuggestionKind.Type, returnType: '' }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-          if (lsEntry.reexport != null && setLsReexported(entry, lsEntry.reexport))
+          if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
             return Err('Invalid reexported module name')
           setLsDocumentation(entry, lsEntry.documentation, groups)
           assert(entry.returnType !== '') // Should be overwriten
@@ -179,7 +165,7 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
           const entry = { kind: SuggestionKind.Constructor }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-          if (lsEntry.reexport != null && setLsReexported(entry, lsEntry.reexport))
+          if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
             return Err('Invalid reexported module name')
           setLsDocumentation(entry, lsEntry.documentation, groups)
           setLsReturnType(entry, lsEntry.returnType)
@@ -192,7 +178,7 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
           const entry = { kind: SuggestionKind.Method }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
-          if (lsEntry.reexport != null && setLsReexported(entry, lsEntry.reexport))
+          if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
             return Err('Invalid reexported module name')
           setLsDocumentation(entry, lsEntry.documentation, groups)
           setLsSelfType(entry, lsEntry.selfType, lsEntry.isStatic)
@@ -216,34 +202,6 @@ function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<
       }
     },
   )
-}
-
-function isTagNamed(tag: string) {
-  return (section: Doc.Section): section is { Tag: Doc.Section.Tag } => {
-    return 'Tag' in section ? section.Tag.tag == tag : false
-  }
-}
-
-function tagValue(doc: Doc.Section[], tag: string): Opt<string> {
-  const tagSection = doc.find(isTagNamed(tag))
-  if (tagSection == null) return null
-  return tagSection.Tag.body
-}
-
-function getGroupIndex(
-  groupName: string,
-  entryModule: QualifiedName,
-  groups: Group[],
-): Opt<number> {
-  let normalized: string
-  if (groupName.indexOf('.') >= 0) {
-    normalized = groupName
-  } else {
-    const project = /^[^.]+\.[^.]+/.exec(entryModule)
-    if (project == null) return null
-    normalized = `${project}.${groupName}`
-  }
-  return findIndexOpt(groups, (group) => `${group.project}.${group.name}` == normalized)
 }
 
 function applyFieldUpdate<K extends string, T, R>(
@@ -378,7 +336,7 @@ export function applyUpdate(
             setLsModule(entry, module),
           )
           if (!moduleUpdate.ok) return moduleUpdate
-          if (!moduleUpdate.value) return Err('Invalid module name')
+          if (moduleUpdate.value === false) return Err('Invalid module name')
 
           const selfTypeUpdate = applyFieldUpdate('selfType', update, (selfType) =>
             setLsSelfType(entry, selfType),
@@ -425,19 +383,4 @@ export function applyUpdates(
       entries.delete(update.id)
     }
   }
-}
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-
-  test.each([
-    ['ALIAS Bar', 'Bar'],
-    ['Some one section\n   But not tags here', null],
-    ['GROUP different tag', null],
-    ['PRIVATE\nGROUP Input\nALIAS Foo\n\nSeveral tags', 'Foo'],
-  ])('Getting tag from docs case %#.', (doc, expected) => {
-    const sections = parseDocs(doc)
-    console.log(JSON.stringify(sections))
-    expect(tagValue(sections, 'Alias')).toBe(expected)
-  })
 }

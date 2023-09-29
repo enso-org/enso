@@ -9,7 +9,7 @@ export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
 export const SuggestionDb = Map<SuggestionId, SuggestionEntry>
 
 export interface Group {
-  color: string
+  color?: string
   name: string
   project: QualifiedName
 }
