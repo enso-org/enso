@@ -50,7 +50,6 @@ interface InternalNoSelectedKeysProps {
 
 /** Props for a {@link Table}. */
 interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
-    footer?: JSX.Element
     rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element | null
     scrollContainerRef?: React.RefObject<HTMLDivElement>
     headerRowRef?: React.RefObject<HTMLTableRowElement>
@@ -67,7 +66,7 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     className?: string
     onContextMenu: (
         selectedKeys: Set<Key>,
-        event: React.MouseEvent<HTMLTableElement>,
+        event: React.MouseEvent<HTMLDivElement>,
         setSelectedKeys: (items: Set<Key>) => void
     ) => void
 }
@@ -88,7 +87,6 @@ export default function Table<T, State = never, RowState = never, Key extends st
     props: TableProps<T, State, RowState, Key>
 ) {
     const {
-        footer,
         rowComponent: RowComponent = TableRow,
         scrollContainerRef,
         headerRowRef,
@@ -309,24 +307,25 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     return (
-        <table
-            className="grow rounded-rows self-start table-fixed border-collapse"
+        <div
+            className="grow"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
         >
-            <thead>{headerRow}</thead>
-            <tbody ref={bodyRef}>
-                {itemRows}
-                {placeholder && (
-                    <tr className="h-8 hidden first:table-row">
-                        <td colSpan={columns.length} className="bg-transparent">
-                            {placeholder}
-                        </td>
-                    </tr>
-                )}
-            </tbody>
-            {footer}
-        </table>
+            <table className="rounded-rows table-fixed border-collapse">
+                <thead>{headerRow}</thead>
+                <tbody ref={bodyRef}>
+                    {itemRows}
+                    {placeholder && (
+                        <tr className="h-8 hidden first:table-row">
+                            <td colSpan={columns.length} className="bg-transparent">
+                                {placeholder}
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
     )
 }
