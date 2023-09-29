@@ -64,7 +64,8 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   private Number[] rawData;
 
   /**
-   * Specifies at which indices we encountered integers.
+   * Specifies at which indices we encountered integers that can be reconstructed from double without loss of
+   * precision.
    * <p>
    * This is used for reconstructing the original values when retyping to mixed. Integers that are small enough can be
    * reconstructed from their double values, so we do not need to store them as `rawData`, instead we only mark that
