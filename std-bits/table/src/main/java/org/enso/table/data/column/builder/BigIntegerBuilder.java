@@ -26,8 +26,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   }
 
   @Override
-  public void writeTo(Object[] items) {
-    super.writeTo(items);
+  public void retypeToMixed(Object[] items) {
+    super.retypeToMixed(items);
   }
 
   @Override

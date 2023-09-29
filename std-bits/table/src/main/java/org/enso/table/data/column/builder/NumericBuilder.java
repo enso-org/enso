@@ -29,7 +29,7 @@ public abstract class NumericBuilder extends TypedBuilder {
 
   /** Creates a {@link DoubleBuilder} that may be retyped to Mixed type. */
   public static DoubleBuilder createInferringDoubleBuilder(int size) {
-    return new InferringDoubleBuilder(new BitSet(), new long[size], new Object[size], 0);
+    return new InferringDoubleBuilder(new BitSet(), new long[size], 0);
   }
 
   public static LongBuilder createLongBuilder(int size, IntegerType type) {

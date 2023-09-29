@@ -30,7 +30,7 @@ public class DoubleBuilder extends NumericBuilder {
   }
 
   @Override
-  public void writeTo(Object[] items) {
+  public void retypeToMixed(Object[] items) {
     throw new IllegalStateException("The DoubleBuilder cannot be retyped to the Mixed type, because it would lose " +
         "type information about integers that were converted to doubles. If recasting is needed, " +
         "InferringDoubleBuilder should be used instead. This error leaking is a bug in the Table library.");
@@ -49,36 +49,6 @@ public class DoubleBuilder extends NumericBuilder {
   @Override
   public StorageType getType() {
     return FloatType.FLOAT_64;
-  }
-
-  /**
-   * Converts the provided LongBuilder to a DoubleBuilder.
-   *
-   * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
-   * used.
-   */
-  static InferringDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
-    int currentSize = longBuilder.currentSize;
-    Object[] rawData = new Object[longBuilder.data.length];
-    InferringDoubleBuilder newBuilder =
-        new InferringDoubleBuilder(longBuilder.isMissing, longBuilder.data, rawData, currentSize);
-
-    // Invalidate the old builder.
-    longBuilder.data = null;
-    longBuilder.isMissing = null;
-    longBuilder.currentSize = -1;
-
-    // Translate the data in-place to avoid unnecessary allocations.
-    for (int i = 0; i < currentSize; i++) {
-      if (!newBuilder.isMissing.get(i)) {
-        long currentIntegerValue = newBuilder.data[i];
-        double convertedFloatValue = newBuilder.convertIntegerToDouble(currentIntegerValue);
-        newBuilder.data[i] = Double.doubleToRawLongBits(convertedFloatValue);
-        rawData[i] = currentIntegerValue;
-      }
-    }
-
-    return newBuilder;
   }
 
   @Override
@@ -224,11 +194,7 @@ public class DoubleBuilder extends NumericBuilder {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
-      if (precisionLoss == null) {
-        precisionLoss = new LossOfIntegerPrecision(integer, floatingPointValue);
-      } else {
-        precisionLoss.incrementAffectedRows();
-      }
+      reportPrecisionLoss(integer, floatingPointValue);
     }
     return floatingPointValue;
   }
@@ -238,13 +204,17 @@ public class DoubleBuilder extends NumericBuilder {
     BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
     if (isLosingPrecision) {
-      if (precisionLoss == null) {
-        precisionLoss = new LossOfIntegerPrecision(bigInteger, floatingPointValue);
-      } else {
-        precisionLoss.incrementAffectedRows();
-      }
+      reportPrecisionLoss(bigInteger, floatingPointValue);
     }
     return floatingPointValue;
+  }
+
+  protected final void reportPrecisionLoss(Number number, double approximation) {
+    if (precisionLoss == null) {
+      precisionLoss = new LossOfIntegerPrecision(number, approximation);
+    } else {
+      precisionLoss.incrementAffectedRows();
+    }
   }
 
   protected LossOfIntegerPrecision precisionLoss = null;
