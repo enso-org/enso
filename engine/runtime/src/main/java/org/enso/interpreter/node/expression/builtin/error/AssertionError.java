@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 
 @BuiltinType
-public class AssertionError extends UniquelyConstructibleBuiltin {
+public final class AssertionError extends UniquelyConstructibleBuiltin {
   @Override
   protected String getConstructorName() {
     return "Error";
