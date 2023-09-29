@@ -61,7 +61,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
    * Stores the raw data as passed to append, in order to be able to reconstruct the original values when retyping to
    * mixed.
    */
-  private Object[] rawData;
+  private Number[] rawData;
 
   /**
    * Specifies at which indices we encountered integers.
@@ -174,14 +174,14 @@ public class InferringDoubleBuilder extends DoubleBuilder {
         "A DoubleBuilder should be used instead. This is a bug in the Table library.");
   }
 
-  private void setRaw(int ix, Object o) {
+  private void setRaw(int ix, Number o) {
     if (rawData == null) {
-      rawData = new Object[ix + 1];
+      rawData = new Number[ix + 1];
     }
 
     if (rawData.length <= ix) {
       int newLength = Math.max(rawData.length * 3 / 2 + 1, ix + 1);
-      Object[] newRawData = new Object[newLength];
+      Number[] newRawData = new Number[newLength];
       System.arraycopy(rawData, 0, newRawData, 0, rawData.length);
       rawData = newRawData;
     }
