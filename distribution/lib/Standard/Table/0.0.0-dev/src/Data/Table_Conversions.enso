@@ -11,8 +11,15 @@ import project.Internal.Parse_To_Table
 import project.Internal.Widget_Helpers
 
 ## GROUP Standard.Base.Conversions
-   Expand a column of objects to a set of columns
+   Expand a column of objects to a new set of columns.
+
+    Arguments:
+    - column: The column to expand.
+    - fields: The set fields to expand. If `Nothing` then all fields are added.
+    - prefix: Prefix to add to the column names. If `Nothing` then the column
+      name is used.
 @column Widget_Helpers.make_column_name_selector
+Table.expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Table ! Type_Error
 Table.expand_column self column fields=Nothing prefix=Nothing =
     column_object = self.at column
     expanded = Table.from_objects column_object.to_vector fields
@@ -20,9 +27,10 @@ Table.expand_column self column fields=Nothing prefix=Nothing =
     output_builder = Vector.new_builder self.column_count+expanded.column_count-1
 
     ## Resolve names
-    resolved_prefix = if prefix.is_nothing then column_object.name+"_" else prefix
+    resolved_prefix = if prefix.is_nothing then column_object.name+" " else prefix
     naming_strategy = self.column_naming_helper.create_unique_name_strategy
-    new_names = naming_strategy.combine_with_prefix (self.column_names.filter (c->c!=column_object.name)) expanded.column_names resolved_prefix
+    naming_strategy.mark_used (self.column_names.filter (c->c!=column_object.name))
+    new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> resolved_prefix+n)
     new_columns = new_names.zip expanded.columns (n->c-> c.rename n)
 
     ## Create Merged Columns

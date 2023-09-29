@@ -134,6 +134,10 @@ spec =
             JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
             JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
 
+        Test.specify "should be buildable from pairs" <|
+            JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
+            JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
+
         Test.specify "should be handle equality on a key level" <|
             JS_Object.from_pairs [["a", 42]] . should_equal <| Json.parse '{"a": 42}'
             JS_Object.from_pairs [["a", 42]] . should_not_equal <| JS_Object.from_pairs [["a", 43]]
@@ -158,6 +162,11 @@ spec =
             object.at "bar" . should_fail_with No_Such_Key
             Json.parse "null" . get "foo" . should_equal Nothing
             Json.parse "null" . get "foo" 1 . should_equal 1
+
+        Test.specify "should allow checking for fields" <|
+            object = Json.parse '{ "foo": "bar", "baz": ["foo", "x", false],"y": {"z": null, "w": null} }'
+            object.contains_key "foo" . should_equal True
+            object.contains_key "bar" . should_equal False
 
         Test.specify "should be able to get field_names" <|
             Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["foo", "baz"]
