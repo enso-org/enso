@@ -237,9 +237,12 @@ pub struct PublishRelease;
 impl JobArchetype for PublishRelease {
     fn job(&self, os: OS) -> Job {
         let mut ret = plain_job(&os, "Publish release", "release publish");
-        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID");
-        ret.expose_secret_as(secret::ARTEFACT_S3_SECRET_ACCESS_KEY, "AWS_SECRET_ACCESS_KEY");
-        ret.env("AWS_REGION", "us-west-1");
+        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
+        ret.expose_secret_as(
+            secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
+            crate::aws::env::AWS_SECRET_ACCESS_KEY,
+        );
+        ret.env(crate::aws::env::AWS_REGION, "us-west-1");
         ret
     }
 }
