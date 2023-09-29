@@ -8,17 +8,17 @@ import * as modalProvider from '../../providers/modal'
 
 import Modal from './modal'
 
-// =================
-// === Component ===
-// =================
+// =============================
+// === NewDataConnectorModal ===
+// =============================
 
-/** Props for a {@link ConfirmDeleteModal}. */
-export interface ConfirmDeleteModalProps {
+/** Props for a {@link NewDataConnectorModal}. */
+export interface NewDataConnectorModalProps {
     doCreate: (name: string, value: string) => void
 }
 
 /** A modal for confirming the deletion of an asset. */
-export default function NewDataConnectorModal(props: ConfirmDeleteModalProps) {
+export default function NewDataConnectorModal(props: NewDataConnectorModalProps) {
     const { doCreate } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()

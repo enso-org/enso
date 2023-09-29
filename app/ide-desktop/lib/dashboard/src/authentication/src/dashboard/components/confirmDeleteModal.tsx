@@ -8,9 +8,9 @@ import * as modalProvider from '../../providers/modal'
 
 import Modal from './modal'
 
-// =================
-// === Component ===
-// =================
+// ==========================
+// === ConfirmDeleteModal ===
+// ==========================
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
