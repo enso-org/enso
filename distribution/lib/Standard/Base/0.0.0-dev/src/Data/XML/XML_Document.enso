@@ -239,7 +239,8 @@ type XML_Element
     children : Vector (XML_Element | Text)
     children self = only_wanted_nodes self.all_children
 
-    ## Gets the text (non-markup) contents of the element.
+    ## Gets the text (non-markup) contents of the element and its descendants,
+       if any.
 
        > Example
          Get the text content of an element.

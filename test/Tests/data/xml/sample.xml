@@ -24,4 +24,12 @@
         <lastname>Cooper</lastname>
         <gpa>3.99</gpa>
     </student>
+    <student studentId="1002" year="1">
+        Some
+        <firstname>Randy</firstname>
+        Extra
+        <lastname>Brown</lastname>
+        Text
+        <gpa>3.99</gpa>
+    </student>
 </class>

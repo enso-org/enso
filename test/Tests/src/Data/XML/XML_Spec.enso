@@ -41,7 +41,7 @@ spec =
             XML_Document.from_string xml_string . catch . should_be_a XML_Error.Parse_Error
 
     Test.group "at/get" <|
-        Test.specify "Can get elements by index" <|
+        Test.specify "Can get children by index" <|
             test_file = enso_project.data / "xml" / "sample.xml"
             root = XML_Document.from_file test_file . root_element
 
@@ -56,6 +56,14 @@ spec =
             root.at 3 . at 1 . name . should_equal "lastname"
             root.at 3 . at 2 . name . should_equal "gpa"
             root.at 3 . at 2 . at 0 . should_equal "3.99"
+
+        Test.specify "Can get text children by index" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            root = XML_Document.from_file test_file . root_element
+
+            root.at 4 . at 0 . should_equal '\n        Some\n        '
+            root.at 4 . at 2 . should_equal '\n        Extra\n        '
+            root.at 4 . at 4 . should_equal '\n        Text\n        '
 
         Test.specify "Can get element attributes" <|
             test_file = enso_project.data / "xml" / "sample.xml"
@@ -72,7 +80,7 @@ spec =
             root.at 2 . attributes . should_equal (Map.from_vector [["studentId", "1000"], ["year", "2"]])
             root.at 3 . attributes . should_equal (Map.from_vector [["studentId", "1001"], ["year", "3"]])
 
-        Test.specify "Can get via xpath" <|
+        Test.specify "Can get nodes via xpath" <|
             test_file = enso_project.data / "xml" / "sample.xml"
             root = XML_Document.from_file test_file . root_element
 
@@ -86,7 +94,7 @@ spec =
             teachers.at 1 . at "@id" . should_equal "101"
 
             students = root.at "/class/student"
-            students.length . should_equal 2
+            students.length . should_equal 3
             students.at 0 . at "@studentId" . should_equal "1000"
             students.at 1 . at "@studentId" . should_equal "1001"
 
@@ -99,6 +107,13 @@ spec =
             root.at "teacher[2]/firstname" . at 0 . text . should_equal "Bob"
             root.at "teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
             root.at "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+
+    Test.group "text contents" <|
+        Test.specify "can get child text contents" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            root = XML_Document.from_file test_file . root_element
+            root.at 4 . at 1 . text . should_equal "Randy"
+            root.at 4 . text . should_equal '\n        Some\n        Randy\n        Extra\n        Brown\n        Text\n        3.99\n    '
 
     Test.group "inner / outer xml" <|
         Test.specify "inner_xml" <|
