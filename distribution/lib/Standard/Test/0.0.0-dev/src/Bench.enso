@@ -157,7 +157,7 @@ type Bench
     ## Run the specified set of benchmarks.
     run_main self =
         count = self.total_specs
-        IO.println <| "Found " + count.to_text + " cases to execute"
+        IO.println <| "Found " + count.to_text + " cases to execute (ETA " + self.estimated_runtime.to_display_text + ")"
 
         case Environment.get "ENSO_BENCHMARK_REPORT_PATH" of
             Nothing -> Nothing
