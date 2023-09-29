@@ -168,6 +168,7 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 export interface AssetsTableProps {
     query: string
     category: categorySwitcher.Category
+    currentLabel: backendModule.TagAssetAssociationId | null
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
@@ -194,6 +195,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
         category,
+        currentLabel,
         initialProjectName,
         projectStartupInfo,
         queuedAssetEvents: rawQueuedAssetEvents,
@@ -371,6 +373,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
                                 recentProjects: category === categorySwitcher.Category.recent,
+                                label: currentLabel,
                             },
                             null
                         )
@@ -391,6 +394,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
                                 recentProjects: category === categorySwitcher.Category.recent,
+                                label: currentLabel,
                             },
                             null
                         )
@@ -405,7 +409,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
         },
-        [category, accessToken, organization, backend]
+        [category, currentLabel, accessToken, organization, backend]
     )
 
     React.useEffect(() => {
@@ -502,6 +506,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             parentId: directoryId,
                             filterBy: CATEGORY_TO_FILTER_BY[category],
                             recentProjects: category === categorySwitcher.Category.recent,
+                            label: currentLabel,
                         },
                         title ?? null
                     )
@@ -564,7 +569,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [category, nodeMap, backend]
+        [category, currentLabel, nodeMap, backend]
     )
 
     const getNewProjectName = React.useCallback(
@@ -597,13 +602,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                     Math.max(0, ...directoryIndices) + 1
                 }`
                 const placeholderItem: backendModule.DirectoryAsset = {
+                    type: backendModule.AssetType.directory,
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
-                    type: backendModule.AssetType.directory,
+                    labels: [],
                 }
                 if (
                     event.parentId != null &&
@@ -631,6 +637,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const projectName = getNewProjectName(event.templateId, event.parentId)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
+                    type: backendModule.AssetType.project,
                     id: dummyId,
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
@@ -643,7 +650,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         // eslint-disable-next-line @typescript-eslint/naming-convention
                         ...(organization != null ? { opened_by: organization.email } : {}),
                     },
-                    type: backendModule.AssetType.project,
+                    labels: [],
                 }
                 if (
                     event.parentId != null &&
@@ -681,6 +688,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
+                        labels: [],
                     })
                 )
                 const placeholderProjects = reversedFiles.filter(backendModule.fileIsProject).map(
@@ -698,6 +706,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             // eslint-disable-next-line @typescript-eslint/naming-convention
                             ...(organization != null ? { opened_by: organization.email } : {}),
                         },
+                        labels: [],
                     })
                 )
                 if (
@@ -743,13 +752,14 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.newSecret: {
                 const placeholderItem: backendModule.SecretAsset = {
+                    type: backendModule.AssetType.secret,
                     id: backendModule.SecretId(uniqueString.uniqueString()),
                     title: event.name,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backend.rootDirectoryId(organization),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
-                    type: backendModule.AssetType.secret,
+                    labels: [],
                 }
                 if (
                     event.parentId != null &&

@@ -79,6 +79,7 @@ export class LocalBackend extends backend.Backend {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 volume_id: '',
             },
+            labels: [],
         }))
     }
 

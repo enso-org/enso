@@ -53,6 +53,8 @@ export const theme = {
             'permission-docs': 'rgba(91, 8, 226, 0.64)',
             'permission-exec': 'rgba(236, 2, 2, 0.70)',
             'permission-view': 'rgba(0, 0, 0, 0.10)',
+            'label-running-project': '#257fd2',
+            'label-low-resources': '#ff6b18',
             'call-to-action': '#fa6c08',
             'black-a5': 'rgba(0, 0, 0, 0.05)',
             'black-a10': 'rgba(0, 0, 0, 0.10)',

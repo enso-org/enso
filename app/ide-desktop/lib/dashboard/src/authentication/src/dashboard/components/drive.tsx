@@ -209,15 +209,29 @@ export default function Drive(props: DriveProps) {
                                 }
                                 setLabels(oldLabels => [...oldLabels, placeholderLabel])
                                 void (async () => {
-                                    const label = await backend.createTag({ value })
-                                    setLabels(oldLabels =>
-                                        oldLabels.map(oldLabel =>
-                                            oldLabel.id === placeholderLabel.id ? label : oldLabel
+                                    try {
+                                        const label = await backend.createTag({ value })
+                                        setLabels(oldLabels =>
+                                            oldLabels.map(oldLabel =>
+                                                oldLabel.id === placeholderLabel.id
+                                                    ? label
+                                                    : oldLabel
+                                            )
                                         )
-                                    )
-                                    setCurrentLabel(oldLabel =>
-                                        oldLabel === placeholderLabel.id ? label.id : oldLabel
-                                    )
+                                        setCurrentLabel(oldLabel =>
+                                            oldLabel === placeholderLabel.id ? label.id : oldLabel
+                                        )
+                                    } catch (error) {
+                                        toastAndLog(null, error)
+                                        setLabels(oldLabels =>
+                                            oldLabels.filter(
+                                                oldLabel => oldLabel.id !== placeholderLabel.id
+                                            )
+                                        )
+                                        setCurrentLabel(oldLabel =>
+                                            oldLabel === placeholderLabel.id ? null : oldLabel
+                                        )
+                                    }
                                 })()
                             }}
                         />
@@ -226,6 +240,7 @@ export default function Drive(props: DriveProps) {
                 <AssetsTable
                     query={query}
                     category={category}
+                    currentLabel={currentLabel}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
                     queuedAssetEvents={queuedAssetEvents}

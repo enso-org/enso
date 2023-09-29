@@ -584,6 +584,7 @@ export interface CreateTagRequestBody {
 export interface ListDirectoryRequestParams {
     parentId: string | null
     filterBy: FilterBy | null
+    label: string | null
     recentProjects: boolean
 }
 

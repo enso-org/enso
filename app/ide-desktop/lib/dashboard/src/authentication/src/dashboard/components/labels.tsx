@@ -6,6 +6,8 @@ import PlusIcon from 'enso-assets/plus.svg'
 import * as backendModule from '../backend'
 import * as modalProvider from '../../providers/modal'
 
+import NewLabelModal from './newLabelModal'
+
 // =============
 // === Label ===
 // =============
@@ -14,25 +16,19 @@ import * as modalProvider from '../../providers/modal'
 interface InternalLabelProps extends React.PropsWithChildren {
     /** When true, the button is not faded out even when not hovered. */
     active?: boolean
-    /** When true, the button is not clickable. */
-    disabled?: boolean
     className: string
-    onClick: () => void
+    onClick: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function Label(props: InternalLabelProps) {
-    const { active = false, disabled = false, className, onClick, children } = props
+    const { active = false, className, onClick, children } = props
     return (
         <div
-            className={`flex items-center rounded-full gap-1.5 h-6 px-2.25 ${className} ${
-                active ? 'bg-frame-selected' : 'text-not-selected'
-            } ${
-                disabled
-                    ? ''
-                    : 'hover:text-primary hover:bg-frame-selected cursor-pointer hover:opacity-100'
-            } ${!active && disabled ? 'cursor-not-allowed' : ''}`}
-            {...(disabled ? {} : { onClick })}
+            className={`cursor-pointer flex items-center rounded-full gap-1.5 h-6 px-2.25 hover:opacity-100 ${className} ${
+                active ? 'bg-frame-selected' : 'text-not-selected opacity-50'
+            }`}
+            onClick={onClick}
         >
             {children}
         </div>
@@ -59,7 +55,7 @@ export default function Labels(props: LabelsProps) {
         <div className="flex flex-col items-start w-30">
             <div className="pl-2 pb-1.5">
                 <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">
-                    Category
+                    Labels
                 </span>
             </div>
             <div className="flex flex-col items-start gap-1">
@@ -67,19 +63,25 @@ export default function Labels(props: LabelsProps) {
                     <Label
                         key={label.id}
                         active={label.id === currentLabel}
-                        disabled={label.id === currentLabel}
-                        className="text-white"
+                        className="bg-frame-selected text-primary"
                         onClick={() => {
-                            setCurrentLabel(label.id)
+                            setCurrentLabel(label.id === currentLabel ? null : label.id)
                         }}
                     >
                         {label.value}
                     </Label>
                 ))}
                 <Label
-                    className="text-not-selected"
-                    onClick={() => {
-                        setModal(<NewLabelModal doCreate={doCreateLabel} />)
+                    active
+                    className="bg-frame-selected text-not-selected"
+                    onClick={event => {
+                        event.stopPropagation()
+                        setModal(
+                            <NewLabelModal
+                                eventTarget={event.currentTarget}
+                                doCreate={doCreateLabel}
+                            />
+                        )
                     }}
                 >
                     <img src={PlusIcon} className="w-1.5 h-1.5" />

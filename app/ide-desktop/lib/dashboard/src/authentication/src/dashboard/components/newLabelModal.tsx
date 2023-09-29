@@ -1,4 +1,4 @@
-/** @file Modal for confirming delete of any type of asset. */
+/** @file A modal for creating a new label. */
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
@@ -8,29 +8,30 @@ import * as modalProvider from '../../providers/modal'
 
 import Modal from './modal'
 
-// =================
-// === Component ===
-// =================
+// =====================
+// === NewLabelModal ===
+// =====================
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface NewLabelModalProps {
-    doCreate: (name: string, value: string) => void
+    eventTarget: HTMLElement
+    doCreate: (value: string) => void
 }
 
-/** A modal for confirming the deletion of an asset. */
+/** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
-    const { doCreate } = props
+    const { eventTarget, doCreate } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
+    const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
 
-    const [name, setName] = React.useState('')
-    const [value, setValue] = React.useState('')
-    const canSubmit = Boolean(name && value)
+    const [value, setName] = React.useState('')
+    const canSubmit = Boolean(value)
 
     const onSubmit = () => {
         unsetModal()
         try {
-            doCreate(name, value)
+            doCreate(value)
         } catch (error) {
             const message = errorModule.getMessageOrToString(error)
             toastify.toast.error(message)
@@ -39,10 +40,14 @@ export default function NewLabelModal(props: NewLabelModalProps) {
     }
 
     return (
-        <Modal centered className="bg-dim">
+        <Modal className="absolute bg-dim">
             <div
                 tabIndex={-1}
-                className="relative rounded-2xl pointer-events-auto"
+                style={{
+                    left: position.left + window.scrollX,
+                    top: position.top + window.scrollY,
+                }}
+                className="relative rounded-2xl pointer-events-auto w-96"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') {
                         event.stopPropagation()
@@ -62,25 +67,15 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                     }}
                     className="relative flex flex-col rounded-2xl gap-2 w-96 px-4 py-2"
                 >
-                    <h1 className="text-sm font-semibold">New Data Connector</h1>
+                    <h1 className="text-sm font-semibold">New Label</h1>
                     <div className="flex">
                         <div className="w-12 h-6 py-1">Name</div>
                         <input
                             autoFocus
-                            placeholder="Enter the name of the data connector"
+                            placeholder="Enter the name of the label"
                             className="grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px"
                             onInput={event => {
                                 setName(event.currentTarget.value)
-                            }}
-                        />
-                    </div>
-                    <div className="flex">
-                        <div className="w-12 h-6 py-1">Value</div>
-                        <input
-                            placeholder="Enter the value of the data connector"
-                            className="grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px"
-                            onInput={event => {
-                                setValue(event.currentTarget.value)
                             }}
                         />
                     </div>

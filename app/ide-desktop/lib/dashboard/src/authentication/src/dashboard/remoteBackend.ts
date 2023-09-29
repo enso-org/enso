@@ -316,6 +316,7 @@ export class RemoteBackend extends backendModule.Backend {
                     ...(query.filterBy != null ? { filter_by: query.filterBy } : {}),
                     // eslint-disable-next-line @typescript-eslint/naming-convention
                     ...(query.recentProjects ? { recent_projects: String(true) } : {}),
+                    ...(query.label != null ? { label: query.label } : {}),
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
