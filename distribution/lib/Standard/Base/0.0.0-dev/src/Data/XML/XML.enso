@@ -51,7 +51,7 @@ type XML_Document
              file = enso_project.data / "doc.xml"
              doc = XML_Document.from_file test_file
     from_file : File -> XML_Document ! XML_Error | File_Error
-    from_file file =
+    from_file file:File =
         File_Error.handle_java_exceptions file <| XML_Error.handle_java_exceptions <|
             file.with_input_stream [File_Access.Read] XML_Document.from_stream
 
@@ -67,7 +67,7 @@ type XML_Document
 
              doc = XML_Document.from_stream input_stream
     from_stream : Input_Stream -> XML_Document ! XML_Error
-    from_stream input_stream =
+    from_stream input_stream:Input_Stream =
         XML_Error.handle_java_exceptions <|
            input_stream.with_java_stream java_stream->
                document_builder_factory = DocumentBuilderFactory.newInstance
@@ -87,7 +87,7 @@ type XML_Document
              xml_string = "<foo></foo>"
              doc = XML_Document.from_string xml_string
     from_string : Text -> XML_Document ! XML_Error
-    from_string xml_string =
+    from_string xml_string:Text =
         XML_Error.handle_java_exceptions <|
             string_reader = StringReader.new xml_string
             input_source = InputSource.new string_reader
@@ -138,7 +138,7 @@ type XML_Element
              root.get "@bar"
              # => "one"
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element)
-    get self key ~if_missing=Nothing =
+    get self key:(Text|Integer) ~if_missing=Nothing =
         case key of
             _ : Integer -> self.get_child_element key if_missing
             _ : Text -> if is_attribute_key key then self.attribute (key.drop 1) if_missing else self.get_xpath key
@@ -164,7 +164,7 @@ type XML_Element
              root.at "@bar"
              # => "one"
     at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds
-    at self key =
+    at self key:(Text|Integer) =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.num_children)
             _ : Text -> Error.throw (No_Such_Key.Error self key)
@@ -182,7 +182,7 @@ type XML_Element
              root.at "/class/teacher[1]/firstname"
              # => XML_Document.from_string "<firstname>Alice</firstname>" . root_element
     get_xpath : Text -> Vector (Text | XML_Element)
-    get_xpath self key =
+    get_xpath self key:Text =
         XML_Error.handle_java_exceptions <|
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (nodelist_to_vector (xpath.evaluate key self.java_element XPathConstants.NODESET))
@@ -207,7 +207,7 @@ type XML_Element
              root.attribute "bar"
              # => "one"
     attribute : Text -> Any -> Text | Any
-    attribute self name ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
+    attribute self name:Text ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
         XML_Error.handle_java_exceptions <|
             attr = self.java_element.getAttributeNode name
             if attr.is_nothing then if_missing else attr.getValue
@@ -300,7 +300,7 @@ type XML_Element
              XML_Document.from_string '<foo> <baz>hello</baz> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
              # => [XML_Document.from_string "<baz>hello</baz>", XML_Document.from_string "<baz>goodbye</baz>"]
     get_elements_by_tag_name : Text -> Vector XML_Element
-    get_elements_by_tag_name self tag_name =
+    get_elements_by_tag_name self tag_name:Text =
         only_wanted_nodes (nodelist_to_vector (self.java_element.getElementsByTagName tag_name))
 
     ## PRIVATE
@@ -335,6 +335,7 @@ type XML_Error
     ## PRIVATE
 
        Utility method for running an action with Java exceptions mapping.
+    handle_java_exceptions : Any -> Any ! XML_Error
     handle_java_exceptions ~action =
         Panic.catch JException action caught_panic->
             XML_Error.wrap_java_exception caught_panic.payload
@@ -342,7 +343,8 @@ type XML_Error
     ## PRIVATE
 
        Converts a Java `SAXException` into its Enso counterpart.
-    wrap_java_exception exception = case exception of
+    wrap_java_exception : JException -> XML_Error
+    wrap_java_exception exception:JException = case exception of
         _ : SAXParseException -> Error.throw (XML_Error.Parse_Error exception.getLineNumber exception.getColumnNumber)
         _ -> Error.throw (XML_Error.Other "An Exception has occurred: "+exception.to_text)
 
@@ -367,7 +369,7 @@ only_wanted_nodes nodes:(Vector Any) =
 ## PRIVATE
    Return children of this node that pass a filter.
 is_element_or_non_whitespace_text : Node -> Boolean
-is_element_or_non_whitespace_text node =
+is_element_or_non_whitespace_text node:Node =
     is_element = node.getNodeType == Node.ELEMENT_NODE
     is_non_whitespace_text = node.getNodeType == Node.TEXT_NODE && node.getNodeValue.is_whitespace.not
     is_element || is_non_whitespace_text
@@ -375,7 +377,7 @@ is_element_or_non_whitespace_text node =
 ## PRIVATE
    Returns true if `key` starts with "@".
 is_attribute_key : Text -> Boolean
-is_attribute_key s = s.starts_with "@"
+is_attribute_key s:Text = s.starts_with "@"
 
 ## PRIVATE
    Convert NodeList to Vector.
