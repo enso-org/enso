@@ -579,6 +579,7 @@
 - [Implemented `Date_Time_Formatter` for more user-friendly date/time format
   parsing.][7826]
 - [Implemented `Table.auto_value_types` for in-memory tables.][7908]
+- [Implemented Text.substring to easily select part of a Text field][7913]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
