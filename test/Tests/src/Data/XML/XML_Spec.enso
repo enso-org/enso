@@ -66,6 +66,11 @@ spec =
             root.at 2 . at "@studentId" . should_equal "1000"
             root.at 3 . at "@studentId" . should_equal "1001"
 
+            root.at 0 . attribute "id" . should_equal "100"
+            root.at 1 . attribute "id" . should_equal "101"
+            root.at 2 . attribute "studentId" . should_equal "1000"
+            root.at 3 . attribute "studentId" . should_equal "1001"
+
         Test.specify "Can get element an attribute map" <|
             root.at 2 . attributes . should_equal (Map.from_vector [["studentId", "1000"], ["year", "2"]])
             root.at 3 . attributes . should_equal (Map.from_vector [["studentId", "1001"], ["year", "3"]])
@@ -107,7 +112,7 @@ spec =
         Test.specify "Can handle a bad xpath" <|
             root.at "/qqq[[[[1" . at 0 . text . should_fail_with XML_Error
 
-    Test.group "text contents" <|
+    Test.group "children" <|
         Test.specify "children" <|
             children = root.children
             children.length . should_equal 5

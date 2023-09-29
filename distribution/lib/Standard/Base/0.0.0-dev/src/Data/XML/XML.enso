@@ -242,6 +242,20 @@ type XML_Element
     children : Vector (XML_Element | Text)
     children self = only_wanted_nodes self.all_children
 
+    ## Gets the number children of an xml element.
+
+       `num_children` only countschild elements and child text nodes that are
+       not 100% whitespace. Other node types, such as comments, are not included
+       in the count.
+
+       > Example
+         Get the number of children of an element.
+
+             XML_Document.from_string '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . num_children
+             # => 2
+    num_children : Integer
+    num_children self = self.children.length
+
     ## Gets the text (non-markup) contents of the element and its descendants,
        if any.
 
@@ -279,20 +293,6 @@ type XML_Element
     inner_xml self =
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
-
-    ## Gets the number children of an xml element.
-
-       `num_children` only countschild elements and child text nodes that are
-       not 100% whitespace. Other node types, such as comments, are not included
-       in the count.
-
-       > Example
-         Get the number of children of an element.
-
-             XML_Document.from_string '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . num_children
-             # => 2
-    num_children : Integer
-    num_children self = self.children.length
 
     ##
         ## Gets elements matching a given tag name
