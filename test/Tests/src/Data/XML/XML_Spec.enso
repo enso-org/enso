@@ -99,6 +99,19 @@ spec =
             root.at "/qqq[[[[1" . at 0 . text . should_fail_with XML_Error
 
     Test.group "text contents" <|
+        Test.specify "children" <|
+            children = root.children
+            children.length . should_equal 5
+            children.at 0 . at "@id" . should_equal "100"
+            children.at 1 . at "@id" . should_equal "101"
+            children.at 2 . at "@studentId" . should_equal "1000"
+            children.at 3 . at "@studentId" . should_equal "1001"
+            children.at 4 . at "@studentId" . should_equal "1002"
+
+        Test.specify "num_children" <|
+            root.num_children . should_equal 5
+
+    Test.group "text contents" <|
         Test.specify "can get child text contents" <|
             root.at 4 . at 1 . text . should_equal "Randy"
             root.at 4 . text . should_equal '\n        Some\n        Randy\n        Extra\n        Brown\n        Text\n        3.99\n    '
