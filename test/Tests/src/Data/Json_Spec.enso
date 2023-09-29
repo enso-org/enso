@@ -66,10 +66,17 @@ spec =
             deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
             "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
 
-        Test.specify "should be able to deserialize using into" <|
+        Test.specify "should be able to deserialize using into via conversion" <|
+            Json.parse '{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}' . into Time_Zone . should_equal (Time_Zone.parse "Europe/Moscow")
+
+        Test.specify "should be able to deserialize using into for single constructor" <|
             Json.parse '{"first": 1, "second": 2}' . into Pair . should_equal (Pair.Value 1 2)
             Json.parse '{"start": 15, "end": 20, "step": 3}' . into Range . should_equal (Range.Between 15 20 3)
-            Json.parse '{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}' . into Time_Zone . should_equal (Time_Zone.parse "Europe/Moscow")
+
+        Test.specify "should be able to deserialize using into for multiple constructors" <|
+            Json.parse '{"than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
+            Json.parse '{"constructor": "Less", "than": 2}' . into Filter_Condition . should_equal (Filter_Condition.Less 2)
+            Json.parse '{"constructor": "NotARealOne", "than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
 
         Test.specify "should be able to deserialize Date" <|
             '{"type": "Date", "constructor": "new", "year": 2018, "month": 7, "day": 3}'.should_parse_as (Date.new 2018 7 3)
