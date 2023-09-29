@@ -141,4 +141,21 @@ spec =
             root.at "/class/teacher[1]/bio" . at 0 . outer_xml . should_equal '<bio>\n            Blah blah\n        </bio>'
             root.at "/class/teacher[2]/bio" . at 0 . outer_xml . should_equal '<bio>\n            This that\n        </bio>'
 
+    Test.group "get_elements_by_tag_name" <|
+        Test.specify "get_elements_by_tag_name" <|
+            teachers = root.get_elements_by_tag_name "teacher"
+            students = root.get_elements_by_tag_name "student"
+
+            teachers.length . should_equal 2
+            students.length . should_equal 3
+
+            teachers.at 0 . at "@id" . should_equal "100"
+            teachers.at 1 . at "@id" . should_equal "101"
+            students.at 0 . at "@studentId" . should_equal "1000"
+            students.at 1 . at "@studentId" . should_equal "1001"
+            students.at 2 . at "@studentId" . should_equal "1002"
+
+        Test.specify "wildcard" <|
+            root.get_elements_by_tag_name "*" . length . should_equal 20
+
 main = Test_Suite.run_main spec

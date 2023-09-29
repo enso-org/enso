@@ -294,13 +294,14 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
 
-    ##
-        ## Gets elements matching a given tag name
+    ## Gets elements matching a given tag name.
 
-           Example:
-               XML_Document.from_string '<foo><baz>hello</baz></foo>' . get_elements_by_tag_name "baz"
-               # => [XML_Document.from_string "<baz>hello</baz>"]
-        get_elements_by_tag_name : Text -> Vector XML_Element
+       > Example
+             XML_Document.from_string '<foo> <baz>hello</baz> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
+             # => [XML_Document.from_string "<baz>hello</baz>", XML_Document.from_string "<baz>goodbye</baz>"]
+    get_elements_by_tag_name : Text -> Vector XML_Element
+    get_elements_by_tag_name self tag_name =
+        only_wanted_nodes (nodelist_to_vector (self.java_element.getElementsByTagName tag_name))
 
     ## PRIVATE
     Value (java_element:Element)
