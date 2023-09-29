@@ -77,8 +77,7 @@ export default function Dashboard(props: DashboardProps) {
         hooks.useEvent<assetListEventModule.AssetListEvent>()
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
     const modalRef = React.useRef<modalProvider.Modal | null>(null)
-    // This MUST be a ref so that its value can be changed on the first tick.
-    const initialProjectNameRef = React.useRef(rawInitialProjectName)
+    const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -179,7 +178,7 @@ export default function Dashboard(props: DashboardProps) {
                 }
             } else {
                 if (currentBackend.type === backendModule.BackendType.local) {
-                    initialProjectNameRef.current = savedProjectStartupInfo.projectAsset.id
+                    setInitialProjectName(savedProjectStartupInfo.projectAsset.id)
                 } else {
                     const localBackend = new localBackendModule.LocalBackend(projectManagerUrl)
                     void (async () => {
@@ -407,7 +406,7 @@ export default function Dashboard(props: DashboardProps) {
                 <Drive
                     hidden={page !== pageSwitcher.Page.drive}
                     page={page}
-                    initialProjectName={initialProjectNameRef.current}
+                    initialProjectName={initialProjectName}
                     query={query}
                     projectStartupInfo={projectStartupInfo}
                     queuedAssetEvents={queuedAssetEvents}

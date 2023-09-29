@@ -231,8 +231,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
-    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
-        React.useState(initialProjectName)
+    const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
     const rootDirectoryId = React.useMemo(
         () => backend.rootDirectoryId(organization),
         [backend, organization]
@@ -304,56 +303,86 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [loadingProjectManagerDidFail, backend.type])
 
     React.useEffect(() => {
-        setNameOfProjectToImmediatelyOpen(initialProjectName)
+        if (isLoading) {
+            setNameOfProjectToImmediatelyOpen(initialProjectName)
+        } else {
+            // The project name here might also be a string with project id, e.g. when opening
+            // a project file from explorer on Windows.
+            const isInitialProject = (asset: backendModule.AnyAsset) =>
+                asset.title === initialProjectName || asset.id === initialProjectName
+            const projectToLoad = assetTree
+                .map(node => node.item)
+                .filter(backendModule.assetIsProject)
+                .find(isInitialProject)
+            if (projectToLoad != null) {
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.openProject,
+                    id: projectToLoad.id,
+                    shouldAutomaticallySwitchPage: true,
+                    runInBackground: false,
+                })
+            } else {
+                toastAndLog(`Could not find project '${initialProjectName}'`)
+            }
+        }
+        // This effect MUST only run when `initialProjectName` is changed.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialProjectName])
 
     const overwriteAssets = React.useCallback(
         (newAssets: backendModule.AnyAsset[]) => {
-            setInitialized(true)
-            setAssetTree(
-                newAssets.map(asset => ({
-                    key: asset.id,
-                    item: asset,
-                    directoryKey: null,
-                    directoryId: null,
-                    children: null,
-                    depth: 0,
-                }))
-            )
-            // The project name here might also be a string with project id, e.g. when opening
-            // a project file from explorer on Windows.
-            const isInitialProject = (asset: backendModule.AnyAsset) =>
-                asset.title === nameOfProjectToImmediatelyOpen ||
-                asset.id === nameOfProjectToImmediatelyOpen
-            if (nameOfProjectToImmediatelyOpen != null) {
-                const projectToLoad = newAssets
-                    .filter(backendModule.assetIsProject)
-                    .find(isInitialProject)
-                if (projectToLoad != null) {
-                    dispatchAssetEvent({
-                        type: assetEventModule.AssetEventType.openProject,
-                        id: projectToLoad.id,
-                        shouldAutomaticallySwitchPage: true,
-                        runInBackground: false,
-                    })
-                } else {
-                    toastAndLog(`Could not find project '${nameOfProjectToImmediatelyOpen}'`)
-                }
-                setNameOfProjectToImmediatelyOpen(null)
-            }
-            setQueuedAssetEvents(oldQueuedAssetEvents => {
-                if (oldQueuedAssetEvents.length !== 0) {
-                    window.setTimeout(() => {
-                        for (const event of oldQueuedAssetEvents) {
-                            dispatchAssetEvent(event)
+            // This is required, otherwise we are using an outdated
+            // `nameOfProjectToImmediatelyOpen`.
+            setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
+                setTimeout(() => {
+                    setInitialized(true)
+                    setAssetTree(
+                        newAssets.map(asset => ({
+                            key: asset.id,
+                            item: asset,
+                            directoryKey: null,
+                            directoryId: null,
+                            children: null,
+                            depth: 0,
+                        }))
+                    )
+                    // The project name here might also be a string with project id, e.g.
+                    // when opening a project file from explorer on Windows.
+                    const isInitialProject = (asset: backendModule.AnyAsset) =>
+                        asset.title === oldNameOfProjectToImmediatelyOpen ||
+                        asset.id === oldNameOfProjectToImmediatelyOpen
+                    if (oldNameOfProjectToImmediatelyOpen != null) {
+                        const projectToLoad = newAssets
+                            .filter(backendModule.assetIsProject)
+                            .find(isInitialProject)
+                        if (projectToLoad != null) {
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.openProject,
+                                id: projectToLoad.id,
+                                shouldAutomaticallySwitchPage: true,
+                                runInBackground: false,
+                            })
+                        } else {
+                            toastAndLog(
+                                `Could not find project '${oldNameOfProjectToImmediatelyOpen}'`
+                            )
                         }
-                    }, 0)
-                }
-                return []
+                    }
+                    setQueuedAssetEvents(oldQueuedAssetEvents => {
+                        if (oldQueuedAssetEvents.length !== 0) {
+                            window.setTimeout(() => {
+                                for (const event of oldQueuedAssetEvents) {
+                                    dispatchAssetEvent(event)
+                                }
+                            }, 0)
+                        }
+                        return []
+                    })
+                }, 0)
+                return null
             })
         },
         [
-            nameOfProjectToImmediatelyOpen,
             /* should never change */ setNameOfProjectToImmediatelyOpen,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ toastAndLog,
