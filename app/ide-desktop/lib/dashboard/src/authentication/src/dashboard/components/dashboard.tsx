@@ -7,7 +7,7 @@ import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
-import * as localBackend from '../localBackend'
+import * as localBackendModule from '../localBackend'
 import * as localStorageModule from '../localStorage'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
@@ -119,7 +119,7 @@ export default function Dashboard(props: DashboardProps) {
             localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
                 backendModule.BackendType.local
         ) {
-            currentBackend = new localBackend.LocalBackend(projectManagerUrl)
+            currentBackend = new localBackendModule.LocalBackend(projectManagerUrl)
             setBackend(currentBackend)
         }
         const savedProjectStartupInfo = localStorage.get(
@@ -178,7 +178,26 @@ export default function Dashboard(props: DashboardProps) {
                     }
                 }
             } else {
-                initialProjectNameRef.current = savedProjectStartupInfo.projectAsset.id
+                if (currentBackend.type === backendModule.BackendType.local) {
+                    initialProjectNameRef.current = savedProjectStartupInfo.projectAsset.id
+                } else {
+                    const localBackend = new localBackendModule.LocalBackend(projectManagerUrl)
+                    void (async () => {
+                        await localBackend.openProject(
+                            savedProjectStartupInfo.projectAsset.id,
+                            null,
+                            savedProjectStartupInfo.projectAsset.title
+                        )
+                        const project = await localBackend.getProjectDetails(
+                            savedProjectStartupInfo.projectAsset.id,
+                            savedProjectStartupInfo.projectAsset.title
+                        )
+                        setProjectStartupInfo({
+                            ...savedProjectStartupInfo,
+                            project,
+                        })
+                    })()
+                }
             }
         }
         // This MUST only run when the component is mounted.
@@ -279,7 +298,7 @@ export default function Dashboard(props: DashboardProps) {
             if (newBackendType !== backend.type) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
-                        setBackend(new localBackend.LocalBackend(projectManagerUrl))
+                        setBackend(new localBackendModule.LocalBackend(projectManagerUrl))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
