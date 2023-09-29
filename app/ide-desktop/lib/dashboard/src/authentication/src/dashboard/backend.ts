@@ -45,9 +45,9 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
-/** Unique identifier for a file tag or project tag. */
-export type TagId = newtype.Newtype<string, 'TagId'>
-export const TagId = newtype.newtypeConstructor<TagId>()
+/** Unique identifier for an asset tag. */
+export type TagAssetAssociationId = newtype.Newtype<string, 'TagAssetAssociationId'>
+export const TagAssetAssociationId = newtype.newtypeConstructor<TagAssetAssociationId>()
 
 /** A URL. */
 export type Address = newtype.Newtype<string, 'Address'>
@@ -235,28 +235,9 @@ export interface SecretInfo {
     id: SecretId
 }
 
-/** The type of asset a specific tag can be applied to. */
-export enum TagObjectType {
-    file = 'File',
-    project = 'Project',
-}
-
-/** A file tag or project tag. */
-export interface Tag {
-    /* eslint-disable @typescript-eslint/naming-convention */
-    organization_id: UserOrOrganizationId
-    id: TagId
-    name: string
-    value: string
-    object_type: TagObjectType
-    object_id: string
-    /* eslint-enable @typescript-eslint/naming-convention */
-}
-
-/** Metadata uniquely identifying a file tag or project tag. */
-export interface TagInfo {
-    id: TagId
-    name: string
+/** A tag for an asset. */
+export interface Label {
+    id: TagAssetAssociationId
     value: string
 }
 
@@ -413,6 +394,7 @@ export interface BaseAsset {
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
     permissions: UserPermission[] | null
+    labels: Label[] | null
 }
 
 /** Metadata uniquely identifying a directory entry.
@@ -449,6 +431,7 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
         parentId: directoryId,
         permissions: [],
         projectState: null,
+        labels: [],
     }
 }
 
@@ -466,6 +449,7 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
         parentId: directoryId,
         permissions: [],
         projectState: null,
+        labels: [],
     }
 }
 
@@ -593,10 +577,7 @@ export interface CreateSecretRequestBody {
 
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
-    name: string
     value: string
-    objectType: TagObjectType
-    objectId: string
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -611,11 +592,6 @@ export interface UploadFileRequestParams {
     fileId: string | null
     fileName: string | null
     parentDirectoryId: DirectoryId | null
-}
-
-/** URL query string parameters for the "list tags" endpoint. */
-export interface ListTagsRequestParams {
-    tagType: TagObjectType
 }
 
 /** URL query string parameters for the "list versions" endpoint. */
@@ -767,11 +743,11 @@ export abstract class Backend {
     /** Return the secret environment variables accessible by the user. */
     abstract listSecrets(): Promise<SecretInfo[]>
     /** Create a file tag or project tag. */
-    abstract createTag(body: CreateTagRequestBody): Promise<TagInfo>
+    abstract createTag(body: CreateTagRequestBody): Promise<Label>
     /** Return file tags or project tags accessible by the user. */
-    abstract listTags(params: ListTagsRequestParams): Promise<Tag[]>
+    abstract listTags(): Promise<Label[]>
     /** Delete a file tag or project tag. */
-    abstract deleteTag(tagId: TagId): Promise<void>
+    abstract deleteTag(tagId: TagAssetAssociationId): Promise<void>
     /** Return a list of backend or IDE versions. */
     abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

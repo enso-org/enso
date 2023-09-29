@@ -11,12 +11,14 @@ import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
+import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
 import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
+import Labels from './labels'
 
 // =============
 // === Drive ===
@@ -81,6 +83,9 @@ export default function Drive(props: DriveProps) {
             localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
             categorySwitcher.Category.home
     )
+    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
+    const [currentLabel, setCurrentLabel] =
+        React.useState<backendModule.TagAssetAssociationId | null>(null)
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -91,6 +96,14 @@ export default function Drive(props: DriveProps) {
             window.removeEventListener('blur', onBlur)
         }
     }, [])
+
+    React.useEffect(() => {
+        void (async () => {
+            if (backend.type !== backendModule.BackendType.local) {
+                setLabels(await backend.listTags())
+            }
+        })()
+    }, [backend])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -183,6 +196,31 @@ export default function Drive(props: DriveProps) {
                 {backend.type === backendModule.BackendType.remote && (
                     <div className="flex flex-col gap-4 py-1">
                         <CategorySwitcher category={category} setCategory={setCategory} />
+                        <Labels
+                            labels={labels}
+                            currentLabel={currentLabel}
+                            setCurrentLabel={setCurrentLabel}
+                            doCreateLabel={value => {
+                                const placeholderLabel: backendModule.Label = {
+                                    id: backendModule.TagAssetAssociationId(
+                                        uniqueString.uniqueString()
+                                    ),
+                                    value,
+                                }
+                                setLabels(oldLabels => [...oldLabels, placeholderLabel])
+                                void (async () => {
+                                    const label = await backend.createTag({ value })
+                                    setLabels(oldLabels =>
+                                        oldLabels.map(oldLabel =>
+                                            oldLabel.id === placeholderLabel.id ? label : oldLabel
+                                        )
+                                    )
+                                    setCurrentLabel(oldLabel =>
+                                        oldLabel === placeholderLabel.id ? label.id : oldLabel
+                                    )
+                                })()
+                            }}
+                        />
                     </div>
                 )}
                 <AssetsTable

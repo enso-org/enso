@@ -135,13 +135,13 @@ function projectUpdatePath(projectId: backendModule.ProjectId) {
 function checkResourcesPath(projectId: backendModule.ProjectId) {
     return `projects/${projectId}/resources`
 }
-/** Relative HTTP path to the "get project" endpoint of the Cloud backend API. */
+/** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 function getSecretPath(secretId: backendModule.SecretId) {
     return `secrets/${secretId}`
 }
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
-function deleteTagPath(tagId: backendModule.TagId) {
-    return `secrets/${tagId}`
+function deleteTagPath(tagId: backendModule.TagAssetAssociationId) {
+    return `tags/${tagId}`
 }
 
 // =============
@@ -175,7 +175,7 @@ interface ListSecretsResponseBody {
 
 /** HTTP response body for the "list tag" endpoint. */
 interface ListTagsResponseBody {
-    tags: backendModule.Tag[]
+    tags: backendModule.Label[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
@@ -680,17 +680,12 @@ export class RemoteBackend extends backendModule.Backend {
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async createTag(
         body: backendModule.CreateTagRequestBody
-    ): Promise<backendModule.TagInfo> {
-        const response = await this.post<backendModule.TagInfo>(CREATE_TAG_PATH, {
-            /* eslint-disable @typescript-eslint/naming-convention */
-            tag_name: body.name,
-            tag_value: body.value,
-            object_type: body.objectType,
-            object_id: body.objectId,
-            /* eslint-enable @typescript-eslint/naming-convention */
+    ): Promise<backendModule.Label> {
+        const response = await this.post<backendModule.Label>(CREATE_TAG_PATH, {
+            value: body.value,
         })
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not create create tag with name '${body.name}'.`)
+            return this.throw(`Could not create create tag '${body.value}'.`)
         } else {
             return await response.json()
         }
@@ -699,19 +694,10 @@ export class RemoteBackend extends backendModule.Backend {
     /** Return file tags or project tags accessible by the user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    override async listTags(
-        params: backendModule.ListTagsRequestParams
-    ): Promise<backendModule.Tag[]> {
-        const response = await this.get<ListTagsResponseBody>(
-            LIST_TAGS_PATH +
-                '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    tag_type: params.tagType,
-                }).toString()
-        )
+    override async listTags(): Promise<backendModule.Label[]> {
+        const response = await this.get<ListTagsResponseBody>(LIST_TAGS_PATH)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not list tags of type '${params.tagType}'.`)
+            return this.throw(`Could not list tags.`)
         } else {
             return (await response.json()).tags
         }
@@ -720,7 +706,7 @@ export class RemoteBackend extends backendModule.Backend {
     /** Delete a secret environment variable.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    override async deleteTag(tagId: backendModule.TagId): Promise<void> {
+    override async deleteTag(tagId: backendModule.TagAssetAssociationId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not delete tag with ID '${tagId}'.`)

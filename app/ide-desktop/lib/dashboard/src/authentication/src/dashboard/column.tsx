@@ -5,7 +5,7 @@ import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import DocsIcon from 'enso-assets/docs.svg'
 import PeopleIcon from 'enso-assets/people.svg'
-import PlusIcon from 'enso-assets/plus.svg'
+import Plus2Icon from 'enso-assets/plus2.svg'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
@@ -220,7 +220,7 @@ function SharedWithColumn(props: AssetColumnProps) {
                         )
                     }}
                 >
-                    <img className="w-4.5 h-4.5" src={PlusIcon} />
+                    <img className="w-4.5 h-4.5" src={Plus2Icon} />
                 </button>
             )}
         </div>
