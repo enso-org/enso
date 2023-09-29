@@ -249,6 +249,7 @@ impl IsTarget for Wasm {
             info!("Building wasm.");
             let temp_dir = tempdir()?;
             let temp_dist = RepoRootDistWasm::new_root(temp_dir.path());
+            crate::web::install(&repo_root).await?;
             ensogl_pack::build(
                 ensogl_pack::WasmPackOutputs {
                     out_dir:  temp_dist.path.clone(),
