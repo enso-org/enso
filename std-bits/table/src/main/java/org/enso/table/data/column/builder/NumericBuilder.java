@@ -1,13 +1,10 @@
 package org.enso.table.data.column.builder;
 
-import org.enso.table.data.column.storage.type.IntegerType;
-
 import java.util.Arrays;
 import java.util.BitSet;
+import org.enso.table.data.column.storage.type.IntegerType;
 
-/**
- * A common base for numeric builders.
- */
+/** A common base for numeric builders. */
 public abstract class NumericBuilder extends TypedBuilder {
   protected BitSet isMissing;
   protected long[] data;
@@ -20,8 +17,8 @@ public abstract class NumericBuilder extends TypedBuilder {
   }
 
   /**
-   * Creates a {@link DoubleBuilder} that should be used to create columns of boolean type and are not expected to be
-   * retyped.
+   * Creates a {@link DoubleBuilder} that should be used to create columns of boolean type and are
+   * not expected to be retyped.
    */
   public static DoubleBuilder createDoubleBuilder(int size) {
     return new DoubleBuilder(new BitSet(), new long[size], 0);
@@ -62,7 +59,8 @@ public abstract class NumericBuilder extends TypedBuilder {
    * <p>This function should only be used when it is guaranteed that the builder has enough
    * capacity, for example if it was initialized with an initial capacity known up-front.
    *
-   * @param rawData the raw encoding of the item, for long numbers just the number and for doubles, its long bytes
+   * @param rawData the raw encoding of the item, for long numbers just the number and for doubles,
+   *     its long bytes
    */
   public void appendRawNoGrow(long rawData) {
     data[currentSize++] = rawData;
@@ -77,7 +75,8 @@ public abstract class NumericBuilder extends TypedBuilder {
    * Grows the underlying array.
    *
    * <p>The method grows the array by 50% by default to amortize the re-allocation time over
-   * appends. It tries to keep the invariant that after calling `grow` the array has at least one free slot.
+   * appends. It tries to keep the invariant that after calling `grow` the array has at least one
+   * free slot.
    */
   protected void grow() {
     int desiredCapacity = 3;
