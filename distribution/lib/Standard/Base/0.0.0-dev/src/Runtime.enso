@@ -60,7 +60,7 @@ gc = @Builtin_Method "Runtime.gc"
    Assertions are disable by default, meaning that call to this method is
    a no-op. To enable assertions, set the environment variable
    `ENSO_ENABLE_ASSERTIONS=true`
-assert : (Any -> Boolean) -> Text -> Nothing ! Assertion_Error
+assert : Boolean -> Text -> Nothing ! Assertion_Error
 assert ~action message="" = assert_builtin action message
 
 ## PRIVATE
