@@ -11,8 +11,7 @@ spec =
 
     Test.group "Read XML" <|
         Test.specify "Can read from a file" <|
-            doc = XML_Document.from_file test_file
-            doc.root_element.name . should_equal "class"
+            root.name . should_equal "class"
 
         Test.specify "Error if file does not exist" <|
             test_file = enso_project.data / "xml" / "sample.xmlnotexists"
