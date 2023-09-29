@@ -108,6 +108,11 @@ spec =
             root.at "teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
             root.at "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
 
+        Test.specify "Can handle a bad xpath" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            root = XML_Document.from_file test_file . root_element
+            root.at "/qqq[[[[1" . at 0 . text . should_fail_with XML_Error
+
     Test.group "text contents" <|
         Test.specify "can get child text contents" <|
             test_file = enso_project.data / "xml" / "sample.xml"

@@ -183,8 +183,9 @@ type XML_Element
              # => XML_Document.from_string "<firstname>Alice</firstname>" . root_element
     get_xpath : Text -> Vector XML_Element
     get_xpath self key =
-        xpath = XPathFactory.newInstance.newXPath
-        only_wanted_nodes (nodelist_to_vector (xpath.evaluate key self.java_element XPathConstants.NODESET))
+        XML_Error.handle_java_exceptions <|
+            xpath = XPathFactory.newInstance.newXPath
+            only_wanted_nodes (nodelist_to_vector (xpath.evaluate key self.java_element XPathConstants.NODESET))
 
     ## PRIVATE
        Get the child element indicated by the index. This ignores all
@@ -207,13 +208,15 @@ type XML_Element
              # => "one"
     attribute : Text -> Any -> Text | Any
     attribute self name ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
-        attr = self.java_element.getAttributeNode name
-        if attr.is_nothing then if_missing else attr.getValue
+        XML_Error.handle_java_exceptions <|
+            attr = self.java_element.getAttributeNode name
+            if attr.is_nothing then if_missing else attr.getValue
 
     ## PRIVATE
        Get all children of this element.
     all_children : Vector Any
-    all_children self = nodelist_to_vector self.java_element.getChildNodes
+    all_children self =
+        nodelist_to_vector self.java_element.getChildNodes
 
     ## Gets a map of the attributes of an xml element.
 
@@ -248,7 +251,9 @@ type XML_Element
              XML_Document.from_string '<foo>hello</foo>' . root_element . text
              # => "hello"
     text : Text
-    text self = self.java_element.getTextContent
+    text self =
+        XML_Error.handle_java_exceptions <|
+            self.java_element.getTextContent
 
     ## Gets the raw XML of the element (including tag, attributes and contents).
 
@@ -274,20 +279,6 @@ type XML_Element
     inner_xml self =
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
-
-    ##
-        ## Gets the raw XML contents of the element.
-        inner_xml : Text
-
-    ##
-        ## PRIVATE
-        get_xpath_one_value : Text -> Any -> Any | XML_Element
-        get_xpath_one_value key ~if_missing =
-            values = get_xpath key
-            case values.length of
-                0 -> if_missing
-                1 -> values.at 0
-                n -> Error.throw (XML_Error.Multiple_Values_Found key n)
 
     ## Gets the number children of an xml element.
 
