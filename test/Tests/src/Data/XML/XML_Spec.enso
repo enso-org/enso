@@ -66,6 +66,12 @@ spec =
             root.at 2 . at "@studentId" . should_equal "1000"
             root.at 3 . at "@studentId" . should_equal "1001"
 
+        Test.specify "Can get element an attribute map" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            root = XML_Document.from_file test_file . root_element
+            root.at 2 . attributes . should_equal (Map.from_vector [["studentId", "1000"], ["year", "2"]])
+            root.at 3 . attributes . should_equal (Map.from_vector [["studentId", "1001"], ["year", "3"]])
+
         Test.specify "Can get via xpath" <|
             test_file = enso_project.data / "xml" / "sample.xml"
             root = XML_Document.from_file test_file . root_element

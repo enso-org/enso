@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Boolean.Boolean
+import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -183,13 +184,18 @@ type XML_Element
     all_children : Vector Any
     all_children self = nodelist_to_vector self.java_element.getChildNodes
 
-    ##
-        ## Gets a map of the attributes of an xml element.
+    ## Gets a map of the attributes of an xml element.
 
-           Example:
-               XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attributes
-               # => Map.from_vector [["bar", "one"]]
-        attributes : Map Text Text
+       Example:
+           XML_Document.from_string '<foo bar="one">hello</foo>' . at 0 . attributes
+           # => Map.from_vector [["bar", "one"]]
+    attributes : Map Text Text
+    attributes self =
+        named_node_map = self.java_element.getAttributes
+        keys_and_values = 0.up_to named_node_map.getLength . map i->
+            node = named_node_map.item i
+            [node.getNodeName, node.getNodeValue]
+        Map.from_vector keys_and_values
 
     ## Gets the child elements of an XML element. This ignores all non-element
        children.
