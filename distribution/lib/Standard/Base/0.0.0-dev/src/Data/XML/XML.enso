@@ -137,7 +137,7 @@ type XML_Element
              root = XML_Document.from_string '<foo bar="one">hello</foo>' . root_element
              root.get "@bar"
              # => "one"
-    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector XML_Element
+    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element)
     get self key ~if_missing=Nothing =
         case key of
             _ : Integer -> self.get_child_element key if_missing
@@ -163,7 +163,7 @@ type XML_Element
              root = XML_Document.from_string '<foo bar="one">hello</foo>' . root_element
              root.at "@bar"
              # => "one"
-    at : Text | Integer -> Text | XML_Element | Vector XML_Element ! No_Such_Key | Index_Out_Of_Bounds
+    at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds
     at self key =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.num_children)
@@ -282,7 +282,7 @@ type XML_Element
             XML_Utils.outerXML self.java_element
 
     ## Gets the raw XML of the contents of the element, not including the
-       outermost tag and attributes.       
+       outermost tag and attributes.
 
        > Example
          Get the inner XML of an element.

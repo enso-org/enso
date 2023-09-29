@@ -92,6 +92,9 @@ spec =
 
             root.at "/class/teacher[1]/firstname" . at 0 . text . should_equal "Mary"
             root.at "/class/teacher[2]/firstname" . at 0 . text . should_equal "Bob"
+            root.at "/class/teacher[1]/firstname/text()" . should_equal ["Mary"]
+            root.at "/class/teacher[2]/firstname/text()" . should_equal ["Bob"]
+            root.at "/class/teacher/firstname/text()" . should_equal ["Mary", "Bob"]
             root.at "/class/teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
             root.at "/class/teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
             root.get "/class/teacher[23]" . should_equal []
