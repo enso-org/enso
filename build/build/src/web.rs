@@ -6,7 +6,8 @@ use crate::prelude::*;
 
 use ide_ci::programs::Npm;
 
-
+/// Result of root-level `npm install` call. Should not be accessed directly.
+static ONCE_INSTALL: tokio::sync::OnceCell<Result> = tokio::sync::OnceCell::const_new();
 
 /// This method invokes `npm install` in the root repository.
 ///
@@ -20,16 +21,24 @@ use ide_ci::programs::Npm;
 /// It is useful, because otherwise the build script might end up invoking `npm install` multiple
 /// times, sometimes even in parallel. Unfortunately, in such cases, `npm` might fail with errors.
 pub fn install(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    static ONCE: tokio::sync::OnceCell<Result> = tokio::sync::OnceCell::const_new();
-
     let root_path = repo_root.as_ref().to_owned();
     async move {
-        let ret = ONCE
+        let ret = ONCE_INSTALL
             .get_or_init(async || Npm.cmd()?.with_current_dir(&root_path).install().run_ok().await)
             .await;
         ret.as_ref().copied().map_err(|e| anyhow!("Failed to install NPM dependencies: {e}"))
     }
     .boxed()
+}
+
+/// Mark the root repository's NPM as installed.
+///
+/// If invoked before `install`, any subsequent `install` call will return `Ok`.
+/// If it was already installed and failed, the failure will still be returned.
+pub fn assume_installed() {
+    let _ = ONCE_INSTALL.set(Ok(())).inspect_err(|e| {
+        warn!("Failed to mark NPM as installed, due to an error during a previous run: {e}");
+    });
 }
 
 /// The scripts that can be invoked in the root repository's NPM.

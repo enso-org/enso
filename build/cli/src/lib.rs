@@ -821,6 +821,10 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
 
     debug!("Parsed CLI arguments: {cli:#?}");
 
+    if cli.skip_npm_install {
+        enso_build::web::assume_installed();
+    }
+
     if !cli.skip_version_check {
         // Let's be helpful!
         let error_message = "Program requirements were not fulfilled. Please do one of the \

@@ -174,6 +174,10 @@ pub struct Cli {
     #[clap(long, global = true, enso_env())]
     pub skip_version_check: bool,
 
+    /// Assume that `npm install` was already run in the repository root and skip it.
+    #[clap(long, global = true, enso_env())]
+    pub skip_npm_install: bool,
+
     #[clap(subcommand)]
     pub target: Target,
 }
