@@ -179,8 +179,11 @@ declare module 'create-servers' {
     export default function (
         option: CreateServersOptions,
         // The types come from a third-party API and cannot be changed.
-        // eslint-disable-next-line no-restricted-syntax
-        errorHandler: (err: HttpError | undefined) => void
+        // eslint-disable-next-line no-restricted-syntax,@typescript-eslint/consistent-type-imports
+        handler: (
+            err: HttpError | undefined,
+            servers: { http?: import('http').Server; https?: import('https').Server }
+        ) => void
     ): unknown
 }
 
