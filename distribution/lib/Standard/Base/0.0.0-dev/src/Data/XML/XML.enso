@@ -181,7 +181,7 @@ type XML_Element
              root = XML_Document.from_file test_file . root_element
              root.at "/class/teacher[1]/firstname"
              # => XML_Document.from_string "<firstname>Alice</firstname>" . root_element
-    get_xpath : Text -> Vector XML_Element
+    get_xpath : Text -> Vector (Text | XML_Element)
     get_xpath self key =
         XML_Error.handle_java_exceptions <|
             xpath = XPathFactory.newInstance.newXPath
