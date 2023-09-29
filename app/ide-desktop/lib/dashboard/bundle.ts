@@ -2,7 +2,6 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import * as process from 'node:process'
 
 import * as esbuild from 'esbuild'
 
