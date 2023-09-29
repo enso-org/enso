@@ -219,18 +219,20 @@ spec setup =
             t3.at "A" . value_type . is_floating_point . should_be_true
             t3.at "A" . to_vector . should_equal [0, 1, 2, 1.0, 2.0, 2.5]
 
-            t4 = table_builder [["A", [2^100, 2^10, 2]]]
-            t4.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
+            # Specific type tests that apply to in-memory. Database behaviour is up to implementation.
+            if setup.is_database.not then
+                t4 = table_builder [["A", [2^100, 2^10, 2]]]
+                t4.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
 
-            t5 = t2.union t4
-            expect_column_names ["A"] t5
-            t5.at "A" . value_type . is_floating_point . should_be_true
-            t5.at "A" . to_vector . should_equal [1.0, 2.0, 2.5, 2^100, 2^10, 2]
+                t5 = t2.union t4
+                expect_column_names ["A"] t5
+                t5.at "A" . value_type . is_floating_point . should_be_true
+                t5.at "A" . to_vector . should_equal [1.0, 2.0, 2.5, 2^100, 2^10, 2]
 
-            t6 = t1.union t4
-            expect_column_names ["A"] t6
-            t6.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
-            t6.at "A" . to_vector . should_equal [0, 1, 2, 2^100, 2^10, 2]
+                t6 = t1.union t4
+                expect_column_names ["A"] t6
+                t6.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
+                t6.at "A" . to_vector . should_equal [0, 1, 2, 2^100, 2^10, 2]
 
         # Database backends are not required to support Mixed types.
         if setup.is_database.not then
