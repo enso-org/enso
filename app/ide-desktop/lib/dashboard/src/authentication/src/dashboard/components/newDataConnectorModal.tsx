@@ -25,6 +25,7 @@ export default function NewDataConnectorModal(props: ConfirmDeleteModalProps) {
 
     const [name, setName] = React.useState('')
     const [value, setValue] = React.useState('')
+    const canSubmit = Boolean(name && value)
 
     const onSubmit = () => {
         unsetModal()
@@ -85,8 +86,9 @@ export default function NewDataConnectorModal(props: ConfirmDeleteModalProps) {
                     </div>
                     <div className="flex gap-2">
                         <button
+                            disabled={!canSubmit}
                             type="submit"
-                            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1"
+                            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
                         >
                             Create
                         </button>
