@@ -98,14 +98,20 @@ const groupColors = computed(() => {
     const name = group.name.replace(/\s/g, '-')
     let color = group.color ?? colorFromString(name)
     styles[`--group-color-${name}`] = color
-    styles[`--group-color-fallback-${name}`] = rgbFallback(color)
+  }
+  return styles
+})
+const fallbackColors = computed(() => {
+  const styles: {[key: string]: string} = {}
+  for (const [key, value] of Object.entries(groupColors.value)) {
+    styles[key] = rgbFallback(value)
   }
   return styles
 })
 </script>
 
 <template>
-  <div ref="viewportNode" class="viewport" v-on="navigator.events" @mousemove="updateMousePos" :style="groupColors">
+  <div ref="viewportNode" class="viewport" v-on="navigator.events" @mousemove="updateMousePos" :style="[groupColors, fallbackColors]">
     <svg :viewBox="navigator.viewBox">
       <GraphEdge
         v-for="(edge, index) in graphStore.edges"
