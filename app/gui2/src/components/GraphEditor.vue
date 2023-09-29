@@ -5,7 +5,7 @@ import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { colorFromString } from '@/util/colors'
+import { colorFromString, rgbFallback } from '@/util/colors'
 
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -14,7 +14,7 @@ import { modKey, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, computed } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -92,21 +92,20 @@ function moveNode(id: ExprId, delta: Vec2) {
   graphStore.setNodePosition(id, newPosition)
 }
 
-// === Populate CSS variables for group colors. ===
-
-watch([suggestionDb.groups, viewportNode], ([groups, root]) => {
-  if (root) {
-    for (let group of groups) {
-      const name = group.name.replace(/\s/, '-')
-      let color = group.color ?? colorFromString(name)
-      root.style.setProperty(`--group-color-${name}`, color)
-    }
+const groupColors = computed(() => {
+  const styles: {[key: string]: string} = {}
+  for (let group of suggestionDb.groups) {
+    const name = group.name.replace(/\s/g, '-')
+    let color = group.color ?? colorFromString(name)
+    styles[`--group-color-${name}`] = color
+    styles[`--group-color-fallback-${name}`] = rgbFallback(color)
   }
+  return styles
 })
 </script>
 
 <template>
-  <div ref="viewportNode" class="viewport" v-on="navigator.events" @mousemove="updateMousePos">
+  <div ref="viewportNode" class="viewport" v-on="navigator.events" @mousemove="updateMousePos" :style="groupColors">
     <svg :viewBox="navigator.viewBox">
       <GraphEdge
         v-for="(edge, index) in graphStore.edges"

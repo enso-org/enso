@@ -68,7 +68,7 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    emit('finished')
+    // emit('finished')
   }
 }
 
@@ -111,7 +111,7 @@ function componentStyle(index: number) {
 function componentColor(component: Component): string {
   const group = suggestionDbStore.groups[component.group ?? -1]
   if (group) {
-    const name = group.name.replace(/\s/, '-')
+    const name = group.name.replace(/\s/g, '-')
     return `var(--group-color-${name})`
   } else {
     return 'var(--group-color-fallback)'
