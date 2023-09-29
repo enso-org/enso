@@ -1192,7 +1192,7 @@ fn pattern_match_auto_scope() {
 // === Private (project-private) keyword ===
 #[test]
 fn private_keyword() {
-    test("private", block![(Private ())]);
+    test("private", block![(Private())]);
     test("private func", block![(Private (Ident func))]);
 }
 
@@ -1208,9 +1208,7 @@ fn private_is_first_statement() {
         "",
         "private"
     ];
-    test(&lines.join("\n"), block![
-        () () () (Private)
-    ]);
+    test(&lines.join("\n"), block![()()()(Private)]);
 
     #[rustfmt::skip]
     let lines = vec![

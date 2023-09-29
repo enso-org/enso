@@ -798,7 +798,7 @@ fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {
     syntax::token::ident(left_offset, code, false, 0, false, false, false)
 }
 
-fn into_private(token: syntax::token::Token)  -> syntax::token::Private {
+fn into_private(token: syntax::token::Token) -> syntax::token::Private {
     let syntax::token::Token { left_offset, code, .. } = token;
     syntax::token::private(left_offset, code)
 }
