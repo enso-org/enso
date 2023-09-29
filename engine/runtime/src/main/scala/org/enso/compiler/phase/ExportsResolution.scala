@@ -144,9 +144,7 @@ class ExportsResolution {
             }
         }
       val allExported = explicitlyExported ++ transitivelyExported
-      val allExportedPublic = allExported
-        .filterNot(_.target.module.unsafeAsModule().isPrivate)
-      val unified = allExportedPublic
+      val unified = allExported
         .groupBy(_.target)
         .map { case (mod, items) =>
           val name = items.collectFirst { case ExportedModule(_, Some(n), _) =>
@@ -177,9 +175,7 @@ class ExportsResolution {
           .map(e => (e.name, List(e.resolvedIn(module))))
       val exportedModules = bindings.resolvedExports.collect {
         case ExportedModule(mod, Some(name), _)
-            if mod.module.unsafeAsModule() != module && !mod.module
-              .unsafeAsModule()
-              .isPrivate =>
+            if mod.module.unsafeAsModule() != module =>
           (name, List(mod))
       }
       val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
