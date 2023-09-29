@@ -32,13 +32,15 @@ Text.to_uri self = URI.parse self
    represent a successful response.
 
    Arguments:
-   - method: The HTTP method to use. Defaults to `GET`.
+   - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
+     `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
+     Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
+   - try_auto_parse_response:  If successful should the body be attempted to be
+     parsed to an Enso native object.
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse=True =
-    Data.fetch self method headers try_auto_parse
+URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse_response=True =
+    Data.fetch self method headers try_auto_parse_response
 
 ## ALIAS upload, http post
    GROUP Input
@@ -47,13 +49,12 @@ URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse=Tr
    status code does not represent a successful response.
 
    Arguments:
-   - uri: The URI to fetch.
    - body: The data to write. See `Supported Body Types` below.
    - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
      `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
+   - try_auto_parse_response:  If successful should the body be attempted to be
+     parsed to an Enso native object.
 
    ! Specifying Content Types
 

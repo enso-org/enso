@@ -157,10 +157,9 @@ list_directory directory name_filter=Nothing recursive=False =
    - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
-
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
+   - try_auto_parse_response:  If successful should the body be attempted to be
+     parsed to an Enso native object.
 
    > Example
      Read from an HTTP endpoint.
