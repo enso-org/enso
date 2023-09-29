@@ -1,16 +1,16 @@
 <script setup lang="ts">
+import type { useNavigator } from '@/util/navigator'
+import { Vec2 } from '@/util/vec2'
 import { computed } from 'vue'
-import { Vec2 } from '@/util/vec2';
-import type { useNavigator } from "@/util/navigator";
 
 const props = defineProps<{
-  edge: { source: Vec2, target: Vec2 }
+  edge: { source: Vec2; target: Vec2 }
   editing: boolean
   navigator: ReturnType<typeof useNavigator>
 }>()
 
 const emit = defineEmits<{
-  disconnectSource: [],
+  disconnectSource: []
   disconnectTarget: []
 }>()
 
@@ -33,10 +33,6 @@ const edgePath = computed(() => {
   `
 })
 
-const classes = computed(() => {
-  return props.editing ? 'dynamic-edge' : 'static-edge';
-})
-
 function click(e: PointerEvent) {
   if (props.editing) return
   const pos = props.navigator.eventToScenePos(e)
@@ -51,17 +47,24 @@ function click(e: PointerEvent) {
 </script>
 
 <template>
-  <path :d="edgePath" stroke="black" stroke-width="4" fill="none" :class="classes" @pointerdown="click" />
+  <path
+    :d="edgePath"
+    stroke="black"
+    stroke-width="4"
+    fill="none"
+    :class="{ edge, editing: props.editing }"
+    @pointerdown="click"
+  />
 </template>
 
 <style scoped>
-.static-edge {
+.edge {
   stroke: tan;
 }
-.static-edge:hover {
+.edge:hover {
   stroke: red;
 }
-.dynamic-edge {
+.edge.editing {
   stroke: red;
 }
 </style>

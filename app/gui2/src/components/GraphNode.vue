@@ -25,7 +25,7 @@ const emit = defineEmits<{
   updateContent: [range: ContentRange, content: string]
   movePosition: [delta: Vec2]
   delete: []
-  updateHoveredExpr: [ExprId | null]
+  updateHoveredExpr: [ExprId | undefined]
 }>()
 
 const visualizationStore = useVisualizationStore()

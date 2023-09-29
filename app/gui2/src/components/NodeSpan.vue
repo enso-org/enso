@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updateExprRect: [expr: ExprId, rect: Rect]
-  updateHoveredExpr: [ExprId | null]
+  updateHoveredExpr: [ExprId | undefined]
 }>()
 
 const spanClass = computed(() => spanKindName(props.span.kind))
@@ -80,7 +80,7 @@ watch(exprRect, (rect) => {
     ><template v-else
       ><span
         @mouseenter="emit('updateHoveredExpr', props.span.id)"
-        @mouseleave="emit('updateHoveredExpr', null)"
+        @mouseleave="emit('updateHoveredExpr', undefined)"
         >{{ exprPart }}</span
       ></template
     ></span

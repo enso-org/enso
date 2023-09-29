@@ -32,7 +32,7 @@ export const useGraphStore = defineStore('graph', () => {
   const nodes = reactive(new Map<ExprId, Node>())
   const exprNodes = reactive(new Map<ExprId, ExprId>())
 
-  const unconnectedEdge: Ref<UnconnectedEdge | null> = ref(null)
+  const unconnectedEdge = ref<UnconnectedEdge>()
 
   useObserveYjs(text, (event) => {
     const delta = event.changes.delta
@@ -252,7 +252,7 @@ export const useGraphStore = defineStore('graph', () => {
       const source = identDefinitions.get(ident)
       if (source == null) continue
       for (const target of usages) {
-        if (target == disconnectedEdgeTarget) continue
+        if (target === disconnectedEdgeTarget) continue
         edges.push({ source, target })
       }
     }

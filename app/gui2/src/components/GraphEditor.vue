@@ -63,16 +63,12 @@ function keyboardBusy() {
 
 interface Interaction {
   cancel?(): void
-  handleExprClick?(expr: ExprId): void
-  handleNodeClick?(node: ExprId): void
+  handleExprClick?: (expr: ExprId) => void
+  handleNodeClick?: (node: ExprId) => void
 }
-let currentInteraction: Interaction | null = null
-function setCurrentInteraction(interaction: Interaction | null) {
-  if (currentInteraction !== null) {
-    if (currentInteraction.cancel !== undefined) {
-      currentInteraction.cancel()
-    }
-  }
+let currentInteraction: Interaction | undefined
+function setCurrentInteraction(interaction?: Interaction) {
+  currentInteraction?.cancel?.()
   currentInteraction = interaction
 }
 
@@ -98,7 +94,7 @@ useWindowEvent('keydown', (e) => {
         }
         break
       case 'Escape':
-        setCurrentInteraction(null)
+        setCurrentInteraction()
         break
       case 'n': {
         if (pos != null) graphStore.createNode(pos, 'hello "world"! 123 + x')
@@ -120,16 +116,16 @@ function moveNode(id: ExprId, delta: Vec2) {
 }
 
 function layoutEdge(edge: {
-  source?: ExprId | null
-  target?: ExprId | null
-}): { source: Vec2; target: Vec2 } | null {
+  source: ExprId | undefined,
+  target: ExprId | undefined,
+}): { source: Vec2; target: Vec2 } | undefined {
   let target
   if (edge.target != null) {
     const targetNodeId = graphStore.exprNodes.get(edge.target)
-    if (targetNodeId == null) return null
+    if (targetNodeId == null) return undefined
     let targetNodeRect = nodeRects.get(targetNodeId)
     let targetRect = exprRects.get(edge.target)
-    if (targetRect == null || targetNodeRect == null) return null
+    if (targetRect == null || targetNodeRect == null) return undefined
     target = targetRect.center().add(targetNodeRect.pos)
   } else {
     target = circlePos.value
@@ -137,7 +133,7 @@ function layoutEdge(edge: {
   let source
   if (edge.source != null) {
     let sourceNodeRect = nodeRects.get(edge.source)
-    if (sourceNodeRect == null) return null
+    if (sourceNodeRect == null) return undefined
     const sourcePos = sourceNodeRect.center()
     const sourceRangeX = sourceNodeRect.rangeX()
     const EDGE_PADDING = 20
@@ -157,19 +153,19 @@ const connectedEdges = computed(() => {
   }
   return edges
 })
-function edgeTarget(expr: ExprId | null): ExprId | null {
-  if (expr === null) return null
+function edgeTarget(expr?: ExprId): ExprId | undefined {
+  if (expr === undefined) return undefined
   // TODO: Check if the hovered expr is a legal target; if not, recursively try its ancestors.
   return expr
 }
 const unconnectedEdges = computed(() => {
   const unconnected = graphStore.unconnectedEdge
-  if (unconnected === null) return []
+  if (unconnected == null) return []
   const edge = layoutEdge({
     source: unconnected.source ?? hoveredNode.value,
     target: unconnected.target ?? edgeTarget(hoveredExpr.value),
   })
-  if (edge === null) return []
+  if (edge == null) return []
   return [edge]
 })
 function disconnect(edgeIndex: number, disconnectEnd: 'source' | 'target') {
@@ -187,14 +183,14 @@ function disconnect(edgeIndex: number, disconnectEnd: 'source' | 'target') {
   }
   setCurrentInteraction({
     cancel: () => {
-      graphStore.unconnectedEdge = null
+      graphStore.unconnectedEdge = undefined
     },
   })
 }
 
-const hoveredNode: Ref<ExprId | null> = ref(null)
-const hoveredExpr: Ref<ExprId | null> = ref(null)
-function updateHoveredExpr(expr: ExprId | null) {
+const hoveredNode = ref<ExprId>()
+const hoveredExpr = ref<ExprId>()
+function updateHoveredExpr(expr?: ExprId) {
   hoveredExpr.value = expr
 }
 </script>
@@ -229,7 +225,7 @@ function updateHoveredExpr(expr: ExprId | null) {
         @updateContent="(range, c) => updateNodeContent(id, range, c)"
         @movePosition="moveNode(id, $event)"
         @mouseenter="hoveredNode = id"
-        @mouseleave="hoveredNode = null"
+        @mouseleave="hoveredNode = undefined"
         @updateHoveredExpr="updateHoveredExpr"
       />
     </div>
