@@ -6,6 +6,7 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
 import project.System.Input_Stream.Input_Stream
+from project.Data.Text.Extensions import all
 
 ## A file format for reading and writing XML files.
 type XML_Format
@@ -27,8 +28,8 @@ type XML_Format
 
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI -> XML_Format | Nothing
-    for_web content_type:Text uri:URI =
+    for_web : Text -> URI|Text -> XML_Format | Nothing
+    for_web content_type:Text uri:(URI|Text) =
         _ = [uri]
         first = content_type.split ';' . first . trim
         case first of

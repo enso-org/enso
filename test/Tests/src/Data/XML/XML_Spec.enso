@@ -166,4 +166,8 @@ spec =
             doc = Data.read test_file
             doc.root_element.name . should_equal "class"
 
+        Test.specify "Can read from an endpoint" <|
+            doc = Data.fetch "https://httpbin.org/xml"
+            doc.root_element.name . should_equal "slideshow"
+
 main = Test_Suite.run_main spec
