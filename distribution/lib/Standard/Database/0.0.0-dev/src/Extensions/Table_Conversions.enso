@@ -1,9 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 
+import Standard.Table.Internal.Widget_Helpers
+
 import project.Data.Table.Table
 import project.Errors.Unsupported_Database_Operation
-import project.Internal.Widget_Helpers
 
 ## GROUP Standard.Base.Conversions
    Expand a column of objects to a new set of columns.
