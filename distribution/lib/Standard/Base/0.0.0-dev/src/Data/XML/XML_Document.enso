@@ -220,6 +220,13 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             XML_Utils.outerXML self.java_element
 
+    ## Gets the raw XML of the contents of the element, not including the
+       outermost tag and attributes.       
+    inner_xml : Text ! XML_Error
+    inner_xml self =
+        XML_Error.handle_java_exceptions <|
+            XML_Utils.innerXML self.java_element
+
     ##
         ## Gets the raw XML contents of the element.
         inner_xml : Text
