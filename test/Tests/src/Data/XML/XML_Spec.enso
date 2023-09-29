@@ -94,4 +94,11 @@ spec =
             root.at "teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
             root.at "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
 
+    Test.group "outer_xml" <|
+        Test.specify "outer_xml" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            root = XML_Document.from_file test_file . root_element
+            root.at "/class/teacher[1]/bio" . at 0 . outer_xml . should_equal '<bio>\n            Blah blah\n        </bio>'
+            root.at "/class/teacher[2]/bio" . at 0 . outer_xml . should_equal '<bio>\n            This that\n        </bio>'
+
 main = Test_Suite.run_main spec

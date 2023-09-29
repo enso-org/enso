@@ -12,7 +12,14 @@ import javax.xml.transform.TransformerFactory;
 import org.w3c.dom.Element;
 
 public class XML_Utils {
-    // This is outerXML
+    /**
+     * Return the string representation of an XML element, including its tag and
+     * all its contents.
+     *
+     * @param element the element to convert to a string
+     * @return the string representation of the element
+     * @throws TransformerException
+     */
     public static String outerXML(Element element) throws TransformerException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Transformer transformer = TransformerFactory.newInstance().newTransformer();

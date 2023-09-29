@@ -18,6 +18,7 @@ from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 
 polyglot java import java.io.StringReader
+polyglot java import java.lang.Exception as JException
 polyglot java import javax.xml.parsers.DocumentBuilderFactory
 polyglot java import javax.xml.parsers.DocumentBuilder
 polyglot java import javax.xml.xpath.XPathConstants
@@ -209,7 +210,9 @@ type XML_Element
 
     ## Gets the raw XML of the element (including tag, attributes and contents).
     outer_xml : Text ! XML_Error
-    outer_xml self = XML_Utils.outerXML self.java_element
+    outer_xml self =
+        XML_Error.handle_java_exceptions <|
+            XML_Utils.outerXML self.java_element
 
     ##
         ## Gets the raw XML contents of the element.
@@ -256,6 +259,7 @@ type XML_Error
       - num_values: The number of values found at `key`.
     Multiple_Values_Found (key : Text) (num_values : Integer)
 
+    # Any other Java exception.
     Other (error : Text)
 
     ## PRIVATE
@@ -270,15 +274,15 @@ type XML_Error
 
        Utility method for running an action with Java exceptions mapping.
     handle_java_exceptions ~action =
-        Panic.catch SAXException action caught_panic->
-            XML_Error.wrap_sax_exception caught_panic.payload
+        Panic.catch JException action caught_panic->
+            XML_Error.wrap_java_exception caught_panic.payload
 
     ## PRIVATE
 
        Converts a Java `SAXException` into its Enso counterpart.
-    wrap_sax_exception sax_exception = case sax_exception of
-        _ : SAXParseException -> Error.throw (XML_Error.Parse_Error sax_exception.getLineNumber sax_exception.getColumnNumber)
-        _ -> Error.throw (XML_Error.Other "A SAXException has occurred: "+sax_exception.to_text)
+    wrap_java_exception exception = case exception of
+        _ : SAXParseException -> Error.throw (XML_Error.Parse_Error exception.getLineNumber exception.getColumnNumber)
+        _ -> Error.throw (XML_Error.Other "An Exception has occurred: "+exception.to_text)
 
 ## PRIVATE
    Filter out unwanted nodes.
