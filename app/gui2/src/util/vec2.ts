@@ -15,6 +15,11 @@ export class Vec2 {
   static FromArr(arr: [number, number]): Vec2 {
     return new Vec2(arr[0], arr[1])
   }
+  static DistanceSquared(a: Vec2, b: Vec2): number {
+    const dx = a.x - b.x
+    const dy = a.y - b.y
+    return dx * dx + dy * dy
+  }
 
   equals(other: Vec2): boolean {
     return this.x === other.x && this.y === other.y
@@ -24,11 +29,6 @@ export class Vec2 {
   }
   scale(scalar: number): Vec2 {
     return new Vec2(this.x * scalar, this.y * scalar)
-  }
-  static distanceSquare(a: Vec2, b: Vec2): number {
-    const dx = a.x - b.x
-    const dy = a.y - b.y
-    return dx * dx + dy * dy
   }
   add(other: Vec2): Vec2 {
     return new Vec2(this.x + other.x, this.y + other.y)
@@ -51,11 +51,9 @@ export class Vec2 {
   max(other: Vec2): Vec2 {
     return new Vec2(Math.max(this.x, other.x), Math.max(this.y, other.y))
   }
-
   withX(x: number): Vec2 {
     return new Vec2(x, this.y)
   }
-
   withY(y: number): Vec2 {
     return new Vec2(this.x, y)
   }

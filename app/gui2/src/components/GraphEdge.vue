@@ -36,8 +36,8 @@ const edgePath = computed(() => {
 function click(e: PointerEvent) {
   if (props.editing) return
   const pos = props.navigator.eventToScenePos(e)
-  const sqDistanceFromSource = Vec2.distanceSquare(pos, props.edge.source)
-  const sqDistanceFromTarget = Vec2.distanceSquare(pos, props.edge.target)
+  const sqDistanceFromSource = Vec2.DistanceSquared(pos, props.edge.source)
+  const sqDistanceFromTarget = Vec2.DistanceSquared(pos, props.edge.target)
   if (sqDistanceFromSource > sqDistanceFromTarget) {
     emit('disconnectSource')
   } else {

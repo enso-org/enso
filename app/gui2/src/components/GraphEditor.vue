@@ -13,7 +13,7 @@ import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import { clamp } from '@vueuse/core'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, type Ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 

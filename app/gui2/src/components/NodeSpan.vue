@@ -5,7 +5,7 @@ import { Rect } from '@/stores/rect'
 import { useResizeObserver } from '@/util/events'
 import { Vec2 } from '@/util/vec2'
 import type { ExprId } from 'shared/yjsModel'
-import { computed, onUpdated, ref, shallowRef, watch, type Ref } from 'vue'
+import { computed, onUpdated, ref, shallowRef, watch } from 'vue'
 
 const props = defineProps<{
   content: string

@@ -13,11 +13,11 @@ import {
   type IdMap,
   type NodeMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, watch, watchEffect, type Ref } from 'vue'
+import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import * as Y from 'yjs'
 import { useProjectStore } from './project'
 
-export type UnconnectedEdge = ({ source?: ExprId, target?: ExprId }) & { disconnectedEdgeTarget?: ExprId }
+export type UnconnectedEdge = { source?: ExprId, target?: ExprId, disconnectedEdgeTarget?: ExprId }
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
