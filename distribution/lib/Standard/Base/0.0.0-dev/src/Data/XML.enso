@@ -105,7 +105,6 @@ type XML_Document
     root_element : XML_Element
     root_element self =
         java_element = self.java_document.getDocumentElement
-        self.java_document.getDocumentElement.normalize
         XML_Element.Value java_element
 
     ## PRIVATE
