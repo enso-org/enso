@@ -94,12 +94,14 @@ type Column_Naming_Helper
 
     ## PRIVATE
        Serializes a given object into an expression-like text approximation.
+       Note that it may not necessarily be a valid expression, it just tries to
+       be similar to one. In many cases it will be valid, but it is not a
+       guarantee.
 
-       For columns, it will return its name wrapped in `[` and `]`, with the `]`
-       symbols in the name escaped as `]]`, according to the expression rules.
+       For columns, it will return its name wrapped in `[` and `]`.
        For other objects, it will return its pretty-printed representation.
     to_expression_text self value =
-        if is_column value then "[" + value.name.replace "]" "]]" + "]" else
+        if is_column value then "[" + value.name + "]" else
             value.pretty
 
     ## PRIVATE
