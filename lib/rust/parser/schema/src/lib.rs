@@ -19,8 +19,11 @@
 #![warn(unused_qualifications)]
 
 use enso_metamodel::meta;
-use enso_metamodel::rust;
+use enso_metamodel::meta::Data;
 use enso_reflect::Reflect;
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 
 
@@ -29,9 +32,13 @@ use enso_reflect::Reflect;
 // ===================
 
 /// Return a serializable [`Schema`] describing the parser types.
-pub fn types() -> impl serde::Serialize {
-    let (graph, _) = rust::to_meta(enso_parser::syntax::Tree::reflect());
-    schema(&graph)
+pub fn schema() -> impl serde::Serialize {
+    let (graph, _) = enso_metamodel::rust::to_meta(enso_parser::syntax::Tree::reflect());
+    let Types { types, ids } = types(&graph);
+    let serialization = serialization(&graph)
+        .filter_map(|(k, v)| ids.get(&k).map(|k| (k.clone(), v.map_ids(|k| ids[&k].clone()))))
+        .collect();
+    Schema { types, serialization }
 }
 
 
@@ -42,30 +49,33 @@ pub fn types() -> impl serde::Serialize {
 
 #[derive(serde::Serialize)]
 struct Schema {
-    types: std::collections::HashMap<String, Type>,
+    types:         HashMap<TypeId, Type>,
+    serialization: HashMap<TypeId, Layout>,
 }
+
+
+// === Type graph ===
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Type {
-    name:          String,
-    fields:        Vec<(String, Field)>,
-    parent:        Option<String>,
-    discriminants: std::collections::BTreeMap<usize, String>,
-    size:          usize,
+    name:   Rc<str>,
+    fields: HashMap<FieldName, TypeRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parent: Option<TypeId>,
 }
 
-#[derive(serde::Serialize)]
-struct Field {
-    r#type: TypeRef,
-    offset: usize,
-}
+#[derive(serde::Serialize, Clone, Hash, PartialEq, Eq)]
+struct TypeId(Rc<str>);
+
+#[derive(serde::Serialize, Clone, Hash, PartialEq, Eq)]
+struct FieldName(Rc<str>);
 
 #[derive(serde::Serialize, Clone, Hash, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "class")]
 enum TypeRef {
-    Type { id: String },
+    Type { id: TypeId },
     Primitive { r#type: Primitive },
     Sequence { r#type: Box<TypeRef> },
     Option { r#type: Box<TypeRef> },
@@ -84,25 +94,51 @@ enum Primitive {
     String,
 }
 
-fn schema(graph: &meta::TypeGraph) -> Schema {
+
+// === Serialization ===
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Layout<Id = TypeId> {
+    fields:        Vec<(FieldName, usize)>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    discriminants: Option<BTreeMap<Discriminant, Id>>,
+    size:          usize,
+}
+
+#[derive(serde::Serialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Discriminant(u32);
+
+
+
+// ==================
+// === Type Graph ===
+// ==================
+
+struct Types {
+    types: HashMap<TypeId, Type>,
+    ids:   HashMap<meta::TypeId, TypeId>,
+}
+
+fn types(graph: &meta::TypeGraph) -> Types {
     let mut next_type_id = 0;
     let mut next_type_id = || {
-        let result = format!("type_{next_type_id}");
+        let result = TypeId(format!("type_{next_type_id}").into());
         next_type_id += 1;
         result
     };
-    let mut type_refs = std::collections::HashMap::new();
-    let mut type_ids = std::collections::HashMap::new();
+    let mut type_refs = HashMap::new();
+    let mut ids = HashMap::new();
     let mut primitives = vec![];
     // Map struct types; gather primitive types.
     for (key, ty) in &graph.types {
         match &ty.data {
-            meta::Data::Struct(_) => {
+            Data::Struct(_) => {
                 let id = next_type_id();
-                type_ids.insert(key, id.clone());
+                ids.insert(key, id.clone());
                 type_refs.insert(key, TypeRef::Type { id });
             }
-            meta::Data::Primitive(prim) => {
+            Data::Primitive(prim) => {
                 primitives.push((key, prim));
             }
         }
@@ -137,107 +173,146 @@ fn schema(graph: &meta::TypeGraph) -> Schema {
             }
         });
     }
-    let mut types: std::collections::HashMap<_, _> = graph
+    let types: HashMap<_, _> = graph
         .types
         .iter()
         .filter_map(|(key, ty)| {
-            ty.data.as_struct().map(|fields| {
-                let key_to_id = |id| type_ids[id].clone();
+            ty.data.fields().map(|fields| {
+                let key_to_id = |id| ids[id].clone();
                 (key_to_id(&key), Type {
-                    name:          ty.name.to_snake_case(),
-                    fields:        fields
+                    name:   ty.name.to_snake_case().into(),
+                    fields: fields
                         .iter()
                         .map(|f| {
                             let name = f.name.to_snake_case().expect("Tuples not supported.");
                             let r#type = type_refs[&f.type_].clone();
-                            let field = Field { r#type, offset: 0 };
-                            (name, field)
+                            (FieldName(name.into()), r#type)
                         })
                         .collect(),
-                    parent:        ty.parent.as_ref().map(key_to_id),
-                    discriminants: ty
-                        .discriminants
-                        .iter()
-                        .map(|(k, v)| (*k, key_to_id(v)))
-                        .collect(),
-                    size:          0,
+                    parent: ty.parent.as_ref().map(key_to_id),
                 })
             })
         })
         .collect();
-    let mut data_size = std::collections::HashMap::new();
-    let mut reference_size = std::collections::HashMap::new();
-    for key in types.keys() {
-        let reference = TypeRef::Type { id: key.to_owned() };
-        let ref_size = compute_size(reference.clone(), &types, &mut data_size);
-        if !types[key].discriminants.is_empty() {
-            reference_size.insert(reference, ref_size);
-        }
-    }
-    for (id, ty) in types.iter_mut() {
-        let mut offset = ty
-            .parent
-            .as_ref()
-            .map_or(0, |parent| data_size[&TypeRef::Type { id: parent.to_owned() }]);
-        for (_, field) in &mut ty.fields {
-            field.offset = offset;
-            offset += reference_size
-                .get(&field.r#type)
-                .copied()
-                .unwrap_or_else(|| data_size[&field.r#type]);
-        }
-        let reference = TypeRef::Type { id: id.to_owned() };
-        ty.size = reference_size.get(&reference).copied().unwrap_or_else(|| data_size[&reference]);
-    }
-    Schema { types }
+    Types { types, ids }
 }
 
-const POINTER_BYTES: usize = 4;
 
-/// Writes the size of the object's fields to `data_size`. Returns the size of a reference to the
-/// object.
+
+// =====================
+// === Serialization ===
+// =====================
+
+fn serialization<'g>(
+    graph: &'g meta::TypeGraph,
+) -> impl Iterator<Item = (meta::TypeId, Layout<meta::TypeId>)> + 'g + '_ {
+    let sizes = solve_sizes(graph);
+    layouts(graph, sizes)
+}
+
+const POINTER: usize = 4;
+
+/// Returns the inheritance-size of the object, if `sizes` contains all the needed information to
+/// compute this type. The inheritance-size is the shallow size of all the type's fields, including
+/// fields inherited from ancestor types.
 fn compute_size(
-    ty: TypeRef,
-    types: &std::collections::HashMap<String, Type>,
-    data_size: &mut std::collections::HashMap<TypeRef, usize>,
-) -> usize {
-    let mut reference = None;
-    let size = match &ty {
-        // May be pointer or inline fields.
-        TypeRef::Type { id } => {
-            let ty = &types[id];
-            if !ty.discriminants.is_empty() {
-                reference = Some(POINTER_BYTES);
-            }
-            let key = TypeRef::Type { id: id.to_owned() };
-            if let Some(size) = data_size.get(&key) {
-                *size
-            } else {
-                let mut size = if let Some(id) = ty.parent.clone() {
-                    let type_ref = TypeRef::Type { id };
-                    compute_size(type_ref.clone(), types, data_size);
-                    data_size[&type_ref]
+    graph: &meta::TypeGraph,
+    key: meta::TypeId,
+    sizes: &HashMap<meta::TypeId, usize>,
+) -> Option<usize> {
+    use meta::Primitive;
+    let ty = &graph[key];
+    Some(match &ty.data {
+        Data::Primitive(Primitive::Bool) => 1,
+        Data::Primitive(Primitive::U32 | Primitive::I32 | Primitive::Char) => 4,
+        Data::Primitive(Primitive::U64 | Primitive::I64) => 8,
+        Data::Primitive(Primitive::Option(_)) => 1 + POINTER,
+        Data::Primitive(Primitive::String | Primitive::Sequence(_) | Primitive::Result(_, _)) =>
+            POINTER,
+        Data::Struct(fields) => {
+            let inherited_size =
+                if let Some(parent) = ty.parent { *sizes.get(&parent)? } else { 0 };
+            let mut fields_size = 0;
+            for field in fields {
+                let ty = &graph[&field.type_];
+                fields_size += if !ty.discriminants.is_empty() {
+                    POINTER
                 } else {
-                    0
+                    *sizes.get(&field.type_)?
                 };
-                for (_, field) in &ty.fields {
-                    let field_size = compute_size(field.r#type.to_owned(), types, data_size);
-                    size += field_size;
-                }
-                size
             }
+            inherited_size + fields_size
         }
-        // Pointer.
-        TypeRef::Primitive { r#type: Primitive::String } => POINTER_BYTES,
-        TypeRef::Sequence { .. } => POINTER_BYTES,
-        TypeRef::Result { .. } => POINTER_BYTES,
-        // Discriminant + pointer.
-        TypeRef::Option { .. } => 1 + POINTER_BYTES,
-        // Scalars.
-        TypeRef::Primitive { r#type: Primitive::Bool } => 1,
-        TypeRef::Primitive { r#type: Primitive::U32 | Primitive::I32 | Primitive::Char } => 4,
-        TypeRef::Primitive { r#type: Primitive::U64 | Primitive::I64 } => 8,
-    };
-    data_size.insert(ty, size);
-    reference.unwrap_or(size)
+    })
+}
+
+fn solve_sizes(graph: &meta::TypeGraph) -> HashMap<meta::TypeId, usize> {
+    let mut uncomputed: Vec<_> = graph.types.keys().collect();
+    let mut sizes = HashMap::new();
+    // Termination: Each step will make progress as long as there is no cycle in the type
+    // dependencies. Only an unconditional reference to a type creates a dependency. A cycle in
+    // unconditional type references would only occur if the input contained an infinite-sized type.
+    //
+    // Performance: In the worst case, this implementation requires time quadratic in the number of
+    // types (for inputs with deep composition graphs). However, it is simpler and more efficient
+    // for *reasonable* inputs than an implementation with better worst-case behavior.
+    while !uncomputed.is_empty() {
+        let uncomputed_before_step = uncomputed.len();
+        uncomputed.retain(|key| match compute_size(graph, *key, &sizes) {
+            Some(size) => {
+                sizes.insert(*key, size);
+                false
+            }
+            None => true,
+        });
+        assert_ne!(uncomputed.len(), uncomputed_before_step);
+    }
+    sizes
+}
+
+/// Given the sizes of all types in the graph, compute the field offsets and return the layouts for
+/// all the types.
+fn layouts<'g>(
+    graph: &'g meta::TypeGraph,
+    sizes: HashMap<meta::TypeId, usize>,
+) -> impl Iterator<Item = (meta::TypeId, Layout<meta::TypeId>)> + 'g + '_ {
+    graph.types.iter().map(move |(key, ty)| {
+        (key, {
+            let mut offset = ty.parent.map_or(0, |key| sizes[&key]);
+            let fields = ty
+                .data
+                .fields()
+                .map(|fields| {
+                    fields
+                        .iter()
+                        .map(|field| {
+                            let entry =
+                                (FieldName(field.name.to_snake_case().unwrap().into()), offset);
+                            offset += sizes[&field.type_];
+                            entry
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            if ty.discriminants.is_empty() {
+                Layout { fields, discriminants: None, size: sizes[&key] }
+            } else {
+                let discriminants = ty
+                    .discriminants
+                    .iter()
+                    .map(|(k, v)| (Discriminant((*k).try_into().unwrap()), *v))
+                    .collect();
+                Layout { fields, discriminants: Some(discriminants), size: POINTER }
+            }
+        })
+    })
+}
+
+impl<Id> Layout<Id> {
+    fn map_ids<Id2>(self, f: impl Fn(Id) -> Id2) -> Layout<Id2> {
+        let Layout { fields, discriminants, size } = self;
+        let discriminants = discriminants
+            .map(|discriminants| discriminants.into_iter().map(|(k, v)| (k, f(v))).collect());
+        Layout { fields, discriminants, size }
+    }
 }

@@ -83,7 +83,7 @@ pub enum Data {
 
 impl Data {
     /// If this is a [`Data::Struct`], return its fields.
-    pub fn as_struct(&self) -> Option<&[Field]> {
+    pub fn fields(&self) -> Option<&[Field]> {
         match self {
             Data::Struct(fields) => Some(&fields[..]),
             _ => None,

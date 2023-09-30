@@ -478,6 +478,7 @@ mod benches {
     }
 
     #[bench]
+    #[cfg(not(target_arch = "wasm32"))]
     fn bench_blocks(bencher: &mut Bencher) {
         use rand::prelude::*;
         use rand_chacha::ChaCha8Rng;
@@ -519,6 +520,7 @@ mod benches {
     }
 
     #[bench]
+    #[cfg(not(target_arch = "wasm32"))]
     fn bench_expressions(bencher: &mut Bencher) {
         use rand::prelude::*;
         use rand_chacha::ChaCha8Rng;

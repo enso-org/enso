@@ -2,39 +2,47 @@ import * as fs from 'fs'
 import * as ts from 'typescript'
 import { factory as tsf } from 'typescript'
 
-type DiscriminantMap = {
-  [discriminant: number]: string
-}
-type TypeGraph = {
-  [id: string]: Schema.Type
-}
 module Schema {
+  export type TypeId = string
+  export type Types = {
+    [id: TypeId]: Type
+  }
   export type Type = {
     name: string
-    fields: [string, Field][]
-    parent: string | null
-    discriminants: DiscriminantMap
-    size: number
+    fields: Fields
+    parent?: string
   }
-  export type Field = {
-    type: TypeRef
-    offset: number
+  export type Fields = {
+    [name: string]: TypeRef
   }
   export type TypeRef = Class | Primitive | Sequence | Option | Result
-  export type Class = { class: 'type'; id: string }
+  export type Class = { class: 'type'; id: TypeId }
   export type Primitive = { class: 'primitive'; type: PrimitiveType }
   export type Sequence = { class: 'sequence'; type: TypeRef }
   export type Option = { class: 'option'; type: TypeRef }
   export type Result = { class: 'result'; type0: TypeRef; type1: TypeRef }
   export type PrimitiveType = 'bool' | 'u32' | 'u64' | 'i32' | 'i64' | 'char' | 'string'
+
+  export type Serialization = {
+    [id: TypeId]: Layout
+  }
+  export type Layout = {
+    discriminants?: DiscriminantMap
+    fields: [name: string, offset: number][]
+    size: number
+  }
+  export type DiscriminantMap = {
+    [discriminant: number]: TypeId
+  }
 }
 type Schema = {
-  types: TypeGraph
+  types: Schema.Types
+  serialization: Schema.Serialization
 }
 
 function fromSnake(ident: string, to: 'camel' | 'pascal', prefix?: string): string {
   const segments = []
-  if (prefix !== undefined) {
+  if (prefix != null) {
     segments.push(...prefix.split('_'))
   }
   segments.push(...ident.split('_'))
@@ -77,6 +85,12 @@ function primitiveReader(name: string): ExpressionTransformer {
     tsf.createCallExpression(tsf.createPropertyAccessExpression(cursor, name), [], [])
 }
 
+/**
+ * Given the name of a runtime `Cursor` method that deserializes a derived type given a function to deserialize a
+ * base type, return a codegen-time function that generates a *reader* for a derived type from a *reader* for the base
+ * type, where a *reader* is a function producing a deserialization expression from an expression that evaluates to a
+ * `Cursor`.
+ */
 function readerTransformer(
   name: string,
 ): (readElement: ExpressionTransformer) => ExpressionTransformer {
@@ -108,7 +122,7 @@ function readerTransformer(
   }
 }
 
-function readerTransformer2(
+function readerTransformerTwoTyped(
   name: string,
 ): (readOk: ExpressionTransformer, readErr: ExpressionTransformer) => ExpressionTransformer {
   function makeArrow(reader: ExpressionTransformer, data: ts.Identifier) {
@@ -166,7 +180,7 @@ function readerTransformerSized(
 }
 
 function namespacedName(name: string, namespace?: string): string {
-  if (namespace === undefined) {
+  if (namespace == null) {
     return toPascal(name)
   } else {
     return toPascal(namespace) + '.' + toPascal(name)
@@ -202,18 +216,19 @@ class Type {
     this.size = size
   }
 
-  static new(ref: Schema.TypeRef, types: TypeGraph): Type {
+  static new(ref: Schema.TypeRef, schema: Schema): Type {
     const c = ref.class
     switch (c) {
       case 'type':
-        const ty = types[ref.id]
-        const parent = ty.parent != null ? types[ty.parent] : null
+        const ty = schema.types[ref.id]
+        const parent = ty.parent != null ? schema.types[ty.parent] : undefined
         const typeName = namespacedName(ty.name, parent?.name)
         const type = tsf.createTypeReferenceNode(typeName)
-        if (Object.entries(ty.discriminants).length !== 0) {
+        const layout = schema.serialization[ref.id]
+        if (layout.discriminants != null) {
           return new Type(type, abstractTypeReader(typeName), POINTER_SIZE)
         } else {
-          return new Type(type, concreteTypeReader(typeName), ty.size)
+          return new Type(type, concreteTypeReader(typeName), layout.size)
         }
       case 'primitive':
         const p = ref.type
@@ -241,11 +256,11 @@ class Type {
             throw new Error("unreachable: PrimitiveType.type='" + p + "'")
         }
       case 'sequence':
-        return Type.sequence(Type.new(ref.type, types))
+        return Type.sequence(Type.new(ref.type, schema))
       case 'option':
-        return Type.option(Type.new(ref.type, types))
+        return Type.option(Type.new(ref.type, schema))
       case 'result':
-        return Type.result(Type.new(ref.type0, types), Type.new(ref.type1, types))
+        return Type.result(Type.new(ref.type0, schema), Type.new(ref.type1, schema))
       default:
         const _ = c satisfies never
         throw new Error("unreachable: TypeRef.class='" + c + "' in " + JSON.stringify(ref))
@@ -262,7 +277,7 @@ class Type {
 
   static option(element: Type): Type {
     return new Type(
-      tsf.createUnionTypeNode([element.type, nullType]),
+      tsf.createUnionTypeNode([element.type, noneType]),
       cursorMethods.readOption(element.reader),
       POINTER_SIZE + 1,
     )
@@ -291,10 +306,11 @@ function seekCursor(cursor: ts.Expression, offset: number): ts.Expression {
 
 function makeGetter(
   fieldName: string,
-  fieldData: Schema.Field,
-  types: TypeGraph,
+  typeRef: Schema.TypeRef,
+  offset: number,
+  schema: Schema,
 ): ts.GetAccessorDeclaration {
-  const type = Type.new(fieldData.type, types)
+  const type = Type.new(typeRef, schema)
   return tsf.createGetAccessorDeclaration(
     [],
     tsf.createIdentifier(legalizeIdent(toCamel(fieldName))),
@@ -305,7 +321,7 @@ function makeGetter(
         type.reader(
           seekCursor(
             tsf.createPropertyAccessExpression(tsf.createThis(), cursorFieldIdent),
-            fieldData.offset,
+            offset,
           ),
         ),
       ),
@@ -320,8 +336,8 @@ function createAssignmentStatement(left: ts.Expression, right: ts.Expression): t
   )
 }
 
-function makeConcreteType(id: string, types: TypeGraph): ts.ClassDeclaration {
-  const ident = tsf.createIdentifier(toPascal(types[id].name))
+function makeConcreteType(id: string, schema: Schema): ts.ClassDeclaration {
+  const ident = tsf.createIdentifier(toPascal(schema.types[id].name))
   const paramIdent = tsf.createIdentifier('cursor')
   const cursorParam = tsf.createParameterDeclaration(
     [],
@@ -350,7 +366,7 @@ function makeConcreteType(id: string, types: TypeGraph): ts.ClassDeclaration {
       ),
     ],
     id,
-    types,
+    schema,
   )
 }
 
@@ -359,7 +375,7 @@ function debugValue(ident: ts.Identifier): ts.Expression {
   return tsf.createCallExpression(support.debugHelper, [], [value])
 }
 
-function makeDebugFunction(fields: [string, Schema.Field][]): ts.MethodDeclaration {
+function makeDebugFunction(fields: string[]): ts.MethodDeclaration {
   const getterIdent = (fieldName: string) => tsf.createIdentifier(legalizeIdent(toCamel(fieldName)))
   return tsf.createMethodDeclaration(
     [],
@@ -379,7 +395,7 @@ function makeDebugFunction(fields: [string, Schema.Field][]): ts.MethodDeclarati
               [],
             ),
           ),
-          ...fields.map(([name, _field]: [string, Schema.Field]) =>
+          ...fields.map((name: string) =>
             tsf.createPropertyAssignment(getterIdent(name), debugValue(getterIdent(name))),
           ),
         ]),
@@ -388,14 +404,18 @@ function makeDebugFunction(fields: [string, Schema.Field][]): ts.MethodDeclarati
   )
 }
 
+function makeGetters(id: string, schema: Schema): ts.ClassElement[] {
+  return schema.serialization[id].fields.map(([name, offset]: [string, number]) =>
+    makeGetter(name, schema.types[id].fields[name], offset, schema))
+}
+
 function makeClass(
   modifiers: ts.Modifier[],
   name: ts.Identifier,
   members: ts.ClassElement[],
   id: string,
-  types: TypeGraph,
+  schema: Schema,
 ): ts.ClassDeclaration {
-  const ty = types[id]
   return tsf.createClassDeclaration(
     modifiers,
     name,
@@ -407,8 +427,8 @@ function makeClass(
     ],
     [
       ...members,
-      ...ty.fields.map(([name, field]: [string, Schema.Field]) => makeGetter(name, field, types)),
-      makeDebugFunction(ty.fields),
+      ...makeGetters(id, schema),
+      makeDebugFunction(Object.getOwnPropertyNames(schema.types[id].fields)),
     ],
   )
 }
@@ -421,13 +441,12 @@ type ChildType = {
 }
 
 function makeChildType(
-  parentName: string,
   base: ts.Identifier,
   id: string,
   discrim: string,
-  types: TypeGraph,
+  schema: Schema,
 ): ChildType {
-  const ty: Schema.Type = types[id]
+  const ty: Schema.Type = schema.types[id]
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
   const cursorIdent = tsf.createIdentifier('cursor')
@@ -492,12 +511,12 @@ function makeChildType(
             tsf.createReturnStatement(tsf.createNewExpression(ident, [], [cursorIdent])),
           ]),
         ),
-        ...ty.fields.map(([name, field]: [string, Schema.Field]) => makeGetter(name, field, types)),
-        makeDebugFunction(ty.fields),
+        ...makeGetters(id, schema),
+        makeDebugFunction(Object.getOwnPropertyNames(ty.fields)),
       ],
     ),
     reference: tsf.createTypeReferenceNode(name),
-    enumMember: tsf.createEnumMember(toPascal(types[id].name), discrimInt),
+    enumMember: tsf.createEnumMember(toPascal(schema.types[id].name), discrimInt),
     case: tsf.createCaseClause(discrimInt, [
       tsf.createReturnStatement(tsf.createNewExpression(ident, [], [seekCursor(cursorIdent, 4)])),
     ]),
@@ -561,14 +580,14 @@ function abstractTypeDeserializer(
   )
 }
 
-function makeAbstractType(id: string, types: TypeGraph) {
-  const ty = types[id]
+function makeAbstractType(id: string, discriminants: Schema.DiscriminantMap, schema: Schema) {
+  const ty = schema.types[id]
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
   const baseIdent = tsf.createIdentifier('AbstractBase')
   const childTypes = Array.from(
-    Object.entries(ty.discriminants),
-    ([discrim, id]: [string, string]) => makeChildType(name, baseIdent, id, discrim, types),
+    Object.entries(discriminants),
+    ([discrim, id]: [string, string]) => makeChildType(baseIdent, id, discrim, schema),
   )
   const cursorIdent = tsf.createIdentifier('cursor')
   const moduleDecl = tsf.createModuleDeclaration(
@@ -580,7 +599,7 @@ function makeAbstractType(id: string, types: TypeGraph) {
         baseIdent,
         [forwardToSuper(cursorIdent, support.Cursor)],
         id,
-        types,
+        schema,
       ),
       tsf.createEnumDeclaration(
         [modifiers.export, modifiers.const],
@@ -619,11 +638,11 @@ function emit(data: ts.Node) {
 // === Main ===
 // ============
 
-const data: Schema = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+const schema: Schema = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
 let output = '// *** THIS FILE GENERATED BY `parser-codegen` ***\n'
 const file = ts.createSourceFile('source.ts', '', ts.ScriptTarget.ESNext, false, ts.ScriptKind.TS)
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed })
-const nullType = tsf.createTypeReferenceNode('null')
+const noneType = tsf.createTypeReferenceNode('undefined')
 const cursorFieldIdent = tsf.createIdentifier('lazyObjectData')
 const modifiers = {
   export: tsf.createModifier(ts.SyntaxKind.ExportKeyword),
@@ -642,7 +661,7 @@ const cursorMethods = {
   readPointer: primitiveReader('readPointer'),
   readSequence: readerTransformerSized('readSequence'),
   readOption: readerTransformer('readOption'),
-  readResult: readerTransformer2('readResult'),
+  readResult: readerTransformerTwoTyped('readResult'),
 } as const
 const POINTER_SIZE: number = 4
 // Symbols exported by the `parserSupport` module.
@@ -675,13 +694,14 @@ emit(
     undefined,
   ),
 )
-for (const id in data.types) {
-  const ty = data.types[id]
-  if (ty.parent === null) {
-    if (Object.entries(data.types[id].discriminants).length === 0) {
-      emit(makeConcreteType(id, data.types))
+for (const id in schema.types) {
+  const ty = schema.types[id]
+  if (ty.parent == null) {
+    const discriminants = schema.serialization[id].discriminants
+    if (discriminants == null) {
+      emit(makeConcreteType(id, schema))
     } else {
-      makeAbstractType(id, data.types)
+      makeAbstractType(id, discriminants, schema)
     }
   } else {
     // Ignore child types; they are generated when `makeAbstractType` processes the parent.

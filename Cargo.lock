@@ -2365,6 +2365,7 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid 1.2.2",
+ "wasm-bindgen-test",
 ]
 
 [[package]]

@@ -3,16 +3,23 @@ import type { Opt } from '@/util/opt'
 import init, { parse, parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
 import * as Ast2 from '../generated/ast'
 
-const _wasm = await init()
+if (import.meta.vitest) {
+  const fs = await import('node:fs/promises')
+  const buffer = await fs.readFile('./rust-ffi/pkg/rust_ffi_bg.wasm')
+  await init(buffer)
+} else {
+  await init()
+}
 
 export function parseEnso(code: string): Ast.Tree {
   const json = parse_to_json(code)
   return JSON.parse(json)
 }
 
+// TODO (#7791): Replace `parseEnso` with this.
 export function parseEnso2(code: string): Ast2.Tree {
   const blob = parse(code)
-  return Ast2.deserializeTree(blob)
+  return Ast2.deserializeTree(blob.buffer)
 }
 
 export namespace Ast {
@@ -454,4 +461,23 @@ export namespace Ast {
   export interface Error {
     message: string
   }
+}
+
+if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest
+  test('testParse', () => {
+    const identInput = 'foo'
+    const tree0 = parseEnso2(identInput)
+    expect(Number(tree0.spanLeftOffsetCodeUtf16)).toBe(0)
+    expect(Number(tree0.spanCodeLengthUtf16)).toBe(identInput.length)
+    expect(tree0.type).toBe(Ast2.Tree.Type.BodyBlock)
+    if (tree0.type === Ast2.Tree.Type.BodyBlock) {
+      const statements = Array.from(tree0.statements)
+      const tree1 = statements[0]!.expression!
+      expect(tree1.type).toBe(Ast2.Tree.Type.Ident)
+      if (tree1.type === Ast2.Tree.Type.Ident) {
+        expect(Number(tree1.token.codeUtf16)).toBe(identInput.length)
+      }
+    }
+  })
 }

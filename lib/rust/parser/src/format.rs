@@ -28,8 +28,8 @@ use std::fmt::Formatter;
 // =================
 
 /// Maximum allowed nesting depth of compound objects. This is empirically determined to be reached
-/// before stack overflow on supported targets.
-// FIXME: WASM test required.
+/// before stack overflow on supported targets (see [`test::test_infinite_recursion`] and
+/// [`test::wasm::test_infinite_recursion`]).
 const RECURSION_LIMIT: usize = 1024;
 
 
@@ -511,5 +511,19 @@ mod test {
         // Note that if recursion is not adequately limited the expected failure mode is aborting
         // due to stack overflow. We are just checking `is_err` here for good measure.
         assert!(super::serialize(Cyclic::new()).is_err());
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    mod wasm {
+
+        use wasm_bindgen_test::wasm_bindgen_test;
+        use wasm_bindgen_test::wasm_bindgen_test_configure;
+
+        wasm_bindgen_test_configure!(run_in_browser);
+
+        #[wasm_bindgen_test]
+        fn test_infinite_recursion() {
+            super::test_infinite_recursion()
+        }
     }
 }

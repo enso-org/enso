@@ -1,8 +1,10 @@
 // This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`.
-export class LazyObject {
+
+/** Base class for objects that lazily deserialize fields when accessed. */
+export abstract class LazyObject {
   protected readonly lazyObjectData: Cursor
 
-  constructor(data: Cursor) {
+  protected constructor(data: Cursor) {
     this.lazyObjectData = data
   }
 
@@ -35,11 +37,11 @@ export class Cursor {
     }
   }
 
-  readOption<T>(readElement: (cursor: Cursor) => T): T | null {
+  readOption<T>(readElement: (cursor: Cursor) => T): T | undefined {
     const discriminant = this.readU8()
     switch (discriminant) {
       case 0:
-        return null
+        return undefined
       case 1:
         return readElement(this.seek(1).readPointer())
       default:
@@ -113,9 +115,9 @@ export class Cursor {
   }
 }
 
-export function debugHelper(value: any): object | null {
-  if (value === null) {
-    return null
+export function debugHelper(value: any): object | undefined {
+  if (value == null) {
+    return undefined
   }
   if (typeof value['debug'] === 'function') {
     return value.debug()
