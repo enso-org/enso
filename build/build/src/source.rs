@@ -109,12 +109,6 @@ pub type GetTargetJob<Target> = WithDestination<Source<Target>>;
 pub type FetchTargetJob = WithDestination<ExternalSource>;
 pub type BuildTargetJob<Target> = WithDestination<BuildSource<Target>>;
 
-// #[derive(Clone, Debug)]
-// pub struct BuildTargetJob<Target: IsTarget> {
-//     pub build:                  WithDestination<Target::BuildInput>,
-//     pub should_upload_artifact: bool,
-// }
-// pub type BuildTargetJob<Target> = WithDestination<<Target as IsTarget>::BuildInput>;
 #[derive(Debug)]
 pub struct WatchTargetJob<Target: IsWatchable> {
     pub build:       BuildTargetJob<Target>,
