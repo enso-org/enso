@@ -330,8 +330,9 @@ impl IsWatchable for Wasm {
         async move {
             // Make sure that `npm install` was run, so we can spawned process to skip it.
             // This prevents issues with multiple `npm install` invocations running in parallel.
-            let npm_install= crate::web::install(&context.repo_root);
-            let (first_build_output, npm_install) = futures::future::join(first_build_job, npm_install).await;
+            let npm_install = crate::web::install(&context.repo_root);
+            let (first_build_output, npm_install) =
+                futures::future::join(first_build_job, npm_install).await;
             npm_install?;
             let first_build_output = first_build_output?;
 
