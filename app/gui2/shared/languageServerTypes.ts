@@ -204,7 +204,7 @@ interface Diagnostic {
   /**
    * The location of the diagnostic object in a file.
    */
-  location?: Range
+  location?: TextRange
 
   /**
    * The id of related expression.

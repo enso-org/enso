@@ -355,7 +355,7 @@ class ModulePersistence extends Emitter<{ removed: [] }> {
 
     if (idMapKeys != null || (contentDelta && contentDelta.length > 0)) {
       const idMapJson = json.stringify(idMapToArray(this.doc.idMap))
-      allEdits.push(...applyDiffAsTextEdits(metaStartLine, synced.idMapJson, idMapJson))
+      allEdits.push(...applyDiffAsTextEdits(metaStartLine, synced.idMapJson ?? '', idMapJson))
       newContent += idMapJson + '\n'
     } else {
       newContent += synced.idMapJson + '\n'
@@ -385,7 +385,9 @@ class ModulePersistence extends Emitter<{ removed: [] }> {
       }
 
       const metadataJson = json.stringify(this.syncedMeta)
-      allEdits.push(...applyDiffAsTextEdits(metaStartLine + 1, synced.metadataJson, metadataJson))
+      allEdits.push(
+        ...applyDiffAsTextEdits(metaStartLine + 1, synced.metadataJson ?? '', metadataJson),
+      )
       newContent += metadataJson
     } else {
       newContent += synced.metadataJson
@@ -692,8 +694,8 @@ function convertDeltaToTextEdits(
 
 interface PreParsedContent {
   code: string
-  idMapJson: string
-  metadataJson: string
+  idMapJson: string | null
+  metadataJson: string | null
 }
 
 function preParseContent(content: string): PreParsedContent {
@@ -701,15 +703,15 @@ function preParseContent(content: string): PreParsedContent {
   if (splitPoint < 0) {
     return {
       code: content,
-      idMapJson: '',
-      metadataJson: '',
+      idMapJson: null,
+      metadataJson: null,
     }
   }
   const code = content.slice(0, splitPoint)
   const metadataString = content.slice(splitPoint + META_TAG.length)
   const metaLines = metadataString.trim().split('\n')
-  const idMapJson = metaLines[0]
-  const metadataJson = metaLines[1]
+  const idMapJson = metaLines[0] ?? null
+  const metadataJson = metaLines[1] ?? null
   return { code, idMapJson, metadataJson }
 }
 
@@ -782,10 +784,10 @@ function prettyPrintDiff(from: string, to: string): string {
   const colGreen = '\x1b[32m'
 
   const diffs = diff(from, to)
-  if (diffs.length === 1 && diffs[0][0] === 0) return 'No changes'
+  if (diffs.length === 1 && diffs[0]![0] === 0) return 'No changes'
   let content = ''
   for (let i = 0; i < diffs.length; i++) {
-    const [op, text] = diffs[i]
+    const [op, text] = diffs[i]!
     if (op === 1) {
       content += colGreen + text
     } else if (op === -1) {

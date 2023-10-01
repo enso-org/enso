@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "test": "vitest run",
     "build-only": "vite build",
+    "compile-server": "tsc -p tsconfig.server.json",
     "typecheck": "vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
     "lint": "eslint .",
     "format": "prettier --write src/ && eslint . --fix",
