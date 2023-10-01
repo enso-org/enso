@@ -33,7 +33,7 @@ useWindowEvent('keydown', (e) => {
 const codeMirrorEl = ref(null)
 const editorView = ref<EditorView>()
 watchPostEffect((onCleanup) => {
-  const yText = projectStore.module?.contents
+  const yText = projectStore.module?.doc.contents
   if (!yText || !codeMirrorEl.value) return
   const undoManager = projectStore.undoManager
   const awareness = projectStore.awareness

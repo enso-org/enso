@@ -22,8 +22,8 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const text = computed(() => proj.module?.contents)
-  const metadata = computed(() => proj.module?.metadata)
+  const text = computed(() => proj.module?.doc.contents)
+  const metadata = computed(() => proj.module?.doc.metadata)
 
   const textContent = ref('')
 
@@ -81,10 +81,10 @@ export const useGraphStore = defineStore('graph', () => {
   function updateState(affectedRanges?: ContentRange[]) {
     const module = proj.module
     if (module == null) return
-    module.doc.transact(() => {
+    module.doc.ydoc.transact(() => {
       const idMap = module.getIdMap()
-      const meta = module.metadata
-      const text = module.contents
+      const meta = module.doc.metadata
+      const text = module.doc.contents
       const textContentLocal = textContent.value
       const parsed = parseBlock(0, textContentLocal, idMap)
 
@@ -248,7 +248,7 @@ export const useGraphStore = defineStore('graph', () => {
   function createNode(position: Vec2, expression: string): Opt<ExprId> {
     const mod = proj.module
     if (mod == null) return
-    const { contents } = mod
+    const { contents } = mod.doc
 
     const meta: NodeMetadata = {
       x: position.x,

@@ -70,6 +70,7 @@ export const useProjectStore = defineStore('project', () => {
   function currentDocGuid() {
     const name = observedFileName.value
     if (name == null) return
+    console.log('projectModel.modules', projectModel.modules.toJSON())
     return projectModel.modules.get(name)?.guid
   }
   function tryReadDocGuid() {
@@ -92,7 +93,7 @@ export const useProjectStore = defineStore('project', () => {
   watchEffect((onCleanup) => {
     const mod = module.value
     if (mod == null) return
-    const scope: typeof undoManager.scope = [mod.contents, mod.idMap]
+    const scope: typeof undoManager.scope = [mod.doc.contents, mod.doc.idMap]
     undoManager.scope.push(...scope)
     onCleanup(() => {
       undoManager.scope = undoManager.scope.filter((s) => !scope.includes(s))

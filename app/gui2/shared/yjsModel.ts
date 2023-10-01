@@ -11,7 +11,7 @@ export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as Ex
 export interface NodeMetadata {
   x: number
   y: number
-  vis?: string
+  vis?: unknown
 }
 
 export class DistributedProject {
@@ -70,44 +70,51 @@ export class DistributedProject {
   }
 }
 
-export class DistributedModule {
-  doc: Y.Doc
+export class ModuleDoc {
+  ydoc: Y.Doc
   contents: Y.Text
   idMap: Y.Map<Uint8Array>
   metadata: Y.Map<NodeMetadata>
+  constructor(ydoc: Y.Doc) {
+    this.ydoc = ydoc
+    this.contents = ydoc.getText('contents')
+    this.idMap = ydoc.getMap('idMap')
+    this.metadata = ydoc.getMap('metadata')
+  }
+}
 
-  static async load(doc: Y.Doc) {
-    doc.load()
-    await doc.whenLoaded
-    return new DistributedModule(doc)
+export class DistributedModule {
+  doc: ModuleDoc
+
+  static async load(ydoc: Y.Doc) {
+    ydoc.load()
+    await ydoc.whenLoaded
+    return new DistributedModule(ydoc)
   }
 
-  constructor(doc: Y.Doc) {
-    this.doc = doc
-    this.contents = this.doc.getText('contents')
-    this.idMap = this.doc.getMap('idMap')
-    this.metadata = this.doc.getMap('metadata')
+  constructor(ydoc: Y.Doc) {
+    this.doc = new ModuleDoc(ydoc)
   }
 
   insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
     const range = [offset, offset + content.length]
     const newId = random.uuidv4() as ExprId
     this.transact(() => {
-      this.contents.insert(offset, content + '\n')
-      const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0]!)
-      const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1]!)
-      this.idMap.set(newId, encodeRange([start, end]))
-      this.metadata.set(newId, meta)
+      this.doc.contents.insert(offset, content + '\n')
+      const start = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[0]!)
+      const end = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[1]!)
+      this.doc.idMap.set(newId, encodeRange([start, end]))
+      this.doc.metadata.set(newId, meta)
     })
     return newId
   }
 
   replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
-    const rangeBuffer = this.idMap.get(id)
+    const rangeBuffer = this.doc.idMap.get(id)
     if (rangeBuffer == null) return
     const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)?.index
-    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)?.index
+    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
+    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
     if (exprStart == null || exprEnd == null) return
     const start = range == null ? exprStart : exprStart + range[0]
     const end = range == null ? exprEnd : exprStart + range[1]
@@ -115,29 +122,29 @@ export class DistributedModule {
     if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
     this.transact(() => {
       if (content.length > 0) {
-        this.contents.insert(start, content)
+        this.doc.contents.insert(start, content)
       }
       if (start !== end) {
-        this.contents.delete(start + content.length, end - start)
+        this.doc.contents.delete(start + content.length, end - start)
       }
     })
   }
 
   transact<T>(fn: () => T): T {
-    return this.doc.transact(fn)
+    return this.doc.ydoc.transact(fn)
   }
 
   updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
-    const existing = this.metadata.get(id) ?? { x: 0, y: 0 }
-    this.metadata.set(id, { ...existing, ...meta })
+    const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0 }
+    this.doc.metadata.set(id, { ...existing, ...meta })
   }
 
   getIdMap(): IdMap {
-    return new IdMap(this.idMap, this.contents)
+    return new IdMap(this.doc.idMap, this.doc.contents)
   }
 
   dispose(): void {
-    this.doc.destroy()
+    this.doc.ydoc.destroy()
   }
 }
 

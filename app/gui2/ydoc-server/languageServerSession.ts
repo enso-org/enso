@@ -7,17 +7,22 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { Emitter } from '../shared/event'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
-import { Checksum, Path, TextEdit, response } from '../shared/languageServerTypes'
+import { Checksum, Path, TextEdit } from '../shared/languageServerTypes'
 import {
-  DistributedModule,
   DistributedProject,
+  ExprId,
+  IdMap,
+  ModuleDoc,
   NodeMetadata,
   Uuid,
   decodeRange,
 } from '../shared/yjsModel'
+import * as fileFormat from './fileFormat'
 import { WSSharedDoc } from './ydoc'
 
 const sessions = new Map<string, LanguageServerSession>()
+
+const DEBUG_LOG_SYNC = false
 
 type Events = {
   error: [error: Error]
@@ -44,13 +49,13 @@ export class LanguageServerSession extends Emitter<Events> {
     const transport = new WebSocketTransport(url)
     const requestManager = new RequestManager([transport])
     this.client = new Client(requestManager)
+    console.log('new session with', url)
     transport.connection.on('error', (error) => this.emit('error', [error]))
     this.ls = new LanguageServer(this.client)
     this.indexDoc = new WSSharedDoc()
     this.docs.set('index', this.indexDoc)
     this.model = new DistributedProject(this.indexDoc.doc)
     this.projectRootId = null
-    this.readInitialState()
     this.authoritativeModules = new Map()
 
     this.indexDoc.doc.on('subdocs', (subdocs: { loaded: Set<Y.Doc> }) => {
@@ -59,25 +64,28 @@ export class LanguageServerSession extends Emitter<Events> {
         if (name == null) continue
         const persistence = this.authoritativeModules.get(name)
         if (persistence == null) continue
-        persistence.load()
       }
     })
 
-    this.model.modules.observe((event, transaction) => {
-      if (transaction.origin === this) return
-      const changes = event.changes
-      console.log('index change', changes.delta)
-    })
-
     this.ls.on('file/event', (event) => {
-      console.log('file/event', event)
+      if (DEBUG_LOG_SYNC) {
+        console.log('file/event', event)
+      }
+      switch (event.kind) {
+        case 'Added':
+          this.getModuleModel(event.path).open()
+          break
+        case 'Modified':
+          this.getModuleModelIfExists(event.path)?.reload()
+          break
+      }
     })
 
     this.ls.on('text/fileModifiedOnDisk', async (event) => {
-      const model = this.getModuleModel(event.path)
-      await model.unload()
-      await model.load()
+      this.getModuleModelIfExists(event.path)?.reload()
     })
+
+    this.readInitialState()
   }
 
   private assertProjectRoot(): asserts this is { projectRootId: Uuid } {
@@ -94,7 +102,9 @@ export class LanguageServerSession extends Emitter<Events> {
       const srcFiles = await this.scanSrcFiles()
       await Promise.all(
         this.indexDoc.doc.transact(() => {
-          return srcFiles.map((file) => this.getModuleModel(pushPathSegment(file.path, file.name)))
+          return srcFiles.map((file) =>
+            this.getModuleModel(pushPathSegment(file.path, file.name)).open(),
+          )
         }, this),
       )
     } catch (error) {
@@ -113,15 +123,21 @@ export class LanguageServerSession extends Emitter<Events> {
     return srcModules.paths.filter((file) => file.type === 'File' && file.name.endsWith('.enso'))
   }
 
+  getModuleModelIfExists(path: Path): ModulePersistence | null {
+    const name = pathToModuleName(path)
+    return this.authoritativeModules.get(name) ?? null
+  }
+
   getModuleModel(path: Path): ModulePersistence {
     const name = pathToModuleName(path)
     return map.setIfUndefined(this.authoritativeModules, name, () => {
       const wsDoc = new WSSharedDoc()
       this.docs.set(wsDoc.doc.guid, wsDoc)
-      const model = this.model.createUnloadedModule(name, wsDoc.doc)
-      const mod = new ModulePersistence(model, path, this.ls)
+      this.model.createUnloadedModule(name, wsDoc.doc)
+      const mod = new ModulePersistence(this.ls, path, wsDoc.doc)
       mod.once('removed', () => {
         const index = this.model.findModuleByDocId(wsDoc.doc.guid)
+        this.docs.delete(wsDoc.doc.guid)
         this.authoritativeModules.delete(name)
         if (index != null) {
           this.model.deleteModule(index)
@@ -141,13 +157,19 @@ export class LanguageServerSession extends Emitter<Events> {
     this.retainCount++
   }
 
-  release() {
+  release(): Promise<void> {
     this.retainCount--
     if (this.retainCount === 0) {
+      const closing = Promise.all(
+        Array.from(this.authoritativeModules.values(), (mod) => mod.dispose()),
+      ).then(() => {})
+      this.authoritativeModules.clear()
       this.model.doc.destroy()
       this.ls.dispose()
       sessions.delete(this.url)
+      return closing
     }
+    return Promise.resolve()
   }
 
   getYDoc(guid: string): WSSharedDoc | undefined {
@@ -173,247 +195,386 @@ const pushPathSegment = (path: Path, segment: string): Path => {
 const META_TAG = '#### METADATA ####'
 
 type IdMapEntry = [{ index: { value: number }; size: { value: number } }, string]
-interface IdeMetadata {
-  node: {
-    [id: string]: {
-      position?: { vector: [number, number] }
-      visualization?: VisMetadata | null
-    }
-  }
-  import: { [id: string]: {} }
+
+enum LsSyncState {
+  Closed,
+  Opening,
+  Synchronized,
+  WritingFile,
+  WriteError,
+  Reloading,
+  Closing,
+  Disposed,
 }
 
-interface VisMetadata {
-  name: { content: { content: string } }
-  project: string
-}
-
-function catchError(fn: () => void) {
-  try {
-    fn()
-  } catch (e) {
-    console.error(e)
-  }
+enum LsAction {
+  Open,
+  Close,
+  Reload,
 }
 
 class ModulePersistence extends Emitter<{ removed: [] }> {
   ls: LanguageServer
-  model: DistributedModule
   path: Path
-  knownContent: string
-  knownMeta: { ide: IdeMetadata }
-  currentVersion: Checksum | null
-
-  constructor(model: DistributedModule, path: Path, ls: LanguageServer) {
+  doc: ModuleDoc = new ModuleDoc(new Y.Doc())
+  state: LsSyncState = LsSyncState.Closed
+  lastAction = Promise.resolve()
+  updateToApply: Uint8Array | null = null
+  syncedContent: string | null = null
+  syncedVersion: Checksum | null = null
+  syncedMeta: fileFormat.Metadata = fileFormat.tryParseMetadataOrFallback(null)
+  queuedAction: LsAction | null = null
+  cleanup = () => {}
+  constructor(ls: LanguageServer, path: Path, sharedDoc: Y.Doc) {
     super()
     this.ls = ls
-    this.model = model
     this.path = path
-    this.currentVersion = null
-    this.knownContent = ''
-    this.knownMeta = { ide: { node: {}, import: {} } }
 
-    this.model.contents.observe((change, tx) => this.handleContentUpdate(change, tx))
-    this.model.idMap.observe((change, tx) => this.handleIdMapUpdate(change, tx))
-    this.model.metadata.observe((change, tx) => this.handleMetaUpdate(change, tx))
-    this.model.doc.on('update', (update, origin) =>
-      catchError(() => this.handleDocUpdate(update, origin)),
-    )
+    const onRemoteUpdate = this.queueRemoteUpdate.bind(this)
+    const onLocalUpdate = (update: Uint8Array, origin: unknown) => {
+      if (origin === 'file') {
+        Y.applyUpdate(sharedDoc, update, this)
+      }
+    }
+    const onFileModified = this.handleFileModified.bind(this)
+    const onFileRemoved = this.handleFileRemoved.bind(this)
+    this.doc.ydoc.on('update', onLocalUpdate)
+    sharedDoc.on('update', onRemoteUpdate)
+    this.ls.on('text/fileModifiedOnDisk', onFileModified)
+    this.ls.on('file/rootRemoved', onFileRemoved)
+    this.cleanup = () => {
+      this.doc.ydoc.off('update', onLocalUpdate)
+      sharedDoc.off('update', onRemoteUpdate)
+      this.ls.off('text/fileModifiedOnDisk', onFileModified)
+      this.ls.off('file/rootRemoved', onFileRemoved)
+    }
   }
-  async load() {
-    let loaded: response.OpenTextFile
-    try {
-      loaded = await this.ls.openTextFile(this.path)
-    } catch (_) {
-      return this.dispose()
+
+  async open() {
+    this.queuedAction = LsAction.Open
+    switch (this.state) {
+      case LsSyncState.Disposed:
+      case LsSyncState.WritingFile:
+      case LsSyncState.Synchronized:
+      case LsSyncState.WriteError:
+      case LsSyncState.Reloading:
+        return
+      case LsSyncState.Closing:
+        await this.lastAction
+        if (this.queuedAction === LsAction.Open) {
+          await this.open()
+        }
+        return
+      case LsSyncState.Opening:
+        await this.lastAction
+        return
+      case LsSyncState.Closed:
+        {
+          this.changeState(LsSyncState.Opening)
+          const opening = this.ls.openTextFile(this.path)
+          this.lastAction = opening.then()
+          const result = await opening
+          this.syncFileContents(result.content, result.currentVersion)
+          this.changeState(LsSyncState.Synchronized)
+        }
+        return
+      default: {
+        const _: never = this.state
+      }
+    }
+  }
+
+  handleFileRemoved() {
+    if (this.inState(LsSyncState.Closed)) return
+    this.close()
+  }
+
+  handleFileModified() {
+    if (this.inState(LsSyncState.Closed)) return
+  }
+
+  queueRemoteUpdate(update: Uint8Array, origin: unknown) {
+    if (origin === this) return
+    if (this.updateToApply != null) {
+      this.updateToApply = Y.mergeUpdates([this.updateToApply, update])
+    } else {
+      this.updateToApply = update
     }
 
-    this.model.doc.transact(() => {
-      const idMap = this.model.getIdMap()
-      const preParsed = preParseContent(loaded.content)
-      let idMapMeta
-      try {
-        idMapMeta = tryParseOrFallback(preParsed.idMapJson, [], 'Id map parse failed:')
-        const metadata = tryParseOrFallback(
-          preParsed.metadataJson,
-          this.knownMeta,
-          'Metadata parse failed:',
-        )
-        if (metadata != null && typeof metadata === 'object') {
-          metadata.ide ??= this.knownMeta.ide
-          metadata.ide.node ??= this.knownMeta.ide.node
-          metadata.ide.import ??= this.knownMeta.ide.import
-          this.knownMeta = metadata as typeof this.knownMeta
+    this.trySyncRemoveUpdates()
+  }
+
+  trySyncRemoveUpdates() {
+    if (this.updateToApply == null) return
+    // Only apply updates to the ls-representation doc if we are already in sync with the LS.
+    if (!this.inState(LsSyncState.Synchronized)) return
+    const update = this.updateToApply
+    this.updateToApply = null
+
+    let contentDelta: Y.YTextEvent['delta'] | null = null
+    let idMapKeys: Y.YMapEvent<Uint8Array>['keys'] | null = null
+    let metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null = null
+    const observeContent = (event: Y.YTextEvent) => (contentDelta = event.delta)
+    const observeIdMap = (event: Y.YMapEvent<Uint8Array>) => (idMapKeys = event.keys)
+    const observeMetadata = (event: Y.YMapEvent<NodeMetadata>) => (metadataKeys = event.keys)
+
+    this.doc.contents.observe(observeContent)
+    this.doc.idMap.observe(observeIdMap)
+    this.doc.metadata.observe(observeMetadata)
+    Y.applyUpdate(this.doc.ydoc, update, 'remote')
+    this.doc.contents.unobserve(observeContent)
+    this.doc.idMap.unobserve(observeIdMap)
+    this.doc.metadata.unobserve(observeMetadata)
+    this.writeSyncedEvents(contentDelta, idMapKeys, metadataKeys)
+  }
+
+  private writeSyncedEvents(
+    contentDelta: Y.YTextEvent['delta'] | null,
+    idMapKeys: Y.YMapEvent<Uint8Array>['keys'] | null,
+    metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
+  ) {
+    if (this.syncedContent == null || this.syncedVersion == null) return
+    if (contentDelta == null && idMapKeys == null && metadataKeys == null) return
+
+    const synced = preParseContent(this.syncedContent)
+
+    let newContent = ''
+
+    const allEdits: TextEdit[] = []
+    if (contentDelta && contentDelta.length > 0) {
+      const { code, edits } = convertDeltaToTextEdits(synced.code, contentDelta)
+      newContent += code
+      allEdits.push(...edits)
+    } else {
+      newContent += synced.code
+    }
+
+    newContent += META_TAG + '\n'
+
+    const metaStartLine = (newContent.match(/\n/g) ?? []).length
+
+    if (idMapKeys != null || (contentDelta && contentDelta.length > 0)) {
+      const idMapJson = json.stringify(idMapToArray(this.doc.idMap))
+      allEdits.push(...applyDiffAsTextEdits(metaStartLine, synced.idMapJson, idMapJson))
+      newContent += idMapJson + '\n'
+    } else {
+      newContent += synced.idMapJson + '\n'
+    }
+
+    const nodeMetadata = this.syncedMeta.ide.node
+    if (metadataKeys != null) {
+      for (const [key, op] of metadataKeys) {
+        switch (op.action) {
+          case 'delete':
+            delete nodeMetadata[key]
+            break
+          case 'add':
+          case 'update': {
+            const updatedMeta = this.doc.metadata.get(key)
+            const oldMeta = nodeMetadata[key] ?? {}
+            if (updatedMeta == null) continue
+            nodeMetadata[key] = {
+              ...oldMeta,
+              position: {
+                vector: [updatedMeta.x, updatedMeta.y],
+              },
+            }
+            break
+          }
         }
-      } catch (e) {
-        console.log('Metadata parse failed:', e)
-        return
       }
 
-      const code = preParsed.code
-      const nodeMeta = this.knownMeta.ide.node
+      const metadataJson = json.stringify(this.syncedMeta)
+      allEdits.push(...applyDiffAsTextEdits(metaStartLine + 1, synced.metadataJson, metadataJson))
+      newContent += metadataJson
+    } else {
+      newContent += synced.metadataJson
+    }
 
+    const newVersion = computeTextChecksum(newContent)
+
+    if (DEBUG_LOG_SYNC) {
+      console.log(' === changes === ')
+      console.log('number of edits:', allEdits.length)
+      console.log('metadata:', metadataKeys)
+      console.log('content:', contentDelta)
+      console.log('idMap:', idMapKeys)
+      if (allEdits.length > 0) {
+        console.log('version:', this.syncedVersion, '->', newVersion)
+        console.log('Content diff:')
+        console.log(prettyPrintDiff(this.syncedContent, newContent))
+      }
+      console.log(' =============== ')
+    }
+    if (allEdits.length === 0) {
+      return
+    }
+
+    const execute = (contentDelta && contentDelta.length > 0) || metadataKeys != null
+
+    this.changeState(LsSyncState.WritingFile)
+    const apply = this.ls.applyEdit(
+      {
+        path: this.path,
+        edits: allEdits,
+        oldVersion: this.syncedVersion,
+        newVersion,
+      },
+      execute,
+    )
+    return (this.lastAction = apply.then(
+      () => {
+        this.syncedContent = newContent
+        this.syncedVersion = newVersion
+        this.syncedMeta.ide.node = nodeMetadata
+        this.changeState(LsSyncState.Synchronized)
+      },
+      (e) => {
+        console.error('Failed to apply edit:', e)
+        // Try to recover by reloading the file. Drop the attempted updates, since applying them
+        // have failed.
+        this.changeState(LsSyncState.WriteError)
+        this.syncedContent = null
+        this.syncedVersion = null
+        return this.reload()
+      },
+    ))
+  }
+
+  private syncFileContents(content: string, version: Checksum) {
+    this.doc.ydoc.transact(() => {
+      const { code, idMapJson, metadataJson } = preParseContent(content)
+      const idMapMeta = fileFormat.tryParseIdMapOrFallback(idMapJson)
+      const metadata = fileFormat.tryParseMetadataOrFallback(metadataJson)
+      const nodeMeta = metadata.ide.node
+
+      const idMap = new IdMap(this.doc.idMap, this.doc.contents)
       for (const [{ index, size }, id] of idMapMeta) {
         const range = [index.value, index.value + size.value]
         if (typeof range[0] !== 'number' || typeof range[1] !== 'number') {
           console.error(`Invalid range for id ${id}:`, range)
           continue
         }
-        idMap.insertKnownId([index.value, index.value + size.value], id)
+        idMap.insertKnownId([index.value, index.value + size.value], id as ExprId)
       }
 
-      const keysToDelete = new Set(this.model.metadata.keys())
-      for (const [id, rawMeta] of Object.entries(nodeMeta ?? {})) {
+      const keysToDelete = new Set(this.doc.metadata.keys())
+      for (const [id, meta] of Object.entries(nodeMeta)) {
         if (typeof id !== 'string') continue
-        const meta = rawMeta as any
         const formattedMeta: NodeMetadata = {
           x: meta?.position?.vector?.[0] ?? 0,
           y: meta?.position?.vector?.[1] ?? 0,
           vis: meta?.visualization ?? undefined,
         }
         keysToDelete.delete(id)
-        this.model.metadata.set(id, formattedMeta)
+        this.doc.metadata.set(id, formattedMeta)
       }
       for (const id of keysToDelete) {
-        this.model.metadata.delete(id)
+        this.doc.metadata.delete(id)
       }
+      this.syncedContent = content
+      this.syncedVersion = version
+      this.syncedMeta = metadata
 
-      this.knownContent = loaded.content
-      this.currentVersion = loaded.currentVersion
-
-      const codeDiff = simpleDiffString(this.model.contents.toString(), code)
-      this.model.contents.delete(codeDiff.index, codeDiff.remove)
-      this.model.contents.insert(codeDiff.index, codeDiff.insert)
+      const codeDiff = simpleDiffString(this.doc.contents.toString(), code)
+      this.doc.contents.delete(codeDiff.index, codeDiff.remove)
+      this.doc.contents.insert(codeDiff.index, codeDiff.insert)
       idMap.finishAndSynchronize()
-    }, this)
+    }, 'file')
   }
 
-  async unload() {
-    await this.ls.closeTextFile(this.path)
-  }
-
-  /** A file was removed on the LS side. */
-  dispose() {
-    this.model.doc.destroy()
-    this.emit('removed', [])
-    this.unload()
-  }
-
-  handleLsUpdate() {
-    if (this.currentVersion == null) return
-  }
-
-  contentDelta: Y.YTextEvent['delta'] = []
-  metaUpdated = false
-  idMapUpdated = false
-
-  handleContentUpdate(change: Y.YTextEvent, tx: Y.Transaction) {
-    if (tx.origin === this) return
-    this.contentDelta = change.delta
-  }
-
-  handleMetaUpdate(change: Y.YMapEvent<NodeMetadata>, tx: Y.Transaction): void {
-    if (tx.origin === this) return
-    this.metaUpdated = true
-    for (const [key, op] of change.keys) {
-      switch (op.action) {
-        case 'delete':
-          delete this.knownMeta.ide.node[key]
-          break
-        case 'add':
-        case 'update': {
-          const updatedMeta = this.model.metadata.get(key)
-          const oldMeta = this.knownMeta.ide.node[key] ?? {}
-          if (updatedMeta == null) continue
-          this.knownMeta.ide.node[key] = {
-            ...oldMeta,
-            position: {
-              vector: [updatedMeta.x, updatedMeta.y],
-            },
-          }
-          break
+  async close() {
+    this.queuedAction = LsAction.Close
+    switch (this.state) {
+      case LsSyncState.Disposed:
+      case LsSyncState.Closed:
+        return
+      case LsSyncState.Closing:
+        await this.lastAction
+        return
+      case LsSyncState.Opening:
+      case LsSyncState.WritingFile:
+      case LsSyncState.Reloading:
+        await this.lastAction
+        if (this.queuedAction === LsAction.Close) {
+          await this.close()
         }
+        return
+      case LsSyncState.WriteError:
+      case LsSyncState.Synchronized: {
+        this.changeState(LsSyncState.Closing)
+        const closing = (this.lastAction = this.ls.closeTextFile(this.path))
+        await closing
+        this.changeState(LsSyncState.Closed)
+        return
+      }
+      default: {
+        const _: never = this.state
       }
     }
   }
 
-  handleIdMapUpdate(change: Y.YMapEvent<Uint8Array>, tx: Y.Transaction): void {
-    if (tx.origin === this) return
-    this.idMapUpdated = true
+  async reload() {
+    this.queuedAction = LsAction.Reload
+    switch (this.state) {
+      case LsSyncState.Opening:
+      case LsSyncState.Disposed:
+      case LsSyncState.Closed:
+      case LsSyncState.Closing:
+        return
+      case LsSyncState.Reloading:
+        await this.lastAction
+        return
+      case LsSyncState.WritingFile:
+        await this.lastAction
+        if (this.queuedAction === LsAction.Reload) {
+          await this.reload()
+        }
+        return
+      case LsSyncState.Synchronized:
+      case LsSyncState.WriteError: {
+        this.changeState(LsSyncState.Reloading)
+        const reloading = this.ls.closeTextFile(this.path).then(() => {
+          return this.ls.openTextFile(this.path)
+        })
+        this.lastAction = reloading.then()
+        const result = await reloading
+        this.syncFileContents(result.content, result.currentVersion)
+        this.changeState(LsSyncState.Synchronized)
+        return
+      }
+      default: {
+        const _: never = this.state
+      }
+    }
   }
 
-  handleDocUpdate(_update: Uint8Array, origin: any) {
-    if (origin === this) return
-    if (this.currentVersion == null) return
-    const oldVersion = this.currentVersion
-    const execute = this.contentDelta.length > 0 || this.idMapUpdated
-
-    const changed = this.metaUpdated || this.idMapUpdated || this.contentDelta.values.length > 0
-    if (!changed) return
-
-    const known = preParseContent(this.knownContent)
-    const allEdits: TextEdit[] = []
-
-    let updatedCode = known.code
-    if (this.contentDelta.length > 0) {
-      const { code, edits } = convertDeltaToTextEdits(known.code, this.contentDelta)
-      printEdits('code', edits)
-      updatedCode = code
-      allEdits.push(...edits)
-      this.contentDelta = []
-    }
-
-    const idMapJson = json.stringify(idMapToArray(this.model.idMap))
-    const metadataJson = json.stringify(this.knownMeta)
-
-    const metaStartLine = (updatedCode.match(/\n/g) ?? []).length
-    const oldMeta = this.knownContent.slice(known.code.length)
-    const newMeta = [META_TAG, idMapJson, metadataJson].join('\n')
-
-    const metaEdits = applyDiffAsTextEdits(metaStartLine, oldMeta, newMeta)
-    if (metaEdits.length > 0) {
-      printEdits('meta', metaEdits)
-      allEdits.push(...metaEdits)
-    }
-
-    const newContent = updatedCode + newMeta
-    const newVersion = computeTextChecksum(newContent)
-    this.knownContent = newContent
-    this.currentVersion = newVersion
-
-    if (allEdits.length === 0) {
-      console.log('No edits')
-      return
-    }
-    console.log(oldVersion, '->', newVersion)
-
-    this.ls.applyEdit(
-      {
-        path: this.path,
-        edits: allEdits,
-        oldVersion,
-        newVersion,
-      },
-      execute,
-    )
+  private inState(...states: LsSyncState[]): boolean {
+    return states.includes(this.state)
   }
-}
 
-function tryParseOrFallback(jsonString: string, fallback: any, message: string): any {
-  try {
-    return json.parse(jsonString)
-  } catch (e) {
-    console.error(message, e)
-    return fallback
+  private changeState(state: LsSyncState) {
+    if (this.state !== LsSyncState.Disposed) {
+      if (DEBUG_LOG_SYNC) {
+        console.log('State change:', LsSyncState[this.state], '->', LsSyncState[state])
+      }
+      this.state = state
+      if (state === LsSyncState.Synchronized) {
+        this.trySyncRemoveUpdates()
+      }
+    } else {
+      throw new Error('LsSync disposed')
+    }
   }
-}
 
-function printEdits(label: string, edits: TextEdit[]) {
-  for (const edit of edits) {
-    const { start, end } = edit.range
-    console.log(
-      `[${label}] ${start.line}:${start.character}-${end.line}:${end.character} -> ${edit.text.length}`,
-    )
+  dispose(): Promise<void> {
+    this.cleanup()
+    const alreadyClosed = this.inState(LsSyncState.Closing, LsSyncState.Closed)
+    this.changeState(LsSyncState.Disposed)
+    if (!alreadyClosed) {
+      return this.ls.closeTextFile(this.path).then()
+    }
+    return Promise.resolve()
   }
 }
 
@@ -474,14 +635,24 @@ function convertDeltaToTextEdits(
   let lineNum = 0
   let lineStartIdx = 0
   let code = ''
-  console.log('contentDelta', contentDelta)
   for (const op of contentDelta) {
     if (op.insert != null && typeof op.insert === 'string') {
       const pos = {
         character: newIndex - lineStartIdx,
         line: lineNum,
       }
-      edits.push({ range: { start: pos, end: pos }, text: op.insert })
+      // if the last edit was a delete on the same position, we can merge the insert into it
+      const lastEdit = edits[edits.length - 1]
+      if (
+        lastEdit &&
+        lastEdit.text.length === 0 &&
+        lastEdit.range.start.line === pos.line &&
+        lastEdit.range.start.character === pos.character
+      ) {
+        lastEdit.text = op.insert
+      } else {
+        edits.push({ range: { start: pos, end: pos }, text: op.insert })
+      }
       const numLineBreaks = (op.insert.match(/\n/g) ?? []).length
       if (numLineBreaks > 0) {
         lineStartIdx = newIndex + op.insert.lastIndexOf('\n') + 1
@@ -603,4 +774,40 @@ if (import.meta.vitest) {
       ])
     })
   })
+}
+
+function prettyPrintDiff(from: string, to: string): string {
+  const colReset = '\x1b[0m'
+  const colRed = '\x1b[31m'
+  const colGreen = '\x1b[32m'
+
+  const diffs = diff(from, to)
+  if (diffs.length === 1 && diffs[0][0] === 0) return 'No changes'
+  let content = ''
+  for (let i = 0; i < diffs.length; i++) {
+    const [op, text] = diffs[i]
+    if (op === 1) {
+      content += colGreen + text
+    } else if (op === -1) {
+      content += colRed + text
+    } else if (op === 0) {
+      content += colReset
+      const numNewlines = (text.match(/\n/g) ?? []).length
+      if (numNewlines < 2) {
+        content += text
+      } else {
+        const firstNewline = text.indexOf('\n')
+        const lastNewline = text.lastIndexOf('\n')
+        const firstLine = text.slice(0, firstNewline + 1)
+        const lastLine = text.slice(lastNewline + 1)
+        const isFirst = i === 0
+        const isLast = i === diffs.length - 1
+        if (!isFirst) content += firstLine
+        if (!isFirst && !isLast) content += '...\n'
+        if (!isLast) content += lastLine
+      }
+    }
+  }
+  content += colReset
+  return content
 }
