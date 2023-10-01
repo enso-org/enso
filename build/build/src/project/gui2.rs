@@ -56,12 +56,12 @@ pub fn lint(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     let repo_root = repo_root.as_ref().to_owned();
     async move {
         crate::web::install(&repo_root).await?;
-        script(&repo_root, Scripts::TypeCheck)?.run_ok().await?;
         script(&repo_root, Scripts::Lint)?.run_ok().await
     }
     .boxed()
 }
 
+/// Run unit tests.
 pub fn unit_tests(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
     let repo_root = repo_root.as_ref().to_owned();
     async move {

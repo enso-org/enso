@@ -70,7 +70,14 @@ pub fn run_script(repo_root: impl AsRef<Path>, script: Script) -> BoxFuture<'sta
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Workspace {
+    EnsoIdeDesktop,
+    Enso,
+    EnsoContent,
+    EnsoDashboard,
+    EnsoIcons,
+    EnsoAuthentication,
     EnsoGui2,
+    EnsoglRunner,
 }
 
 impl AsRef<OsStr> for Workspace {
