@@ -107,6 +107,11 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             className={`flex text-left items-center align-middle whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
+            onKeyDown={event => {
+                if (rowState.isEditingName && event.key === 'Enter') {
+                    event.stopPropagation()
+                }
+            }}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&

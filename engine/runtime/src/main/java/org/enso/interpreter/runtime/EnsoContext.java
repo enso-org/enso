@@ -28,7 +28,6 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -78,6 +77,7 @@ public final class EnsoContext {
 
   private final EnsoLanguage language;
   private final Env environment;
+  private final boolean assertionsEnabled;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -136,7 +136,7 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
-
+    this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig =
@@ -252,6 +252,19 @@ public final class EnsoContext {
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
   }
 
+  private boolean shouldAssertionsBeEnabled() {
+    var envVar = environment.getEnvironment().get("ENSO_ENABLE_ASSERTIONS");
+    if (envVar != null) {
+      return Boolean.parseBoolean(envVar);
+    }
+    return isJvmAssertionsEnabled();
+  }
+
+  private static boolean isJvmAssertionsEnabled() {
+    boolean assertionsEnabled = false;
+    assert assertionsEnabled = true;
+    return assertionsEnabled;
+  }
   /**
    * Creates a truffle file for a given standard file.
    *
@@ -607,6 +620,10 @@ public final class EnsoContext {
    */
   public boolean isUseGlobalCache() {
     return getOption(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
+  }
+
+  public boolean isAssertionsEnabled() {
+    return assertionsEnabled;
   }
 
   /**

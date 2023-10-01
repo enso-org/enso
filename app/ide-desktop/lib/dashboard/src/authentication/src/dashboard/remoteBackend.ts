@@ -765,7 +765,7 @@ export class RemoteBackend extends backendModule.Backend {
                 })
             )[0]?.number
             if (version == null) {
-                throw new Error(`No default ${versionType} version found.`)
+                return this.throw(`No default ${versionType} version found.`)
             } else {
                 const info: DefaultVersionInfo = {
                     version,

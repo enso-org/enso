@@ -75,7 +75,7 @@ export default function DriveBar(props: DriveBarProps) {
                     }}
                 >
                     <span
-                        className={`font-semibold leading-5 h-6 py-px ${
+                        className={`font-semibold whitespace-nowrap leading-5 h-6 py-px ${
                             category === categorySwitcher.Category.trash ? 'opacity-50' : ''
                         }`}
                     >

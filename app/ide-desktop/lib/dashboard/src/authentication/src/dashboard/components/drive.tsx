@@ -149,7 +149,7 @@ export default function Drive(props: DriveProps) {
     ) : isListingLocalDirectoryAndWillFail ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="text-base text-center">
-                Could not connect to the Project Manager. Please try restarting
+                Could not connect to the Project Manager. Please try restarting{' '}
                 {common.PRODUCT_NAME}, or manually launching the Project Manager.
             </div>
         </div>
