@@ -44,6 +44,11 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
+  public StorageType inferPreciseTypeShrunk() {
+    return underlyingStorage.inferPreciseTypeShrunk();
+  }
+
+  @Override
   public boolean isNa(long idx) {
     return underlyingStorage.isNa(idx);
   }

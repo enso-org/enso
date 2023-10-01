@@ -26,10 +26,10 @@ public class LongBuilderChecked extends LongBuilder {
     if (o == null) {
       isMissing.set(currentSize++);
     } else {
-      try {
-        long x = NumericConverter.coerceToLong(o);
+      Long x = NumericConverter.tryConvertingToLong(o);
+      if (x != null) {
         appendLongNoGrow(x);
-      } catch (UnsupportedOperationException e) {
+      } else {
         throw new ValueTypeMismatchException(type, o);
       }
     }

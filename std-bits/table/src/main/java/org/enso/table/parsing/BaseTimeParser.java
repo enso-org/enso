@@ -25,6 +25,7 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
       } catch (DateTimeParseException ignored) {
         // TODO I think ideally we should try to return Option instead of throwing, as throwing is
         // inefficient
+        // See: https://github.com/enso-org/enso/issues/7878
       }
     }
 

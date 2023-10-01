@@ -105,6 +105,20 @@ public final class MixedStorage extends ObjectStorage {
     return inferredType;
   }
 
+  @Override
+  public StorageType inferPreciseTypeShrunk() {
+    Storage<?> specialized = getInferredStorage();
+    if (specialized == null) {
+      // If no specialized type is available, it means that:
+      assert inferredType instanceof AnyObjectType;
+      return AnyObjectType.INSTANCE;
+    }
+
+    // If we are able to get a more specialized storage for more specific type - we delegate to its
+    // own shrinking logic.
+    return specialized.inferPreciseTypeShrunk();
+  }
+
   private Storage<?> getInferredStorage() {
     if (!hasSpecializedStorageBeenInferred) {
       StorageType inferredType = inferPreciseType();

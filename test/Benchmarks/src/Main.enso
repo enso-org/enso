@@ -16,6 +16,7 @@ import project.Text.Contains
 import project.Text.Pretty
 import project.Text.Reverse
 import project.Time.Work_Days
+import project.Time.Format
 import project.Collections
 import project.Column_Numeric
 import project.Equality
@@ -55,8 +56,10 @@ all_benchmarks =
     builder.append Reverse.collect_benches
 
     # Time
+    builder.append Format.collect_benches
     builder.append Work_Days.collect_benches
 
+    # Vector
     builder.append Collections.collect_benches
     builder.append Column_Numeric.collect_benches
     builder.append Equality.collect_benches
@@ -70,9 +73,13 @@ all_benchmarks =
     builder.to_vector
 
 main =
-    all_benchmarks.each suite->
+    benchmarks = all_benchmarks
+    total_specs = benchmarks.map .total_specs . fold 0 (+)
+    IO.println "Found "+benchmarks.length.to_text+" benchmark suites, containing "+total_specs.to_text+" specs in total."
+    estimated_duration = benchmarks.map .estimated_runtime . fold Duration.zero (+)
+    IO.println "The minimal estimated run time based on configurations is "+estimated_duration.to_display_text+"."
+    benchmarks.each suite->
         suite.run_main
-
 
 ## Prints all benchmarks along with their configuration
 list_names =

@@ -1,0 +1,137 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Errors.Suspicious_Date_Time_Format
+import project.Data.Vector.Vector
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Meta
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+
+from project.Internal.Time.Format.Parser import all
+
+## PRIVATE
+type Analyzer
+    ## PRIVATE
+
+       Fields:
+       - nodes: The raw list of nodes as returned from the parser.
+       - flattened: The list of nodes after flattening the optional sections and
+         removing literals - so it just contains raw patterns.
+    Value (nodes : Vector (Common_Nodes | Standard_Date_Patterns | ISO_Week_Year_Patterns | Time_Patterns | Time_Zone_Patterns)) ~flattened
+
+    ## PRIVATE
+    new nodes =
+        get_pattern_nodes node = case node of
+            Common_Nodes.Optional_Section inner -> inner.flat_map get_pattern_nodes
+            Common_Nodes.Literal _ -> []
+            _ -> [node]
+
+        Analyzer.Value nodes (nodes.flat_map get_pattern_nodes)
+
+    ## PRIVATE
+       Checks if the given node is contained as one of the nodes, ignoring the optional ones.
+    has_required : Any -> Boolean
+    has_required self constructor =
+        meta_ctor = Meta.meta constructor
+        if meta_ctor.is_a Meta.Constructor . not then
+            Panic.throw (Illegal_Argument.Error "Expected a constructor, but got: "+meta_ctor.to_text)
+        self.nodes.any node->
+            case Meta.meta node of
+                atom : Meta.Atom ->
+                    atom.constructor == meta_ctor
+                _ -> False
+
+    ## PRIVATE
+       Runs basic validations that can happen on construction of the formatter, regardless of the context.
+    validate_after_parsing self ~continuation =
+        problem_builder = Vector.new_builder
+        self.check_possible_m_mismatches problem_builder
+        self.check_possible_seconds_aliasing problem_builder
+        self.check_24h_and_am_pm_collision problem_builder
+        Problem_Behavior.Report_Warning.attach_problems_after continuation problem_builder.to_vector
+
+    ## PRIVATE
+       Prepares a list of warnings that are only reported when parsing using the
+       formatter.
+    get_parsing_only_warnings : Vector
+    get_parsing_only_warnings self =
+        problem_builder = Vector.new_builder
+        self.check_missing_am_pm_in_hour_parse problem_builder
+        self.check_missing_year_in_date_parse problem_builder
+        problem_builder.to_vector
+
+    ## PRIVATE
+    check_possible_m_mismatches self problem_builder =
+        pattern_nodes = self.flattened
+        pattern_nodes.each_with_index ix-> value-> case value of
+            Standard_Date_Patterns.Month _ ->
+                # Warns only if surrounded from both sides or if it has a time node on the left and is the last node.
+                has_time_on_left = pattern_nodes.get ix-1 . is_a Time_Patterns
+                has_time_on_right_or_is_last =
+                    next = pattern_nodes.get ix+1
+                    next.is_nothing || next.is_a Time_Patterns
+                if has_time_on_left && has_time_on_right_or_is_last then
+                    problem_builder.append (Suspicious_Date_Time_Format.Warning "A Month pattern 'M' is used next to time patterns. Did you mean 'm' for minutes? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+            Time_Patterns.Minute _ ->
+                has_date_on_both_sides = (pattern_nodes.get ix-1 . is_a Standard_Date_Patterns) && (pattern_nodes.get ix+1 . is_a Standard_Date_Patterns)
+                if has_date_on_both_sides then
+                    problem_builder.append (Suspicious_Date_Time_Format.Warning "A Minute pattern 'm' is used between date patterns. Did you mean 'M' for months? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+            _ -> Nothing
+
+    ## PRIVATE
+    check_possible_seconds_aliasing self problem_builder =
+        pattern_nodes = self.flattened
+        seconds = pattern_nodes.filter node-> case node of
+            Time_Patterns.Second _ -> True
+            _ -> False
+        if seconds.length == 2 then
+            problem_builder.append (Suspicious_Date_Time_Format.Warning "Two Second patterns have been detected ('s'/'S'). Our simple format treats seconds in a case-insensitive way. If you want to indicate a fraction of a second, use 'f' instead. (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+    ## PRIVATE
+    has_24h : Boolean
+    has_24h self =
+        self.flattened.any node-> case node of
+            Time_Patterns.Hour _ is24h -> is24h
+            _ -> False
+
+    ## PRIVATE
+    has_12h : Boolean
+    has_12h self =
+        self.flattened.any node-> case node of
+            Time_Patterns.Hour _ is24h -> is24h.not
+            _ -> False
+
+    ## PRIVATE
+    has_am_pm : Boolean
+    has_am_pm self =
+        self.flattened.any node-> case node of
+            Time_Patterns.AM_PM -> True
+            _ -> False
+
+    ## PRIVATE
+    check_24h_and_am_pm_collision self problem_builder =
+        if self.has_24h && self.has_am_pm && self.has_12h.not then
+            problem_builder.append (Suspicious_Date_Time_Format.Warning "A 24-hour pattern 'H' is used with an AM/PM pattern. Did you mean 'h' for 12-hour format? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+    ## PRIVATE
+    check_missing_am_pm_in_hour_parse self problem_builder =
+        if self.has_12h && self.has_am_pm.not then
+            problem_builder.append (Suspicious_Date_Time_Format.Warning "A 12-hour pattern 'h' is used without an AM/PM pattern. Without it, the 12-hour pattern is ambiguous - the hours will default to AM. Did you mean 'H' for 24-hour format? (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")
+
+    ## PRIVATE
+    has_day_and_month_but_not_year : Boolean
+    has_day_and_month_but_not_year self =
+        has_month = self.has_required Standard_Date_Patterns.Month
+        has_day = self.has_required Standard_Date_Patterns.Day_Of_Month
+        has_year = self.has_required Standard_Date_Patterns.Year
+        has_month && has_day && has_year.not
+
+    ## PRIVATE
+    check_missing_year_in_date_parse self problem_builder =
+        if self.has_day_and_month_but_not_year then
+            problem_builder.append (Suspicious_Date_Time_Format.Warning "A date pattern with a day and month but without a year has been detected. The year will default to the current year - note that the results may change over time. (You can remove this warning using `remove_warnings Suspicious_Date_Time_Format`.)")

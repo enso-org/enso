@@ -32,7 +32,7 @@ export default function SetUsername() {
                     'max-w-md'
                 }
             >
-                <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
+                <div className="font-medium self-center text-xl uppercase text-gray-800">
                     Set your username
                 </div>
                 <div className="mt-10">
@@ -64,7 +64,7 @@ export default function SetUsername() {
                                 type="submit"
                                 className={
                                     'flex items-center justify-center focus:outline-none text-white text-sm ' +
-                                    'sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition ' +
+                                    'bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition ' +
                                     'duration-150 ease-in'
                                 }
                             >

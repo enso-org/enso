@@ -766,7 +766,7 @@ type Vector a
             if self.length == 1 then prefix + self.at 0 + suffix else
                 prefix + self.at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.at i) + suffix
 
-    ## GROUP Selections
+    ## PRIVATE
        Creates a new vector with the skipping elements until `start` and then
        continuing until `end` index.
 

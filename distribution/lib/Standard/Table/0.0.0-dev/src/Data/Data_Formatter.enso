@@ -8,6 +8,7 @@ from Standard.Base.Widget_Helpers import make_date_format_selector, make_time_fo
 import project.Data.Type.Storage
 import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
+import project.Internal.Widget_Helpers
 from project.Data.Type.Value_Type import Auto, Bits, Value_Type
 
 polyglot java import java.lang.Exception as Java_Exception
@@ -66,17 +67,17 @@ type Data_Formatter
 
        Arguments:
        - text: Text value to parse.
-       - datatype: The expected Enso type to parse the value into. If set to
+       - type: The expected Enso type to parse the value into. If set to
          `Auto`, the type will be inferred automatically.
        - on_problems: Specifies the behavior when a problem occurs.
          By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    parse : Text -> (Auto|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) -> Problem_Behavior -> Any
-    parse self text datatype=Auto on_problems=Problem_Behavior.Report_Warning =
-        # TODO [RW] move to value_type: https://github.com/enso-org/enso/issues/7866
-        parser = self.make_datatype_parser datatype
-        Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem datatype) <|
+    @type Widget_Helpers.parse_type_selector
+    parse : Text -> (Value_Type | Auto) -> Problem_Behavior -> Any
+    parse self text type=Auto on_problems=Problem_Behavior.Report_Warning =
+        parser = self.make_value_type_parser type
+        Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
             parser.parseIndependentValue text
 
     ## PRIVATE
@@ -203,35 +204,20 @@ type Data_Formatter
     ## PRIVATE
     make_date_parser self = self.wrap_base_parser <|
         Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateParser.new (self.date_formats.map .underlying)
+            DateParser.new (self.date_formats.map .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_date_time_parser self = self.wrap_base_parser <|
         Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateTimeParser.new (self.datetime_formats.map .underlying)
+            DateTimeParser.new (self.datetime_formats.map .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_time_of_day_parser self = self.wrap_base_parser <|
         Panic.catch Java_Exception handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            TimeOfDayParser.new (self.time_formats.map .underlying)
+            TimeOfDayParser.new (self.time_formats.map .get_java_formatter_for_parsing)
 
     ## PRIVATE
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
-
-    ## PRIVATE
-    make_datatype_parser self datatype = case datatype of
-        Integer     -> self.make_integer_parser
-        Float       -> self.make_decimal_parser
-        Boolean     -> self.make_boolean_parser
-        Date        -> self.make_date_parser
-        Date_Time   -> self.make_date_time_parser
-        Time_Of_Day -> self.make_time_of_day_parser
-        Auto        -> self.make_auto_parser
-        _ ->
-            type_name = case datatype.to_text of
-                text : Text -> text
-                _ -> Meta.meta datatype . to_text
-            Error.throw (Illegal_Argument.Error "Unsupported datatype: "+type_name)
 
     ## PRIVATE
     make_value_type_parser self value_type = case value_type of

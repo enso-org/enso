@@ -3,9 +3,9 @@ import diff from 'fast-diff'
 import { simpleDiffString } from 'lib0/diff'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
+import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import { Emitter } from '../shared/event'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, Path, TextEdit } from '../shared/languageServerTypes'
 import {
@@ -25,10 +25,10 @@ const sessions = new Map<string, LanguageServerSession>()
 const DEBUG_LOG_SYNC = false
 
 type Events = {
-  error: [error: Error]
+  error: (error: Error) => void
 }
 
-export class LanguageServerSession extends Emitter<Events> {
+export class LanguageServerSession extends ObservableV2<Events> {
   clientId: Uuid
   indexDoc: WSSharedDoc
   docs: Map<string, WSSharedDoc>
@@ -213,7 +213,7 @@ enum LsAction {
   Reload,
 }
 
-class ModulePersistence extends Emitter<{ removed: [] }> {
+class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ls: LanguageServer
   path: Path
   doc: ModuleDoc = new ModuleDoc(new Y.Doc())

@@ -23,6 +23,8 @@ import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long> {
   public abstract long getItem(int idx);
@@ -76,6 +78,46 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   @Override
   public abstract IntegerType getType();
+
+  @Override
+  public StorageType inferPreciseType() {
+    return getType();
+  }
+
+  @Override
+  public StorageType inferPreciseTypeShrunk() {
+    // If the type is already smallest possible, we return it unchanged (we will return 8-bit
+    // columns as-is, although
+    // we will not shrink 16-bit columns to 8-bits even if it were possible).
+    if (getType().bits().toInteger() <= 16) {
+      return getType();
+    }
+
+    IntegerType[] possibleTypes =
+        new IntegerType[] {IntegerType.INT_16, IntegerType.INT_32, IntegerType.INT_64};
+
+    int currentTypeIdx = 0;
+    int n = size();
+    Context context = Context.getCurrent();
+    for (int i = 0; i < n; i++) {
+      if (isNa(i)) {
+        continue;
+      }
+
+      long item = getItem(i);
+      while (!possibleTypes[currentTypeIdx].fits(item)) {
+        currentTypeIdx++;
+      }
+
+      if (currentTypeIdx >= possibleTypes.length - 1) {
+        break;
+      }
+
+      context.safepoint();
+    }
+
+    return possibleTypes[currentTypeIdx];
+  }
 
   private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
     MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();

@@ -42,6 +42,7 @@ trait MissingComponentBehavior {
 
     "fail if the requested missing version is marked as broken with " +
     "Install" in {
+      pending // #7750
       val client = new WsTestClient(address)
       client.send(buildRequest(brokenVersion, MissingComponentAction.Install))
       client.expectError(4021)

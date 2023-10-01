@@ -28,9 +28,8 @@ export default function Modal(props: ModalProps) {
     return (
         <div
             style={style}
-            // This MUST still be z-10, unlike all other elements, because it MUST show above the
-            // IDE.
-            className={`inset-0 z-10 ${
+            // This MUST be z-3, unlike all other elements, because it MUST show above the IDE.
+            className={`inset-0 z-3 ${
                 centered ? 'fixed w-screen h-screen grid place-items-center' : ''
             } ${className ?? ''}`}
             onClick={
