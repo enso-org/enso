@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 
-const props = defineProps<{ types: string[] }>()
+const _props = defineProps<{ types: string[] }>()
 const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
 
 const rootNode = ref<HTMLElement>()

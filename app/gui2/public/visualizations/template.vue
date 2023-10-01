@@ -14,9 +14,9 @@ import VisualizationContainer from 'builtins/VisualizationContainer.vue'
 // Optional: add your own external dependencies. The @ts-expect-error is required because TypeScript
 // does not allow HTTP imports.
 // @ts-expect-error
-import dependency from 'http://<js dependency here>'
+import _dependency from 'http://<js dependency here>'
 
-const props = defineProps<{
+const _props = defineProps<{
   data: Data
 }>()
 const emit = defineEmits<{

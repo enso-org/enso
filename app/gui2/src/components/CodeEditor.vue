@@ -8,7 +8,6 @@ import { onMounted, ref, watch } from 'vue'
 // y-codemirror.next does not provide type information. See https://github.com/yjs/y-codemirror.next/issues/27
 // @ts-ignore
 import { yCollab } from 'y-codemirror.next'
-import * as Y from 'yjs'
 
 let graphStore = useGraphStore()
 

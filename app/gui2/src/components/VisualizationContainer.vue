@@ -7,7 +7,7 @@ import { PointerButtonMask, usePointer } from '@/util/events'
 import { ref } from 'vue'
 import { useVisualizationConfig } from '../providers/visualizationConfig'
 
-const props = defineProps<{
+const _props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
   overflow?: boolean
   /** If true, the visualization should display below the node background. */
