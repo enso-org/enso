@@ -106,7 +106,8 @@ public final class LogbackSetup extends LoggerSetup {
         // Modify log level if we were asked to always log to a file.
         // The receiver needs to get all logs (up to `trace`) so as to be able to log all verbose messages.
         if (logToFileEnabled()) {
-            targetLogLevel = Level.TRACE;
+            int min = Math.min(Level.TRACE.toInt(), config.logToFile().logLevel().toInt());
+            targetLogLevel = Level.intToLevel(min);
         } else {
             targetLogLevel = logLevel;
         }
@@ -301,10 +302,13 @@ public final class LogbackSetup extends LoggerSetup {
             threshold.setContext(ctx);
             threshold.start();
 
-            // Root's log level is set to TRACE, meaning we want to log all events.
+            // Root's log level is set to the minimal required log level.
             // Log level is controlled by `ThresholdFilter` instead, allowing is to specify different
             // log levels for different outputs.
-            logger.setLevel(ch.qos.logback.classic.Level.TRACE);
+            var minLevelInt = Math.min(Level.TRACE.toInt(), level.toInt());
+            var minLevel = ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.intToLevel(minLevelInt));
+
+            logger.setLevel(minLevel);
             if (filter != null) {
                 appender.addFilter(filter);
                 filter.setContext(ctx);

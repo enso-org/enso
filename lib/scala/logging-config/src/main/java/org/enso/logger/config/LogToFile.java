@@ -30,7 +30,7 @@ public record LogToFile(boolean enabled, Level logLevel) {
      * Returns configuration that disables parallel logging to a file.
      */
     public static LogToFile disabled() {
-        return new LogToFile(false, Level.DEBUG);
+        return new LogToFile(false, Level.ERROR);
     }
 
     private static Level fromConfigValue(String logLevel) {
