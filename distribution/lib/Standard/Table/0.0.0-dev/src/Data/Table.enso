@@ -414,9 +414,9 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when_any: By default, only columns consisting of all blank cells are
-         selected. If set to `True`, columns with one or more blank values are
-         selected.
+       - when: By default, only columns consisting of all blank cells are
+         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or
+         more blank values are selected.
        - treat_nans_as_blank: specifies whether `Number.nan` is considered as
          blank. By default, it is not.
 
