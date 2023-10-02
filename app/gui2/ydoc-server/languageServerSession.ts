@@ -306,7 +306,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   trySyncRemoveUpdates() {
     if (this.updateToApply == null) return
-    // Only apply updates to the ls-representation doc if we are already in sync with the LS.
+    // apply updates to the ls-representation doc if we are already in sync with the LS.
     if (!this.inState(LsSyncState.Synchronized)) return
     const update = this.updateToApply
     this.updateToApply = null
@@ -744,12 +744,12 @@ function idMapCmp(a: IdMapEntry, b: IdMapEntry) {
 if (import.meta.vitest) {
   const { test, expect, describe } = import.meta.vitest
 
-  describe.only('applyDiffAsTextEdits', () => {
-    test.only('no change', () => {
+  describe('applyDiffAsTextEdits', () => {
+    test('no change', () => {
       const edits = applyDiffAsTextEdits(0, 'abcd', 'abcd')
       expect(edits).toStrictEqual([])
     })
-    test.only('simple add', () => {
+    test('simple add', () => {
       const before = 'abcd'
       const after = 'abefcd'
       const edits = applyDiffAsTextEdits(1, before, after)
@@ -760,7 +760,7 @@ if (import.meta.vitest) {
         },
       ])
     })
-    test.only('two adds', () => {
+    test('two adds', () => {
       const before = 'abcd'
       const after = 'abefcdxy'
       const edits = applyDiffAsTextEdits(1, before, after)

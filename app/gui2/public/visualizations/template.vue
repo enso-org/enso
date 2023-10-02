@@ -10,7 +10,7 @@ interface Data {
 <script setup lang="ts">
 import { onMounted } from 'vue'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import { VisualizationContainer } from 'builtins'
 // Optional: add your own external dependencies.
 // import dependency from 'https://<js dependency here>'
 //

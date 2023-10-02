@@ -311,7 +311,7 @@ export function decodeRange(buffer: Uint8Array): RelativeRange {
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/
-export function isUuid(x: any): x is Uuid {
+export function isUuid(x: unknown): x is Uuid {
   return typeof x === 'string' && x.length === 36 && uuidRegex.test(x)
 }
 
