@@ -1,0 +1,33 @@
+import project.Data.Pair.Pair
+import project.Data.Text.Text
+import project.Error.Error
+import project.Nothing.Nothing
+import project.Runtime.Ref.Ref
+import project.System.File.File
+
+## PRIVATE
+cloud_root_uri = "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/"
+
+## PRIVATE
+cred_ref = Ref.new Nothing
+
+## PRIVATE
+   Construct the authoization header for the request
+authorization_header : Pair Text Text
+authorization_header =
+    result = cred_ref.get.if_nothing <|
+        cred_file = File.home / ".enso" / "credentials"
+        if cred_file.exists.not then Error.throw Not_Logged_In.Error else
+            cred_ref.put (cred_file.read_text)
+            cred_ref.get
+    Pair.new "Authorization" "Bearer "+result
+
+## PRIVATE
+   Error if the user is not logged into Enso Cloud.
+type Not_Logged_In
+    ## PRIVATE
+    Error
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Not logged into Enso cloud. Please log in and restart."
