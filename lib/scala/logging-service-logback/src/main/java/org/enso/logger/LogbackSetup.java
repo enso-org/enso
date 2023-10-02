@@ -2,6 +2,7 @@ package org.enso.logger;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.classic.net.SocketAppender;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
@@ -43,15 +44,19 @@ public final class LogbackSetup extends LoggerSetup {
     /**
      * Create a logger setup for a provided context and a single appender configuration
      * @param context context that will be initialized by this setup
-     * @param appender appender configuration to use during initialization
+     * @param config configuration to use during initialization
      */
-    public static LogbackSetup forContext(LoggerContext context, Appender appender) {
-        return new LogbackSetup(LoggingServiceConfig.withSingleAppender(appender), context);
+    public static LogbackSetup forContext(LoggerContext context, BaseConfig config) {
+        return new LogbackSetup(LoggingServiceConfig.withSingleAppender(config), context);
     }
 
 
     public LoggingServiceConfig getConfig() {
         return config;
+    }
+
+    private boolean logToFileEnabled() {
+        return config.logToFile().enabled();
     }
 
     private final LoggingServiceConfig config;
@@ -97,7 +102,16 @@ public final class LogbackSetup extends LoggerSetup {
             Level logLevel,
             String hostname,
             int port) {
-        LoggerAndContext env = contextInit(logLevel, config);
+        Level targetLogLevel;
+        // Modify log level if we were asked to always log to a file.
+        // The receiver needs to get all logs (up to `trace`) so as to be able to log all verbose messages.
+        if (logToFileEnabled()) {
+            int min = Math.min(Level.TRACE.toInt(), config.logToFile().logLevel().toInt());
+            targetLogLevel = Level.intToLevel(min);
+        } else {
+            targetLogLevel = logLevel;
+        }
+        LoggerAndContext env = contextInit(targetLogLevel, config, !logToFileEnabled());
 
         org.enso.logger.config.SocketAppender appenderConfig = config.getSocketAppender();
 
@@ -109,8 +123,8 @@ public final class LogbackSetup extends LoggerSetup {
         if (appenderConfig != null)
             socketAppender.setReconnectionDelay(Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
 
-        env.finalizeAppender(socketAppender);
 
+        env.finalizeAppender(socketAppender);
         return true;
     }
 
@@ -121,8 +135,7 @@ public final class LogbackSetup extends LoggerSetup {
             Path logRoot,
             String logPrefix) {
         try {
-            LoggerAndContext env = contextInit(logLevel, config);
-
+            LoggerAndContext env = contextInit(logLevel, config, true);
             org.enso.logger.config.FileAppender appenderConfig = config.getFileAppender();
             if (appenderConfig == null) {
                 throw new MissingConfigurationField(org.enso.logger.config.FileAppender.appenderName);
@@ -185,7 +198,7 @@ public final class LogbackSetup extends LoggerSetup {
 
     @Override
     public boolean setupConsoleAppender(Level logLevel) {
-        LoggerAndContext env = contextInit(logLevel, config);
+        LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
         org.enso.logger.config.ConsoleAppender appenderConfig = config.getConsoleAppender();
         final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         try {
@@ -209,7 +222,7 @@ public final class LogbackSetup extends LoggerSetup {
         // TODO: handle proxy
         // TODO: shutdown timeout configuration
         try {
-            LoggerAndContext env = contextInit(logLevel, config);
+            LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
 
             org.enso.logger.config.SentryAppender appenderConfig = config.getSentryAppender();
             if (appenderConfig == null) {
@@ -244,7 +257,7 @@ public final class LogbackSetup extends LoggerSetup {
 
     @Override
     public boolean setupNoOpAppender() {
-        LoggerAndContext env = contextInit(Level.ERROR, null);
+        LoggerAndContext env = contextInit(Level.ERROR, null, true);
 
         NOPAppender<ILoggingEvent> appender = new NOPAppender<>();
         appender.setName("enso-noop");
@@ -259,9 +272,11 @@ public final class LogbackSetup extends LoggerSetup {
         context.stop();
     }
 
-    private LoggerAndContext contextInit(Level level, LoggingServiceConfig config) {
-        context.reset();
-        context.setName("enso-custom");
+    private LoggerAndContext contextInit(Level level, LoggingServiceConfig config, boolean shouldResetContext) {
+        if (shouldResetContext) {
+            context.reset();
+            context.setName("enso-custom");
+        }
         Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
 
         Filter<ILoggingEvent> filter;
@@ -281,7 +296,19 @@ public final class LogbackSetup extends LoggerSetup {
             encoder.start();
         }
         void finalizeAppender(ch.qos.logback.core.Appender<ILoggingEvent> appender) {
-            logger.setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(level));
+            ThresholdFilter threshold = new ThresholdFilter();
+            threshold.setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(level).toString());
+            appender.addFilter(threshold);
+            threshold.setContext(ctx);
+            threshold.start();
+
+            // Root's log level is set to the minimal required log level.
+            // Log level is controlled by `ThresholdFilter` instead, allowing is to specify different
+            // log levels for different outputs.
+            var minLevelInt = Math.min(Level.TRACE.toInt(), level.toInt());
+            var minLevel = ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.intToLevel(minLevelInt));
+
+            logger.setLevel(minLevel);
             if (filter != null) {
                 appender.addFilter(filter);
                 filter.setContext(ctx);

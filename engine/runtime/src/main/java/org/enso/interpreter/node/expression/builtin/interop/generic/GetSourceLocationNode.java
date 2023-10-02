@@ -24,7 +24,6 @@ public class GetSourceLocationNode extends Node {
   Object execute(Object value) {
     try {
       return EnsoContext.get(this)
-          .getEnvironment()
           .asGuestValue(new EnsoSourceSection(library.getSourceLocation(value)));
     } catch (UnsupportedMessageException e) {
       err.enter();

@@ -20,6 +20,6 @@ public abstract class IsPolyglotNode extends Node {
 
   @Specialization
   boolean doExecute(Object value) {
-    return EnsoContext.get(this).getEnvironment().isHostObject(value);
+    return EnsoContext.get(this).isJavaPolyglotObject(value);
   }
 }

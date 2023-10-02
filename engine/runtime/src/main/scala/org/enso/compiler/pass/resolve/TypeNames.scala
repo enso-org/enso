@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Function, Module, Name}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.data.BindingsMap
@@ -23,11 +24,11 @@ case object TypeNames extends IRPass {
   override type Config = IRPass.Configuration.Default
 
   /** The passes that this pass depends _directly_ on to run. */
-  override val precursorPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRPass] =
     Seq(BindingAnalysis)
 
   /** The passes that are invalidated by running this pass. */
-  override val invalidatedPasses: Seq[IRPass] = Seq()
+  override lazy val invalidatedPasses: Seq[IRPass] = Seq()
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
@@ -45,9 +46,21 @@ case object TypeNames extends IRPass {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
-      val typeParams = d match {
+      val typeParams: List[Name] = d match {
         case t: Definition.Type => t.params.map(_.name)
-        case _                  => Nil
+        case m: Method.Explicit =>
+          val params: List[Name] = m.methodReference.typePointer
+            .flatMap { p =>
+              p.getMetadata(MethodDefinitions)
+                .map(_.target match {
+                  case typ: BindingsMap.ResolvedType =>
+                    typ.tp.params.map(Name.Literal(_, false, None)).toList
+                  case _ => List()
+                })
+            }
+            .getOrElse(List())
+          params
+        case _ => Nil
       }
       val mapped =
         d.mapExpressions(resolveExpression(typeParams, bindingsMap, _))

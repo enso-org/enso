@@ -11,6 +11,7 @@ enum HttpMethod {
     get = 'GET',
     post = 'POST',
     put = 'PUT',
+    patch = 'PATCH',
     delete = 'DELETE',
 }
 
@@ -44,6 +45,11 @@ export class Client {
         return await this.request<T>(HttpMethod.post, url, payload, 'application/octet-stream')
     }
 
+    /** Send a JSON HTTP PATCH request to the specified URL. */
+    patch<T = void>(url: string, payload: object) {
+        return this.request<T>(HttpMethod.patch, url, JSON.stringify(payload), 'application/json')
+    }
+
     /** Send a JSON HTTP PUT request to the specified URL. */
     put<T = void>(url: string, payload: object) {
         return this.request<T>(HttpMethod.put, url, JSON.stringify(payload), 'application/json')
@@ -67,11 +73,6 @@ export class Client {
             headers.set('Content-Type', contentType)
         }
 
-        /** A {@link Response} with a properly typed return type for `response.json()`. */
-        interface ResponseWithTypedJson<U> extends Response {
-            json: () => Promise<U>
-        }
-
         // This is an UNSAFE type assertion, however this is a HTTP client
         // and should only be used to query APIs with known response types.
         // eslint-disable-next-line no-restricted-syntax
@@ -81,4 +82,9 @@ export class Client {
             ...(payload != null ? { body: payload } : {}),
         }) as Promise<ResponseWithTypedJson<T>>
     }
+}
+
+/** A {@link Response} with a properly typed return type for `response.json()`. */
+export interface ResponseWithTypedJson<U> extends Response {
+    json: () => Promise<U>
 }

@@ -1,6 +1,16 @@
 /// <reference types="vite/client" />
 
-module 'y-websocket' {
-  // hack for bad module resolution
-  export * from 'node_modules/y-websocket/dist/src/y-websocket'
+declare const PROJECT_MANAGER_URL: string
+
+// This is an augmentation to the built-in `ImportMeta` interface.
+// This file MUST NOT contain any top-level imports.
+// interface ImportMeta {
+//   vitest: typeof import('vitest') | undefined
+// }
+
+declare module 'builtins' {
+  export const VisualizationContainer: typeof import('@/components/VisualizationContainer.vue').default
+  export const useVisualizationConfig: typeof import('@/providers/visualizationConfig').useVisualizationConfig
+  export const defineKeybinds: typeof import('@/util/shortcuts').defineKeybinds
+  export const d3: typeof import('d3')
 }

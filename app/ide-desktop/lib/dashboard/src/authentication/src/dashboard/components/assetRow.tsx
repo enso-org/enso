@@ -100,7 +100,7 @@ export default function AssetRow(props: AssetRowProps) {
                     // Ignored. The project was already closed.
                 }
             }
-            await backend.deleteAsset(asset)
+            await backend.deleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.delete,
                 key: item.key,
@@ -120,13 +120,34 @@ export default function AssetRow(props: AssetRowProps) {
         /* should never change */ toastAndLog,
     ])
 
+    const doRestore = React.useCallback(async () => {
+        // Visually, the asset is deleted from the Trash view.
+        setPresence(presenceModule.Presence.deleting)
+        try {
+            await backend.undoDeleteAsset(asset.id, asset.title)
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.delete,
+                key: item.key,
+            })
+        } catch (error) {
+            setPresence(presenceModule.Presence.present)
+            toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
+        }
+    }, [
+        backend,
+        dispatchAssetListEvent,
+        asset,
+        /* should never change */ item.key,
+        /* should never change */ toastAndLog,
+    ])
+
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             // These events are handled in the specific NameColumn files.
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.newSecret:
+            case assetEventModule.AssetEventType.newDataConnector:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
@@ -135,6 +156,12 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEventModule.AssetEventType.deleteMultiple: {
                 if (event.ids.has(item.key)) {
                     await doDelete()
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.restoreMultiple: {
+                if (event.ids.has(item.key)) {
+                    await doRestore()
                 }
                 break
             }

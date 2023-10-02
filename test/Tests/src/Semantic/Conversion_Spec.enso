@@ -55,8 +55,6 @@ foreign js call_function fn arg_1 = """
 
 Number.foo self = "foo called"
 
-from Standard.Base import all
-
 type Fool
     Value fool
 
@@ -64,6 +62,16 @@ type Fool
     to_text self = "{FOOL " + self.fool.to_text + "}"
 
 Fool.from (that : Any) = Fool.Value that
+
+type Blob
+    Text c:Text
+    Binary b:File
+    Json anything
+
+
+Blob.from (that:Text) = Blob.Text that
+Blob.from (that:File) = Blob.Binary that
+Blob.from (that:Any) = Blob.Json that
 
 spec =
     Test.group "Conversion" <|
@@ -161,6 +169,37 @@ spec =
         Test.specify "Use Any.to in Conversion_Use module" <|
             Hello.formulate_with_to [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
             Hello.formulate_with_to [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
+
+        Test.specify "Avoid parameter conversion of Blob into Blob" <|
+            blob_me (b:Blob) = b
+
+            once = blob_me "Ahoj"
+            second = blob_me once
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
+
+        Test.specify "Avoid Any.to conversion of Blob into Blob" <|
+            blob_me b = b.to Blob
+
+            once = blob_me "Ahoj"
+            second = blob_me once
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
+
+        Test.specify "Avoid inline conversion of Blob into Blob" <|
+            once = "Ahoj" : Blob
+            second = once : Blob
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
 
         Test.specify "Requesting Text & Foo" <|
             check a (n : Text & Foo) = case a of

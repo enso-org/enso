@@ -1,17 +1,16 @@
 package org.enso.table.formatting;
 
-import org.enso.base.Time_Utils;
+import org.enso.base.time.EnsoDateTimeFormatter;
 import org.graalvm.polyglot.Value;
 
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
-import java.util.Locale;
 
 public class DateTimeFormatter implements DataFormatter {
   private final java.time.format.DateTimeFormatter formatter;
 
-  public DateTimeFormatter(String formatString, Locale locale) {
-    formatter = Time_Utils.make_output_formatter(formatString, locale);
+  public DateTimeFormatter(EnsoDateTimeFormatter ensoFormatter) {
+    formatter = ensoFormatter.getRawJavaFormatter();
   }
 
   @Override

@@ -31,10 +31,10 @@ case object MethodDefinitions extends IRPass {
 
   override type Config = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRPass] =
     List(ComplexType, FunctionBinding, GenerateMethodBodies, BindingAnalysis)
 
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.

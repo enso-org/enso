@@ -1,0 +1,109 @@
+import project.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
+import project.Data.Vector.Vector
+import project.Errors.Encoding_Error.Encoding_Error
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Nothing.Nothing
+import project.Runtime.Managed_Resource.Managed_Resource
+
+polyglot java import java.io.InputStream as Java_Input_Stream
+polyglot java import org.enso.base.encoding.ReportingStreamDecoder
+polyglot java import org.enso.base.Encoding_Utils
+
+## PRIVATE
+   An input stream, allowing for interactive reading of contents.
+type Input_Stream
+    ## PRIVATE
+       ADVANCED
+
+       Given a Java InputStream, wraps as a Managed_Resource and returns a new
+       Input_Stream.
+    new : Java_Input_Stream -> Any -> Input_Stream
+    new java_stream error_handler =
+        resource = Managed_Resource.register java_stream close_stream
+        Input_Stream.Value resource error_handler
+
+    ## PRIVATE
+       An input stream, allowing for interactive reading of contents.
+
+       Arguments:
+       - stream_resource: The internal resource that represents the underlying
+         stream.
+       - error_handler: An error handler for IOExceptions thrown when reading.
+    Value stream_resource error_handler
+
+    ## PRIVATE
+       ADVANCED
+       Reads all the bytes in this stream into a vector of bytes.
+    read_all_bytes : Vector
+    read_all_bytes self = self.stream_resource . with java_stream->
+        self.error_handler <| Vector.from_polyglot_array java_stream.readAllBytes
+
+    ## PRIVATE
+       ADVANCED
+       Reads up to the provided number of bytes from the stream.
+
+       Makes a best-effort to read as many bytes as provided, however fewer
+       bytes may be read, if end of stream is encountered.
+
+       The length of the returned vector is the same as the number of bytes
+       read.
+
+       Arguments:
+       - n: The number of bytes to read from the stream.
+    read_n_bytes : Integer -> Vector
+    read_n_bytes self n = self.stream_resource . with java_stream->
+        self.error_handler <|
+            bytes = java_stream.readNBytes n
+            Vector.from_polyglot_array bytes
+
+    ## PRIVATE
+       ADVANCED
+       Reads the next byte from the stream.
+
+       The returned value is an integer in the range 0-255 representing the
+       next byte of input, or -1 if end of stream is reached.
+    read_byte : Integer
+    read_byte self = self.stream_resource . with java_stream->
+        self.error_handler <|
+            java_stream.read
+
+    ## PRIVATE
+       ADVANCED
+       Closes this stream.
+
+       Even though Streams are closed automatically upon garbage collection, it
+       is still advised to close streams manually if they are not used within
+       a bracket pattern.
+    close : Nothing
+    close self = self.stream_resource . finalize
+
+    ## PRIVATE
+       Exposes operations on the underlying Java input stream.
+
+       Useful when integrating with polyglot functions requiring an
+       `InputStream` as an argument.
+
+       Arguments:
+       - f: Applies a function over the internal java stream.
+    with_java_stream : (Java_Input_Stream -> Any) -> Any
+    with_java_stream self f = self.stream_resource . with f
+
+    ## PRIVATE
+       Runs an action with a `ReportingStreamDecoder` decoding data from the
+       input stream with the specified encoding.
+    with_stream_decoder : Encoding -> Problem_Behavior -> (ReportingStreamDecoder -> Any) -> Any
+    with_stream_decoder self encoding on_problems action = self.stream_resource . with java_stream->
+        java_charset = encoding.to_java_charset
+        results = Encoding_Utils.with_stream_decoder java_stream java_charset action
+        problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
+        on_problems.attach_problems_after results.result problems
+
+## PRIVATE
+   Utility method for closing primitive Java streams. Provided to avoid
+   accidental scope capture with `Managed_Resource` finalizers.
+close_stream : Any -> Nothing
+close_stream stream =
+    stream.close
+    Nothing

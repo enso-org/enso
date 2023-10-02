@@ -169,7 +169,7 @@ spec =
             file.delete
 
         Test.specify 'should allow to always quote text and custom values, but for non-text primitives only if absolutely necessary' <|
-            format = Delimited "," value_formatter=(Data_Formatter.Value thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
+            format = Delimited "," value_formatter=(Data_Formatter.Value thousand_separator='"' . with_datetime_formats date_formats=["dddd, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type.Value 44, (Date.new 2022 06 21), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55), Nothing, Nothing]]]
             file = (enso_project.data / "transient" / "quote_always.csv")
             file.delete_if_exists

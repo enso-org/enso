@@ -12,7 +12,7 @@ import java.util.Optional;
  * Parsed and verified representation of `logging-service` section of `application.conf`. Defines
  * custom log levels, logging appenders and, optionally, logging server configuration.
  */
-public class LoggingServiceConfig {
+public class LoggingServiceConfig implements BaseConfig {
   public static final String configurationRoot = "logging-service";
   public static final String serverKey = "server";
   public static final String loggersKey = "logger";
@@ -20,10 +20,12 @@ public class LoggingServiceConfig {
   public static final String defaultAppenderKey = "default-appender";
   public static final String logLevelKey = "log-level";
 
+  public static final String logToFileKey = "log-to-file";
   private final LoggersLevels loggers;
   private final Map<String, Appender> appenders;
 
   private final String defaultAppenderName;
+  private final LogToFile logToFile;
   private final Optional<String> logLevel;
   private final LoggingServer server;
 
@@ -32,10 +34,12 @@ public class LoggingServiceConfig {
       Optional<String> logLevel,
       Map<String, Appender> appenders,
       String defaultAppender,
+      LogToFile logTo,
       LoggingServer server) {
     this.loggers = loggers;
     this.appenders = appenders;
     this.defaultAppenderName = defaultAppender;
+    this.logToFile = logTo;
     this.logLevel = logLevel;
     this.server = server;
   }
@@ -64,27 +68,42 @@ public class LoggingServiceConfig {
     } else {
       loggers = LoggersLevels.parse();
     }
+    LogToFile logToFile =
+        root.hasPath(logToFileKey)
+            ? LogToFile.fromConfig(root.getConfig(logToFileKey))
+            : LogToFile.disabled();
     return new LoggingServiceConfig(
         loggers,
         getStringOpt(logLevelKey, root),
         appendersMap,
         root.getString(defaultAppenderKey),
+        logToFile,
         server);
   }
 
-  public static LoggingServiceConfig withSingleAppender(Appender appender) {
-    Map<String, Appender> map = new HashMap<>();
-    map.put(appender.getName(), appender);
+  public static LoggingServiceConfig withSingleAppender(BaseConfig config) {
+    Map<String, Appender> map = config.getAppenders();
     return new LoggingServiceConfig(
-        LoggersLevels.parse(), Optional.empty(), map, appender.getName(), null);
+        LoggersLevels.parse(),
+        Optional.empty(),
+        map,
+        config.getAppender().getName(),
+        config.logToFile(),
+        null);
   }
 
   public LoggersLevels getLoggers() {
     return loggers;
   }
 
+  @Override
   public Appender getAppender() {
     return appenders.get(defaultAppenderName);
+  }
+
+  @Override
+  public Map<String, Appender> getAppenders() {
+    return appenders;
   }
 
   public SocketAppender getSocketAppender() {
@@ -124,6 +143,11 @@ public class LoggingServiceConfig {
   }
 
   @Override
+  public LogToFile logToFile() {
+    return logToFile;
+  }
+
+  @Override
   public String toString() {
     return "Loggers: "
         + loggers
@@ -133,6 +157,8 @@ public class LoggingServiceConfig {
         + (defaultAppenderName == null ? "unknown" : defaultAppenderName)
         + ", logLevel: "
         + logLevel.orElseGet(() -> "default")
+        + ", log-to-file: "
+        + logToFile()
         + ", server: "
         + server;
   }

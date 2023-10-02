@@ -39,14 +39,14 @@ export default function Registration() {
     const { organizationId } = parseUrlSearchParams(location.search)
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8">
+        <div className="flex flex-col items-center justify-center min-h-screen p-8">
             <div
                 className={
                     'rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 ' +
                     'shadow-md px-4 py-6 sm:p-8'
                 }
             >
-                <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
+                <div className="font-medium self-center text-xl uppercase text-gray-800">
                     Create new account
                 </div>
 
@@ -59,10 +59,7 @@ export default function Registration() {
                     }}
                 >
                     <div className="flex flex-col mb-4">
-                        <label
-                            htmlFor="email"
-                            className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
-                        >
+                        <label htmlFor="email" className="mb-1 text-xs tracking-wide text-gray-600">
                             E-Mail Address:
                         </label>
                         <div className="relative">
@@ -75,6 +72,7 @@ export default function Registration() {
                                 id="email"
                                 type="email"
                                 name="email"
+                                autoComplete="email"
                                 placeholder="E-Mail Address"
                                 value={email}
                                 setValue={setEmail}
@@ -84,7 +82,7 @@ export default function Registration() {
                     <div className="flex flex-col mb-4">
                         <label
                             htmlFor="password"
-                            className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
+                            className="mb-1 text-xs tracking-wide text-gray-600"
                         >
                             Password:
                         </label>
@@ -98,6 +96,7 @@ export default function Registration() {
                                 id="password"
                                 type="password"
                                 name="password"
+                                autoComplete="new-password"
                                 placeholder="Password"
                                 pattern={validation.PASSWORD_PATTERN}
                                 error={validation.PASSWORD_ERROR}
@@ -109,7 +108,7 @@ export default function Registration() {
                     <div className="flex flex-col mb-4">
                         <label
                             htmlFor="password_confirmation"
-                            className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
+                            className="mb-1 text-xs tracking-wide text-gray-600"
                         >
                             Confirm Password:
                         </label>
@@ -123,6 +122,7 @@ export default function Registration() {
                                 id="password_confirmation"
                                 type="password"
                                 name="password_confirmation"
+                                autoComplete="new-password"
                                 placeholder="Confirm Password"
                                 pattern={string.regexEscape(password)}
                                 error={validation.CONFIRM_PASSWORD_ERROR}
@@ -137,7 +137,7 @@ export default function Registration() {
                             type="submit"
                             className={
                                 'flex items-center justify-center focus:outline-none text-white text-sm ' +
-                                'sm:text-base bg-indigo-600 hover:bg-indigo-700 rounded py-2 w-full transition ' +
+                                'bg-indigo-600 hover:bg-indigo-700 rounded py-2 w-full transition ' +
                                 'duration-150 ease-in disabled:opacity-50'
                             }
                         >

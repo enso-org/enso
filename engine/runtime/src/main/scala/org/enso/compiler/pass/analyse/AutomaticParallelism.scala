@@ -41,11 +41,11 @@ import scala.annotation.{tailrec, unused}
 object AutomaticParallelism extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
-  override val precursorPasses: Seq[IRPass] = Seq(
+  override lazy val precursorPasses: Seq[IRPass] = Seq(
     AliasAnalysis,
     ComplexType
   )
-  override val invalidatedPasses: Seq[IRPass] = Seq(
+  override lazy val invalidatedPasses: Seq[IRPass] = Seq(
     AliasAnalysis,
     DataflowAnalysis
   )

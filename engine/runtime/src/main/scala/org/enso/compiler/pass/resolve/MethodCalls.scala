@@ -18,9 +18,9 @@ object MethodCalls extends IRPass {
   override type Metadata = BindingsMap.Resolution
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRPass] =
     Seq(BindingAnalysis, GlobalNames)
-  override val invalidatedPasses: Seq[IRPass] = Seq()
+  override lazy val invalidatedPasses: Seq[IRPass] = Seq()
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.

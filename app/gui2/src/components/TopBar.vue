@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import NavBar from '@/components/NavBar.vue'
 import ProjectTitle from '@/components/ProjectTitle.vue'
+import { useGuiConfig } from '@/providers/guiConfig'
+import { computed } from 'vue'
 
 const props = defineProps<{ title: string; breadcrumbs: string[]; modes: string[]; mode: string }>()
 const emit = defineEmits<{
@@ -10,19 +12,30 @@ const emit = defineEmits<{
   breadcrumbClick: [index: number]
   'update:mode': [mode: string]
 }>()
+
+const LEFT_PADDING_PX = 11
+
+const config = useGuiConfig()
+
+const barStyle = computed(() => {
+  const offset = Number(config.value.window?.topBarOffset ?? '0')
+  return {
+    marginLeft: `${offset + LEFT_PADDING_PX}px`,
+  }
+})
 </script>
 
 <template>
-  <div class="TopBar">
+  <div class="TopBar" :style="barStyle">
     <ProjectTitle
-      :title="title"
-      :modes="modes"
-      :mode="mode"
+      :title="props.title"
+      :modes="props.modes"
+      :mode="props.mode"
       @update:mode="emit('update:mode', $event)"
       @execute="emit('execute')"
     />
     <NavBar
-      :breadcrumbs="breadcrumbs"
+      :breadcrumbs="props.breadcrumbs"
       @back="emit('back')"
       @forward="emit('forward')"
       @breadcrumbClick="emit('breadcrumbClick', $event)"
@@ -40,3 +53,4 @@ const emit = defineEmits<{
   left: 9px;
 }
 </style>
+@/providers/guiConfig
