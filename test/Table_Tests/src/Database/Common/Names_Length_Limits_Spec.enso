@@ -200,8 +200,9 @@ spec prefix connection =
                 v2 . should_equal [1, 2, 3]
                 Problems.assume_no_problems v2
 
+                # But even then, the names for generated columns will not be very long:
                 c3 = c2 * c2
-                (c3.name.length > 2*big_name_length).should_be_true
+                (c3.name.length < 1000).should_be_true
                 v3 = c3.to_vector
                 v3 . should_equal [1, 4, 9]
                 Problems.assume_no_problems v3
