@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-use crate::paths::{ENSO_ENABLE_ASSERTIONS, Paths};
+use crate::paths::Paths;
+use crate::paths::ENSO_ENABLE_ASSERTIONS;
 use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::postgres;
