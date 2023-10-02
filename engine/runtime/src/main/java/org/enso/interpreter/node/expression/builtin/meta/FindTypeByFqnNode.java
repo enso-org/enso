@@ -26,6 +26,14 @@ public class FindTypeByFqnNode extends Node {
         }
       }
     }
-    return ctx.getBuiltins().error().makeModuleDoesNotExistError(fqn);
+    for (var m : ctx.getTopScope().getModules()) {
+      if (m.getName().equals(fullName)) {
+        var foundType = m.getScope().getAssociatedType();
+        if (foundType != null) {
+          return foundType;
+        }
+      }
+    }
+    return ctx.getBuiltins().error().makeModuleDoesNotExistError(fqn.toString());
   }
 }

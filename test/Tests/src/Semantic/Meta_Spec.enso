@@ -443,8 +443,14 @@ spec =
             typ = Meta.Type.find fqn
             typ . is_a Meta.Type . should_be_true
             typ.name . should_equal "Boolean"
-            #!!! typ.qualified_name . should_equal fqn
-            #!!! Meta.Type.find typ.qualified_name . should_equal typ
-            #!!! typ.constructors.length . should_equal 2
+            Meta.Type.find typ.qualified_name . should_equal typ
+
+        Test.specify "find boolean via associated type and use it" <|
+            fqn = "Standard.Base.Data.Boolean"
+            typ = Meta.Type.find fqn
+            typ . is_a Meta.Type . should_be_true
+            typ.name . should_equal "Boolean"
+            typ.qualified_name . should_equal fqn
+            Meta.Type.find typ.qualified_name . should_equal typ
 
 main = Test_Suite.run_main spec
