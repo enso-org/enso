@@ -461,7 +461,7 @@ spec =
         Test.specify "My ascribed type" <|
             meta_type = Meta.meta My_Ascribed_Type
             fqn =  meta_type . qualified_name
-            fqn.contains "Meta_Spec.My_Ascribed_Type" . should_be_true
+            fqn.should_contain "Meta_Spec.My_Ascribed_Type"
             typ = Meta.Type.find fqn
             typ . should_equal meta_type
 
