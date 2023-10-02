@@ -64,16 +64,13 @@ public final class PrivateModuleAnalysis implements IRPass {
 
   @Override
   public Module runModule(Module moduleIr, ModuleContext moduleContext) {
-    if (moduleContext.isSynthetic()) {
-      return moduleIr;
-    }
-
     var bindingsMap = (BindingsMap) moduleIr.passData().get(BindingAnalysis$.MODULE$).get();
     var currentPackage = moduleContext.getPackage();
     List<Import> importErrors = new ArrayList<>();
     List<Export> exportErrors = new ArrayList<>();
+    var isCurrentModulePrivate = moduleIr.isPrivate();
 
-    // Check if imported modules are not private
+    // Ensure that imported modules from a different project are not private.
     bindingsMap.resolvedImports().foreach(resolvedImp -> {
       var importedModule = resolvedImp.target().module().unsafeAsModule("should succeed");
       var importedModuleName = importedModule.getName().toString();
@@ -91,8 +88,8 @@ public final class PrivateModuleAnalysis implements IRPass {
       return null;
     });
 
-    // If this module is private, we cannot export anything from it.
-    if (moduleIr.isPrivate() && containsExport(moduleIr)) {
+    // Ensure that no symbols are exported from a private module.
+    if (isCurrentModulePrivate && containsExport(moduleIr)) {
       exportErrors.add(ImportExport.apply(
           moduleIr.exports().apply(0),
           new ImportExport.ExportSymbolsFromPrivateModule(moduleContext.getName().toString()),
@@ -100,6 +97,7 @@ public final class PrivateModuleAnalysis implements IRPass {
           ImportExport.apply$default$4()
       ));
     }
+
 
     // Check if we try to export some other private module.
     bindingsMap
@@ -109,14 +107,33 @@ public final class PrivateModuleAnalysis implements IRPass {
           if (expModuleRef.isPrivate()) {
             var associatedExportIR = findExportIRByName(moduleIr, expModuleRef.getName());
             assert associatedExportIR.isDefined();
-            exportErrors.add(
-                ImportExport.apply(
-                    associatedExportIR.get(),
-                    new ImportExport.ExportPrivateModule(expModuleRef.getName().toString()),
-                    ImportExport.apply$default$3(),
-                    ImportExport.apply$default$4()
-                )
-            );
+            if (isSubmoduleName(moduleContext.getName(), expModuleRef.getName())) {
+              var haveSameVisibility = isCurrentModulePrivate == expModuleRef.isPrivate();
+              if (!haveSameVisibility) {
+                exportErrors.add(
+                    ImportExport.apply(
+                        associatedExportIR.get(),
+                        new ImportExport.SubmoduleVisibilityMismatch(
+                            moduleContext.getName().toString(),
+                            expModuleRef.getName().toString(),
+                            isCurrentModulePrivate ? "private" : "public",
+                            expModuleRef.isPrivate() ? "private" : "public"
+                        ),
+                        ImportExport.apply$default$3(),
+                        ImportExport.apply$default$4()
+                    )
+                );
+              }
+            } else {
+              exportErrors.add(
+                  ImportExport.apply(
+                      associatedExportIR.get(),
+                      new ImportExport.ExportPrivateModule(expModuleRef.getName().toString()),
+                      ImportExport.apply$default$3(),
+                      ImportExport.apply$default$4()
+                  )
+              );
+            }
           }
           return null;
         });
@@ -135,6 +152,16 @@ public final class PrivateModuleAnalysis implements IRPass {
         moduleIr.diagnostics(),
         moduleIr.id()
     );
+  }
+
+  private boolean isSubmoduleName(QualifiedName parentModName, QualifiedName subModName) {
+    if (subModName.getParent().isDefined()) {
+      return parentModName.item().equals(
+          subModName.getParent().get().item()
+      );
+    } else {
+      return false;
+    }
   }
 
   @Override

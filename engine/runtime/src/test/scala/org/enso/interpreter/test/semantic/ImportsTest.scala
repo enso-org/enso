@@ -242,26 +242,16 @@ class ImportsTest extends PackageTest {
     )
   }
 
-  "Private modules" should "be able to use private submodules via FQN in the same project" in {
-    evalTestProject(
+  "Private modules" should "not be able to mix private and public submodules" in {
+    val e = the[InterpreterException] thrownBy evalTestProject(
       "Test_Private_Modules_4"
-    ) shouldEqual 23
+    )
+    e.getMessage() should include("Cannot export submodule 'local.Test_Private_Modules_4.Sub.Priv_SubMod' of module 'local.Test_Private_Modules_4.Sub'")
   }
 
-  "Private modules" should "be able to use public submodules via FQN" in {
+  "Private module" should "be able to have only private submodules" in {
     evalTestProject(
       "Test_Private_Modules_5"
     ) shouldEqual 42
-  }
-
-  "Private modules" should "not be able to use private submodules via FQN" in {
-    the[InterpreterException] thrownBy evalTestProject(
-      "Test_Private_Modules_6"
-    ) should have message "No_Such_Method.Error"
-    val outLines = consumeOut.filterNot(isDiagnosticLine)
-    outLines should have length 1
-    outLines.head should include(
-      "???"
-    )
   }
 }

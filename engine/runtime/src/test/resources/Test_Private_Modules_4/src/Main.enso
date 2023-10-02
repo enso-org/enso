@@ -1,6 +1,7 @@
 import project.Sub
 export project.Sub
 
+# Fails at compile time - cannot mix private and public modules in a module subtree.
+
 main =
-    # OK to use private submodule within the same project
-    Sub.Priv_SubMod.foo
+    42

@@ -192,6 +192,17 @@ object ImportExport {
       s"Cannot import private module '$moduleName'"
   }
 
+  case class SubmoduleVisibilityMismatch(
+    moduleName: String,
+    submoduleName: String,
+    moduleVisibility: String,
+    submoduleVisibility: String
+  ) extends Reason {
+    override def message: String =
+      s"Cannot export submodule '$submoduleName' of module '$moduleName': " +
+      s"the submodule is $submoduleVisibility, but the module is $moduleVisibility"
+  }
+
   /** Represents an ambiguous import resolution error, where the same symbol is imported more than once refereing
     * to different objects. The objects are represented by their physical path in the project.
     *

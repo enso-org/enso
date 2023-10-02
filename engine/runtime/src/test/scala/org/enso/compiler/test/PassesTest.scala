@@ -55,7 +55,7 @@ class PassesTest extends CompilerTest {
           LambdaShorthandToLambda,
           ImportSymbolAnalysis,
           AmbiguousImportsAnalysis,
-          PrivateModuleAnalysis.MODULE$,
+          PrivateModuleAnalysis.getInstance(),
           ShadowedPatternFields,
           UnreachableMatchBranches,
           NestedPatternMatch,
