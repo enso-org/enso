@@ -17,21 +17,19 @@ public class FindTypeByFqnNode extends Node {
     var fullName = QualifiedName.fromString(fqn.toString());
     if (fullName.getParent().isDefined()) {
       var moduleName = fullName.getParent().get();
-      for (var m : ctx.getTopScope().getModules()) {
-        if (m.getName().equals(moduleName)) {
-          var foundType = m.getScope().getType(fullName.item());
-          if (foundType.isPresent()) {
-            return foundType.get();
-          }
+      var maybeModule = ctx.getTopScope().getModule(moduleName.toString());
+      if (maybeModule.isPresent()) {
+        var foundType = maybeModule.get().getScope().getType(fullName.item());
+        if (foundType.isPresent()) {
+          return foundType.get();
         }
       }
     }
-    for (var m : ctx.getTopScope().getModules()) {
-      if (m.getName().equals(fullName)) {
-        var foundType = m.getScope().getAssociatedType();
-        if (foundType != null) {
-          return foundType;
-        }
+    var maybeModule = ctx.getTopScope().getModule(fullName.toString());
+    if (maybeModule.isPresent()) {
+      var foundType = maybeModule.get().getScope().getAssociatedType();
+      if (foundType != null) {
+        return foundType;
       }
     }
     return ctx.getBuiltins().error().makeModuleDoesNotExistError(fqn.toString());
