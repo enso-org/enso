@@ -22,7 +22,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
-  updateContent: [updates: [ContentRange, string][]]
+  updateContent: [updates: [range: ContentRange, content: string][]]
   movePosition: [delta: Vec2]
   delete: []
 }>()

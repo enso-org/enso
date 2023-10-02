@@ -126,7 +126,6 @@ export const useProjectStore = defineStore('project', () => {
   function currentDocGuid() {
     const name = observedFileName.value
     if (name == null) return
-    console.log('projectModel.modules', projectModel.modules.toJSON())
     return projectModel.modules.get(name)?.guid
   }
   function tryReadDocGuid() {

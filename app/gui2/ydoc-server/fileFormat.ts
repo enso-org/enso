@@ -4,11 +4,6 @@ import z from 'zod'
 export type Vector = z.infer<typeof vector>
 export const vector = z.tuple([z.number(), z.number()])
 
-// interface VisMetadata {
-//   name: { content: { content: string } }
-//   project: string
-// }
-
 export type VisualizationMetadata = z.infer<typeof visualizationMetadata>
 const visualizationMetadata = z.object({}).passthrough()
 

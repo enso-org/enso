@@ -81,7 +81,7 @@ export const useGraphStore = defineStore('graph', () => {
   function updateState(affectedRanges?: ContentRange[]) {
     const module = proj.module
     if (module == null) return
-    module.doc.ydoc.transact(() => {
+    module.transact(() => {
       const idMap = module.getIdMap()
       const meta = module.doc.metadata
       const text = module.doc.contents
@@ -248,15 +248,13 @@ export const useGraphStore = defineStore('graph', () => {
   function createNode(position: Vec2, expression: string): Opt<ExprId> {
     const mod = proj.module
     if (mod == null) return
-    const { contents } = mod.doc
-
     const meta: NodeMetadata = {
       x: position.x,
       y: -position.y,
     }
     const ident = generateUniqueIdent()
     const content = `${ident} = ${expression}`
-    return mod.insertNewNode(contents.length, content, meta)
+    return mod.insertNewNode(mod.doc.contents.length, content, meta)
   }
 
   function deleteNode(id: ExprId) {
@@ -273,7 +271,7 @@ export const useGraphStore = defineStore('graph', () => {
     proj.module?.replaceExpressionContent(id, content)
   }
 
-  function batchUpdate(fn: () => void) {
+  function transact(fn: () => void) {
     return proj.module?.transact(fn)
   }
 
@@ -292,7 +290,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     _parsed,
     _parsedEnso: _parsedEnso,
-    batchUpdate,
+    transact,
     nodes,
     exprNodes,
     edges,

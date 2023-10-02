@@ -86,7 +86,7 @@ export class ModuleDoc {
 export class DistributedModule {
   doc: ModuleDoc
 
-  static async load(ydoc: Y.Doc) {
+  static async load(ydoc: Y.Doc): Promise<DistributedModule> {
     ydoc.load()
     await ydoc.whenLoaded
     return new DistributedModule(ydoc)

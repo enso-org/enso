@@ -88,7 +88,7 @@ useWindowEvent('keydown', (e) => {
 })
 
 function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
-  graphStore.batchUpdate(() => {
+  graphStore.transact(() => {
     for (const [range, content] of updates) {
       graphStore.replaceNodeSubexpression(id, range, content)
     }
@@ -123,7 +123,7 @@ function moveNode(id: ExprId, delta: Vec2) {
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
-        @updateContent="(updates) => updateNodeContent(id, updates)"
+        @updateContent="updateNodeContent(id, $event)"
         @movePosition="moveNode(id, $event)"
       />
     </div>
