@@ -68,10 +68,7 @@ type XML_Document
     from_stream : Input_Stream -> XML_Document ! XML_Error
     from_stream input_stream:Input_Stream =
         XML_Error.handle_java_exceptions <|
-           input_stream.with_java_stream java_stream->
-               document_builder_factory = DocumentBuilderFactory.newInstance
-               document_builder = document_builder_factory.newDocumentBuilder
-               XML_Document.Value (document_builder.parse java_stream)
+           input_stream.with_java_stream java_stream-> XML_Document.from_source java_stream
 
     ## Read an XML document from a string.
 
@@ -89,10 +86,15 @@ type XML_Document
     from_string xml_string:Text =
         XML_Error.handle_java_exceptions <|
             string_reader = StringReader.new xml_string
-            input_source = InputSource.new string_reader
-            document_builder_factory = DocumentBuilderFactory.newInstance
-            document_builder = document_builder_factory.newDocumentBuilder
-            XML_Document.Value (document_builder.parse input_source)
+            XML_Document.from_source (InputSource.new string_reader)
+
+    ## PRIVATE
+       Read XML from an input source.
+    from_source : Any -> XML_Document ! XML_Error
+    from_source input_source =
+        document_builder_factory = DocumentBuilderFactory.newInstance
+        document_builder = document_builder_factory.newDocumentBuilder
+        XML_Document.Value (document_builder.parse input_source)
 
     ## Get the root element of the document.
 
