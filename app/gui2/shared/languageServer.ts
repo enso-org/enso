@@ -291,6 +291,11 @@ export class LanguageServer extends ObservableV2<Notifications> {
     })
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#searchgetsuggestionsdatabase) */
+  getSuggestionsDatabase(): Promise<response.GetSuggestionsDatabase> {
+    return this.request('search/getSuggestionsDatabase', {})
+  }
+
   dispose() {
     this.client.close()
   }
