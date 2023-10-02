@@ -153,7 +153,7 @@ type HTTP
 
     ## PRIVATE
        Static helper for get-like methods
-    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+    fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
     fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method fetch_methods method <|
             request = Request.new method uri (parse_headers headers) Request_Body.Empty
@@ -161,7 +161,7 @@ type HTTP
 
     ## PRIVATE
        Static helper for post-like methods
-    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+    post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any
     post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) =
         check_method post_methods method <|
             request = Request.new method uri (parse_headers headers) body
@@ -280,7 +280,7 @@ post_methods : Set HTTP_Method
 post_methods = Set.from_vector [HTTP_Method.Post, HTTP_Method.Put, HTTP_Method.Patch, HTTP_Method.Delete]
 
 ## PRIVATE
-check_method : Set HTTP_Method -> Any -> Any ! Illegal_Argument
+check_method : Set HTTP_Method -> Any -> Any -> Any ! Illegal_Argument
 check_method allowed_methods method ~action =
     if allowed_methods.contains method then action else
         Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))

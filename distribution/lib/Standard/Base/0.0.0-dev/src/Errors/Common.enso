@@ -92,6 +92,16 @@ type Compile_Error
     to_display_text self = "Compile error: "+self.message+"."
 
 @Builtin_Type
+type Assertion_Error
+    ## PRIVATE
+    Error message
+
+    ## PRIVATE
+       Convert the Assertion_Error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Assertion Error: '" + self.message.to_text + "'"
+
+@Builtin_Type
 type Inexhaustive_Pattern_Match
     ## PRIVATE
        The error thrown when a there is no pattern to match on the scrutinee.

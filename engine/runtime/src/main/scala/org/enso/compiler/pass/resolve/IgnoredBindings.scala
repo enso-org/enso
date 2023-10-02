@@ -41,13 +41,13 @@ case object IgnoredBindings extends IRPass {
   override type Metadata = State
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     GenerateMethodBodies,
     LambdaShorthandToLambda,
     NestedPatternMatch
   )
-  override val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,

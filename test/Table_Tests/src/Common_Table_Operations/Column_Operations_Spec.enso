@@ -1186,8 +1186,8 @@ spec setup =
 
         Test.specify "composed operations" <|
             # These look a bit weird, but they are consistent with the column name escaping scheme.
-            ((t.at "a" + 42) * (t.at "c")) . name . should_equal "[[a]] + 42] * [c]"
-            ((t.at "a" + 42) * (t.at "c") - 33) . name . should_equal "[[[a]]]] + 42]] * [c]]] - 33"
+            ((t.at "a" + 42) * (t.at "c")) . name . should_equal "[[a] + 42] * [c]"
+            ((t.at "a" + 42) * (t.at "c") - 33) . name . should_equal "[[[a] + 42] * [c]] - 33"
 
         Test.specify "sort" <|
             t.at "a" . sort . name . should_equal "a"

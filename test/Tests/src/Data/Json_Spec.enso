@@ -66,6 +66,42 @@ spec =
             deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
             "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
 
+        Test.specify "should be able to deserialize using into via conversion" <|
+            Json.parse '{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}' . into Time_Zone . should_equal (Time_Zone.parse "Europe/Moscow")
+
+        Test.specify "should be able to deserialize using into for single constructor" <|
+            Json.parse '{"first": 1, "second": 2}' . into Pair . should_equal (Pair.Value 1 2)
+            Json.parse '{"start": 15, "end": 20, "step": 3}' . into Range . should_equal (Range.Between 15 20 3)
+
+        Test.specify "should be able to deserialize using into for multiple constructors" <|
+            Json.parse '{"than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
+            Json.parse '{"constructor": "Less", "than": 2}' . into Filter_Condition . should_equal (Filter_Condition.Less 2)
+            Json.parse '{"constructor": "NotARealOne", "than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
+
+        Test.specify "should be able to deserialize Date" <|
+            '{"type": "Date", "constructor": "new", "year": 2018, "month": 7, "day": 3}'.should_parse_as (Date.new 2018 7 3)
+            '{"type": "Date", "year": 2025, "month": 5, "day": 12}'.should_parse_as (Date.new 2025 5 12)
+            '{"type": "Date", "month": 5, "day": 12}' . should_parse_as (JS_Object.from_pairs [["type", "Date"], ["month", 5], ["day", 12]])
+            '{"type": "Date", "year": 2019, "day": 12}' . should_parse_as (JS_Object.from_pairs [["type", "Date"], ["year", 2019], ["day", 12]])
+
+        Test.specify "should be able to deserialize Time_Of_Day" <|
+            '{"type": "Time_Of_Day", "constructor": "new", "hour": 22, "minute": 14, "second": 47}'.should_parse_as (Time_Of_Day.new 22 14 47)
+            '{"type": "Time_Of_Day", "hour": 12, "minute": 30}'.should_parse_as (Time_Of_Day.new 12 30 0)
+            '{"type": "Time_Of_Day", "hour": 18, "minute": 6, "second": 13, "nanosecond": 1234568}'.should_parse_as (Time_Of_Day.new 18 6 13 nanosecond=1234568)
+            '{"type": "Time_Of_Day", "minute": 14, "second": 47}' . should_parse_as (JS_Object.from_pairs [["type", "Time_Of_Day"], ["minute", 14], ["second", 47]])
+            '{"type": "Time_Of_Day", "hour": 14, "second": 47}' . should_parse_as (JS_Object.from_pairs [["type", "Time_Of_Day"], ["hour", 14], ["second", 47]])
+            '{"type": "Time_Of_Day", "hour": 18, "minute": 6, "nanosecond": 1234568}'.should_parse_as (JS_Object.from_pairs [["type", "Time_Of_Day"], ["hour", 18], ["minute", 6], ["nanosecond", 1234568]])
+
+        Test.specify "should be able to deserialize Date_Time" <|
+            tz = Time_Zone.parse "Europe/Moscow"
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"nanosecond":572104300,"zone":{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 nanosecond=572104300 zone=tz)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"zone":{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 zone=tz)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"nanosecond":572104300}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 nanosecond=572104300)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52}'.should_parse_as (Date_Time.new 2023 9 29 11 52 00)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"second":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["second", 52]])
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"nanosecond":572104300}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52], ["nanosecond", 572104300]])
+
     Test.group "JSON Serialization" <|
         Test.specify "should print JSON structures to valid json" <|
             "0".should_render_itself
@@ -100,6 +136,10 @@ spec =
             JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
             JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
 
+        Test.specify "should be buildable from pairs" <|
+            JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
+            JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
+
         Test.specify "should be handle equality on a key level" <|
             JS_Object.from_pairs [["a", 42]] . should_equal <| Json.parse '{"a": 42}'
             JS_Object.from_pairs [["a", 42]] . should_not_equal <| JS_Object.from_pairs [["a", 43]]
@@ -124,6 +164,11 @@ spec =
             object.at "bar" . should_fail_with No_Such_Key
             Json.parse "null" . get "foo" . should_equal Nothing
             Json.parse "null" . get "foo" 1 . should_equal 1
+
+        Test.specify "should allow checking for fields" <|
+            object = Json.parse '{ "foo": "bar", "baz": ["foo", "x", false],"y": {"z": null, "w": null} }'
+            object.contains_key "foo" . should_equal True
+            object.contains_key "bar" . should_equal False
 
         Test.specify "should be able to get field_names" <|
             Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["foo", "baz"]
