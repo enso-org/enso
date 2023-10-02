@@ -5,7 +5,6 @@ import { ref } from 'vue'
 
 import { logEvent } from 'histoire/client'
 
-import '@/assets/base.css'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 
 const color = ref('#357ab9')

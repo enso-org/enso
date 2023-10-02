@@ -14,14 +14,16 @@ export interface GuiConfig {
   window?: { topBarOffset?: string }
 }
 
-const provideKey = Symbol('appConfig') as InjectionKey<Ref<GuiConfig>>
+export const guiConfigProvideKey$FOR$INTERNAL$USE$ONLY = Symbol('appConfig') as InjectionKey<
+  Ref<GuiConfig>
+>
 
 export function useGuiConfig(): Ref<GuiConfig> {
-  const injected = inject(provideKey)
+  const injected = inject(guiConfigProvideKey$FOR$INTERNAL$USE$ONLY)
   if (injected == null) throw new Error('AppConfig not provided')
   return injected
 }
 
 export function provideGuiConfig(appConfig: Ref<GuiConfig>) {
-  provide(provideKey, appConfig)
+  provide(guiConfigProvideKey$FOR$INTERNAL$USE$ONLY, appConfig)
 }

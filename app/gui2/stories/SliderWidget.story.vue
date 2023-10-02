@@ -5,7 +5,6 @@ import { ref } from 'vue'
 
 import { logEvent } from 'histoire/client'
 
-import '@/assets/base.css'
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
 
 const state = ref(0)

@@ -1,9 +1,8 @@
 import { HstVue } from '@histoire/plugin-vue'
 import { defineConfig } from 'histoire'
 
-// For some reason `import '@/assets/base.css'` in a `setupFile` does not work.
-
 export default defineConfig({
+  setupFile: './stories/setup.ts',
   plugins: [HstVue()],
   tree: {
     groups: [

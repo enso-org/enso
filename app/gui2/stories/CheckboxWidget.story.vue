@@ -5,7 +5,6 @@ import { ref } from 'vue'
 
 import { logEvent } from 'histoire/client'
 
-import '@/assets/base.css'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 
 const checkboxState = ref(false)

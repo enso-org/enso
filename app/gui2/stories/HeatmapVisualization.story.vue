@@ -3,7 +3,6 @@
 
 import { ref } from 'vue'
 
-import '@/assets/base.css'
 import HeatmapVisualization from '@/components/visualizations/HeatmapVisualization.vue'
 
 const data = ref<any>([

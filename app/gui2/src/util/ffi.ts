@@ -2,7 +2,7 @@ import type { NonEmptyArray } from '@/util/array'
 import type { Opt } from '@/util/opt'
 import init, { parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
 
-const _wasm = await init()
+const _wasm = !HISTOIRE && (await init())
 
 export function parseEnso(code: string): Ast.Tree {
   const json = parse_to_json(code)
