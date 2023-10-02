@@ -80,6 +80,7 @@ watch(exprRect, (rect) => {
 
 <style scoped>
 .Span {
+  color: white;
   white-space: pre;
 
   &.Root {
@@ -88,19 +89,15 @@ watch(exprRect, (rect) => {
   }
 
   &.Ident {
-    color: #f97;
+    /* color: #f97; */
   }
 
   &.Token {
-    color: #7f7;
+    color: rgb(255 255 255 / 0.33);
   }
 
   &.Literal {
-    color: #77f;
-  }
-
-  &.Group {
-    color: #ccc;
+    font-weight: bold;
   }
 }
 </style>

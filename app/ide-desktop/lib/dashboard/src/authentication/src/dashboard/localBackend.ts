@@ -30,22 +30,9 @@ export class LocalBackend extends backend.Backend {
     private readonly projectManager: projectManager.ProjectManager
 
     /** Create a {@link LocalBackend}. */
-    constructor(
-        projectManagerUrl: string | null,
-        projectStartupInfo: backend.ProjectStartupInfo | null
-    ) {
+    constructor(projectManagerUrl: string | null) {
         super()
         this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
-        if (projectStartupInfo?.backendType === backend.BackendType.local) {
-            LocalBackend.currentlyOpenProjects.set(projectStartupInfo.project.projectId, {
-                projectName: projectManager.ProjectName(projectStartupInfo.project.name),
-                // The values are not important; fill with dummy values.
-                engineVersion: projectStartupInfo.project.engineVersion?.value ?? '',
-                projectNamespace: '',
-                languageServerBinaryAddress: { host: '', port: 0 },
-                languageServerJsonAddress: { host: '', port: 0 },
-            })
-        }
         if (IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.
@@ -151,14 +138,21 @@ export class LocalBackend extends backend.Backend {
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
-    override async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
+    override async getProjectDetails(
+        projectId: backend.ProjectId,
+        title: string | null
+    ): Promise<backend.Project> {
         const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
         if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
             const engineVersion = project?.engineVersion
             if (project == null) {
-                throw new Error(`The project ID '${projectId}' is invalid.`)
+                throw new Error(
+                    `Could not get details of project ${
+                        title != null ? `'${title}'` : `with ID '${projectId}'`
+                    }.`
+                )
             } else if (engineVersion == null) {
                 throw new Error(`The project '${project.name}' does not have an engine version.`)
             } else {

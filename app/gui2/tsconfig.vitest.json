@@ -4,6 +4,7 @@
   "compilerOptions": {
     "composite": true,
     "lib": [],
+    "outDir": "../../node_modules/.cache/tsc",
     "types": ["node", "jsdom", "vitest/importMeta"]
   },
   "references": [

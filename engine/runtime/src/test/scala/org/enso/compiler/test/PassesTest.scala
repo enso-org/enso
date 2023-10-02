@@ -24,8 +24,8 @@ class PassesTest extends CompilerTest {
     override type Metadata = IRPass.Metadata.Empty
     override type Config   = IRPass.Configuration.Default
 
-    override val precursorPasses: Seq[IRPass]   = List()
-    override val invalidatedPasses: Seq[IRPass] = List()
+    override lazy val precursorPasses: Seq[IRPass]   = List()
+    override lazy val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
       ir: Module,

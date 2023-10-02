@@ -82,7 +82,7 @@ object GlobalConfigurationManager {
   val globalConfigName: String = "global-config.yaml"
 
   /** Tries to read the global config from the given `path`. */
-  def readConfig(path: Path): Try[GlobalConfig] =
+  private def readConfig(path: Path): Try[GlobalConfig] =
     Using(Files.newBufferedReader(path)) { reader =>
       for {
         json   <- yaml.parser.parse(reader)
@@ -91,7 +91,7 @@ object GlobalConfigurationManager {
     }.flatMap(_.toTry)
 
   /** Tries to write the provided `config` to the given `path`. */
-  def writeConfig(path: Path, config: GlobalConfig): Try[Unit] =
+  private def writeConfig(path: Path, config: GlobalConfig): Try[Unit] =
     writeConfigRaw(path, GlobalConfig.encoder(config))
 
   /** Tries to write the config from a raw JSON value to the given `path`.
@@ -99,7 +99,7 @@ object GlobalConfigurationManager {
     * The config will not be saved if it is invalid, instead an exception is
     * thrown.
     */
-  def writeConfigRaw(path: Path, rawConfig: Json): Try[Unit] = {
+  private def writeConfigRaw(path: Path, rawConfig: Json): Try[Unit] = {
     def verifyConfig: Try[Unit] =
       rawConfig.as[GlobalConfig] match {
         case Left(failure) =>
