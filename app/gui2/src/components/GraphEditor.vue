@@ -17,7 +17,7 @@ import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { colorFromString, rgbFallback } from '@/util/colors'
+import { colorFromString } from '@/util/colors'
 
 import { nodeBindings } from '@/bindings/nodeSelection'
 import SelectionBrush from '@/components/SelectionBrush.vue'
@@ -272,13 +272,6 @@ const groupColors = computed(() => {
   }
   return styles
 })
-const fallbackColors = computed(() => {
-  const styles: { [key: string]: string } = {}
-  for (const [key, value] of Object.entries(groupColors.value)) {
-    styles[key] = rgbFallback(value)
-  }
-  return styles
-})
 </script>
 
 <template>
@@ -287,7 +280,7 @@ const fallbackColors = computed(() => {
     class="viewport"
     v-on.="navigator.events"
     v-on..="selection.events"
-    :style="[groupColors, fallbackColors]"
+    :style="groupColors"
     @pointerdown="nodeSelectionHandler"
     @pointermove="selection.dragging && mouseHandler($event)"
   >
