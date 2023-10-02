@@ -18,10 +18,52 @@ pub struct Code<'s> {
     #[deref]
     pub repr:  Cow<'s, str>,
     #[reflect(hide)]
-    pub utf16: usize,
+    pub offset_utf16: u32,
+    #[reflect(hide)]
+    pub utf16: u32,
 }
 
 impl<'s> Code<'s> {
+    #[inline(always)]
+    pub fn from_str_at_offset(repr: impl Into<Cow<'s, str>>, offset_utf16: u32) -> Self {
+        let repr = repr.into();
+        let utf16 = repr.encode_utf16().count() as u32;
+        Self { repr, offset_utf16, utf16 }
+    }
+
+    #[inline(always)]
+    pub fn from_str_without_offset(repr: impl Into<Cow<'s, str>>) -> Self {
+        Self::from_str_at_offset(repr, 0)
+    }
+
+    pub fn split_at(&self, offset: usize) -> (Self, Self) {
+        let (left, right) = match self.repr {
+            Cow::Borrowed(s) => s.split_at(offset),
+            Cow::Owned(_) => panic!("Unsupported: Splitting owned cows."),
+        };
+        let left_utf16 = left.encode_utf16().count() as u32;
+        let right_utf16 = self.utf16 - left_utf16;
+        (Self {
+            repr: Cow::Borrowed(left),
+            offset_utf16: self.offset_utf16,
+            utf16: left_utf16,
+        },
+        Self {
+             repr: Cow::Borrowed(right),
+             offset_utf16: self.offset_utf16 + left_utf16,
+             utf16: right_utf16,
+         },
+        )
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            repr: "".into(),
+            offset_utf16: 0,
+            utf16: 0,
+        }
+    }
+
     /// Length of the code in bytes.
     #[inline(always)]
     pub fn len(&self) -> Bytes {
@@ -31,30 +73,13 @@ impl<'s> Code<'s> {
     /// Length of the code.
     #[inline(always)]
     pub fn length(&self) -> Length {
-        Length { utf8: self.repr.len(), utf16: self.utf16 }
+        Length { utf8: self.repr.len(), utf16: self.utf16 as usize }
     }
 
     /// True if the code is the empty string.
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.repr.is_empty()
-    }
-}
-
-impl<'a> From<Cow<'a, str>> for Code<'a> {
-    #[inline(always)]
-    fn from(repr: Cow<'a, str>) -> Self {
-        let utf16 = repr.encode_utf16().count();
-        Self { repr, utf16 }
-    }
-}
-
-impl<'a> From<&'a str> for Code<'a> {
-    #[inline(always)]
-    fn from(str: &'a str) -> Self {
-        let utf16 = str.encode_utf16().count();
-        let repr = str.into();
-        Self { repr, utf16 }
     }
 }
 

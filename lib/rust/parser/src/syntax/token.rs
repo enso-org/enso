@@ -123,11 +123,10 @@ pub struct Token<'s, T = Variant> {
 #[allow(non_snake_case)]
 pub fn Token<'s, T>(
     left_offset: impl Into<Offset<'s>>,
-    code: impl Into<Code<'s>>,
+    code: Code<'s>,
     variant: T,
 ) -> Token<'s, T> {
     let left_offset = left_offset.into();
-    let code = code.into();
     Token { variant, left_offset, code }
 }
 
@@ -139,8 +138,9 @@ impl<'s, T> Token<'s, T> {
     pub fn split_at(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>, T) {
         let left_lexeme_offset = self.left_offset;
         let right_lexeme_offset = Offset::default();
-        let left = Token(left_lexeme_offset, self.code.slice(Bytes(0)..offset), ());
-        let right = Token(right_lexeme_offset, self.code.slice(offset..), ());
+        let (left_code, right_code) = self.code.split_at(offset.unchecked_raw());
+        let left = Token(left_lexeme_offset, left_code, ());
+        let right = Token(right_lexeme_offset, right_code, ());
         (left, right, self.variant)
     }
 
@@ -607,7 +607,7 @@ macro_rules! generate_token_aliases {
             /// Constructor.
             pub fn [<$variant:snake:lower>]<'s> (
                 left_offset: impl Into<Offset<'s>>,
-                code: impl Into<Code<'s>>,
+                code: Code<'s>,
                 $($($field : $field_ty),*)?
             ) -> $variant<'s> {
                 Token(left_offset, code, variant::$variant($($($field),*)?))
@@ -616,7 +616,7 @@ macro_rules! generate_token_aliases {
             /// Constructor.
             pub fn [<$variant:snake:lower _>]<'s> (
                 left_offset: impl Into<Offset<'s>>,
-                code: impl Into<Code<'s>>,
+                code: Code<'s>,
                 $($($field : $field_ty),*)?
             ) -> Token<'s> {
                 Token(left_offset, code, variant::$variant($($($field),*)?)).into()

@@ -26,6 +26,7 @@ use crate::prelude::*;
 
 use crate::macros;
 use crate::macros::pattern;
+use crate::source::Code;
 use crate::syntax;
 use crate::syntax::token;
 use crate::syntax::token::Token;
@@ -143,7 +144,7 @@ impl<'s> Resolver<'s> {
     pub fn new_statement() -> Self {
         let scopes = default();
         let open_blocks =
-            vec![syntax::item::Line { newline: token::newline("", ""), items: default() }];
+            vec![syntax::item::Line { newline: token::newline(Code::empty(), Code::empty()), items: default() }];
         let macro_stack = default();
         let segments = default();
         let items = default();

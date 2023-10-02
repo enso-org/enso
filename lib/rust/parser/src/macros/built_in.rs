@@ -3,6 +3,7 @@
 use crate::macros::pattern::*;
 use crate::macros::*;
 
+use crate::source::Code;
 use crate::syntax::operator;
 
 
@@ -437,7 +438,7 @@ fn case_body<'s>(
         }
     }
     if !initial_case.is_empty() {
-        let newline = syntax::token::newline("", "");
+        let newline = syntax::token::newline(Code::empty(), Code::empty());
         case_builder.push(syntax::item::Line { newline, items: initial_case });
     }
     block.into_iter().for_each(|line| case_builder.push(line));
@@ -803,6 +804,14 @@ fn expect_qualified(tree: syntax::Tree) -> syntax::Tree {
 }
 
 fn expected_nonempty<'s>() -> syntax::Tree<'s> {
-    let empty = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false, false, false));
+    let empty = syntax::Tree::ident(syntax::token::ident(
+        Code::empty(),
+        Code::empty(),
+        false,
+        0,
+        false,
+        false,
+        false,
+    ));
     empty.with_error("Expected tokens.")
 }

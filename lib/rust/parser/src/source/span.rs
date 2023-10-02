@@ -70,8 +70,7 @@ pub struct Offset<'s> {
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Offset<'s>(visible: VisibleOffset, code: impl Into<Code<'s>>) -> Offset<'s> {
-    let code = code.into();
+pub fn Offset(visible: VisibleOffset, code: Code) -> Offset {
     Offset { visible, code }
 }
 
@@ -95,10 +94,10 @@ impl<'s> AsRef<Offset<'s>> for Offset<'s> {
     }
 }
 
-impl<'s> From<&'s str> for Offset<'s> {
+impl<'s> From<Code<'s>> for Offset<'s> {
     #[inline(always)]
-    fn from(code: &'s str) -> Self {
-        Offset(code.into(), code)
+    fn from(code: Code<'s>) -> Self {
+        Offset(code.repr.as_ref().into(), code)
     }
 }
 
