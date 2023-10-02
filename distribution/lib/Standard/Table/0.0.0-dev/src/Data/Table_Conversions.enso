@@ -19,7 +19,7 @@ import project.Internal.Widget_Helpers
     - prefix: Prefix to add to the column names. If `Nothing` then the column
       name is used.
 @column Widget_Helpers.make_column_name_selector
-Table.expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Table ! Type_Error
+Table.expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
 Table.expand_column self column fields=Nothing prefix=Nothing =
     column_object = self.at column
     expanded = Table.from_objects column_object.to_vector fields
@@ -126,7 +126,7 @@ Table.from_objects value fields=Nothing =
 
             Table.new (used_fields.zip used_values)
         _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
-        _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text, Date, Time and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
+        _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text, date/time and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
 
 ## GROUP Standard.Base.Conversions
    Converts a Text into a Table using a regular expression pattern.

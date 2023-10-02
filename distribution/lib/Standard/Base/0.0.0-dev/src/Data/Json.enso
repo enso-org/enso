@@ -225,12 +225,13 @@ type JS_Object
                 constructors = meta_type.constructors
                 filtered = if self.contains_key "constructor" then constructors.filter c-> c.name == self.get "constructor" else constructors
                 case filtered.length of
-                    0 -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find the constructor.")
+                    0 -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - cannot find the constructor.")
                     1 ->
                         constructor = filtered.at 0
                         field_names = constructor.fields
                         if field_names.all self.contains_key then constructor.new (field_names.map self.at) else
-                            Error.throw (Illegal_Argument.Error "Missing fields for constructor.")
+                            missing_fields = field_names.filter (f-> self.contains_key f . not)
+                            Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - the constructor "+constructor.name+"'s fields "+missing_fields.to_display_text+" not found in the source object.")
                     _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
 
 
