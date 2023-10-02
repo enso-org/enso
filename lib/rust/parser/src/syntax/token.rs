@@ -259,12 +259,12 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         BlockStart,
         BlockEnd,
         Wildcard {
-            pub lift_level: usize
+            pub lift_level: u32
         },
         AutoScope,
         Ident {
             pub is_free:               bool,
-            pub lift_level:            usize,
+            pub lift_level:            u32,
             #[reflect(rename = "is_type_or_constructor")]
             pub is_type:               bool,
             pub is_operator_lexically: bool,
@@ -354,7 +354,7 @@ impl OperatorProperties {
     }
 
     /// Return a copy of this operator, with the given binary infix precedence.
-    pub fn with_binary_infix_precedence(self, value: usize) -> Self {
+    pub fn with_binary_infix_precedence(self, value: u32) -> Self {
         let precedence = Precedence { value };
         debug_assert!(precedence > Precedence::min());
         Self { binary_infix_precedence: Some(precedence), ..self }
@@ -527,7 +527,7 @@ impl OperatorProperties {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, PartialOrd, Ord)]
 pub struct Precedence {
     /// A numeric value determining precedence order.
-    value: usize,
+    value: u32,
 }
 
 impl Precedence {

@@ -77,7 +77,7 @@ impl<'s> Code<'s> {
     /// Length of the code.
     #[inline(always)]
     pub fn length(&self) -> Length {
-        Length { utf8: self.repr.len(), utf16: self.utf16 as usize }
+        Length { utf8: self.repr.len(), utf16: self.utf16 }
     }
 
     /// True if the code is the empty string.
@@ -157,7 +157,7 @@ pub struct Length {
     #[reflect(skip)]
     #[serde(skip)]
     utf8:  usize,
-    utf16: usize,
+    utf16: u32,
 }
 
 impl Length {

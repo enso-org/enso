@@ -28,12 +28,12 @@ pub mod traits {
 #[allow(missing_docs)]
 #[reflect(transparent)]
 pub struct VisibleOffset {
-    pub width_in_spaces: usize,
+    pub width_in_spaces: u32,
 }
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub const fn VisibleOffset(width_in_spaces: usize) -> VisibleOffset {
+pub const fn VisibleOffset(width_in_spaces: u32) -> VisibleOffset {
     VisibleOffset { width_in_spaces }
 }
 

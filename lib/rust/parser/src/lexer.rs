@@ -544,7 +544,7 @@ fn is_operator_body_char(t: char) -> bool {
 #[allow(missing_docs)]
 struct IdentInfo {
     starts_with_underscore: bool,
-    lift_level:             usize,
+    lift_level:             u32,
     starts_with_uppercase:  bool,
     is_default:             bool,
 }
@@ -554,7 +554,7 @@ impl IdentInfo {
     #[inline(always)]
     fn new(repr: &str) -> Self {
         let starts_with_underscore = repr.starts_with('_');
-        let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
+        let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count() as u32;
         let starts_with_uppercase =
             repr.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
         let is_default = repr == "default";
@@ -595,7 +595,7 @@ impl token::Variant {
     #[inline(always)]
     fn new_ident_or_wildcard_unchecked(repr: &str) -> token::Variant {
         let info = IdentInfo::new(repr);
-        if info.starts_with_underscore && repr.len() == 1 + info.lift_level {
+        if info.starts_with_underscore && repr.len() as u32 == 1 + info.lift_level {
             token::Variant::wildcard(info.lift_level)
         } else {
             let is_free = info.starts_with_underscore;
@@ -892,7 +892,7 @@ impl<'s> Lexer<'s> {
                         self.token(|this| this.take_while(is_hexadecimal_digit)),
                 };
                 let joiner = token::OperatorProperties::new()
-                    .with_binary_infix_precedence(usize::MAX)
+                    .with_binary_infix_precedence(u32::MAX)
                     .as_token_joiner();
                 self.submit_token(Token(
                     Code::empty(),
@@ -1440,7 +1440,7 @@ pub mod test {
     /// Constructor.
     pub fn ident_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let is_free = code.starts_with('_');
-        let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
+        let lift_level = code.chars().rev().take_while(|t| *t == '\'').count() as u32;
         let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
         let is_operator = false;
         let left_offset = Code::from_str_without_offset(left_offset);
@@ -1450,7 +1450,7 @@ pub mod test {
 
     /// Constructor.
     pub fn wildcard_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
-        let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
+        let lift_level = code.chars().rev().take_while(|t| *t == '\'').count() as u32;
         let left_offset = Code::from_str_without_offset(left_offset);
         let code = Code::from_str_without_offset(code);
         token::wildcard_(left_offset, code, lift_level)
