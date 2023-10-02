@@ -20,5 +20,10 @@ export default defineConfig({
     define: {
       HISTOIRE: 'true',
     },
+    server: {
+      fs: {
+        allow: ['../..'],
+      },
+    },
   },
 })
