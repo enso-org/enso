@@ -35,7 +35,7 @@ case object CachePreferenceAnalysis extends IRPass {
   override type Metadata = WeightInfo
 
   /** Run desugaring passes first. */
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     FunctionBinding,
     GenerateMethodBodies,
@@ -44,7 +44,7 @@ case object CachePreferenceAnalysis extends IRPass {
     SectionsToBinOp
   )
 
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRPass] = List()
 
   /** Performs the cache preference analysis on a module.
     *

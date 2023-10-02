@@ -36,8 +36,8 @@ case object DocumentationComments extends IRPass {
   override type Metadata = Doc
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = Seq()
-  override val invalidatedPasses: Seq[IRPass] = Seq(
+  override lazy val precursorPasses: Seq[IRPass] = Seq()
+  override lazy val invalidatedPasses: Seq[IRPass] = Seq(
     ComplexType,
     GenerateMethodBodies
   )
