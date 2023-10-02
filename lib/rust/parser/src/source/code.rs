@@ -14,7 +14,7 @@ use crate::prelude::*;
 pub struct StrRef<'s>(pub &'s str);
 
 /// A code representation. It can either be a borrowed source code or a modified owned one.
-#[derive(Clone, Default, Eq, PartialEq, Serialize, Reflect, Deserialize, Deref)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize, Deref)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
     #[serde(serialize_with = "crate::serialization::serialize_cow")]
@@ -32,7 +32,7 @@ impl<'s> Code<'s> {
     /// Return a code reference from the given source and offset within the document.
     #[inline(always)]
     pub fn from_str_at_offset(repr: &'s str, offset_utf16: u32) -> Self {
-        let utf16 = repr.encode_utf16().count() as u32;
+        let utf16 = repr.chars().map(|c| c.len_utf16() as u32).sum();
         let repr = StrRef(repr);
         Self { repr, offset_utf16, utf16 }
     }
@@ -47,13 +47,20 @@ impl<'s> Code<'s> {
     /// Split the UTF-8 code at the given byte offset.
     pub fn split_at(&self, offset: usize) -> (Self, Self) {
         let (left, right) = self.repr.split_at(offset);
-        let left_utf16 = left.encode_utf16().count() as u32;
+        let left_utf16 = left.chars().map(|c| c.len_utf16() as u32).sum();
         let right_utf16 = self.utf16 - left_utf16;
-        (Self { repr: StrRef(left), offset_utf16: self.offset_utf16, utf16: left_utf16 }, Self {
-            repr:         StrRef(right),
-            offset_utf16: self.offset_utf16 + left_utf16,
-            utf16:        right_utf16,
-        })
+        (
+            Self {
+                repr:         StrRef(left),
+                offset_utf16: self.offset_utf16,
+                utf16:        left_utf16,
+            },
+            Self {
+                repr:         StrRef(right),
+                offset_utf16: self.offset_utf16 + left_utf16,
+                utf16:        right_utf16,
+            },
+        )
     }
 
     /// Return a reference to an empty string.
@@ -83,12 +90,6 @@ impl<'s> Code<'s> {
 impl<'s> Display for Code<'s> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&*self.repr, f)
-    }
-}
-
-impl<'s> Debug for Code<'s> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.repr, f)
     }
 }
 
@@ -132,12 +133,12 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
                 let range = self.repr.as_bytes().as_ptr_range();
                 #[allow(unsafe_code)] // See comments in block.
                 unsafe {
-                    // Combining two slices is sound if the second ends where the first begins.
+                    // Combining two slices is sound if:
+                    // - They have the same element lifetime (ensured by the type signature).
+                    // - The second ends where the first begins (checked below).
                     assert_eq!(range.end, other.repr.as_ptr());
-                    let joined = slice::from_raw_parts(
-                        range.start,
-                        self.repr.len() + other.repr.len(),
-                    );
+                    let joined =
+                        slice::from_raw_parts(range.start, self.repr.len() + other.repr.len());
                     // Concatenating two UTF-8 strings always yields a valid UTF-8 string.
                     self.repr = StrRef(std::str::from_utf8_unchecked(joined));
                 }

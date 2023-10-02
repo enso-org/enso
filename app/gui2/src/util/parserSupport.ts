@@ -125,5 +125,22 @@ export function debugHelper(value: any): object | undefined {
   if (typeof value[Symbol.iterator] === 'function') {
     return Array.from(value, debugHelper)
   }
+  if (typeof value === 'object') {
+    // FIXME: Include the `hide` reflect property in the schema, and apply it during code generation to avoid magic
+    //  strings here.
+    const hide = [
+        /*
+      'codeReprBegin',
+      'codeReprLen',
+      'leftOffsetCodeReprBegin',
+      'leftOffsetCodeReprLen',
+      'leftOffsetVisible',
+      'spanLeftOffsetCodeReprBegin',
+      'spanLeftOffsetCodeReprLen',
+      'spanLeftOffsetVisible',
+         */
+    ]
+    return Object.fromEntries(Object.entries(value).filter(([key, _val]) => !hide.includes(key)))
+  }
   return value
 }

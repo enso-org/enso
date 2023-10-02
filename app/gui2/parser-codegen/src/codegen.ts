@@ -387,17 +387,19 @@ function makeDebugFunction(fields: string[]): ts.MethodDeclaration {
     tsf.createTypeReferenceNode('any'),
     tsf.createBlock([
       tsf.createReturnStatement(
-        tsf.createObjectLiteralExpression([
-          tsf.createSpreadAssignment(
-            tsf.createCallExpression(
-              tsf.createPropertyAccessExpression(tsf.createSuper(), 'debug'),
-              [],
-              [],
+        tsf.createCallExpression(support.debugHelper, [], [
+          tsf.createObjectLiteralExpression([
+            tsf.createSpreadAssignment(
+              tsf.createCallExpression(
+                tsf.createPropertyAccessExpression(tsf.createSuper(), 'debug'),
+                [],
+                [],
+              ),
             ),
-          ),
-          ...fields.map((name: string) =>
-            tsf.createPropertyAssignment(getterIdent(name), debugValue(getterIdent(name))),
-          ),
+            ...fields.map((name: string) =>
+              tsf.createPropertyAssignment(getterIdent(name), debugValue(getterIdent(name))),
+            ),
+          ])
         ]),
       ),
     ]),

@@ -537,18 +537,57 @@ export namespace Doc {
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
   test('testParse', () => {
-    const identInput = 'foo'
-    const tree0 = parseEnso2(identInput)
-    expect(Number(tree0.spanLeftOffsetCodeUtf16)).toBe(0)
-    expect(Number(tree0.spanCodeLengthUtf16)).toBe(identInput.length)
-    expect(tree0.type).toBe(Ast2.Tree.Type.BodyBlock)
-    if (tree0.type === Ast2.Tree.Type.BodyBlock) {
-      const statements = Array.from(tree0.statements)
-      const tree1 = statements[0]!.expression!
-      expect(tree1.type).toBe(Ast2.Tree.Type.Ident)
-      if (tree1.type === Ast2.Tree.Type.Ident) {
-        expect(Number(tree1.token.codeUtf16)).toBe(identInput.length)
-      }
-    }
+    const identInput = ' foo bar'
+    const tree = parseEnso2(identInput)
+    expect(tree.debug()).toBe({
+      spanCodeLengthUtf16: 7,
+      spanLeftOffsetCodeOffsetUtf16: 0,
+      spanLeftOffsetCodeUtf16: 1,
+      statements: [
+        {
+          expression: {
+            arg: {
+              spanCodeLengthUtf16: 3,
+              spanLeftOffsetCodeOffsetUtf16: 4,
+              spanLeftOffsetCodeUtf16: 1,
+              token: {
+                codeOffsetUtf16: 4,
+                codeUtf16: 3,
+                isFree: false,
+                isOperatorLexically: false,
+                isTypeOrConstructor: false,
+                leftOffsetCodeOffsetUtf16: 0,
+                leftOffsetCodeUtf16: 0,
+                liftLevel: 0,
+              },
+            },
+            func: {
+              spanCodeLengthUtf16: 3,
+              spanLeftOffsetCodeOffsetUtf16: 0,
+              spanLeftOffsetCodeUtf16: 1,
+              token: {
+                codeOffsetUtf16: 1,
+                codeUtf16: 3,
+                isFree: false,
+                isOperatorLexically: false,
+                isTypeOrConstructor: false,
+                leftOffsetCodeOffsetUtf16: 0,
+                leftOffsetCodeUtf16: 0,
+                liftLevel: 0,
+              },
+            },
+            spanCodeLengthUtf16: 7,
+            spanLeftOffsetCodeOffsetUtf16: 0,
+            spanLeftOffsetCodeUtf16: 0,
+          },
+          newline: {
+            codeOffsetUtf16: 0,
+            codeUtf16: 0,
+            leftOffsetCodeOffsetUtf16: 0,
+            leftOffsetCodeUtf16: 0,
+          },
+        },
+      ],
+    })
   })
 }
