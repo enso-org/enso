@@ -97,9 +97,10 @@ type Data_Formatter
        - thousand_separator: A separator that can be used to separate groups of digits in numbers.
        - allow_leading_zeros: Specifies if values starting with leading zeroes should be treated as numbers.
        - allow_exponential_notation: Allow parsing of exponential notation format.
-    with_number_formatting : Text -> Text -> Boolean -> Boolean -> Data_Formatter
+    with_number_formatting : Text -> Text -> Boolean -> Boolean -> Data_Formatter ! Illegal_Argument
     with_number_formatting self (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_leading_zeros=self.allow_leading_zeros) (allow_exponential_notation=self.allow_exponential_notation) =
-        self.clone decimal_point=decimal_point thousand_separator=thousand_separator allow_leading_zeros=allow_leading_zeros allow_exponential_notation=allow_exponential_notation
+        if decimal_point == thousand_separator then Error.throw (Illegal_Argument.Error "The decimal point and thousand separator must be different.") else
+            self.clone decimal_point=decimal_point thousand_separator=thousand_separator allow_leading_zeros=allow_leading_zeros allow_exponential_notation=allow_exponential_notation
 
     ## Specify values for Date/Time parsing.
 
@@ -219,7 +220,7 @@ type Data_Formatter
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
 
     ## PRIVATE
-    make_value_type_parser self value_type = case value_type of
+    make_value_type_parser self value_type = Illegal_Argument.handle_java_exception <| case value_type of
         Value_Type.Integer _ ->
             self.make_integer_parser target_type=value_type
         # TODO once we implement #6109 we can support 32-bit floats
