@@ -1,4 +1,6 @@
-// This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`.
+/** This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`. */
+
+import { Err, Ok, type Result } from '@/util/result'
 
 /** Base class for objects that lazily deserialize fields when accessed. */
 export abstract class LazyObject {
@@ -12,8 +14,6 @@ export abstract class LazyObject {
     return {}
   }
 }
-
-export type Result<T, E> = { Ok: T } | { Err: E }
 
 export const builtin = {
   Array: Array,
@@ -57,9 +57,9 @@ export class Cursor {
     const discriminant = data.readU32()
     switch (discriminant) {
       case 0:
-        return { Ok: readOk(data.seek(4)) }
+        return Ok(readOk(data.seek(4)))
       case 1:
-        return { Err: readErr(data.seek(4)) }
+        return Err(readErr(data.seek(4)))
       default:
         throw new Error(`Invalid Result discriminant: 0x${discriminant.toString(16)}.`)
     }
