@@ -48,16 +48,35 @@ All the entities, except modules, shall be declared private by prepending them
 with `private` keyword. Declaring a module as private shall be done be writing
 the `private` keyword at the very beginning of the module, before all the import
 statements, ignoring all the comments before. Fields cannot have `private`
-keyword, only constructors.
+keyword, only constructors. Types cannot have `private` keyword as well - only
+methods and constructors.
 
 ## Semantics
 
-### Submodules
+### Modules
+
+Modules can be specified as private. Private modules cannot be imported from
+other projects. Private modules can be imported from the same project.
 
 A hierarchy of submodules cannot mix public and private modules. In other words,
 if a module is public, its whole subtree must be public as well. For example,
 having a public module `A` and private submodule `A.B` is forbidden and shall be
-reported as an error during compilation.
+reported as an error during compilation. But having a private module `A` as well
+as private module `A.B` is OK.
+
+### Types
+
+_Types cannot be specified as private_, only constructors and methods. A type
+must have all the constructors private or all the constructors public. This is
+to prevent a situation when a pattern match can be done on public constructor,
+but cannot be done on a private constructor from a different project. Mixing
+public and private constructors in a single type is a compilation error. A type
+with all constructors public is called an _open_ type and a type with all
+constructors private is called a _closed_ type.
+
+Methods on types (or on modules) can be specified private. To check whether a
+private method is accessed only from within the same project, a runtime check
+must be performed, as this cannot be checked during the compilation.
 
 ## Example
 
