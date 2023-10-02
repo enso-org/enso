@@ -260,9 +260,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function deleteNode(id: ExprId) {
-    const mod = proj.module
-    if (mod == null) return
-    mod.replaceExpressionContent(id, '')
+    proj.module?.deleteNode(id)
   }
 
   function setNodeContent(id: ExprId, content: string) {

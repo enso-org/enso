@@ -109,6 +109,20 @@ export class DistributedModule {
     return newId
   }
 
+  deleteNode(id: ExprId): void {
+    const rangeBuffer = this.doc.idMap.get(id)
+    if (rangeBuffer == null) return
+    const [relStart, relEnd] = decodeRange(rangeBuffer)
+    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
+    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
+    if (start == null || end == null) return
+    this.transact(() => {
+      this.doc.idMap.delete(id)
+      this.doc.metadata.delete(id)
+      this.doc.contents.delete(start, end - start)
+    })
+  }
+
   replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
     const rangeBuffer = this.doc.idMap.get(id)
     if (rangeBuffer == null) return
