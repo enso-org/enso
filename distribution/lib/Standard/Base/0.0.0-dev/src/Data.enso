@@ -192,13 +192,6 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
    - try_auto_parse:  If successful should the body be attempted to be parsed to
      an Enso native object.
 
-   ! Specifying Content Types
-
-     If the `body` parameter specifies an explicit content type, then it is an
-     error to also specify additional `Content-Type` headers in the `headers`
-     parameter. (It is not an error to specify multiple `Content-Type` values in
-     `headers`, however.)
-
    ! Supported Body Types
 
      - Request_Body.Text: Sends a text string, with optional encoding and content
@@ -214,6 +207,38 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
      - Text: shorthand for `Request_Body.Text that_text`.
      - File: shorthand for `Request_Body.Binary that_file`.
      - Any other Enso object: shorthand for `Request_Body.Json that_object`.
+
+   ! Specifying Content Types
+
+     If the `body` parameter specifies an explicit content type, then it is an
+     error to also specify additional `Content-Type` headers in the `headers`
+     parameter. (It is not an error to specify multiple `Content-Type` values in
+     `headers`, however.)
+
+   ! Default Content Types
+
+     The following specifies the default content type for each `Request_Body`
+     type.
+
+     - Request_Body.Text: `text/plain`
+     - Request_Body.Json: `application/json`
+     - Request_Body.Binary: `application/octet-stream`
+     - Request_Body.Form_Data:
+           If `url_encoded` is True: `application/x-www-form-urlencoded`
+           If `url_encoded` is False: `multipart/form-data`
+     - Request_Body.Empty: No content type is sent
+     - Text: `text/plain`
+     - File: `application/octet-stream`
+     - Any other Enso object: `application/json`
+
+   ! Specifying Text Encodings
+
+     Text encoding can be specified in the `encoding` parameter to the
+     `Request_Body.Text` constructor. This value will be added to the
+     `Content-Type` header.
+
+     If a value for `encoding` is specified, but no value for `content_type` is
+     specified, then `"text/plain"` is used as the content type.
 
    > Example
      Write a text string to an HTTP endpoint.

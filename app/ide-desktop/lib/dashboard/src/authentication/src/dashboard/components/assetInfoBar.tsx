@@ -17,7 +17,7 @@ export interface AssetInfoBarProps {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(_props: AssetInfoBarProps) {
     return (
-        <div className="flex items-center shrink-0 bg-frame rounded-full gap-3 h-8 px-2 cursor-default pointer-events-auto">
+        <div className="flex items-center shrink-0 bg-frame backdrop-blur-3xl rounded-full gap-3 h-8 px-2 cursor-default pointer-events-auto">
             <Button
                 active={false}
                 disabled

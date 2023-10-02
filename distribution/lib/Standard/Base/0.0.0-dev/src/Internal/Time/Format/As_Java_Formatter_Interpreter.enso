@@ -6,6 +6,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
+import project.Internal.Time.Format.Analyzer.Analyzer
 from project.Internal.Time.Format.Parser import Common_Nodes, Standard_Date_Patterns, ISO_Week_Year_Patterns, Time_Patterns, Time_Zone_Patterns
 from project.Internal.Time.Format.Parser import Text_Representation, Numeric_Representation, Two_Digit_Year_Representation
 
@@ -18,8 +19,8 @@ polyglot java import java.time.temporal.IsoFields
 polyglot java import org.enso.base.Time_Utils
 
 ## PRIVATE
-interpret : Locale -> Vector (Common_Nodes | Standard_Date_Patterns | ISO_Week_Year_Patterns | Time_Patterns | Time_Zone_Patterns) -> DateTimeFormatter
-interpret locale nodes =
+interpret : Locale -> Vector (Common_Nodes | Standard_Date_Patterns | ISO_Week_Year_Patterns | Time_Patterns | Time_Zone_Patterns) -> Boolean -> DateTimeFormatter
+interpret locale nodes prepare_defaults=True =
     builder = DateTimeFormatterBuilder.new
     interpret_node node = case node of
         Common_Nodes.Literal text ->
@@ -47,17 +48,33 @@ interpret locale nodes =
             includes_decimal_point = False
             builder.appendFraction ChronoField.NANO_OF_SECOND min_digits max_digits includes_decimal_point
 
-        Standard_Date_Patterns.Quarter _ ->
-            field = get_field_for node
-            append_field builder field node.representation
-            # We currently don't even have a way to specify day of quarter, we expect just (year, quarter) pairs - so to make them parseable, we default to first day of the quarter.
-            builder.parseDefaulting IsoFields.DAY_OF_QUARTER 1
-
         _ ->
             field = get_field_for node
             append_field builder field node.representation
 
     nodes.each interpret_node
+
+    if prepare_defaults then
+        analyzer = Analyzer.new nodes
+
+        if analyzer.has_required Standard_Date_Patterns.Year && analyzer.has_required Standard_Date_Patterns.Month then
+            if analyzer.has_required Standard_Date_Patterns.Day_Of_Month . not then
+                builder.parseDefaulting ChronoField.DAY_OF_MONTH 1
+
+        if analyzer.has_day_and_month_but_not_year then
+            current_year = Date.today.year
+            builder.parseDefaulting ChronoField.YEAR current_year
+
+        if analyzer.has_required ISO_Week_Year_Patterns.Week_Based_Year && analyzer.has_required ISO_Week_Year_Patterns.Week_Of_Year then
+            if analyzer.has_required ISO_Week_Year_Patterns.Day_Of_Week . not then
+                builder.parseDefaulting ChronoField.DAY_OF_WEEK 1
+
+        if analyzer.has_required Standard_Date_Patterns.Year && analyzer.has_required Standard_Date_Patterns.Quarter then
+            builder.parseDefaulting IsoFields.DAY_OF_QUARTER 1
+
+        if analyzer.has_12h && analyzer.has_24h.not && analyzer.has_am_pm.not then
+            builder.parseDefaulting ChronoField.AMPM_OF_DAY 0
+
     builder.toFormatter locale.java_locale
 
 ## PRIVATE

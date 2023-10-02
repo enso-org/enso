@@ -1,9 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Format_Parse_Error
+import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import Table, Column, Data_Formatter, Quote_Style
+from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Value_Type
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -64,18 +64,18 @@ spec =
             exponential_formatter = Data_Formatter.Value allow_exponential_notation=True
             plain_formatter.parse "1E3" . should_equal "1E3"
 
-            r1 = plain_formatter.parse "1E3" Float
+            r1 = plain_formatter.parse "1E3" Value_Type.Float
             r1.should_equal Nothing
-            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Float ["1E3"])]
+            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Value_Type.Float ["1E3"])]
 
             exponential_formatter.parse "1E3" . should_equal 1000.0
-            exponential_formatter.parse "1E3" Float . should_equal 1000.0
-            exponential_formatter.parse "1E3" Integer . should_equal Nothing
+            exponential_formatter.parse "1E3" Value_Type.Float . should_equal 1000.0
+            exponential_formatter.parse "1E3" Value_Type.Integer . should_equal Nothing
 
             plain_formatter.parse "1.2E-3" . should_equal "1.2E-3"
-            plain_formatter.parse "1.2E-3" Float . should_equal Nothing
+            plain_formatter.parse "1.2E-3" Value_Type.Float . should_equal Nothing
             exponential_formatter.parse "1.2E-3" . should_equal 0.0012
-            exponential_formatter.parse "1.2E-3" Float . should_equal 0.0012
+            exponential_formatter.parse "1.2E-3" Value_Type.Float . should_equal 0.0012
 
         Test.specify "handle leading zeros, only if enabled" <|
             Data_Formatter.Value.parse "0100" . should_equal "0100"
@@ -95,12 +95,12 @@ spec =
             formatter = Data_Formatter.Value true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
             formatter.parse "YES" . should_equal True
             formatter.parse "NO" . should_equal False
-            (Data_Formatter.Value true_values=[] false_values=[]).parse "True" datatype=Boolean . should_equal Nothing
+            (Data_Formatter.Value true_values=[] false_values=[]).parse "True" type=Value_Type.Boolean . should_equal Nothing
 
         Test.specify "should parse dates" <|
             formatter = Data_Formatter.Value
             formatter.parse "2022-01-01" . should_equal (Date.new 2022)
-            formatter.parse "2020-05-07" datatype=Date . should_equal (Date.new 2020 5 7)
+            formatter.parse "2020-05-07" type=Value_Type.Date . should_equal (Date.new 2020 5 7)
             formatter.parse "1999-01-01 00:00:00" . should_equal (Date_Time.new 1999)
             formatter.parse "1999-02-03 04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
             formatter.parse "1999-02-03T04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
@@ -108,7 +108,7 @@ spec =
             formatter.parse "1999-02-03 04:05:06.000456" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 456)
             formatter.parse "1999-02-03 04:05:06.000000789" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 0 789)
             formatter.parse "1999-02-03 04:05:06.000000789[Europe/Madrid]" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 0 789 zone=(Time_Zone.parse "Europe/Madrid"))
-            formatter.parse "1999-01-01 00:00" datatype=Date_Time . should_equal (Date_Time.new 1999)
+            formatter.parse "1999-01-01 00:00" type=Value_Type.Date_Time . should_equal (Date_Time.new 1999)
             formatter.parse "1999-02-03 04:05" . should_equal (Date_Time.new 1999 2 3 4 5 0)
             formatter.parse "00:00:00" . should_equal (Time_Of_Day.new)
             formatter.parse "17:34:59" . should_equal (Time_Of_Day.new 17 34 59)
@@ -116,12 +116,12 @@ spec =
             formatter.parse "17:34:59.000456" . should_equal (Time_Of_Day.new 17 34 59 0 456)
             formatter.parse "17:34:59.000000789" . should_equal (Time_Of_Day.new 17 34 59 0 0 789)
             formatter.parse "00:00" . should_equal (Time_Of_Day.new)
-            formatter.parse "17:34" datatype=Time_Of_Day . should_equal (Time_Of_Day.new 17 34)
+            formatter.parse "17:34" type=Value_Type.Time . should_equal (Time_Of_Day.new 17 34)
 
-            formatter.parse "00:00:65" datatype=Time_Of_Day . should_equal Nothing
-            formatter.parse "30:00:65" datatype=Time_Of_Day . should_equal Nothing
-            formatter.parse "1999-01-01 00:00" datatype=Time_Of_Day . should_equal Nothing
-            formatter.parse "1999-01-01 00:00" datatype=Date . should_equal Nothing
+            formatter.parse "00:00:65" type=Value_Type.Time . should_equal Nothing
+            formatter.parse "30:00:65" type=Value_Type.Time . should_equal Nothing
+            formatter.parse "1999-01-01 00:00" type=Value_Type.Time . should_equal Nothing
+            formatter.parse "1999-01-01 00:00" type=Value_Type.Date . should_equal Nothing
             formatter.parse "30:00:65" . should_equal "30:00:65"
 
         Test.specify "should fallback to Text" <|
@@ -138,20 +138,20 @@ spec =
                 r.should_equal Nothing
                 Problems.expect_only_warning Invalid_Format r
 
-            r1 = formatter.parse "Text" datatype=Float
+            r1 = formatter.parse "Text" type=Value_Type.Float
             w1 = expect_warning r1
-            w1.value_type . should_equal Float
+            w1.value_type . should_equal Value_Type.Float
             w1.column . should_equal Nothing
 
-            expect_warning <| formatter.parse "Text" datatype=Integer
-            expect_warning <| formatter.parse "Text" datatype=Boolean
-            expect_warning <| formatter.parse "Text" datatype=Date
-            expect_warning <| formatter.parse "Text" datatype=Date_Time
-            expect_warning <| formatter.parse "Text" datatype=Time_Of_Day
+            expect_warning <| formatter.parse "Text" type=Value_Type.Integer
+            expect_warning <| formatter.parse "Text" type=Value_Type.Boolean
+            expect_warning <| formatter.parse "Text" type=Value_Type.Date
+            expect_warning <| formatter.parse "Text" type=Value_Type.Date_Time
+            expect_warning <| formatter.parse "Text" type=Value_Type.Time
 
         Test.specify "should not allow unexpected types" <|
             formatter = Data_Formatter.Value
-            formatter.parse "Text" datatype=List . should_fail_with Illegal_Argument
+            formatter.parse "Text" type=List . should_fail_with Illegal_Argument
 
     Test.group "DataFormatter.format" <|
         Test.specify "should handle Nothing" <|

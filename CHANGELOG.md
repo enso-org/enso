@@ -578,6 +578,8 @@
 - [Renamed `Decimal` to `Float`.][7807]
 - [Implemented `Date_Time_Formatter` for more user-friendly date/time format
   parsing.][7826]
+- [Implemented `Table.auto_value_types` for in-memory tables.][7908]
+- [Implemented Text.substring to easily select part of a Text field][7913]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -820,6 +822,8 @@
 [7776]: https://github.com/enso-org/enso/pull/7776
 [7807]: https://github.com/enso-org/enso/pull/7807
 [7826]: https://github.com/enso-org/enso/pull/7826
+[7908]: https://github.com/enso-org/enso/pull/7908
+[7913]: https://github.com/enso-org/enso/pull/7913
 
 #### Enso Compiler
 
@@ -965,6 +969,7 @@
 - [Always persist `TRACE` level logs to a file][7825]
 - [Downloadable VSCode extension][7861]
 - [New `project/status` route for reporting LS state][7801]
+- [Add Enso-specific assertions][7883])
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1109,6 +1114,7 @@
 [7801]: https://github.com/enso-org/enso/pull/7801
 [7825]: https://github.com/enso-org/enso/pull/7825
 [7861]: https://github.com/enso-org/enso/pull/7861
+[7883]: https://github.com/enso-org/enso/pull/7883
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

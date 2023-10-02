@@ -1,4 +1,5 @@
 import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
@@ -102,6 +103,9 @@ type Header
 
        Arguments:
        - value: The value for the content type header.
+       - encoding: The `Encoding` to use as the `charset` in the content-type
+         value. If encoding is `Nothing`, then the `charset` is not added to the
+         header valye.
 
        > Example
          Create a content type header containing "my_type".
@@ -109,8 +113,10 @@ type Header
              import Standard.Base.Network.HTTP.Header.Header
 
              example_content_type = Header.content_type "my_type"
-    content_type : Text -> Header
-    content_type value = Header.Value Header.content_type_header_name value
+    content_type : Text -> Encoding -> Header
+    content_type value encoding=Nothing =
+        charset = if encoding.is_nothing then "" else "; charset="+encoding.character_set
+        Header.Value Header.content_type_header_name value+charset
 
     ## Header "Content-Type: application/json".
 

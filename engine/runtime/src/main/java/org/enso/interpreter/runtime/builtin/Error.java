@@ -5,6 +5,7 @@ import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAnd
 import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.ArithmeticError;
 import org.enso.interpreter.node.expression.builtin.error.ArityError;
+import org.enso.interpreter.node.expression.builtin.error.AssertionError;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
 import org.enso.interpreter.node.expression.builtin.error.CompileError;
 import org.enso.interpreter.node.expression.builtin.error.ForbiddenOperation;
@@ -41,6 +42,7 @@ public final class Error {
   private final SyntaxError syntaxError;
   private final TypeError typeError;
   private final CompileError compileError;
+  private final AssertionError assertionError;
   private final IndexOutOfBounds indexOutOfBounds;
   private final InexhaustivePatternMatch inexhaustivePatternMatch;
   private final UninitializedState uninitializedState;
@@ -77,6 +79,7 @@ public final class Error {
     syntaxError = builtins.getBuiltinType(SyntaxError.class);
     typeError = builtins.getBuiltinType(TypeError.class);
     compileError = builtins.getBuiltinType(CompileError.class);
+    assertionError = builtins.getBuiltinType(AssertionError.class);
     indexOutOfBounds = builtins.getBuiltinType(IndexOutOfBounds.class);
     inexhaustivePatternMatch = builtins.getBuiltinType(InexhaustivePatternMatch.class);
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
@@ -106,6 +109,10 @@ public final class Error {
 
   public Atom makeCompileError(Object message) {
     return compileError.newInstance(message);
+  }
+
+  public Atom makeAssertionError(Text text) {
+    return assertionError.newInstance(text);
   }
 
   public Atom makeIndexOutOfBounds(long index, long length) {
