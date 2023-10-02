@@ -199,6 +199,13 @@ spec prefix connection =
                 v2 = c2.to_vector
                 v2 . should_equal [1, 2, 3]
                 Problems.assume_no_problems v2
+                c2.name . should_equal long_name
+
+                # Add the column to the table
+                t2 = db_table.set c2
+                # And ensure it is accessible by the long name
+                c2_prim = t2.at long_name
+                c2_prim.name . should_equal long_name
 
                 # But even then, the names for generated columns will not be very long:
                 c3 = c2 * c2
