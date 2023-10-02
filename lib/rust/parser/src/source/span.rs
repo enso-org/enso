@@ -97,7 +97,7 @@ impl<'s> AsRef<Offset<'s>> for Offset<'s> {
 impl<'s> From<Code<'s>> for Offset<'s> {
     #[inline(always)]
     fn from(code: Code<'s>) -> Self {
-        Offset(code.repr.as_ref().into(), code)
+        Offset((*code.repr).into(), code)
     }
 }
 
@@ -114,7 +114,6 @@ impl<'s> AddAssign<&Offset<'s>> for Offset<'s> {
         self.code += &other.code;
     }
 }
-
 
 
 // ============

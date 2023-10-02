@@ -8,6 +8,11 @@ use crate::prelude::*;
 // === Code ===
 // ============
 
+/// Wrap a `&str` that is skipped while deserializing; serde doesn't allow a custom deserializer to
+/// produce a `&'s str` without borrowing from the input.
+#[derive(Debug, Clone, Default, Eq, PartialEq, Deref)]
+pub struct StrRef<'s>(pub &'s str);
+
 /// A code representation. It can either be a borrowed source code or a modified owned one.
 #[derive(Clone, Default, Eq, PartialEq, Serialize, Reflect, Deserialize, Deref)]
 #[allow(missing_docs)]
@@ -16,52 +21,44 @@ pub struct Code<'s> {
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
     #[reflect(as = "crate::serialization::Code", flatten, hide)]
     #[deref]
-    pub repr:  Cow<'s, str>,
+    pub repr:         StrRef<'s>,
     #[reflect(hide)]
     pub offset_utf16: u32,
     #[reflect(hide)]
-    pub utf16: u32,
+    pub utf16:        u32,
 }
 
 impl<'s> Code<'s> {
+    /// Return a code reference from the given source and offset within the document.
     #[inline(always)]
-    pub fn from_str_at_offset(repr: impl Into<Cow<'s, str>>, offset_utf16: u32) -> Self {
-        let repr = repr.into();
+    pub fn from_str_at_offset(repr: &'s str, offset_utf16: u32) -> Self {
         let utf16 = repr.encode_utf16().count() as u32;
+        let repr = StrRef(repr);
         Self { repr, offset_utf16, utf16 }
     }
 
+    /// Return a code reference at the beginning of the document. This can be used in testing, when
+    /// accurate code references are not needed.
     #[inline(always)]
-    pub fn from_str_without_offset(repr: impl Into<Cow<'s, str>>) -> Self {
+    pub fn from_str_without_offset(repr: &'s str) -> Self {
         Self::from_str_at_offset(repr, 0)
     }
 
+    /// Split the UTF-8 code at the given byte offset.
     pub fn split_at(&self, offset: usize) -> (Self, Self) {
-        let (left, right) = match self.repr {
-            Cow::Borrowed(s) => s.split_at(offset),
-            Cow::Owned(_) => panic!("Unsupported: Splitting owned cows."),
-        };
+        let (left, right) = self.repr.split_at(offset);
         let left_utf16 = left.encode_utf16().count() as u32;
         let right_utf16 = self.utf16 - left_utf16;
-        (Self {
-            repr: Cow::Borrowed(left),
-            offset_utf16: self.offset_utf16,
-            utf16: left_utf16,
-        },
-        Self {
-             repr: Cow::Borrowed(right),
-             offset_utf16: self.offset_utf16 + left_utf16,
-             utf16: right_utf16,
-         },
-        )
+        (Self { repr: StrRef(left), offset_utf16: self.offset_utf16, utf16: left_utf16 }, Self {
+            repr:         StrRef(right),
+            offset_utf16: self.offset_utf16 + left_utf16,
+            utf16:        right_utf16,
+        })
     }
 
+    /// Return a reference to an empty string.
     pub fn empty() -> Self {
-        Self {
-            repr: "".into(),
-            offset_utf16: 0,
-            utf16: 0,
-        }
+        Self { repr: StrRef(""), offset_utf16: 0, utf16: 0 }
     }
 
     /// Length of the code in bytes.
@@ -85,7 +82,7 @@ impl<'s> Code<'s> {
 
 impl<'s> Display for Code<'s> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.repr, f)
+        Display::fmt(&*self.repr, f)
     }
 }
 
@@ -98,14 +95,14 @@ impl<'s> Debug for Code<'s> {
 impl<'a, 'b> PartialEq<&'b str> for Code<'a> {
     #[inline(always)]
     fn eq(&self, other: &&'b str) -> bool {
-        self.repr.eq(other)
+        self.repr.0.eq(*other)
     }
 }
 
 impl AsRef<str> for Code<'_> {
     #[inline(always)]
     fn as_ref(&self) -> &str {
-        &self.repr
+        &self.repr.0
     }
 }
 
@@ -119,16 +116,34 @@ impl std::borrow::Borrow<str> for Code<'_> {
 impl<'s> AddAssign<Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: Code<'s>) {
-        self.repr.add_assign(other.repr);
-        self.utf16.add_assign(other.utf16);
+        self.add_assign(&other)
     }
 }
 
 impl<'s> AddAssign<&Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: &Code<'s>) {
-        self.repr.add_assign(other.repr.clone());
-        self.utf16.add_assign(other.utf16);
+        match (self.is_empty(), other.is_empty()) {
+            (_, true) => (),
+            (true, _) => {
+                *self = other.clone();
+            }
+            (false, false) => {
+                let range = self.repr.as_bytes().as_ptr_range();
+                #[allow(unsafe_code)] // See comments in block.
+                unsafe {
+                    // Combining two slices is sound if the second ends where the first begins.
+                    assert_eq!(range.end, other.repr.as_ptr());
+                    let joined = slice::from_raw_parts(
+                        range.start,
+                        self.repr.len() + other.repr.len(),
+                    );
+                    // Concatenating two UTF-8 strings always yields a valid UTF-8 string.
+                    self.repr = StrRef(std::str::from_utf8_unchecked(joined));
+                }
+                self.utf16 += other.utf16;
+            }
+        }
     }
 }
 
