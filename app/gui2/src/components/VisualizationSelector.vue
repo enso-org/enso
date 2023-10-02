@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useDocumentEvent } from '../util/events'
 
-const _props = defineProps<{ types: string[] }>()
+const props = defineProps<{ types: string[] }>()
 const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
 
 const rootNode = ref<HTMLElement>()

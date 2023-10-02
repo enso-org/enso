@@ -10,7 +10,7 @@ import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 type Data = string[]
 
-const _props = defineProps<{ data: Data }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()

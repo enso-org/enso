@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ToggleIcon from '@/components/ToggleIcon.vue'
 
-const _props = defineProps<{
+const props = defineProps<{
   isAutoEvaluationDisabled: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean

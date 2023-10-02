@@ -11,14 +11,13 @@ const graphBindings = defineKeybinds('graph-editor', {
 </script>
 
 <script setup lang="ts">
+import { nodeBindings } from '@/bindings/nodeSelection'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
-import TopBar from '@/components/TopBar.vue'
-
-import { nodeBindings } from '@/bindings/nodeSelection'
 import SelectionBrush from '@/components/SelectionBrush.vue'
+import TopBar from '@/components/TopBar.vue'
 import { useGraphStore } from '@/stores/graph'
 import { ExecutionContext, useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
@@ -31,7 +30,6 @@ import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } fr
 const EXECUTION_MODES = ['design', 'live']
 const SELECTION_BRUSH_MARGIN_PX = 6
 
-const title = ref('Test Project')
 const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
@@ -73,8 +71,12 @@ useWindowEvent('keydown', (event) => {
 
 onMounted(() => viewportNode.value?.focus())
 
-function updateNodeContent(id: ExprId, range: ContentRange, content: string) {
-  graphStore.replaceNodeSubexpression(id, range, content)
+function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
+  graphStore.transact(() => {
+    for (const [range, content] of updates) {
+      graphStore.replaceNodeSubexpression(id, range, content)
+    }
+  })
 }
 
 function moveNode(id: ExprId, delta: Vec2) {
@@ -294,7 +296,7 @@ function clearSelection() {
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
-        @updateContent="(range, c) => updateNodeContent(id, range, c)"
+        @updateContent="updateNodeContent(id, $event)"
         @movePosition="moveNode(id, $event)"
       />
     </div>
@@ -312,7 +314,7 @@ function clearSelection() {
     />
     <TopBar
       v-model:mode="mode"
-      :title="title"
+      :title="projectStore.name"
       :modes="EXECUTION_MODES"
       :breadcrumbs="['main', 'ad_analytics']"
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"

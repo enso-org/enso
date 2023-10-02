@@ -2,9 +2,6 @@
  *
  * This file MUST NOT `export {}` for the modules to be visible to other files. */
 
-import * as http from 'node:http'
-import * as https from 'node:https'
-
 // ===========================
 // === Module declarations ===
 // ===========================
@@ -179,14 +176,16 @@ declare module 'create-servers' {
         http: string
     }
 
+    /** Created server instances of various types. */
+    interface CreatedServers {
+        http?: http.Server
+    }
+
     export default function (
         option: CreateServersOptions,
         // The types come from a third-party API and cannot be changed.
-        // eslint-disable-next-line no-restricted-syntax,@typescript-eslint/consistent-type-imports
-        handler: (
-            err: HttpError | null,
-            servers: { http?: http.Server; https?: https.Server }
-        ) => void
+        // eslint-disable-next-line no-restricted-syntax
+        handler: (err: HttpError | undefined, servers: CreatedServers) => void
     ): unknown
 }
 

@@ -11,12 +11,18 @@ interface Data {
 import { onMounted } from 'vue'
 
 import { VisualizationContainer } from 'builtins'
-// Optional: add your own external dependencies. The @ts-expect-error is required because TypeScript
-// does not allow HTTP imports.
-// @ts-expect-error
-import _dependency from 'http://<js dependency here>'
+// Optional: add your own external dependencies.
+// import dependency from 'https://<js dependency here>'
+//
+// When using typescript, you can also specify typings for your dependencies by locally declaring
+// the module in a `.d.ts` file in the same directory as this file:
+// ```ts
+// module 'https://<js dependency here>' {
+//   export * from '<locally installed typings here>'
+// }
+// ```
 
-const _props = defineProps<{
+const props = defineProps<{
   data: Data
 }>()
 const emit = defineEmits<{
