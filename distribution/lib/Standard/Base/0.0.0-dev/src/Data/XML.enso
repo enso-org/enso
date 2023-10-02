@@ -113,17 +113,19 @@ type XML_Document
     Value (java_document:Document)
 
 type XML_Element
-    ## Gets the tag of an xml element.
+    ## Gets the tag of an XML element.
 
-       Example:
-           XML_Document.from_string '<foo>hello</foo>' . root_element . name
-           # => "foo"
+       > Example
+         Get the tag of an XML element.
+
+             XML_Document.from_string '<foo>hello</foo>' . root_element . name
+             # => "foo"
     name : Text ! XML_Error
     name self =
         XML_Error.handle_java_exceptions <|
             self.java_element.getNodeName
 
-    ## Gets a child of an xml element.
+    ## Gets a child of an XML element.
 
        Arguments:
        - key: If an `Integer`, returns the element at position `at` in its list
@@ -131,7 +133,7 @@ type XML_Element
          returns the elements it points to. If a `Text` that starts with `"@"`,
          returns the attribute with the given name.
 
-       Example:
+       > Example
            XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . get 0
            # => XML_Document.from_string "<baz>hello</baz>" . root_element
 
@@ -147,7 +149,7 @@ type XML_Element
             _ : Integer -> self.get_child_element key if_missing
             _ : Text -> if is_attribute_key key then self.attribute (key.drop 1) if_missing else self.get_xpath key
 
-    ## Gets a child or attribute of an xml element.
+    ## Gets a child or attribute of an XML element.
 
        Arguments:
        - key: If an `Integer`, returns the element at position `at` in its list
@@ -196,13 +198,13 @@ type XML_Element
        `children` only returns child elements and child text nodes that are not
        100% whitespace. Other node types, such as comments, are not included.
 
-       > Example:
+       > Example
              XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . children
              # => [XML_Document.from_string "<baz>hello</baz>"]
     children : Vector (XML_Element | Text) ! XML_Error
     children self = only_wanted_nodes self.all_children
 
-    ## Gets the number children of an xml element.
+    ## Gets the number children of an XML element.
 
        `num_children` only counts child elements and child text nodes that are
        not 100% whitespace. Other node types, such as comments, are not included
@@ -251,9 +253,9 @@ type XML_Element
             attr = self.java_element.getAttributeNode name
             if attr.is_nothing then if_missing else attr.getValue
 
-    ## Gets a map containing f the attributes of an xml element.
+    ## Gets a map containing f the attributes of an XML element.
 
-       > Example:
+       > Example
            XML_Document.from_string '<foo bar="one">hello</foo>' . root_element . attributes
            # => Map.from_vector [["bar", "one"]]
     attributes : Map Text Text ! XML_Error
@@ -305,8 +307,10 @@ type XML_Element
 
     ## Gets elements matching a given tag name.
 
+       This searches through all descendants of the node, not just immediate children.
+
        > Example
-             XML_Document.from_string '<foo> <baz>hello</baz> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
+             XML_Document.from_string '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
              # => [XML_Document.from_string "<baz>hello</baz>" . root_element, XML_Document.from_string "<baz>goodbye</baz>" . root_element]
     get_elements_by_tag_name : Text -> Vector XML_Element ! XML_Error
     get_elements_by_tag_name self tag_name:Text =
