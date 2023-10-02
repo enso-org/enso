@@ -1,32 +1,32 @@
-import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { useGuiConfig,type GuiConfig } from '@/providers/guiConfig'
 import { DEFAULT_VISUALIZATION_CONFIGURATION } from '@/stores/visualization'
 import { attachProvider } from '@/util/crdt'
-import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
+import { Client,RequestManager,WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
-import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
+import { OutboundPayload,VisualizationUpdate } from 'shared/binaryProtocol'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import type {
-  ContentRoot,
-  ContextId,
-  MethodPointer,
-  VisualizationConfiguration,
+ContentRoot,
+ContextId,
+MethodPointer,
+VisualizationConfiguration,
 } from 'shared/languageServerTypes'
 import { WebsocketClient } from 'shared/websocket'
-import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
+import { DistributedProject,type ExprId,type Uuid } from 'shared/yjsModel'
 import {
-  computed,
-  markRaw,
-  onMounted,
-  onUnmounted,
-  ref,
-  shallowRef,
-  watch,
-  watchEffect,
-  type Ref,
-  type ShallowRef,
+computed,
+markRaw,
+onMounted,
+onUnmounted,
+ref,
+shallowRef,
+watch,
+watchEffect,
+type Ref,
+type ShallowRef,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -250,11 +250,9 @@ export const useProjectStore = defineStore('project', () => {
   ): ShallowRef<{} | undefined> {
     const id = random.uuidv4() as Uuid
     const visualizationData = shallowRef<{}>()
-    let wasEverAttached = false
 
     watch(visible, async (visible) => {
       if (visible) {
-        wasEverAttached = true
         await (
           await lsRpcConnection
         ).attachVisualization(id, expressionId, {
@@ -270,15 +268,15 @@ export const useProjectStore = defineStore('project', () => {
     })
 
     watchEffect(async () => {
-      if (configuration.value == null || !visible.value) {
-        return
-      }
+      if (!visible.value) return
+      const mainModule_ = mainModule.value
+      const config = configuration.value
       await (
         await lsRpcConnection
       ).modifyVisualization(id, {
-        ...configuration.value,
         executionContextId: (await executionContextId)!,
-        visualizationModule: mainModule.value,
+        visualizationModule: mainModule_,
+        ...(config ?? DEFAULT_VISUALIZATION_CONFIGURATION),
       })
     })
 
@@ -300,11 +298,6 @@ export const useProjectStore = defineStore('project', () => {
         `${OutboundPayload.VISUALIZATION_UPDATE}:${id}`,
         onVisualizationUpdate,
       )
-      if (wasEverAttached) {
-        await (
-          await lsRpcConnection
-        ).detachVisualization(id, expressionId, (await executionContextId)!)
-      }
     })
 
     return visualizationData

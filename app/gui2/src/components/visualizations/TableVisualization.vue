@@ -2,6 +2,11 @@
 export const name = 'Table'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
+export const defaultPreprocessor = [
+  'Standard.Visualization.Table.Visualization',
+  'prepare_visualization',
+  '1000',
+]
 
 type Data = Error | Matrix | ObjectMatrix | LegacyMatrix | LegacyObjectMatrix | UnknownTable
 

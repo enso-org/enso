@@ -1,23 +1,15 @@
 <script lang="ts">
 export const name = 'Warnings'
 export const inputType = 'Any'
+export const defaultPreprocessor = ['Standard.Visualization.Warnings', 'process_to_json_text']
 </script>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 type Data = string[]
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
-
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.Warnings', 'process_to_json_text')
-})
 </script>
 
 <template>

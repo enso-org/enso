@@ -3,6 +3,13 @@ import { defineKeybinds } from 'builtins'
 
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+const DEFAULT_LIMIT = 1024
+export const defaultPreprocessor = [
+  'Standard.Visualization.Scatter_Plot',
+  'process_to_json_text',
+  'Nothing',
+  DEFAULT_LIMIT.toString(),
+]
 
 const bindings = defineKeybinds('scatterplot-visualization', {
   zoomIn: ['Mod+Z'],
@@ -84,7 +91,7 @@ interface Color {
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 import * as d3 from 'd3'
 
@@ -108,7 +115,6 @@ const POINT_LABEL_PADDING_X_PX = 7
 const POINT_LABEL_PADDING_Y_PX = 2
 const ANIMATION_DURATION_MS = 400
 const VISIBLE_POINTS = 'visible'
-const DEFAULT_LIMIT = 1024
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 const SIZE_SCALE_MULTIPLER = 100
 const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
@@ -229,7 +235,7 @@ const yLabelLeft = computed(
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 
-function updatePreprocessor() {
+watchEffect(() => {
   emit(
     'update:preprocessor',
     'Standard.Visualization.Scatter_Plot',
@@ -237,9 +243,7 @@ function updatePreprocessor() {
     bounds.value == null ? 'Nothing' : '[' + bounds.value.join(',') + ']',
     limit.value.toString(),
   )
-}
-
-onMounted(updatePreprocessor)
+})
 
 watchEffect(() => (focus.value = data.value.focus))
 
@@ -409,7 +413,6 @@ function zoomToSelected() {
   const yMin = yScale_.invert(yMinRaw)
   const yMax = yScale_.invert(yMaxRaw)
   bounds.value = [xMin, yMin, xMax, yMax]
-  updatePreprocessor()
   xDomain.value = [xMin, xMax]
   yDomain.value = [yMin, yMax]
 }
@@ -522,7 +525,6 @@ function showAll() {
     extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
   ]
-  updatePreprocessor()
   endBrushing()
 }
 

@@ -1,6 +1,10 @@
 <script lang="ts">
 export const name = 'SQL Query'
 export const inputType = 'Standard.Database.Data.Table.Table | Standard.Database.Data.Column.Column'
+export const defaultPreprocessor = [
+  'Standard.Visualization.SQL.Visualization',
+  'prepare_visualization',
+]
 
 /**
  * A visualization that pretty-prints generated SQL code and displays type hints related to
@@ -32,7 +36,7 @@ declare const sqlFormatter: typeof import('sql-formatter')
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
@@ -42,9 +46,6 @@ import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from './builtins.ts'
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const theme: Theme = DEFAULT_THEME
 
@@ -71,10 +72,6 @@ const formatted = computed(() => {
 const TEXT_TYPE = 'Builtins.Main.Text'
 /** Specifies opacity of interpolation background color. */
 const INTERPOLATION_BACKGROUND_OPACITY = 0.2
-
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.SQL.Visualization', 'prepare_visualization')
-})
 
 // === Handling Colors ===
 

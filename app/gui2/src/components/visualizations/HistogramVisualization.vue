@@ -4,6 +4,7 @@ import { defineKeybinds } from '@/util/shortcuts'
 export const name = 'Histogram'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
+export const defaultPreprocessor = ['Standard.Visualization.Histogram', 'process_to_json_text']
 
 const bindings = defineKeybinds('histogram-visualization', {
   zoomIn: ['Mod+Z'],
@@ -101,7 +102,7 @@ interface Bin {
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 import * as d3 from 'd3'
 
@@ -132,9 +133,6 @@ const MID_BUTTON_CLICKED = 4
 const SCROLL_WHEEL = 0
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -497,14 +495,6 @@ function updateColorLegend(colorScale: d3.ScaleSequential<string>) {
     .attr('offset', (d) => d.offset)
     .attr('stop-color', (d) => d.color)
 }
-
-// =============
-// === Setup ===
-// =============
-
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
-})
 
 // ==============
 // === Update ===

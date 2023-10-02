@@ -1,6 +1,12 @@
 <script lang="ts">
 export const name = '<name here>'
 export const inputType = '<allowed input type(s) here>'
+// Optional:
+export const defaultPreprocessor = [
+  '<module path here>',
+  '<method name here>',
+  '<optional args here>',
+]
 
 interface Data {
   dataType: 'here'

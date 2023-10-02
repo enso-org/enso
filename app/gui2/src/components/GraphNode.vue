@@ -282,6 +282,10 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
   }
 }
 
+function switchToDefaultPreprocessor() {
+  visualizationConfiguration.value = undefined
+}
+
 const visualizationConfig = ref<VisualizationConfig>({
   fullscreen: false,
   types: visualizationStore.types,
@@ -318,14 +322,23 @@ useDocumentEvent('keydown', (event) => {
   }
 })
 
+watch(visualizationType, () => {
+  visualization.value = undefined
+  visualizationData.value = undefined
+})
+
 watchEffect(async () => {
   if (!isVisualizationVisible.value) {
     return
   }
-  visualization.value = undefined
-  const component = await visualizationStore.get(visualizationType.value)
+  const module = await visualizationStore.get(visualizationType.value)
+  if (module?.defaultPreprocessor != null) {
+    updatePreprocessor(...module.defaultPreprocessor)
+  } else {
+    switchToDefaultPreprocessor()
+  }
   if (visualization.value == null) {
-    visualization.value = component
+    visualization.value = module?.default
   }
 })
 

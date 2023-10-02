@@ -65,6 +65,7 @@ type VisualizationModule = {
   default: Visualization
   name: string
   inputType: string
+  defaultPreprocessor: [module: string, method: string, ...args: string[]]
   scripts?: string[]
   styles?: string[]
 }
@@ -253,7 +254,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     register(module)
     await loadScripts(module)
     cache[type] = module
-    return module.default
+    return module
   }
 
   function clear() {
