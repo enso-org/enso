@@ -21,9 +21,7 @@
     "exactOptionalPropertyTypes": true,
     "types": ["vitest/importMeta"],
     "paths": {
-      "@/*": ["./src/*"],
-      "builtins/VisualizationContainer.vue": ["./src/components/VisualizationContainer.vue"],
-      "builtins/useVisualizationConfig.ts": ["./src/providers/useVisualizationConfig.ts"]
+      "@/*": ["./src/*"]
     }
   },
   "references": [

@@ -2,10 +2,12 @@ import * as vue from 'vue'
 import { type DefineComponent } from 'vue'
 
 import * as vueUseCore from '@vueuse/core'
+import * as d3 from 'd3'
 import { defineStore } from 'pinia'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import * as useVisualizationConfig from '@/providers/useVisualizationConfig'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { defineKeybinds } from '@/util/shortcuts'
 import type {
   AddImportNotification,
   AddRawImportNotification,
@@ -38,8 +40,8 @@ export const DEFAULT_VISUALIZATION_CONFIGURATION = {
 const moduleCache: Record<string, any> = {
   vue,
   '@vueuse/core': vueUseCore,
-  'builtins/VisualizationContainer.vue': { default: VisualizationContainer },
-  'builtins/useVisualizationConfig.ts': useVisualizationConfig,
+  d3,
+  builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds },
 }
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
 // else.

@@ -1171,6 +1171,8 @@ type Number_Parse_Error
     to_display_text self =
         "Could not parse " + self.text.to_text + " as a double."
 
+Float.from (that:Integer) = (1.0 * that):Float
+
 ## A wrapper type that ensures that a function may only take positive integers.
 type Positive_Integer
     ## PRIVATE

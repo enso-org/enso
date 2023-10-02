@@ -72,7 +72,7 @@ import type {
 } from 'ag-grid-community'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{

@@ -58,14 +58,26 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     return `${v.pos.x} ${v.pos.y} ${v.size.x} ${v.size.y}`
   })
 
-  const transform = computed(() => {
+  const transformValue = computed(() => {
     const nodeSize = size.value
     const { x, y } = center.value
     const s = scale.value
     const w = nodeSize.x / s
     const h = nodeSize.y / s
-    return `scale(${s}) translate(${-x + w / 2}px, ${-y + h / 2}px)`
+    return { x: -x + w / 2, y: -y + h / 2 }
   })
+
+  const transform = computed(
+    () =>
+      `scale(${scale.value}) translate(${transformValue.value.x}px, ${transformValue.value.y}px)`,
+  )
+
+  const prescaledTransform = computed(
+    () =>
+      `translate(${transformValue.value.x * scale.value}px, ${
+        transformValue.value.y * scale.value
+      }px)`,
+  )
 
   useWindowEvent(
     'contextmenu',
@@ -81,9 +93,15 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     events: {
       pointermove(e: PointerEvent) {
         sceneMousePos.value = eventToScenePos(e)
+        panPointer.events.pointermove(e)
+        zoomPointer.events.pointermove(e)
       },
       pointerleave() {
         sceneMousePos.value = null
+      },
+      pointerup(e: PointerEvent) {
+        panPointer.events.pointerup(e)
+        zoomPointer.events.pointerup(e)
       },
       pointerdown(e: PointerEvent) {
         panPointer.events.pointerdown(e)
@@ -104,6 +122,8 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     scale,
     viewBox,
     transform,
+    /** Use this transform instead, if the element should not be scaled. */
+    prescaledTransform,
     sceneMousePos,
   })
 }

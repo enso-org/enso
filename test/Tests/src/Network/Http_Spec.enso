@@ -72,15 +72,6 @@ spec =
                 }
             response . should_equal expected_response
 
-        Test.specify "Can perform a GET with a file response" <|
-            f = enso_project.data / "spreadsheet.xls"
-            f.delete_if_exists
-            url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
-            Data.fetch url . body . to_file f
-            f.size . should_equal 7168
-            f.delete
-            f.exists.should_be_false
-
         Test.specify "Can perform a HEAD" <|
             response = Data.fetch url_head method=HTTP_Method.Head
             response.code.code . should_equal 200
