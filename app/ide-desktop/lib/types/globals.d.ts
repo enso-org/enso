@@ -89,8 +89,6 @@ declare global {
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
-    // eslint-disable-next-line no-restricted-syntax
-    const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production' | undefined
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_DEV_MODE: boolean
     // This will be `undefined` when it is not defined by esbuild.
