@@ -965,6 +965,7 @@
 - [Always persist `TRACE` level logs to a file][7825]
 - [Downloadable VSCode extension][7861]
 - [New `project/status` route for reporting LS state][7801]
+- [Modules can be `private`][7840]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1109,6 +1110,7 @@
 [7801]: https://github.com/enso-org/enso/pull/7801
 [7825]: https://github.com/enso-org/enso/pull/7825
 [7861]: https://github.com/enso-org/enso/pull/7861
+[7840]: https://github.com/enso-org/enso/pull/7840
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
