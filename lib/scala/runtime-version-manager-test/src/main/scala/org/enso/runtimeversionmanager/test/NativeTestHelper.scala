@@ -15,19 +15,19 @@ trait NativeTestHelper {
 
   /** Starts the provided `command`.
     *
-    * `extraEnv` may be provided to extend the environment. Care must be taken
-    * on Windows where environment variables are (mostly) case-insensitive.
-    *
-    * If `waitForDescendants` is set, tries to wait for descendants of the
-    * launched process to finish too. Especially important on Windows where
-    * child processes may run after the launcher parent has been terminated.
+    * @param command       executable and its arguments
+    * @param extraEnv      extra environment properties added to the environment. Care must be taken
+    *                      on Windows where environment variables are (mostly) case-insensitive.
+    * @param extraJVMProps extra JVM properties to be appended to the command
     */
   def start(
     command: Seq[String],
-    extraEnv: Seq[(String, String)]
+    extraEnv: Seq[(String, String)],
+    extraJVMProps: Seq[(String, String)]
   ): WrappedProcess = {
-    val builder = new JProcessBuilder(command: _*)
-    val newKeys = extraEnv.map(_._1.toLowerCase)
+    val fullCommand = command ++ extraJVMProps.map(v => s"-D${v._1}=${v._2}")
+    val builder     = new JProcessBuilder(fullCommand: _*)
+    val newKeys     = extraEnv.map(_._1.toLowerCase)
     if (newKeys.distinct.size < newKeys.size) {
       throw new IllegalArgumentException(
         "The extra environment keys have to be unique"
@@ -56,13 +56,20 @@ trait NativeTestHelper {
 
   /** Runs the provided `command`.
     *
-    * `extraEnv` may be provided to extend the environment. Care must be taken
-    * on Windows where environment variables are (mostly) case-insensitive.
+    * @param command executable and its arguments
+    * @param extraEnv extra environment properties added to the environment. Care must be taken
+    *                 on Windows where environment variables are (mostly) case-insensitive.
+    * @param extraJVMProps extra JVM properties to be appended to the command
+    * @param waitForDescendants if true, tries to wait for descendants of the launched process to finish too.
+    *                           Especially important on Windows where child processes may run after the launcher
+    *                           parent has been terminated.
     */
   def runCommand(
     command: Seq[String],
     extraEnv: Seq[(String, String)],
+    extraJVMProps: Seq[(String, String)],
     waitForDescendants: Boolean = true
-  ): RunResult = start(command, extraEnv).join(waitForDescendants)
+  ): RunResult =
+    start(command, extraEnv, extraJVMProps).join(waitForDescendants)
 
 }

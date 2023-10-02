@@ -2,22 +2,29 @@ package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import java.io.BufferedReader;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.text.StringEscapeUtils;
 
-public class DummyHandler implements HttpHandler {
+public class TestHandler implements HttpHandler {
   private static final Set<String> ignoredHeaders = Set.of("Host");
+
+  private static final Pattern textEncodingRegex = Pattern.compile(".*; charset=([^;]+).*");
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
     boolean first = true;
     String contentType = null;
+    String textEncoding = "UTF-8";
     HttpMethod meth = HttpMethod.valueOf(exchange.getRequestMethod());
 
     String response;
@@ -44,6 +51,10 @@ public class DummyHandler implements HttpHandler {
         }
         if (entry.getKey().equals("Content-type")) {
           contentType = entry.getValue().get(0);
+          String parsedTextEncoding = parseTextEncoding(contentType);
+          if (parsedTextEncoding != null) {
+            textEncoding = parsedTextEncoding;
+          }
         }
       }
       response += "\n";
@@ -56,14 +67,11 @@ public class DummyHandler implements HttpHandler {
           || meth == HttpMethod.PUT
           || meth == HttpMethod.PATCH) {
         boolean isJson = contentType != null && contentType.equals("application/json");
-        InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
-        BufferedReader br = new BufferedReader(isr);
-        String value = br.readLine();
         response += "  \"form\": null,\n";
         response += "  \"files\": null,\n";
+        String value = readBody(exchange.getRequestBody(), textEncoding);
         response +=
             "  \"data\": \"" + (value == null ? "" : StringEscapeUtils.escapeJson(value)) + "\",\n";
-        response += "  \"json\": " + (isJson ? value : "null") + ",\n";
       }
       response += "  \"args\": {}\n";
       response += "}";
@@ -72,6 +80,35 @@ public class DummyHandler implements HttpHandler {
     OutputStream os = exchange.getResponseBody();
     os.write(response.getBytes());
     os.close();
+  }
+
+  private String readBody(InputStream inputStream, String encoding) {
+    BufferedInputStream bis = new BufferedInputStream(inputStream);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try {
+      while (true) {
+        int c = bis.read();
+        if (c == -1) {
+          break;
+        }
+        baos.write((byte) c);
+      }
+    } catch (IOException ie) {
+    }
+    try {
+      return baos.toString(encoding);
+    } catch (UnsupportedEncodingException uee) {
+      return "unsupported encoding";
+    }
+  }
+
+  private String parseTextEncoding(String contentType) {
+    Matcher matcher = textEncodingRegex.matcher(contentType);
+    if (matcher.matches()) {
+      return matcher.group(1);
+    } else {
+      return null;
+    }
   }
 
   private String formatHeaderKey(String key) {

@@ -43,25 +43,28 @@ useDocumentEvent('click', onDocumentClick)
         "
       />
     </div>
-    <div v-if="isDropdownOpen" class="execution-mode-dropdown">
-      <template v-for="otherMode in modes" :key="otherMode">
-        <span
-          v-if="modelValue !== otherMode"
-          class="button"
-          @click="emit('update:modelValue', otherMode)"
-          v-text="otherMode"
-        ></span>
-      </template>
-    </div>
+    <Transition name="dropdown">
+      <div v-if="isDropdownOpen" class="execution-mode-dropdown">
+        <template v-for="otherMode in modes" :key="otherMode">
+          <span
+            v-if="modelValue !== otherMode"
+            class="button"
+            @click="emit('update:modelValue', otherMode)"
+            v-text="otherMode"
+          ></span>
+        </template>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
 span {
   display: inline-block;
-  height: 20px;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  height: 24px;
+  padding: 1px 0px;
+  vertical-align: middle;
+  overflow: clip;
 }
 
 .ExecutionModeSelector {
@@ -72,10 +75,12 @@ span {
 .execution-mode-button {
   display: flex;
   align-items: center;
+  height: 24px;
   border-radius: var(--radius-full);
   background: #64b526;
 
   > .execution-mode {
+    font-weight: 600;
     padding: 0 8px;
   }
 
@@ -93,6 +98,8 @@ span {
 }
 
 .execution-mode-dropdown {
+  display: flex;
+  flex-flow: column;
   position: absolute;
   background: #64b526;
   border-radius: 10px;
@@ -110,6 +117,29 @@ span {
 
   *:hover {
     background: var(--color-dim);
+  }
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.1s;
+
+  > span {
+    transition: all 0.1s;
+  }
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+
+  > span {
+    padding-top: 0;
+    padding-bottom: 0;
+    max-height: 0;
   }
 }
 </style>

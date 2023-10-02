@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Pair.Pair
 import project.Data.Set.Set
+import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
@@ -95,56 +96,60 @@ type HTTP
         handle_request_error =
             Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
 
-        resolved_req = req.resolve_content_type
-        resolved_req.if_not_error <| Panic.recover Any <| handle_request_error <| check_output_context <|
+        Panic.recover Any <| handle_request_error <| check_output_context <|
             body_publishers = HttpRequest.BodyPublishers
             builder = HttpRequest.newBuilder
 
             # set uri
-            uri = case resolved_req.uri of
-                _ : Text -> resolved_req.uri.to_uri
-                _ : URI -> resolved_req.uri
+            uri = case req.uri of
+                _ : Text -> req.uri.to_uri
+                _ : URI -> req.uri
             builder.uri uri.internal_uri
 
-            # Generate body publisher, possibly generating additional headers
-            body_publisher_and_headers = case resolved_req.body of
-                Request_Body.Text text encoding _ ->
-                    ## We ignore the content_type field of the request body,
-                       since any value it had was moved to the headers list in resolve_content_type
-                    headers = [Header.new "Content-Encoding" encoding.character_set]
-                    Pair.new (body_publishers.ofString text encoding.to_java_charset) headers
-                Request_Body.Json x ->
-                    json = x.to_json
-                    json.if_not_error <|
-                        Pair.new (body_publishers.ofString json) [Header.application_json]
-                Request_Body.Binary file ->
-                    path = Path.of file.path
-                    Pair.new (body_publishers.ofFile path) [Header.application_octet_stream]
-                Request_Body.Form_Data form_data url_encoded ->
-                    build_form_body_publisher form_data url_encoded
-                Request_Body.Empty ->
-                    Pair.new (body_publishers.noBody) []
-                _ ->
-                    Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + resolved_req.body.to_display_text + "; this is a bug in the Data library"))
+            headers = resolve_headers req
 
-            # Send request
-            body_publisher_and_headers.if_not_error <|
-                body_publisher = body_publisher_and_headers.first
-                additional_headers = body_publisher_and_headers.second
+            headers.if_not_error <|
+                # Generate body publisher and optional form content boundary
+                body_publisher_and_boundary = case req.body of
+                    Request_Body.Text text encoding _ ->
+                        body_publisher = case encoding of
+                            Nothing -> body_publishers.ofString text
+                            _ : Encoding ->  body_publishers.ofString text encoding.to_java_charset
+                        Pair.new body_publisher Nothing
+                    Request_Body.Json x ->
+                        json = x.to_json
+                        json.if_not_error <|
+                            Pair.new (body_publishers.ofString json) Nothing
+                    Request_Body.Binary file ->
+                        path = Path.of file.path
+                        Pair.new (body_publishers.ofFile path) Nothing
+                    Request_Body.Form_Data form_data url_encoded ->
+                        build_form_body_publisher form_data url_encoded
+                    Request_Body.Empty ->
+                        Pair.new (body_publishers.noBody) Nothing
+                    _ ->
+                        Error.throw (Illegal_Argument.Error ("Unsupported POST body: " + req.body.to_display_text + "; this is a bug in the Data library"))
 
-                # set method and body
-                builder.method resolved_req.method.to_http_method_name body_publisher
+                # Send request
+                body_publisher_and_boundary.if_not_error <|
+                    body_publisher = body_publisher_and_boundary.first
+                    boundary = body_publisher_and_boundary.second
 
-                # set headers
-                all_headers = resolved_req.headers + additional_headers
-                all_headers.map h-> builder.header h.name h.value
+                    boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
 
-                http_request = builder.build
-                body_handler = HttpResponse.BodyHandlers . ofInputStream
+                    # set method and body
+                    builder.method req.method.to_http_method_name body_publisher
 
-                response = Response.Value (self.internal_http_client.send http_request body_handler)
-                if error_on_failure_code.not || response.code.is_success then response else
-                    Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text))
+                    # set headers
+                    all_headers = headers + boundary_header_list
+                    all_headers.map h-> builder.header h.name h.value
+
+                    http_request = builder.build
+                    body_handler = HttpResponse.BodyHandlers . ofInputStream
+
+                    response = Response.Value (self.internal_http_client.send http_request body_handler)
+                    if error_on_failure_code.not || response.code.is_success then response else
+                        Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code.to_text + ". " + response.body.decode_as_text))
 
     ## PRIVATE
        Static helper for get-like methods
@@ -204,9 +209,51 @@ parse_headers headers =
         _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
 ## PRIVATE
+   If either encoding or content type is specified in the Request_Body, that is used as the content type header.
+   If encoding is specified without content type, "text/plain" is used as the content type.
+   It is an error to specify the content type in both the request body and the header list.
+   If the body is not Request_Body.Empty, and no content type is specified, a default is used.
+resolve_headers : Request -> Vector Header
+resolve_headers req =
+    is_content_type_header h = h.name . equals_ignore_case Header.content_type_header_name
+
+    # Check for content type and encoding in the Request_Body.
+    request_body_content_type_header = case req.body of
+        Request_Body.Text _ request_body_encoding request_body_content_type ->
+            if request_body_content_type.is_nothing && request_body_encoding.is_nothing then Nothing else
+                content_type = request_body_content_type.if_nothing "text/plain"
+                encoding = request_body_encoding.if_nothing Encoding.utf_8
+                Header.content_type content_type encoding=encoding
+        _ -> Nothing
+
+    ## Raise error if content type is specified in both the request body and
+       header list; otherwise, add any Request_Body settings to the header list.
+    has_content_type_header_in_list = req.headers.any is_content_type_header
+
+    content_type_additions = case request_body_content_type_header.is_nothing.not && has_content_type_header_in_list of
+        True -> Error.throw (Illegal_Argument.Error "Cannot specify Content-Type/encoding in both the request body and request headers")
+        False ->
+            if request_body_content_type_header.is_nothing then [] else [request_body_content_type_header]
+
+    content_type_additions.if_not_error <|
+        all_headers = req.headers + content_type_additions
+
+        # Add default content type, if one is not specified and the body is not Request_Body.Empty.
+        contains_content_type = all_headers.any is_content_type_header
+        is_body_empty = case req.body of
+            Request_Body.Empty -> True
+            _ -> False
+        default_content_type = if is_body_empty || contains_content_type then [] else
+            default = req.body.default_content_type_header
+            if default.is_nothing then [] else [default]
+
+        all_headers + default_content_type
+
+## PRIVATE
 
    Build a BodyPublisher from the given form data.
-build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher [Header]
+   The pair's second value is a content boundary in the case of a `multipart/form-data` form; otherwise, Nothing
+build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher Text
 build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
     True ->
         body_builder = Http_Utils.urlencoded_body_builder
@@ -214,7 +261,7 @@ build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Bool
             case value of
                 _ : Text -> body_builder.add_part_text key value
                 _ : File -> body_builder.add_part_file key value.path
-        Pair.new body_builder.build []
+        Pair.new body_builder.build Nothing
     False ->
         body_builder = Http_Utils.multipart_body_builder
         form_data.map_with_key key-> value->
@@ -222,7 +269,7 @@ build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Bool
                 _ : Text -> body_builder.add_part_text key value
                 _ : File -> body_builder.add_part_file key value.path
         boundary = body_builder.get_boundary
-        Pair.new body_builder.build [Header.multipart_form_data boundary]
+        Pair.new body_builder.build boundary
 
 ## PRIVATE
 fetch_methods : Set HTTP_Method

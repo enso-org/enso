@@ -55,8 +55,6 @@ foreign js call_function fn arg_1 = """
 
 Number.foo self = "foo called"
 
-from Standard.Base import all
-
 type Fool
     Value fool
 

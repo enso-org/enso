@@ -298,11 +298,10 @@ mod test {
         let mock_client = project_manager::MockClient::default();
         let project_name = ProjectName::new_unchecked("TestProject");
         let project = project_manager::ProjectMetadata {
-            name:           project_name.clone(),
-            id:             uuid::Uuid::new_v4(),
-            last_opened:    default(),
-            engine_version: Some("127.0.01".to_owned()),
-            namespace:      "local".to_owned(),
+            name:        project_name.clone(),
+            id:          Uuid::new_v4(),
+            last_opened: default(),
+            namespace:   "local".to_owned(),
         };
         let expected_id = project.id;
         let projects = vec![project];

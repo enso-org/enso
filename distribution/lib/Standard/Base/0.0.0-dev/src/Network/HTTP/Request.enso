@@ -242,37 +242,3 @@ type Request
             _ : Map -> parts
         new_body = Request_Body.Form_Data form_data
         Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
-
-    ## PRIVATE
-
-       Canonicalize any `Content-Type` values specified in the request body and header list.
-       It is an error to specify content type in both the body and the header list.
-       If neither is specified, then content type defaults to 'text/plain'.
-       (Multiple `Content-Type` headers in the header list is not an error.)
-
-       The effect of this method is to check for errors, then move the body
-       content type, if any, to the headers list.
-    resolve_content_type : Request
-    resolve_content_type self =
-        is_content_type_header header = header.name.equals_ignore_case Header.content_type_header_name
-
-        body_content_type = case self.body of
-            Request_Body.Text _ _ content_type -> content_type
-            _ -> Nothing
-        header_content_types = self.headers.filter is_content_type_header
-
-        case body_content_type.is_nothing of
-            True -> case header_content_types.is_empty of
-                True ->
-                    self.with_header Header.content_type_header_name "text/plain"
-                False ->
-                    self
-            False -> case header_content_types.is_empty of
-                True ->
-                    header = Header.content_type self.body.content_type
-                    new_body = case self.body of
-                        Request_Body.Text text encoding _ -> Request_Body.Text text encoding Nothing
-                        _ -> Panic.throw (Illegal_State.Error "Unexpected request body content type. This is a bug in the HTTP library.")
-                    Request.new self.method self.uri self.headers new_body . with_header header.name header.value
-                False ->
-                    Error.throw (Illegal_Argument.Error "Cannot specify Content-Type in both the request body and request headers")
