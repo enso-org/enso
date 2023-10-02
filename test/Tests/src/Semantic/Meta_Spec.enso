@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Uninitialized_State, Type_Error
+from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -452,5 +452,10 @@ spec =
             typ.name . should_equal "Boolean"
             typ.qualified_name . should_equal fqn
             Meta.Type.find typ.qualified_name . should_equal typ
+
+        Test.specify "unknown type" <|
+            Meta.Type.find "Unknown.Type" . should_fail_with Not_Found
+            Meta.Type.find "UnknownType" . should_fail_with Not_Found
+            Meta.Type.find "" . should_fail_with Not_Found
 
 main = Test_Suite.run_main spec
