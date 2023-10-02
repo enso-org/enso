@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 ## Configuration for a measurement phase or a warmup phase of a benchmark.
 type Phase_Conf
@@ -134,9 +135,28 @@ type Bench
         Bench.Group _ _ specs -> specs.fold value (v-> s-> fn v self s)
         Bench.Spec _ _ -> fn value self self
 
+    ## Counts all the specs in the benchmark.
+    total_specs : Integer
+    total_specs self = self.fold 0 v-> _-> _-> v+1
+
+    ## Estimates the runtime based on configurations.
+    estimated_runtime : Duration
+    estimated_runtime self =
+        total_seconds = self.fold 0 acc-> group-> spec->
+            single_call_runtime = case group of
+                Bench.Group _ conf _ ->
+                    warmup = conf.warmup.seconds * conf.warmup.iterations
+                    measure = conf.measure.seconds * conf.measure.iterations
+                    warmup + measure
+                _ ->
+                    Panic.throw (Illegal_State.Error "Encountered a specification "+spec.to_text+" outside of a group - cannot estimate runtime without knowing the configuration.")
+            acc + single_call_runtime
+
+        Duration.new seconds=total_seconds
+
     ## Run the specified set of benchmarks.
     run_main self =
-        count = self.fold 0 v-> _-> _-> v+1
+        count = self.total_specs
         IO.println <| "Found " + count.to_text + " cases to execute"
 
         self.fold Nothing _-> g-> s->

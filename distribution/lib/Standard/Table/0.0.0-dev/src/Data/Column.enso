@@ -1762,6 +1762,43 @@ type Column
             on_problems.attach_problems_before problems <|
                 Column.from_storage self.name new_storage
 
+    ## Change the value type of the column to a more specific one, based on its
+       contents.
+
+       Arguments:
+       - shrink_types: If set `True`, smaller types will be chosen if possible,
+         according to the rules below. Defaults to `False`.
+
+       ? Auto Type Selection Rules
+
+         - If a `Mixed` column can be assigned a single type, like `Char` or
+           `Integer`, that will be used.
+         - Text columns are not parsed. To do that, use the `parse` method.
+         - If a `Float` column contains only integers, it will be converted to
+           an Integer column.
+         - If a `Decimal` column contains only integers that could fit in a
+           64-bit integer storage, it will be converted to an Integer column.
+         - If `shrink_types` is `False` (default), no other transformations are
+           applied.
+         - However, if `shrink_types` is set to `True`, then:
+           - Integer columns will be assigned the smallest size that can fit all
+             values (down to 16-bit integers; converting to the `Byte` type has
+             to be done manually through `cast`).
+           - If all elements in a text column have the same length, the type
+             will become fixed length.
+           - Otherwise, if a text column is variable length, but all text
+             elements are no longer than 255 characters, the column will get a
+             max length of 255. Otherwise, the column size limit will stay
+             unchanged.
+    auto_value_type : Boolean -> Column
+    auto_value_type self shrink_types=False =
+        new_value_type = case shrink_types of
+            False -> self.inferred_precise_value_type
+            True ->
+                Storage.to_value_type self.java_column.getStorage.inferPreciseTypeShrunk
+        # We run with Report_Error because we do not expect any problems.
+        self.cast new_value_type on_problems=Problem_Behavior.Report_Error
+
     ## ALIAS transform column
 
        Applies `function` to each item in this column and returns the column

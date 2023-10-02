@@ -11,7 +11,8 @@ class EngineManagementApiSpec extends BaseServerSpec with FlakySpec {
 
   "engine/*" must {
     "report no installed engines by default" in {
-      implicit val client = new WsTestClient(address)
+      implicit val client: WsTestClient = new WsTestClient(address)
+
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "engine/list-installed",

@@ -172,15 +172,13 @@ impl From<ProjectNormalizedName> for ImString {
 #[serde(rename_all = "camelCase")]
 pub struct ProjectMetadata {
     /// Project's name.
-    pub name:           ProjectName,
+    pub name:        ProjectName,
     /// Project's namespace,
-    pub namespace:      String,
+    pub namespace:   String,
     /// Project's uuid.
-    pub id:             Uuid,
-    /// Engine version to use for the project, represented by a semver version string.
-    pub engine_version: Option<String>,
+    pub id:          Uuid,
     /// Last time the project was opened.
-    pub last_opened:    Option<UTCDateTime>,
+    pub last_opened: Option<UTCDateTime>,
 }
 
 /// This type specifies what action should be taken if an Engine's component required to complete
@@ -319,33 +317,29 @@ mod mock_client_tests {
     fn list_projects() {
         let mock_client = MockClient::default();
         let project1 = ProjectMetadata {
-            name:           ProjectName::new_unchecked("project1"),
-            id:             Uuid::default(),
-            last_opened:    Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
-            engine_version: Some("0.2.21".to_owned()),
-            namespace:      "local".to_owned(),
+            name:        ProjectName::new_unchecked("project1"),
+            id:          Uuid::default(),
+            last_opened: Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
+            namespace:   "local".to_owned(),
         };
         let project2 = ProjectMetadata {
-            name:           ProjectName::new_unchecked("project2"),
-            id:             Uuid::default(),
-            last_opened:    Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
-            engine_version: Some("0.2.22".to_owned()),
-            namespace:      "local".to_owned(),
+            name:        ProjectName::new_unchecked("project2"),
+            id:          Uuid::default(),
+            last_opened: Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
+            namespace:   "local".to_owned(),
         };
         let expected_recent_projects = response::ProjectList { projects: vec![project1, project2] };
         let sample1 = ProjectMetadata {
-            name:           ProjectName::new_unchecked("sample1"),
-            id:             Uuid::default(),
-            last_opened:    Some(DateTime::parse_from_rfc3339("2019-11-23T05:30:12Z").unwrap()),
-            engine_version: Some("0.2.21".to_owned()),
-            namespace:      "test".to_owned(),
+            name:        ProjectName::new_unchecked("sample1"),
+            id:          Uuid::default(),
+            last_opened: Some(DateTime::parse_from_rfc3339("2019-11-23T05:30:12Z").unwrap()),
+            namespace:   "test".to_owned(),
         };
         let sample2 = ProjectMetadata {
-            name:           ProjectName::new_unchecked("sample2"),
-            id:             Uuid::default(),
-            last_opened:    Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap()),
-            engine_version: Some("0.2.21".to_owned()),
-            namespace:      "test".to_owned(),
+            name:        ProjectName::new_unchecked("sample2"),
+            id:          Uuid::default(),
+            last_opened: Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap()),
+            namespace:   "test".to_owned(),
         };
         let expected_sample_projects = response::ProjectList { projects: vec![sample1, sample2] };
         expect_call!(mock_client.list_projects(count=Some(2)) =>
@@ -483,18 +477,16 @@ mod remote_client_tests {
         let number_of_projects_json = json!({ "numberOfProjects": number_of_projects });
         let num_projects_json = json!({ "numProjects": number_of_projects });
         let project1 = ProjectMetadata {
-            name:           ProjectName::new_unchecked("project1"),
-            id:             Uuid::default(),
-            last_opened:    Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
-            engine_version: Some("0.2.21".to_owned()),
-            namespace:      "local".to_owned(),
+            name:        ProjectName::new_unchecked("project1"),
+            id:          Uuid::default(),
+            last_opened: Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
+            namespace:   "local".to_owned(),
         };
         let project2 = ProjectMetadata {
-            name:           ProjectName::new_unchecked("project2"),
-            id:             Uuid::default(),
-            last_opened:    Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
-            engine_version: Some("0.2.22".to_owned()),
-            namespace:      "local".to_owned(),
+            name:        ProjectName::new_unchecked("project2"),
+            id:          Uuid::default(),
+            last_opened: Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
+            namespace:   "local".to_owned(),
         };
         let project_list = response::ProjectList { projects: vec![project1, project2] };
         let project_list_json = json!({
@@ -503,14 +495,12 @@ mod remote_client_tests {
                     "id"            : "00000000-0000-0000-0000-000000000000",
                     "lastOpened"    : "2020-01-07T21:25:26+00:00",
                     "name"          : "project1",
-                    "engineVersion" : "0.2.21",
                     "namespace"     : "local"
                 },
                 {
                     "id"            : "00000000-0000-0000-0000-000000000000",
                     "lastOpened"    : "2020-02-02T13:15:20+00:00",
                     "name"          : "project2",
-                    "engineVersion" : "0.2.22",
                     "namespace"     : "local"
                 }
             ]

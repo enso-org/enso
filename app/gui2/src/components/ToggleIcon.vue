@@ -21,6 +21,6 @@ const emit = defineEmits<{
   <SvgIcon
     :name="props.icon"
     :class="{ toggledOn: modelValue }"
-    @click="emit('update:modelValue', !modelValue)"
+    @pointerdown.stop="emit('update:modelValue', !modelValue)"
   />
 </template>

@@ -117,6 +117,19 @@ export default function Drive(props: DriveProps) {
         })
     }, [/* should never change */ dispatchAssetListEvent])
 
+    const doCreateDataConnector = React.useCallback(
+        (name: string, value: string) => {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.newDataConnector,
+                parentKey: null,
+                parentId: null,
+                name,
+                value,
+            })
+        },
+        [/* should never change */ dispatchAssetListEvent]
+    )
+
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
@@ -149,7 +162,7 @@ export default function Drive(props: DriveProps) {
     ) : isListingLocalDirectoryAndWillFail ? (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
             <div className="text-base text-center">
-                Could not connect to the Project Manager. Please try restarting
+                Could not connect to the Project Manager. Please try restarting{' '}
                 {common.PRODUCT_NAME}, or manually launching the Project Manager.
             </div>
         </div>
@@ -176,6 +189,7 @@ export default function Drive(props: DriveProps) {
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
+                    doCreateDataConnector={doCreateDataConnector}
                     dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>

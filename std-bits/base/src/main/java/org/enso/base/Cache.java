@@ -4,24 +4,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import org.graalvm.collections.Pair;
-import org.graalvm.polyglot.Value;
 
-public class Replacer_Cache {
-  private static final int lruSize = 5;
+public abstract class Cache<Key, Value> {
+  protected static final int DEFAULT_LRU_SIZE = 5;
+  protected final int lruSize;
 
   // Circular buffer containing the most recent cache keys.
-  private static final List<Pair<String, Value>> lru = new ArrayList<>(lruSize);
+  private final List<Pair<Key, Value>> lru;
 
-  static {
+  protected Cache(int lruSize) {
+    this.lruSize = lruSize;
+    lru = new ArrayList<>(lruSize);
     for (int i = 0; i < lruSize; ++i) {
       lru.add(null);
     }
   }
 
   // Index into the circular buffer.
-  private static int nextSlot = 0;
+  private int nextSlot = 0;
 
-  public static Value get_or_set(String key, Function<Void, Value> value_producer) {
+  public Value get_or_set(Key key, Function<Void, Value> value_producer) {
     Value value = get(key);
     if (value == null) {
       value = value_producer.apply(null);
@@ -32,9 +34,9 @@ public class Replacer_Cache {
   }
 
   // Visible for testing.
-  public static Value get(String key) {
+  public Value get(Key key) {
     for (int i = 0; i < lruSize; ++i) {
-      Pair<String, Value> pair = lru.get(i);
+      Pair<Key, Value> pair = lru.get(i);
       if (pair != null && pair.getLeft().equals(key)) {
         return lru.get(i).getRight();
       }
@@ -42,7 +44,7 @@ public class Replacer_Cache {
     return null;
   }
 
-  public static int getLruSize() {
+  public int getLruSize() {
     return lruSize;
   }
 }
