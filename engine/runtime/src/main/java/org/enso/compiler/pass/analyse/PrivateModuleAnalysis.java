@@ -25,6 +25,7 @@ import scala.jdk.javaapi.CollectionConverters;
  * <ul>
  *   <li>No private module is exported</li>
  *   <li>No private module from a different project is imported</li>
+ *   <li>Hierarchy of modules and submodules does not mix private and public modules</li>
  * </ul>
  * Inserts errors into imports/exports IRs if the above conditions are violated.
  */
@@ -99,7 +100,8 @@ public final class PrivateModuleAnalysis implements IRPass {
     }
 
 
-    // Check if we try to export some other private module.
+    // Ensure that private modules are not exported and that the hierarchy of submodules
+    // does not mix public and private modules.
     bindingsMap
         .getDirectlyExportedModules()
         .foreach(expModule -> {
