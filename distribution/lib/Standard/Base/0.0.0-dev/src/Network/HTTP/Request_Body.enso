@@ -53,6 +53,11 @@ type Request_Body
             Request_Body.Form_Data _ url_encoded -> if url_encoded then Header.application_x_www_form_urlencoded else Nothing
             Request_Body.Empty -> Nothing
 
+## PRIVATE
 Request_Body.from (that:Text) = Request_Body.Text that
+
+## PRIVATE
 Request_Body.from (that:File) = Request_Body.Binary that
+
+## PRIVATE
 Request_Body.from (that:Any) = Request_Body.Json that

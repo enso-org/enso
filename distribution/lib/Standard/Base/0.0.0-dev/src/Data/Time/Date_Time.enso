@@ -9,7 +9,6 @@ import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Day_Of_Week.Day_Of_Week
-import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
@@ -18,6 +17,7 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Type_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
@@ -858,3 +858,13 @@ type Date_Time
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter =
         format.format_date_time self
+
+## PRIVATE
+Date_Time.from (that:JS_Object) =
+    ## Must have year, month, day, hour and minute. Optional for second, nanosecond and zone.
+    case that.get "type" == "Date_Time" && ["year", "month", "day", "hour", "minute"].all that.contains_key of
+        True ->
+            time_zone = if that.contains_key "zone" . not then Time_Zone.system else that.get "zone" . into Time_Zone
+            if that.contains_key "nanosecond" && (that.contains_key "second" . not) then Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date_Time.from.") else
+              Date_Time.new (that.get "year") (that.get "month") (that.get "day") (that.get "hour") (that.get "minute") (that.get "second" 0) nanosecond=(that.get "nanosecond" 0) zone=time_zone
+        False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date_Time.from.")

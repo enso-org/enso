@@ -6,8 +6,12 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
 import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.No_Such_Conversion
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
@@ -131,6 +135,11 @@ type JS_Object
     ## PRIVATE
     Value js_object
 
+    ## GROUP Logical
+       Returns True iff the objects contains the given `key`.
+    contains_key : Text -> Boolean
+    contains_key self key:Text = has_property self.js_object key
+
     ## Get a value for a key of the object, or a default value if that key is not present.
 
        Arguments:
@@ -138,7 +147,7 @@ type JS_Object
        - if_missing: The value to return if the key is not found.
     @key make_field_name_selector
     get : Text -> Any -> JS_Object | Boolean | Number | Nothing | Text | Vector
-    get self key ~if_missing=Nothing =
+    get self key:Text ~if_missing=Nothing =
         if (has_property self.js_object key) . not then if_missing else
             value = get_value self.js_object key
             make_enso value
@@ -151,7 +160,7 @@ type JS_Object
        - key: The key to get.
     @key make_field_name_selector
     at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! No_Such_Key
-    at self key = self.get key (Error.throw (No_Such_Key.Error self key))
+    at self key:Text = self.get key (Error.throw (No_Such_Key.Error self key))
 
     ## GROUP Metadata
        Get the keys of the object.
@@ -200,6 +209,31 @@ type JS_Object
     to_default_visualization_data : Text
     to_default_visualization_data self =
         render self
+
+    ## Creates an Enso object from the JS_Object.
+    into : Any -> Any
+    into self target_type = case target_type of
+        JS_Object -> self
+        Vector -> self.to_vector
+        Map -> Map.from_pairs self.to_vector
+        _ ->
+            ## First try a conversion
+            Panic.catch No_Such_Conversion (self.to target_type) _->
+                ## If that fails, try to construct the type
+                meta = Meta.meta target_type
+                meta_type = if meta.is_a Meta.Type then meta else Meta.meta (Meta.type_of target_type)
+                constructors = meta_type.constructors
+                filtered = if self.contains_key "constructor" then constructors.filter c-> c.name == self.get "constructor" else constructors
+                case filtered.length of
+                    0 -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - cannot find the constructor.")
+                    1 ->
+                        constructor = filtered.at 0
+                        field_names = constructor.fields
+                        if field_names.all self.contains_key then constructor.new (field_names.map self.at) else
+                            missing_fields = field_names.filter (f-> self.contains_key f . not)
+                            Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - the constructor "+constructor.name+"'s fields "+missing_fields.to_display_text+" not found in the source object.")
+                    _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
+
 
 ## PRIVATE
 type JS_Object_Comparator
@@ -264,7 +298,18 @@ make_enso js_object =
             proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
             Vector.from_polyglot_array proxy
         _ : JS_Object -> js_object
-        _ -> JS_Object.Value js_object
+        _ ->
+            wrapped = JS_Object.Value js_object
+
+            ## Handle deserializing date and time types.
+            type_name = wrapped.get "type"
+            parsed = if type_name == "Date" then Date.from wrapped else
+                if type_name == "Date_Time" then Date_Time.from wrapped else
+                    if type_name == "Time_Of_Day" then Time_Of_Day.from wrapped else
+                        wrapped
+
+            if parsed.is_error then wrapped else parsed
+
 
 ## PRIVATE
    Internal function to convert any JS_Objects into their native JS objects before passing to JS.
