@@ -42,6 +42,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         rowState,
         setRowState,
         state: {
+            numberOfSelectedItems,
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
@@ -63,15 +64,19 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const ownPermission =
         asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
         null
-    const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
+    // This is a workaround for a temporary bad state in the backend causing the `projectState` key
+    // to be absent.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const projectState = asset.projectState ?? { type: backendModule.ProjectState.closed }
+    const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
     const canExecute =
         backend.type === backendModule.BackendType.local ||
         (ownPermission != null &&
             permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
     const isOtherUserUsingProject =
         backend.type !== backendModule.BackendType.local &&
-        asset.projectState.opened_by != null &&
-        asset.projectState.opened_by !== organization?.email
+        projectState.opened_by != null &&
+        projectState.opened_by !== organization?.email
 
     const doRename = async (newName: string) => {
         try {
@@ -99,10 +104,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
+                // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.newProject: {
@@ -122,7 +129,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             ...asset,
                             id: createdProject.projectId,
                             projectState: {
-                                ...asset.projectState,
+                                ...projectState,
                                 type: backendModule.ProjectState.placeholder,
                             },
                         })
@@ -224,6 +231,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
+            onKeyDown={event => {
+                if (rowState.isEditingName && event.key === 'Enter') {
+                    event.stopPropagation()
+                }
+            }}
             onClick={event => {
                 if (rowState.isEditingName || isOtherUserUsingProject) {
                     // The project should neither be edited nor opened in these cases.
@@ -245,7 +257,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 } else if (
                     !isRunning &&
                     eventModule.isSingleClick(event) &&
-                    (selected ||
+                    ((selected && numberOfSelectedItems === 1) ||
                         shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
@@ -260,7 +272,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             ) : (
                 <ProjectIcon
                     keyProp={item.key}
-                    item={asset}
+                    // This is a workaround for a temporary bad state in the backend causing the
+                    // `projectState` key to be absent.
+                    item={{ ...asset, projectState }}
                     setItem={setAsset}
                     assetEvents={assetEvents}
                     doOpenManually={doOpenManually}
@@ -301,7 +315,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className={`bg-transparent grow leading-170 h-6 px-2 py-px ${
+                className={`bg-transparent grow leading-170 h-6 py-px ${
                     rowState.isEditingName
                         ? 'cursor-text'
                         : canExecute && !isOtherUserUsingProject

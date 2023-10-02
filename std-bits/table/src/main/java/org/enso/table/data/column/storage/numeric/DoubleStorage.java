@@ -26,6 +26,7 @@ import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -387,5 +388,69 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     }
 
     return new DoubleStorage(newData, newSize, newMissing);
+  }
+
+  private StorageType inferredType = null;
+
+  @Override
+  public StorageType inferPreciseType() {
+    if (inferredType == null) {
+      boolean areAllIntegers = true;
+      int visitedNumbers = 0;
+      for (int i = 0; i < size; i++) {
+        if (isMissing.get(i)) {
+          continue;
+        }
+
+        double value = Double.longBitsToDouble(data[i]);
+        visitedNumbers++;
+        boolean isWholeNumber = value % 1.0 == 0.0;
+        boolean canBeInteger = isWholeNumber && IntegerType.INT_64.fits(value);
+        if (!canBeInteger) {
+          areAllIntegers = false;
+          break;
+        }
+      }
+
+      // We only switch to integers if there was at least one number.
+      inferredType = (areAllIntegers && visitedNumbers > 0) ? IntegerType.INT_64 : getType();
+    }
+
+    return inferredType;
+  }
+
+  @Override
+  public StorageType inferPreciseTypeShrunk() {
+    StorageType inferred = inferPreciseType();
+    if (inferred instanceof IntegerType) {
+      return findSmallestIntegerTypeThatFits();
+    } else {
+      return inferred;
+    }
+  }
+
+  private StorageType findSmallestIntegerTypeThatFits() {
+    assert inferredType instanceof IntegerType;
+
+    final DoubleStorage parent = this;
+
+    // We create a Long storage that gets values by converting our storage.
+    ComputedNullableLongStorage longAdapter =
+        new ComputedNullableLongStorage(size) {
+          @Override
+          protected Long computeItem(int idx) {
+            if (parent.isNa(idx)) {
+              return null;
+            }
+
+            double value = parent.getItem(idx);
+            assert value % 1.0 == 0.0
+                : "The value " + value + " should be a whole number (guaranteed by checks).";
+            return (long) value;
+          }
+        };
+
+    // And rely on its shrinking logic.
+    return longAdapter.inferPreciseTypeShrunk();
   }
 }

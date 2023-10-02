@@ -63,10 +63,12 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to secrets.
-                // `deleteMultiple` and `downloadSelected` are handled by `AssetRow`.
+                // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
+                // `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.newDataConnector: {
@@ -105,6 +107,11 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
             className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
+            onKeyDown={event => {
+                if (rowState.isEditingName && event.key === 'Enter') {
+                    event.stopPropagation()
+                }
+            }}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
