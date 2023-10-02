@@ -33,6 +33,9 @@ export class Vec2 {
   add(other: Vec2): Vec2 {
     return new Vec2(this.x + other.x, this.y + other.y)
   }
+  copy(): Vec2 {
+    return new Vec2(this.x, this.y)
+  }
   addScaled(other: Vec2, scale: number): Vec2 {
     return new Vec2(other.x * scale + this.x, other.y * scale + this.y)
   }
@@ -50,5 +53,8 @@ export class Vec2 {
   }
   max(other: Vec2): Vec2 {
     return new Vec2(Math.max(this.x, other.x), Math.max(this.y, other.y))
+  }
+  lerp(to: Vec2, t: number): Vec2 {
+    return new Vec2(this.x + (to.x - this.x) * t, this.y + (to.y - this.y) * t)
   }
 }

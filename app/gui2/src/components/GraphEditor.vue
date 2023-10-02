@@ -88,25 +88,30 @@ function moveNode(id: ExprId, delta: Vec2) {
   }
 }
 
-const selectionSize = ref<Vec2>()
+const selectionAnchor = shallowRef<Vec2>()
 const initiallySelectedNodes = ref(new Set(selectedNodes.value))
 
-const selection = usePointer((pos) => {
-  if (selection.dragging) {
-    selectionSize.value = pos.relative.scale(1 / navigator.scale)
+const selection = usePointer((pos, _, eventType) => {
+  if (selection.dragging && selectionAnchor.value == null) {
+    selectionAnchor.value = navigator.sceneMousePos?.copy()
+  } else if (eventType === 'stop') {
+    selectionAnchor.value = undefined
   }
 })
 
 const intersectingNodes = computed<Set<ExprId>>(() => {
-  if (!selection.dragging || selectionSize.value == null) {
+  if (!selection.dragging || selectionAnchor.value == null || navigator.sceneMousePos == null) {
     return new Set()
   }
   const margin = SELECTION_BRUSH_MARGIN_PX / navigator.scale
-  const margin2 = margin * 2
-  const left = (navigator.sceneMousePos?.x ?? 0) - Math.max(selectionSize.value.x, 0) - margin
-  const right = left + Math.abs(selectionSize.value.x) + margin2
-  const top = (navigator.sceneMousePos?.y ?? 0) - Math.max(selectionSize.value.y, 0) - margin
-  const bottom = top + Math.abs(selectionSize.value.y) + margin2
+
+  const a = navigator.sceneMousePos
+  const b = selectionAnchor.value
+
+  const left = Math.min(a.x, b.x) - margin
+  const right = Math.max(a.x, b.x) + margin
+  const top = Math.min(a.y, b.y) - margin
+  const bottom = Math.max(a.y, b.y) + margin
   const intersectingNodes = new Set<ExprId>()
   for (const [id, rect] of nodeRects) {
     const rectLeft = rect.pos.x
@@ -127,7 +132,6 @@ watch(
       initiallySelectedNodes.value = new Set(selectedNodes.value)
     } else {
       initiallySelectedNodes.value = new Set()
-      selectionSize.value = undefined
     }
   },
 )
@@ -192,6 +196,7 @@ const nodeSelectionHandler = nodeBindings.handler({
     }
   },
   deselectAll() {
+    clearSelection()
     selectedNodes.value.clear()
   },
 })
@@ -243,15 +248,26 @@ const mouseHandler = nodeBindings.handler({
     selectedNodes.value = newSelectedNodes
   },
 })
+
+const scaledMousePos = computed(() => navigator.sceneMousePos?.scale(navigator.scale))
+const scaledSelectionAnchor = computed(() => selectionAnchor.value?.scale(navigator.scale))
+
+function clearSelection() {
+  selectedNodes.value.clear()
+  latestSelectedNode.value = undefined
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
+}
 </script>
 
 <template>
   <div
     ref="viewportNode"
     class="viewport"
-    @pointerdown="(selectedNodes = new Set()), (latestSelectedNode = undefined)"
-    v-on.navigator="navigator.events"
-    v-on.selection="selection.events"
+    v-on.="navigator.events"
+    v-on..="selection.events"
+    @pointerdown="nodeSelectionHandler"
     @pointermove="selection.dragging && mouseHandler($event)"
   >
     <svg :viewBox="navigator.viewBox">
@@ -283,9 +299,9 @@ const mouseHandler = nodeBindings.handler({
       />
     </div>
     <SelectionBrush
-      v-if="navigator.sceneMousePos"
-      :position="navigator.sceneMousePos.scale(navigator.scale)"
-      :size="selectionSize?.scale(navigator.scale)"
+      v-if="scaledMousePos"
+      :position="scaledMousePos"
+      :anchor="scaledSelectionAnchor"
       :style="{ transform: navigator.prescaledTransform }"
     />
     <ComponentBrowser

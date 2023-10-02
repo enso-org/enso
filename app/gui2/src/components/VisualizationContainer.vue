@@ -72,8 +72,8 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       :class="{
         fullscreen: config.fullscreen,
         'circular-menu-visible': config.isCircularMenuVisible,
-        'below-node': belowNode,
-        'below-toolbar': belowToolbar,
+        'below-node': props.belowNode,
+        'below-toolbar': props.belowToolbar,
       }"
       :style="{
         '--color-visualization-bg': config.background,
@@ -85,7 +85,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       <div
         ref="contentNode"
         class="content scrollable"
-        :class="{ overflow }"
+        :class="{ overflow: props.overflow }"
         :style="{
           width: config.fullscreen
             ? undefined

@@ -20,7 +20,7 @@ useDocumentEvent('pointerdown', (event) => {
     <div class="background"></div>
     <ul>
       <li
-        v-for="type_ in types"
+        v-for="type_ in props.types"
         :key="type_"
         @click="emit('update:type', type_)"
         v-text="type_"

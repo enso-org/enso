@@ -1,13 +1,11 @@
 // Fixes and extensions for dependencies' type definitions.
 
-import type * as d3Types from 'd3'
-
 declare module 'd3' {
   // d3 treats `null` and `undefined` as a selection of 0 elements, so they are a valid selection
   // for any element type.
-  function select<GElement extends d3Types.BaseType, OldDatum>(
+  function select<GElement extends import('d3').BaseType, OldDatum>(
     node: GElement | null | undefined,
-  ): d3Types.Selection<GElement, OldDatum, null, undefined>
+  ): import('d3').Selection<GElement, OldDatum, null, undefined>
 
   // These type parameters are present on the original type.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

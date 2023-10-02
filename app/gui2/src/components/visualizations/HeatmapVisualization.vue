@@ -33,17 +33,11 @@ interface Bucket {
   variable: number
   value: number
 }
-
-// eslint-disable-next-line no-redeclare
-declare var d3: typeof import('d3')
 </script>
 
 <script setup lang="ts">
+import * as d3 from 'd3'
 import { computed, onMounted, ref, watchPostEffect } from 'vue'
-
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'

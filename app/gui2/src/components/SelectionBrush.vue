@@ -1,25 +1,23 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
+import { computed, ref, watch, type Ref } from 'vue'
 
+import { useApproach } from '@/util/animation'
 import { useDocumentEvent } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 
 const props = defineProps<{
   position: Vec2
-  size: Vec2 | undefined
+  anchor: Vec2 | undefined
 }>()
 
-const transition = ref(false)
 const hidden = ref(false)
+const lastSetAnchor: Ref<Vec2 | undefined> = computed(() => props.anchor ?? lastSetAnchor.value)
 
-watchEffect(() => {
-  if (props.size == null) {
-    transition.value = true
-    setTimeout(() => {
-      transition.value = false
-    }, 150)
-  }
-})
+const anchorAnimFactor = useApproach(() => (props.anchor != null ? 1 : 0), 60)
+watch(
+  () => props.anchor != null,
+  (set) => set && anchorAnimFactor.skip(),
+)
 
 let lastEventTarget: Element | null
 useDocumentEvent('mouseover', (event) => {
@@ -31,18 +29,26 @@ useDocumentEvent('mouseover', (event) => {
     hidden.value = getComputedStyle(event.target).cursor !== 'none'
   }
 })
+
+const brushStyle = computed(() => {
+  const a = props.position
+  const anchor = lastSetAnchor.value ?? a
+  const b = a.lerp(anchor, anchorAnimFactor.value)
+
+  return {
+    left: `${Math.min(a.x, b.x)}px`,
+    top: `${Math.min(a.y, b.y)}px`,
+    width: `${Math.abs(a.x - b.x)}px`,
+    height: `${Math.abs(a.y - b.y)}px`,
+  }
+})
 </script>
 
 <template>
   <div
     class="SelectionBrush"
-    :class="{ cursor: size == null, transition, hidden }"
-    :style="{
-      left: `${position.x - Math.max(size?.x ?? 0, 0)}px`,
-      top: `${position.y - Math.max(size?.y ?? 0, 0)}px`,
-      width: `${Math.abs(size?.x ?? 0)}px`,
-      height: `${Math.abs(size?.y ?? 0)}px`,
-    }"
+    :class="{ cursor: props.anchor == null, hidden }"
+    :style="brushStyle"
   ></div>
 </template>
 
@@ -68,10 +74,10 @@ useDocumentEvent('mouseover', (event) => {
     border: var(--radius-cursor) solid #0000;
     margin: calc(0px - var(--radius-cursor));
 
-    &.transition {
-      transition-property: left, top, width, height;
-      transition-duration: 150ms;
-    }
+    /* &.transition { */
+    /* transition-property: left, top, width, height; */
+    /* transition-duration: 150ms; */
+    /* } */
   }
 }
 </style>

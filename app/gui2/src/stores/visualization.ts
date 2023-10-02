@@ -21,11 +21,12 @@ import type {
   RegisterBuiltinModulesRequest,
 } from '@/workers/visualizationCompiler'
 import Compiler from '@/workers/visualizationCompiler?worker'
+import * as d3 from 'd3'
 
 const moduleCache: Record<string, any> = {
   vue,
   '@vueuse/core': vueUseCore,
-  builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds },
+  builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds, d3 },
 }
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
 // else.

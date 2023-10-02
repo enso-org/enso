@@ -384,6 +384,7 @@ const dragPointer = usePointer((pos, event, type) => {
     :style="{ transform }"
     :class="{ dragging: dragPointer.dragging, selected }"
   >
+    <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
       {{ node.binding }}
     </div>
@@ -423,14 +424,10 @@ const dragPointer = usePointer((pos, event, type) => {
 
 <style scoped>
 .GraphNode {
-  color: red;
+  --node-color-primary: #357ab9;
   position: absolute;
   border-radius: var(--radius-full);
-}
-
-.GraphNode.selected {
-  border: var(--selected-node-border-width) solid rgb(89 107 129 / 20%);
-  margin: calc(0px - var(--selected-node-border-width));
+  transition: box-shadow 0.2s ease-in-out;
 }
 
 .node {
@@ -438,7 +435,7 @@ const dragPointer = usePointer((pos, event, type) => {
   top: 0;
   left: 0;
   caret-shape: bar;
-  background: #596b81;
+  background: var(--node-color-primary);
   background-clip: padding-box;
   border-radius: var(--radius-full);
   display: flex;
@@ -446,6 +443,43 @@ const dragPointer = usePointer((pos, event, type) => {
   align-items: center;
   white-space: nowrap;
   padding: 4px 8px;
+  z-index: 2;
+}
+
+.GraphNode .selection {
+  position: absolute;
+  inset: calc(0px - var(--selected-node-border-width));
+  border-radius: var(--radius-full);
+
+  &:before {
+    content: '';
+    opacity: 0;
+    position: absolute;
+    border-radius: var(--radius-full);
+    display: block;
+    inset: var(--selected-node-border-width);
+    box-shadow: 0 0 0 0 var(--node-color-primary);
+
+    transition:
+      box-shadow 0.2s ease-in-out,
+      opacity 0.2s ease-in-out;
+  }
+}
+
+.GraphNode.selected .selection:before,
+.GraphNode .selection:hover:before {
+  box-shadow: 0 0 0 var(--selected-node-border-width) var(--node-color-primary);
+}
+
+.GraphNode .selection:hover:before {
+  opacity: 0.15;
+}
+.GraphNode.selected .selection:before {
+  opacity: 0.2;
+}
+
+.GraphNode.selected .selection:hover:before {
+  opacity: 0.3;
 }
 
 .binding {
