@@ -7,10 +7,8 @@ import {
   type SuggestionEntryScope,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import { findIndexOpt } from '@/util/array'
 import { assert } from '@/util/assert'
-import { parseDocs } from '@/util/ffi'
-import { isSome, type Opt } from '@/util/opt'
+import { type Opt } from '@/util/opt'
 import {
   qnJoin,
   qnLastSegment,
@@ -117,7 +115,10 @@ function setLsDocumentation(
   if (data.iconName == null) delete entry.iconName
 }
 
-function entryFromLs(lsEntry: lsTypes.SuggestionEntry, groups: Group[]): Result<SuggestionEntry> {
+export function entryFromLs(
+  lsEntry: lsTypes.SuggestionEntry,
+  groups: Group[],
+): Result<SuggestionEntry> {
   return withContext(
     () => `when creating entry`,
     () => {

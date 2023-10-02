@@ -12,7 +12,7 @@ export default mergeConfig(
       root: fileURLToPath(new URL('./', import.meta.url)),
     },
     define: {
-      runningVitest: true,
+      RUNNING_VTEST: true,
     },
   }),
 )

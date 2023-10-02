@@ -2,7 +2,7 @@ import type { NonEmptyArray } from '@/util/array'
 import type { Opt } from '@/util/opt'
 import init, { parse_doc_to_json, parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
 
-if (runningVitest) {
+if (RUNNING_VTEST) {
   const fs = await import('node:fs/promises')
   const buffer = await fs.readFile('./rust-ffi/pkg/rust_ffi_bg.wasm')
   await init(buffer)

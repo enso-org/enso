@@ -3,7 +3,7 @@ import { Err, Ok, unwrap, type Result } from './result'
 
 declare const identifierBrand: unique symbol
 declare const qualifiedNameBrand: unique symbol
-const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[$%&*+,-./:;<=>?@\\^|~]+)'
+const identifierRegexPart = '(?:(?:[a-zA-Z_][0-9]*)+|[!$%&*+,-./:;<=>?@\\^|~]+)'
 const identifierRegex = new RegExp(`^${identifierRegexPart}$`)
 const qnRegex = new RegExp(`^${identifierRegexPart}(?:\\.${identifierRegexPart})*$`)
 
@@ -88,6 +88,7 @@ if (import.meta.vitest) {
     '*',
     '.',
     '.+',
+    '!=',
   ]
   const invalidIdentifiers = ['', '1', '1Abc', '1_', 'abA!', '$a', 'a$']
 

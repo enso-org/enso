@@ -31,7 +31,7 @@ export default defineConfig({
     'process.env.CLOUD_ENV': process.env.CLOUD_ENV
       ? JSON.stringify(process.env.CLOUD_ENV)
       : 'undefined',
-    runningVitest: false,
+    RUNNING_VTEST: false,
   },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {

@@ -294,7 +294,7 @@ export type Notifications = {
     message: string
     diagnostic?: Diagnostic
   }) => void
-  'search/suggestionsDatabaseUpdate': (param: {
+  'search/suggestionsDatabaseUpdates': (param: {
     updates: SuggestionsDatabaseUpdate[]
     currentVersion: number
   }) => void
