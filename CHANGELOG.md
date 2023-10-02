@@ -589,6 +589,8 @@
 - [Added `Previous_Value` option to `fill_nothing` and `fill_empty`.][8105]
 - [Implemented new selector for when parameter in `filter_blank_rows`, `select_blank_columns`, `remove_blank_columns`] [7935]
 
+- [Implemented new selector for when parameter in `filter_blank_rows`,
+   `select_blank_columns`, `remove_blank_columns`] [7935]
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
 [3153]: https://github.com/enso-org/enso/pull/3153
