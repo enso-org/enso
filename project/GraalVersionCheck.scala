@@ -73,7 +73,6 @@ object GraalVersionCheck {
       val logger   = newState.log
       if (!graalVersionOk(graalVersion, logger)) {
         logger.error("GraalVM version check failed.")
-        System.exit(1)
       }
       newState
     }

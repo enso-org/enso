@@ -1,6 +1,6 @@
 /** @file Package info. */
 
-import { logger } from 'runner/log'
+import { logger } from '../log'
 
 // ===================
 // === PackageInfo ===

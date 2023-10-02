@@ -1,11 +1,31 @@
 {
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^5.48.1",
-    "@typescript-eslint/parser": "^5.48.1",
-    "prettier": "2.8.8"
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.0.0"
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
-    "typescript": "^4.9.4"
+    "lint": "^0.8.19",
+    "run": "^1.4.0",
+    "tslib": "^2.6.2"
+  },
+  "name": "root",
+  "scripts": {
+    "format": "prettier --write .",
+    "prettier": "prettier --check .",
+    "lint": "npm --workspaces --if-present run lint",
+    "test": "npm --workspaces --if-present run test",
+    "typecheck": "npm --workspaces --if-present run typecheck",
+    "ci-check": "run-p test prettier lint typecheck"
+  },
+  "workspaces": [
+    "app/ide-desktop",
+    "app/ide-desktop/lib/*",
+    "app/ide-desktop/lib/dashboard/src/authentication",
+    "app/gui2",
+    "lib/rust/ensogl/pack/js"
+  ],
+  "overrides": {
+    "tslib": "$tslib"
   }
 }

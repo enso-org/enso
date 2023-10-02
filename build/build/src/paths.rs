@@ -33,7 +33,7 @@ ide_ci::define_env_var! {
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
 
-pub const LIBRARIES_TO_TEST: [&str; 6] = [
+pub const LIBRARIES_TO_TEST: [&str; 7] = [
     "Examples_Tests",
     "Geo_Tests",
     "Image_Tests",
@@ -41,6 +41,7 @@ pub const LIBRARIES_TO_TEST: [&str; 6] = [
     // "Meta_Test_Suite_Tests",
     "Table_Tests",
     "Tests",
+    "AWS_Tests",
     "Visualization_Tests",
 ];
 

@@ -1,0 +1,208 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Syntax_Error
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.System.Input_Stream.Input_Stream
+import Standard.Base.System.Output_Stream.Output_Stream
+
+import project.AWS_Credential.AWS_Credential
+import project.Errors.S3_Error
+import project.S3.S3
+
+## Represents an S3 file or folder
+   If the path ends with a slash, it is a folder. Otherwise, it is a file.
+type S3_File
+    ## PUBLIC
+    new : Text -> AWS_Credential | Nothing -> S3_File
+    new uri="s3://" credentials=Nothing =
+        parts = S3.parse_uri uri
+        if parts.is_nothing then Error.throw (Syntax_Error.Error "Invalid S3 URI.") else
+            S3_File.Value parts.first parts.second credentials
+
+    ## PRIVATE
+    Value bucket:Text prefix:Text credentials:(AWS_Credential | Nothing)
+
+    ## Gets the URI of this file
+    uri : Text
+    uri self = "s3://" + (if self.bucket=="" then "" else (self.bucket+"/"+self.prefix))
+
+    ## Checks if the folder or file exists
+    exists : Boolean
+    exists self = if self.bucket == "" then True else
+        if self.prefix == "" then S3.head self.bucket "" self.credentials . is_error . not else
+            pair = S3.read_bucket self.bucket self.prefix self.credentials max_count=1
+            pair.second.length > 0
+
+    ## Checks if this is a folder
+    is_directory : Boolean
+    is_directory self = self.prefix=="" || self.prefix.ends_with "/"
+
+    ## GROUP Metadata
+       Gets the size of a file in bytes.
+    size : Integer
+    size self =
+        if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
+            head = S3.head self.bucket self.prefix self.credentials
+            content_length = head.get "ContentLength"
+            if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
+
+    ## PRIVATE
+       ADVANCED
+       Creates a new output stream for this file and runs the specified action
+       on it.
+
+       The created stream is automatically closed when `action` returns (even
+       if it returns exceptionally).
+
+       Arguments:
+       - open_options: A vector of `File_Access` objects determining how to open
+         the stream. These options set the access properties of the stream.
+       - action: A function that operates on the output stream and returns some
+         value. The value is returned from this method.
+    with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_output_stream self open_options action =
+        _ = [open_options, action]
+        Unimplemented.throw "Writing to S3 is not currently implemented."
+
+    ## PRIVATE
+       ADVANCED
+       Creates a new input stream for this file and runs the specified action
+       on it.
+
+       Arguments:
+       - open_options: A vector of `File_Access` objects determining how to open
+         the stream. These options set the access properties of the stream.
+       - action: A function that operates on the input stream and returns some
+         value. The value is returned from this method.
+
+       The created stream is automatically closed when `action` returns (even
+       if it returns exceptionally).
+    with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_input_stream self open_options action =
+        if (open_options !=  [File_Access.Read]) then Error.throw (S3_Error.Error "S3 files can only be opened for reading." self.uri) else
+            response_body = S3.get_object self.bucket self.prefix self.credentials
+            response_body.with_stream action
+
+    ## ALIAS load, open
+       GROUP Input
+       Read a file using the specified file format
+
+       Arguments:
+       - format: A `File_Format` object used to read file into memory.
+         If `Auto_Detect` is specified; the provided file determines the specific
+         type and configures it appropriately. If there is no matching type then
+         a `File_Error.Unsupported_Type` error is returned.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+    @format File_Format.default_widget
+    read : File_Format -> Problem_Behavior -> Any ! S3_Error
+    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
+        _ = on_problems
+        case format of
+            Auto_Detect -> if self.is_directory then format.read self on_problems else
+                response = S3.get_object self.bucket self.prefix self.credentials
+                response.decode Auto_Detect
+            _ -> self.with_input_stream [File_Access.Read] format.read_stream
+
+    ## ALIAS load bytes, open bytes
+       Reads all bytes in this file into a byte vector.
+    read_bytes : Vector ! File_Error
+    read_bytes self =
+        self.read Bytes
+
+    ## ALIAS load text, open text
+       Reads the whole file into a `Text`, with specified encoding.
+
+       Arguments:
+       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+    @encoding Encoding.default_widget
+    read_text : Encoding -> Problem_Behavior -> Text ! File_Error
+    read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+        self.read (Plain_Text encoding) on_problems
+
+    ## GROUP Operators
+       Join two path segments together.
+
+       Arguments:
+       - subpath: The path to join to the path of `self`.
+    / : Text -> S3_File
+    / self subpath = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else
+        trimmed = if subpath.starts_with "/" then subpath.drop (First 1) else subpath
+        parts = trimmed.split "/"
+
+        loop current remaining = if remaining.length == 0 then current else
+            new_current = case remaining.first of
+                ".." ->
+                    last_index = current.lastIndexOf "/"
+                    if last_index == Nothing then (S3_Error.Error "Cannot move above root folder.") else current.take last_index
+                "." -> current
+                x -> new_current + "/" + x
+            @Tail_Call loop new_current (remaining.drop 1)
+
+        initial = if subpath.starts_with "/" then "" else self.prefix
+        path = loop initial parts
+        S3_File.Value self.bucket path self.credentials
+
+    ## GROUP Calculations
+       Join two or more path segments together, normalizing the `..` and `.` subpaths.
+
+       Arguments:
+       - subpaths: The path segment or segments to join to the path of `self`.
+    join : (Text | Vector) -> S3_File
+    join self subpaths = case subpaths of
+        _ : Vector -> (subpaths.fold self c->p-> c / p)
+        _ -> self.join [subpaths]
+
+    ## GROUP Metadata
+       Returns the name of this file.
+    name : Text
+    name self = if self.prefix == "" then self.bucket else
+        trimmed = if self.prefix.ends_with "/" then self.prefix.drop (Last 1) else self.prefix
+        last_index = trimmed.lastIndexOf "/"
+        if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
+
+    ## GROUP Metadata
+       Returns the extension of the file.
+    extension : Text
+    extension self = if self.is_directory then Error.throw (S3_Error.Error "Directories do not have extensions." self.uri) else
+        name = self.name
+        last_dot = name.locate "." mode=Matching_Mode.Last
+        if last_dot.is_nothing then "" else
+            extension = name.drop (Index_Sub_Range.First last_dot.start)
+            if extension == "." then "" else extension
+
+    ## GROUP Input
+       Lists files contained in the directory denoted by this file.
+
+       Arguments:
+       - name_filter: A glob pattern that can be used to filter the returned
+         files. If it is not specified, all files are returned.
+       - recursive: Specifies whether the returned list of files should include
+         also files from the subdirectories. If set to `False` (the default),
+         only the immediate children of the listed directory are considered.
+
+       The `name_filter` can contain the following special characters:
+
+       If `recursive` is set to True and a `name_filter` does not contain `**`,
+       it will be automatically prefixed with `**/` to allow matching files in
+       subdirectories.
+    list : Text -> Boolean -> Vector S3_File
+    list self name_filter:Text="" recursive:Boolean=False =
+        check_name_filter action = if name_filter != "" then Unimplemented.throw "S3 listing with name filter is not currently implemented." else action
+        check_recursion action = if recursive then Unimplemented.throw "S3 listing with recursion is not currently implemented." else action
+        check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else action
+
+        check_directory <| check_recursion <| check_name_filter <|
+            if self.bucket == "" then S3.list_buckets self.credentials . map bucket-> S3_File.Value bucket "" self.credentials else
+                pair = S3.read_bucket self.bucket self.prefix self.credentials
+                sub_folders = pair.first . map key-> S3_File.Value self.bucket key self.credentials
+                files = pair.second . map key-> S3_File.Value self.bucket key self.credentials
+                sub_folders + files

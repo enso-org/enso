@@ -7,6 +7,7 @@ import org.enso.polyglot.debugger.{
   DebuggerSessionManagerEndpoint
 }
 import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
+import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.slf4j.event.Level
 
@@ -51,12 +52,22 @@ class ContextFactory {
     executionEnvironment.foreach { name =>
       options.put("enso.ExecutionEnvironment", name)
     }
+    var javaHome = System.getenv("JAVA_HOME");
+    if (javaHome == null) {
+      javaHome = System.getProperty("java.home");
+    }
+    if (javaHome == null) {
+      throw new IllegalStateException("Specify JAVA_HOME environment property");
+    }
     val logLevelName = Converter.toJavaLevel(logLevel).getName
     val builder = Context
       .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
-      .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
+      .allowHostAccess(
+        new HostAccessFactory()
+          .allWithTypeMapping()
+      )
       .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
@@ -95,9 +106,24 @@ class ContextFactory {
         "bin"
       ),
       "graalpy"
-    );
+    )
     if (graalpy.exists()) {
       builder.option("python.Executable", graalpy.getAbsolutePath());
+    }
+    if (
+      Engine
+        .newBuilder()
+        .allowExperimentalOptions(true)
+        .build()
+        .getLanguages()
+        .containsKey("java")
+    ) {
+      builder
+        .option("java.ExposeNativeJavaVM", "true")
+        .option("java.Polyglot", "true")
+        .option("java.UseBindingsLoader", "true")
+        .option("java.JavaHome", javaHome)
+        .allowCreateThread(true)
     }
     new PolyglotContext(builder.build)
   }

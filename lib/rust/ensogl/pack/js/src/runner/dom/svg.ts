@@ -1,6 +1,6 @@
 /** @file A set of utils for generating and modifying the SVG images. */
 
-import * as math from 'runner/math'
+import * as math from '../math'
 
 // ===========
 // === SVG ===

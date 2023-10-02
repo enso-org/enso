@@ -1,0 +1,104 @@
+import project.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Extensions
+import project.Data.Vector.Vector
+import project.Errors.Encoding_Error.Encoding_Error
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Nothing.Nothing
+import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.Input_Stream.Input_Stream
+from project.System.Input_Stream import close_stream
+
+polyglot java import java.io.OutputStream as Java_Output_Stream
+polyglot java import org.enso.base.encoding.ReportingStreamEncoder
+polyglot java import org.enso.base.Encoding_Utils
+
+## PRIVATE
+   An output stream, allowing for interactive writing of contents.
+type Output_Stream
+    ## PRIVATE
+       ADVANCED
+
+       Given a Java OutputStream, wraps as a Managed_Resource and returns a new
+       Output_Stream.
+    new : Java_Output_Stream -> Any -> Output_Stream
+    new java_stream error_handler =
+        resource = Managed_Resource.register java_stream close_stream
+        Output_Stream.Value resource error_handler
+
+    ## PRIVATE
+       An output stream, allowing for interactive writing of contents.
+
+       Arguments:
+       - stream_resource: The internal resource that represents the underlying
+         stream.
+       - error_handler: An error handler for IOExceptions thrown when writing.
+    Value stream_resource error_handler
+
+    ## PRIVATE
+       ADVANCED
+       Writes a vector of bytes in this stream at the current position.
+
+       Arguments:
+       - contents: A vector of bytes to write.
+    write_bytes : Vector Integer -> Nothing
+    write_bytes self contents = self.stream_resource . with java_stream->
+        self.error_handler <|
+            java_stream.write contents
+            java_stream.flush
+            Nothing
+
+    ## PRIVATE
+       ADVANCED
+       Writes an Input_Stream into this stream at the current position.
+
+       Arguments:
+       - contents: An Input_Stream to write to this stream.
+    write_stream : Input_Stream -> Nothing
+    write_stream self contents = self.stream_resource . with java_stream->
+        self.error_handler <|
+            contents.with_java_stream contents_stream->
+                contents_stream.transferTo java_stream
+                java_stream.flush
+                Nothing
+
+    ## PRIVATE
+       ADVANCED
+       Closes this stream.
+
+       Even though Streams are closed automatically upon garbage collection, it
+       is still advised to close streams manually if they are not used within
+       a bracket pattern.
+    close : Nothing
+    close self = self.stream_resource . finalize
+
+    ## PRIVATE
+       ADVANCED
+       Exposes operations on the underlying Java output stream.
+
+       Useful when integrating with polyglot functions requiring an
+       `OutputStream` as an argument.
+
+       Arguments:
+       - f: Applies a function over the internal java stream.
+    with_java_stream : (Java_Output_Stream -> Any) -> Any
+    with_java_stream self f = self.stream_resource . with f
+
+    ## PRIVATE
+       ADVANCED
+       Runs an action with a `ReportingStreamEncoder` encoding data to the
+       output stream with the specified encoding.
+    with_stream_encoder : Encoding -> Problem_Behavior -> (ReportingStreamEncoder -> Any) -> Any
+    with_stream_encoder self encoding on_problems action = self.with_java_stream java_stream->
+        ## We ignore any warnings raised by the `bytes` method, because if the
+           original Unicode replacement character failed to encode, the `bytes`
+           method will have replaced it with the simple `?` sign which should be
+           available in all encodings. And this is exactly the behavior we want:
+           if available, we use the `�` character and otherwise we fallback to
+           the `?` character.
+        replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
+        java_charset = encoding.to_java_charset
+        results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence action
+        problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
+        on_problems.attach_problems_after results.result problems

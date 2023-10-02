@@ -22,7 +22,7 @@ type Column_Fetcher
          It takes an initial size as an argument. That size is only a suggestion
          for initial capacity and the builder must be ready to accept more or
          less rows than that.
-    Value (fetch_value : ResultSet -> Integer -> Any) (make_builder : Integer -> Builder)
+    Value (fetch_value : ResultSet -> Integer -> Any) (make_builder : Integer -> Column_Fetcher_Builder)
 
 ## We could use `Storage.make_builder` here, but this builder allows us to pass
    raw Truffle values around (like `long`) instead of boxing them.
@@ -30,7 +30,7 @@ type Column_Fetcher
    I suspect this can allow the Truffle PE to compile this into tighter loop,
    but so far I have no proof. If it turns out to be an unnecessary
    micro-optimization, we can always switch to `Storage.make_builder`.
-type Builder
+type Column_Fetcher_Builder
     ## PRIVATE
        Wraps an underlying builder to provide a generic interface.
 
@@ -53,7 +53,7 @@ boolean_fetcher =
         append v =
             if v.is_nothing then java_builder.appendNulls 1 else
                 java_builder.appendBoolean v
-        Builder.Value append (seal_java_builder java_builder)
+        Column_Fetcher_Builder.Value append (seal_java_builder java_builder)
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
@@ -67,7 +67,7 @@ double_fetcher =
         append v =
             if v.is_nothing then java_builder.appendNulls 1 else
                 java_builder.appendDouble v
-        Builder.Value append (seal_java_builder java_builder)
+        Column_Fetcher_Builder.Value append (seal_java_builder java_builder)
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
@@ -81,7 +81,7 @@ long_fetcher bits =
         append v =
             if v.is_nothing then java_builder.appendNulls 1 else
                 java_builder.appendLong v
-        Builder.Value append (seal_java_builder java_builder)
+        Column_Fetcher_Builder.Value append (seal_java_builder java_builder)
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
@@ -178,4 +178,4 @@ make_builder_from_java_object_builder java_builder =
     append v =
         if v.is_nothing then java_builder.appendNulls 1 else
             java_builder.append v
-    Builder.Value append (seal_java_builder java_builder)
+    Column_Fetcher_Builder.Value append (seal_java_builder java_builder)

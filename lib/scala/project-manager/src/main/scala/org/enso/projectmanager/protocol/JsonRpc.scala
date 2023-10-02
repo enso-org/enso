@@ -18,6 +18,7 @@ object JsonRpc {
   lazy val protocol: Protocol =
     Protocol.empty
       .registerRequest(ProjectCreate)
+      .registerRequest(ProjectStatus)
       .registerRequest(ProjectDelete)
       .registerRequest(ProjectOpen)
       .registerRequest(ProjectClose)

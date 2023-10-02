@@ -1,0 +1,26 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Network.URI.URI
+import project.Panic.Panic
+
+polyglot java import java.io.IOException
+
+## Errors when reading from a web response.
+type HTTP_Error
+    ## A generic IO error.
+
+       Arguments:
+       - uri: The uri that couldn't be read.
+       - message: The message for the error.
+    IO_Error (uri:URI) (message:Text)
+
+    ## PRIVATE
+       Convert the HTTP_Error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = self.message + " (" + self.uri.to_text + ")."
+
+    ## PRIVATE
+       Utility method for running an action with Java exceptions mapping.
+    handle_java_exceptions uri:URI ~action =
+        Panic.catch IOException action caught_panic->
+            HTTP_Error.IO_Error uri ("An IO error has occurred: " + caught_panic.payload.to_text)

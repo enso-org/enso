@@ -94,16 +94,15 @@ interface UserInfo {
  *
  * Some Amplify errors (e.g., network connectivity errors) can not be resolved within the
  * application. Un-resolvable errors are allowed to flow up to the top-level error handler. Errors
- * that can be resolved must be caught and handled as early as possible. The {@link KNOWN_ERRORS}
- * map lists the Amplify errors that we want to catch and convert to typed responses.
+ * that can be resolved must be caught and handled as early as possible.
  *
  * # Handling Amplify Errors
  *
  * Use the {@link isAmplifyError} function to check if an `unknown` error is an
  * {@link AmplifyError}. If it is, use the {@link intoAmplifyErrorOrThrow} function to convert it
- * from `unknown` to a typed object. Then, use the {@link KNOWN_ERRORS} to see if the error is one
- * that must be handled by the application (i.e., it is an error that is relevant to our business
- * logic). */
+ * from `unknown` to a typed object. Then, use one of the response error handling functions  (e.g.
+ * {@link intoSignUpErrorOrThrow}) to see if the error is one that must be handled by the
+ * application (i.e., it is an error that is relevant to our business logic). */
 interface AmplifyError extends Error {
     /** Error code for disambiguating the error. */
     code: string
@@ -396,9 +395,12 @@ const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
 /** Internal IDs of errors that may occur when getting the current session. */
 type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['kind']
 
-/** Convert an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
+/**
+ * Convert an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
  * else re-throws the error.
- * @throws {Error} If the error is not recognized. */
+ *
+ * @throws {Error} If the error is not recognized.
+ */
 function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
     if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
         return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind
@@ -467,9 +469,12 @@ export interface SignUpError extends CognitoError {
     message: string
 }
 
-/** Convert an {@link AmplifyError} into a {@link SignUpError} if it is a known error,
+/**
+ * Convert an {@link AmplifyError} into a {@link SignUpError} if it is a known error,
  * else re-throws the error.
- * @throws {Error} If the error is not recognized. */
+ *
+ * @throws {Error} If the error is not recognized.
+ */
 function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
     if (error.code === SIGN_UP_USERNAME_EXISTS_ERROR.internalCode) {
         return {

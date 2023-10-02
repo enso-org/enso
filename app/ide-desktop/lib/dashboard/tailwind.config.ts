@@ -15,6 +15,7 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
 export const content = [THIS_PATH + '/src/**/*.tsx']
+export const important = `:is(.enso-dashboard, .enso-chat)`
 export const theme = {
     extend: {
         colors: {
@@ -105,6 +106,7 @@ export const theme = {
             '10lh': '10lh',
         },
         minWidth: {
+            '31.5': '7.875rem',
             '33.25': '8.3125rem',
             '40': '10rem',
             '61.25': '15.3125rem',
@@ -116,6 +118,7 @@ export const theme = {
         },
         zIndex: {
             '1': '1',
+            '3': '3',
         },
         backdropBlur: {
             xs: '2px',

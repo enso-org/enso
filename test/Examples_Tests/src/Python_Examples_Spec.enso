@@ -49,11 +49,16 @@ spec = Test.group "Python Examples" <|
             main = dir/"src"/"Main.enso"
             main.exists . should_be_true
             code = """
+                from Standard.Base import all
+
                 foreign python random_array s = """
                     import numpy
                     return numpy.random.normal(size=s)
 
-                main = random_array 10
+                main =
+                    arr = random_array 10
+                    vec = arr.to_vector.sort
+                    [ arr, vec ]
 
             code . write main on_existing_file=Existing_File_Behavior.Overwrite
 

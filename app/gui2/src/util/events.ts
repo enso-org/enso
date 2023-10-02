@@ -1,27 +1,32 @@
+import { Vec2 } from '@/util/vec2'
 import {
   computed,
   onMounted,
   onUnmounted,
   proxyRefs,
   ref,
-  type Ref,
   shallowRef,
   watch,
   watchEffect,
+  type Ref,
   type WatchSource,
 } from 'vue'
-import { Vec2 } from './vec2'
+
+/** Whether an element currently has keyboard focus. */
+export function keyboardBusy() {
+  return document.activeElement != document.body
+}
 
 /**
- * Add an event listener on an {@link Element} for the duration of the component's lifetime.
+ * Add an event listener on an {@link HTMLElement} for the duration of the component's lifetime.
  * @param target element on which to register the event
  * @param event name of event to register
  * @param handler event handler
  */
-export function useElementEvent<K extends keyof ElementEventMap>(
-  target: Element,
+export function useElementEvent<K extends keyof HTMLElementEventMap>(
+  target: HTMLElement,
   event: K,
-  handler: (e: ElementEventMap[K]) => void,
+  handler: (e: HTMLElementEventMap[K]) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
   onMounted(() => {
@@ -108,9 +113,13 @@ export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
   })
 }
 
-// const hasWindow = typeof window !== 'undefined'
-// const platform = hasWindow ? window.navigator?.platform ?? '' : ''
-// const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+const hasWindow = typeof window !== 'undefined'
+const platform = hasWindow ? window.navigator?.platform ?? '' : ''
+export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
+
+export function modKey(e: KeyboardEvent): boolean {
+  return isMacLike ? e.metaKey : e.ctrlKey
+}
 
 /**
  * Get DOM node size and keep it up to date.
@@ -202,15 +211,15 @@ export function usePointer(
   requiredButtonMask: number = PointerButtonMask.Main,
 ) {
   const trackedPointer: Ref<number | null> = ref(null)
-  let trackedElement: Element | null = null
+  let trackedElement: (Element & GlobalEventHandlers) | null = null
   let initialGrabPos: Vec2 | null = null
   let lastPos: Vec2 | null = null
 
-  const isTracking = () => trackedPointer.value != null
+  const dragging = computed(() => trackedPointer.value != null)
 
   function doStop(e: PointerEvent) {
-    if (trackedElement != null && trackedPointer.value != null) {
-      trackedElement.releasePointerCapture(trackedPointer.value)
+    if (trackedPointer.value != null) {
+      trackedElement?.releasePointerCapture(trackedPointer.value)
     }
 
     trackedPointer.value = null
@@ -229,47 +238,64 @@ export function usePointer(
     }
   }
 
-  useWindowEventConditional('pointerup', isTracking, (e: PointerEvent) => {
-    if (trackedPointer.value === e.pointerId) {
-      e.preventDefault()
-      doStop(e)
-    }
-  })
-
-  useWindowEventConditional('pointermove', isTracking, (e: PointerEvent) => {
-    if (trackedPointer.value === e.pointerId) {
-      e.preventDefault()
-      // handle release of all masked buttons as stop
-      if ((e.buttons & requiredButtonMask) != 0) {
-        doMove(e)
-      } else {
-        doStop(e)
-      }
-    }
-  })
-
   const events = {
     pointerdown(e: PointerEvent) {
       // pointers should not respond to unmasked mouse buttons
-      if ((e.buttons & requiredButtonMask) == 0) {
+      if ((e.buttons & requiredButtonMask) === 0) {
         return
       }
 
       if (trackedPointer.value == null && e.currentTarget instanceof Element) {
         e.preventDefault()
         trackedPointer.value = e.pointerId
-        trackedElement = e.currentTarget
+        // This is mostly SAFE, as virtually all `Element`s also extend `GlobalEventHandlers`.
+        trackedElement = e.currentTarget as Element & GlobalEventHandlers
         trackedElement.setPointerCapture(e.pointerId)
         initialGrabPos = new Vec2(e.clientX, e.clientY)
         lastPos = initialGrabPos
         handler(computePosition(e, initialGrabPos, lastPos), e, 'start')
       }
     },
+    pointerup(e: PointerEvent) {
+      if (trackedPointer.value !== e.pointerId) {
+        return
+      }
+      e.preventDefault()
+      doStop(e)
+    },
+    pointermove(e: PointerEvent) {
+      if (trackedPointer.value !== e.pointerId) {
+        return
+      }
+      e.preventDefault()
+      // handle release of all masked buttons as stop
+      if ((e.buttons & requiredButtonMask) !== 0) {
+        doMove(e)
+      } else {
+        doStop(e)
+      }
+    },
+  }
+
+  const stopEvents = {
+    pointerdown(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointerdown(e)
+    },
+    pointerup(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointerup(e)
+    },
+    pointermove(e: PointerEvent) {
+      e.stopImmediatePropagation()
+      events.pointermove(e)
+    },
   }
 
   return proxyRefs({
     events,
-    dragging: computed(() => trackedPointer.value != null),
+    stop: { events: stopEvents },
+    dragging,
   })
 }
 

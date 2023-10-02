@@ -1,10 +1,17 @@
 {
   "extends": "@tsconfig/node18/tsconfig.json",
-  "include": ["vite.config.*", "vitest.config.*", "playwright.config.*"],
+  "include": [
+    "vite.config.*",
+    "vitest.config.*",
+    "playwright.config.*",
+    "eslint.config.js",
+    "e2e/**/*",
+    "node.env.d.ts"
+  ],
   "compilerOptions": {
-    "composite": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["node"]
+    "outDir": "../../node_modules/.cache/tsc",
+    "types": ["node", "vitest/importMeta"]
   }
 }

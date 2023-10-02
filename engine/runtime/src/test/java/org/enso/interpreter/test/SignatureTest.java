@@ -401,6 +401,25 @@ public class SignatureTest extends TestBase {
   }
 
   @Test
+  public void ascribedWithAParameterAndMethod() throws Exception {
+    final URI uri = new URI("memory://getter.enso");
+    final Source src = Source.newBuilder("enso", """
+    type Maybe a
+        Nothing
+        Some unwrap:a
+
+        get : a
+        get self = self.unwrap
+    """,uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var some = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Maybe.Some 10");
+    assertEquals("Can get ten", 10, some.invokeMember("get").asInt());
+  }
+
+  @Test
   public void suspendedAscribedParameter() throws Exception {
     final URI uri = new URI("memory://suspended.enso");
     final Source src = Source.newBuilder("enso", """

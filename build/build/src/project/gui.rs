@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::ide::web::IdeDesktop;
-use crate::paths::generated::RepoRootTargetEnsoglPackLinkedDist;
 use crate::project::perhaps_watch;
 use crate::project::Context;
 use crate::project::IsArtifact;
@@ -10,7 +9,7 @@ use crate::project::IsWatchable;
 use crate::project::IsWatcher;
 use crate::project::PerhapsWatched;
 use crate::project::Wasm;
-use crate::source::BuildTargetJob;
+use crate::source::BuildSource;
 use crate::source::GetTargetJob;
 use crate::source::WatchTargetJob;
 use crate::source::WithDestination;
@@ -18,7 +17,6 @@ use crate::BoxFuture;
 
 use derivative::Derivative;
 use futures_util::future::try_join;
-use ide_ci::fs::tokio::create_dir_if_missing;
 use ide_ci::ok_ready_boxed;
 
 
@@ -38,11 +36,6 @@ impl Artifact {
     pub fn new(gui_path: impl AsRef<Path>) -> Self {
         // TODO: sanity check
         Self(crate::paths::generated::RepoRootDistGui::new_root(gui_path.as_ref()))
-    }
-
-    pub fn symlink_ensogl_dist(&self, linked_dist: &RepoRootTargetEnsoglPackLinkedDist) -> Result {
-        ide_ci::fs::remove_symlink_dir_if_exists(linked_dist)?;
-        ide_ci::fs::symlink_auto(&self.ensogl_app, linked_dist)
     }
 }
 
@@ -127,7 +120,7 @@ impl IsTarget for Gui {
     fn build_internal(
         &self,
         context: Context,
-        job: BuildTargetJob<Self>,
+        job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let WithDestination { inner, destination } = job;
         async move {
@@ -141,22 +134,11 @@ impl IsTarget for Gui {
             }
 
             let ide = ide_desktop_from_context(&context);
-            let wasm = Wasm.get(context, inner.wasm);
-            let content_env =
-                ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
+            crate::web::install(&ide.repo_root).await?;
 
-            let ret = Artifact::new(destination.clone());
-            let ensogl_app_dir = &ret.0.ensogl_app;
-            create_dir_if_missing(ensogl_app_dir).await?;
-            let ensogl_app_files = [
-                &content_env.wasm.0.index_js.path,
-                &content_env.wasm.0.index_d_ts.path,
-                &content_env.wasm.0.index_js_map.path,
-            ];
-            for file in ensogl_app_files {
-                ide_ci::fs::copy_to(file, ensogl_app_dir)?;
-            }
-            Ok(ret)
+            let wasm = Wasm.get(context, inner.wasm);
+            ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
+            Ok(Artifact::new(destination.clone()))
         }
         .boxed()
     }
@@ -187,8 +169,12 @@ impl IsWatchable for Gui {
         context: Context,
         job: WatchTargetJob<Self>,
     ) -> BoxFuture<'static, Result<Self::Watcher>> {
-        let WatchTargetJob { watch_input, build: WithDestination { inner, destination } } = job;
-        let BuildInput { build_info, wasm } = inner;
+        let WatchTargetJob {
+            watch_input,
+            build:
+                WithDestination { inner: BuildSource { input, should_upload_artifact: _ }, destination },
+        } = job;
+        let BuildInput { build_info, wasm } = input;
         let perhaps_watched_wasm = perhaps_watch(Wasm, context.clone(), wasm, watch_input.wasm);
         let ide = ide_desktop_from_context(&context);
         async move {
@@ -212,8 +198,12 @@ impl Gui {
         context: Context,
         job: WatchTargetJob<Self>,
     ) -> GuiBuildWithWatchedWasm {
-        let WatchTargetJob { watch_input, build: WithDestination { inner, destination } } = job;
-        let BuildInput { build_info, wasm } = inner;
+        let WatchTargetJob {
+            watch_input,
+            build:
+                WithDestination { inner: BuildSource { input, should_upload_artifact: _ }, destination },
+        } = job;
+        let BuildInput { build_info, wasm } = input;
         let WatchInput { wasm: wasm_watch_input } = watch_input;
         let perhaps_watched_wasm = perhaps_watch(Wasm, context, wasm, wasm_watch_input);
         GuiBuildWithWatchedWasm { perhaps_watched_wasm, build_info, destination }

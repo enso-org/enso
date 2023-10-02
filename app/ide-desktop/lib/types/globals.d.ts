@@ -3,7 +3,7 @@
  * monkeypatching on `window` and generated code. */
 // This file is being imported for its types.
 // eslint-disable-next-line no-restricted-syntax
-import * as buildJson from './build.json' assert { type: 'json' }
+import * as buildJson from './../../build.json' assert { type: 'json' }
 
 // =============
 // === Types ===
@@ -94,6 +94,8 @@ declare global {
     // This will be `undefined` when it is not defined by esbuild.
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
+    // eslint-disable-next-line no-restricted-syntax
+    const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production' | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
     /** Only exists in development mode. */
     // This is a function.
