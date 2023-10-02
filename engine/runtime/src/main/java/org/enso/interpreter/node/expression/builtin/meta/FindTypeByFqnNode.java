@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -12,6 +13,7 @@ import org.enso.pkg.QualifiedName;
     description = "Finds a type by fully qualified name.",
     autoRegister = false)
 public class FindTypeByFqnNode extends Node {
+  @TruffleBoundary
   Object execute(Text fqn) {
     var ctx = EnsoContext.get(this);
     var fullName = QualifiedName.fromString(fqn.toString());
