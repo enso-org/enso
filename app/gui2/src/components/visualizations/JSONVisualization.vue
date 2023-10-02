@@ -10,7 +10,7 @@ import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 type Data = Record<string, unknown>
 
-const _props = defineProps<{ data: Data }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string]
 }>()
@@ -22,7 +22,7 @@ onMounted(() => {
 
 <template>
   <VisualizationContainer :below-toolbar="true">
-    <div class="JSONVisualization" v-text="data"></div>
+    <div class="JSONVisualization" v-text="props.data"></div>
   </VisualizationContainer>
 </template>
 

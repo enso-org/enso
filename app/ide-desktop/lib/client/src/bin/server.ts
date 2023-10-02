@@ -95,14 +95,14 @@ export class Server {
                     http: this.config.port,
                     handler: this.process.bind(this),
                 },
-                (err, { http }) => {
+                (err, { http: httpServer }) => {
                     if (err) {
                         logger.error(`Error creating server:`, err.http)
                         reject(err)
                     }
                     // Prepare the YDoc server access point for the new Vue-based GUI.
-                    if (http) {
-                        ydocServer.createGatewayServer(http)
+                    if (httpServer) {
+                        ydocServer.createGatewayServer(httpServer)
                     }
                     logger.log(`Server started on port ${this.config.port}.`)
                     logger.log(`Serving files from '${path.join(process.cwd(), this.config.dir)}'.`)

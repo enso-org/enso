@@ -10,7 +10,7 @@ import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 type Data = string[]
 
-const _props = defineProps<{ data: Data }>()
+const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
@@ -24,8 +24,8 @@ onMounted(() => {
   <VisualizationContainer :below-toolbar="true">
     <div class="WarningsVisualization">
       <ul>
-        <li v-if="data.length === 0">There are no warnings.</li>
-        <li v-for="(warning, index) in data" :key="index" v-text="warning"></li>
+        <li v-if="props.data.length === 0">There are no warnings.</li>
+        <li v-for="(warning, index) in props.data" :key="index" v-text="warning"></li>
       </ul>
     </div>
   </VisualizationContainer>

@@ -239,7 +239,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         switch (event.type) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.newSecret:
+            case assetEventModule.AssetEventType.newDataConnector:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:
