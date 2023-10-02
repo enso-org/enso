@@ -27,7 +27,7 @@ case object ApplicationSaturation extends IRPass {
   override type Metadata = CallSaturation
   override type Config   = Configuration
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     AliasAnalysis,
     ComplexType,
     FunctionBinding,
@@ -38,7 +38,7 @@ case object ApplicationSaturation extends IRPass {
     OperatorToFunction,
     SectionsToBinOp
   )
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the analysis pass, marking functions with information about their
     * argument saturation.
