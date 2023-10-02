@@ -47,6 +47,20 @@ spec =
             formatter.parse "-Infinity" . should_equal (Number.negative_infinity)
             formatter.parse "NaN" . is_nan . should_be_true
 
+        Test.specify "should prefer the US decimal point in auto mode" <|
+            formatter = Data_Formatter.Value
+            formatter.parse "1.5" . should_equal 1.5
+            formatter.parse "1.25" . should_equal 1.25
+            formatter.parse "1.125" . should_equal 1.125
+            formatter.parse "1,125" . should_equal 1125
+            formatter.parse "1,000,000" . should_equal 1000000
+            formatter.parse "1,000.5" . should_equal 1000.5
+
+            # But if it doesn't fit the US number, other formats should work as well:
+            formatter.parse "1.000,25" . should_equal 1000.25
+            formatter.parse "1'000" . should_equal 1000
+            formatter.parse "1.000.000" . should_equal 1000000
+
         Test.specify "should allow customizing the decimal point and thousand separator" <|
             formatter = Data_Formatter.Value thousand_separator="_" decimal_point=","
             formatter.parse "123" . should_equal 123
