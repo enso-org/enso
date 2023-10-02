@@ -1701,6 +1701,13 @@ type Table
          `Nothing`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
     lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table
     lookup_and_replace lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) allow_new_columns:Boolean=False  allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Error.throw "TODO"
