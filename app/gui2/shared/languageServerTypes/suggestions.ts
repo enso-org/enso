@@ -1,4 +1,4 @@
-import type { UUID } from 'shared/languageServerTypes'
+import type { Uuid } from 'shared/languageServerTypes'
 
 export type SuggestionId = number
 
@@ -74,7 +74,7 @@ namespace suggestionEntryVariant {
   export interface Type {
     type: 'type'
     /** The external id. */
-    externalId?: UUID
+    externalId?: Uuid
 
     /** The type name. */
     name: string
@@ -98,7 +98,7 @@ namespace suggestionEntryVariant {
   export interface Constructor {
     type: 'constructor'
     /** The external id. */
-    externalId?: UUID
+    externalId?: Uuid
 
     /** The constructor name. */
     name: string
@@ -125,7 +125,7 @@ namespace suggestionEntryVariant {
   export interface Method {
     type: 'method'
     /** The external id. */
-    externalId?: UUID
+    externalId?: Uuid
 
     /** The method name. */
     name: string
@@ -158,7 +158,7 @@ namespace suggestionEntryVariant {
   export interface Function {
     type: 'function'
     /** The external id. */
-    externalId?: UUID
+    externalId?: Uuid
 
     /** The function name. */
     name: string
@@ -182,7 +182,7 @@ namespace suggestionEntryVariant {
   export interface Local {
     type: 'local'
     /** The external id. */
-    externalId?: UUID
+    externalId?: Uuid
 
     /** The name of a value. */
     name: string
@@ -325,7 +325,7 @@ namespace suggestionDatabaseUpdateVariant {
     /**
      * The external id to update.
      */
-    externalId?: FieldUpdate<UUID>
+    externalId?: FieldUpdate<Uuid>
 
     /**
      * The list of argument updates.

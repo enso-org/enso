@@ -4,6 +4,8 @@ import type {
 } from './languageServerTypes/suggestions'
 import type { ExprId, Uuid } from './yjsModel'
 
+export type { Uuid }
+
 /** Version checksum of a text file - Sha3_224 */
 declare const brandChecksum: unique symbol
 export type Checksum = string & { [brandChecksum]: never }
@@ -252,8 +254,6 @@ export type FileSystemObject =
       target: Path
     }
 
-export type UUID = string
-
 interface VisualizationContext {}
 
 export interface VisualizationConfiguration {
@@ -385,7 +385,7 @@ export namespace response {
     data: Uint8Array
   }
 
-  export interface getSuggestionsDatabase {
+  export interface GetSuggestionsDatabase {
     entries: SuggestionsDatabaseEntry[]
     currentVersion: number
   }
