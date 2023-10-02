@@ -5,7 +5,7 @@ import { useDocumentEvent } from '@/util/events'
 
 import { ref } from 'vue'
 
-const _props = defineProps<{ modes: string[]; modelValue: string }>()
+const props = defineProps<{ modes: string[]; modelValue: string }>()
 const emit = defineEmits<{ execute: []; 'update:modelValue': [mode: string] }>()
 
 const isDropdownOpen = ref(false)
@@ -28,7 +28,7 @@ useDocumentEvent('click', onDocumentClick)
   <div ref="executionModeSelectorNode" class="ExecutionModeSelector">
     <div class="execution-mode-button">
       <div class="execution-mode button" @click="isDropdownOpen = !isDropdownOpen">
-        <span v-text="modelValue"></span>
+        <span v-text="props.modelValue"></span>
       </div>
       <div class="divider"></div>
       <SvgIcon
@@ -45,7 +45,7 @@ useDocumentEvent('click', onDocumentClick)
     </div>
     <Transition name="dropdown">
       <div v-if="isDropdownOpen" class="execution-mode-dropdown">
-        <template v-for="otherMode in modes" :key="otherMode">
+        <template v-for="otherMode in props.modes" :key="otherMode">
           <span
             v-if="modelValue !== otherMode"
             class="button"

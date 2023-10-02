@@ -337,16 +337,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     }}
                 />
             </ContextMenu>
-            {asset.type === backendModule.AssetType.directory ? (
-                <GlobalContextMenu
-                    hidden={hidden}
-                    // This is SAFE, as this only exists when the item is a directory.
+            <GlobalContextMenu
+                hidden={hidden}
+                directoryKey={
+                    // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
                     // eslint-disable-next-line no-restricted-syntax
-                    directoryKey={item.key as backendModule.DirectoryId}
-                    directoryId={asset.id}
-                    dispatchAssetListEvent={dispatchAssetListEvent}
-                />
-            ) : null}
+                    (asset.type === backendModule.AssetType.directory
+                        ? item.key
+                        : item.directoryKey) as backendModule.DirectoryId
+                }
+                directoryId={
+                    asset.type === backendModule.AssetType.directory ? asset.id : item.directoryId
+                }
+                dispatchAssetListEvent={dispatchAssetListEvent}
+            />
         </ContextMenus>
     )
 }

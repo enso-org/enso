@@ -1647,5 +1647,19 @@ spec =
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Sensitive . should_equal "Ab"
             "aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
+    Test.group "Text.substring" <|
+        Test.specify "should work with all examples" <|
+            "Hello World!".substring 3 2 . should_equal "lo"
+            "Hello World!".substring 5 . should_equal " World!"
+            "Hello World!".substring 5 7 . should_equal " World!"
+            "Hello World!".substring -7 3 . should_equal " Wo"
+
+        Test.specify "should error on length less than 0" <|
+            "Hello World!".substring 5 -2 . should_fail_with Illegal_Argument
+
+        Test.specify "should error if negative start index is too large"
+            "Hello World!".substring -20 5 . should_fail_with Index_Out_Of_Bounds
+        Test.specify "should error if start index is larger than string"
+            "Hello World!".substring 20 5 . should_fail_with Index_Out_Of_Bounds
 
 main = Test_Suite.run_main spec

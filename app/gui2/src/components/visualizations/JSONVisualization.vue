@@ -22,7 +22,7 @@ onMounted(() => {
 
 <template>
   <VisualizationContainer :below-toolbar="true">
-    <div class="JSONVisualization" v-text="data"></div>
+    <div class="JSONVisualization" v-text="props.data"></div>
   </VisualizationContainer>
 </template>
 

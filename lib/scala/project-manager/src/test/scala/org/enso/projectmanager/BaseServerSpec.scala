@@ -43,6 +43,7 @@ import org.enso.projectmanager.service.versionmanagement.{
 }
 import org.enso.projectmanager.service.{ProjectCreationService, ProjectService}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
+import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.test.FakeReleases
 import org.scalatest.BeforeAndAfterAll
@@ -248,9 +249,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   }
 
   private def setupEditions(): Unit = {
-    val engineVersion =
-      engineToInstall.map(_.toString).getOrElse(buildinfo.Info.ensoVersion)
-    val editionsDir = testDistributionRoot.toPath / "test_data" / "editions"
+    val engineVersion = engineToInstall.getOrElse(CurrentVersion.version)
+    val editionsDir   = testDistributionRoot.toPath / "test_data" / "editions"
     Files.createDirectories(editionsDir)
     val editionName = buildinfo.Info.currentEdition + ".yaml"
     val editionConfig =

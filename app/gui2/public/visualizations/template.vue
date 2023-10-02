@@ -10,11 +10,11 @@ interface Data {
 <script setup lang="ts">
 import { onMounted } from 'vue'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import { VisualizationContainer } from 'builtins'
 // Optional: add your own external dependencies. The @ts-expect-error is required because TypeScript
 // does not allow HTTP imports.
 // @ts-expect-error
-import dependency from 'http://<js dependency here>'
+import _dependency from 'http://<js dependency here>'
 
 const props = defineProps<{
   data: Data
@@ -33,6 +33,7 @@ onMounted(() => {
 <template>
   <VisualizationContainer>
     <!-- <content here> -->
+    {{ props.data }}
   </VisualizationContainer>
 </template>
 

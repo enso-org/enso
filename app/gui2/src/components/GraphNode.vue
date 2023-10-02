@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
+import { nodeBindings } from '@/bindings/nodeSelection'
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -11,12 +12,16 @@ import {
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import { useVisualizationStore, type Visualization } from '@/stores/visualization'
-import { useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
+import { keyboardBusy, useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 
+const MAXIMUM_CLICK_LENGTH_MS = 300
+
 const props = defineProps<{
   node: Node
+  selected: boolean
+  isLatestSelected: boolean
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +30,8 @@ const emit = defineEmits<{
   updateContent: [range: ContentRange, content: string]
   movePosition: [delta: Vec2]
   delete: []
+  replaceSelection: []
+  'update:selected': [selected: boolean]
 }>()
 
 const visualizationStore = useVisualizationStore()
@@ -38,10 +45,6 @@ watchEffect(() => {
   if (!size.isZero()) {
     emit('updateRect', new Rect(props.node.position, nodeSize.value))
   }
-})
-
-const dragPointer = usePointer((event) => {
-  emit('movePosition', event.delta)
 })
 
 const transform = computed(() => {
@@ -254,15 +257,6 @@ onUpdated(() => {
   }
 })
 
-function handleClick(e: PointerEvent) {
-  if (e.shiftKey) {
-    emit('delete')
-    e.preventDefault()
-    e.stopPropagation()
-  }
-}
-
-const isCircularMenuVisible = ref(false)
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = ref(false)
@@ -275,16 +269,6 @@ const queuedVisualizationData = computed<{}>(() =>
 )
 const visualizationData = ref<{}>({})
 
-function isInputEvent(event: Event): event is Event & { target: HTMLElement } {
-  return (
-    !(event.target instanceof HTMLElement) ||
-    !rootNode.value?.contains(event.target) ||
-    event.target.isContentEditable ||
-    event.target instanceof HTMLInputElement ||
-    event.target instanceof HTMLTextAreaElement
-  )
-}
-
 const visualizationConfig = ref<VisualizationConfig>({
   fullscreen: false,
   types: visualizationStore.types,
@@ -296,7 +280,7 @@ const visualizationConfig = ref<VisualizationConfig>({
   updateType(type) {
     visualizationType.value = type
   },
-  isCircularMenuVisible: isCircularMenuVisible.value,
+  isCircularMenuVisible: props.isLatestSelected,
   get nodeSize() {
     return nodeSize.value
   },
@@ -304,7 +288,7 @@ const visualizationConfig = ref<VisualizationConfig>({
 provideVisualizationConfig(visualizationConfig)
 
 useDocumentEvent('keydown', (event) => {
-  if (isInputEvent(event)) {
+  if (keyboardBusy()) {
     return
   }
   if (event.key === ' ') {
@@ -335,20 +319,6 @@ watchEffect(async (onCleanup) => {
   }
 })
 
-function onBlur(event: FocusEvent) {
-  if (!(event.relatedTarget instanceof Node) || !rootNode.value?.contains(event.relatedTarget)) {
-    isCircularMenuVisible.value = false
-  }
-}
-
-function onExpressionClick(event: Event) {
-  if (isInputEvent(event)) {
-    return
-  }
-  rootNode.value?.focus()
-  isCircularMenuVisible.value = true
-}
-
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
@@ -363,23 +333,63 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
     } module: ${module}, method: ${method}, args: [${args.join(', ')}]`,
   )
 }
+
+const mouseHandler = nodeBindings.handler({
+  replace() {
+    emit('replaceSelection')
+  },
+  add() {
+    emit('update:selected', true)
+  },
+  remove() {
+    emit('update:selected', false)
+  },
+  toggle() {
+    emit('update:selected', !props.selected)
+  },
+  invert() {
+    emit('update:selected', !props.selected)
+  },
+})
+
+const startEpochMs = ref(0)
+const startEvent = ref<PointerEvent>()
+
+const dragPointer = usePointer((pos, event, type) => {
+  emit('movePosition', pos.delta)
+  switch (type) {
+    case 'start': {
+      startEpochMs.value = Number(new Date())
+      startEvent.value = event
+      event.stopImmediatePropagation()
+      break
+    }
+    case 'stop': {
+      if (
+        Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
+        startEvent.value != null
+      ) {
+        mouseHandler(startEvent.value)
+      }
+      startEpochMs.value = 0
+    }
+  }
+})
 </script>
 
 <template>
   <div
     ref="rootNode"
-    :tabindex="-1"
     class="GraphNode"
     :style="{ transform }"
-    :class="{ dragging: dragPointer.dragging }"
-    @focus="isCircularMenuVisible = true"
-    @blur="onBlur"
+    :class="{ dragging: dragPointer.dragging, selected }"
   >
+    <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
       {{ node.binding }}
     </div>
     <CircularMenu
-      v-if="isCircularMenuVisible"
+      v-if="isLatestSelected"
       v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
       v-model:is-docs-visible="isDocsVisible"
       v-model:is-visualization-visible="isVisualizationVisible"
@@ -391,16 +401,14 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
       @update:preprocessor="updatePreprocessor"
       @update:type="visualizationType = $event"
     />
-    <div class="node" v-on="dragPointer.events" @click.stop="onExpressionClick">
-      <SvgIcon class="icon grab-handle" name="number_input" @pointerdown="handleClick"></SvgIcon>
+    <div class="node" v-on="dragPointer.events">
+      <SvgIcon class="icon grab-handle" name="number_input"></SvgIcon>
       <div
         ref="editableRootNode"
         class="editable"
         contenteditable
         spellcheck="false"
         @beforeinput="editContent"
-        @focus="isCircularMenuVisible = true"
-        @blur="onBlur"
         @pointerdown.stop
       >
         <NodeSpan
@@ -416,24 +424,62 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
 
 <style scoped>
 .GraphNode {
-  color: red;
+  --node-color-primary: #357ab9;
   position: absolute;
+  border-radius: var(--radius-full);
+  transition: box-shadow 0.2s ease-in-out;
 }
 
 .node {
   position: relative;
   top: 0;
   left: 0;
-
   caret-shape: bar;
-
+  background: var(--node-color-primary);
+  background-clip: padding-box;
+  border-radius: var(--radius-full);
   display: flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  background: #222;
   padding: 4px 8px;
+  z-index: 2;
+}
+
+.GraphNode .selection {
+  position: absolute;
+  inset: calc(0px - var(--selected-node-border-width));
   border-radius: var(--radius-full);
+
+  &:before {
+    content: '';
+    opacity: 0;
+    position: absolute;
+    border-radius: var(--radius-full);
+    display: block;
+    inset: var(--selected-node-border-width);
+    box-shadow: 0 0 0 0 var(--node-color-primary);
+
+    transition:
+      box-shadow 0.2s ease-in-out,
+      opacity 0.2s ease-in-out;
+  }
+}
+
+.GraphNode.selected .selection:before,
+.GraphNode .selection:hover:before {
+  box-shadow: 0 0 0 var(--selected-node-border-width) var(--node-color-primary);
+}
+
+.GraphNode .selection:hover:before {
+  opacity: 0.15;
+}
+.GraphNode.selected .selection:before {
+  opacity: 0.2;
+}
+
+.GraphNode.selected .selection:hover:before {
+  opacity: 0.3;
 }
 
 .binding {
@@ -460,13 +506,7 @@ function updatePreprocessor(module: string, method: string, ...args: string[]) {
 
 .grab-handle {
   color: white;
-  cursor: grab;
   margin-right: 10px;
-}
-
-.GraphNode.dragging,
-.GraphNode.dragging .icon {
-  cursor: grabbing;
 }
 
 .visualization {
