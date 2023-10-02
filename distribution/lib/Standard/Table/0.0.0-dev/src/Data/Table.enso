@@ -1673,6 +1673,38 @@ type Table
                 renaming_problems = new_java_table.getProblems |> Java_Problems.parse_aggregated_problems
                 on_problems.attach_problems_before renaming_problems (Table.Value new_java_table)
 
+    ## Replaces values in this table by values from a lookup table.
+
+       This operation acts a bit like `Table.update_rows`, but instead of
+       updating the table in-place (which is only possible in the Database
+       table), it returns a new Table instance (which is a new table in-memory,
+       and a complex query in Database).
+
+       It joins rows from this table with the rows in the lookup table based on
+       the `key_columns`. Values in this table are replaced by values from
+       corresponding columns from the lookup table. Columns not present in the
+       lookup table are left unchanged.
+
+       Arguments:
+       - lookup_table: The table to use for looking up values.
+       - key_columns: Specifies the columns to use for correlating rows between
+         the two tables.
+       - allow_new_columns: Specifies what to do with columns in the lookup
+         table that are not present in this table. If `False` (the default) and
+         there are such extra columns, an `TODO` error is raised (TODO maybe that should just be a warning?).
+         If `True`, the additional columns are added to the result.
+       - allow_unmatched_rows: Specifies what to do with rows in this table that
+         do not have a matching row in the lookup table. If `False` (the
+         default), an `TODO` error is raised (TODO maybe that should just be a warning?).
+         If `True`, the rows are kept unchanged, if any additional columns from
+         the lookup table are being added (see `allow_new_columns`) they will be
+         `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table
+    lookup_and_replace lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) allow_new_columns:Boolean=False  allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        Error.throw "TODO"
+
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
        Joins two tables by zipping rows from both tables table together - the
