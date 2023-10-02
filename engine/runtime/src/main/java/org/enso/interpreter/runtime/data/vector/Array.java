@@ -37,9 +37,18 @@ final class Array implements EnsoObject {
    *
    * @param items the element values
    */
-  Array(Object... items) {
-    assert noNulls(items);
+  private Array(Object... items) {
     this.items = items;
+  }
+
+  static Array wrap(Object... items) {
+    assert noNulls(items);
+    return new Array(items);
+  }
+
+  static Array allocate(long size) {
+    var arr = new Object[Math.toIntExact(size)];
+    return new Array(arr);
   }
 
   private static boolean noNulls(Object[] arr) {

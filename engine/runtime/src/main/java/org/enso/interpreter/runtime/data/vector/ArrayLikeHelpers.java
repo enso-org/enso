@@ -64,8 +64,7 @@ public final class ArrayLikeHelpers {
    * @return the array instance
    */
   public static EnsoObject allocate(long size) {
-    var arr = new Object[Math.toIntExact(size)];
-    return new Array(arr);
+    return Array.allocate(size);
   }
 
   @Builtin.Method(
@@ -107,7 +106,7 @@ public final class ArrayLikeHelpers {
       return Vector.fromDoubleArray(doubles);
     }
     if (nonTrivialEnsoValue) {
-      return Vector.fromInteropArray(new Array((Object[])res));
+      return Vector.fromInteropArray(Array.wrap((Object[])res));
     } else {
       return Vector.fromEnsoOnlyArray((Object[])res);
     }
@@ -136,15 +135,15 @@ public final class ArrayLikeHelpers {
   }
 
   public static EnsoObject wrapEnsoObjects(EnsoObject... arr) {
-    return new Array((Object[]) arr);
+    return Array.wrap((Object[]) arr);
   }
 
   public static EnsoObject wrapStrings(String... arr) {
-    return new Array((Object[]) arr);
+    return Array.wrap((Object[]) arr);
   }
 
   public static EnsoObject wrapObjectsWithCheckAt(Object... arr) {
-    return new Array((Object[]) arr);
+    return Array.wrap((Object[]) arr);
   }
 
   public static EnsoObject empty() {
@@ -152,7 +151,7 @@ public final class ArrayLikeHelpers {
   }
 
   public static EnsoObject asVectorWithCheckAt(Object... arr) {
-    return Vector.fromInteropArray(new Array((Object[]) arr));
+    return Vector.fromInteropArray(Array.wrap((Object[]) arr));
   }
 
   public static EnsoObject asVectorFromArray(Object storage) {
