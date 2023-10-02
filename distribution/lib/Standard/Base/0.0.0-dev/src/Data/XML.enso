@@ -122,8 +122,14 @@ type XML_Element
 
     ## Gets a child of an xml element.
 
+       Arguments:
+       - key: If an `Integer`, returns the element at position `at` in its list
+         of children. If a `Text`, treats `key` as an XPath specifier, and
+         returns the elements it points to. If a `Text` that starts with `"@"`,
+         returns the attribute with the given name.
+
        Example:
-           XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . get 0 . get 0
+           XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . get 0
            # => XML_Document.from_string "<baz>hello</baz>" . root_element
 
        > Example
@@ -132,7 +138,7 @@ type XML_Element
              root = XML_Document.from_string '<foo bar="one">hello</foo>' . root_element
              root.get "@bar"
              # => "one"
-    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element)
+    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get self key:(Text|Integer) ~if_missing=Nothing =
         case key of
             _ : Integer -> self.get_child_element key if_missing
@@ -142,14 +148,14 @@ type XML_Element
 
        Arguments:
        - key: If an `Integer`, returns the element at position `at` in its list
-         of children. If a `Text`, treats `at` as an XPath specifier, and
-         returns the element it points to. If a `Text` that starts with `"@"`,
+         of children. If a `Text`, treats `key` as an XPath specifier, and
+         returns the elements it points to. If a `Text` that starts with `"@"`,
          returns the attribute with the given name.
 
        > Example
          Get a nested tag:
 
-             XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . at 0 . at 0
+             XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . at 0
              # => XML_Document.from_string "<baz>hello</baz>" . root_element
 
        > Example
@@ -158,7 +164,7 @@ type XML_Element
              root = XML_Document.from_string '<foo bar="one">hello</foo>' . root_element
              root.at "@bar"
              # => "one"
-    at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds
+    at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     at self key:(Text|Integer) =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.num_children)
@@ -175,8 +181,8 @@ type XML_Element
 
              root = XML_Document.from_file test_file . root_element
              root.at "/class/teacher[1]/firstname"
-             # => XML_Document.from_string "<firstname>Alice</firstname>" . root_element
-    get_xpath : Text -> Vector (Text | XML_Element)
+             # => [XML_Document.from_string "<firstname>Alice</firstname>" . root_element]
+    get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
     get_xpath self key:Text =
         XML_Error.handle_java_exceptions <|
             xpath = XPathFactory.newInstance.newXPath
