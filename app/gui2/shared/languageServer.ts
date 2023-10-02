@@ -1,8 +1,6 @@
 import { Client } from '@open-rpc/client-js'
-
-import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
-import * as set from 'lib0/set'
+import { uuidv4 } from 'lib0/random'
 import { SHA3 } from 'sha3'
 import type {
   Checksum,
@@ -21,6 +19,21 @@ import type {
 } from './languageServerTypes'
 import type { Uuid } from './yjsModel'
 
+const DEBUG_LOG_RPC = false
+const RPC_TIMEOUT_MS = 10000
+
+class RpcError extends Error {
+  cause: Error
+  request: string
+  params: object
+  constructor(inner: Error, request: string, params: object) {
+    super(`Language server request failed.`)
+    this.cause = inner
+    this.request = request
+    this.params = params
+  }
+}
+
 /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md) */
 export class LanguageServer extends ObservableV2<Notifications> {
   client: Client
@@ -36,28 +49,27 @@ export class LanguageServer extends ObservableV2<Notifications> {
     })
   }
 
-  addEventListener<K extends keyof Notifications>(
-    type: K,
-    listener: (params: Notifications[K]) => void,
-  ) {
-    const listeners = map.setIfUndefined(this.handlers, type as string, set.create)
-    listeners.add(listener)
-  }
-
-  removeEventListener<K extends keyof Notifications>(
-    type: K,
-    listener: (params: Notifications[K]) => void,
-  ) {
-    const listeners = this.handlers.get(type as string)
-    if (listeners) {
-      listeners.delete(listener)
-    }
-  }
-
   // The "magic bag of holding" generic that is only present in the return type is UNSOUND.
   // However, it is SAFE, as the return type of the API is statically known.
-  private request<T>(method: string, params: object): Promise<T> {
-    return this.client.request({ method, params })
+  private async request<T>(method: string, params: object): Promise<T> {
+    const uuid = uuidv4()
+    const now = performance.now()
+    try {
+      if (DEBUG_LOG_RPC) {
+        console.log(`LS [${uuid}] ${method}:`)
+        console.dir(params)
+      }
+      return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new RpcError(e, method, params)
+      }
+      throw e
+    } finally {
+      if (DEBUG_LOG_RPC) {
+        console.log(`LS [${uuid}] ${method} took ${performance.now() - now}ms`)
+      }
+    }
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#capabilityacquire) */

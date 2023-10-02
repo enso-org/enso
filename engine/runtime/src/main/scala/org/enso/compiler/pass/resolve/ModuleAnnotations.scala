@@ -19,8 +19,8 @@ import org.enso.compiler.pass.desugar.{
 case object ModuleAnnotations extends IRPass {
   override type Metadata = Annotations
   override type Config   = IRPass.Configuration.Default
-  override val precursorPasses: Seq[IRPass] = Seq()
-  override val invalidatedPasses: Seq[IRPass] = Seq(
+  override lazy val precursorPasses: Seq[IRPass] = Seq()
+  override lazy val invalidatedPasses: Seq[IRPass] = Seq(
     DocumentationComments,
     ComplexType,
     FunctionBinding,

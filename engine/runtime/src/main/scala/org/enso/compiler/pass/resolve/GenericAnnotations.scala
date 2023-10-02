@@ -24,8 +24,8 @@ import org.enso.compiler.pass.IRPass
 case object GenericAnnotations extends IRPass {
   override type Metadata = ModuleAnnotations.Annotations
   override type Config   = IRPass.Configuration.Default
-  override val precursorPasses: Seq[IRPass]   = Seq()
-  override val invalidatedPasses: Seq[IRPass] = Seq()
+  override lazy val precursorPasses: Seq[IRPass]   = Seq()
+  override lazy val invalidatedPasses: Seq[IRPass] = Seq()
 
   /** Resolves annotations.
     *
