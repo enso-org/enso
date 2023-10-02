@@ -166,7 +166,8 @@ spec =
             doc.root_element.name . should_equal "class"
 
         Test.specify "Can read from an endpoint" <|
-            doc = Data.fetch "https://httpbin.org/xml"
-            doc.root_element.name . should_equal "slideshow"
+            doc = Data.fetch "https://enso-data-samples.s3.us-west-1.amazonaws.com/sample.xml"
+            doc.root_element.name . should_equal "class"
+            doc.root_element.at 1 . name . should_equal "teacher"
 
 main = Test_Suite.run_main spec
