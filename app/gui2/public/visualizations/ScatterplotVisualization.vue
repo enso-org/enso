@@ -1,9 +1,13 @@
 <script lang="ts">
+import { defineKeybinds } from 'builtins'
+
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
 
-// eslint-disable-next-line no-redeclare
-declare const d3: typeof import('d3')
+const bindings = defineKeybinds('scatterplot-visualization', {
+  zoomIn: ['Mod+Z'],
+  showAll: ['Mod+A'],
+})
 
 /**
  * A d3.js Scatterplot visualization.
@@ -80,30 +84,15 @@ interface Color {
 </script>
 
 <script setup lang="ts">
+import { d3 } from 'builtins'
 import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
-
 import FindIcon from './icons/find.svg'
 import ShowAllIcon from './icons/show_all.svg'
-
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
-
-import type {
-  BrushSelection,
-  D3BrushEvent,
-  D3ZoomEvent,
-  ScaleContinuousNumeric,
-  SymbolType,
-} from 'd3'
 
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
-import { useVisualizationConfig } from 'builtins/useVisualizationConfig.ts'
-
-import type { Symbol } from 'd3'
+import { VisualizationContainer, useVisualizationConfig } from 'builtins'
 
 const props = defineProps<{ data: Partial<Data> | number[] }>()
 const emit = defineEmits<{
@@ -111,12 +100,6 @@ const emit = defineEmits<{
 }>()
 
 const config = useVisualizationConfig()
-
-// TODO [sb]: Consider switching to a global keyboard shortcut handler.
-const shortcuts = {
-  zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
-  showAll: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'a',
-}
 
 const LABEL_FONT_STYLE = '10px DejaVuSansMonoBook'
 const POINT_LABEL_PADDING_X_PX = 7
@@ -130,13 +113,13 @@ const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},$
   ACCENT_COLOR.blue * 255
 },0.8)`
 
-const ZOOM_EXTENT = [0.5, 20] satisfies BrushSelection
+const ZOOM_EXTENT = [0.5, 20] satisfies d3.BrushSelection
 const RIGHT_BUTTON = 2
 const MID_BUTTON = 1
 const MID_BUTTON_CLICKED = 4
 const SCROLL_WHEEL = 0
 
-const SHAPE_TO_SYMBOL: Record<string, SymbolType> = {
+const SHAPE_TO_SYMBOL: Record<string, d3.SymbolType> = {
   cross: d3.symbolCross,
   diamond: d3.symbolDiamond,
   square: d3.symbolSquare,
@@ -144,7 +127,7 @@ const SHAPE_TO_SYMBOL: Record<string, SymbolType> = {
   triangle: d3.symbolTriangle,
 }
 
-const SCALE_TO_D3_SCALE: Record<ScaleType, () => ScaleContinuousNumeric<number, number>> = {
+const SCALE_TO_D3_SCALE: Record<ScaleType, () => d3.ScaleContinuousNumeric<number, number>> = {
   [ScaleType.Linear]: () => d3.scaleLinear(),
   [ScaleType.Logarithmic]: () => d3.scaleLog(),
 }
@@ -187,13 +170,14 @@ const d3Zoom = computed(() => d3.select(zoomNode.value))
 const d3Brush = computed(() => d3.select(brushNode.value))
 
 const bounds = ref<[number, number, number, number]>()
-const brushExtent = ref<BrushSelection>()
+const brushExtent = ref<d3.BrushSelection>()
 const limit = ref(DEFAULT_LIMIT)
 const focus = ref<Focus>()
 const shouldAnimate = ref(false)
-const xDomain = ref<[min: number, max: number]>([0, 1])
-const yDomain = ref<[min: number, max: number]>([0, 1])
+const xDomain = ref([0, 1])
+const yDomain = ref([0, 1])
 
+const isBrushing = computed(() => brushExtent.value != null)
 const xScale = computed(() =>
   axisD3Scale(data.value.axis.x).domain(xDomain.value).range([0, boxWidth.value]),
 )
@@ -201,7 +185,7 @@ const yScale = computed(() =>
   axisD3Scale(data.value.axis.y).domain(yDomain.value).range([boxHeight.value, 0]),
 )
 
-const symbol: Symbol<unknown, Point> = d3.symbol()
+const symbol: d3.Symbol<unknown, Point> = d3.symbol()
 
 const animationDuration = computed(() => (shouldAnimate.value ? ANIMATION_DURATION_MS : 0))
 const margin = computed(() => {
@@ -320,7 +304,7 @@ const zoom = computed(() =>
 watchEffect(() => d3Zoom.value.call(zoom.value))
 
 /** Helper function called on pan/scroll. */
-function zoomed(event: D3ZoomEvent<Element, unknown>) {
+function zoomed(event: d3.D3ZoomEvent<Element, unknown>) {
   shouldAnimate.value = false
   const xScale_ = xScale.value
   const yScale_ = yScale.value
@@ -383,7 +367,7 @@ function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
 }
 
 /** Helper function called when starting to pan/scroll. */
-function startZoom(event: D3ZoomEvent<Element, unknown>) {
+function startZoom(event: d3.D3ZoomEvent<Element, unknown>) {
   startX = event.sourceEvent?.offsetX ?? 0
   startY = event.sourceEvent?.offsetY ?? 0
   actionStartXScale = xScale.value.copy()
@@ -397,7 +381,7 @@ const brush = computed(() =>
       [0, 0],
       [boxWidth.value, boxHeight.value],
     ])
-    .on('start brush', (event: D3BrushEvent<unknown>) => {
+    .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
     }),
 )
@@ -430,17 +414,12 @@ function zoomToSelected() {
   yDomain.value = [yMin, yMax]
 }
 
-useEventConditional(
-  document,
-  'keydown',
-  () => brushExtent.value != null,
-  (event) => {
-    if (shortcuts.zoomIn(event)) {
-      zoomToSelected()
-      endBrushing()
-    }
-  },
-)
+function zoomIn() {
+  zoomToSelected()
+  endBrushing()
+}
+
+useEventConditional(document, 'keydown', isBrushing, bindings.handler({ zoomIn }))
 
 watch([boxWidth, boxHeight], () => (shouldAnimate.value = false))
 
@@ -530,7 +509,7 @@ watchPostEffect(() => {
 // === Event handlers ===
 // ======================
 
-function fitAll() {
+function showAll() {
   shouldAnimate.value = true
   focus.value = undefined
   bounds.value = undefined
@@ -544,6 +523,7 @@ function fitAll() {
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
   ]
   updatePreprocessor()
+  endBrushing()
 }
 
 function endBrushing() {
@@ -551,11 +531,7 @@ function endBrushing() {
   d3Brush.value.call(brush.value.move, null)
 }
 
-useEvent(document, 'keydown', (event) => {
-  if (shortcuts.showAll(event)) {
-    fitAll()
-  }
-})
+useEvent(document, 'keydown', bindings.handler({ showAll }))
 useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
@@ -566,10 +542,10 @@ useEvent(document, 'scroll', endBrushing)
   <VisualizationContainer :below-toolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <img :src="ShowAllIcon" alt="Fit all" @click="fitAll" />
+        <img :src="ShowAllIcon" alt="Fit all" @pointerdown="showAll" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <img :src="FindIcon" alt="Zoom to selected" @click="zoomToSelected" />
+        <img :src="FindIcon" alt="Zoom to selected" @pointerdown="zoomToSelected" />
       </button>
     </template>
     <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>
