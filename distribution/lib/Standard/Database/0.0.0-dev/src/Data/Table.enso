@@ -271,9 +271,9 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when_any: By default, only columns consisting of all blank cells are
-         selected. If set to `True`, columns with one or more blank values are
-         selected.
+       - when: By default, only columns consisting of all blank cells are
+         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or
+         more blank values are selected.
        - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
 
@@ -297,9 +297,9 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when_any: By default, only columns consisting of all blank cells are
-         selected. If set to `True`, columns with one or more blank values are
-         selected.
+       - when: By default, only columns consisting of all blank cells are
+         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or
+         more blank values are selected.
        - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
 
@@ -2111,15 +2111,16 @@ type Table
        Remove rows which are all blank or containing blank values.
 
        Arguments:
-       - when_any: If `True`, then remove any row containing any blank values.
-         If `False`, then only remove rows with all blank values.
+       - when: If Blank_Selector.Any_Cell_Blank, then remove any row containing
+        any blank values.
+         If Blank_Selector.All_Cells_Blank, then only remove rows with all blank values.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    filter_blank_rows : Boolean -> Boolean -> Table
-    filter_blank_rows self when_any=False treat_nans_as_blank=False =
-        Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
+    filter_blank_rows : Blank_Selector -> Boolean -> Table
+    filter_blank_rows self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) treat_nans_as_blank=False =
+        Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
     ## ALIAS count
        GROUP Standard.Base.Metadata

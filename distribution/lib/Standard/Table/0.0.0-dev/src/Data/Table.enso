@@ -2006,8 +2006,9 @@ type Table
        Remove rows which are all blank or containing blank values.
 
        Arguments:
-       - when_any: If `True`, then remove any row containing any blank values.
-         If `False`, then only remove rows with all blank values.
+       - when: If Blank_Selector.Any_Cell_Blank, then remove any row containing
+        any blank values.
+         If Blank_Selector.All_Cells_Blank, then only remove rows with all blank values.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
 
        ? Blank values
