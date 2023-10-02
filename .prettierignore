@@ -43,3 +43,6 @@ enso/
 .bsp
 .idea
 .vscode
+
+# Stray files generated during build
+svm_*.md
