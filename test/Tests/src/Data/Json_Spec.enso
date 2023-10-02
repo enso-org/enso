@@ -98,7 +98,9 @@ spec =
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"zone":{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 zone=tz)
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33,"nanosecond":572104300}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33 nanosecond=572104300)
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"second":33}'.should_parse_as (Date_Time.new 2023 9 29 11 52 33)
-            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52]])
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52}'.should_parse_as (Date_Time.new 2023 9 29 11 52 00)
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"second":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["second", 52]])
+            '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"nanosecond":572104300}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52], ["nanosecond", 572104300]])
 
     Test.group "JSON Serialization" <|
         Test.specify "should print JSON structures to valid json" <|
