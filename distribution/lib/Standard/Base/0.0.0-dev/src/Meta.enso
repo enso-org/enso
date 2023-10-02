@@ -571,21 +571,74 @@ get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_construct
 
 instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"
 
-# Builder to create instrumentation for a function
+## PRIVATE
+   ADVANCED
+
+   Builder to create instrumentation for a function
 type Instrumentor
+    ## PRIVATE
     Value impl
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed at the begining of node/expression
+       execution. The callback `fn` gets UUID of the node/expression that is
+       being executed and can return `Nothing` to continue regular execution
+       or anything else to skip the execution and just return given value.
+
+       Arguments:
+       - fn: The callback function accepting UUID.
     on_enter self (fn : Text -> Any | Nothing) =
         instrumentor_builtin "onEnter" [ self.impl, fn ]
         self
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed when a node/expression evaluation
+       is over. The callback `fn` gets UUID and the computed value. Usually
+       the value is _cached_ and returned from `on_enter` callback next time
+       the same expression is evaluated.
+
+       Arguments:
+       - fn: The callback function accepting UUID and computed value
     on_return self (fn : Text -> Any -> Nothing) =
         instrumentor_builtin "onReturn" [ self.impl, fn ]
         self
-    on_function self (fn : Text -> Any | Nothing) =
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed when a node/expression result is a function.
+       The callback `fn` gets UUID as well as a wrapper around the function. The callback
+       can return `Nothing` (in such case the execution continues) or some other value,
+       which is then returned.
+
+       Arguments:
+       - fn: The callback function accepting UUID and function value
+    on_function self (fn : Text -> Any -> Any | Nothing) =
         instrumentor_builtin "onFunction" [ self.impl, fn ]
         self
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed when there is an exception.
+
+       Arguments:
+       - fn: The callback function accepting any object.
     on_exception self (fn : Any -> Nothing) =
         instrumentor_builtin "onException" [ self.impl, fn ]
         self
+
+    ## PRIVATE
+       ADVANCED
+
+       Activates configured instrumentor.
+
+       Arguments:
+       - value: The value of the atom in the meta representation.
     activate self =
         instrumentor_builtin "activate" [ self.impl ]
         self
