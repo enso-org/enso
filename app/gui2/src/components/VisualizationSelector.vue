@@ -1,22 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useDocumentEvent } from '../util/events'
+import { onMounted, ref } from 'vue'
 
 const props = defineProps<{ types: string[] }>()
 const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
 
 const rootNode = ref<HTMLElement>()
 
-useDocumentEvent('pointerdown', (event) => {
-  if (event.target instanceof Node && rootNode.value?.contains(event.target)) {
-    return
-  }
-  emit('hide')
+onMounted(() => {
+  setTimeout(() => rootNode.value?.focus(), 0)
 })
 </script>
 
 <template>
-  <div ref="rootNode" class="VisualizationSelector">
+  <div ref="rootNode" :tabindex="-1" class="VisualizationSelector" @blur="emit('hide')">
     <div class="background"></div>
     <ul>
       <li
