@@ -246,7 +246,9 @@ class ImportsTest extends PackageTest {
     val e = the[InterpreterException] thrownBy evalTestProject(
       "Test_Private_Modules_4"
     )
-    e.getMessage() should include("Cannot export submodule 'local.Test_Private_Modules_4.Sub.Priv_SubMod' of module 'local.Test_Private_Modules_4.Sub'")
+    e.getMessage() should include(
+      "Cannot export submodule 'local.Test_Private_Modules_4.Sub.Priv_SubMod' of module 'local.Test_Private_Modules_4.Sub'"
+    )
   }
 
   "Private module" should "be able to have only private submodules" in {
