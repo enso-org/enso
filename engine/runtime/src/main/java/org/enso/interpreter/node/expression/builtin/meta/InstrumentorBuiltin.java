@@ -73,13 +73,9 @@ public class InstrumentorBuiltin extends Node {
     if (args.length > 0 && args[0] instanceof UnresolvedSymbol symbol) {
       var fnAndType = symbol.resolveFor(this, symbol.getScope().getAssociatedType());
       if (fnAndType != null) {
-        var env = ctx.getEnvironment();
-        var instrument = env.getInstruments().get("id-value-extractor");
-        if (instrument != null) {
-          var service = env.lookup(instrument, IdExecutionService.class);
-          if (service != null) {
-            return new Builder(symbol.getScope().getModule(), service, fnAndType.getLeft().getCallTarget());
-          }
+        var service = ctx.getIdValueExtractor();
+        if (service != null) {
+          return new Builder(symbol.getScope().getModule(), service, fnAndType.getLeft().getCallTarget());
         }
       }
     }

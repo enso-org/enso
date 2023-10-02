@@ -42,6 +42,7 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.ForeignLanguage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionKey;
 
 import com.oracle.truffle.api.Assumption;
@@ -49,6 +50,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.InstrumentInfo;
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
@@ -67,24 +69,27 @@ import com.oracle.truffle.api.source.Source;
 import scala.jdk.javaapi.OptionConverters;
 
 /**
- * The language context is the internal state of the language that is associated with each thread in
- * a running Enso program.
+ * The language context is the internal state of the language that is associated
+ * with each thread in a running Enso program.
  */
 public final class EnsoContext {
 
-  private static final TruffleLanguage.ContextReference<EnsoContext> REFERENCE =
-      TruffleLanguage.ContextReference.create(EnsoLanguage.class);
+  private static final TruffleLanguage.ContextReference<EnsoContext> REFERENCE
+          = TruffleLanguage.ContextReference.create(EnsoLanguage.class);
 
   private final EnsoLanguage language;
   private final Env environment;
   private final boolean assertionsEnabled;
-  private @CompilationFinal Compiler compiler;
+  private @CompilationFinal
+  Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
   private final InputStream in;
   private final BufferedReader inReader;
-  private @CompilationFinal PackageRepository packageRepository;
-  private @CompilationFinal TopLevelScope topScope;
+  private @CompilationFinal
+  PackageRepository packageRepository;
+  private @CompilationFinal
+  TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ThreadExecutors threadExecutors;
   private final ResourceManager resourceManager;
@@ -116,12 +121,12 @@ public final class EnsoContext {
    * @param distributionManager a distribution manager
    */
   public EnsoContext(
-      EnsoLanguage language,
-      String home,
-      Env environment,
-      NotificationHandler notificationHandler,
-      LockManager lockManager,
-      DistributionManager distributionManager) {
+          EnsoLanguage language,
+          String home,
+          Env environment,
+          NotificationHandler notificationHandler,
+          LockManager lockManager,
+          DistributionManager distributionManager) {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
@@ -133,18 +138,18 @@ public final class EnsoContext {
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
-    this.isIrCachingDisabled =
-        getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
+    this.isIrCachingDisabled
+            = getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
-    this.shouldWaitForPendingSerializationJobs =
-        getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    this.compilerConfig =
-        new CompilerConfig(
-            isParallelismEnabled,
-            true,
-            getOption(RuntimeOptions.STRICT_ERRORS_KEY),
-            scala.Option.empty());
+    this.shouldWaitForPendingSerializationJobs
+            = getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
+    this.compilerConfig
+            = new CompilerConfig(
+                    isParallelismEnabled,
+                    true,
+                    getOption(RuntimeOptions.STRICT_ERRORS_KEY),
+                    scala.Option.empty());
     this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;
@@ -153,44 +158,46 @@ public final class EnsoContext {
     this.warningsLimit = getOption(RuntimeOptions.WARNINGS_LIMIT_KEY);
   }
 
-  /** Perform expensive initialization logic for the context. */
+  /**
+   * Perform expensive initialization logic for the context.
+   */
   public void initialize() {
     TruffleFileSystem fs = new TruffleFileSystem();
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
-    Optional<Package<TruffleFile>> projectPackage =
-        projectRoot.map(
-            file ->
-                packageManager
-                    .loadPackage(file)
-                    .fold(
-                        err -> {
-                          throw new ProjectLoadingFailure(file.getName(), err);
-                        },
-                        res -> res));
+    Optional<Package<TruffleFile>> projectPackage
+            = projectRoot.map(
+                    file
+                    -> packageManager
+                            .loadPackage(file)
+                            .fold(
+                                    err -> {
+                                      throw new ProjectLoadingFailure(file.getName(), err);
+                                    },
+                                    res -> res));
 
-    Optional<String> languageHome =
-        OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
+    Optional<String> languageHome
+            = OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
     var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
-    packageRepository =
-        DefaultPackageRepository.initializeRepository(
-            OptionConverters.toScala(projectPackage),
-            OptionConverters.toScala(languageHome),
-            OptionConverters.toScala(editionOverride),
-            distributionManager,
-            resourceManager,
-            this,
-            builtins,
-            notificationHandler);
+    packageRepository
+            = DefaultPackageRepository.initializeRepository(
+                    OptionConverters.toScala(projectPackage),
+                    OptionConverters.toScala(languageHome),
+                    OptionConverters.toScala(editionOverride),
+                    distributionManager,
+                    resourceManager,
+                    this,
+                    builtins,
+                    notificationHandler);
     topScope = new TopLevelScope(builtins, packageRepository);
-    this.compiler =
-        new Compiler(new TruffleCompilerContext(this), packageRepository, compilerConfig);
+    this.compiler
+            = new Compiler(new TruffleCompilerContext(this), packageRepository, compilerConfig);
 
     projectPackage.ifPresent(
-        pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
+            pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
 
     var preinit = environment.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
     if (preinit != null && preinit.length() > 0) {
@@ -204,7 +211,8 @@ public final class EnsoContext {
   }
 
   /**
-   * @param node the location of context access. Pass {@code null} if not in a node.
+   * @param node the location of context access. Pass {@code null} if not in a
+   * node.
    * @return the proper context instance for the current {@link
    *     com.oracle.truffle.api.TruffleContext}.
    */
@@ -231,9 +239,9 @@ public final class EnsoContext {
         with section: {s}
         with root nodes: {r}
         """
-          .replace("{n}", "" + n)
-          .replace("{s}", "" + n.getEncapsulatingSourceSection())
-          .replace("{r}", "" + n.getRootNode())
+              .replace("{n}", "" + n)
+              .replace("{s}", "" + n.getEncapsulatingSourceSection())
+              .replace("{r}", "" + n.getRootNode())
       );
       ex.printStackTrace();
       checkUntil = System.currentTimeMillis() + 10000;
@@ -244,7 +252,9 @@ public final class EnsoContext {
     return REFERENCE;
   }
 
-  /** Performs eventual cleanup before the context is disposed of. */
+  /**
+   * Performs eventual cleanup before the context is disposed of.
+   */
   public void shutdown() {
     threadExecutors.shutdown();
     threadManager.shutdown();
@@ -265,6 +275,7 @@ public final class EnsoContext {
     assert assertionsEnabled = true;
     return assertionsEnabled;
   }
+
   /**
    * Creates a truffle file for a given standard file.
    *
@@ -278,11 +289,15 @@ public final class EnsoContext {
   /**
    * Gets the compiler instance.
    *
-   * <p>The compiler is the portion of the interpreter that performs static analysis and
-   * transformation passes on the input program. A handle to the compiler lets you execute various
-   * portions of the compilation pipeline, including parsing, analysis, and final code generation.
+   * <p>
+   * The compiler is the portion of the interpreter that performs static
+   * analysis and transformation passes on the input program. A handle to the
+   * compiler lets you execute various portions of the compilation pipeline,
+   * including parsing, analysis, and final code generation.
    *
-   * <p>Having this access available means that Enso programs can metaprogram Enso itself.
+   * <p>
+   * Having this access available means that Enso programs can metaprogram Enso
+   * itself.
    *
    * @return a handle to the compiler
    */
@@ -326,17 +341,20 @@ public final class EnsoContext {
     return in;
   }
 
-  /** @return the standard input stream of characters. */
+  /**
+   * @return the standard input stream of characters.
+   */
   public BufferedReader getInReader() {
     return inReader;
   }
 
   /**
-   * Fetches the module name associated with a given file, using the environment packages
-   * information.
+   * Fetches the module name associated with a given file, using the environment
+   * packages information.
    *
    * @param path the path to decode.
-   * @return a qualified name of the module corresponding to the file, if exists.
+   * @return a qualified name of the module corresponding to the file, if
+   * exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(File path) {
     TruffleFile p = getTruffleFile(path);
@@ -344,11 +362,12 @@ public final class EnsoContext {
   }
 
   /**
-   * Fetches the module name associated with a given file, using the environment packages
-   * information.
+   * Fetches the module name associated with a given file, using the environment
+   * packages information.
    *
    * @param file the path to decode.
-   * @return a qualified name of the module corresponding to the file, if exists.
+   * @return a qualified name of the module corresponding to the file, if
+   * exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(TruffleFile file) {
     return PackageRepositoryUtils.getModuleNameForFile(packageRepository, file);
@@ -402,12 +421,13 @@ public final class EnsoContext {
    */
   public Optional<Module> findModuleByExpressionId(UUID expressionId) {
     return getTopScope().getModules().stream()
-        .filter(m -> m.containsUUID(expressionId))
-        .findFirst();
+            .filter(m -> m.containsUUID(expressionId))
+            .findFirst();
   }
 
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
+   *
    * @param file the file to register
    */
   @TruffleBoundary
@@ -427,8 +447,9 @@ public final class EnsoContext {
     }
   }
 
-  /** Checks whether provided object comes from Java. Either Java
-   * system libraries or libraries added by {@link #addToClassPath(TruffleFile)}.
+  /**
+   * Checks whether provided object comes from Java. Either Java system
+   * libraries or libraries added by {@link #addToClassPath(TruffleFile)}.
    *
    * @param obj the object to check
    * @return {@code true} or {@code false}
@@ -437,8 +458,8 @@ public final class EnsoContext {
     return environment.isHostObject(obj);
   }
 
-  /** Checks whether provided object comes from Java and represents a
-   * function.
+  /**
+   * Checks whether provided object comes from Java and represents a function.
    *
    * @param obj the object to check
    * @return {@code true} or {@code false}
@@ -449,6 +470,7 @@ public final class EnsoContext {
 
   /**
    * Converts an interop object into underlying Java representation.
+   *
    * @param obj object that {@link #isJavaPolyglotObject}
    * @return underlying object
    */
@@ -458,6 +480,7 @@ public final class EnsoContext {
 
   /**
    * Wraps a Java object into interop object.
+   *
    * @param obj java object
    * @return wrapper object
    */
@@ -467,12 +490,14 @@ public final class EnsoContext {
   }
 
   /**
-   * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
-   * This method also tries to lookup inner classes. More specifically, if the provided name
-   * resolves to an inner class, then the import of the outer class is resolved, and the inner class
-   * is looked up by iterating the members of the outer class via Truffle's interop protocol.
+   * Tries to lookup a Java class (host symbol in Truffle terminology) by its
+   * fully qualified name. This method also tries to lookup inner classes. More
+   * specifically, if the provided name resolves to an inner class, then the
+   * import of the outer class is resolved, and the inner class is looked up by
+   * iterating the members of the outer class via Truffle's interop protocol.
    *
-   * @param className Fully qualified class name, can also be nested static inner class.
+   * @param className Fully qualified class name, can also be nested static
+   * inner class.
    * @return If the java class is found, return it, otherwise return null.
    */
   @TruffleBoundary
@@ -482,8 +507,8 @@ public final class EnsoContext {
     for (int i = items.size() - 1; i >= 0; i--) {
       String pkgName = String.join(".", items.subList(0, i));
       String curClassName = items.get(i);
-      List<String> nestedClassPart =
-          i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
+      List<String> nestedClassPart
+              = i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
       try {
         var hostSymbol = lookupHostSymbol(pkgName, curClassName);
         if (nestedClassPart.isEmpty()) {
@@ -503,7 +528,7 @@ public final class EnsoContext {
   }
 
   private Object lookupHostSymbol(String pkgName, String curClassName)
-  throws UnknownIdentifierException, UnsupportedMessageException {
+          throws UnknownIdentifierException, UnsupportedMessageException {
     if (findGuestJava() == null) {
       return environment.lookupHostSymbol(pkgName + "." + curClassName);
     } else {
@@ -564,7 +589,7 @@ public final class EnsoContext {
   public Optional<Module> createModuleForFile(File path) {
     TruffleFile f = getTruffleFile(path);
     return getModuleNameForFile(path)
-        .map(name -> getTopScope().createModule(name, getPackageOf(f).orElse(null), f));
+            .map(name -> getTopScope().createModule(name, getPackageOf(f).orElse(null), f));
   }
 
   /**
@@ -586,8 +611,8 @@ public final class EnsoContext {
   }
 
   /**
-   * Returns the atom constructor corresponding to the {@code Nothing} type, for builtin constructs
-   * that need to return an atom of this type.
+   * Returns the atom constructor corresponding to the {@code Nothing} type, for
+   * builtin constructs that need to return an atom of this type.
    *
    * @return the builtin {@code Nothing} atom constructor
    */
@@ -636,7 +661,8 @@ public final class EnsoContext {
   }
 
   /**
-   * Checks value of {@link RuntimeOptions#INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY}.
+   * Checks value of
+   * {@link RuntimeOptions#INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY}.
    *
    * @return the value of the option
    */
@@ -653,7 +679,9 @@ public final class EnsoContext {
     return getOption(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS_KEY);
   }
 
-  /** The job parallelism or 1 */
+  /**
+   * The job parallelism or 1
+   */
   public int getJobParallelism() {
     var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
     var base = n == null ? 1 : n.intValue();
@@ -680,42 +708,58 @@ public final class EnsoContext {
     return threadExecutors.newFixedThreadPool(parallel, name, systemThreads);
   }
 
-  /** @return the thread manager for this context. */
+  /**
+   * @return the thread manager for this context.
+   */
   public ThreadManager getThreadManager() {
     return threadManager;
   }
 
-  /** @return the resource manager for this context */
+  /**
+   * @return the resource manager for this context
+   */
   public ResourceManager getResourceManager() {
     return resourceManager;
   }
 
-  /** @return whether inline caches should be disabled for this context. */
+  /**
+   * @return whether inline caches should be disabled for this context.
+   */
   public boolean isInlineCachingDisabled() {
     return isInlineCachingDisabled;
   }
 
-  /** @return whether IR caching should be disabled for this context. */
+  /**
+   * @return whether IR caching should be disabled for this context.
+   */
   public boolean isIrCachingDisabled() {
     return isIrCachingDisabled;
   }
 
-  /** @return the compiler configuration for this language */
+  /**
+   * @return the compiler configuration for this language
+   */
   public CompilerConfig getCompilerConfig() {
     return compilerConfig;
   }
 
-  /** @return the distribution manager for this language */
+  /**
+   * @return the distribution manager for this language
+   */
   public DistributionManager getDistributionManager() {
     return distributionManager;
   }
 
-  /** @return The logger for this language */
+  /**
+   * @return The logger for this language
+   */
   public TruffleLogger getLogger() {
     return logger;
   }
 
-  /** @return the package repository */
+  /**
+   * @return the package repository
+   */
   public PackageRepository getPackageRepository() {
     return packageRepository;
   }
@@ -731,9 +775,11 @@ public final class EnsoContext {
   }
 
   /**
-   * Returns the current clock value and atomically increments the counter by one.
+   * Returns the current clock value and atomically increments the counter by
+   * one.
    *
-   * <p>The counter is used to track the creation time of warnings.
+   * <p>
+   * The counter is used to track the creation time of warnings.
    */
   public long nextSequenceId() {
     return clock.getAndIncrement();
@@ -743,12 +789,16 @@ public final class EnsoContext {
     return executionEnvironment;
   }
 
-  /** Set the runtime execution environment of this context. */
+  /**
+   * Set the runtime execution environment of this context.
+   */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
     this.executionEnvironment = executionEnvironment;
   }
 
-  /** Returns a maximal number of warnings that can be attached to a value */
+  /**
+   * Returns a maximal number of warnings that can be attached to a value
+   */
   public int getWarningsLimit() {
     return this.warningsLimit;
   }
@@ -765,14 +815,16 @@ public final class EnsoContext {
     return 10;
   }
 
-  /** @return the notification handler. */
+  /**
+   * @return the notification handler.
+   */
   public NotificationHandler getNotificationHandler() {
     return notificationHandler;
   }
 
   public TruffleFile findLibraryRootPath(LibraryRoot root) {
     return environment.getInternalTruffleFile(
-      root.location().toAbsolutePath().normalize().toString()
+            root.location().toAbsolutePath().normalize().toString()
     );
   }
 
@@ -793,8 +845,8 @@ public final class EnsoContext {
   }
 
   public Thread createThread(boolean systemThread, Runnable run) {
-    return systemThread ? environment.createSystemThread(run) :
-      environment.createThread(run);
+    return systemThread ? environment.createSystemThread(run)
+            : environment.createThread(run);
   }
 
   public Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
@@ -807,6 +859,15 @@ public final class EnsoContext {
 
   public boolean isLanguageInstalled(String name) {
     return environment.getPublicLanguages().get(name) != null;
+  }
+
+  public IdExecutionService getIdValueExtractor() {
+    var instrument = environment.getInstruments().get("id-value-extractor");
+    if (instrument != null) {
+      return environment.lookup(instrument, IdExecutionService.class);
+    } else {
+      return null;
+    }
   }
 
   private <T> T getOption(OptionKey<T> key) {
