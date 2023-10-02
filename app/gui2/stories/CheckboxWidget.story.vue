@@ -3,6 +3,8 @@
 
 import { ref } from 'vue'
 
+import { logEvent } from 'histoire/client'
+
 import '@/assets/base.css'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 
@@ -11,6 +13,9 @@ const checkboxState = ref(false)
 
 <template>
   <Story title="Checkbox" group="widgets" :layout="{ type: 'grid', width: 200 }">
-    <CheckboxWidget v-model="checkboxState" />
+    <CheckboxWidget
+      v-model="checkboxState"
+      @update:modelValue="logEvent('update:modelValue', [$event])"
+    />
   </Story>
 </template>

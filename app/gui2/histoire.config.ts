@@ -12,4 +12,14 @@ export default defineConfig({
       { id: 'visualizations', title: 'Visualizations' },
     ],
   },
+  vite: {
+    resolve: {
+      alias: {
+        'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm': require.resolve('d3'),
+      },
+    },
+    define: {
+      HISTOIRE: 'true',
+    },
+  },
 })

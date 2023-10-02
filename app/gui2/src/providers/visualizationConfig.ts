@@ -1,5 +1,5 @@
-import type { Vec2 } from '@/util/vec2'
-import { inject, provide, type InjectionKey, type Ref } from 'vue'
+import { Vec2 } from '@/util/vec2'
+import { inject, provide, ref, type InjectionKey, type Ref } from 'vue'
 
 export interface VisualizationConfig {
   /** Possible visualization types that can be switched to. */
@@ -14,11 +14,25 @@ export interface VisualizationConfig {
   updateType: (type: string) => void
 }
 
+function defaultVisualizationConfig(): VisualizationConfig {
+  return {
+    fullscreen: false,
+    width: 200,
+    height: 150,
+    hide() {},
+    isCircularMenuVisible: false,
+    nodeSize: new Vec2(200, 150),
+    types: ['Example', 'Types', 'Here'],
+    updateType() {},
+  }
+}
+
 const provideKey = Symbol('visualizationConfig') as InjectionKey<Ref<VisualizationConfig>>
 
 export function useVisualizationConfig(): Ref<VisualizationConfig> {
+  if (HISTOIRE) return ref(defaultVisualizationConfig())
   const injected = inject(provideKey)
-  if (injected == null) throw new Error('AppConfig not provided')
+  if (injected == null) throw new Error('Visualization config not provided')
   return injected
 }
 

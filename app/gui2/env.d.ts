@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 declare const PROJECT_MANAGER_URL: string
+declare const HISTOIRE: boolean | undefined
 
 // This is an augmentation to the built-in `ImportMeta` interface.
 // This file MUST NOT contain any top-level imports.

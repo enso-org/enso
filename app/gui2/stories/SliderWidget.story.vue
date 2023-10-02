@@ -3,6 +3,8 @@
 
 import { ref } from 'vue'
 
+import { logEvent } from 'histoire/client'
+
 import '@/assets/base.css'
 import SliderWidget from '@/components/widgets/SliderWidget.vue'
 
@@ -13,6 +15,11 @@ const max = ref(100)
 
 <template>
   <Story title="Slider" group="widgets" :layout="{ type: 'grid', width: 200 }">
-    <SliderWidget v-model="state" :min="min" :max="max" />
+    <SliderWidget
+      v-model="state"
+      :min="min"
+      :max="max"
+      @update:modelValue="logEvent('update:modelValue', [$event])"
+    />
   </Story>
 </template>
