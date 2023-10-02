@@ -250,9 +250,11 @@ export const useProjectStore = defineStore('project', () => {
   ): ShallowRef<{} | undefined> {
     const id = random.uuidv4() as Uuid
     const visualizationData = shallowRef<{}>()
+    let wasEverAttached = false
 
     watch(visible, async (visible) => {
       if (visible) {
+        wasEverAttached = true
         await (
           await lsRpcConnection
         ).attachVisualization(id, expressionId, {
@@ -298,6 +300,11 @@ export const useProjectStore = defineStore('project', () => {
         `${OutboundPayload.VISUALIZATION_UPDATE}:${id}`,
         onVisualizationUpdate,
       )
+      if (wasEverAttached) {
+        await (
+          await lsRpcConnection
+        ).detachVisualization(id, expressionId, (await executionContextId)!)
+      }
     })
 
     return visualizationData
