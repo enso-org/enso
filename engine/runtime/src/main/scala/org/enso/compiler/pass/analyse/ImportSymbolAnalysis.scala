@@ -19,10 +19,10 @@ case object ImportSymbolAnalysis extends IRPass {
 
   override type Config = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRPass] =
     Seq(BindingAnalysis, GenerateMethodBodies)
 
-  override val invalidatedPasses: Seq[IRPass] =
+  override lazy val invalidatedPasses: Seq[IRPass] =
     Seq()
 
   /** @inheritdoc

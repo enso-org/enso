@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
-import SecretIcon from 'enso-assets/secret.svg'
+import ConnectorIcon from 'enso-assets/connector.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -17,19 +17,18 @@ import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as column from '../column'
 import EditableSpan from './editableSpan'
-import SvgMask from '../../authentication/components/svgMask'
 
-// ==================
-// === SecretName ===
-// ==================
+// =====================
+// === ConnectorName ===
+// =====================
 
-/** Props for a {@link SecretNameColumn}. */
-export interface SecretNameColumnProps extends column.AssetColumnProps {}
+/** Props for a {@link ConnectorNameColumn}. */
+export interface ConnectorNameColumnProps extends column.AssetColumnProps {}
 
 /** The icon and name of a {@link backendModule.SecretAsset}.
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
  * This should never happen. */
-export default function SecretNameColumn(props: SecretNameColumnProps) {
+export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
     const {
         item,
         setItem,
@@ -44,7 +43,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     const asset = item.item
     if (asset.type !== backendModule.AssetType.secret) {
         // eslint-disable-next-line no-restricted-syntax
-        throw new Error('`SecretNameColumn` can only display secret assets.')
+        throw new Error('`ConnectorNameColumn` can only display data connector assets.')
     }
     const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
@@ -72,10 +71,10 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 // `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.newSecret: {
+            case assetEventModule.AssetEventType.newDataConnector: {
                 if (item.key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        toastAndLog('Secrets cannot be created on the local backend')
+                        toastAndLog('Data connectors cannot be created on the local backend')
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -94,7 +93,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                                 type: assetListEventModule.AssetListEventType.delete,
                                 key: item.key,
                             })
-                            toastAndLog('Error creating new secret', error)
+                            toastAndLog('Error creating new data connector', error)
                         }
                     }
                 }
@@ -126,7 +125,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 }
             }}
         >
-            <SvgMask src={SecretIcon} />
+            <img src={ConnectorIcon} className="m-1" />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {

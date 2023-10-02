@@ -65,6 +65,7 @@ const brushStyle = computed(() => {
   border-radius: var(--radius-cursor);
   border: var(--margin-brush) solid #0000;
   margin: calc(0px - var(--margin-brush));
+  z-index: 1000;
 
   &.hidden {
     display: none;

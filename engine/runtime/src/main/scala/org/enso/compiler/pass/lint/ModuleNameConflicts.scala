@@ -16,10 +16,10 @@ case object ModuleNameConflicts extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   /** The passes that this pass depends _directly_ on to run. */
-  override val precursorPasses: Seq[IRPass] = Seq(ComplexType)
+  override lazy val precursorPasses: Seq[IRPass] = Seq(ComplexType)
 
   /** The passes that are invalidated by running this pass. */
-  override val invalidatedPasses: Seq[IRPass] = Seq()
+  override lazy val invalidatedPasses: Seq[IRPass] = Seq()
 
   /** Lints a module
     *

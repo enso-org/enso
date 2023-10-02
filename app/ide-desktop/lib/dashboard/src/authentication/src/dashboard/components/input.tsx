@@ -23,7 +23,7 @@ export interface InputProps extends InputAttributes {
     setValue: (value: string) => void
 }
 
-/** A component for authentication from inputs, with preset styles. */
+/** A component for authentication form inputs, with preset styles. */
 export default function Input(props: InputProps) {
     const { setValue, error, validate = false, onChange, onBlur, ...passthroughProps } = props
     const [reportTimeoutHandle, setReportTimeoutHandle] = React.useState<number | null>(null)
