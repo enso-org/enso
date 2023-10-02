@@ -446,7 +446,8 @@ filter_blank_rows table when_any treat_nans_as_blank =
     case cols.not_empty of
         True ->
             merge = if when_any then (||) else (&&)
-            missing_mask = cols.map (_.is_blank treat_nans_as_blank) . reduce merge
+            missing_mask = cols.map (_.is_blank treat_nans_as_blank) . reduce col1-> col2->
+                merge col1 col2 . rename "blank_indicator"
             non_missing_mask = missing_mask.not
             table.filter non_missing_mask Filter_Condition.Is_True
         False -> table
