@@ -128,12 +128,13 @@ type Connection
 
     ## PRIVATE
        Gets a list of the table types
-    table_types : [Text]
+    table_types : Vector Text
     table_types self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
 
-    ## Returns a materialized Table of all the matching views and tables.
+    ## GROUP Standard.Base.Metadata
+       Returns a materialized Table of all the matching views and tables.
 
        ? Temporary Tables
 
@@ -354,6 +355,7 @@ type Connection
         if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+                stmt.toString.write "C:\Temp\MyQueries.sql" on_existing_file=Existing_File_Behavior.Append
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
@@ -372,6 +374,17 @@ type Connection
     drop_table : Text -> Boolean -> Nothing
     drop_table self table_name if_exists=False =
         self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name if_exists))
+
+    ## PRIVATE
+       Removes all rows from a table.
+
+       Arguments:
+       - table_name: the name of the table to truncate.
+    truncate_table : Text -> Nothing ! Table_Not_Found
+    truncate_table self table_name =
+        ensure_exists = self.query (SQL_Query.Table_Name table_name)
+        ensure_exists.if_not_error <|
+            self.execute_update (self.dialect.generate_sql (Query.Truncate_Table table_name))
 
     ## PRIVATE
        Returns the base `Connection` instance.
@@ -409,7 +422,8 @@ type Connection
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self =
         column_naming_properties = self.entity_naming_properties.for_column_names
-        Column_Naming_Helper.Value column_naming_properties
+        generated_column_naming_properties = self.entity_naming_properties.for_generated_column_names
+        Column_Naming_Helper.Value column_naming_properties generated_column_naming_properties
 
     ## PRIVATE
        Creates a Table reference that refers to a table with the given name.

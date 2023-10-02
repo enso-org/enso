@@ -116,3 +116,21 @@ macro_rules! generate_internal_format_instances_item {
 }
 
 crate::with_texture_format_relations!(generate_internal_format_instances []);
+
+/// Generate a function that returns the format for any `InternalFormat`.
+#[macro_export]
+macro_rules! generate_format_map {
+    ([] $( $internal_format:ident $format:ident $sampler:ident
+           $renderable:tt $filterable:tt $blendable:tt $elem_descs:tt)* ) => {
+        impl AnyInternalFormat {
+            /// Return the [`Format`] corresponding to this internal format.
+            pub fn format(self) -> AnyFormat {
+                match self {
+                    $(<AnyInternalFormat>::$internal_format => <AnyFormat>::$format),*
+                }
+            }
+        }
+    }
+}
+
+crate::with_texture_format_relations!(generate_format_map []);

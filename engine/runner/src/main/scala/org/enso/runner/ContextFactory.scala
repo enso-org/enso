@@ -1,14 +1,17 @@
 package org.enso.runner
 
-import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
+import org.enso.logger.Converter
+import org.enso.logger.JulHandler
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
 }
 import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
+import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
+import org.slf4j.event.Level
 
-import java.io.{InputStream, OutputStream}
+import java.io.{File, InputStream, OutputStream}
 
 /** Utility class for creating Graal polyglot contexts.
   */
@@ -36,7 +39,7 @@ class ContextFactory {
     in: InputStream,
     out: OutputStream,
     repl: Repl,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean,
     strictErrors: Boolean                  = false,
@@ -49,11 +52,22 @@ class ContextFactory {
     executionEnvironment.foreach { name =>
       options.put("enso.ExecutionEnvironment", name)
     }
-    val context = Context
+    var javaHome = System.getenv("JAVA_HOME");
+    if (javaHome == null) {
+      javaHome = System.getProperty("java.home");
+    }
+    if (javaHome == null) {
+      throw new IllegalStateException("Specify JAVA_HOME environment property");
+    }
+    val logLevelName = Converter.toJavaLevel(logLevel).getName
+    val builder = Context
       .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
-      .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
+      .allowHostAccess(
+        new HostAccessFactory()
+          .allWithTypeMapping()
+      )
       .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
@@ -83,12 +97,34 @@ class ContextFactory {
       }
       .option(
         RuntimeOptions.LOG_LEVEL,
-        JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
+        logLevelName
       )
-      .logHandler(
-        JavaLoggingLogHandler.create(JavaLoggingLogHandler.defaultLevelMapping)
-      )
-      .build
-    new PolyglotContext(context)
+      .logHandler(JulHandler.get())
+    val graalpy = new File(
+      new File(
+        new File(new File(new File(projectRoot), "polyglot"), "python"),
+        "bin"
+      ),
+      "graalpy"
+    )
+    if (graalpy.exists()) {
+      builder.option("python.Executable", graalpy.getAbsolutePath());
+    }
+    if (
+      Engine
+        .newBuilder()
+        .allowExperimentalOptions(true)
+        .build()
+        .getLanguages()
+        .containsKey("java")
+    ) {
+      builder
+        .option("java.ExposeNativeJavaVM", "true")
+        .option("java.Polyglot", "true")
+        .option("java.UseBindingsLoader", "true")
+        .option("java.JavaHome", javaHome)
+        .allowCreateThread(true)
+    }
+    new PolyglotContext(builder.build)
   }
 }

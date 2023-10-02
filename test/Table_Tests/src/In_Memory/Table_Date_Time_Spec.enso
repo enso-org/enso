@@ -38,7 +38,8 @@ spec =
         Test.specify "should serialise back to input" <|
             expected_text = normalize_lines <|
                 (enso_project.data / "datetime_sample_normalized_hours.csv").read_text
-            delimited = Text.from expected format=(Delimited "," line_endings=Line_Ending_Style.Unix)
+            data_formatter = Data_Formatter.Value . with_datetime_formats datetime_formats=["yyyy-MM-dd HH:mm:ss"]
+            delimited = Text.from expected format=(Delimited "," line_endings=Line_Ending_Style.Unix value_formatter=data_formatter)
             delimited.should_equal expected_text
 
         Test.specify "should serialise dates with format" <|

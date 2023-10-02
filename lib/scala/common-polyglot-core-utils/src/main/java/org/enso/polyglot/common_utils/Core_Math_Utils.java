@@ -13,6 +13,12 @@ public class Core_Math_Utils {
   /** Minimum value for the `n` parameter to `roundDouble`. */
   private static final double ROUND_MAX_DOUBLE = 99999999999999.0;
 
+  /** Minimum value for the `n` parameter to `roundDouble`. */
+  private static final long ROUND_MIN_LONG = -99999999999999L;
+
+  /** Minimum value for the `n` parameter to `roundDouble`. */
+  private static final long ROUND_MAX_LONG = 99999999999999L;
+
   /**
    * Round to a specified number of decimal places.
    *
@@ -31,8 +37,7 @@ public class Core_Math_Utils {
    * @throws IllegalArgumentException if `n` is outside the allowed range.
    * @throws IllegalArgumentException if `decimalPlaces` is outside the allowed range.
    */
-  public static double roundDouble(double n, int decimalPlaces, boolean useBankers) {
-
+  public static double roundDouble(double n, long decimalPlaces, boolean useBankers) {
     if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
       String msg =
           "round: decimalPlaces must be between "
@@ -83,9 +88,10 @@ public class Core_Math_Utils {
    *     in rounding to positive integer powers of 10. Must be between -15 and 15 (inclusive).
    * @param useBankers: Rounds mid-point to nearest even number.
    * @return the rounded number.
+   * @throws IllegalArgumentException if `n` is outside the allowed range.
    * @throws IllegalArgumentException if `decimalPlaces` is outside the allowed range.
    */
-  public static long roundLong(long n, int decimalPlaces, boolean useBankers) {
+  public static long roundLong(long n, long decimalPlaces, boolean useBankers) {
     if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
       String msg =
           "round: decimalPlaces must be between "
@@ -94,6 +100,16 @@ public class Core_Math_Utils {
               + ROUND_MAX_DECIMAL_PLACES
               + " (inclusive), but was "
               + decimalPlaces;
+      throw new IllegalArgumentException(msg);
+    }
+    if (n < ROUND_MIN_LONG || n > ROUND_MAX_LONG) {
+      String msg =
+          "Error: `round` can only accept values between "
+              + ROUND_MIN_LONG
+              + " and "
+              + ROUND_MAX_LONG
+              + " (inclusive), but was "
+              + n;
       throw new IllegalArgumentException(msg);
     }
 

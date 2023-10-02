@@ -126,6 +126,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Refactoring](#refactoring)
   - [`refactoring/renameProject`](#refactoringrenameproject)
   - [`refactoring/renameSymbol`](#refactoringrenamesymbol)
+  - [`refactoring/projectRenamed`](#refactoringprojectrenamed)
 - [Execution Management Operations](#execution-management-operations)
   - [Execution Management Example](#execution-management-example)
   - [Create Execution Context](#create-execution-context)
@@ -3412,6 +3413,41 @@ Current limitations of the method renaming are:
 - [`RefactoringNotSupported`](#refactoringnotsupported) to signal that the
   refactoring of the given expression is not supported.
 
+### `refactoring/projectRenamed`
+
+This is a notification sent from the server to the clients to inform them about
+the new project name.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /**
+   * Old normalized name of the project.
+   */
+  oldNormalizedName: string;
+
+  /**
+   * New normalized name of the prject.
+   */
+  newNormalizedName: string;
+
+  /**
+   * New display name of the project.
+   */
+  newName: string;
+}
+```
+
+#### Errors
+
+None
+
 ## Execution Management Operations
 
 The execution management portion of the language server API deals with exposing
@@ -4600,7 +4636,7 @@ Sent from client to the server to receive the autocomplete suggestion.
   returnType?: string;
   // Filter by the suggestion types
   tags?: [SuggestionEntryType];
-  // Filter by `static` attribute of the suggestion
+  // Filter by `static` attribute of method suggestions
   isStatic?: Boolean;
 }
 ```

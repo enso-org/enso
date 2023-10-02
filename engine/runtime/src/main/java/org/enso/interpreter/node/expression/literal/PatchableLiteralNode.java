@@ -3,18 +3,17 @@ package org.enso.interpreter.node.expression.literal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.source.SourceSection;
 import java.util.function.Predicate;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.IR$Literal$Number;
-import org.enso.compiler.core.IR$Literal$Text;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Literal;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.tag.Patchable;
 
 /** Generic literal node. */
 @NodeInfo(shortName = "Literal", description = "Constant literal expression")
-final class PatchableLiteralNode extends ExpressionNode implements Patchable, Predicate<IR.Expression> {
+final class PatchableLiteralNode extends ExpressionNode implements Patchable, Predicate<Expression> {
   private final LiteralNode node;
   private Object value;
 
@@ -40,7 +39,7 @@ final class PatchableLiteralNode extends ExpressionNode implements Patchable, Pr
   }
 
   @Override
-  public boolean test(IR.Expression ir) {
+  public boolean test(Expression ir) {
     var newValue = parseLiteralIr(ir);
     if (newValue != null && this.value.getClass() == newValue.getClass()) {
       this.value = newValue;
@@ -51,8 +50,8 @@ final class PatchableLiteralNode extends ExpressionNode implements Patchable, Pr
   }
 
   @Override
-  public SourceSection getSourceSection() {
-    return node.getSourceSection();
+  public int[] getSourceSectionBounds() {
+    return node.getSourceSectionBounds();
   }
 
   @Override
@@ -62,14 +61,14 @@ final class PatchableLiteralNode extends ExpressionNode implements Patchable, Pr
 
   @Override
   @SuppressWarnings("unchecked")
-  public <N extends Node & Predicate<IR.Expression>> N asPatchableNode() {
+  public <N extends Node & Predicate<Expression>> N asPatchableNode() {
     return (N) this;
   }
 
-  private static Object parseLiteralIr(IR.Expression ir) {
+  private static Object parseLiteralIr(Expression ir) {
     return switch (ir) {
-      case IR$Literal$Text t -> Text.create(t.text());
-      case IR$Literal$Number n -> n.numericValue();
+      case Literal.Text t -> Text.create(t.text());
+      case Literal.Number n -> n.numericValue();
       default -> null;
     };
   }

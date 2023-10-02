@@ -43,19 +43,22 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
+import org.enso.logger.Converter
 import org.enso.logger.masking.{MaskedPath, Masking}
-import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
+import org.enso.logger.JulHandler
+import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
+import org.slf4j.event.Level
 import org.slf4j.LoggerFactory
 
 import java.io.File
 import java.net.URI
 import java.time.Clock
-
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -64,7 +67,7 @@ import scala.util.{Failure, Success}
   * @param serverConfig configuration for the language server
   * @param logLevel log level for the Language Server
   */
-class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
+class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
   log.info(
@@ -284,7 +287,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  val context = Context
+  val builder = Context
     .newBuilder()
     .allowAllAccess(true)
     .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
@@ -294,7 +297,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
     .option(
       RuntimeOptions.LOG_LEVEL,
-      JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
+      Converter.toJavaLevel(logLevel).getName
     )
     .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
     .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
@@ -306,9 +309,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(
-      JavaLoggingLogHandler.create(JavaLoggingLogHandler.defaultLevelMapping)
-    )
+    .logHandler(JulHandler.get())
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -319,10 +320,25 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         connection
       } else null
     })
-    .build()
+  if (
+    Engine
+      .newBuilder()
+      .allowExperimentalOptions(true)
+      .build
+      .getLanguages()
+      .containsKey("java")
+  ) {
+    builder
+      .option("java.ExposeNativeJavaVM", "true")
+      .option("java.Polyglot", "true")
+      .option("java.UseBindingsLoader", "true")
+      .allowCreateThread(true)
+  }
+
+  val context = builder.build()
   log.trace("Created Runtime context [{}].", context)
 
-  system.eventStream.setLogLevel(LogLevel.toAkka(logLevel))
+  system.eventStream.setLogLevel(AkkaConverter.toAkka(logLevel))
   log.trace("Set akka log level to [{}].", logLevel)
 
   val runtimeKiller =
@@ -356,13 +372,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "project-settings-manager"
   )
 
+  val libraryLocations =
+    LibraryLocations.resolve(
+      distributionManager,
+      Some(languageHome),
+      Some(contentRoot.file.toPath)
+    )
+
   val localLibraryManager = system.actorOf(
-    LocalLibraryManager.props(contentRoot.file, distributionManager),
+    LocalLibraryManager.props(contentRoot.file, libraryLocations),
     "local-library-manager"
   )
-
-  val libraryLocations =
-    LibraryLocations.resolve(distributionManager, Some(languageHome))
 
   val libraryConfig = LibraryConfig(
     localLibraryManager      = localLibraryManager,

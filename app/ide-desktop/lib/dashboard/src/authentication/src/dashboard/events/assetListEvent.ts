@@ -17,8 +17,11 @@ export enum AssetListEventType {
     newFolder = 'new-folder',
     newProject = 'new-project',
     uploadFiles = 'upload-files',
-    newSecret = 'new-secret',
+    newDataConnector = 'new-data-connector',
+    closeFolder = 'close-folder',
+    willDelete = 'will-delete',
     delete = 'delete',
+    removeSelf = 'remove-self',
 }
 
 /** Properties common to all asset list events. */
@@ -31,8 +34,11 @@ interface AssetListEvents {
     newFolder: AssetListNewFolderEvent
     newProject: AssetListNewProjectEvent
     uploadFiles: AssetListUploadFilesEvent
-    newSecret: AssetListNewSecretEvent
+    newDataConnector: AssetListNewDataConnectorEvent
+    closeFolder: AssetListCloseFolderEvent
+    willDelete: AssetListWillDeleteEvent
     delete: AssetListDeleteEvent
+    removeSelf: AssetListRemoveSelfEvent
 }
 
 /** A type to ensure that {@link AssetListEvents} contains every {@link AssetListEventType}. */
@@ -43,7 +49,7 @@ type SanityCheck<
         [Type in keyof typeof AssetListEventType]: AssetListBaseEvent<
             (typeof AssetListEventType)[Type]
         >
-    } = AssetListEvents
+    } = AssetListEvents,
     // eslint-disable-next-line no-restricted-syntax
 > = T
 
@@ -68,17 +74,34 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
     files: File[]
 }
 
-/** A signal to create a new secret. */
-interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
+/** A signal to create a new data connector. */
+interface AssetListNewDataConnectorEvent
+    extends AssetListBaseEvent<AssetListEventType.newDataConnector> {
     parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
     name: string
     value: string
 }
 
+/** A signal to close (collapse) a folder. */
+interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
+    id: backend.DirectoryId
+    key: backend.DirectoryId
+}
+
+/** A signal that a file will be deleted. */
+interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType.willDelete> {
+    key: backend.AssetId
+}
+
 /** A signal that a file has been deleted. This must not be called before the request is
  * finished. */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
+    key: backend.AssetId
+}
+
+/** A signal for a file to remove itself from the asset list, without being deleted. */
+interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType.removeSelf> {
     id: backend.AssetId
 }
 

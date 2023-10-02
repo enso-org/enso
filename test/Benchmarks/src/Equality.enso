@@ -39,46 +39,94 @@ count_entries_polyglot vector element expected_count=1 =
         IO.println msg
         Panic.throw (Illegal_State.Error msg)
 
-bench =
-    n = 100000
-    iter_size = 100
-    num_iterations = 10
 
-    integer_vec = Vector.new n (ix -> ix)
-    boolean_vec = integer_vec.map x->
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+
+type Data
+    Value ~integer_vec ~boolean_vec ~text_vec ~date_vec ~datetime_vec ~uniform_atom_vec ~simple_variant_atom_vec ~complex_variant_atom_vec ~polyglot_vec
+
+    create vector_size =
+        Data.Value (create_int_vec vector_size) (create_boolean_vec vector_size) (create_text_vec vector_size) (create_date_vec vector_size) (create_datetime_vec vector_size) (create_uniform_atom_vec vector_size) (create_simple_variant_atom_vec vector_size) (create_complex_variant_atom_vec vector_size) (create_polyglot_vec vector_size)
+
+create_int_vec vector_size = Vector.new vector_size (ix -> ix)
+
+create_boolean_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
         x % 5 == 0
-    text_vec = integer_vec.map .to_text
 
-    uniform_atom_vec = integer_vec.map x->
-        Uniform_Type.Only_Ctor (x + 10) (x * 2)
-    simple_variant_atom_vec = integer_vec.map x->
-        if x % 5 == 0 then Simple_Sum_Type.Variant_A else Simple_Sum_Type.Variant_B
-    complex_variant_atom_vec = integer_vec.map x->
-        if x % 5 == 0 then Sum_Type_With_Values.Ctor_A (x + 10) (x * 2) else Sum_Type_With_Values.Ctor_B x
+create_text_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map .to_text
 
-    polyglot_vec = integer_vec.map x->
-        Graal_Pair.create (x + 10) (x * 2)
-
+create_date_vec vector_size =
+    integer_vec = create_int_vec vector_size
     first_day = Date.new 1971
-    date_vec = integer_vec.map x->
+    integer_vec.map x->
         first_day + (Period.new days=x)
+
+create_datetime_vec vector_size =
+    integer_vec = create_int_vec vector_size
     first_dt = Date_Time.new 1971
-    datetime_vec = integer_vec.map x->
+    integer_vec.map x->
         first_dt + (Duration.new minutes=x)
 
-    Bench.measure (count_entries integer_vec 4567) "Integer Equality" iter_size num_iterations
-    Bench.measure (count_entries boolean_vec True expected_count=(n . div 5)) "Boolean Equality" iter_size num_iterations
-    Bench.measure (count_entries text_vec "4567") "Text Equality" iter_size num_iterations
-    Bench.measure (count_entries date_vec (Date.new 1980 12 30)) "Date Equality" iter_size num_iterations
-    Bench.measure (count_entries datetime_vec (Date_Time.new 1971 1 2 12 30)) "Date_Time Equality" iter_size num_iterations
+create_uniform_atom_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        Uniform_Type.Only_Ctor (x + 10) (x * 2)
 
-    Bench.measure (count_entries uniform_atom_vec (Uniform_Type.Only_Ctor 110 200)) "Custom Atom Equality - single constructor" iter_size num_iterations
-    Bench.measure (count_entries simple_variant_atom_vec Simple_Sum_Type.Variant_A expected_count=(n . div 5)) "Custom Atom Equality - 2 constructors without data" iter_size num_iterations
-    Bench.measure (count_entries complex_variant_atom_vec (Sum_Type_With_Values.Ctor_B 123)) "Custom Atom Equality - 2 constructors with data" iter_size num_iterations
+create_simple_variant_atom_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        if x % 5 == 0 then Simple_Sum_Type.Variant_A else Simple_Sum_Type.Variant_B
 
-    Bench.measure (count_entries polyglot_vec (Graal_Pair.create 110 200)) "Java Polyglot ==" iter_size num_iterations
-    Bench.measure (count_entries_polyglot polyglot_vec (Graal_Pair.create 110 200)) "Java Polyglot .equals" iter_size num_iterations
+create_complex_variant_atom_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        if x % 5 == 0 then Sum_Type_With_Values.Ctor_A (x + 10) (x * 2) else Sum_Type_With_Values.Ctor_B x
 
-    Nothing
+create_polyglot_vec vector_size =
+    integer_vec = create_int_vec vector_size
+    integer_vec.map x->
+        Graal_Pair.create (x + 10) (x * 2)
 
-main = bench
+
+collect_benches = Bench.build builder->
+    n = 100000
+
+    data = Data.create n
+
+    builder.group "Equality" options group_builder->
+        group_builder.specify "Integer_Equality" <|
+            count_entries data.integer_vec 4567
+
+        group_builder.specify "Boolean_Equality" <|
+            count_entries data.boolean_vec True expected_count=(n . div 5)
+
+        group_builder.specify "Text_Equality" <|
+            count_entries data.text_vec "4567"
+
+        group_builder.specify "Date_Equality" <|
+            count_entries data.date_vec (Date.new 1980 12 30)
+
+        group_builder.specify "Date_Time_Equality" <|
+            count_entries data.datetime_vec (Date_Time.new 1971 1 2 12 30)
+
+        group_builder.specify "Custom_Atom_Equality_single_constructor" <|
+            count_entries data.uniform_atom_vec (Uniform_Type.Only_Ctor 110 200)
+
+        group_builder.specify "Custom_Atom_Equality_2_constructors_without_data" <|
+            count_entries data.simple_variant_atom_vec Simple_Sum_Type.Variant_A expected_count=(n . div 5)
+
+        group_builder.specify "Custom_Atom_Equality_2_constructors_with_data" <|
+            count_entries data.complex_variant_atom_vec (Sum_Type_With_Values.Ctor_B 123)
+
+        group_builder.specify "Java_Polyglot_double_equals" <|
+            count_entries data.polyglot_vec (Graal_Pair.create 110 200)
+
+        group_builder.specify "Java_Polyglot_dot_equals" <|
+            count_entries_polyglot data.polyglot_vec (Graal_Pair.create 110 200)
+
+
+main = collect_benches . run_main

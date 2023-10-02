@@ -1,10 +1,13 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module, Name}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Cons, ModuleReference}
+import org.enso.compiler.data.BindingsMap.Cons
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{
   ComplexType,
@@ -28,11 +31,11 @@ case object BindingAnalysis extends IRPass {
   override type Config = IRPass.Configuration.Default
 
   /** The passes that this pass depends _directly_ on to run. */
-  override val precursorPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRPass] =
     Seq(ComplexType, FunctionBinding, GenerateMethodBodies)
 
   /** The passes that are invalidated by running this pass. */
-  override val invalidatedPasses: Seq[IRPass] =
+  override lazy val invalidatedPasses: Seq[IRPass] =
     Seq(MethodDefinitions, Patterns)
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -45,44 +48,43 @@ case object BindingAnalysis extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
-    val definedSumTypes = ir.bindings.collect {
-      case sumType: IR.Module.Scope.Definition.Type =>
-        val isBuiltinType = sumType
-          .getMetadata(ModuleAnnotations)
-          .exists(_.annotations.exists(_.name == "@Builtin_Type"))
-        BindingsMap.Type(
-          sumType.name.name,
-          sumType.members.map(m =>
-            Cons(
-              m.name.name,
-              m.arguments.length,
-              m.arguments.forall(_.defaultValue.isDefined)
-            )
-          ),
-          isBuiltinType
-        )
+  ): Module = {
+    val definedSumTypes = ir.bindings.collect { case sumType: Definition.Type =>
+      val isBuiltinType = sumType
+        .getMetadata(ModuleAnnotations)
+        .exists(_.annotations.exists(_.name == "@Builtin_Type"))
+      BindingsMap.Type(
+        sumType.name.name,
+        sumType.params.map(_.name.name),
+        sumType.members.map(m =>
+          Cons(
+            m.name.name,
+            m.arguments.length,
+            m.arguments.forall(_.defaultValue.isDefined)
+          )
+        ),
+        isBuiltinType
+      )
     }
-    val importedPolyglot = ir.imports.collect {
-      case poly: IR.Module.Scope.Import.Polyglot =>
-        BindingsMap.PolyglotSymbol(poly.getVisibleName)
+    val importedPolyglot = ir.imports.collect { case poly: imports.Polyglot =>
+      BindingsMap.PolyglotSymbol(poly.getVisibleName)
     }
     val moduleMethods = ir.bindings
-      .collect { case method: IR.Module.Scope.Definition.Method.Explicit =>
+      .collect { case method: definition.Method.Explicit =>
         val ref = method.methodReference
         ref.typePointer match {
-          case Some(IR.Name.Qualified(List(), _, _, _)) =>
+          case Some(Name.Qualified(List(), _, _, _)) =>
             Some(ref.methodName.name)
-          case Some(IR.Name.Qualified(List(n), _, _, _)) =>
+          case Some(Name.Qualified(List(n), _, _, _)) =>
             val shadowed = definedSumTypes.exists(_.name == n.name)
-            if (!shadowed && n.name == moduleContext.module.getName.item)
+            if (!shadowed && n.name == moduleContext.getName().item)
               Some(ref.methodName.name)
             else None
-          case Some(IR.Name.Literal(n, _, _, _, _)) =>
+          case Some(Name.Literal(n, _, _, _, _)) =>
             val shadowed = definedSumTypes.exists(_.name == n)
-            if (!shadowed && n == moduleContext.module.getName.item)
+            if (!shadowed && n == moduleContext.getName().item)
               Some(ref.methodName.name)
             else None
           case None => Some(ref.methodName.name)
@@ -94,7 +96,7 @@ case object BindingAnalysis extends IRPass {
     ir.updateMetadata(
       this -->> BindingsMap(
         definedSumTypes ++ importedPolyglot ++ moduleMethods,
-        ModuleReference.Concrete(moduleContext.module)
+        moduleContext.moduleReference()
       )
     )
   }
@@ -109,7 +111,7 @@ case object BindingAnalysis extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir
+  ): Expression = ir
 }

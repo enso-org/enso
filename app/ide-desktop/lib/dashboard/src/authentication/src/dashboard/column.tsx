@@ -6,18 +6,24 @@ import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import DocsIcon from 'enso-assets/docs.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import PlusIcon from 'enso-assets/plus.svg'
+import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
+import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
 import * as assetEvent from './events/assetEvent'
+import * as assetTreeNode from './assetTreeNode'
 import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
+import * as permissions from './permissions'
+import * as sorting from './sorting'
 import * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
 
 import * as assetsTable from './components/assetsTable'
+import * as categorySwitcher from './components/categorySwitcher'
 import AssetNameColumn from './components/assetNameColumn'
 import ManagePermissionsModal from './components/managePermissionsModal'
 import PermissionDisplay from './components/permissionDisplay'
@@ -55,6 +61,9 @@ export enum Column {
 /** Columns that can be toggled between visible and hidden. */
 export type ExtraColumn = (typeof EXTRA_COLUMNS)[number]
 
+/** Columns that can be used as a sort column. */
+export type SortableColumn = Column.modified | Column.name
+
 // =================
 // === Constants ===
 // =================
@@ -88,26 +97,26 @@ export const COLUMN_NAME: Record<Column, string> = {
 } as const
 
 const COLUMN_CSS_CLASSES =
-    'text-left bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0'
-const NORMAL_COLUMN_CSS_CLASSES = `px-4 py-1 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
+    'text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0'
+const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
 
-/** CSS classes for every column. Currently only used to set the widths. */
+/** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: `min-w-60 px-1.5 py-2 rounded-l-full ${NORMAL_COLUMN_CSS_CLASSES}`,
-    [Column.modified]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
-    [Column.sharedWith]: `min-w-36 ${NORMAL_COLUMN_CSS_CLASSES}`,
+    [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 border-l-0 ${COLUMN_CSS_CLASSES}`,
+    [Column.modified]: `min-w-33.25 ${NORMAL_COLUMN_CSS_CLASSES}`,
+    [Column.sharedWith]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.tags]: `min-w-80 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.accessedByProjects]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.accessedData]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.docs]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
 } as const
 
-/** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
-export type AssetColumnProps<T extends backend.AnyAsset> = tableColumn.TableColumnProps<
-    T,
+/** {@link tableColumn.TableColumnProps} for an unknown variant of {@link backend.Asset}. */
+export type AssetColumnProps = tableColumn.TableColumnProps<
+    assetTreeNode.AssetTreeNode,
     assetsTable.AssetsTableState,
     assetsTable.AssetRowState,
-    T['id']
+    backend.AssetId
 >
 
 // =====================
@@ -136,33 +145,8 @@ export function getColumnList(backendType: backend.BackendType, extraColumns: Se
 // ==========================
 
 /** A column displaying the time at which the asset was last modified. */
-function LastModifiedColumn(props: AssetColumnProps<backend.AnyAsset>) {
-    return <>{props.item.modifiedAt && dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
-}
-
-/** Props for a {@link UserPermissionDisplay}. */
-interface InternalUserPermissionDisplayProps {
-    user: backend.UserPermission
-}
-
-// =============================
-// === UserPermissionDisplay ===
-// =============================
-
-/** Displays permissions for a user on a specific asset. */
-function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
-    const { user } = props
-    const [permissions, setPermissions] = React.useState(user.permission)
-
-    React.useEffect(() => {
-        setPermissions(user.permission)
-    }, [user.permission])
-
-    return (
-        <PermissionDisplay key={user.user.pk} action={permissions}>
-            {user.user.user_name}
-        </PermissionDisplay>
-    )
+function LastModifiedColumn(props: AssetColumnProps) {
+    return <>{dateTime.formatDateTime(new Date(props.item.item.modifiedAt))}</>
 }
 
 // ========================
@@ -170,11 +154,11 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
 // ========================
 
 /** A column listing the users with which this asset is shared. */
-function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
+function SharedWithColumn(props: AssetColumnProps) {
     const {
-        item,
+        item: { item },
         setItem,
-        state: { dispatchAssetEvent },
+        state: { category, dispatchAssetEvent },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -183,8 +167,22 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
-        self?.permission === backend.PermissionAction.own ||
-        self?.permission === backend.PermissionAction.admin
+        category !== categorySwitcher.Category.trash &&
+        (self?.permission === permissions.PermissionAction.own ||
+            self?.permission === permissions.PermissionAction.admin)
+    const setAsset = React.useCallback(
+        (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
+            if (typeof valueOrUpdater === 'function') {
+                setItem(oldItem => ({
+                    ...oldItem,
+                    item: valueOrUpdater(oldItem.item),
+                }))
+            } else {
+                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
+            }
+        },
+        [/* should never change */ setItem]
+    )
     return (
         <div
             className="flex items-center gap-1"
@@ -196,17 +194,20 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
             }}
         >
             {(item.permissions ?? []).map(user => (
-                <UserPermissionDisplay key={user.user.user_email} user={user} />
+                <PermissionDisplay key={user.user.pk} action={user.permission}>
+                    {user.user.user_name}
+                </PermissionDisplay>
             ))}
-            {managesThisAsset && isHovered && (
+            {managesThisAsset && (
                 <button
+                    className={`h-4 w-4 ${isHovered ? '' : 'invisible'}`}
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
                             <ManagePermissionsModal
                                 key={uniqueString.uniqueString()}
                                 item={item}
-                                setItem={setItem}
+                                setItem={setAsset}
                                 self={self}
                                 eventTarget={event.currentTarget}
                                 doRemoveSelf={() => {
@@ -219,7 +220,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                         )
                     }}
                 >
-                    <img src={PlusIcon} />
+                    <img className="w-4.5 h-4.5" src={PlusIcon} />
                 </button>
             )}
         </div>
@@ -235,39 +236,115 @@ function PlaceholderColumn() {
     return <></>
 }
 
+// =================
+// === Constants ===
+// =================
+
+/** The corresponding icon URL for each {@link sorting.SortDirection}. */
+const SORT_ICON: Record<sorting.SortDirection, string> = {
+    [sorting.SortDirection.ascending]: SortAscendingIcon,
+    [sorting.SortDirection.descending]: SortDescendingIcon,
+}
+
 export const COLUMN_HEADING: Record<
     Column,
     (props: tableColumn.TableColumnHeadingProps<assetsTable.AssetsTableState>) => JSX.Element
 > = {
-    [Column.name]: () => <>{COLUMN_NAME[Column.name]}</>,
-    [Column.modified]: () => (
-        <div className="flex items-center gap-2">
-            <SvgMask src={TimeIcon} /> {COLUMN_NAME[Column.modified]}
-        </div>
-    ),
+    [Column.name]: props => {
+        const {
+            state: { sortColumn, setSortColumn, sortDirection, setSortDirection },
+        } = props
+        const [isHovered, setIsHovered] = React.useState(false)
+        const isSortActive = sortColumn === Column.name && sortDirection != null
+        return (
+            <div
+                className="flex items-center cursor-pointer gap-2 pt-1 pb-1.5"
+                onMouseEnter={() => {
+                    setIsHovered(true)
+                }}
+                onMouseLeave={() => {
+                    setIsHovered(false)
+                }}
+                onClick={() => {
+                    if (sortColumn === Column.name) {
+                        setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+                    } else {
+                        setSortColumn(Column.name)
+                        setSortDirection(sorting.SortDirection.ascending)
+                    }
+                }}
+            >
+                <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.name]}</span>
+                <img
+                    src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
+                    className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+                />
+            </div>
+        )
+    },
+    [Column.modified]: props => {
+        const {
+            state: { sortColumn, setSortColumn, sortDirection, setSortDirection },
+        } = props
+        const [isHovered, setIsHovered] = React.useState(false)
+        const isSortActive = sortColumn === Column.modified && sortDirection != null
+        return (
+            <div
+                className="flex items-center cursor-pointer gap-2"
+                onMouseEnter={() => {
+                    setIsHovered(true)
+                }}
+                onMouseLeave={() => {
+                    setIsHovered(false)
+                }}
+                onClick={() => {
+                    if (sortColumn === Column.modified) {
+                        setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+                    } else {
+                        setSortColumn(Column.modified)
+                        setSortDirection(sorting.SortDirection.ascending)
+                    }
+                }}
+            >
+                <SvgMask src={TimeIcon} className="h-4 w-4" />
+                <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.modified]}</span>
+                <img
+                    src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
+                    className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+                />
+            </div>
+        )
+    },
     [Column.sharedWith]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={PeopleIcon} /> {COLUMN_NAME[Column.sharedWith]}
+            <SvgMask src={PeopleIcon} className="h-4 w-4" />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.sharedWith]}</span>
         </div>
     ),
     [Column.tags]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={TagIcon} /> {COLUMN_NAME[Column.tags]}
+            <SvgMask src={TagIcon} className="h-4 w-4" />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.tags]}</span>
         </div>
     ),
     [Column.accessedByProjects]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={AccessedByProjectsIcon} /> {COLUMN_NAME[Column.accessedByProjects]}
+            <SvgMask src={AccessedByProjectsIcon} className="h-4 w-4" />
+            <span className="leading-144.5 h-6 py-0.5">
+                {COLUMN_NAME[Column.accessedByProjects]}
+            </span>
         </div>
     ),
     [Column.accessedData]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={AccessedDataIcon} /> {COLUMN_NAME[Column.accessedData]}
+            <SvgMask src={AccessedDataIcon} className="h-4 w-4" />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.accessedData]}</span>
         </div>
     ),
     [Column.docs]: () => (
         <div className="flex items-center gap-2">
-            <SvgMask src={DocsIcon} /> {COLUMN_NAME[Column.docs]}
+            <SvgMask src={DocsIcon} className="h-4 w-4" />
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.docs]}</span>
         </div>
     ),
 }
@@ -275,10 +352,7 @@ export const COLUMN_HEADING: Record<
 /** React components for every column except for the name column. */
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-export const COLUMN_RENDERER: Record<
-    Column,
-    (props: AssetColumnProps<backend.AnyAsset>) => JSX.Element
-> = {
+export const COLUMN_RENDERER: Record<Column, (props: AssetColumnProps) => JSX.Element> = {
     [Column.name]: AssetNameColumn,
     [Column.modified]: LastModifiedColumn,
     [Column.sharedWith]: SharedWithColumn,

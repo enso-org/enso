@@ -3,16 +3,19 @@ package org.enso.table.data.column.builder;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.BitSets;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.Objects;
 
@@ -81,16 +84,18 @@ public class DoubleBuilder extends NumericBuilder {
   public void appendNoGrow(Object o) {
     if (o == null) {
       isMissing.set(currentSize++);
-    } else if (NumericConverter.isDecimalLike(o)){
+    } else if (NumericConverter.isFloatLike(o)){
       double value = NumericConverter.coerceToDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);
     } else if (NumericConverter.isCoercibleToLong(o)) {
       long value = NumericConverter.coerceToLong(o);
       double converted = convertIntegerToDouble(value);
       data[currentSize++] = Double.doubleToRawLongBits(converted);
+    } else if (o instanceof BigInteger bigInteger) {
+      double converted = convertBigIntegerToDouble(bigInteger);
+      data[currentSize++] = Double.doubleToRawLongBits(converted);
     } else {
-      throw new IllegalStateException("Unexpected value type when appending to a DoubleBuilder: " + o.getClass().getCanonicalName() + "." +
-          " This is a bug in the Table library.");
+      throw new ValueTypeMismatchException(getType(), o);
     }
   }
 
@@ -114,8 +119,8 @@ public class DoubleBuilder extends NumericBuilder {
                 + storage
                 + ". This is a bug in the Table library.");
       }
-    } else if (Objects.equals(storage.getType(), IntegerType.INT_64)) {
-      if (storage instanceof LongStorage longStorage) {
+    } else if (storage.getType() instanceof IntegerType) {
+      if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
         for (int i = 0; i < n; i++) {
@@ -125,7 +130,7 @@ public class DoubleBuilder extends NumericBuilder {
         }
       } else {
         throw new IllegalStateException(
-            "Unexpected storage implementation for type LONG: "
+            "Unexpected storage implementation for type INTEGER: "
                 + storage
                 + ". This is a bug in the Table library.");
       }
@@ -147,7 +152,7 @@ public class DoubleBuilder extends NumericBuilder {
                 + ". This is a bug in the Table library.");
       }
     } else {
-      throw new StorageTypeMismatch(getType(), storage.getType());
+      throw new StorageTypeMismatchException(getType(), storage.getType());
     }
   }
 
@@ -177,6 +182,15 @@ public class DoubleBuilder extends NumericBuilder {
     appendRawNoGrow(Double.doubleToRawLongBits(converted));
   }
 
+  public void appendBigInteger(BigInteger integer) {
+    if (currentSize >= this.data.length) {
+      grow();
+    }
+
+    double converted = convertBigIntegerToDouble(integer);
+    appendRawNoGrow(Double.doubleToRawLongBits(converted));
+  }
+
   @Override
   public Storage<Double> seal() {
     return new DoubleStorage(data, currentSize, isMissing);
@@ -193,6 +207,20 @@ public class DoubleBuilder extends NumericBuilder {
     if (isLosingPrecision) {
       if (precisionLoss == null) {
         precisionLoss = new LossOfIntegerPrecision(integer, floatingPointValue);
+      } else {
+        precisionLoss.incrementAffectedRows();
+      }
+    }
+    return floatingPointValue;
+  }
+
+  private double convertBigIntegerToDouble(BigInteger bigInteger) {
+    double floatingPointValue = bigInteger.doubleValue();
+    BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
+    boolean isLosingPrecision = !bigInteger.equals(reconstructed);
+    if (isLosingPrecision) {
+      if (precisionLoss == null) {
+        precisionLoss = new LossOfIntegerPrecision(bigInteger, floatingPointValue);
       } else {
         precisionLoss.incrementAffectedRows();
       }

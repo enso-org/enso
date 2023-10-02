@@ -4,6 +4,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -48,6 +49,26 @@ public final class MixedStorage extends ObjectStorage {
     return new MixedStorage(data, size);
   }
 
+  private boolean isNumeric(StorageType type) {
+    return type instanceof IntegerType
+        || type instanceof FloatType
+        || type instanceof BigIntegerType;
+  }
+
+  private StorageType commonNumericType(StorageType a, StorageType b) {
+    assert isNumeric(a);
+    assert isNumeric(b);
+    if (a instanceof FloatType || b instanceof FloatType) {
+      return FloatType.FLOAT_64;
+    } else if (a instanceof BigIntegerType || b instanceof BigIntegerType) {
+      return BigIntegerType.INSTANCE;
+    } else {
+      assert a instanceof IntegerType;
+      assert b instanceof IntegerType;
+      return IntegerType.INT_64;
+    }
+  }
+
   @Override
   public StorageType inferPreciseType() {
     if (inferredType == null) {
@@ -63,11 +84,9 @@ public final class MixedStorage extends ObjectStorage {
         var itemType = StorageType.forBoxedItem(item);
         if (currentType == null) {
           currentType = itemType;
-        } else if (currentType != itemType) {
-          // Allow mixed integer and float types in a column, returning a float.
-          if ((itemType instanceof IntegerType && currentType instanceof FloatType)
-              || (itemType instanceof FloatType && currentType instanceof IntegerType)) {
-            currentType = FloatType.FLOAT_64;
+        } else if (!currentType.equals(itemType)) {
+          if (isNumeric(currentType) && isNumeric(itemType)) {
+            currentType = commonNumericType(currentType, itemType);
           } else {
             currentType = AnyObjectType.INSTANCE;
           }
@@ -84,6 +103,20 @@ public final class MixedStorage extends ObjectStorage {
     }
 
     return inferredType;
+  }
+
+  @Override
+  public StorageType inferPreciseTypeShrunk() {
+    Storage<?> specialized = getInferredStorage();
+    if (specialized == null) {
+      // If no specialized type is available, it means that:
+      assert inferredType instanceof AnyObjectType;
+      return AnyObjectType.INSTANCE;
+    }
+
+    // If we are able to get a more specialized storage for more specific type - we delegate to its
+    // own shrinking logic.
+    return specialized.inferPreciseTypeShrunk();
   }
 
   private Storage<?> getInferredStorage() {
@@ -161,6 +194,26 @@ public final class MixedStorage extends ObjectStorage {
     }
   }
 
+  /** {@see resolveUnaryOp} for explanations. */
+  private VectorizedOperationAvailability resolveTernaryOp(String name) {
+    // Shortcut - if the storage is already specialized - we prefer it.
+    if (cachedInferredStorage != null && cachedInferredStorage.isTernaryOpVectorized(name)) {
+      return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
+    }
+
+    // Otherwise, we try to avoid specializing if not yet necessary.
+    if (super.isTernaryOpVectorized(name)) {
+      return VectorizedOperationAvailability.AVAILABLE_IN_SUPER;
+    } else {
+      // But if our storage does not provide the operation, we have to try checking the other one.
+      if (getInferredStorage() != null && getInferredStorage().isTernaryOpVectorized(name)) {
+        return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
+      } else {
+        return VectorizedOperationAvailability.NOT_AVAILABLE;
+      }
+    }
+  }
+
   @Override
   public boolean isUnaryOpVectorized(String name) {
     return resolveUnaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
@@ -189,6 +242,24 @@ public final class MixedStorage extends ObjectStorage {
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
       return super.runVectorizedBinaryMap(name, argument, problemBuilder);
+    }
+  }
+
+  @Override
+  public boolean isTernaryOpVectorized(String name) {
+    return resolveTernaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
+  }
+
+  @Override
+  public Storage<?> runVectorizedTernaryMap(
+      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    if (resolveTernaryOp(name)
+        == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
+      return getInferredStorage()
+          .runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
+    } else {
+      // Even if the operation is not available, we rely on super to report an exception.
+      return super.runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
     }
   }
 

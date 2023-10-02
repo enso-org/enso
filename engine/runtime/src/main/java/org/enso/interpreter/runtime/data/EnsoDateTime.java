@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -13,11 +12,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -25,7 +24,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
     pkg = "date",
     name = "DateTime",
     stdlibName = "Standard.Base.Data.Time.Date_Time.Date_Time")
-public final class EnsoDateTime implements TruffleObject {
+public final class EnsoDateTime implements EnsoObject {
   private final ZonedDateTime dateTime;
 
   public EnsoDateTime(ZonedDateTime dateTime) {
@@ -169,10 +168,10 @@ public final class EnsoDateTime implements TruffleObject {
     return new EnsoDate(dateTime.toLocalDate());
   }
 
-  @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
+  @Builtin.Method(description = "Return a text representation of this date-time.")
   @CompilerDirectives.TruffleBoundary
   public Text toText() {
-    return Text.create(DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime));
+    return Text.create(Core_Date_Utils.defaultZonedDateTimeFormatter.format(dateTime));
   }
 
   @ExportMessage
@@ -228,7 +227,7 @@ public final class EnsoDateTime implements TruffleObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public Object toDisplayString(boolean allowSideEffects) {
-    return DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime);
+    return Core_Date_Utils.defaultZonedDateTimeFormatter.format(dateTime);
   }
 
   // 15. October 1582

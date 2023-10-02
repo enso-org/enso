@@ -19,4 +19,14 @@ public enum Bits {
   public int toInteger() {
     return this.size;
   }
+
+  public static Bits fromInteger(int size) {
+    return switch (size) {
+      case 8 -> BITS_8;
+      case 16 -> BITS_16;
+      case 32 -> BITS_32;
+      case 64 -> BITS_64;
+      default -> throw new IllegalArgumentException("Invalid bit-size: " + size);
+    };
+  }
 }

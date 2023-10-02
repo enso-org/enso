@@ -41,7 +41,7 @@ export type TableRowInnerProps<
     T,
     State = never,
     RowState = never,
-    Key extends string = string
+    Key extends string = string,
 > = InternalTableRowInnerProps<T, Key> &
     ([RowState] extends never ? unknown : InternalTableRowStateProps<RowState>) &
     ([State] extends never ? unknown : StateProp<State>)
@@ -55,6 +55,7 @@ interface InternalBaseTableRowProps<T, State = never, RowState = never, Key exte
     /** Pass this in only if `item` also needs to be updated in the parent component. */
     setItem?: React.Dispatch<React.SetStateAction<T>>
     state?: State
+    hidden: boolean
     initialRowState?: RowState
     /** Pass this in only if `rowState` also needs to be updated in the parent component. */
     setRowState?: React.Dispatch<React.SetStateAction<RowState>>
@@ -74,7 +75,7 @@ export type TableRowProps<
     T,
     State = never,
     TableRowState = never,
-    Key extends string = string
+    Key extends string = string,
 > = InternalBaseTableRowProps<T, State, TableRowState, Key> &
     ([State] extends [never] ? unknown : StateProp<State>) &
     ([TableRowState] extends [never] ? unknown : InitialRowStateProp<TableRowState>)
@@ -92,6 +93,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         initialRowState,
         setRowState: rawSetRowState,
         columns,
+        hidden,
         selected,
         setSelected,
         // This prop is unused here, but is useful for components wrapping this component.
@@ -137,7 +139,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         setRowState,
     }
 
-    return (
+    return hidden ? null : (
         <tr
             ref={tableRowRef}
             tabIndex={-1}
@@ -148,7 +150,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
             onContextMenu={event => {
                 onContextMenu?.(innerProps, event)
             }}
-            className={`h-10 transition duration-300 ease-in-out ${className ?? ''} ${
+            className={`h-8 transition duration-300 ease-in-out ${className ?? ''} ${
                 selected ? 'selected' : ''
             }`}
             {...passthrough}

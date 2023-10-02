@@ -36,7 +36,8 @@ object NativeImage {
     "zio",
     "enumeratum",
     "akka",
-    "nl"
+    "nl",
+    "ch.qos.logback"
   )
 
   /** Creates a task that builds a native image for the current project.
@@ -99,6 +100,12 @@ object NativeImage {
           "Native Image build failed, " +
           "because Native Image component was not found."
         )
+      }
+      if (additionalOptions.contains("--language:java")) {
+        log.warn(
+          s"Building ${artifactName} image with experimental Espresso support!"
+        )
+
       }
 
       val debugParameters =

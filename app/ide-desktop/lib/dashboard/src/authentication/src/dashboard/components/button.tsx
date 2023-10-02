@@ -4,7 +4,9 @@ import SvgMask from '../../authentication/components/svgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {
+    /** When true, the button is not faded out even when not hovered. */
     active?: boolean
+    /** When true, the button is not clickable. */
     disabled?: boolean
     disabledOpacityClassName?: string
     image: string
@@ -29,10 +31,10 @@ export default function Button(props: ButtonProps) {
     return (
         <SvgMask
             src={image}
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`${active && !disabled ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
-                !disabled ? 'cursor-pointer hover:opacity-100 cursor-pointer' : 'cursor-not-allowed'
-            } ${className ?? ''}`}
+            {...(!active && disabled && error != null ? { title: error } : {})}
+            className={`${active ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
+                disabled ? '' : 'cursor-pointer hover:opacity-100'
+            } ${!active && disabled ? 'cursor-not-allowed' : ''} ${className ?? ''}`}
             {...(disabled ? {} : { onClick })}
         />
     )

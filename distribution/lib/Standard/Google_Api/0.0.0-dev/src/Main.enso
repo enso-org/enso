@@ -40,7 +40,7 @@ type Spreadsheets
     get_table self sheet_id sheet_range =
         request = self.java_service.spreadsheets.values.get sheet_id sheet_range . setMajorDimension 'COLUMNS' . setValueRenderOption 'UNFORMATTED_VALUE'
         response = request.execute
-        values = Vector.from_polyglot_array response.getValues . map Vector.Vector
+        values = Vector.from_polyglot_array response.getValues
         columned = values.map v-> [v.first, v.drop 1]
         Table.new columned
 

@@ -8,14 +8,11 @@ import org.enso.editions.DefaultEdition
 import org.enso.pkg.Config
 import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.control.core.syntax._
-import org.enso.projectmanager.control.core.{
-  Applicative,
-  CovariantFlatMap,
-  Traverse
-}
+import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.{
+  LanguageServerStatus,
   MissingComponentAction,
   ProjectMetadata,
   RunningLanguageServerInfo
@@ -43,6 +40,7 @@ import org.enso.projectmanager.service.validation.ProjectNameValidator
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
+import org.enso.runtimeversionmanager.CurrentVersion
 
 import java.util.UUID
 
@@ -57,7 +55,7 @@ import java.util.UUID
   * @param gen a random generator
   */
 class ProjectService[
-  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
+  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
 ](
   validator: ProjectNameValidator[F],
   repo: ProjectRepository[F],
@@ -147,13 +145,14 @@ class ProjectService[
   ): F[ProjectServiceFailure, Unit] =
     isServerRunning(projectId)
       .flatMap {
-        case false => CovariantFlatMap[F].pure(())
-        case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
+        case (false, _)    => CovariantFlatMap[F].pure(())
+        case (true, true)  => ErrorChannel[F].fail(CannotRemoveClosingProject)
+        case (true, false) => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 
   private def isServerRunning(
     projectId: UUID
-  ): F[ProjectServiceFailure, Boolean] =
+  ): F[ProjectServiceFailure, (Boolean, Boolean)] =
     languageServerGateway
       .isRunning(projectId)
       .mapError(_ => ProjectOperationTimeout)
@@ -186,7 +185,7 @@ class ProjectService[
   ): F[ProjectServiceFailure, Unit] = {
     val cmd = new MoveProjectDirCmd[F](projectId, newName, repo, log)
     CovariantFlatMap[F]
-      .ifM(isServerRunning(projectId))(
+      .ifM(isServerRunning(projectId).map(_._1))(
         ifTrue = for {
           _ <- log.debug(
             "Registering shutdown hook to rename the project [{}] " +
@@ -278,10 +277,12 @@ class ProjectService[
       openTime <- clock.nowInUtc()
       updated = project.copy(lastOpened = Some(openTime))
       _ <- repo.update(updated).mapError(toServiceFailure)
+      projectWithDefaultEdition =
+        updated.copy(edition = Some(DefaultEdition.getDefaultEdition))
       sockets <- startServer(
         progressTracker,
         clientId,
-        updated,
+        projectWithDefaultEdition,
         missingComponentAction
       )
     } yield sockets
@@ -313,6 +314,7 @@ class ProjectService[
     project: Project,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
+    _       <- log.debug("Preparing to start the Language Server for [{}].", project)
     version <- resolveProjectVersion(project)
     _       <- preinstallEngine(progressTracker, version, missingComponentAction)
     sockets <- languageServerGateway
@@ -320,17 +322,14 @@ class ProjectService[
       .mapError {
         case PreviousInstanceNotShutDown =>
           ProjectOpenFailed(
-            "The previous instance of the Language Server hasn't been shut " +
-            "down yet."
+            "The previous instance of the Language Server hasn't been shut down yet."
           )
 
         case ServerBootTimedOut =>
           ProjectOpenFailed("Language server boot timed out.")
 
         case ServerBootFailed(th) =>
-          ProjectOpenFailed(
-            s"Language server boot failed. ${th.getMessage}"
-          )
+          ProjectOpenFailed(s"Language server boot failed. ${th.getMessage}")
       }
   } yield RunningLanguageServerInfo(
     version,
@@ -367,36 +366,15 @@ class ProjectService[
           .take(maybeSize.getOrElse(Int.MaxValue))
       )
       .mapError(toServiceFailure)
-      .flatMap(xs => Traverse[List].traverse(xs)(resolveProjectMetadata))
+      .map(_.map(toProjectMetadata))
 
-  private def resolveProjectMetadata(
-    project: Project
-  ): F[ProjectServiceFailure, ProjectMetadata] = {
-    val version = resolveProjectVersion(project)
-    for {
-      version <- version.map(Some(_)).recover { error =>
-        // TODO [RW] We may consider sending this warning to the IDE once
-        //  a warning protocol is implemented (#1860).
-        logger.warn(
-          s"Could not resolve engine version for project ${project.name}: " +
-          s"$error"
-        )
-        None
-      }
-    } yield toProjectMetadata(version, project)
-  }
-
-  private def toProjectMetadata(
-    engineVersion: Option[SemVer],
-    project: Project
-  ): ProjectMetadata =
+  private def toProjectMetadata(project: Project): ProjectMetadata =
     ProjectMetadata(
-      name          = project.name,
-      namespace     = project.namespace,
-      id            = project.id,
-      engineVersion = engineVersion,
-      created       = project.created,
-      lastOpened    = project.lastOpened
+      name       = project.name,
+      namespace  = project.namespace,
+      id         = project.id,
+      created    = project.created,
+      lastOpened = project.lastOpened
     )
 
   private def getUserProject(
@@ -462,31 +440,36 @@ class ProjectService[
   private def resolveProjectVersion(
     project: Project
   ): F[ProjectServiceFailure, SemVer] =
-    Sync[F]
-      .blockingOp {
-        // TODO [RW] at some point we will need to use the configuration service to get the actual default version, see #1864
-        val _ = configurationService
+    if (project.edition.contains(DefaultEdition.getDefaultEdition)) {
+      CovariantFlatMap[F].pure(CurrentVersion.version)
+    } else {
+      Sync[F]
+        .blockingOp {
+          // TODO [RW] at some point we will need to use the configuration service to get the actual default version, see #1864
+          val _ = configurationService
 
-        val edition =
-          project.edition.getOrElse(DefaultEdition.getDefaultEdition)
+          val edition =
+            project.edition.getOrElse(DefaultEdition.getDefaultEdition)
 
-        distributionConfiguration.editionManager
-          .resolveEngineVersion(edition)
-          .orElse {
-            logger.warn(
-              s"Could not resolve engine version for ${edition}. Falling " +
-              s"back to ${DefaultEdition.getDefaultEdition}"
-            )
-            distributionConfiguration.editionManager
-              .resolveEngineVersion(DefaultEdition.getDefaultEdition)
-          }
-          .get
-      }
-      .mapError { error =>
-        ProjectServiceFailure.GlobalConfigurationAccessFailure(
-          s"Could not resolve project engine version: ${error.getMessage}"
-        )
-      }
+          distributionConfiguration.editionManager
+            .resolveEngineVersion(edition)
+            .orElse {
+              logger.warn(
+                s"Could not resolve engine version for [{}]. Falling back to [{}].",
+                edition,
+                DefaultEdition.getDefaultEdition
+              )
+              distributionConfiguration.editionManager
+                .resolveEngineVersion(DefaultEdition.getDefaultEdition)
+            }
+            .get
+        }
+        .mapError { error =>
+          ProjectServiceFailure.GlobalConfigurationAccessFailure(
+            s"Could not resolve project engine version: ${error.getMessage}"
+          )
+        }
+    }
 
   private def getNameForNewProject(
     projectName: String,
@@ -519,4 +502,20 @@ class ProjectService[
 
   }
 
+  /** Retrieve project info.
+    *
+    * @param clientId  the requester id
+    * @param projectId the project id
+    * @return either failure or [[LanguageServerStatus]] representing success
+    */
+  override def getProjectStatus(
+    clientId: UUID,
+    projectId: UUID
+  ): F[ProjectServiceFailure, LanguageServerStatus] = {
+    log.debug(s"Retrieving the state of project [{}].", projectId)
+    languageServerGateway
+      .isRunning(projectId)
+      .map(e => LanguageServerStatus(e._1, e._2))
+      .mapError(_ => LanguageServerFailure("failed to retrieve project state"))
+  }
 }

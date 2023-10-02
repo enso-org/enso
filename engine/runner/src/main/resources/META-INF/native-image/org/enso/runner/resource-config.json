@@ -27,6 +27,12 @@
       },
       {
         "pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"
+      },
+      {
+        "pattern":"\\Qapplication.conf\\E"
+      },
+      {
+        "pattern":"\\Qch/qos/logback/classic/spi/Configurator.class\\E"
       }
     ]},
   "bundles":[]

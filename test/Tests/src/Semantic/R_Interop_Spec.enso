@@ -134,7 +134,7 @@ spec =
                 _ -> False
             int_match.should_be_true
             double_match = case make_double of
-                _ : Decimal -> True
+                _ : Float -> True
                 _ -> False
             double_match.should_be_true
             num_int_match = case make_int of

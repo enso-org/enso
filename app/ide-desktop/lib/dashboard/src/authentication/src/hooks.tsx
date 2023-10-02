@@ -75,21 +75,21 @@ export function useAsyncEffect<T>(
     asyncEffect: (signal: AbortSignal) => Promise<T>,
     deps?: React.DependencyList
 ): T {
-    const logger = loggerProvider.useLogger()
+    const toastAndLog = useToastAndLog()
     const [value, setValue] = React.useState<T>(initialValue)
 
     React.useEffect(() => {
         const controller = new AbortController()
-        void asyncEffect(controller.signal).then(
-            result => {
+        void (async () => {
+            try {
+                const result = await asyncEffect(controller.signal)
                 if (!controller.signal.aborted) {
                     setValue(result)
                 }
-            },
-            error => {
-                logger.error('Error while fetching data:', error)
+            } catch (error) {
+                toastAndLog('Error while fetching data', error)
             }
-        )
+        })()
         /** Cancel any future `setValue` calls. */
         return () => {
             controller.abort()

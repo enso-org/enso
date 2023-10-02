@@ -72,6 +72,12 @@ pub mod secret {
     pub const ARTEFACT_S3_SECRET_ACCESS_KEY: &str = "ARTEFACT_S3_SECRET_ACCESS_KEY";
 
 
+    // === AWS S3 Standard Library Tests ===
+    pub const ENSO_LIB_S3_AWS_ACCESS_KEY_ID: &str = "ENSO_LIB_S3_AWS_ACCESS_KEY_ID";
+    pub const ENSO_LIB_S3_AWS_REGION: &str = "ENSO_LIB_S3_AWS_REGION";
+    pub const ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: &str = "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY";
+
+
     // === AWS ECR deployment (runtime release to cloud) ===
     pub const ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY: &str = "ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY";
     pub const ECR_PUSH_RUNTIME_ACCESS_KEY_ID: &str = "ECR_PUSH_RUNTIME_ACCESS_KEY_ID";
@@ -212,9 +218,12 @@ pub struct PublishRelease;
 impl JobArchetype for PublishRelease {
     fn job(&self, os: OS) -> Job {
         let mut ret = plain_job(&os, "Publish release", "release publish");
-        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID");
-        ret.expose_secret_as(secret::ARTEFACT_S3_SECRET_ACCESS_KEY, "AWS_SECRET_ACCESS_KEY");
-        ret.env("AWS_REGION", "us-west-1");
+        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
+        ret.expose_secret_as(
+            secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
+            crate::aws::env::AWS_SECRET_ACCESS_KEY,
+        );
+        ret.env(crate::aws::env::AWS_REGION, "us-west-1");
         ret
     }
 }
@@ -451,7 +460,15 @@ pub fn backend() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn benchmark() -> Result<Workflow> {
+pub fn engine_benchmark() -> Result<Workflow> {
+    benchmark("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
+}
+
+pub fn std_libs_benchmark() -> Result<Workflow> {
+    benchmark("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
+}
+
+fn benchmark(name: &str, cmd_line: &str, timeout: Option<u32>) -> Result<Workflow> {
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
         r#type: WorkflowDispatchInputType::Boolean{default: Some(false)},
@@ -464,7 +481,7 @@ pub fn benchmark() -> Result<Workflow> {
         schedule: vec![Schedule::new("0 0 * * *")?],
         ..default()
     };
-    let mut workflow = Workflow { name: "Benchmark Engine".into(), on, ..default() };
+    let mut workflow = Workflow { name: name.into(), on, ..default() };
     // Note that we need to use `true == input` instead of `input` because that interprets input as
     // `false` rather than empty string. Empty string is not falsy enough.
     workflow.env(
@@ -472,12 +489,12 @@ pub fn benchmark() -> Result<Workflow> {
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
 
-    let mut benchmark_job =
-        plain_job(&BenchmarkRunner, "Benchmark Engine", "backend benchmark runtime");
-    benchmark_job.timeout_minutes = Some(60 * 8);
+    let mut benchmark_job = plain_job(&BenchmarkRunner, name, cmd_line);
+    benchmark_job.timeout_minutes = timeout;
     workflow.add_job(benchmark_job);
     Ok(workflow)
 }
+
 
 /// Generate workflows for the CI.
 pub fn generate(
@@ -488,7 +505,8 @@ pub fn generate(
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
-        (repo_root.benchmark_yml.to_path_buf(), benchmark()?),
+        (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
+        (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
         (repo_root.release_yml.to_path_buf(), release()?),
         (repo_root.promote_yml.to_path_buf(), promote()?),
     ];

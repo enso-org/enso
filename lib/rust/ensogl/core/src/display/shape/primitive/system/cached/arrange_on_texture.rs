@@ -213,7 +213,7 @@ fn find_free_place(
         iter::once(0.0).chain(allowed_right_bounds).sorted_by_key(|&x| OrderedFloat(x));
     let candidate_positions = iproduct!(candidate_rows, candidate_cols);
     let mut candidate_bboxes = candidate_positions
-        .map(|(y, x)| BoundingBox::from_position_and_size(Vector2(x, y), shape_size));
+        .map(|(y, x)| BoundingBox::from_bottom_left_position_and_size(Vector2(x, y), shape_size));
     candidate_bboxes.find(|bbox| {
         let is_collision = placed_so_far.iter().any(|placed| placed.interior_intersects(bbox));
         !is_collision

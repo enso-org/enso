@@ -2,9 +2,11 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{ModuleReference, Type}
+import org.enso.compiler.data.BindingsMap.Type
 import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -32,14 +34,14 @@ class MethodDefinitionsTest extends CompilerTest {
     *
     * @param ir the ir to analyse
     */
-  implicit class AnalyseModule(ir: IR.Module) {
+  implicit class AnalyseModule(ir: Module) {
 
     /** Performs tail call analysis on [[ir]].
       *
       * @param context the module context in which analysis takes place
       * @return [[ir]], with tail call analysis metadata attached
       */
-    def analyse(implicit context: ModuleContext): IR.Module = {
+    def analyse(implicit context: ModuleContext): Module = {
       MethodDefinitions.runModule(ir, context)
     }
   }
@@ -71,86 +73,86 @@ class MethodDefinitionsTest extends CompilerTest {
 
     "attach resolved atoms to the method definitions" in {
       ir.bindings(2)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
         .get
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
-            Type("Foo", List(), false)
+            ctx.moduleReference(),
+            Type("Foo", List("a", "b", "c"), List(), false)
           )
         )
       )
       ir.bindings(3)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer shouldBe None
 
       ir.bindings(4)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
         .get
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(ModuleReference.Concrete(ctx.module))
+          BindingsMap.ResolvedModule(ctx.moduleReference())
         )
       )
 
       ir.bindings(5)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
-        .get shouldBe a[IR.Error.Resolution]
+        .get shouldBe a[errors.Resolution]
 
       val conv1 = ir
         .bindings(6)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+        .asInstanceOf[definition.Method.Conversion]
       conv1.methodReference.typePointer.get.getMetadata(
         MethodDefinitions
       ) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
-            Type("Foo", List(), false)
+            ctx.moduleReference(),
+            Type("Foo", List("a", "b", "c"), List(), false)
           )
         )
       )
       conv1.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
-            Type("Bar", List(), false)
+            ctx.moduleReference(),
+            Type("Bar", List(), List(), false)
           )
         )
       )
 
       val conv2 = ir
         .bindings(7)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+        .asInstanceOf[definition.Method.Conversion]
       conv2.methodReference.typePointer.get.getMetadata(
         MethodDefinitions
       ) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
-            Type("Bar", List(), false)
+            ctx.moduleReference(),
+            Type("Bar", List(), List(), false)
           )
         )
       )
-      conv2.sourceTypeName shouldBe an[IR.Error.Resolution]
+      conv2.sourceTypeName shouldBe an[errors.Resolution]
 
       val conv3 = ir
         .bindings(8)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
-      conv3.methodReference.typePointer.get shouldBe an[IR.Error.Resolution]
+        .asInstanceOf[definition.Method.Conversion]
+      conv3.methodReference.typePointer.get shouldBe an[errors.Resolution]
       conv3.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedType(
-            ModuleReference.Concrete(ctx.module),
-            Type("Foo", List(), false)
+            ctx.moduleReference(),
+            Type("Foo", List("a", "b", "c"), List(), false)
           )
         )
       )

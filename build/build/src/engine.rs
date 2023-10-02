@@ -88,6 +88,8 @@ pub enum Benchmarks {
     Runtime,
     /// Run benchmarks written in pure Enso.
     Enso,
+    /// Run Enso benchmarks via JMH
+    EnsoJMH,
 }
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
@@ -103,6 +105,7 @@ impl Benchmarks {
             Benchmarks::All => Some("bench"),
             Benchmarks::Runtime => Some("runtime/bench"),
             Benchmarks::Enso => None,
+            Benchmarks::EnsoJMH => Some("std-benchmarks/bench"),
         }
     }
 }
@@ -124,7 +127,7 @@ pub struct BuildConfigurationFlags {
     pub build_benchmarks:              bool,
     /// Whether the Enso-written benchmarks should be checked whether they compile.
     ///
-    /// Note that this does not benchmark, only ensures that they are buildable.
+    /// Note that this does not run benchmark, only ensures that they are buildable.
     /// Also, this does nothing if `execute_benchmarks` contains `Benchmarks::Enso`.
     pub check_enso_benchmarks:         bool,
     /// Which benchmarks should be run.

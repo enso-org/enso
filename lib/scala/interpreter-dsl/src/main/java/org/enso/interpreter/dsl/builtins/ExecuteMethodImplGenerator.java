@@ -116,7 +116,13 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
           };
         case ARRAY:
           return new String[] {
-            "  return new Array((Object[]) " + qual + "." + name + "(" + paramsApplied + "));"
+            "  return ArrayLikeHelpers.wrapObjects("
+                + qual
+                + "."
+                + name
+                + "("
+                + paramsApplied
+                + "));"
           };
         default:
           if (returnTpe.isValidGuestType()) {
@@ -133,7 +139,6 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
             }
             return new String[] {
               "  return context",
-              "      .getEnvironment()",
               "      .asGuestValue(" + qual + "." + name + "(" + paramsApplied + "));"
             };
           }

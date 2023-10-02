@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Array.Array
-import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
@@ -11,6 +10,7 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
+import project.Errors.Common.Not_Found
 import project.Nothing.Nothing
 import project.Polyglot.Java
 from project.Data.Boolean import Boolean, False, True
@@ -33,6 +33,7 @@ type Type
         Vector.from_polyglot_array (get_type_constructors self.value Meta.Constructor.Value)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of method names that can be invoked
        on instances of this type.
@@ -59,6 +60,7 @@ type Type
         Vector.from_polyglot_array (get_type_methods self.value)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the fully qualified name of the type.
     qualified_name : Text
@@ -67,12 +69,29 @@ type Type
         get_qualified_type_name c
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the short name of the type.
     name : Text
     name self =
         c = self.value
         get_short_type_name c
+
+    ## ADVANCED
+       GROUP Metadata
+
+       Finds type specified by fully qualified name. Searches
+       all the types known to the system by transitive closure
+       of import statements in executing modules.
+
+       Arguments:
+       - qualified_name: fully qualified name.
+    find : Text -> Type ! Not_Found
+    find qualified_name =
+        raw = find_type_by_qualified_name qualified_name
+        case Meta.meta raw of
+            t:Meta.Type -> t
+            _ -> Base_Error.throw Not_Found
 
 type Atom
     ## PRIVATE
@@ -85,6 +104,7 @@ type Atom
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of field values of the given atom.
     fields : Vector
@@ -109,6 +129,7 @@ type Constructor
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of field names defined by a constructor.
     fields : Vector
@@ -117,6 +138,7 @@ type Constructor
         Vector.from_polyglot_array (get_constructor_fields c)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the name of a constructor.
     name : Text
@@ -137,6 +159,7 @@ type Constructor
         new_atom ctor fields
 
     ## ADVANCED
+       GROUP Metadata
        Returns the type that this constructor is a part of.
     declaring_type : Type
     declaring_type self =
@@ -176,12 +199,14 @@ type Unresolved_Symbol
         create_unresolved_symbol new_name self.scope
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the name of an unresolved symbol.
     name : Text
     name self = get_unresolved_symbol_name self.value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the definition scope of an unresolved symbol.
     scope : Any
@@ -208,6 +233,7 @@ type Polyglot
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the language with which a polyglot value is associated.
     get_language : Language
@@ -552,3 +578,11 @@ get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
    - constructor: the constructor to get the declaring type of.
 get_constructor_declaring_type : Any -> Any
 get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
+
+## PRIVATE
+   Returns type specified by fully qualified name.
+
+   Arguments:
+   - fqn: fully qualified name.
+find_type_by_qualified_name : Text -> Any
+find_type_by_qualified_name fqn = @Builtin_Method "Meta.find_type_by_qualified_name"

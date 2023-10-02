@@ -1,5 +1,39 @@
 package org.enso.interpreter.node.expression.builtin.ordering;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.enso.interpreter.dsl.AcceptsError;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
+import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
@@ -11,39 +45,6 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.stream.Collectors;
-import org.enso.interpreter.dsl.AcceptsError;
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
-import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.Vector;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
@@ -97,7 +98,7 @@ public abstract class SortVectorNode extends Node {
   @Specialization(
       guards = {
         "interop.hasArrayElements(self)",
-        "areAllDefaultComparators(interop, hostValueToEnsoNode, comparators)",
+        "areAllDefaultComparators(lengthNode, atNode, comparators)",
         "interop.isNull(byFunc)",
         "interop.isNull(onFunc)"
       }, limit = "3")
@@ -112,32 +113,23 @@ public abstract class SortVectorNode extends Node {
       long problemBehavior,
       @Shared("lessThanNode") @Cached LessThanNode lessThanNode,
       @Shared("equalsNode") @Cached EqualsNode equalsNode,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode,
+      @Shared("lengthNode") @Cached ArrayLikeLengthNode lengthNode,
+      @Shared("atNode") @Cached ArrayLikeAtNode atNode,
       @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(this);
     Object[] elems;
+    long longSize = 0L;
     try {
-      long size = interop.getArraySize(self);
-      assert size < Integer.MAX_VALUE;
-      elems = new Object[(int) size];
+      longSize = lengthNode.executeLength(self);
+      int size = Math.toIntExact(longSize);
+      elems = new Object[size];
       for (int i = 0; i < size; i++) {
-        if (interop.isArrayElementReadable(self, i)) {
-          elems[i] = hostValueToEnsoNode.execute(interop.readArrayElement(self, i));
-        } else {
-          CompilerDirectives.transferToInterpreter();
-          throw new PanicException(
-              ctx.getBuiltins()
-                  .error()
-                  .makeUnsupportedArgumentsError(
-                      new Object[] {self},
-                      "Cannot read array element at index " + i + " of " + self),
-              this);
-        }
+        elems[i] = atNode.executeAt(self, i);
       }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw new IllegalStateException("Should not reach here", e);
+    } catch (ArithmeticException | InvalidArrayIndexException e) {
+      throw invalidArrayIndexException(e, longSize);
     }
     var javaComparator =
         createDefaultComparator(
@@ -189,17 +181,18 @@ public abstract class SortVectorNode extends Node {
       @Shared("lessThanNode") @Cached LessThanNode lessThanNode,
       @Shared("equalsNode") @Cached EqualsNode equalsNode,
       @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
+      @Shared("lengthNode") @Cached ArrayLikeLengthNode lengthNode,
+      @Shared("atNode") @Cached ArrayLikeAtNode atNode,
       @Shared("anyToTextNode") @Cached AnyToTextNode toTextNode,
       @Cached MethodResolverNode methodResolverNode,
-      @Cached(value = "build()", uncached = "build()") HostValueToEnsoNode hostValueToEnsoNode,
       @Cached(value = "build()", uncached = "build()") CallOptimiserNode callNode) {
     var problemBehavior = ProblemBehavior.fromInt((int) problemBehaviorNum);
     // Split into groups
-    List<Object> elems = readInteropArray(interop, hostValueToEnsoNode, warningsLib, self);
+    List<Object> elems = readInteropArray(lengthNode, atNode, warningsLib, self);
     List<Type> comparators =
-        readInteropArray(interop, hostValueToEnsoNode, warningsLib, comparatorsArray);
+        readInteropArray(lengthNode, atNode, warningsLib, comparatorsArray);
     List<Function> compareFuncs =
-        readInteropArray(interop, hostValueToEnsoNode, warningsLib, compareFuncsArray);
+        readInteropArray(lengthNode, atNode, warningsLib, compareFuncsArray);
     List<Group> groups = splitByComparators(elems, comparators, compareFuncs);
 
     // Prepare input for DefaultSortComparator and GenericSortComparator and sort the elements
@@ -248,7 +241,7 @@ public abstract class SortVectorNode extends Node {
         }
         resultVec.addAll(group.elems);
       }
-      var sortedVector = Vector.fromArray(new Array(resultVec.toArray()));
+      var sortedVector = ArrayLikeHelpers.asVectorWithCheckAt(resultVec.toArray());
       // Attach gathered warnings along with different comparators warning
       switch (problemBehavior) {
         case REPORT_ERROR -> {
@@ -290,7 +283,7 @@ public abstract class SortVectorNode extends Node {
   private Object sortPrimitiveVector(Object[] elems, DefaultSortComparator javaComparator)
       throws CompareException {
     Arrays.sort(elems, javaComparator);
-    var sortedVector = Vector.fromArray(new Array(elems));
+    var sortedVector = ArrayLikeHelpers.asVectorWithCheckAt(elems);
 
     if (javaComparator.hasWarnings()) {
       return attachWarnings(sortedVector, javaComparator.getEncounteredWarnings());
@@ -388,15 +381,17 @@ public abstract class SortVectorNode extends Node {
    */
   @SuppressWarnings("unchecked")
   private <T> List<T> readInteropArray(
-      InteropLibrary interop,
-      HostValueToEnsoNode hostValueToEnsoNode,
+      ArrayLikeLengthNode lengthNode,
+      ArrayLikeAtNode atNode,
       WarningsLibrary warningsLib,
       Object vector) {
+    var longSize = 0L;
     try {
-      int size = (int) interop.getArraySize(vector);
+      longSize = lengthNode.executeLength(vector);
+      int size = Math.toIntExact(longSize);
       List<T> res = new ArrayList<>(size);
       for (int i = 0; i < size; i++) {
-        Object elem = hostValueToEnsoNode.execute(interop.readArrayElement(vector, i));
+        Object elem = atNode.executeAt(vector, i);
         if (warningsLib.hasWarnings(elem)) {
           elem = warningsLib.removeWarnings(elem);
         }
@@ -404,7 +399,7 @@ public abstract class SortVectorNode extends Node {
       }
       return res;
     } catch (UnsupportedMessageException | InvalidArrayIndexException | ClassCastException e) {
-      throw new IllegalStateException("Should not be reachable", e);
+      throw invalidArrayIndexException(e, longSize);
     }
   }
 
@@ -413,7 +408,7 @@ public abstract class SortVectorNode extends Node {
     var builtins = EnsoContext.get(this).getBuiltins();
     if (builtinType == builtins.number().getNumber()
         || builtinType == builtins.number().getInteger()
-        || builtinType == builtins.number().getDecimal()) {
+        || builtinType == builtins.number().getFloat()) {
       return 1;
     } else if (builtinType == builtins.text()) {
       return 2;
@@ -437,7 +432,7 @@ public abstract class SortVectorNode extends Node {
   private boolean isBuiltinType(Object type) {
     var builtins = EnsoContext.get(this).getBuiltins();
     return builtins.number().getNumber() == type
-        || builtins.number().getDecimal() == type
+        || builtins.number().getFloat() == type
         || builtins.number().getInteger() == type
         || builtins.nothing() == type
         || builtins.text() == type
@@ -454,20 +449,21 @@ public abstract class SortVectorNode extends Node {
 
   /** Returns true iff the given array of comparators is all Default_Comparator */
   boolean areAllDefaultComparators(
-      InteropLibrary interop, HostValueToEnsoNode hostValueToEnsoNode, Object comparators) {
-    assert interop.hasArrayElements(comparators);
+    ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode, Object comparators
+  ) {
     var ctx = EnsoContext.get(this);
+    var longSize = 0L;
     try {
-      int compSize = (int) interop.getArraySize(comparators);
+      longSize = lengthNode.executeLength(comparators);
+      int compSize = (int) longSize;
       for (int i = 0; i < compSize; i++) {
-        assert interop.isArrayElementReadable(comparators, i);
-        Object comparator = hostValueToEnsoNode.execute(interop.readArrayElement(comparators, i));
+        Object comparator = atNode.executeAt(comparators, i);
         if (!isDefaultComparator(comparator, ctx)) {
           return false;
         }
       }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw new IllegalStateException("Should not be reachable", e);
+    } catch (ArithmeticException | InvalidArrayIndexException e) {
+      throw invalidArrayIndexException(e, longSize);
     }
     return true;
   }
@@ -478,6 +474,13 @@ public abstract class SortVectorNode extends Node {
 
   private boolean isNan(Object object) {
     return object instanceof Double dbl && dbl.isNaN();
+  }
+
+  private PanicException invalidArrayIndexException(Exception e, long size) {
+    var index = e instanceof InvalidArrayIndexException ex ? ex.getInvalidIndex() : 0L;
+    var ctx = EnsoContext.get(this);
+    var payload = ctx.getBuiltins().error().makeInvalidArrayIndex(index, size);
+    throw new PanicException(payload, this);
   }
 
   private enum ProblemBehavior {
@@ -618,7 +621,7 @@ public abstract class SortVectorNode extends Node {
         } else if (isPrimitiveValue(y)) {
           return ascending ? 1 : -1;
         } else {
-          throw new IllegalStateException("Should not be reachable");
+          throw CompilerDirectives.shouldNotReachHere();
         }
       } else {
         // Values other than primitives are compared just by their type's FQN.
@@ -716,8 +719,6 @@ public abstract class SortVectorNode extends Node {
     private final MethodResolverNode methodResolverNode;
     private final TypesLibrary typesLibrary;
 
-    private @CompilerDirectives.CompilationFinal Function resolvedFunction;
-
     private CompareFromUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
                                         MethodResolverNode methodResolvedNode,
                                         TypesLibrary typesLibrary) {
@@ -729,7 +730,7 @@ public abstract class SortVectorNode extends Node {
 
     @Override
     boolean hasFunctionSelfArgument(Object definedOn) {
-      ensureSymbolIsResolved(definedOn);
+      var resolvedFunction = methodResolverNode.expectNonNull(definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
       return resolvedFunction.getSchema().getArgumentsCount() > 0 &&
         resolvedFunction.getSchema().getArgumentInfos()[0].getName().equals("self");
 
@@ -737,14 +738,7 @@ public abstract class SortVectorNode extends Node {
 
     @Override
     Function get(Object arg) {
-      ensureSymbolIsResolved(arg);
-      return resolvedFunction;
-    }
-
-    private void ensureSymbolIsResolved(Object definedOn) {
-      if (resolvedFunction == null) {
-        resolvedFunction = methodResolverNode.expectNonNull(definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
-      }
+      return methodResolverNode.expectNonNull(arg, typesLibrary.getType(arg), unresolvedSymbol);
     }
   }
 

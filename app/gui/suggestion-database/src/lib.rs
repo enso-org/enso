@@ -338,6 +338,13 @@ impl SuggestionDatabase {
         default()
     }
 
+    /// Dump all entries in JSON.
+    pub fn dump_as_json(&self) -> String {
+        let all_entries: Vec<Entry> =
+            self.entries.borrow().values().map(|e| e.deref().clone()).collect_vec();
+        serde_json::to_string(&all_entries).unwrap()
+    }
+
     /// Create a database filled with entries provided by the given iterator.
     pub fn new_from_entries<'a>(
         entries: impl IntoIterator<Item = (&'a SuggestionId, &'a Entry)>,

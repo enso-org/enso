@@ -27,6 +27,11 @@ pub fn wrap_expression(expression: impl AsRef<str>) -> String {
     format!("${{{{ {} }}}}", expression.as_ref())
 }
 
+/// An expression that accesses a secret with a given name.
+pub fn secret_expression(secret_name: impl AsRef<str>) -> String {
+    wrap_expression(format!("secrets.{}", secret_name.as_ref()))
+}
+
 pub fn env_expression(environment_variable: &impl RawVariable) -> String {
     wrap_expression(format!("env.{}", environment_variable.name()))
 }
@@ -58,7 +63,7 @@ pub fn setup_conda() -> Step {
 pub fn setup_wasm_pack_step() -> Step {
     Step {
         name: Some("Installing wasm-pack".into()),
-        uses: Some("jetli/wasm-pack-action@v0.3.0".into()),
+        uses: Some("jetli/wasm-pack-action@v0.4.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "version".into(),
             "v0.10.2".into(),
@@ -818,6 +823,14 @@ pub struct Step {
 }
 
 impl Step {
+    /// Expose a secret as an environment variable with the same name.
+    pub fn with_secret_exposed(self, secret: impl AsRef<str>) -> Self {
+        let secret_name = secret.as_ref();
+        let env_name = secret_name.to_owned();
+        self.with_secret_exposed_as(secret_name, env_name)
+    }
+
+    /// Expose a secret as an environment variable with a given name.
     pub fn with_input_exposed_as(
         self,
         input: impl AsRef<str>,
@@ -832,7 +845,7 @@ impl Step {
         secret: impl AsRef<str>,
         given_name: impl Into<String>,
     ) -> Self {
-        let secret_expr = wrap_expression(format!("secrets.{}", secret.as_ref()));
+        let secret_expr = secret_expression(&secret);
         self.with_env(given_name, secret_expr)
     }
 

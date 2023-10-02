@@ -15,6 +15,7 @@ import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
 from project.Data.Text.Extensions import all
@@ -39,11 +40,12 @@ get_format callback =
                 @Tail_Call reader (idx + 1)
     reader 0
 
+## Automatically detects the file format based on the file extension or mime-type.
 type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any ! File_Error
-    read self file on_problems =
+    read self file on_problems = if file.is_directory then file.list else
         reader = Auto_Detect.get_reading_format file
         if reader == Nothing then Error.throw (File_Error.Unsupported_Type file) else
             reader.read file on_problems
@@ -70,6 +72,7 @@ type Auto_Detect
     get_web_parser content_type uri =
         get_format f-> f.for_web content_type uri
 
+## Interface for all file formats.
 type File_Format
     ## PRIVATE
        ADVANCED
@@ -110,7 +113,9 @@ type File_Format
         make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
         Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
 
+## A file format for plain text files.
 type Plain_Text_Format
+    ## A file format for plain text files with the specified encoding.
     @encoding Encoding.default_widget
     Plain_Text (encoding:Encoding=Encoding.utf_8)
 
@@ -151,10 +156,11 @@ type Plain_Text_Format
 
     ## PRIVATE
        Implements the `Data.parse` for this `File_Format`
-    read_web : Response -> Any
-    read_web self response =
-        Text.from_bytes response.body.bytes self.encoding
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        Text.from_bytes (stream.read_all_bytes) self.encoding
 
+## A file format for reading or writing files as a sequence of bytes.
 type Bytes
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -184,6 +190,13 @@ type Bytes
         _ = [on_problems]
         file.read_bytes
 
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        stream.read_all_bytes
+
+## A file format for reading and writing files as JSON.
 type JSON_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -220,9 +233,9 @@ type JSON_Format
 
     ## PRIVATE
        Implements the `Data.parse` for this `File_Format`
-    read_web : Response -> Any
-    read_web self response =
-        response.body.decode_as_json
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
 
 ## A setting to infer the default behaviour of some option.
 type Infer

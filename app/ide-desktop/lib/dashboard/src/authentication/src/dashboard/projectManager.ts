@@ -210,9 +210,12 @@ export class ProjectManager extends EventTarget {
                     } else {
                         const delay =
                             RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
-                        window.setTimeout(() => {
-                            void createSocket().then(resolve)
-                        }, Math.max(0, delay))
+                        window.setTimeout(
+                            () => {
+                                void createSocket().then(resolve)
+                            },
+                            Math.max(0, delay)
+                        )
                     }
                 }
                 socket.onclose = () => {
@@ -227,11 +230,13 @@ export class ProjectManager extends EventTarget {
     }
 
     /** Lazy initialization for the singleton instance. */
-    static default() {
+    static default(projectManagerUrl: string | null) {
         // `this.instance` is initially undefined as an instance should only be created
         // if a `ProjectManager` is actually needed.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        return (this.instance ??= new ProjectManager(GLOBAL_CONFIG.projectManagerEndpoint))
+        return (this.instance ??= new ProjectManager(
+            projectManagerUrl ?? GLOBAL_CONFIG.projectManagerEndpoint
+        ))
     }
 
     /** Open an existing project. */

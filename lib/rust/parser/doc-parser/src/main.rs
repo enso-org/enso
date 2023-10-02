@@ -1,4 +1,4 @@
-//! Prints a debug representation of Enso documentation found in the given Enso sourec file(s).
+//! Prints a debug representation of Enso documentation found in the given Enso source file(s).
 
 #![recursion_limit = "256"]
 // === Features ===
@@ -38,7 +38,6 @@ use enso_parser::prelude::*;
 // ====================================
 
 fn main() {
-    init_global();
     let args = std::env::args().skip(1);
     if args.is_empty() {
         use std::io::Read;

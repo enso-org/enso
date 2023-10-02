@@ -333,7 +333,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
             </div>
             <div className="relative text-sm font-semibold">
                 <div
-                    className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows z-10 ${
+                    className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows z-1 ${
                         isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
                     }`}
                 >
@@ -693,7 +693,7 @@ export default function Chat(props: ChatProps) {
         return reactDom.createPortal(
             <div
                 style={{ right }}
-                className="text-xs text-chat flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-83.5 py-1 z-10"
+                className="text-xs text-chat flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-83.5 py-1 z-1"
             >
                 <ChatHeader
                     threads={threads}

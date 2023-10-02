@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Element;
 import javax.tools.JavaFileObject;
 import org.enso.interpreter.dsl.Builtin;
 
@@ -148,6 +148,5 @@ public abstract class MethodNodeClassGenerator {
           "org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode",
           "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.builtin.Builtins",
-          "org.enso.interpreter.runtime.data.Array",
           "org.enso.interpreter.runtime.error.PanicException");
 }

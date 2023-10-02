@@ -16,13 +16,12 @@ import * as url from 'node:url'
 import * as esbuild from 'esbuild'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
-import esbuildPluginAlias from 'esbuild-plugin-alias'
 import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import * as utils from '../../utils'
-import BUILD_INFO from '../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =================
 // === Constants ===
@@ -54,8 +53,6 @@ export interface Arguments extends PassthroughArguments {
     assetsPath: string
     /** Path where bundled files are output. */
     outputPath: string
-    /** The main JS bundle to load WASM and JS wasm-pack bundles. */
-    ensoglAppPath: string
 }
 
 /** Get arguments from the environment. */
@@ -63,8 +60,7 @@ export function argumentsFromEnv(passthroughArguments: PassthroughArguments): Ar
     const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
     const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
     const outputPath = pathModule.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
-    const ensoglAppPath = utils.requireEnv('ENSO_BUILD_GUI_ENSOGL_APP')
-    return { ...passthroughArguments, wasmArtifacts, assetsPath, outputPath, ensoglAppPath }
+    return { ...passthroughArguments, wasmArtifacts, assetsPath, outputPath }
 }
 
 // ===================
@@ -89,7 +85,6 @@ function git(command: string): string {
 export function bundlerOptions(args: Arguments) {
     const {
         outputPath,
-        ensoglAppPath,
         wasmArtifacts,
         assetsPath,
         devMode,
@@ -106,8 +101,7 @@ export function bundlerOptions(args: Arguments) {
             '.css': 'copy',
             '.map': 'copy',
             '.wasm': 'copy',
-            // The `file` loader copies the file, and replaces the import with the path to the file.
-            '.svg': 'file',
+            '.svg': 'dataurl',
             '.png': 'file',
             '.ttf': 'copy',
         },
@@ -116,7 +110,6 @@ export function bundlerOptions(args: Arguments) {
             pathModule.resolve(THIS_PATH, 'src', 'index.html'),
             pathModule.resolve(THIS_PATH, 'src', 'run.js'),
             pathModule.resolve(THIS_PATH, 'src', 'style.css'),
-            pathModule.resolve(THIS_PATH, 'src', 'docsStyle.css'),
             pathModule.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
             ...wasmArtifacts.split(pathModule.delimiter),
             ...fsSync
@@ -158,7 +151,6 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),
             esbuildPluginNodeGlobals.NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
-            esbuildPluginAlias({ ensogl_app: ensoglAppPath }),
             esbuildPluginTime(),
         ],
         define: {
@@ -171,6 +163,10 @@ export function bundlerOptions(args: Arguments) {
             /** Overrides the redirect URL for OAuth logins in the production environment.
              * This is needed for logins to work correctly under `./run gui watch`. */
             REDIRECT_OVERRIDE: 'undefined',
+            CLOUD_ENV:
+                process.env.ENSO_CLOUD_ENV != null
+                    ? JSON.stringify(process.env.ENSO_CLOUD_ENV)
+                    : 'undefined',
             SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
             SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
         },

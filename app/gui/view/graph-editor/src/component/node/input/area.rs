@@ -8,7 +8,6 @@ use ensogl::display::traits::*;
 use crate::node;
 use crate::node::input::widget;
 use crate::node::input::widget::OverrideKey;
-use crate::node::profiling;
 use crate::view;
 use crate::CallWidgetsConfig;
 use crate::GraphLayers;
@@ -306,16 +305,16 @@ impl Model {
     ///
     /// See also: [`controller::graph::widget`] module of `enso-gui` crate.
     #[profile(Debug)]
-    fn request_widget_config_overrides(&self, expression: &Expression, area_frp: &FrpEndpoints) {
+    fn request_widget_config_overrides(&self, expression: &Expression, area_frp: &api::Private) {
         for (call_id, target_id) in expression.target_map.iter() {
-            area_frp.source.requested_widgets.emit((*call_id, *target_id));
+            area_frp.output.requested_widgets.emit((*call_id, *target_id));
         }
     }
 
     /// Set a displayed expression, updating the input ports. `is_editing` indicates whether the
     /// expression is being edited by the user.
     #[profile(Debug)]
-    fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
+    fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &api::Private) {
         let new_expression = Expression::from(new_expression.into());
         debug!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
 
@@ -346,7 +345,7 @@ impl Model {
 // === FRP ===
 // ===========
 
-ensogl::define_endpoints! {
+ensogl::define_endpoints_2! {
     Input {
         /// Set the node expression.
         set_expression (node::Expression),
@@ -372,6 +371,9 @@ ensogl::define_endpoints! {
         /// Disable the node (aka "skip mode").
         set_disabled (bool),
 
+        /// Set the node pending (awaiting execution completion).
+        set_pending (bool),
+
         /// Set read-only mode for input ports.
         set_read_only (bool),
 
@@ -385,7 +387,6 @@ ensogl::define_endpoints! {
         set_ports_active (bool),
 
         set_view_mode        (view::Mode),
-        set_profiling_status (profiling::Status),
 
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -457,10 +458,10 @@ impl Area {
             // This is meant to be on top of FRP network. Read more about `Node` docs to
             // learn more about the architecture and the importance of the hover
             // functionality.
-            frp.output.source.on_port_hover <+ model.widget_tree.on_port_hover;
-            frp.output.source.on_port_press <+ model.widget_tree.on_port_press;
+            frp.private.output.on_port_hover <+ model.widget_tree.on_port_hover;
+            frp.private.output.on_port_press <+ model.widget_tree.on_port_press;
             port_hover <- frp.on_port_hover.map(|t| t.is_on());
-            frp.output.source.body_hover <+ frp.set_hover || port_hover;
+            frp.private.output.body_hover <+ frp.set_hover || port_hover;
 
 
             // === Cursor setup ===
@@ -474,12 +475,12 @@ impl Area {
             edit_or_ready <- frp.set_edit_ready_mode || set_editing;
             reacts_to_hover <- all_with(&edit_or_ready, ports_active, |e, a| *e && !a);
             port_vis <- all_with(&set_editing, ports_active, |e, a| !e && *a);
-            frp.output.source.ports_visible <+ port_vis;
-            frp.output.source.editing <+ set_editing;
+            frp.private.output.ports_visible <+ port_vis;
+            frp.private.output.editing <+ set_editing;
             model.widget_tree.set_ports_visible <+ frp.ports_visible;
             model.widget_tree.set_edit_ready_mode <+ frp.set_edit_ready_mode;
             refresh_edges <- model.widget_tree.connected_port_updated.debounce();
-            frp.output.source.input_edges_need_refresh <+ refresh_edges;
+            frp.private.output.input_edges_need_refresh <+ refresh_edges;
 
             // === Label Hover ===
 
@@ -497,28 +498,28 @@ impl Area {
                 model.widget_tree.pointer_style,
                 hovered_port_pointer
             ].fold();
-            frp.output.source.pointer_style <+ pointer_style;
+            frp.private.output.pointer_style <+ pointer_style;
 
             // === Properties ===
             let widget_tree_object = model.widget_tree.display_object();
             widget_tree_width <- widget_tree_object.on_resized.map(|size| size.x());
             edit_label_width <- all(model.edit_mode_label.width, init)._0();
             padded_edit_label_width <- edit_label_width.map(|t| t + 2.0 * TEXT_OFFSET);
-            frp.output.source.width <+ set_editing.switch(
+            frp.private.output.width <+ set_editing.switch(
                 &widget_tree_width,
                 &padded_edit_label_width
             );
 
             // === Expression ===
 
-            let frp_endpoints = &frp.output;
+            let frp_endpoints = &frp.private;
             eval frp.set_expression([frp_endpoints, model](expr) model.set_expression(expr, &frp_endpoints));
             legit_edit <- frp.input.edit_expression.gate(&set_editing);
             model.edit_mode_label.select <+ legit_edit.map(|(range, _)| (range.start.into(), range.end.into()));
             model.edit_mode_label.insert <+ legit_edit._1();
             expression_edited <- model.edit_mode_label.content.gate(&set_editing);
             selections_edited <- model.edit_mode_label.selections.gate(&set_editing);
-            frp.output.source.expression_edit <+ selections_edited.gate(&set_editing).map2(
+            frp.private.output.expression_edit <+ selections_edited.gate(&set_editing).map2(
                 &model.edit_mode_label.content,
                 f!([model](selection, full_content) {
                     let full_content = full_content.into();
@@ -527,7 +528,7 @@ impl Area {
                     (full_content, selections)
                 })
             );
-            frp.output.source.on_port_code_update <+ expression_edited.map(|e| {
+            frp.private.output.on_port_code_update <+ expression_edited.map(|e| {
                 // Treat edit mode update as a code modification at the span tree root.
                 (default(), e.into())
             });
@@ -537,8 +538,8 @@ impl Area {
                 (crumbs.clone(), expression)
             });
 
-            frp.output.source.on_port_code_update <+ widget_code_update;
-            frp.output.source.request_import <+ model.widget_tree.request_import;
+            frp.private.output.on_port_code_update <+ widget_code_update;
+            frp.private.output.request_import <+ model.widget_tree.request_import;
 
             // === Widgets ===
 
@@ -546,16 +547,16 @@ impl Area {
             eval frp.set_connections((conn) model.set_connections(conn));
             eval frp.set_expression_usage_type(((id,tp)) model.set_expression_usage_type(*id,tp.clone()));
             eval frp.set_disabled ((disabled) model.widget_tree.set_disabled(*disabled));
+            eval frp.set_pending ((pending) model.widget_tree.set_pending(*pending));
             eval_ model.widget_tree.rebuild_required(model.rebuild_widget_tree_if_dirty());
-            frp.output.source.widget_tree_rebuilt <+ model.widget_tree.on_rebuild_finished;
+            frp.private.output.widget_tree_rebuilt <+ model.widget_tree.on_rebuild_finished;
 
 
             // === View Mode ===
 
-            frp.output.source.view_mode <+ frp.set_view_mode;
+            frp.private.output.view_mode <+ frp.set_view_mode;
             model.widget_tree.set_read_only <+ frp.set_read_only;
             model.widget_tree.set_view_mode <+ frp.set_view_mode;
-            model.widget_tree.set_profiling_status <+ frp.set_profiling_status;
             model.widget_tree.node_base_color <+ frp.set_node_colors._0();
             model.widget_tree.node_port_color <+ frp.set_node_colors._1();
         }

@@ -44,7 +44,7 @@ thread_local! {
         Snippet::new("number input", "0", IconId::NumberInput)
             .with_return_types([
                 "Standard.Base.Data.Numbers.Number",
-                "Standard.Base.Data.Numbers.Decimal",
+                "Standard.Base.Data.Numbers.Float",
                 "Standard.Base.Data.Numbers.Integer",
             ])
             .with_documentation_str(

@@ -210,7 +210,8 @@ fn junction_points(
         // The target attachment will extend as far toward the edge of the node as it can without
         // rising above the source.
         let attachment_height = target_max_attachment_height.map(|dy| min(dy, target.y().abs()));
-        let attachment_y = target.y() + attachment_height.unwrap_or_default();
+        let attachment_y =
+            target.y() + attachment_height.unwrap_or_default() + target_size.y() / 2.0;
         let target_attachment = Vector2(target.x(), attachment_y);
         (vec![source, target_attachment], max_radius, attachment)
     } else {

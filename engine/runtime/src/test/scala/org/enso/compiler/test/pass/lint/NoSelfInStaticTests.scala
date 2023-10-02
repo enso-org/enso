@@ -2,7 +2,8 @@ package org.enso.compiler.test.pass.lint
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.lint.NoSelfInStatic
 import org.enso.compiler.test.CompilerTest
@@ -21,7 +22,7 @@ class NoSelfInStaticTests extends CompilerTest {
     *
     * @param ir the IR to lint
     */
-  implicit class LintModule(ir: IR.Module) {
+  implicit class LintModule(ir: Module) {
 
     /** Runs unused name linting on [[ir]].
       *
@@ -29,7 +30,7 @@ class NoSelfInStaticTests extends CompilerTest {
       *                      place
       * @return [[ir]], with all unused names linted
       */
-    def lint(implicit moduleContext: ModuleContext): IR.Module = {
+    def lint(implicit moduleContext: ModuleContext): Module = {
       NoSelfInStatic.runModule(ir, moduleContext)
     }
   }
@@ -54,8 +55,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |    bar = self.x + self.x
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ IR.Error
-              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _, _) =>
           err
       }
       errs should have size 2
@@ -68,8 +68,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |static_method x y = x + y + self.data
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ IR.Error
-              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _, _) =>
           err
       }
       errs should have size 1
@@ -86,8 +85,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |    nested_method (x + y)
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ IR.Error
-              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _, _) =>
           err
       }
       errs should have size 1
@@ -105,8 +103,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |        nested_method 42
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ IR.Error
-              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _, _) =>
           err
       }
       errs should be(empty)
@@ -122,8 +119,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |My_Type.extension_method = self.value + 1
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ IR.Error
-              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _, _) =>
           err
       }
       errs should have size 1

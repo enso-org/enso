@@ -111,7 +111,7 @@ public class ResourceManager {
                   items.remove(it);
                 }
               };
-          futureToCancel.set(context.getEnvironment().submitThreadLocal(null, performFinalizeNow));
+          futureToCancel.set(context.submitThreadLocal(null, performFinalizeNow));
         }
       }
     }
@@ -133,7 +133,7 @@ public class ResourceManager {
     }
     if (workerThread == null || !workerThread.isAlive()) {
       worker.setKilled(false);
-      workerThread = context.getEnvironment().createSystemThread(worker);
+      workerThread = context.createThread(true, worker);
       workerThread.start();
     }
     var resource = new ManagedResource(object, r -> new Item(r, object, function, referenceQueue));

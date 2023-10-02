@@ -1,16 +1,22 @@
 package org.enso.interpreter.node;
 
+import java.util.function.Supplier;
+
+import org.enso.compiler.core.CompilerError;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.function.Supplier;
-import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @ReportPolymorphism
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
@@ -142,9 +148,16 @@ public class MethodRootNode extends ClosureRootNode {
 
     @CompilerDirectives.TruffleBoundary
     final ExpressionNode replaceItself() {
+      try {
         ExpressionNode newNode = replace(provider.get());
         notifyInserted(newNode);
         return newNode;
+      } catch (CompilerError abnormalException) {
+        var ctx = EnsoContext.get(this);
+        var msg = Text.create(abnormalException.getMessage());
+        var load = ctx.getBuiltins().error().makeCompileError(msg);
+        throw new PanicException(load, this);
+      }
     }
   }
   public boolean isSubjectToInstrumentation() {

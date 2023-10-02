@@ -87,7 +87,6 @@ working with types. These are listed below.
 |   `;`    |         `< :`, `> =`         |  -2   |  Left  | Concatenates the left and right operand typesets to create a new typeset.   |
 |   `\|`   | `> <:`, `> !`, `> in`, `> :` |   5   |  Left  | Computes the union of the left and right operand typesets.                  |
 |   `&`    |            `> \|`            |   6   |  Left  | Computes the intersection of the left and right operand typesets.           |
-|   `\`    |            `> &`             |   7   |  Left  | Computes the subtraction of the right typeset from the left typeset.        |
 |   `:=`   |     `< :`, `> =`, `> ;`      |  -1   |  Left  | Creates a typeset member by assigning a value to a label.                   |
 
 <!-- prettier-ignore-end -->
@@ -108,7 +107,6 @@ bind (`=`) has a relative level of -3 in this ordering.
 (declare-fun tsConcat () Int) ; `;`
 (declare-fun tsUnion () Int)  ; `|`
 (declare-fun tsInter () Int)  ; `&`
-(declare-fun minus () Int)    ; `\`
 (declare-fun tsMember () Int) ; `:=`
 
 (assert (> ascrip bind))
@@ -265,8 +263,6 @@ of typesets. Their syntax is as follows:
   arguments.
 - **Intersection - `&`:** The resultant typeset may contain values that are
   members of _both_ its arguments.
-- **Subtraction - `\`:** The resultant typeset may contain values that are in
-  the first argument's set but not in the second.
 
 > The actionables for this section are:
 >

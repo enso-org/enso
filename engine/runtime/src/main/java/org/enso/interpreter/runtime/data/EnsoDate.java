@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -11,7 +10,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -20,7 +18,7 @@ import org.enso.polyglot.common_utils.Core_Date_Utils;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date.Date")
-public final class EnsoDate implements TruffleObject {
+public final class EnsoDate implements EnsoObject {
   private final LocalDate date;
 
   public EnsoDate(LocalDate date) {
@@ -102,9 +100,6 @@ public final class EnsoDate implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   public Object toDisplayString(boolean allowSideEffects) {
-    return DATE_FORMATTER.format(date);
+    return Core_Date_Utils.defaultLocalDateFormatter.format(date);
   }
-
-  private static final DateTimeFormatter DATE_FORMATTER =
-      Core_Date_Utils.defaultLocalDateFormatter();
 }

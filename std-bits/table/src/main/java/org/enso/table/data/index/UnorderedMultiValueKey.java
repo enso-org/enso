@@ -36,7 +36,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
 
       Object value = this.get(i);
       if (value != null) {
-        hasFloatValues = hasFloatValues || NumericConverter.isDecimalLike(value);
+        hasFloatValues = hasFloatValues || NumericConverter.isFloatLike(value);
         Object folded = EnsoObjectWrapper.foldObject(value, textFoldingStrategy.get(i));
         h += folded.hashCode();
       }

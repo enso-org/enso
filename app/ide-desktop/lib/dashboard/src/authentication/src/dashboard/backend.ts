@@ -1,18 +1,14 @@
 /** @file Type definitions common between all backends. */
+import * as React from 'react'
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as permissions from './permissions'
+import * as uniqueString from '../uniqueString'
 
-// =============
-// === Types ===
-// =============
-
-/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
-export enum BackendType {
-    local = 'local',
-    remote = 'remote',
-}
+// ================
+// === Newtypes ===
+// ================
 
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
@@ -75,6 +71,16 @@ export const Subject = newtype.newtypeConstructor<Subject>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
+// =============
+// === Types ===
+// =============
+
+/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
+export enum BackendType {
+    local = 'local',
+    remote = 'remote',
+}
+
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
     id: UserOrOrganizationId
@@ -97,6 +103,7 @@ export enum ProjectState {
     created = 'Created',
     new = 'New',
     openInProgress = 'OpenInProgress',
+    provisioned = 'Provisioned',
     opened = 'Opened',
     closed = 'Closed',
     /** A frontend-specific state, representing a project that should be displayed as
@@ -110,6 +117,28 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
     type: ProjectState
+    /* eslint-disable @typescript-eslint/naming-convention */
+    volume_id: string
+    instance_id?: string
+    execute_async?: boolean
+    address?: string
+    security_group_id?: string
+    ec2_id?: string
+    ec2_public_ip_address?: string
+    current_session_id?: string
+    opened_by?: EmailAddress
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean> = {
+    [ProjectState.created]: false,
+    [ProjectState.new]: false,
+    [ProjectState.openInProgress]: true,
+    [ProjectState.provisioned]: true,
+    [ProjectState.opened]: true,
+    [ProjectState.closed]: false,
+    [ProjectState.placeholder]: true,
+    [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -156,11 +185,15 @@ export interface Project extends ListedProject {
     /** This must not be null as it is required to determine the base URL for backend assets. */
     ideVersion: VersionNumber
     engineVersion: VersionNumber | null
+    openedBy?: EmailAddress
 }
 
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
     project: Project
+    projectAsset: ProjectAsset
+    // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
+    setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
     backendType: BackendType
     accessToken: string | null
 }
@@ -290,23 +323,10 @@ export interface SimpleUser {
     email: EmailAddress
 }
 
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    admin = 'Admin',
-    edit = 'Edit',
-    read = 'Read',
-    readAndDocs = 'Read_docs',
-    readAndExec = 'Read_exec',
-    view = 'View',
-    viewAndDocs = 'View_docs',
-    viewAndExec = 'View_exec',
-}
-
 /** User permission for a specific user. */
 export interface UserPermission {
     user: User
-    permission: PermissionAction
+    permission: permissions.PermissionAction
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -318,6 +338,14 @@ export interface UpdatedDirectory {
 
 /** The type returned from the "create directory" endpoint. */
 export interface Directory extends DirectoryAsset {}
+
+/** Possible filters for the "list directory" endpoint. */
+export enum FilterBy {
+    all = 'All',
+    active = 'Active',
+    recent = 'Recent',
+    trashed = 'Trashed',
+}
 
 // =================
 // === AssetType ===
@@ -380,7 +408,7 @@ export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
 export interface BaseAsset {
     id: AssetId
     title: string
-    modifiedAt: dateTime.Rfc3339DateTime | null
+    modifiedAt: dateTime.Rfc3339DateTime
     /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
@@ -410,8 +438,36 @@ export interface SecretAsset extends Asset<AssetType.secret> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
 export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
 
+/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
+    return {
+        type: AssetType.specialLoading,
+        title: '',
+        id: LoadingAssetId(uniqueString.uniqueString()),
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        permissions: [],
+        projectState: null,
+    }
+}
+
 /** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
 export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+
+/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
+ * values. */
+export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
+    return {
+        type: AssetType.specialEmpty,
+        title: '',
+        id: EmptyAssetId(uniqueString.uniqueString()),
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        permissions: [],
+        projectState: null,
+    }
+}
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset =
@@ -493,7 +549,7 @@ export interface InviteUserRequestBody {
 export interface CreatePermissionRequestBody {
     userSubjects: Subject[]
     resourceId: AssetId
-    action: PermissionAction | null
+    action: permissions.PermissionAction | null
 }
 
 /** HTTP request body for the "create directory" endpoint. */
@@ -525,6 +581,7 @@ export interface ProjectUpdateRequestBody {
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
     forceCreate: boolean
+    executeAsync: boolean
 }
 
 /** HTTP request body for the "create secret" endpoint. */
@@ -545,6 +602,8 @@ export interface CreateTagRequestBody {
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
     parentId: string | null
+    filterBy: FilterBy | null
+    recentProjects: boolean
 }
 
 /** URL query string parameters for the "upload file" endpoint. */
@@ -647,33 +706,6 @@ export function stripProjectExtension(name: string) {
 export abstract class Backend {
     abstract readonly type: BackendType
 
-    /** Delete an asset of any type. */
-    async deleteAsset(asset: AnyAsset) {
-        switch (asset.type) {
-            case AssetType.directory: {
-                await this.deleteDirectory(asset.id, asset.title)
-                break
-            }
-            case AssetType.project: {
-                await this.deleteProject(asset.id, asset.title)
-                break
-            }
-            case AssetType.file: {
-                await this.deleteFile(asset.id, asset.title)
-                break
-            }
-            case AssetType.secret: {
-                await this.deleteSecret(asset.id, asset.title)
-                break
-            }
-            case AssetType.specialLoading:
-            case AssetType.specialEmpty: {
-                // Ignored. This should never happen, and because they do not exist on the backend,
-                // there are no negative consequences.
-                break
-            }
-        }
-    }
     /** Return the root directory id for the given user. */
     abstract rootDirectoryId(user: UserOrOrganization | null): DirectoryId
     /** Return a list of all users in the same organization. */
@@ -699,8 +731,10 @@ export abstract class Backend {
         body: UpdateDirectoryRequestBody,
         title: string | null
     ): Promise<UpdatedDirectory>
-    /** Delete a directory. */
-    abstract deleteDirectory(directoryId: DirectoryId, title: string | null): Promise<void>
+    /** Delete an arbitrary asset. */
+    abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
+    /** Restore an arbitrary asset from the trash. */
+    abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
     /** Return a list of projects belonging to the current user. */
     abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */
@@ -720,24 +754,18 @@ export abstract class Backend {
         body: ProjectUpdateRequestBody,
         title: string | null
     ): Promise<UpdatedProject>
-    /** Delete a project. */
-    abstract deleteProject(projectId: ProjectId, title: string | null): Promise<void>
     /** Return project memory, processor and storage usage. */
     abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
     /** Return a list of files accessible by the current user. */
     abstract listFiles(): Promise<File[]>
     /** Upload a file. */
     abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
-    /** Delete a file. */
-    abstract deleteFile(fileId: FileId, title: string | null): Promise<void>
     /** Create a secret environment variable. */
     abstract createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo>
     /** Return a secret environment variable. */
     abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
     abstract listSecrets(): Promise<SecretInfo[]>
-    /** Delete a secret environment variable. */
-    abstract deleteSecret(secretId: SecretId, title: string | null): Promise<void>
     /** Create a file tag or project tag. */
     abstract createTag(body: CreateTagRequestBody): Promise<TagInfo>
     /** Return file tags or project tags accessible by the user. */

@@ -2,6 +2,19 @@ package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.expression.{Application, Operator}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  IdentifiedLocation,
+  Literal,
+  Name,
+  Type
+}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
@@ -52,7 +65,7 @@ final class SuggestionBuilder[A: IndexedSource](
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case IR.Module.Scope.Definition.Type(
+          case Definition.Type(
                 tpName,
                 params,
                 List(),
@@ -64,7 +77,7 @@ final class SuggestionBuilder[A: IndexedSource](
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             go(tree ++= Vector(Tree.Node(tpe, Vector())), scope)
 
-          case IR.Module.Scope.Definition.Type(
+          case Definition.Type(
                 tpName,
                 params,
                 members,
@@ -75,7 +88,7 @@ final class SuggestionBuilder[A: IndexedSource](
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             val conses = members.map {
-              case data @ IR.Module.Scope.Definition.Data(
+              case data @ Definition.Data(
                     name,
                     arguments,
                     annotations,
@@ -105,10 +118,10 @@ final class SuggestionBuilder[A: IndexedSource](
 
             go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
-          case m @ IR.Module.Scope.Definition.Method
+          case m @ definition.Method
                 .Explicit(
-                  IR.Name.MethodReference(typePtr, methodName, _, _, _),
-                  IR.Function.Lambda(args, body, _, _, _, _),
+                  Name.MethodReference(typePtr, methodName, _, _, _),
+                  Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
                   _
@@ -144,29 +157,32 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
 
-          case IR.Module.Scope.Definition.Method
+          case definition.Method
                 .Conversion(
-                  IR.Name.MethodReference(_, _, _, _, _),
-                  IR.Name.Literal(sourceTypeName, _, _, _, _),
-                  IR.Function.Lambda(args, body, _, _, _, _),
+                  Name.MethodReference(typePtr, _, _, _, _),
+                  _,
+                  Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
                   _
-                ) if ConversionsEnabled =>
-            val typeSignature = ir.getMetadata(TypeSignatures)
+                ) =>
+            val selfType = typePtr.flatMap { typePointer =>
+              typePointer
+                .getMetadata(MethodDefinitions)
+                .map(_.target.qualifiedName)
+            }
             val conversion = buildConversion(
               body.getExternalId,
               module,
+              selfType,
               args,
-              sourceTypeName,
-              doc,
-              typeSignature
+              doc
             )
             go(tree += Tree.Node(conversion, Vector()), scope)
 
-          case IR.Expression.Binding(
+          case Expression.Binding(
                 name,
-                IR.Function.Lambda(args, body, _, _, _, _),
+                Function.Lambda(args, body, _, _, _, _),
                 _,
                 _,
                 _
@@ -187,7 +203,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(function, subforest), scope)
 
-          case IR.Expression.Binding(name, expr, _, _, _)
+          case Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val local = buildLocal(
@@ -231,7 +247,7 @@ final class SuggestionBuilder[A: IndexedSource](
     name: String,
     selfType: QualifiedName,
     isStatic: Boolean,
-    args: Seq[IR.DefinitionArgument],
+    args: Seq[DefinitionArgument],
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata],
     genericAnnotations: Option[GenericAnnotations.Metadata],
@@ -273,20 +289,25 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildConversion(
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
-    args: Seq[IR.DefinitionArgument],
-    sourceTypeName: String,
-    doc: Option[String],
-    typeSignature: Option[TypeSignatures.Metadata]
+    selfType: Option[QualifiedName],
+    args: Seq[DefinitionArgument],
+    doc: Option[String]
   ): Suggestion.Conversion = {
-    val typeSig = buildTypeSignatureFromMetadata(typeSignature)
-    val (methodArgs, returnTypeDef) =
-      buildFunctionArguments(args, typeSig)
+    val methodArgs =
+      args.map { arg =>
+        buildTypeSignatureFromMetadata(
+          arg.getMetadata(TypeSignatures)
+        ).headOption
+          .map(buildTypedArgument(arg, _))
+          .getOrElse(buildArgument(arg))
+      }.tail
+
     Suggestion.Conversion(
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      selfType      = sourceTypeName,
-      returnType    = buildReturnType(returnTypeDef),
+      selfType      = methodArgs.head.reprType,
+      returnType    = selfType.fold(Any)(_.toString),
       documentation = doc
     )
   }
@@ -295,8 +316,8 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildFunction(
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
-    name: IR.Name,
-    args: Seq[IR.DefinitionArgument],
+    name: Name,
+    args: Seq[DefinitionArgument],
     location: Location,
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
@@ -351,7 +372,7 @@ final class SuggestionBuilder[A: IndexedSource](
     module: QualifiedName,
     tp: String,
     name: String,
-    params: Seq[IR.DefinitionArgument],
+    params: Seq[DefinitionArgument],
     doc: Option[String]
   ): Suggestion.Type = {
     val qualifiedName = module.createChild(tp).toString
@@ -372,8 +393,8 @@ final class SuggestionBuilder[A: IndexedSource](
     module: QualifiedName,
     tp: String,
     name: String,
-    arguments: Seq[IR.DefinitionArgument],
-    genericAnnotations: Seq[IR.Name.GenericAnnotation],
+    arguments: Seq[DefinitionArgument],
+    genericAnnotations: Seq[Name.GenericAnnotation],
     doc: Option[String]
   ): Suggestion.Constructor =
     Suggestion.Constructor(
@@ -390,11 +411,11 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildGetter(
     module: QualifiedName,
     typeName: String,
-    argument: IR.DefinitionArgument
+    argument: DefinitionArgument
   ): Suggestion = {
     val getterName = argument.name.name
-    val thisArg = IR.DefinitionArgument.Specified(
-      name         = IR.Name.Self(None),
+    val thisArg = DefinitionArgument.Specified(
+      name         = Name.Self(None),
       ascribedType = None,
       defaultValue = None,
       suspended    = false,
@@ -428,8 +449,7 @@ final class SuggestionBuilder[A: IndexedSource](
           case 0 =>
             val isBuiltinTypeWithValues =
               tp.tp.builtinType &&
-              Option(compiler.builtins.getBuiltinType(tp.tp.name))
-                .exists(_.containsValues())
+              compiler.context.typeContainsValues(tp.tp.name)
             if (isBuiltinTypeWithValues) {
               TypeArg.Sum(Some(tp.qualifiedName), Seq())
             } else {
@@ -479,25 +499,25 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the list of type arguments
     */
   private def buildTypeSignature(
-    typeExpr: IR.Expression
+    typeExpr: Expression
   ): Vector[TypeArg] = {
-    def go(expr: IR.Expression): TypeArg = expr match {
-      case fn: IR.Type.Function =>
+    def go(expr: Expression): TypeArg = expr match {
+      case fn: Type.Function =>
         TypeArg.Function(fn.args.map(go).toVector, go(fn.result))
-      case union: IR.Type.Set.Union =>
+      case union: `type`.Set.Union =>
         TypeArg.Sum(None, union.operands.map(go))
-      case app: IR.Application.Prefix =>
+      case app: Application.Prefix =>
         TypeArg.Application(
           go(app.function),
           app.arguments.map(c => go(c.value)).toVector
         )
-      case bin: IR.Application.Operator.Binary =>
+      case bin: Operator.Binary =>
         TypeArg.Binary(
           go(bin.left.value),
           go(bin.right.value),
           bin.operator.name
         )
-      case tname: IR.Name =>
+      case tname: Name =>
         tname
           .getMetadata(TypeNames)
           .map(t => buildResolvedTypeName(t.target))
@@ -522,14 +542,14 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the list of arguments with a method return type
     */
   private def buildMethodArguments(
-    vargs: Seq[IR.DefinitionArgument],
+    vargs: Seq[DefinitionArgument],
     targs: Seq[TypeArg],
     selfType: QualifiedName,
     isStatic: Boolean
   ): (Seq[Suggestion.Argument], Option[TypeArg]) = {
     @scala.annotation.tailrec
     def go(
-      vargs: Seq[IR.DefinitionArgument],
+      vargs: Seq[DefinitionArgument],
       targs: Seq[TypeArg],
       acc: Vector[Suggestion.Argument]
     ): (Vector[Suggestion.Argument], Option[TypeArg]) =
@@ -537,8 +557,8 @@ final class SuggestionBuilder[A: IndexedSource](
         (acc, targs.lastOption)
       } else {
         vargs match {
-          case IR.DefinitionArgument.Specified(
-                name: IR.Name.Self,
+          case DefinitionArgument.Specified(
+                name: Name.Self,
                 _,
                 defaultValue,
                 suspended,
@@ -578,12 +598,12 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the list of arguments with a function return type
     */
   private def buildFunctionArguments(
-    vargs: Seq[IR.DefinitionArgument],
+    vargs: Seq[DefinitionArgument],
     targs: Seq[TypeArg]
   ): (Seq[Suggestion.Argument], Option[TypeArg]) = {
     @scala.annotation.tailrec
     def go(
-      vargs: Seq[IR.DefinitionArgument],
+      vargs: Seq[DefinitionArgument],
       targs: Seq[TypeArg],
       acc: Vector[Suggestion.Argument]
     ): (Seq[Suggestion.Argument], Option[TypeArg]) =
@@ -611,7 +631,7 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the suggestion argument
     */
   private def buildTypedArgument(
-    varg: IR.DefinitionArgument,
+    varg: DefinitionArgument,
     targ: TypeArg
   ): Suggestion.Argument =
     Suggestion.Argument(
@@ -681,7 +701,7 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param arg the value argument
     * @return the suggestion argument
     */
-  private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument = {
+  private def buildArgument(arg: DefinitionArgument): Suggestion.Argument = {
     buildTypeSignatureFromMetadata(arg.name.getMetadata(TypeSignatures)) match {
       case Vector(targ) =>
         buildTypedArgument(arg, targ)
@@ -711,9 +731,11 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildDefaultValue(expr: IR): Option[String] =
     expr match {
-      case IR.Literal.Number(_, value, _, _, _) => Some(value)
-      case IR.Literal.Text(text, _, _, _)       => Some(text)
-      case _                                    => None
+      case Literal.Number(_, value, _, _, _) => Some(value)
+      case Literal.Text(text, _, _, _)       => Some(text)
+      case Application.Prefix(name, path, _, _, _, _) =>
+        Some(path.map(_.value.showCode()).mkString(".") + "." + name.showCode())
+      case other => Some(other.showCode())
     }
 
   /** Build scope from the location. */
@@ -732,9 +754,6 @@ final class SuggestionBuilder[A: IndexedSource](
 }
 
 object SuggestionBuilder {
-
-  /** TODO[DB] enable conversions when they get the runtime support. */
-  private val ConversionsEnabled: Boolean = false
 
   /** Creates the suggestion builder for a module.
     *
@@ -789,7 +808,7 @@ object SuggestionBuilder {
       * @param location the identified IR location
       * @return new scope
       */
-    def apply(items: Seq[IR], location: Option[IR.IdentifiedLocation]): Scope =
+    def apply(items: Seq[IR], location: Option[IdentifiedLocation]): Scope =
       new Scope(mutable.Queue(items: _*), location.map(_.location))
   }
 

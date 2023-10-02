@@ -36,6 +36,7 @@ import org.enso.languageserver.refactoring.RefactoringApi.{
   RenameProject,
   RenameSymbol
 }
+import org.enso.languageserver.refactoring.{RefactoringApi, RefactoringProtocol}
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
@@ -132,8 +133,15 @@ class JsonConnectionController(
 
   implicit val timeout: Timeout = Timeout(requestTimeout)
 
+  override def preStart(): Unit = {
+    super.preStart()
+
+    context.system.eventStream
+      .subscribe(self, classOf[RefactoringProtocol.ProjectRenamedNotification])
+  }
+
   override def receive: Receive = {
-    case JsonRpcServer.WebConnect(webActor) =>
+    case JsonRpcServer.WebConnect(webActor, _) =>
       unstashAll()
       context.become(connected(webActor))
     case _ => stash()
@@ -172,7 +180,7 @@ class JsonConnectionController(
     case Request(_, id, _) =>
       sender() ! ResponseError(Some(id), SessionNotInitialisedError)
 
-    case MessageHandler.Disconnected =>
+    case MessageHandler.Disconnected(_) =>
       context.stop(self)
   }
 
@@ -251,7 +259,11 @@ class JsonConnectionController(
         receiver ! ResponseResult(
           InitProtocolConnection,
           request.id,
-          InitProtocolConnection.Result(allRoots.map(_.toContentRoot).toSet)
+          InitProtocolConnection.Result(
+            buildinfo.Info.ensoVersion,
+            buildinfo.Info.currentEdition,
+            allRoots.map(_.toContentRoot).toSet
+          )
         )
 
         initialize(webActor, rpcSession)
@@ -296,7 +308,8 @@ class JsonConnectionController(
     case Request(InitProtocolConnection, id, _) =>
       sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
 
-    case MessageHandler.Disconnected =>
+    case MessageHandler.Disconnected(_) =>
+      logger.info("Json session terminated [{}].", rpcSession.clientId)
       context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
 
@@ -415,6 +428,20 @@ class JsonConnectionController(
           FileManagerApi.ContentRootAdded.Params(root.toContentRoot)
         )
       }
+
+    case RefactoringProtocol.ProjectRenamedNotification(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        ) =>
+      webActor ! Notification(
+        RefactoringApi.ProjectRenamed,
+        RefactoringApi.ProjectRenamed.Params(
+          oldNormalizedName,
+          newNormalizedName,
+          newName
+        )
+      )
 
     case Api.ProgressNotification(payload) =>
       val translated: Notification[_, _] =
@@ -581,6 +608,10 @@ class JsonConnectionController(
         requestTimeout,
         libraryConfig.localLibraryManager,
         libraryConfig.publishedLibraryCache
+      ),
+      RenameProject -> RenameProjectHandler.props(
+        requestTimeout,
+        runtimeConnector
       ),
       RenameSymbol -> RenameSymbolHandler.props(
         requestTimeout,

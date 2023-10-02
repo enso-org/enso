@@ -21,10 +21,12 @@ export enum AssetEventType {
     newProject = 'new-project',
     newFolder = 'new-folder',
     uploadFiles = 'upload-files',
-    newSecret = 'new-secret',
+    newDataConnector = 'new-data-connector',
     openProject = 'open-project',
+    closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
+    restoreMultiple = 'restore-multiple',
     downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
 }
@@ -39,10 +41,12 @@ interface AssetEvents {
     newProject: AssetNewProjectEvent
     newFolder: AssetNewFolderEvent
     uploadFiles: AssetUploadFilesEvent
-    newSecret: AssetNewSecretEvent
+    newDataConnector: AssetNewDataConnectorEvent
     openProject: AssetOpenProjectEvent
+    closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
+    restoreMultiple: AssetRestoreMultipleEvent
     downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
 }
@@ -53,7 +57,7 @@ interface AssetEvents {
 type SanityCheck<
     T extends {
         [Type in keyof typeof AssetEventType]: AssetBaseEvent<(typeof AssetEventType)[Type]>
-    } = AssetEvents
+    } = AssetEvents,
     // eslint-disable-next-line no-restricted-syntax
 > = T
 
@@ -71,17 +75,25 @@ export interface AssetNewFolderEvent extends AssetBaseEvent<AssetEventType.newFo
 
 /** A signal to upload files. */
 export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
-    files: Map<backendModule.FileId | backendModule.ProjectId, File>
+    files: Map<backendModule.AssetId, File>
 }
 
-/** A signal to create a secret. */
-export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
+/** A signal to create a data connector. */
+export interface AssetNewDataConnectorEvent
+    extends AssetBaseEvent<AssetEventType.newDataConnector> {
     placeholderId: backendModule.SecretId
     value: string
 }
 
 /** A signal to open the specified project. */
 export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
+    id: backendModule.ProjectId
+    shouldAutomaticallySwitchPage: boolean
+    runInBackground: boolean
+}
+
+/** A signal to close the specified project. */
+export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.closeProject> {
     id: backendModule.ProjectId
 }
 
@@ -91,6 +103,11 @@ export interface AssetCancelOpeningAllProjectsEvent
 
 /** A signal to delete multiple assets. */
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
+    ids: Set<backendModule.AssetId>
+}
+
+/** A signal to restore assets from trash. */
+export interface AssetRestoreMultipleEvent extends AssetBaseEvent<AssetEventType.restoreMultiple> {
     ids: Set<backendModule.AssetId>
 }
 

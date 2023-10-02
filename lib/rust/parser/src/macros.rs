@@ -45,7 +45,10 @@ pub struct Definition<'a> {
 }
 
 /// A function that transforms matched macro tokens into [`syntax::Tree`].
-pub type DefinitionBody = dyn for<'s> Fn(pattern::MatchedSegments<'s>) -> syntax::Tree<'s>;
+pub type DefinitionBody = dyn for<'s, 'r> Fn(
+    pattern::MatchedSegments<'s>,
+    &'r mut syntax::operator::Precedence<'s>,
+) -> syntax::Tree<'s>;
 
 
 
@@ -98,15 +101,14 @@ macro_rules! macro_definition {
     };
 }
 
-
-
-fn matched_segments_into_multi_segment_app(
-    matched_segments: NonEmptyVec<pattern::MatchedSegment<'_>>,
-) -> syntax::Tree<'_> {
+fn matched_segments_into_multi_segment_app<'s>(
+    matched_segments: NonEmptyVec<pattern::MatchedSegment<'s>>,
+    precedence: &mut syntax::operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
     let segments = matched_segments.mapped(|segment| {
         let header = segment.header;
         let tokens = segment.result.tokens();
-        let body = syntax::operator::resolve_operator_precedence_if_non_empty(tokens);
+        let body = precedence.resolve(tokens);
         syntax::tree::MultiSegmentAppSegment { header, body }
     });
     syntax::Tree::multi_segment_app(segments)

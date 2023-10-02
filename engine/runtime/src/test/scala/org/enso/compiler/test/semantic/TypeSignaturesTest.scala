@@ -1,6 +1,9 @@
 package org.enso.compiler.test.semantic
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Expression, Module, Type}
+import org.enso.compiler.core.ir
+import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.`type`
 import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
@@ -45,12 +48,12 @@ trait TypeMatchers {
 
   val Input = Name("Input")
 
-  case class TypeMatcher(sig: Sig) extends Matcher[IR.Expression] {
+  case class TypeMatcher(sig: Sig) extends Matcher[Expression] {
     private def findInequalityWitness(
       sig: Sig,
-      expr: IR.Expression
-    ): Option[(Sig, IR.Expression, String)] = (sig, expr) match {
-      case (Name(n), t: IR.Name.Literal) =>
+      expr: Expression
+    ): Option[(Sig, Expression, String)] = (sig, expr) match {
+      case (Name(n), t: ir.Name.Literal) =>
         Option.when(n != t.name)((sig, expr, "names do not match"))
       case (AnyQualName(n), _) =>
         val meta = expr.getMetadata(TypeNames)
@@ -70,7 +73,7 @@ trait TypeMatchers {
               )
             }
         }
-      case (Fn(args, res), t: IR.Type.Function) =>
+      case (Fn(args, res), t: Type.Function) =>
         if (args.length != t.args.length) {
           Some((sig, expr, "arity does not match"))
         } else {
@@ -80,13 +83,13 @@ trait TypeMatchers {
             .headOption
             .orElse(findInequalityWitness(res, t.result))
         }
-      case (Union(items), t: IR.Type.Set.Union) =>
+      case (Union(items), t: `type`.Set.Union) =>
         if (items.length != t.operands.length) {
           Some((sig, expr, "number of items does not match"))
         } else {
           items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
         }
-      case (In(typed, context), IR.Type.Context(irTyped, irContext, _, _, _)) =>
+      case (In(typed, context), Type.Context(irTyped, irContext, _, _, _)) =>
         findInequalityWitness(typed, irTyped).orElse(
           findInequalityWitness(context, irContext)
         )
@@ -94,7 +97,7 @@ trait TypeMatchers {
       case _ => Some((sig, expr, "constructors are incompatible"))
     }
 
-    override def apply(left: IR.Expression): MatchResult = {
+    override def apply(left: Expression): MatchResult = {
       findInequalityWitness(sig, left) match {
         case Some((s, t, r)) =>
           MatchResult(
@@ -148,7 +151,7 @@ class TypeSignaturesTest
   )
 
   implicit private class PreprocessModule(code: String) {
-    def preprocessModule: IR.Module = {
+    def preprocessModule: Module = {
       val module = new runtime.Module(Module, null, code)
       langCtx.getCompiler.run(module)
       module.getIr
@@ -156,11 +159,11 @@ class TypeSignaturesTest
   }
 
   private def getSignature(
-    module: IR.Module,
+    module: Module,
     methodName: String
-  ): IR.Expression = {
+  ): Expression = {
     val m = module.bindings.find {
-      case m: IR.Module.Scope.Definition.Method =>
+      case m: definition.Method =>
         m.methodName.name == methodName
       case _ => false
     }.get

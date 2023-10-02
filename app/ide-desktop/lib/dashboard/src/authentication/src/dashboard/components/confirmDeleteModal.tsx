@@ -8,9 +8,9 @@ import * as modalProvider from '../../providers/modal'
 
 import Modal from './modal'
 
-// =================
-// === Component ===
-// =================
+// ==========================
+// === ConfirmDeleteModal ===
+// ==========================
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
@@ -38,7 +38,18 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
 
     return (
         <Modal centered className="bg-dim">
-            <div className="relative rounded-2xl pointer-events-auto">
+            <div
+                ref={element => {
+                    element?.focus()
+                }}
+                tabIndex={-1}
+                className="relative rounded-2xl pointer-events-auto"
+                onKeyDown={event => {
+                    if (event.key !== 'Escape') {
+                        event.stopPropagation()
+                    }
+                }}
+            >
                 <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
                 <form
                     onClick={event => {
@@ -50,19 +61,19 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                         // delete an important asset.
                         onSubmit()
                     }}
-                    className="relative shadow-soft rounded-2xl w-96 px-4 py-2"
+                    className="relative flex flex-col rounded-2xl gap-2 w-96 px-4 p-2"
                 >
-                    <div className="m-2">Are you sure you want to delete {description}?</div>
-                    <div className="m-1">
+                    <div>Are you sure you want to delete {description}?</div>
+                    <div className="flex gap-2">
                         <button
                             type="submit"
-                            className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1 m-1"
+                            className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"
                         >
                             Delete
                         </button>
                         <button
                             type="button"
-                            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 m-1"
+                            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
                             onClick={unsetModal}
                         >
                             Cancel

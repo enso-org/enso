@@ -19,6 +19,7 @@ use enso_doc_parser::doc_sections::HtmlString;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
 use enso_text::Location;
+use ensogl_icons::icon;
 use language_server::types::FieldAction;
 
 
@@ -87,7 +88,7 @@ pub struct ModuleSpan {
 /// In order to make icon definitions more readable for non-programmer users, the builtin icon name
 /// is allowed to be formatted in arbitrary casing. Either `SNAKE_case`,`camelCase`, `Pascal_Case`
 /// etc. is allowed.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct IconName {
     /// The name is kept in `PascalCase` to allow easy conversion into builtin icon ID.
     pascal_cased: ImString,
@@ -175,7 +176,7 @@ impl From<Import> for import::Info {
 // === Kind ===
 
 /// A type of suggestion entry.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant, serde::Serialize)]
 #[allow(missing_docs)]
 pub enum Kind {
     Type,
@@ -194,7 +195,7 @@ pub enum Kind {
 /// Methods are visible "Everywhere", as they are imported on a module level, so they are not
 /// specific to any particular span in the module file.
 /// However local variables and local function have limited visibility.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum Scope {
     /// The entry is visible in the whole module where it was defined. It can be also brought to
     /// other modules by import declarations.
@@ -213,7 +214,7 @@ pub enum Scope {
 // === Entry ===
 
 /// The Suggestion Database Entry.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct Entry {
     /// A type of suggestion.
     pub kind:          Kind,
@@ -528,6 +529,17 @@ impl Entry {
 
 // === Other Properties ===
 
+macro_rules! kind_to_icon {
+    ([ $( $variant:ident ),* ] $kind:ident) => {
+        {
+            use ensogl_icons::icon::Id;
+            match $kind {
+                $( Kind::$variant => Id::$variant, )*
+            }
+        }
+    }
+}
+
 impl Entry {
     /// Return the Method Id of suggested method.
     ///
@@ -563,11 +575,12 @@ impl Entry {
         &self,
         suggestion_db: &SuggestionDatabase,
         parser: &parser::Parser,
+        in_module: QualifiedNameRef,
     ) -> span_tree::generate::context::CalledMethodInfo {
         let parameters = self
             .arguments
             .iter()
-            .map(|arg| to_span_tree_param(arg, suggestion_db, parser))
+            .map(|arg| to_span_tree_param(arg, suggestion_db, parser, in_module.clone_ref()))
             .collect();
         span_tree::generate::context::CalledMethodInfo {
             is_static: self.is_static,
@@ -620,6 +633,14 @@ impl Entry {
                 _ => None,
             })
             .flatten()
+    }
+
+    /// Returns the icon of the entry.
+    pub fn icon(&self) -> icon::Id {
+        let kind = self.kind;
+        let icon_name = self.icon_name.as_ref();
+        let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());
+        icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)))
     }
 }
 
@@ -876,9 +897,14 @@ pub fn to_span_tree_param(
     param_info: &Argument,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
+    in_module: QualifiedNameRef,
 ) -> span_tree::ArgumentInfo {
-    let tag_values =
-        argument_tag_values(param_info.tag_values.iter().map(|s| s.as_str()), db, parser);
+    let tag_values = argument_tag_values(
+        param_info.tag_values.iter().map(|s| s.as_str()),
+        db,
+        parser,
+        in_module,
+    );
     span_tree::ArgumentInfo {
         // TODO [mwu] Check if database actually do must always have both of these filled.
         name: Some(param_info.name.clone()),
@@ -935,6 +961,7 @@ pub fn argument_tag_values<'a, E>(
     raw_expressions: E,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
+    in_module: QualifiedNameRef,
 ) -> Vec<span_tree::TagValue>
 where
     E: IntoIterator<Item = &'a str>,
@@ -952,18 +979,13 @@ where
             TagValueResolution::Resolved(entry, chain) => {
                 let label = chain_to_label(&chain);
                 let qualified_name = entry.qualified_name();
-                let parent_module = qualified_name.parent();
-                let required_import = parent_module.as_ref().map(|n| n.to_string());
-
-                let expression = if let Some(parent) = parent_module {
-                    let in_module_name = qualified_name.name();
-                    let parent_name = parent.name();
-                    [parent_name, in_module_name].join(opr::predefined::ACCESS)
+                let required_import = Some(qualified_name.to_string());
+                let expression = entry.code_to_insert(true, in_module.clone_ref());
+                let expression = if entry.arguments.is_empty() {
+                    expression.to_string()
                 } else {
-                    qualified_name.to_string()
+                    format!("({expression})")
                 };
-                let expression =
-                    if entry.arguments.is_empty() { expression } else { format!("({expression})") };
 
                 span_tree::TagValue { required_import, expression, label: Some(label) }
             }
@@ -1445,7 +1467,8 @@ mod test {
         let parser = Parser::new();
         let db = SuggestionDatabase::new_empty();
         let expressions = expression_and_expected_label.iter().map(|(expr, _)| *expr);
-        let tag_values = argument_tag_values(expressions, &db, &parser);
+        let in_module = default();
+        let tag_values = argument_tag_values(expressions, &db, &parser, in_module);
         let expected_values = expression_and_expected_label
             .iter()
             .map(|(expression, label)| span_tree::TagValue {

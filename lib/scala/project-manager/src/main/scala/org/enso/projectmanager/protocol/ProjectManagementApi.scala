@@ -1,7 +1,6 @@
 package org.enso.projectmanager.protocol
 
 import java.util.UUID
-
 import io.circe.Json
 import io.circe.syntax._
 import nl.gn0s1s.bump.SemVer
@@ -11,6 +10,7 @@ import org.enso.projectmanager.data.{
   EngineVersion,
   MissingComponentAction,
   ProjectMetadata,
+  RunningStatus,
   Socket
 }
 
@@ -96,6 +96,25 @@ object ProjectManagementApi {
     implicit val hasResult: HasResult.Aux[this.type, ProjectOpen.Result] =
       new HasResult[this.type] {
         type Result = ProjectOpen.Result
+      }
+  }
+
+  case object ProjectStatus extends Method("project/status") {
+
+    case class Params(
+      projectId: UUID
+    )
+
+    case class Result(status: RunningStatus)
+
+    implicit val hasParams: HasParams.Aux[this.type, ProjectStatus.Params] =
+      new HasParams[this.type] {
+        type Params = ProjectStatus.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, ProjectStatus.Result] =
+      new HasResult[this.type] {
+        type Result = ProjectStatus.Result
       }
   }
 
@@ -261,11 +280,13 @@ object ProjectManagementApi {
 
   case class BrokenComponentError(msg: String) extends Error(4021, msg)
 
-  case class ProjectManagerUpgradeRequired(minimumRequiredVersion: SemVer)
-      extends Error(
+  case class ProjectManagerUpgradeRequired(
+    currentVersion: SemVer,
+    minimumRequiredVersion: SemVer
+  ) extends Error(
         4022,
         s"Project manager $minimumRequiredVersion is required to install the " +
-        s"requested engine. Please upgrade."
+        s"requested engine. Current version is $currentVersion. Please upgrade."
       ) {
 
     /** Additional payload that can be used to get the version string of the
@@ -308,6 +329,9 @@ object ProjectManagementApi {
 
   case object CannotRemoveOpenProjectError
       extends Error(4008, "Cannot remove open project")
+
+  case object CannotRemoveClosingProjectError
+      extends Error(4014, "Cannot remove closing project")
 
   case class ProjectCloseError(msg: String) extends Error(4009, msg)
 

@@ -232,10 +232,6 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `while (true)` instead of `for (;;)`',
     },
     {
-        selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
-        message: "Environment must be 'production' when committing",
-    },
-    {
         selector: 'CallExpression[callee.name=toastAndLog][arguments.0.value=/\\.$/]',
         message: '`toastAndLog` already includes a trailing `.`',
     },
@@ -392,7 +388,7 @@ export default [
             '@typescript-eslint/no-magic-numbers': [
                 'error',
                 {
-                    ignore: [0, 1, 2],
+                    ignore: [-1, 0, 1, 2],
                     ignoreArrayIndexes: true,
                     ignoreEnums: true,
                     detectObjects: true,

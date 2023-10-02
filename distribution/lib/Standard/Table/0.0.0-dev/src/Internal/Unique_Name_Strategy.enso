@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Internal.Naming_Properties.Naming_Properties
 import project.Internal.Naming_Properties as Naming_Properties_Module
+import project.Internal.Naming_Properties.Naming_Properties
 
 polyglot java import org.enso.table.util.NameDeduplicator
 

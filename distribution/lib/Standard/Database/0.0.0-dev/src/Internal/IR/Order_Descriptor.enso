@@ -5,4 +5,5 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
 type Order_Descriptor
+    ## PRIVATE
     Value (expression : SQL_Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)

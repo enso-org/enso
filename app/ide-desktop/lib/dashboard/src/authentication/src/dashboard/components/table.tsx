@@ -50,9 +50,11 @@ interface InternalNoSelectedKeysProps {
 
 /** Props for a {@link Table}. */
 interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
-    footer?: JSX.Element
-    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element
+    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element | null
+    scrollContainerRef?: React.RefObject<HTMLDivElement>
+    headerRowRef?: React.RefObject<HTMLTableRowElement>
     items: T[]
+    filter?: ((item: T) => boolean) | null
     state?: State
     initialRowState?: RowState
     getKey: (item: T) => Key
@@ -64,7 +66,7 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     className?: string
     onContextMenu: (
         selectedKeys: Set<Key>,
-        event: React.MouseEvent<HTMLTableElement>,
+        event: React.MouseEvent<HTMLDivElement>,
         setSelectedKeys: (items: Set<Key>) => void
     ) => void
 }
@@ -74,7 +76,7 @@ export type TableProps<
     T,
     State = never,
     RowState = never,
-    Key extends string = string
+    Key extends string = string,
 > = InternalTableProps<T, State, RowState, Key> &
     ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
     ([State] extends [never] ? unknown : StateProp<State>) &
@@ -85,9 +87,11 @@ export default function Table<T, State = never, RowState = never, Key extends st
     props: TableProps<T, State, RowState, Key>
 ) {
     const {
-        footer,
         rowComponent: RowComponent = TableRow,
+        scrollContainerRef,
+        headerRowRef,
         items,
+        filter,
         getKey,
         selectedKeys: rawSelectedKeys,
         setSelectedKeys: rawSetSelectedKeys,
@@ -108,6 +112,34 @@ export default function Table<T, State = never, RowState = never, Key extends st
             ? [rawSelectedKeys, rawSetSelectedKeys]
             : [fallbackSelectedKeys, fallbackSetSelectedKeys]
     const [previouslySelectedKey, setPreviouslySelectedKey] = React.useState<Key | null>(null)
+    const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+
+    // This is required to prevent the table body from overlapping the table header, because
+    // the table header is transparent.
+    React.useEffect(() => {
+        const body = bodyRef.current
+        const scrollContainer = scrollContainerRef?.current
+        if (body != null && scrollContainer != null) {
+            let isClipPathUpdateQueued = false
+            const updateClipPath = () => {
+                isClipPathUpdateQueued = false
+                body.style.clipPath = `inset(${scrollContainer.scrollTop}px 0 0 0)`
+            }
+            const onScroll = () => {
+                if (!isClipPathUpdateQueued) {
+                    isClipPathUpdateQueued = true
+                    requestAnimationFrame(updateClipPath)
+                }
+            }
+            updateClipPath()
+            scrollContainer.addEventListener('scroll', onScroll)
+            return () => {
+                scrollContainer.removeEventListener('scroll', onScroll)
+            }
+        } else {
+            return
+        }
+    }, [/* should never change */ scrollContainerRef])
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
@@ -203,7 +235,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const headerRow = (
-        <tr>
+        <tr ref={headerRowRef} className="sticky top-0">
             {columns.map(column => {
                 // This is a React component, even though it does not contain JSX.
                 // eslint-disable-next-line no-restricted-syntax
@@ -225,7 +257,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const itemRows = isLoading ? (
-        <tr className="h-10">
+        <tr className="h-8">
             <td colSpan={columns.length} className="bg-transparent">
                 <div className="grid justify-around w-full">
                     <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
@@ -248,6 +280,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     key={key}
                     keyProp={key}
                     item={item}
+                    hidden={filter != null ? !filter(item) : false}
                     selected={selectedKeys.has(key)}
                     setSelected={selected => {
                         setSelectedKeys(oldSelectedKeys =>
@@ -274,24 +307,25 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     return (
-        <table
-            className="grow rounded-rows self-start table-fixed border-collapse mt-2"
+        <div
+            className="grow"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
         >
-            <thead>{headerRow}</thead>
-            <tbody>
-                {itemRows}
-                {placeholder && (
-                    <tr className="h-10 hidden first:table-row">
-                        <td colSpan={columns.length} className="bg-transparent">
-                            {placeholder}
-                        </td>
-                    </tr>
-                )}
-            </tbody>
-            {footer}
-        </table>
+            <table className="rounded-rows table-fixed border-collapse">
+                <thead>{headerRow}</thead>
+                <tbody ref={bodyRef}>
+                    {itemRows}
+                    {placeholder && (
+                        <tr className="h-8 hidden first:table-row">
+                            <td colSpan={columns.length} className="bg-transparent">
+                                {placeholder}
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
     )
 }

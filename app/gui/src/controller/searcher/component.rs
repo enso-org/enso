@@ -340,6 +340,9 @@ impl List {
 pub(crate) mod tests {
     use super::*;
 
+    use crate::model::execution_context::ComponentGroup;
+    use crate::model::execution_context::GroupQualifiedName;
+    use double_representation::name::project;
     use double_representation::name::QualifiedName;
     use enso_suggestion_database::doc_section;
     use enso_suggestion_database::mock_suggestion_database;
@@ -355,10 +358,15 @@ pub(crate) mod tests {
         assert_eq!(groups, expected);
     }
 
+    fn make_filter(pattern: &str) -> Filter {
+        let module_name = Rc::new(QualifiedName::from_text("local.Project").unwrap());
+        Filter { pattern: pattern.into(), context: None, module_name }
+    }
+
     #[test]
     fn filtering() {
         let db = mock_suggestion_database! {
-            local.New_Project_1 {
+            local.Project {
                 fn main() -> Standard.Base.Any;
             }
             test.Test {
@@ -377,21 +385,65 @@ pub(crate) mod tests {
         builder.add_components_from_db(db.keys());
         let mut list = builder.build();
 
-        let module_name = Rc::new(QualifiedName::from_text("local.New_Project_1").unwrap());
-        let make_filter = |pat: &str| Filter {
-            pattern:     pat.into(),
-            context:     None,
-            module_name: module_name.clone_ref(),
-        };
         check_displayed_components(&list, vec!["test.Test.TopModule1"]);
         list.update_filtering(make_filter("main"));
-        check_displayed_components(&list, vec!["New_Project_1.main"]);
+        check_displayed_components(&list, vec!["Project.main"]);
         list.update_filtering(make_filter("fo"));
         check_displayed_components(&list, vec!["TopModule1.foo"]);
         list.update_filtering(make_filter("ba"));
         check_displayed_components(&list, vec!["TopModule1.bar", "SubModule1.bazz"]);
         list.update_filtering(make_filter(""));
         check_displayed_components(&list, vec!["test.Test.TopModule1"]);
+    }
+
+    // Check that the order of results before and after filtering is the same.
+    #[test]
+    fn preserve_unfiltered_order_of_results() {
+        let db = mock_suggestion_database! {
+            local.Project {
+                fn main() -> Standard.Base.Any;
+                type Json {
+                    #[in_group("Data")]
+                    parse();
+                }
+                type Date {
+                    #[in_group("Data")]
+                    parse();
+                }
+                type Time {
+                    #[in_group("Data")]
+                    parse();
+                }
+                type DateTime {
+                    #[in_group("Data")]
+                    parse();
+                }
+            }
+        };
+
+        let project_name = project::QualifiedName::from_text("local.Project").unwrap();
+        let component_groups = &[ComponentGroup {
+            name:       GroupQualifiedName::new(project_name, "Data"),
+            color:      None,
+            components: default(),
+        }];
+        let mut builder = Builder::new(&db, component_groups);
+        builder.add_components_from_db(db.keys());
+        let mut list = builder.build();
+
+        check_displayed_components(&list, vec![
+            "Date.parse",
+            "DateTime.parse",
+            "Json.parse",
+            "Time.parse",
+        ]);
+        list.update_filtering(make_filter("parse"));
+        check_displayed_components(&list, vec![
+            "Date.parse",
+            "DateTime.parse",
+            "Json.parse",
+            "Time.parse",
+        ]);
     }
 
     #[test]
@@ -409,12 +461,6 @@ pub(crate) mod tests {
         builder.add_components_from_db(db.keys());
         let mut list = builder.build();
 
-        let module_name = Rc::new(QualifiedName::from_text("local.Project").unwrap());
-        let make_filter = |pat: &str| Filter {
-            pattern:     pat.into(),
-            context:     None,
-            module_name: module_name.clone_ref(),
-        };
         list.update_filtering(make_filter("join by joining"));
         check_displayed_components(&list, vec!["Join by Joining (Table.join)"]);
         let components = list.displayed().iter().cloned().collect_vec();

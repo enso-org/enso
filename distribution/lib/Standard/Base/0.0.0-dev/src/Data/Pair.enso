@@ -8,7 +8,6 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
 import project.Function.Function
 import project.Nothing.Nothing
-
 from project.Data.Text.Extensions import all
 
 ## A pair of elements.
@@ -28,7 +27,8 @@ type Pair
        - second: The second element.
     Value first second
 
-    ## Get the last element of the pair.
+    ## GROUP Selections
+       Get the last element of the pair.
 
        > Example
          The following code returns 4.
@@ -47,7 +47,8 @@ type Pair
     map self fun =
         Pair.new (fun self.first) (fun self.second)
 
-    ## Returns the length (2) of the Pair.
+    ## GROUP Metadata
+       Returns the length of the Pair (which is always equal to 2).
     length : Integer
     length self = 2
 
@@ -55,7 +56,8 @@ type Pair
     to_vector : Vector
     to_vector self = [self.first, self.second]
 
-    ## Gets an element from the pair at a specified index (0-based).
+    ## GROUP Selections
+       Gets an element from the pair at a specified index (0-based).
 
        Arguments:
        - index: The location in the pair to get the element from. The index is
@@ -82,7 +84,8 @@ type Pair
             -2 -> self.first
             _ -> if_missing
 
-    ## Checks whether a predicate holds for at least one element of self pair.
+    ## GROUP Logical
+       Checks whether a predicate holds for at least one element of this pair.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean
@@ -96,7 +99,8 @@ type Pair
     any : (Any -> Boolean) -> Boolean
     any self predicate = predicate self.first || predicate self.second
 
-    ## Checks whether a predicate holds for all elements in this pair.
+    ## GROUP Logical
+       Checks whether a predicate holds for all elements in this pair.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean
@@ -110,7 +114,8 @@ type Pair
     all : (Any -> Boolean) -> Boolean
     all self predicate = predicate self.first && predicate self.second
 
-    ## Checks whether this pair contains a given value as an element.
+    ## GROUP Logical
+       Checks whether this pair contains a given value as an element.
 
        Arguments:
        - elem: The item to see if it exists in the pair.
@@ -122,7 +127,8 @@ type Pair
     contains : Any -> Boolean
     contains self elem = self.first == elem || self.second == elem
 
-    ## Returns the first element of the pair that satisfies the predicate or
+    ## GROUP Selections
+       Returns the first element of the pair that satisfies the predicate or
        if no elements satisfy the predicate, returns `if_missing`.
 
        Arguments:
@@ -144,7 +150,8 @@ type Pair
                 if used_start<2 && predicate self.second then self.second else
                     if_missing
 
-    ## Returns the index of an element in the pair.
+    ## GROUP Values
+       Returns the index of an element in the pair.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -167,7 +174,8 @@ type Pair
             if used_start<2 && predicate self.second then 1 else
                 Nothing
 
-    ## Returns the last index of an element in the pair.
+    ## GROUP Values
+       Returns the last index of an element in the pair.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -217,7 +225,8 @@ type Pair
     reduce self function =
         function self.first self.second
 
-    ## Reverses the pair, returning a pair with the same elements, but in
+    ## GROUP Selections
+       Reverses the pair, returning a pair with the same elements, but in
        the opposite order.
 
        > Example

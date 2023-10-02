@@ -1,12 +1,12 @@
 /** @file Files loader. Displays a loading spinner and reports the current download progress. */
 
-import * as animation from 'runner/animation'
-import * as html_utils from 'runner/dom/dom'
-import * as math from 'runner/math'
-import * as svg from 'runner/dom/svg'
-import { Options } from 'runner/config'
-import { Logo } from 'runner/dom/logo'
-import { logger } from 'runner/log'
+import * as animation from '../animation'
+import * as html_utils from '../dom/dom'
+import * as math from '../math'
+import * as svg from '../dom/svg'
+import { Options } from '../config'
+import { Logo } from '../dom/logo'
+import { logger } from '../log'
 
 // =========================
 // === ProgressIndicator ===

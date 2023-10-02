@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.System.File.Input_Stream
+import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table

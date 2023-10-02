@@ -4,14 +4,11 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.function.Predicate;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 
@@ -22,7 +19,7 @@ import org.enso.interpreter.runtime.tag.Patchable;
 final class PatchedModuleValues {
   private final Module module;
   private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
-  private Map<Node, Predicate<IR.Expression>> values;
+  private Map<Node, Predicate<Expression>> values;
 
   PatchedModuleValues(Module module) {
     this.module = module;
@@ -45,15 +42,15 @@ final class PatchedModuleValues {
    * @param delta positive or negative change at the offset location
    */
   private synchronized void performUpdates(
-    Map<Node, Predicate<IR.Expression>> collect, int offset, int delta
+    Map<Node, Predicate<Expression>> collect, int offset, int delta
   ) {
     if (values == null) {
       var scope = module.getScope();
       values = new HashMap<>();
-      var methods = scope.getMethods();
+      var methods = scope.getAllMethods();
       var conversions = scope.getConversions();
-      updateFunctionsMap(null, methods.values(), values);
-      updateFunctionsMap(null, conversions.values(), values);
+      updateFunctionsMap(null, methods, values);
+      updateFunctionsMap(null, conversions, values);
     }
     values.putAll(collect);
     if (delta == 0) {
@@ -80,9 +77,9 @@ final class PatchedModuleValues {
    */
   boolean simpleUpdate(SimpleUpdate update) {
     var scope = module.getScope();
-    var methods = scope.getMethods();
+    var methods = scope.getAllMethods();
     var conversions = scope.getConversions();
-    var collect = new HashMap<Node, Predicate<IR.Expression>>();
+    var collect = new HashMap<Node, Predicate<Expression>>();
     if (values != null) {
       for (var n : values.keySet()) {
         updateNode(update, n, collect);
@@ -90,8 +87,8 @@ final class PatchedModuleValues {
     }
     if (collect.isEmpty()) {
       // only search for new literals when none have been found
-      updateFunctionsMap(update, methods.values(), collect);
-      updateFunctionsMap(update, conversions.values(), collect);
+      updateFunctionsMap(update, methods, collect);
+      updateFunctionsMap(update, conversions, collect);
       if (collect.isEmpty()) {
         return false;
       }
@@ -113,15 +110,13 @@ final class PatchedModuleValues {
     return true;
   }
 
-  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Predicate<IR.Expression>> nodeValues) {
-    for (Map<?, Function> map : values) {
-      for (Function f : map.values()) {
-        updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
-      }
+  private static void updateFunctionsMap(SimpleUpdate edit, List<Function> values, Map<Node, Predicate<Expression>> nodeValues) {
+    for (Function f : values) {
+      updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
     }
   }
 
-  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Predicate<IR.Expression>> nodeValues) {
+  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Predicate<Expression>> nodeValues) {
     LinkedList<Node> queue = new LinkedList<>();
     queue.add(root);
     while (!queue.isEmpty()) {

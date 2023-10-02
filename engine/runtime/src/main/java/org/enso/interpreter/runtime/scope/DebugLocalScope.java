@@ -4,9 +4,9 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.SourceSection;
@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 /**
@@ -33,7 +34,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
  * </ul>
  */
 @ExportLibrary(InteropLibrary.class)
-public class DebugLocalScope implements TruffleObject {
+public class DebugLocalScope implements EnsoObject {
   private final EnsoRootNode rootNode;
 
   /** All the bindings, including the parent scopes. */
@@ -77,11 +78,13 @@ public class DebugLocalScope implements TruffleObject {
             && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
   }
 
+  @TruffleBoundary
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
     return new DebugLocalScope(
         rootNode, frame, gatherBindingsByLevels(rootNode.getLocalScope().flattenBindings()), 0);
   }
 
+  @TruffleBoundary
   private static DebugLocalScope createParent(DebugLocalScope childScope) {
     return new DebugLocalScope(
         childScope.rootNode,
@@ -137,6 +140,7 @@ public class DebugLocalScope implements TruffleObject {
 
   /** Returns the members from the current local scope and all the parent scopes. */
   @ExportMessage
+  @TruffleBoundary
   ScopeMembers getMembers(boolean includeInternal) {
     List<String> members = new ArrayList<>();
     bindingsByLevels.stream().skip(bindingsByLevelsIdx).forEach(members::addAll);
@@ -144,6 +148,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   boolean isMemberModifiable(String memberName) {
     return allBindings.containsKey(memberName);
   }
@@ -170,6 +175,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   boolean isMemberReadable(String memberName) {
     // When a value in a frame is null, it means that the corresponding
     // AssignmentNode was not run yet, and the slot kind of the
@@ -179,13 +185,15 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  Object readMember(String member) {
+  @TruffleBoundary
+  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop) {
     FramePointer framePtr = allBindings.get(member);
     var value = getValue(frame, framePtr);
     return value != null ? value : DataflowError.UNINITIALIZED;
   }
 
   @ExportMessage
+  @TruffleBoundary
   void writeMember(String member, Object value) throws UnknownIdentifierException {
     if (!allBindings.containsKey(member)) {
       throw UnknownIdentifierException.create(member);
@@ -225,6 +233,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   SourceSection getSourceLocation() {
     return rootNode.getSourceSection();
   }
@@ -236,6 +245,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @Override
+  @TruffleBoundary
   public String toString() {
     return String.format(
         "DebugLocalScope{rootNode = '%s', bindingsByLevels = %s, idx = %d}",
@@ -262,7 +272,7 @@ public class DebugLocalScope implements TruffleObject {
 
   /** Simple interop wrapper for a list of strings. */
   @ExportLibrary(InteropLibrary.class)
-  static final class ScopeMembers implements TruffleObject {
+  static final class ScopeMembers implements EnsoObject {
     private final List<String> memberNames;
 
     ScopeMembers(List<String> memberNames) {

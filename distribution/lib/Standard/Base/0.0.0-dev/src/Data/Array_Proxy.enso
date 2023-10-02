@@ -3,6 +3,8 @@ import project.Data.Array.Array
 import project.Data.Numbers.Integer
 import project.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Internal.Array_Like_Helpers
+
 ## PRIVATE
    A helper type used for creating an array from a length and a callback
    providing its elements.
@@ -12,8 +14,10 @@ import project.Errors.Illegal_Argument.Illegal_Argument
    type returned from polyglot calls to other languages. The most common
    use-case for it is to pass it to `Vector.from_polyglot_array` to create a
    vector backed by such custom storage.
-@Builtin_Type
 type Array_Proxy
+    ## PRIVATE
+    Value ignore
+
     ## PRIVATE
        ADVANCED
        Creates a new `Array_Proxy` from a length and a callback.
@@ -28,16 +32,7 @@ type Array_Proxy
              Vector.from_polyglot_array (Array_Proxy.new 10000000 (i -> i))
     new : Integer -> (Integer -> Any) -> Array
     new length at = Illegal_Argument.handle_java_exception <|
-        Array_Proxy.new_builtin length at
-
-    ## PRIVATE
-       The builtin cannot throw `Illegal_Argument` as that type cannot be a
-       builtin, because they do not support default arguments in constructors.
-       So a wrapper is used which will translate a Java exception into the Enso
-       one. This indirection may be removed once the following story is done:
-       https://www.pivotaltracker.com/n/projects/2539304/stories/183817602
-    new_builtin : Integer -> (Integer -> Any) -> Array
-    new_builtin length at = @Builtin_Method "Array_Proxy.new_builtin"
+        Array_Like_Helpers.new_array_proxy_builtin length at
 
     ## PRIVATE
        ADVANCED
@@ -45,4 +40,4 @@ type Array_Proxy
        methods.
     from_proxy_object : Any -> Array
     from_proxy_object proxy =
-        Array_Proxy.new proxy.length proxy.at
+        Array_Like_Helpers.new_array_proxy_builtin proxy.length proxy.at

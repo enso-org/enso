@@ -181,7 +181,7 @@ private class DefaultPackageRepository(
     isLibrary: Boolean
   ): Unit = {
     val extensions = pkg.listPolyglotExtensions("java")
-    extensions.foreach(context.getEnvironment.addToHostClassPath)
+    extensions.foreach(context.addToClassPath)
 
     val (regularModules, syntheticModulesMetadata) = pkg
       .listSources()
@@ -285,10 +285,8 @@ private class DefaultPackageRepository(
       s"Loading library $libraryName from " +
       s"[${MaskedPath(root.location).applyMasking()}]."
     )
-    val rootFile = context.getEnvironment.getInternalTruffleFile(
-      root.location.toAbsolutePath.normalize.toString
-    )
-    val pkg = packageManager.loadPackage(rootFile).get
+    val rootFile = context.findLibraryRootPath(root)
+    val pkg      = packageManager.loadPackage(rootFile).get
     registerPackageInternal(
       libraryName    = libraryName,
       libraryVersion = libraryVersion,
@@ -327,7 +325,7 @@ private class DefaultPackageRepository(
           Left(PackageRepository.Error.PackageLoadingError(err.getMessage()))
         case Right(componentGroups) =>
           logger.debug(
-            s"Resolving component groups of package [${pkg.module}]."
+            s"Resolving component groups of package [${pkg.normalizedName}]."
           )
 
           registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
@@ -628,6 +626,11 @@ private object DefaultPackageRepository {
     val editionManager = EditionManager(distributionManager, homeManager)
     val edition        = editionManager.resolveEdition(rawEdition).get
 
+    val projectRoot = projectPackage.map { pkg =>
+      val root = pkg.root
+      Path.of(root.getAbsoluteFile.toUri)
+    }
+
     val resolvingLibraryProvider =
       DefaultLibraryProvider.make(
         distributionManager = distributionManager,
@@ -637,7 +640,8 @@ private object DefaultPackageRepository {
         languageHome        = homeManager,
         edition             = edition,
         preferLocalLibraries =
-          projectPackage.exists(_.getConfig().preferLocalLibraries)
+          projectPackage.exists(_.getConfig().preferLocalLibraries),
+        projectRoot = projectRoot
       )
     new DefaultPackageRepository(
       resolvingLibraryProvider,

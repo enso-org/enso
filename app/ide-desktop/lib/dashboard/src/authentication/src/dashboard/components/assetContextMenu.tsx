@@ -3,9 +3,11 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
+import * as permissions from '../permissions'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
 
@@ -15,27 +17,27 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import * as assetsTable from './assetsTable'
+import * as categorySwitcher from './categorySwitcher'
 import * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
-import ContextMenuEntry from './contextMenuEntry'
 import ContextMenuSeparator from './contextMenuSeparator'
 import ContextMenus from './contextMenus'
 import GlobalContextMenu from './globalContextMenu'
 import ManagePermissionsModal from './managePermissionsModal'
+import MenuEntry from './menuEntry'
 
 // ========================
 // === AssetContextMenu ===
 // ========================
 
 /** Props for a {@link AssetContextMenu}. */
-export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
+export interface AssetContextMenuProps {
     hidden?: boolean
     innerProps: tableRow.TableRowInnerProps<
-        T,
+        assetTreeNode.AssetTreeNode,
         assetsTable.AssetsTableState,
-        assetsTable.AssetRowState,
-        T['id']
+        assetsTable.AssetRowState
     >
     event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
     eventTarget: HTMLElement | null
@@ -43,14 +45,13 @@ export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
-export default function AssetContextMenu(props: AssetContextMenuProps<backendModule.AnyAsset>) {
+export default function AssetContextMenu(props: AssetContextMenuProps) {
     const {
         hidden = false,
         innerProps: {
-            key,
             item,
             setItem,
-            state: { dispatchAssetEvent, dispatchAssetListEvent },
+            state: { category, dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
         },
         event,
@@ -62,31 +63,115 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
-    const self = item.permissions?.find(
+    const asset = item.item
+    const self = asset.permissions?.find(
         permission => permission.user.user_email === organization?.email
     )
+    const ownsThisAsset =
+        backend.type === backendModule.BackendType.local ||
+        self?.permission === permissions.PermissionAction.own
     const managesThisAsset =
-        self?.permission === backendModule.PermissionAction.own ||
-        self?.permission === backendModule.PermissionAction.admin
-    return (
-        <ContextMenus hidden={hidden} key={props.innerProps.item.id} event={event}>
-            <ContextMenu hidden={hidden}>
-                {item.type === backendModule.AssetType.project && (
-                    <ContextMenuEntry
+        backend.type === backendModule.BackendType.local ||
+        ownsThisAsset ||
+        self?.permission === permissions.PermissionAction.admin
+    const isRunningProject =
+        asset.type === backendModule.AssetType.project &&
+        backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
+    const canExecute =
+        backend.type === backendModule.BackendType.local ||
+        (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
+    const isOtherUserUsingProject =
+        backend.type !== backendModule.BackendType.local &&
+        backendModule.assetIsProject(asset) &&
+        asset.projectState.opened_by != null &&
+        asset.projectState.opened_by !== organization?.email
+    const setAsset = React.useCallback(
+        (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
+            if (typeof valueOrUpdater === 'function') {
+                setItem(oldItem => ({
+                    ...oldItem,
+                    item: valueOrUpdater(oldItem.item),
+                }))
+            } else {
+                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
+            }
+        },
+        [/* should never change */ setItem]
+    )
+    return category === categorySwitcher.Category.trash ? (
+        !ownsThisAsset ? null : (
+            <ContextMenus hidden={hidden} key={asset.id} event={event}>
+                <ContextMenu hidden={hidden}>
+                    <MenuEntry
                         hidden={hidden}
-                        action={shortcuts.KeyboardAction.open}
+                        action={shortcuts.KeyboardAction.restoreFromTrash}
                         doAction={() => {
                             unsetModal()
                             dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.openProject,
-                                id: item.id,
+                                type: assetEventModule.AssetEventType.restoreMultiple,
+                                ids: new Set([asset.id]),
                             })
                         }}
                     />
-                )}
-                {item.type === backendModule.AssetType.project &&
+                </ContextMenu>
+            </ContextMenus>
+        )
+    ) : (
+        <ContextMenus hidden={hidden} key={asset.id} event={event}>
+            <ContextMenu hidden={hidden}>
+                {asset.type === backendModule.AssetType.project &&
+                    canExecute &&
+                    !isRunningProject &&
+                    !isOtherUserUsingProject && (
+                        <MenuEntry
+                            hidden={hidden}
+                            action={shortcuts.KeyboardAction.open}
+                            doAction={() => {
+                                unsetModal()
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.openProject,
+                                    id: asset.id,
+                                    shouldAutomaticallySwitchPage: true,
+                                    runInBackground: false,
+                                })
+                            }}
+                        />
+                    )}
+                {asset.type === backendModule.AssetType.project &&
+                    backend.type === backendModule.BackendType.remote && (
+                        <MenuEntry
+                            hidden={hidden}
+                            action={shortcuts.KeyboardAction.run}
+                            doAction={() => {
+                                unsetModal()
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.openProject,
+                                    id: asset.id,
+                                    shouldAutomaticallySwitchPage: false,
+                                    runInBackground: true,
+                                })
+                            }}
+                        />
+                    )}
+                {asset.type === backendModule.AssetType.project &&
+                    canExecute &&
+                    isRunningProject &&
+                    !isOtherUserUsingProject && (
+                        <MenuEntry
+                            hidden={hidden}
+                            action={shortcuts.KeyboardAction.close}
+                            doAction={() => {
+                                unsetModal()
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.closeProject,
+                                    id: asset.id,
+                                })
+                            }}
+                        />
+                    )}
+                {asset.type === backendModule.AssetType.project &&
                     backend.type === backendModule.BackendType.local && (
-                        <ContextMenuEntry
+                        <MenuEntry
                             hidden={hidden}
                             action={shortcuts.KeyboardAction.uploadToCloud}
                             doAction={async () => {
@@ -104,7 +189,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                                             logger
                                         )
                                         const projectResponse = await fetch(
-                                            `./api/project-manager/projects/${item.id}/enso-project`
+                                            `./api/project-manager/projects/${asset.id}/enso-project`
                                         )
                                         // This DOES NOT update the cloud assets list when it
                                         // completes, as the current backend is not the remote
@@ -113,7 +198,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                                         // uncommon enough that it is not worth the added complexity.
                                         await remoteBackend.uploadFile(
                                             {
-                                                fileName: `${item.title}.enso-project`,
+                                                fileName: `${asset.title}.enso-project`,
                                                 fileId: null,
                                                 parentDirectoryId: null,
                                             },
@@ -132,22 +217,24 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                             }}
                         />
                     )}
-                <ContextMenuEntry
-                    hidden={hidden}
-                    disabled={
-                        item.type !== backendModule.AssetType.project &&
-                        item.type !== backendModule.AssetType.directory
-                    }
-                    action={shortcuts.KeyboardAction.rename}
-                    doAction={() => {
-                        setRowState(oldRowState => ({
-                            ...oldRowState,
-                            isEditingName: true,
-                        }))
-                        unsetModal()
-                    }}
-                />
-                <ContextMenuEntry
+                {canExecute && !isRunningProject && !isOtherUserUsingProject && (
+                    <MenuEntry
+                        hidden={hidden}
+                        disabled={
+                            asset.type !== backendModule.AssetType.project &&
+                            asset.type !== backendModule.AssetType.directory
+                        }
+                        action={shortcuts.KeyboardAction.rename}
+                        doAction={() => {
+                            setRowState(oldRowState => ({
+                                ...oldRowState,
+                                isEditingName: true,
+                            }))
+                            unsetModal()
+                        }}
+                    />
+                )}
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.snapshot}
@@ -155,34 +242,45 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
-                    hidden={hidden}
-                    action={shortcuts.KeyboardAction.moveToTrash}
-                    doAction={() => {
-                        setModal(
-                            <ConfirmDeleteModal
-                                description={`the ${item.type} '${item.title}'`}
-                                doDelete={doDelete}
-                            />
-                        )
-                    }}
-                />
+                {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
+                    <MenuEntry
+                        hidden={hidden}
+                        action={
+                            backend.type === backendModule.BackendType.local
+                                ? shortcuts.KeyboardAction.delete
+                                : shortcuts.KeyboardAction.moveToTrash
+                        }
+                        doAction={() => {
+                            if (backend.type === backendModule.BackendType.remote) {
+                                unsetModal()
+                                void doDelete()
+                            } else {
+                                setModal(
+                                    <ConfirmDeleteModal
+                                        description={`the ${asset.type} '${asset.title}'`}
+                                        doDelete={doDelete}
+                                    />
+                                )
+                            }
+                        }}
+                    />
+                )}
                 <ContextMenuSeparator hidden={hidden} />
-                {managesThisAsset && (
-                    <ContextMenuEntry
+                {managesThisAsset && self != null && (
+                    <MenuEntry
                         hidden={hidden}
                         action={shortcuts.KeyboardAction.share}
                         doAction={() => {
                             setModal(
                                 <ManagePermissionsModal
-                                    item={item}
-                                    setItem={setItem}
+                                    item={asset}
+                                    setItem={setAsset}
                                     self={self}
                                     eventTarget={eventTarget}
                                     doRemoveSelf={() => {
                                         dispatchAssetEvent({
                                             type: assetEventModule.AssetEventType.removeSelf,
-                                            id: item.id,
+                                            id: asset.id,
                                         })
                                     }}
                                 />
@@ -190,16 +288,21 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         }}
                     />
                 )}
-                <ContextMenuEntry
-                    hidden={hidden}
-                    disabled
-                    action={shortcuts.KeyboardAction.label}
-                    doAction={() => {
-                        // No backend support yet.
-                    }}
-                />
-                <ContextMenuSeparator hidden={hidden} />
-                <ContextMenuEntry
+                {backend.type !== backendModule.BackendType.local && (
+                    <MenuEntry
+                        hidden={hidden}
+                        disabled
+                        action={shortcuts.KeyboardAction.label}
+                        doAction={() => {
+                            // No backend support yet.
+                        }}
+                    />
+                )}
+                {((managesThisAsset && self != null) ||
+                    backend.type !== backendModule.BackendType.local) && (
+                    <ContextMenuSeparator hidden={hidden} />
+                )}
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.duplicate}
@@ -207,7 +310,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.copy}
@@ -215,15 +318,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         // No backend support yet.
                     }}
                 />
-                <ContextMenuEntry
-                    hidden={hidden}
-                    disabled
-                    action={shortcuts.KeyboardAction.cut}
-                    doAction={() => {
-                        // No backend support yet.
-                    }}
-                />
-                <ContextMenuEntry
+                {!isOtherUserUsingProject && (
+                    <MenuEntry
+                        hidden={hidden}
+                        disabled
+                        action={shortcuts.KeyboardAction.cut}
+                        doAction={() => {
+                            // No backend support yet.
+                        }}
+                    />
+                )}
+                <MenuEntry
                     hidden={hidden}
                     disabled
                     action={shortcuts.KeyboardAction.download}
@@ -232,16 +337,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
             </ContextMenu>
-            {item.type === backendModule.AssetType.directory ? (
-                <GlobalContextMenu
-                    hidden={hidden}
-                    // This is SAFE, as this only exists when the item is a directory.
+            <GlobalContextMenu
+                hidden={hidden}
+                directoryKey={
+                    // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
                     // eslint-disable-next-line no-restricted-syntax
-                    directoryKey={key as backendModule.DirectoryId}
-                    directoryId={item.id}
-                    dispatchAssetListEvent={dispatchAssetListEvent}
-                />
-            ) : null}
+                    (asset.type === backendModule.AssetType.directory
+                        ? item.key
+                        : item.directoryKey) as backendModule.DirectoryId
+                }
+                directoryId={
+                    asset.type === backendModule.AssetType.directory ? asset.id : item.directoryId
+                }
+                dispatchAssetListEvent={dispatchAssetListEvent}
+            />
         </ContextMenus>
     )
 }
