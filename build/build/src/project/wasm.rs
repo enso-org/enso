@@ -207,7 +207,7 @@ impl IsTarget for Wasm {
         context: Context,
         job: BuildTargetJob<Self>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let Context { octocrab: _, cache, upload_artifacts: _, repo_root } = context;
+        let Context { octocrab: _, cache, upload_artifacts: _, repo_root, .. } = context;
         let WithDestination { inner, destination } = job;
         let span = info_span!("Building WASM.",
             repo = %repo_root.display(),

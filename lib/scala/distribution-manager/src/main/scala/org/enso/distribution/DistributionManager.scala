@@ -129,12 +129,12 @@ case class Bundle(engines: Path, runtimes: Path) extends ToLogString {
   * be used.
   */
 class DistributionManager(val env: Environment) {
-  private val logger = Logger[DistributionManager]
   import DistributionManager._
 
-  /** Determines paths that should be used by the launcher.
-    */
-  lazy val paths: DistributionPaths = {
+  private val logger = Logger[DistributionManager]
+
+  /** Determines paths that should be used by the launcher. */
+  val paths: DistributionPaths = {
     val paths = detectPaths()
     logger.debug("Detected paths: {}", paths)
     paths
@@ -182,17 +182,6 @@ class DistributionManager(val env: Environment) {
     )
   }
 
-  private val ENSO_HOME         = "ENSO_HOME"
-  private val ENSO_EDITION_PATH = "ENSO_EDITION_PATH"
-  private val ENSO_LIBRARY_PATH = "ENSO_LIBRARY_PATH"
-  val ENSO_DATA_DIRECTORY       = "ENSO_DATA_DIRECTORY"
-  val ENSO_CONFIG_DIRECTORY     = "ENSO_CONFIG_DIRECTORY"
-  val ENSO_BIN_DIRECTORY        = "ENSO_BIN_DIRECTORY"
-  val ENSO_RUNTIME_DIRECTORY    = "ENSO_RUNTIME_DIRECTORY"
-  val ENSO_LOG_DIRECTORY        = "ENSO_LOG_DIRECTORY"
-
-  private val ENSO_AUXILIARY_LIBRARY_CACHES = "ENSO_AUXILIARY_LIBRARY_CACHES"
-
   /** List of paths of additional caches for published libraries.
     *
     * These locations can be used to preload published libraries, for example
@@ -234,17 +223,12 @@ class DistributionManager(val env: Environment) {
         )
       }
 
-  /** Name of the file that should be placed in the distribution root to mark it
-    * as running in portable mode.
-    */
-  private val BUNDLE_MARK_FILENAME = ".enso.bundle"
-
   /** Root directory of a bundle.
     *
     * If the bundle is present, it will be located next to the `bin/` directory
     * that contains the executable that we are currently running.
     */
-  private def possibleBundleRoot =
+  private def possibleBundleRoot: Path =
     env.getPathToRunningExecutable.getParent.getParent
 
   /** Checks if [[possibleBundleRoot]] contains the bundle mark file and returns
@@ -437,6 +421,22 @@ class DistributionManager(val env: Environment) {
   * directories used by Enso components.
   */
 object DistributionManager {
+
+  /** Name of the file that should be placed in the distribution root to mark it
+    * as running in portable mode.
+    */
+  private val BUNDLE_MARK_FILENAME          = ".enso.bundle"
+  private val ENSO_HOME                     = "ENSO_HOME"
+  private val ENSO_EDITION_PATH             = "ENSO_EDITION_PATH"
+  private val ENSO_LIBRARY_PATH             = "ENSO_LIBRARY_PATH"
+  private val ENSO_AUXILIARY_LIBRARY_CACHES = "ENSO_AUXILIARY_LIBRARY_CACHES"
+
+  val ENSO_DATA_DIRECTORY    = "ENSO_DATA_DIRECTORY"
+  val ENSO_CONFIG_DIRECTORY  = "ENSO_CONFIG_DIRECTORY"
+  val ENSO_BIN_DIRECTORY     = "ENSO_BIN_DIRECTORY"
+  val ENSO_RUNTIME_DIRECTORY = "ENSO_RUNTIME_DIRECTORY"
+  val ENSO_LOG_DIRECTORY     = "ENSO_LOG_DIRECTORY"
+
   val ENGINES_DIRECTORY   = "dist"
   val RUNTIMES_DIRECTORY  = "runtime"
   val CONFIG_DIRECTORY    = "config"

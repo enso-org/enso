@@ -580,7 +580,7 @@ impl RunContext {
         }
 
         for bundle in ret.bundles() {
-            bundle.create(&self.repo_root).await?;
+            bundle.create(&self.repo_root, &self.inner.build_config).await?;
         }
 
         Ok(ret)

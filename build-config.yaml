@@ -2,6 +2,11 @@
 
 wasm-size-limit: 16.20 MiB
 
+# GraalVM version should be synchronized with build.sbt
+graal-vm-version:
+  java-version: 17.0.7
+  maven-packages-version: 23.0.0
+
 required-versions:
   # NB. The Rust version is pinned in rust-toolchain.toml.
   # NB. The Node version is pinned in .node-version.

@@ -98,6 +98,9 @@ pub struct Context {
     /// as well.
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub repo_root: crate::paths::generated::RepoRoot,
+
+    /// The project build config.
+    pub build_config: crate::config::Config,
 }
 
 impl Context {
@@ -226,7 +229,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         ci_run: CiRunSource,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let Context { octocrab, cache, upload_artifacts: _, repo_root: _ } = context;
+        let Context { octocrab, cache, upload_artifacts: _, repo_root: _, .. } = context;
         let CiRunSource { run_id, artifact_name, repository } = ci_run;
         let repository = repository.handle(&octocrab);
         let span = info_span!("Downloading CI Artifact.", %artifact_name, %repository, target = output_path.as_ref().as_str());
@@ -285,7 +288,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         source: ReleaseSource,
         destination: PathBuf,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let Context { octocrab, cache, upload_artifacts: _, repo_root: _ } = context;
+        let Context { octocrab, cache, upload_artifacts: _, repo_root: _, .. } = context;
         let span = info_span!("Downloading built target from a release asset.",
             asset_id = source.asset_id.0,
             repo = %source.repository);
