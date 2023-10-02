@@ -103,10 +103,11 @@ type XML_Document
 
              doc = XML_Document.from_file file
              root = doc.root_element
-    root_element : XML_Element
+    root_element : XML_Element ! XML_Error
     root_element self =
-        java_element = self.java_document.getDocumentElement
-        XML_Element.Value java_element
+        XML_Error.handle_java_exceptions <|
+            java_element = self.java_document.getDocumentElement
+            XML_Element.Value java_element
 
     ## PRIVATE
     Value (java_document:Document)
@@ -117,8 +118,10 @@ type XML_Element
        Example:
            XML_Document.from_string '<foo>hello</foo>' . root_element . at 0 . tag
            # => "foo"
-    name : Text
-    name self = self.java_element.getNodeName
+    name : Text ! XML_Error
+    name self =
+        XML_Error.handle_java_exceptions <|
+            self.java_element.getNodeName
 
     ## Gets a child of an xml element.
 
@@ -188,12 +191,47 @@ type XML_Element
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (nodelist_to_vector (xpath.evaluate key self.java_element XPathConstants.NODESET))
 
+    ## Gets the child elements of an XML element.
+
+       `children` only returns child elements and child text nodes that are not
+       100% whitespace. Other node types, such as comments, are not included.
+
+       > Example:
+             XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . children
+             # => [XML_Document.from_string "<baz>hello</baz>"]
+    children : Vector (XML_Element | Text) ! XML_Error
+    children self = only_wanted_nodes self.all_children
+
+    ## Gets the number children of an xml element.
+
+       `num_children` only counts child elements and child text nodes that are
+       not 100% whitespace. Other node types, such as comments, are not included
+       in the count.
+
+       > Example
+         Get the number of children of an element.
+
+             XML_Document.from_string '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . num_children
+             # => 2
+    num_children : Integer ! XML_Error
+    num_children self = self.children.length
+
     ## PRIVATE
-       Get the child element indicated by the index. This ignores all
-       non-element children.
+       Get the child element indicated by the index.
+
+       `get_child_element` only returns child elements and child text nodes that
+       are not 100% whitespace. Other node types, such as comments, are not
+       considered.
     get_child_element : Integer -> Any -> Any | Text | XML_Element ! No_Such_Key
     get_child_element self n:Integer ~if_missing =
         self.children.get n if_missing
+
+    ## PRIVATE
+       Get all children of this element.
+    all_children : Vector Any ! XML_Error
+    all_children self =
+        XML_Error.handle_java_exceptions <|
+            nodelist_to_vector self.java_element.getChildNodes
 
     ## Get an attribute of an XML element.
 
@@ -207,55 +245,25 @@ type XML_Element
              root = XML_Document.from_string '<foo bar="one">hello</foo>' . root_element
              root.attribute "bar"
              # => "one"
-    attribute : Text -> Any -> Text | Any
+    attribute : Text -> Any -> Text | Any ! XML_Error
     attribute self name:Text ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
         XML_Error.handle_java_exceptions <|
             attr = self.java_element.getAttributeNode name
             if attr.is_nothing then if_missing else attr.getValue
 
-    ## PRIVATE
-       Get all children of this element.
-    all_children : Vector Any
-    all_children self =
-        nodelist_to_vector self.java_element.getChildNodes
-
-    ## Gets a map of the attributes of an xml element.
+    ## Gets a map containing f the attributes of an xml element.
 
        > Example:
            XML_Document.from_string '<foo bar="one">hello</foo>' . root_element . attributes
            # => Map.from_vector [["bar", "one"]]
-    attributes : Map Text Text
+    attributes : Map Text Text ! XML_Error
     attributes self =
-        named_node_map = self.java_element.getAttributes
-        keys_and_values = 0.up_to named_node_map.getLength . map i->
-            node = named_node_map.item i
-            [node.getNodeName, node.getNodeValue]
-        Map.from_vector keys_and_values
-
-    ## Gets the child elements of an XML element.
-
-       `children` only returns child elements and child text nodes that are not
-       100% whitespace. Other node types, such as comments, are not included.
-
-       > Example:
-             XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . children
-             # => [XML_Document.from_string "<baz>hello</baz>"]
-    children : Vector (XML_Element | Text)
-    children self = only_wanted_nodes self.all_children
-
-    ## Gets the number children of an xml element.
-
-       `num_children` only countschild elements and child text nodes that are
-       not 100% whitespace. Other node types, such as comments, are not included
-       in the count.
-
-       > Example
-         Get the number of children of an element.
-
-             XML_Document.from_string '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . num_children
-             # => 2
-    num_children : Integer
-    num_children self = self.children.length
+        XML_Error.handle_java_exceptions <|
+            named_node_map = self.java_element.getAttributes
+            keys_and_values = 0.up_to named_node_map.getLength . map i->
+                node = named_node_map.item i
+                [node.getNodeName, node.getNodeValue]
+            Map.from_vector keys_and_values
 
     ## Gets the text (non-markup) contents of the element and its descendants,
        if any.
@@ -265,7 +273,7 @@ type XML_Element
 
              XML_Document.from_string '<foo>hello</foo>' . root_element . text
              # => "hello"
-    text : Text
+    text : Text ! XML_Error
     text self =
         XML_Error.handle_java_exceptions <|
             self.java_element.getTextContent
@@ -299,10 +307,11 @@ type XML_Element
 
        > Example
              XML_Document.from_string '<foo> <baz>hello</baz> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
-             # => [XML_Document.from_string "<baz>hello</baz>", XML_Document.from_string "<baz>goodbye</baz>"]
-    get_elements_by_tag_name : Text -> Vector XML_Element
+             # => [XML_Document.from_string "<baz>hello</baz>" . root_element, XML_Document.from_string "<baz>goodbye</baz>" . root_element]
+    get_elements_by_tag_name : Text -> Vector XML_Element ! XML_Error
     get_elements_by_tag_name self tag_name:Text =
-        only_wanted_nodes (nodelist_to_vector (self.java_element.getElementsByTagName tag_name))
+        XML_Error.handle_java_exceptions <|
+            only_wanted_nodes (nodelist_to_vector (self.java_element.getElementsByTagName tag_name))
 
     ## PRIVATE
     Value (java_element:Element)
@@ -315,14 +324,7 @@ type XML_Error
       - column_number: the column at which the parse failed.
     Parse_Error (line_number : Integer) (column_number : Integer)
 
-    # An error that indicates multiple elements were found for a given key.
-
-      Arguments:
-      - key: The key at which multiple values were found.
-      - num_values: The number of values found at `key`.
-    Multiple_Values_Found (key : Text) (num_values : Integer)
-
-    # Any other Java exception.
+    # Any other XML-related Java exception.
     Other (error : Text)
 
     ## PRIVATE
@@ -330,7 +332,6 @@ type XML_Error
     to_display_text : Text
     to_display_text self = case self of
         XML_Error.Parse_Error line_number column_number -> "The XML document could not be parsed at line " + line_number.to_text + ", column " + column_number.to_text
-        XML_Error.Multiple_Values_Found key num_values -> "The specified key produced " + num_values.to_text + " values: " + key
         XML_Error.Other error -> error
 
     ## PRIVATE
@@ -343,7 +344,7 @@ type XML_Error
 
     ## PRIVATE
 
-       Converts a Java `SAXException` into its Enso counterpart.
+       Converts a Java `Exception` into its Enso counterpart.
     wrap_java_exception : JException -> XML_Error
     wrap_java_exception exception:JException = case exception of
         _ : SAXParseException -> Error.throw (XML_Error.Parse_Error exception.getLineNumber exception.getColumnNumber)
@@ -358,10 +359,6 @@ only_wanted_nodes : Vector Any -> Vector (Text | XML_Element)
 only_wanted_nodes nodes:(Vector Any) =
     # If an Element, wrap in XML_Element. If Java_Text, extract the string.
     convert node =
-        ##
-            case node.getNodeType of
-                Node.ELEMENT_NODE -> XML_Element.Value node
-                Node.TEXT_NODE -> node.nodeValue
         if node.getNodeType == Node.ELEMENT_NODE then XML_Element.Value node else
             if node.getNodeType == Node.TEXT_NODE then node.getNodeValue else
                 Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))

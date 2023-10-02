@@ -8,7 +8,7 @@ import project.System.File.File
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
 
-## A file format for reading and writing XML files.
+## A `File_Format` for reading and writing XML files.
 type XML_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -20,7 +20,6 @@ type XML_Format
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-       TODO: implement this
     for_file_write : File -> XML_Format | Nothing
     for_file_write file:File =
         _ = [file]

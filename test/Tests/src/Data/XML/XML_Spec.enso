@@ -70,6 +70,8 @@ spec =
             root.at 2 . attribute "studentId" . should_equal "1000"
             root.at 3 . attribute "studentId" . should_equal "1001"
 
+            root.at 3 . attribute "does_not_exist" if_missing="if_missing" . should_equal "if_missing"
+
         Test.specify "Can get element an attribute map" <|
             root.at 2 . attributes . should_equal (Map.from_vector [["studentId", "1000"], ["year", "2"]])
             root.at 3 . attributes . should_equal (Map.from_vector [["studentId", "1001"], ["year", "3"]])
