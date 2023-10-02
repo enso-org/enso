@@ -458,4 +458,11 @@ spec =
             Meta.Type.find "UnknownType" . should_fail_with Not_Found
             Meta.Type.find "" . should_fail_with Not_Found
 
+        Test.specify "My ascribed type" <|
+            meta_type = Meta.meta My_Ascribed_Type
+            fqn =  meta_type . qualified_name
+            "Meta_Spec.My_Ascribed_Type" . should_equal fqn
+            typ = Meta.Type.find fqn
+            typ . should_equal meta_type
+
 main = Test_Suite.run_main spec
