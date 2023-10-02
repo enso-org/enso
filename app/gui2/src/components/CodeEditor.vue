@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { useGraphStore } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import { useWindowEvent } from '@/util/events'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
-import { onMounted, ref, watch } from 'vue'
+import { ref, watchPostEffect } from 'vue'
 // y-codemirror.next does not provide type information. See https://github.com/yjs/y-codemirror.next/issues/27
 // @ts-ignore
 import { yCollab } from 'y-codemirror.next'
 
-let graphStore = useGraphStore()
+const projectStore = useProjectStore()
 
 // == Keyboard shortcut to toggle the CodeEditor ==
 
@@ -32,37 +32,25 @@ useWindowEvent('keydown', (e) => {
 
 const codeMirrorEl = ref(null)
 const editorView = ref<EditorView>()
-onMounted(() => {
-  watch(
-    () => graphStore.proj.module,
-    (module) => {
-      // Note that this only works while we do not switch documents at runtime and have a single module.
-      const yText = module?.contents
-      if (!yText) {
-        console.error('No module content available')
-        return
-      }
-      const undoManager = graphStore.proj.undoManager
-      const awareness = graphStore.proj.awareness
-      const state = EditorState.create({
-        doc: yText.toString(),
-        extensions: [basicSetup, yCollab(yText, awareness, { undoManager })],
-      })
-      if (!codeMirrorEl.value) {
-        console.error('Parent element for CodeMirror not found')
-        return
-      }
-      editorView.value = new EditorView({
-        parent: codeMirrorEl.value,
-        state,
-      })
-    },
-  )
+watchPostEffect((onCleanup) => {
+  const yText = projectStore.module?.doc.contents
+  if (!yText || !codeMirrorEl.value) return
+  const undoManager = projectStore.undoManager
+  const awareness = projectStore.awareness
+  const view = new EditorView({
+    parent: codeMirrorEl.value,
+    state: EditorState.create({
+      doc: yText.toString(),
+      extensions: [basicSetup, yCollab(yText, awareness, { undoManager })],
+    }),
+  })
+  onCleanup(() => view.destroy())
+  editorView.value = view
 })
 </script>
 
 <template>
-  <div v-show="shown" ref="rootElement" class="CodeEditor" @keydown.enter.stop>
+  <div v-show="shown" ref="rootElement" class="CodeEditor" @keydown.enter.stop @wheel.stop.passive>
     <div ref="codeMirrorEl" class="codemirror-container"></div>
   </div>
 </template>

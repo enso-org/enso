@@ -22,8 +22,8 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const text = computed(() => proj.module?.contents)
-  const metadata = computed(() => proj.module?.metadata)
+  const text = computed(() => proj.module?.doc.contents)
+  const metadata = computed(() => proj.module?.doc.metadata)
 
   const textContent = ref('')
 
@@ -81,10 +81,10 @@ export const useGraphStore = defineStore('graph', () => {
   function updateState(affectedRanges?: ContentRange[]) {
     const module = proj.module
     if (module == null) return
-    module.doc.transact(() => {
+    module.transact(() => {
       const idMap = module.getIdMap()
-      const meta = module.metadata
-      const text = module.contents
+      const meta = module.doc.metadata
+      const text = module.doc.contents
       const textContentLocal = textContent.value
       const parsed = parseBlock(0, textContentLocal, idMap)
 
@@ -119,7 +119,7 @@ export const useGraphStore = defineStore('graph', () => {
         if (node == null) {
           nodeInserted(stmt, text, nodeContent, nodeMeta)
         } else {
-          nodeUpdated(node, stmt, text, nodeContent, nodeMeta)
+          nodeUpdated(node, stmt, nodeContent, nodeMeta)
         }
       }
     })
@@ -163,19 +163,14 @@ export const useGraphStore = defineStore('graph', () => {
     nodes.set(nodeId, node)
   }
 
-  function nodeUpdated(
-    node: Node,
-    stmt: Statement,
-    text: Y.Text,
-    content: string,
-    meta: Opt<NodeMetadata>,
-  ) {
-    clearSpanUsages(stmt.id, node)
+  function nodeUpdated(node: Node, stmt: Statement, content: string, meta: Opt<NodeMetadata>) {
+    const nodeId = stmt.expression.id
+    clearSpanUsages(nodeId, node)
     node.content = content
     if (node.binding !== stmt.binding) {
       identDefinitions.delete(node.binding)
       node.binding = stmt.binding ?? ''
-      identDefinitions.set(node.binding, stmt.id)
+      identDefinitions.set(node.binding, nodeId)
     }
     if (node.rootSpan.id === stmt.expression.id) {
       patchSpan(node.rootSpan, stmt.expression)
@@ -185,6 +180,7 @@ export const useGraphStore = defineStore('graph', () => {
     if (meta != null && !node.position.equals(new Vec2(meta.x, -meta.y))) {
       node.position = new Vec2(meta.x, -meta.y)
     }
+    addSpanUsages(nodeId, node)
   }
 
   function addSpanUsages(id: ExprId, node: Node) {
@@ -224,13 +220,9 @@ export const useGraphStore = defineStore('graph', () => {
 
   function patchSpan(span: Span, newSpan: Span) {
     assert(span.id === newSpan.id)
-    // TODO: deep patching of children of matching ID
     span.length = newSpan.length
     span.kind = newSpan.kind
     span.children = newSpan.children
-    // for (let i = 0; i < span.children.length; i++) {
-    //   patchSpan(span.children[i], newSpan.children[i])
-    // }
   }
 
   function generateUniqueIdent() {
@@ -256,21 +248,17 @@ export const useGraphStore = defineStore('graph', () => {
   function createNode(position: Vec2, expression: string): Opt<ExprId> {
     const mod = proj.module
     if (mod == null) return
-    const { contents } = mod
-
     const meta: NodeMetadata = {
       x: position.x,
       y: -position.y,
     }
     const ident = generateUniqueIdent()
     const content = `${ident} = ${expression}`
-    return mod.insertNewNode(contents.length, content, meta)
+    return mod.insertNewNode(mod.doc.contents.length, content, meta)
   }
 
   function deleteNode(id: ExprId) {
-    const mod = proj.module
-    if (mod == null) return
-    mod.replaceExpressionContent(id, '')
+    proj.module?.deleteNode(id)
   }
 
   function setNodeContent(id: ExprId, content: string) {
@@ -281,6 +269,10 @@ export const useGraphStore = defineStore('graph', () => {
 
   function setExpressionContent(id: ExprId, content: string) {
     proj.module?.replaceExpressionContent(id, content)
+  }
+
+  function transact(fn: () => void) {
+    return proj.module?.transact(fn)
   }
 
   function replaceNodeSubexpression(id: ExprId, range: ContentRange, content: string) {
@@ -298,7 +290,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     _parsed,
     _parsedEnso: _parsedEnso,
-    proj,
+    transact,
     nodes,
     exprNodes,
     edges,
