@@ -10,7 +10,7 @@ order: 11
 
 _Encapsulation_ is the system of hiding certain internal **entities** (modules,
 types, methods, constructors, fields) in one project/library from other
-projects/libraries. This document is an excerpt from the specification at
+projects/libraries. This document is an excerpt from the discussion held at
 https://github.com/orgs/enso-org/discussions/7088.
 
 ## Requirements
