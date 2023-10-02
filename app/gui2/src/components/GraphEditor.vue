@@ -264,7 +264,7 @@ function clearSelection() {
 }
 
 const groupColors = computed(() => {
-  const styles: {[key: string]: string} = {}
+  const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
     const name = group.name.replace(/\s/g, '-')
     let color = group.color ?? colorFromString(name)
@@ -273,7 +273,7 @@ const groupColors = computed(() => {
   return styles
 })
 const fallbackColors = computed(() => {
-  const styles: {[key: string]: string} = {}
+  const styles: { [key: string]: string } = {}
   for (const [key, value] of Object.entries(groupColors.value)) {
     styles[key] = rgbFallback(value)
   }
