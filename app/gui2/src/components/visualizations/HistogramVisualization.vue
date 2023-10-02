@@ -5,7 +5,7 @@ export const name = 'Histogram'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
 
-const bindings = defineKeybinds('scatterplot-visualization', {
+const bindings = defineKeybinds('histogram-visualization', {
   zoomIn: ['Mod+Z'],
   showAll: ['Mod+A'],
 })
@@ -89,8 +89,8 @@ interface AxisConfiguration {
 }
 
 interface AxesConfiguration {
-  x: AxisConfiguration
-  y: AxisConfiguration
+  x: AxisConfiguration | undefined
+  y: AxisConfiguration | undefined
 }
 
 interface Bin {
@@ -265,9 +265,9 @@ watchPostEffect(() => {
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
-const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x.label) / 2)
+const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x?.label) / 2)
 const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
-const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y.label) / 2)
+const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y?.label) / 2)
 
 let startX = 0
 let startY = 0
@@ -618,20 +618,20 @@ useEvent(document, 'scroll', endBrushing)
           <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
           <g ref="yAxisNode" class="axis-y"></g>
           <text
-            v-if="axis.x.label"
+            v-if="axis.x?.label"
             class="label label-x"
             text-anchor="end"
             :x="xLabelLeft"
             :y="xLabelTop"
-            v-text="axis.x.label"
+            v-text="axis.x?.label"
           ></text>
           <text
-            v-if="axis.y.label"
+            v-if="axis.y?.label"
             class="label label-y"
             text-anchor="end"
             :x="yLabelLeft"
             :y="yLabelTop"
-            v-text="axis.y.label"
+            v-text="axis.y?.label"
           ></text>
           <g ref="plotNode" clip-path="url(#histogram-clip-path)"></g>
           <g ref="zoomNode" class="zoom">

@@ -22,7 +22,7 @@ useDocumentEvent('pointerdown', (event) => {
       <li
         v-for="type_ in props.types"
         :key="type_"
-        @click="emit('update:type', type_)"
+        @pointerdown.stop="emit('update:type', type_)"
         v-text="type_"
       ></li>
     </ul>
