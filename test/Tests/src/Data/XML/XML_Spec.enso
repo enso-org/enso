@@ -116,6 +116,12 @@ spec =
         Test.specify "Can handle a bad xpath" <|
             root.at "/qqq[[[[1" . at 0 . text . should_fail_with XML_Error
 
+    Test.group "tag name" <|
+        Test.specify "Can get the tag name" <|
+            root.name . should_equal "class"
+            root.at 0 . name . should_equal "teacher"
+            root.at 1 . at 1 . name . should_equal "lastname"
+
     Test.group "children" <|
         Test.specify "children" <|
             children = root.children

@@ -51,7 +51,7 @@ type XML_Document
              doc = XML_Document.from_file test_file
     from_file : File -> XML_Document ! XML_Error | File_Error
     from_file file:File =
-        File_Error.handle_java_exceptions file <| XML_Error.handle_java_exceptions <|
+        File_Error.handle_java_exceptions file <|
             file.with_input_stream [File_Access.Read] XML_Document.from_stream
 
     ## Read an XML document from an input stream.
@@ -116,7 +116,7 @@ type XML_Element
     ## Gets the tag of an xml element.
 
        Example:
-           XML_Document.from_string '<foo>hello</foo>' . root_element . at 0 . tag
+           XML_Document.from_string '<foo>hello</foo>' . root_element . name
            # => "foo"
     name : Text ! XML_Error
     name self =
