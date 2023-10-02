@@ -6,20 +6,20 @@
  */
 import icons from '@/assets/icons.svg'
 
-const props = defineProps<{ name: string }>()
+const props = defineProps<{ name: string; width?: number; height?: number }>()
 </script>
 
 <template>
-  <svg>
+  <svg :style="{ width: `${width}px`, height: `${height}px` }">
     <use :href="`${icons}#${props.name}`"></use>
   </svg>
 </template>
 
 <style scoped>
 svg {
-  width: 16px;
-  min-width: 16px;
-  height: 16px;
-  min-height: 16px;
+  width: var(--width, 16px);
+  min-width: var(--width, 16px);
+  height: var(--height, 16px);
+  min-height: var(--height, 16px);
 }
 </style>

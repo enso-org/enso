@@ -7,7 +7,9 @@
     "shared/**/*",
     "shared/**/*.vue",
     "public/**/*",
-    "public/**/*.vue"
+    "public/**/*.vue",
+    "stories/**/*",
+    "stories/**/*.vue"
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {

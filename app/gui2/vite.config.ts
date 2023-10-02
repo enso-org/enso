@@ -26,7 +26,6 @@ export default defineConfig({
   define: {
     REDIRECT_OVERRIDE: JSON.stringify('http://localhost:8080'),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    global: 'globalThis',
     IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV !== 'production'),
   },
   assetsInclude: ['**/*.yaml', '**/*.svg'],

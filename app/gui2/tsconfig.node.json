@@ -5,6 +5,7 @@
     "vitest.config.*",
     "playwright.config.*",
     "eslint.config.js",
+    "histoire.config.ts",
     "ydoc-server/**/*",
     "shared/**/*",
     "e2e/**/*",

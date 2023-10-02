@@ -36,6 +36,12 @@ const conf = [
       ],
     },
   },
+  {
+    files: ['stories/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 0,
+    },
+  },
 ]
 
 export default conf
