@@ -239,6 +239,16 @@ pub struct CiCheckBackend;
 impl JobArchetype for CiCheckBackend {
     fn job(&self, os: OS) -> Job {
         plain_job_customized(&os, "Engine", "backend ci-check", |main_step| {
+            let main_step = main_step
+                .with_secret_exposed_as(secret::ENSO_LIB_S3_AWS_REGION, crate::aws::env::AWS_REGION)
+                .with_secret_exposed_as(
+                    secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                    crate::aws::env::AWS_ACCESS_KEY_ID,
+                )
+                .with_secret_exposed_as(
+                    secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                    crate::aws::env::AWS_SECRET_ACCESS_KEY,
+                );
             vec![main_step, step::engine_test_reporter(os), step::stdlib_test_reporter(os)]
         })
         .with_permission(Permission::Checks, Access::Write)

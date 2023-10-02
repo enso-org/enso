@@ -9,6 +9,7 @@ import * as shortcuts from '../shortcuts'
 
 import ContextMenu from './contextMenu'
 import MenuEntry from './menuEntry'
+import NewDataConnectorModal from './newDataConnectorModal'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -22,7 +23,7 @@ export interface GlobalContextMenuProps {
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
     const { hidden = false, directoryKey, directoryId, dispatchAssetListEvent } = props
     const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     return (
         <ContextMenu hidden={hidden}>
@@ -111,10 +112,22 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             {backend.type !== backendModule.BackendType.local && (
                 <MenuEntry
                     hidden={hidden}
-                    disabled
                     action={shortcuts.KeyboardAction.newDataConnector}
                     doAction={() => {
-                        // No backend support yet.
+                        setModal(
+                            <NewDataConnectorModal
+                                doCreate={(name, value) => {
+                                    dispatchAssetListEvent({
+                                        type: assetListEventModule.AssetListEventType
+                                            .newDataConnector,
+                                        parentKey: directoryKey,
+                                        parentId: directoryId,
+                                        name,
+                                        value,
+                                    })
+                                }}
+                            />
+                        )
                     }}
                 />
             )}

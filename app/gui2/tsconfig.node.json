@@ -5,14 +5,13 @@
     "vitest.config.*",
     "playwright.config.*",
     "eslint.config.js",
-    "ydoc-server/**/*",
-    "shared/**/*",
     "e2e/**/*",
     "node.env.d.ts"
   ],
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["node"]
+    "outDir": "../../node_modules/.cache/tsc",
+    "types": ["node", "vitest/importMeta"]
   }
 }

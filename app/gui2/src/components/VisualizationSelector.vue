@@ -1,24 +1,17 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref } from 'vue'
+import { useDocumentEvent } from '../util/events'
 
 const props = defineProps<{ types: string[] }>()
 const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
 
 const rootNode = ref<HTMLElement>()
 
-function onClick(event: MouseEvent) {
+useDocumentEvent('pointerdown', (event) => {
   if (event.target instanceof Node && rootNode.value?.contains(event.target)) {
     return
   }
   emit('hide')
-}
-
-onMounted(() => {
-  document.addEventListener('click', onClick)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', onClick)
 })
 </script>
 
@@ -27,7 +20,7 @@ onUnmounted(() => {
     <div class="background"></div>
     <ul>
       <li
-        v-for="type_ in types"
+        v-for="type_ in props.types"
         :key="type_"
         @click="emit('update:type', type_)"
         v-text="type_"
