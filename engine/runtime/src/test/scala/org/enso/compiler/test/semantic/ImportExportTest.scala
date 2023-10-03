@@ -358,117 +358,6 @@ class ImportExportTest
         .map(_.cons.name) should contain theSameElementsAs List("A_Constructor")
     }
 
-    "result in error when trying to export non-existing symbol from a module" in {
-      """
-        |# Empty
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-
-      val mainIr =
-        s"""
-           |import $namespace.$packageName.A_Module
-           |from A_Module export baz
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-
-      val bindingsMap = mainIr.unwrapBindingMap
-      bindingsMap shouldNot be(null)
-      mainIr.exports.size shouldEqual 1
-      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
-      mainIr.exports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
-      mainIr.exports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "baz"
-    }
-
-    "result in error when trying to export non-existing symbol, among other symbols, from a module" in {
-      """
-        |foo = 42
-        |bar = 23
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-
-      val mainIr =
-        s"""
-           |import $namespace.$packageName.A_Module
-           |from A_Module export foo, bar, baz
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-
-      mainIr.exports.size shouldEqual 1
-      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
-      mainIr.exports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
-      mainIr.exports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "baz"
-    }
-
-    "result in error when trying to export non-existing symbol from a type" in {
-      """
-        |type A_Type
-        |  A_Constructor
-        |""".stripMargin
-        .createModule(packageQualifiedName.createChild("A_Module"))
-
-      val mainIr =
-        s"""
-           |import $namespace.$packageName.A_Module.A_Type
-           |from A_Type export Non_Existing_Ctor
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-
-      mainIr.exports.size shouldEqual 1
-      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
-      mainIr.exports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
-      mainIr.exports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "Non_Existing_Ctor"
-    }
-
-    "result in error when trying to export non-existing symbol from current module" in {
-      val mainIr =
-        s"""
-           |
-           |from project.Main.Main_Type import Main_Constructor
-           |from project.Main.Main_Type export Main_Constructor, Non_Existing_Ctor
-           |
-           |type Main_Type
-           |  Main_Constructor
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-
-      mainIr.exports.size shouldEqual 1
-      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
-      mainIr.exports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
-      mainIr.exports.head
-        .asInstanceOf[errors.ImportExport]
-        .reason
-        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
-        .symbolName shouldEqual "Non_Existing_Ctor"
-    }
-
     // TODO[pm]: Fix in https://github.com/enso-org/enso/issues/6669
     "resolve constructor from transitively exported type" ignore {
       """
@@ -526,6 +415,119 @@ class ImportExportTest
         .reason
         .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
         .symbolName shouldEqual "A_Type"
+    }
+  }
+
+  "Exporting non-existing symbols" should {
+    "fail when exporting from current module" in {
+      val mainIr =
+        s"""
+           |
+           |from project.Main.Main_Type import Main_Constructor
+           |from project.Main.Main_Type export Main_Constructor, Non_Existing_Ctor
+           |
+           |type Main_Type
+           |  Main_Constructor
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "Non_Existing_Ctor"
+    }
+
+    "fail when exporting from other module" in {
+      """
+        |# Empty
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |from A_Module export baz
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      val bindingsMap = mainIr.unwrapBindingMap
+      bindingsMap shouldNot be(null)
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "baz"
+    }
+
+    "fail when exporting from type" in {
+      """
+        |type A_Type
+        |  A_Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from A_Type export Non_Existing_Ctor
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "Non_Existing_Ctor"
+    }
+
+    "fail when exporting from module with `from`" in {
+      """
+        |foo = 42
+        |bar = 23
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |from A_Module export foo, bar, baz
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "baz"
     }
   }
 
