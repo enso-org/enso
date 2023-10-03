@@ -456,6 +456,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     jsonRpcControllerFactory
   )
 
+  val secureConfig = SecureConnectionConfig
+    .fromApplicationConfig(applicationConfig())
+    .fold(
+      v => v.flatMap(msg => { log.warn(s"invalid secure config: $msg"); None }),
+      Some(_)
+    )
+
   val jsonRpcServer =
     new JsonRpcServer(
       jsonRpcProtocolFactory,
@@ -464,8 +471,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         .Config(
           outgoingBufferSize = 10000,
           lazyMessageTimeout = 10.seconds,
-          secureConfig =
-            SecureConnectionConfig.fromApplicationConfig(applicationConfig())
+          secureConfig       = secureConfig
         ),
       List(healthCheckEndpoint, idlenessEndpoint)
     )
@@ -479,8 +485,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
         lazyMessageTimeout = 10.seconds,
-        secureConfig =
-          SecureConnectionConfig.fromApplicationConfig(applicationConfig())
+        secureConfig       = secureConfig
       )
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)

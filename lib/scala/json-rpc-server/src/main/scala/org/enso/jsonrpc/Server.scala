@@ -24,12 +24,13 @@ abstract class Server(implicit private val system: ActorSystem) {
     val httpServer = Http()
       .newServerAt(interface, port)
     if (secure) {
-      val httpsContext = secureConfig().flatMap(config =>
+      val httpsContext = secureConfig().flatMap(config => {
         config
-          .toSSLContext()
+          .generateSSLContext()
           .map(ctx => ConnectionContext.httpsServer(ctx))
           .toOption
-      )
+
+      })
       httpsContext match {
         case Some(ctx) =>
           httpServer.enableHttps(ctx).bind(serverRoute(port))

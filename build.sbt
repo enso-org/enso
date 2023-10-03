@@ -954,7 +954,12 @@ lazy val `json-rpc-server` = project
       "io.circe"                   %% "circe-literal" % circeVersion,
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       akkaTestkit                   % Test,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test,
+      "junit"               % "junit"                 % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
+      "org.apache.httpcomponents" % "httpclient" % "4.4.1" % Test,
+      "org.apache.httpcomponents" % "httpcore" % "4.4.16" % Test,
+      "commons-io" % "commons-io" % "2.14.0" % Test
     )
   )
 
