@@ -1,4 +1,5 @@
 import { assert } from '@/util/assert'
+import type { Doc } from '@/util/ffi'
 import {
   isIdentifier,
   isQualifiedName,
@@ -8,10 +9,23 @@ import {
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import type {
+  SuggestionEntryArgument,
+  SuggestionEntryScope,
+} from 'shared/languageServerTypes/suggestions'
+export type { Doc } from '@/util/ffi'
+export type {
+  SuggestionEntryArgument,
+  SuggestionEntryScope,
+  SuggestionId,
+} from 'shared/languageServerTypes/suggestions'
 
-export type SuggestionId = number
-
-export type UUID = string
+/** An alias type for typename (for entry fields like `returnType`).
+ *
+ * It's not QualifiedName, because it may be a type with parameters, or
+ * a type union.
+ */
+export type Typename = string
 
 // The kind of a suggestion.
 export enum SuggestionKind {
@@ -23,47 +37,6 @@ export enum SuggestionKind {
   Local = 'Local',
 }
 
-// The argument of a constructor, method or function suggestion.
-export interface SuggestionEntryArgument {
-  /** The argument name. */
-  name: string
-  /** The argument type. String 'Any' is used to specify generic types. */
-  type: string
-  /** Indicates whether the argument is lazy. */
-  isSuspended: boolean
-  /** Indicates whether the argument has default value. */
-  hasDefault: boolean
-  /** Optional default value. */
-  defaultValue?: string
-  /** Optional list of possible values that this argument takes. */
-  tagValues?: string[]
-}
-
-export interface Position {
-  /**
-   * Line position in a document (zero-based).
-   */
-  line: number
-
-  /**
-   * Character offset on a line in a document (zero-based). Assuming that the
-   * line is represented as a string, the `character` value represents the gap
-   * between the `character` and `character + 1`.
-   *
-   * If the character value is greater than the line length it defaults back to
-   * the line length.
-   */
-  character: number
-}
-
-// The definition scope
-export interface SuggestionEntryScope {
-  // The start position of the definition scope
-  start: Position
-  // The end position of the definition scope
-  end: Position
-}
-
 export interface SuggestionEntry {
   kind: SuggestionKind
   /// A module where the suggested object is defined.
@@ -72,27 +45,24 @@ export interface SuggestionEntry {
   memberOf?: QualifiedName
   isPrivate: boolean
   isUnstable: boolean
-  /// A name of suggested object.
   name: Identifier
-  /// A list of aliases.
   aliases: string[]
   /// A type of the "self" argument. This field is present only for instance methods.
-  selfType?: QualifiedName
+  selfType?: Typename
   /// Argument lists of suggested object (atom or function). If the object does not take any
   /// arguments, the list is empty.
   arguments: SuggestionEntryArgument[]
   /// A type returned by the suggested object.
-  returnType: QualifiedName
-  /// A module reexporting this entity.
+  returnType: Typename
+  /// A least-nested module reexporting this entity.
   reexportedIn?: QualifiedName
-  /// A list of documentation sections associated with object.
-  documentation: string
+  documentation: Doc.Section[]
   /// A scope where this suggestion is visible.
   scope?: SuggestionEntryScope
   /// A name of a custom icon to use when displaying the entry.
   iconName?: string
-  /// A name of a group this entry belongs to.
-  groupIndex?: number | undefined
+  /// An index of a group from group list in suggestionDb store this entry belongs to.
+  groupIndex?: number
 }
 
 function makeSimpleEntry(
@@ -110,7 +80,7 @@ function makeSimpleEntry(
     aliases: [],
     arguments: [],
     returnType,
-    documentation: '',
+    documentation: [],
   }
 }
 

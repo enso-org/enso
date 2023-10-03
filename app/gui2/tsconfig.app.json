@@ -18,6 +18,7 @@
     "baseUrl": ".",
     "noEmit": true,
     "allowImportingTsExtensions": true,
+    "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "types": ["vitest/importMeta"],
