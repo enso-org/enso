@@ -89,39 +89,33 @@ public final class EnsoBigInteger implements EnsoObject {
   }
 
   @ExportMessage
-  @CompilerDirectives.TruffleBoundary
   final byte asByte() throws UnsupportedMessageException {
-    return value.byteValue();
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
-  @CompilerDirectives.TruffleBoundary
   final short asShort() throws UnsupportedMessageException {
-    return value.shortValue();
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
-  @CompilerDirectives.TruffleBoundary
   final int asInt() throws UnsupportedMessageException {
-    return value.intValue();
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
-  @CompilerDirectives.TruffleBoundary
   final long asLong() throws UnsupportedMessageException {
-    return value.longValue();
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
-  @CompilerDirectives.TruffleBoundary
-  final float asFloat() {
-    return value.floatValue();
+  final float asFloat() throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
-  @CompilerDirectives.TruffleBoundary
-  public final double asDouble() {
-    return value.doubleValue();
+  public final double asDouble() throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
@@ -131,7 +125,7 @@ public final class EnsoBigInteger implements EnsoObject {
 
   @ExportMessage
   Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getBigInteger();
+    return EnsoContext.get(thisLib).getBuiltins().number().getInteger();
   }
 
   @ExportMessage
@@ -146,7 +140,7 @@ public final class EnsoBigInteger implements EnsoObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getBigInteger();
+    return EnsoContext.get(thisLib).getBuiltins().number().getInteger();
   }
 
   @Override

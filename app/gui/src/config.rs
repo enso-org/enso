@@ -60,52 +60,43 @@ impl BackendService {
     /// Read backend configuration from the web arguments. See also [`web::Arguments`]
     /// documentation.
     pub fn from_web_arguments(args: &Args) -> FallibleResult<Self> {
-        let endpoint = args.groups.engine.options.project_manager_url.value.as_str();
         let rpc_url_option = &args.groups.engine.options.rpc_url;
         let data_url_option = &args.groups.engine.options.data_url;
         let rpc_url = rpc_url_option.value.as_str();
         let data_url = data_url_option.value.as_str();
-        if !endpoint.is_empty() {
-            if !rpc_url.is_empty() || !data_url.is_empty() {
-                Err(MutuallyExclusiveOptions.into())
-            } else {
-                let endpoint = endpoint.to_owned();
-                Ok(Self::ProjectManager { endpoint })
-            }
-        } else {
-            match (rpc_url, data_url) {
-                ("", "") => Ok(default()),
-                ("", _) => Err(MissingOption(rpc_url_option.__name__.to_owned()).into()),
-                (_, "") => Err(MissingOption(data_url_option.__name__.to_owned()).into()),
-                (json_endpoint, binary_endpoint) => {
-                    let json_endpoint = json_endpoint.to_owned();
-                    let binary_endpoint = binary_endpoint.to_owned();
-                    let def_namespace = || constants::DEFAULT_PROJECT_NAMESPACE.to_owned();
-                    let namespace = args.groups.engine.options.namespace.value.clone();
-                    let namespace = if namespace.is_empty() { def_namespace() } else { namespace };
-                    let project_name_option = &args.groups.startup.options.project;
-                    let project_name = project_name_option.value.as_str();
-                    let no_project_name = || MissingOption(project_name_option.__name__.to_owned());
-                    let project_name = if project_name.is_empty() {
-                        Err(no_project_name())
-                    } else {
-                        Ok(project_name.to_owned())
-                    }?;
-                    let displayed_name_option = &args.groups.startup.options.displayed_project_name;
-                    let displayed_name = displayed_name_option.value.as_str();
-                    let displayed_name = if displayed_name.is_empty() {
-                        project_name.clone()
-                    } else {
-                        displayed_name.to_owned()
-                    };
-                    Ok(Self::LanguageServer {
-                        json_endpoint,
-                        binary_endpoint,
-                        namespace,
-                        project_name,
-                        displayed_name,
-                    })
-                }
+
+        match (rpc_url, data_url) {
+            ("", "") => Ok(default()),
+            ("", _) => Err(MissingOption(rpc_url_option.__name__.to_owned()).into()),
+            (_, "") => Err(MissingOption(data_url_option.__name__.to_owned()).into()),
+            (json_endpoint, binary_endpoint) => {
+                let json_endpoint = json_endpoint.to_owned();
+                let binary_endpoint = binary_endpoint.to_owned();
+                let def_namespace = || constants::DEFAULT_PROJECT_NAMESPACE.to_owned();
+                let namespace = args.groups.engine.options.namespace.value.clone();
+                let namespace = if namespace.is_empty() { def_namespace() } else { namespace };
+                let project_name_option = &args.groups.startup.options.project;
+                let project_name = project_name_option.value.as_str();
+                let no_project_name = || MissingOption(project_name_option.__name__.to_owned());
+                let project_name = if project_name.is_empty() {
+                    Err(no_project_name())
+                } else {
+                    Ok(project_name.to_owned())
+                }?;
+                let displayed_name_option = &args.groups.startup.options.displayed_project_name;
+                let displayed_name = displayed_name_option.value.as_str();
+                let displayed_name = if displayed_name.is_empty() {
+                    project_name.clone()
+                } else {
+                    displayed_name.to_owned()
+                };
+                Ok(Self::LanguageServer {
+                    json_endpoint,
+                    binary_endpoint,
+                    namespace,
+                    project_name,
+                    displayed_name,
+                })
             }
         }
     }

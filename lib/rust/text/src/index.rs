@@ -180,6 +180,7 @@ macro_rules! define_line_unit {
         #[derive(
             Clone, Copy, Debug, Display, Default, Eq, Hash, Ord, PartialEq, PartialOrd, From, Into
         )]
+        #[derive(serde::Serialize, serde::Deserialize)]
         pub struct $name {
             #[allow(missing_docs)]
             pub value: usize,

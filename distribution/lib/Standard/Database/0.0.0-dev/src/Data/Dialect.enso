@@ -5,6 +5,7 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 
 import project.Connection.Connection.Connection
+import project.Data.Column.Column
 import project.Data.SQL.Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -229,6 +230,17 @@ type Dialect
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
         _ = [replace_params, action]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Determines the value type to use when uploading the given column to the
+       Database.
+
+       This will usually just be `column.value_type`, but it allows the database
+       to do custom fallback handling for datatypes that are not supported.
+    value_type_for_upload_of_existing_column : Column -> Value_Type
+    value_type_for_upload_of_existing_column self column =
+        _ = column
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE

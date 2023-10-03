@@ -5,7 +5,6 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -62,7 +61,7 @@ public final class EnsoFile implements EnsoObject {
     return this.truffleFile.newOutputStream(openOptions);
   }
 
-  @Builtin.Method
+  @Builtin.Method(name = "input_stream_builtin")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
   @Builtin.ReturningGuestObject
@@ -88,14 +87,14 @@ public final class EnsoFile implements EnsoObject {
       hostArr = hostArrayCtor.apply(size);
       for (int i = 0; i < size; i++) {
         Object elem = interop.readArrayElement(arr, i);
-        if (!ctx.getEnvironment().isHostObject(elem)) {
+        if (!ctx.isJavaPolyglotObject(elem)) {
           var err = ctx.getBuiltins().error().makeUnsupportedArgumentsError(
               new Object[]{arr},
               "Arguments to opts should be host objects from java.io package"
           );
           throw new PanicException(err, interop);
         }
-        hostArr[i] = (T) ctx.getEnvironment().asHostObject(elem);
+        hostArr[i] = (T) ctx.asJavaPolyglotObject(elem);
       }
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       throw new IllegalStateException("Unreachable", e);
@@ -243,6 +242,16 @@ public final class EnsoFile implements EnsoObject {
     return this.truffleFile.getName();
   }
 
+  @Builtin.Method(name = "size_builtin")
+  @Builtin.WrapException(from = IOException.class)
+  @CompilerDirectives.TruffleBoundary
+  public long getSize() throws IOException {
+    if ( this.truffleFile.isDirectory()) {
+      throw new IOException("size can only be called on files.");
+    }
+    return this.truffleFile.size();
+  }
+
   @TruffleBoundary
   @Override
   public boolean equals(Object obj) {
@@ -299,7 +308,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile fromString(EnsoContext context, String path) {
-    TruffleFile file = context.getEnvironment().getPublicTruffleFile(path);
+    TruffleFile file = context.getPublicTruffleFile(path);
     return new EnsoFile(file);
   }
 
@@ -310,7 +319,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
   public static EnsoFile currentDirectory(EnsoContext context) {
-    TruffleFile file = context.getEnvironment().getCurrentWorkingDirectory();
+    TruffleFile file = context.getCurrentWorkingDirectory();
     return new EnsoFile(file);
   }
 

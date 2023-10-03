@@ -1979,6 +1979,15 @@ type Table
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
 
+    ## Change the value type of table columns to a more specific one, based on
+       their contents.
+
+       This operation is currently not available in the Database backend.
+    auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> Table
+    auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+        _ = [columns, shrink_types, error_on_missing_columns, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.auto_value_types is not supported in the Database backends.")
+
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
        Remove rows which are all blank or containing blank values.
@@ -2027,7 +2036,15 @@ type Table
             False ->
                 sql = preprocessed.to_sql
                 column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
-                self.connection.read_statement sql column_type_suggestions
+                materialized_table = self.connection.read_statement sql column_type_suggestions
+
+                expected_types = self.columns.map .value_type
+                actual_types = materialized_table.columns.map .value_type
+                expected_types.zip actual_types . fold materialized_table acc-> types_pair->
+                    expected_type = types_pair.first
+                    actual_type = types_pair.second
+                    if expected_type == actual_type then acc else
+                        Warning.attach (Inexact_Type_Coercion.Warning expected_type actual_type) acc
 
     ## PRIVATE
        Creates a query corresponding to this table.
@@ -2391,3 +2408,8 @@ default_join_condition : Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
 default_join_condition table join_kind = case join_kind of
     Join_Kind_Cross.Cross -> []
     _ -> [Join_Condition.Equals table.column_names.first]
+
+## PRIVATE
+Materialized_Table.from (that:Table) =
+    _ = [that]
+    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")

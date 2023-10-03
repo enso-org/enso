@@ -27,10 +27,10 @@ case object SectionsToBinOp extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     GenerateMethodBodies
   )
-  override val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
     DataflowAnalysis,
@@ -95,8 +95,7 @@ case object SectionsToBinOp extends IRPass {
     * @param section the section to desugar
     * @return the result of desugaring `section`
     */
-  //noinspection DuplicatedCode
-  def desugarSections(
+  private def desugarSections(
     section: Section,
     freshNameSupply: FreshNameSupply
   ): Expression = {
@@ -146,21 +145,16 @@ case object SectionsToBinOp extends IRPass {
           )
 
         } else {
-          val opCall = Application.Prefix(
+          Application.Prefix(
             function             = op,
-            arguments            = List(arg, rightCallArg),
+            arguments            = List(arg),
             hasDefaultsSuspended = false,
-            location             = None,
+            location             = loc,
             passData,
             diagnostics
           )
-
-          Function.Lambda(
-            List(rightDefArg),
-            opCall,
-            loc
-          )
         }
+
       case Section.Sides(op, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =

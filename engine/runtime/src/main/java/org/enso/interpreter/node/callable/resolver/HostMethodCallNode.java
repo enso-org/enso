@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.resolver;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -213,25 +214,25 @@ public abstract class HostMethodCallNode extends Node {
       Object[] args,
       @Shared("interop") @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
       @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+    var ctx = EnsoContext.get(this);
     try {
       return hostValueToEnsoNode.execute(members.invokeMember(self, symbol, args));
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
-      throw new IllegalStateException(
-          "Impossible to reach here. The member is checked to be invocable.");
+      CompilerDirectives.transferToInterpreter();
+      var err = ctx.getBuiltins().error().makeNotInvokable(self);
+      throw new PanicException(err, e, this);
     } catch (ArityException e) {
-      throw new PanicException(
-          EnsoContext.get(this)
-              .getBuiltins()
+      var err =
+          ctx.getBuiltins()
               .error()
-              .makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
-          this);
+              .makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity());
+      throw new PanicException(err, this);
     } catch (UnsupportedTypeException e) {
-      throw new PanicException(
-          EnsoContext.get(this)
-              .getBuiltins()
+      var err =
+          ctx.getBuiltins()
               .error()
-              .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
-          this);
+              .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage());
+      throw new PanicException(err, this);
     }
   }
 
@@ -268,8 +269,10 @@ public abstract class HostMethodCallNode extends Node {
     try {
       return hostValueToEnsoNode.execute(instances.instantiate(self, args));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(
-          "Impossible to reach here. The member is checked to be instantiable.");
+      CompilerDirectives.transferToInterpreter();
+      var ctx = EnsoContext.get(this);
+      var err = ctx.getBuiltins().error().makeNotInvokable(self);
+      throw new PanicException(err, e, this);
     } catch (ArityException e) {
       throw new PanicException(
           EnsoContext.get(this)

@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -12,7 +13,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
@@ -24,7 +28,6 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -32,27 +35,34 @@ import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.librarymanager.ProjectLoadingFailure;
+import org.enso.librarymanager.resolved.LibraryRoot;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.ForeignLanguage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionKey;
 
 import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
+import com.oracle.truffle.api.source.Source;
 
 import scala.jdk.javaapi.OptionConverters;
 
@@ -60,13 +70,14 @@ import scala.jdk.javaapi.OptionConverters;
  * The language context is the internal state of the language that is associated with each thread in
  * a running Enso program.
  */
-public class EnsoContext {
+public final class EnsoContext {
 
   private static final TruffleLanguage.ContextReference<EnsoContext> REFERENCE =
       TruffleLanguage.ContextReference.create(EnsoLanguage.class);
 
   private final EnsoLanguage language;
   private final Env environment;
+  private final boolean assertionsEnabled;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -125,7 +136,7 @@ public class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
-
+    this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
     this.compilerConfig =
@@ -180,6 +191,16 @@ public class EnsoContext {
 
     projectPackage.ifPresent(
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
+
+    var preinit = environment.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
+    if (preinit != null && preinit.length() > 0) {
+      var epb = environment.getInternalLanguages().get(ForeignLanguage.ID);
+      @SuppressWarnings("unchecked")
+      var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
+      if (run != null) {
+        run.accept(preinit);
+      }
+    }
   }
 
   /**
@@ -231,6 +252,19 @@ public class EnsoContext {
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
   }
 
+  private boolean shouldAssertionsBeEnabled() {
+    var envVar = environment.getEnvironment().get("ENSO_ENABLE_ASSERTIONS");
+    if (envVar != null) {
+      return Boolean.parseBoolean(envVar);
+    }
+    return isJvmAssertionsEnabled();
+  }
+
+  private static boolean isJvmAssertionsEnabled() {
+    boolean assertionsEnabled = false;
+    assert assertionsEnabled = true;
+    return assertionsEnabled;
+  }
   /**
    * Creates a truffle file for a given standard file.
    *
@@ -238,7 +272,7 @@ public class EnsoContext {
    * @return the truffle wrapper for {@code file}
    */
   public TruffleFile getTruffleFile(File file) {
-    return getEnvironment().getInternalTruffleFile(file.getAbsolutePath());
+    return environment.getInternalTruffleFile(file.getAbsolutePath());
   }
 
   /**
@@ -254,15 +288,6 @@ public class EnsoContext {
    */
   public final Compiler getCompiler() {
     return compiler;
-  }
-
-  /**
-   * Returns the {@link Env} instance used by this context.
-   *
-   * @return the {@link Env} instance used by this context
-   */
-  public Env getEnvironment() {
-    return environment;
   }
 
   /**
@@ -382,6 +407,66 @@ public class EnsoContext {
   }
 
   /**
+   * Modifies the classpath to use to lookup {@code polyglot java} imports.
+   * @param file the file to register
+   */
+  @TruffleBoundary
+  public void addToClassPath(TruffleFile file) {
+    if (findGuestJava() == null) {
+      environment.addToHostClassPath(file);
+    } else {
+      try {
+        var path = new File(file.toUri()).getAbsoluteFile();
+        if (!path.exists()) {
+          throw new IllegalStateException("File not found " + path);
+        }
+        InteropLibrary.getUncached().invokeMember(findGuestJava(), "addPath", path.getPath());
+      } catch (InteropException ex) {
+        throw new IllegalStateException(ex);
+      }
+    }
+  }
+
+  /** Checks whether provided object comes from Java. Either Java
+   * system libraries or libraries added by {@link #addToClassPath(TruffleFile)}.
+   *
+   * @param obj the object to check
+   * @return {@code true} or {@code false}
+   */
+  public boolean isJavaPolyglotObject(Object obj) {
+    return environment.isHostObject(obj);
+  }
+
+  /** Checks whether provided object comes from Java and represents a
+   * function.
+   *
+   * @param obj the object to check
+   * @return {@code true} or {@code false}
+   */
+  public boolean isJavaPolyglotFunction(Object obj) {
+    return environment.isHostFunction(obj);
+  }
+
+  /**
+   * Converts an interop object into underlying Java representation.
+   * @param obj object that {@link #isJavaPolyglotObject}
+   * @return underlying object
+   */
+  public Object asJavaPolyglotObject(Object obj) {
+    return environment.asHostObject(obj);
+  }
+
+  /**
+   * Wraps a Java object into interop object.
+   * @param obj java object
+   * @return wrapper object
+   */
+//  @Deprecated(forRemoval=true)
+  public Object asGuestValue(Object obj) {
+    return environment.asGuestValue(obj);
+  }
+
+  /**
    * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
    * This method also tries to lookup inner classes. More specifically, if the provided name
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
@@ -392,23 +477,72 @@ public class EnsoContext {
    */
   @TruffleBoundary
   public Object lookupJavaClass(String className) {
-    List<String> items = Arrays.asList(className.split("\\."));
+    var items = Arrays.asList(className.split("\\."));
+    var collectedExceptions = new ArrayList<Exception>();
     for (int i = items.size() - 1; i >= 0; i--) {
       String pkgName = String.join(".", items.subList(0, i));
       String curClassName = items.get(i);
       List<String> nestedClassPart =
           i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
       try {
-        Object hostSymbol = environment.lookupHostSymbol(pkgName + "." + curClassName);
+        var hostSymbol = lookupHostSymbol(pkgName, curClassName);
         if (nestedClassPart.isEmpty()) {
           return hostSymbol;
         } else {
-          return getNestedClass(hostSymbol, nestedClassPart);
+          var fullInnerClassName = curClassName + "$" + String.join("$", nestedClassPart);
+          return lookupHostSymbol(pkgName, fullInnerClassName);
         }
-      } catch (RuntimeException ignored) {
+      } catch (RuntimeException | InteropException ex) {
+        collectedExceptions.add(ex);
       }
     }
+    for (var ex : collectedExceptions) {
+      logger.log(Level.WARNING, null, ex);
+    }
     return null;
+  }
+
+  private Object lookupHostSymbol(String pkgName, String curClassName)
+  throws UnknownIdentifierException, UnsupportedMessageException {
+    if (findGuestJava() == null) {
+      return environment.lookupHostSymbol(pkgName + "." + curClassName);
+    } else {
+      return InteropLibrary.getUncached().readMember(findGuestJava(), pkgName + "." + curClassName);
+    }
+  }
+
+  private Object guestJava = this;
+
+  @TruffleBoundary
+  private Object findGuestJava() throws IllegalStateException {
+    if (guestJava != this) {
+      return guestJava;
+    }
+    guestJava = null;
+    var envJava = System.getenv("ENSO_JAVA");
+    if (envJava == null) {
+      return guestJava;
+    }
+    if ("espresso".equals(envJava)) {
+      var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
+      try {
+        guestJava = environment.parsePublic(src).call();
+        logger.log(Level.SEVERE, "Using experimental Espresso support!");
+      } catch (Exception ex) {
+        if (ex.getMessage().contains("No language for id java found.")) {
+          logger.log(Level.SEVERE, "Environment variable ENSO_JAVA=" + envJava + ", but " + ex.getMessage());
+          logger.log(Level.SEVERE, "Use " + System.getProperty("java.home") + "/bin/gu install espresso");
+          logger.log(Level.SEVERE, "Continuing in regular Java mode");
+        } else {
+          var ise = new IllegalStateException(ex.getMessage());
+          ise.setStackTrace(ex.getStackTrace());
+          throw ise;
+        }
+      }
+    } else {
+      throw new IllegalStateException("Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
+    }
+    return guestJava;
   }
 
   /**
@@ -477,6 +611,37 @@ public class EnsoContext {
    */
   public boolean isProjectSuggestionsEnabled() {
     return getOption(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS_KEY);
+  }
+
+  /**
+   * Checks whether global caches are to be used.
+   *
+   * @return true if so
+   */
+  public boolean isUseGlobalCache() {
+    return getOption(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
+  }
+
+  public boolean isAssertionsEnabled() {
+    return assertionsEnabled;
+  }
+
+  /**
+   * Checks whether we are running in interactive mode.
+   *
+   * @return true if so
+   */
+  public boolean isInteractiveMode() {
+    return getOption(RuntimeOptions.INTERACTIVE_MODE_KEY);
+  }
+
+  /**
+   * Checks value of {@link RuntimeOptions#INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY}.
+   *
+   * @return the value of the option
+   */
+  public boolean isInterpreterSequentialCommandExection() {
+    return getOption(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY);
   }
 
   /**
@@ -605,32 +770,47 @@ public class EnsoContext {
     return notificationHandler;
   }
 
-  private Object getNestedClass(Object hostClass, List<String> nestedClassName) {
-    Object nestedClass = hostClass;
-    var interop = InteropLibrary.getUncached();
-    for (String name : nestedClassName) {
-      if (interop.isMemberReadable(nestedClass, name)) {
-        Object member;
-        try {
-          member = interop.readMember(nestedClass, name);
-        } catch (UnsupportedMessageException | UnknownIdentifierException e) {
-          throw new IllegalStateException(e);
-        }
-        assert member != null;
-        if (interop.isMetaObject(member)) {
-          nestedClass = member;
-        } else {
-          return null;
-        }
-      } else {
-        return null;
-      }
-    }
-    return nestedClass;
+  public TruffleFile findLibraryRootPath(LibraryRoot root) {
+    return environment.getInternalTruffleFile(
+      root.location().toAbsolutePath().normalize().toString()
+    );
+  }
+
+  public TruffleFile getPublicTruffleFile(String path) {
+    return environment.getPublicTruffleFile(path);
+  }
+
+  public TruffleFile getCurrentWorkingDirectory() {
+    return environment.getCurrentWorkingDirectory();
+  }
+
+  public TruffleProcessBuilder newProcessBuilder(String... args) {
+    return environment.newProcessBuilder(args);
+  }
+
+  public boolean isCreateThreadAllowed() {
+    return environment.isCreateThreadAllowed();
+  }
+
+  public Thread createThread(boolean systemThread, Runnable run) {
+    return systemThread ? environment.createSystemThread(run) :
+      environment.createThread(run);
+  }
+
+  public Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
+    return environment.submitThreadLocal(threads, action);
+  }
+
+  public CallTarget parseInternal(Source src, String... argNames) {
+    return environment.parseInternal(src, argNames);
+  }
+
+  public boolean isLanguageInstalled(String name) {
+    return environment.getPublicLanguages().get(name) != null;
   }
 
   private <T> T getOption(OptionKey<T> key) {
-    var options = getEnvironment().getOptions();
+    var options = environment.getOptions();
     var safely = false;
     assert safely = true;
     if (safely) {

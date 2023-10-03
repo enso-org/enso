@@ -5,11 +5,11 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Meta
 import project.Metadata.Display
+import project.Metadata.Widget
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import Single_Choice
 
 polyglot java import java.util.Locale as JavaLocale
 
@@ -430,8 +430,8 @@ type Locale
 
     ## PRIVATE
        Gets the default drop down option for this encoding.
-    default_widget : Single_Choice
-    default_widget = Single_Choice values=Locale.widget_options display=Display.When_Modified
+    default_widget : Widget
+    default_widget = Widget.Single_Choice values=Locale.widget_options display=Display.When_Modified
 
     ## PRIVATE
     predefined_locale_fields : Vector Text

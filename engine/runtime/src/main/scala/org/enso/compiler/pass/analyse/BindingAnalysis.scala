@@ -31,11 +31,11 @@ case object BindingAnalysis extends IRPass {
   override type Config = IRPass.Configuration.Default
 
   /** The passes that this pass depends _directly_ on to run. */
-  override val precursorPasses: Seq[IRPass] =
+  override lazy val precursorPasses: Seq[IRPass] =
     Seq(ComplexType, FunctionBinding, GenerateMethodBodies)
 
   /** The passes that are invalidated by running this pass. */
-  override val invalidatedPasses: Seq[IRPass] =
+  override lazy val invalidatedPasses: Seq[IRPass] =
     Seq(MethodDefinitions, Patterns)
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -57,6 +57,7 @@ case object BindingAnalysis extends IRPass {
         .exists(_.annotations.exists(_.name == "@Builtin_Type"))
       BindingsMap.Type(
         sumType.name.name,
+        sumType.params.map(_.name.name),
         sumType.members.map(m =>
           Cons(
             m.name.name,

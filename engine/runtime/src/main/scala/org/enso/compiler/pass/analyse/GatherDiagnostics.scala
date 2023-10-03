@@ -24,8 +24,8 @@ case object GatherDiagnostics extends IRPass {
   override type Metadata = DiagnosticsMeta
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass]   = List(TypeSignatures)
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val precursorPasses: Seq[IRPass]   = List(TypeSignatures)
+  override lazy val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
     * diagnostics to its metadata storage.
@@ -81,7 +81,16 @@ case object GatherDiagnostics extends IRPass {
             })
             .getOrElse(Nil)
         typeSignatureDiagnostics ++ x.diagnostics.toList
-      case x => x.diagnostics.toList
+      case x: Expression =>
+        val typeSignatureDiagnostics =
+          x.getMetadata(TypeSignatures)
+            .map(_.signature.preorder.collect { case err: Diagnostic =>
+              err
+            })
+            .getOrElse(Nil)
+        typeSignatureDiagnostics ++ x.diagnostics.toList
+      case x =>
+        x.diagnostics.toList
     }.flatten
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))

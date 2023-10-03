@@ -48,7 +48,7 @@ public abstract class TypeOfNode extends Node {
 
   @Specialization
   Object doDouble(double value) {
-    return EnsoContext.get(this).getBuiltins().number().getDecimal();
+    return EnsoContext.get(this).getBuiltins().number().getFloat();
   }
 
   @Specialization
@@ -138,7 +138,7 @@ public abstract class TypeOfNode extends Node {
       if (interop.fitsInInt(value)) {
         return builtins.number().getInteger();
       } else if (interop.fitsInDouble(value)) {
-        return builtins.number().getDecimal();
+        return builtins.number().getFloat();
       } else {
         return EnsoContext.get(this).getBuiltins().number().getNumber();
       }

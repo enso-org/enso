@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Uninitialized_State, Type_Error
+from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -92,7 +92,7 @@ spec =
 
             Array.is_a Array . should_be_false
             [].to_array.is_a Array . should_be_true
-            [].to_array.is_a Decimal . should_be_false
+            [].to_array.is_a Float . should_be_false
             [1,2,3].is_a Vector . should_be_true
             [1,2,3].is_a Array . should_be_false
 
@@ -102,16 +102,16 @@ spec =
             True.is_a Integer . should_be_false
 
             "".is_a Text . should_be_true
-            "".is_a Decimal . should_be_false
+            "".is_a Float . should_be_false
 
             1.is_a Array . should_be_false
             1.is_a Integer . should_be_true
             1.is_a Number . should_be_true
-            1.is_a Decimal . should_be_false
+            1.is_a Float . should_be_false
             1.is_a Date . should_be_false
 
             1.0.is_a Number . should_be_true
-            1.0.is_a Decimal . should_be_true
+            1.0.is_a Float . should_be_true
             1.0.is_a Integer . should_be_false
             1.0.is_a Text . should_be_false
 
@@ -164,15 +164,15 @@ spec =
         Test.specify "should allow for returning the type of a value" <|
             n_1 = Meta.type_of 42
             n_1 . should_equal_type Integer
-            n_1 . should_not_equal_type Decimal
+            n_1 . should_not_equal_type Float
 
             n_2 = Meta.type_of 2.81
-            n_2 . should_equal_type Decimal
+            n_2 . should_equal_type Float
             n_2 . should_not_equal_type Integer
 
             n_3 = Meta.type_of (JLong.MAX_VALUE * 2)
             n_3 . should_equal_type Integer
-            n_3 . should_not_equal_type Decimal
+            n_3 . should_not_equal_type Float
 
             v_tpe = Meta.type_of [1,2,3]
             v_tpe . should_equal_type Vector
@@ -258,10 +258,10 @@ spec =
             methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
 
         Test.specify "methods of Integer" <|
-            Meta.meta Integer . methods . sort . should_equal ['bit_shift_l', 'round', 'truncate']
+            Meta.meta Integer . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'round', 'to_float', 'truncate']
 
         Test.specify "static methods of Integer" <|
-            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['bit_shift_l', 'parse', 'parse_builtin', 'round', 'round_integer_builtin', 'truncate']
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'floor', 'negate', 'parse', 'parse_builtin', 'round', 'round_integer_builtin', 'to_float', 'truncate']
 
         Test.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"
@@ -436,5 +436,33 @@ spec =
             (.is_nothing) . is_a Function . should_equal True
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
+
+    Test.group "Meta.Type.find"
+        Test.specify "find boolean and use it" <|
+            fqn = "Standard.Base.Data.Boolean.Boolean"
+            typ = Meta.Type.find fqn
+            typ . is_a Meta.Type . should_be_true
+            typ.name . should_equal "Boolean"
+            Meta.Type.find typ.qualified_name . should_equal typ
+
+        Test.specify "find boolean via associated type and use it" <|
+            fqn = "Standard.Base.Data.Boolean"
+            typ = Meta.Type.find fqn
+            typ . is_a Meta.Type . should_be_true
+            typ.name . should_equal "Boolean"
+            typ.qualified_name . should_equal fqn
+            Meta.Type.find typ.qualified_name . should_equal typ
+
+        Test.specify "unknown type" <|
+            Meta.Type.find "Unknown.Type" . should_fail_with Not_Found
+            Meta.Type.find "UnknownType" . should_fail_with Not_Found
+            Meta.Type.find "" . should_fail_with Not_Found
+
+        Test.specify "My ascribed type" <|
+            meta_type = Meta.meta My_Ascribed_Type
+            fqn =  meta_type . qualified_name
+            fqn.should_contain "Meta_Spec.My_Ascribed_Type"
+            typ = Meta.Type.find fqn
+            typ . should_equal meta_type
 
 main = Test_Suite.run_main spec

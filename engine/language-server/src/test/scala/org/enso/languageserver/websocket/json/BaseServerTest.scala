@@ -45,7 +45,7 @@ import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
-import org.enso.loggingservice.LogLevel
+import org.enso.logger.LoggerSetup
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -57,10 +57,10 @@ import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
+import org.slf4j.event.Level
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -74,6 +74,8 @@ class BaseServerTest
   import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
+
+  LoggerSetup.get().setup()
 
   def isFileWatcherEnabled: Boolean = false
 
@@ -322,7 +324,7 @@ class BaseServerTest
         distributionManager,
         resourceManager,
         Some(languageHome),
-        new CompilerBasedDependencyExtractor(logLevel = LogLevel.Warning)
+        new CompilerBasedDependencyExtractor(logLevel = Level.WARN)
       )
     )
 

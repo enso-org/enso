@@ -30,7 +30,7 @@ spec_with name create_new_date parse_date =
 
         Test.specify "should handle errors when creating local date" <|
             case create_new_date 2020 30 30 . catch of
-                Time_Error.Error msg ->
+                Time_Error.Error msg _ ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 30"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -39,15 +39,11 @@ spec_with name create_new_date parse_date =
             text = create_new_date 2020 12 21 . format "yyyyMMdd"
             text . should_equal "20201221"
 
-        Test.specify "should format local date using provided pattern and US locale" <|
-            d = create_new_date 2020 6 21
-            d.format "d. MMM yyyy" . should_equal "21. Jun 2020"
-            d.format "d. MMMM yyyy" . should_equal "21. June 2020"
-
         Test.specify "should format local date using provided pattern and locale" <|
             d = create_new_date 2020 6 21
-            d.format "d. MMMM yyyy" (Locale.new "gb") . should_equal "21. Jun 2020"
-            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020"
+            d.format "d. MMMM yyyy" . should_equal "21. Jun 2020"
+            d.format (Date_Time_Formatter.from "d. MMMM yyyy" locale=(Locale.uk)) . should_equal "21. June 2020"
+            d.format (Date_Time_Formatter.from "d. MMMM yyyy" locale=(Locale.france)) . should_equal "21. juin 2020"
 
         Test.specify "should format local date using default pattern" <|
             text = create_new_date 2020 12 21 . to_text
@@ -62,8 +58,8 @@ spec_with name create_new_date parse_date =
 
         Test.specify "should throw error when parsing invalid date" <|
             case parse_date "birthday" . catch of
-                Time_Error.Error msg ->
-                    msg . should_equal "Text 'birthday' could not be parsed at index 0"
+                Time_Error.Error msg _ ->
+                    msg . should_contain "Text 'birthday' could not be parsed"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
@@ -72,32 +68,6 @@ spec_with name create_new_date parse_date =
             date . year . should_equal 1999
             date . month . should_equal 1
             date . day . should_equal 1
-
-        Test.specify "should parse custom format" <|
-            date = parse_date "1999 1 1" "yyyy M d"
-            date . year . should_equal 1999
-            date . month . should_equal 1
-            date . day . should_equal 1
-
-        Test.specify "should parse text month formats" <|
-            date = parse_date "1999 Jan 1" "yyyy MMM d"
-            date . year . should_equal 1999
-            date . month . should_equal 1
-            date . day . should_equal 1
-
-        Test.specify "should parse text long month formats" <|
-            date = parse_date "1999 January 1" "yyyy MMMM d"
-            date . year . should_equal 1999
-            date . month . should_equal 1
-            date . day . should_equal 1
-
-        Test.specify "should throw error when parsing custom format" <|
-            date = parse_date "1999-01-01" "yyyy M d"
-            case date.catch of
-                Time_Error.Error msg ->
-                    msg . should_equal "Text '1999-01-01' could not be parsed at index 4"
-                result ->
-                    Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should convert to time" <|
             time = create_new_date 2000 12 21 . to_date_time (Time_Of_Day.new 12 30 45) Time_Zone.utc
@@ -555,7 +525,7 @@ main = Test_Suite.run_main spec
 
 parseNormally x y = (Date.parse x y) . to_text
 
-js_parse text format="" =
+js_parse text format=Date_Time_Formatter.iso_date =
     d = Date.parse text format
     js_date d.year d.month d.day
 
@@ -590,7 +560,7 @@ python_date year month=1 day=1 =
             "Invalid value for MonthOfYear (valid values 1 - 12): " + month.to_text
         Error.throw <| Time_Error.Error msg
 
-python_parse text format="" =
+python_parse text format=Date_Time_Formatter.iso_date =
     d = Date.parse text format
     python_date d.year d.month d.day
 

@@ -266,8 +266,11 @@ lazy val enso = (project in file("."))
     `task-progress-notifications`,
     `profiling-utils`,
     `logging-utils`,
-    filewatcher,
+    `logging-config`,
     `logging-service`,
+    `logging-service-logback`,
+    `logging-utils-akka`,
+    filewatcher,
     `logging-truffle-connector`,
     `locking-test-helper`,
     `akka-native`,
@@ -338,24 +341,26 @@ lazy val enso = (project in file("."))
 
 // === Akka ===================================================================
 
-def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
-def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
+def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
+def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
 val akkaVersion               = "2.6.20"
 val akkaHTTPVersion           = "10.2.10"
 val akkaMockSchedulerVersion  = "0.5.5"
 val logbackClassicVersion     = "1.3.7"
-val akkaActor                 = akkaPkg("actor")
-val akkaStream                = akkaPkg("stream")
-val akkaTyped                 = akkaPkg("actor-typed")
-val akkaTestkit               = akkaPkg("testkit")
-val akkaSLF4J                 = akkaPkg("slf4j")
-val akkaTestkitTyped          = akkaPkg("actor-testkit-typed") % Test
-val akkaHttp                  = akkaHTTPPkg("http")
-val akkaSpray                 = akkaHTTPPkg("http-spray-json")
-val akkaTest = Seq(
-  "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
+val logbackPkg = Seq(
+  "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+  "ch.qos.logback" % "logback-core"    % logbackClassicVersion
 )
+val akkaActor        = akkaPkg("actor")
+val akkaStream       = akkaPkg("stream")
+val akkaTyped        = akkaPkg("actor-typed")
+val akkaTestkit      = akkaPkg("testkit")
+val akkaSLF4J        = akkaPkg("slf4j")
+val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
+val akkaHttp         = akkaHTTPPkg("http")
+val akkaSpray        = akkaHTTPPkg("http-spray-json")
+val logbackTest      = logbackPkg.map(_ % Test)
 val akka =
   Seq(
     akkaActor,
@@ -477,6 +482,7 @@ val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
 val junitIfVersion          = "0.13.2"
+val hamcrestVersion         = "1.3"
 val netbeansApiVersion      = "RELEASE180"
 val fansiVersion            = "0.4.0"
 
@@ -679,8 +685,9 @@ lazy val `logging-utils` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test
-    )
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      "org.slf4j"      % "slf4j-api" % slf4jVersion
+    ) ++ logbackTest
   )
 
 lazy val `logging-service` = project
@@ -690,27 +697,54 @@ lazy val `logging-service` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
-      "com.typesafe"                % "config"        % typesafeConfigVersion,
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      akkaStream,
-      akkaHttp,
-      "io.circe"               %% "circe-core"      % circeVersion,
-      "io.circe"               %% "circe-parser"    % circeVersion,
-      "junit"                   % "junit"           % junitVersion              % Test,
-      "com.github.sbt"          % "junit-interface" % junitIfVersion            % Test,
-      "org.scalatest"          %% "scalatest"       % scalatestVersion          % Test,
-      "org.graalvm.nativeimage" % "svm"             % graalMavenPackagesVersion % "provided"
+      "org.slf4j"      % "slf4j-api" % slf4jVersion,
+      "com.typesafe"   % "config"    % typesafeConfigVersion,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      akkaHttp
     )
   )
-  .settings(
-    if (Platform.isWindows)
-      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-windows"
-    else
-      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
-  )
-  .dependsOn(`akka-native`)
   .dependsOn(`logging-utils`)
+  .dependsOn(`logging-config`)
+
+lazy val `logging-config` = project
+  .in(file("lib/scala/logging-config"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "com.typesafe" % "config"    % typesafeConfigVersion,
+      "org.slf4j"    % "slf4j-api" % slf4jVersion
+    )
+  )
+
+lazy val `logging-service-logback` = project
+  .in(file("lib/scala/logging-service-logback"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
+      "io.sentry"        % "sentry-logback"          % "6.28.0",
+      "io.sentry"        % "sentry"                  % "6.28.0",
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+    ) ++ logbackPkg
+  )
+  .dependsOn(`logging-config`)
+  .dependsOn(`logging-service`)
+
+lazy val `logging-utils-akka` = project
+  .in(file("lib/scala/logging-utils-akka"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"          % "slf4j-api"  % slf4jVersion,
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion
+    )
+  )
 
 lazy val filewatcher = project
   .in(file("lib/scala/filewatcher"))
@@ -722,7 +756,7 @@ lazy val filewatcher = project
       "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
       "commons-io"     % "commons-io"        % commonsIoVersion,
       "org.scalatest" %% "scalatest"         % scalatestVersion % Test
-    )
+    ) ++ logbackTest
   )
   .dependsOn(testkit % Test)
 
@@ -849,6 +883,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case _                  => MergeStrategy.first
     },
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
+    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
@@ -861,7 +896,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         )
       )
       .dependsOn(VerifyReflectionSetup.run)
-      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -880,8 +914,11 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`library-manager`)
+  .dependsOn(`logging-utils-akka`)
+  .dependsOn(`logging-service`)
   .dependsOn(pkg)
   .dependsOn(`json-rpc-server`)
+  .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
@@ -912,7 +949,7 @@ lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
   .settings(
     frgaalJavaCompilerSetting,
-    libraryDependencies ++= akka ++ akkaTest,
+    libraryDependencies ++= akka ++ logbackTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
       "io.circe"                   %% "circe-literal" % circeVersion,
@@ -953,11 +990,10 @@ lazy val searcher = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= jmh ++ Seq(
-      "com.typesafe.slick" %% "slick"           % slickVersion,
-      "org.xerial"          % "sqlite-jdbc"     % sqliteVersion,
-      "ch.qos.logback"      % "logback-classic" % logbackClassicVersion % Test,
-      "org.scalatest"      %% "scalatest"       % scalatestVersion      % Test
-    )
+      "com.typesafe.slick" %% "slick"       % slickVersion,
+      "org.xerial"          % "sqlite-jdbc" % sqliteVersion,
+      "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
+    ) ++ logbackTest
   )
   .configs(Benchmark)
   .settings(
@@ -1081,6 +1117,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
+      "org.slf4j"                   % "slf4j-api"            % slf4jVersion,
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
       "io.circe"                   %% "circe-literal"        % circeVersion,
@@ -1117,10 +1154,11 @@ lazy val `language-server` = (project in file("engine/language-server"))
     Test / javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
-        (LocalProject("runtime") / Compile / fullClasspath).value
+        (LocalProject("runtime") / Runtime / fullClasspath).value
           .map(_.data)
           .mkString(File.pathSeparator)
       Seq(
+        s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf",
         s"-Dtruffle.class.path.append=$runtimeClasspath",
         s"-Duser.dir=${file(".").getCanonicalPath}"
       )
@@ -1138,6 +1176,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(`edition-updater`)
+  .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`searcher`)
@@ -1147,6 +1186,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`profiling-utils`)
   .dependsOn(filewatcher)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service-logback` % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
@@ -1257,55 +1297,6 @@ def runGu(logger: ManagedLogger, args: Seq[String]): String = {
   )
 }
 
-def installedGuComponents(logger: ManagedLogger): Seq[String] = {
-  val componentList = runGu(
-    logger,
-    Seq("list")
-  )
-  val components = componentList.linesIterator
-    .drop(2)
-    .map { line =>
-      line
-        .split(" ")
-        .head
-    }
-    .toList
-  logger.debug(s"Installed GU components = $components")
-  if (!components.contains("graalvm")) {
-    throw new RuntimeException(s"graalvm components is not in $components")
-  }
-  components
-}
-
-lazy val installGraalJs = taskKey[Unit]("Install graaljs GraalVM component")
-ThisBuild / installGraalJs := {
-  val logger = streams.value.log
-  if (!installedGuComponents(logger).contains("js")) {
-    logger.info("Installing js GraalVM component")
-    runGu(
-      logger,
-      Seq("install", "js")
-    )
-  }
-}
-
-lazy val installNativeImage =
-  taskKey[Unit]("Install native-image GraalVM component")
-ThisBuild / installNativeImage := {
-  val logger = streams.value.log
-  if (!installedGuComponents(logger).contains("native-image")) {
-    logger.info("Installing native-image GraalVM component")
-    runGu(
-      logger,
-      Seq("install", "native-image")
-    )
-  }
-}
-
-ThisBuild / installNativeImage := {
-  (ThisBuild / installNativeImage).result.value
-}
-
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -1348,6 +1339,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion              % Test,
       "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
+      "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
       "com.lihaoyi"        %% "fansi"                 % fansiVersion
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
@@ -1377,7 +1369,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / compile) := (Compile / compile)
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .dependsOn(installGraalJs)
       .value
   )
   .settings(
@@ -1411,12 +1402,10 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
   .dependsOn(`logging-truffle-connector`)
-  .dependsOn(`logging-utils`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`runtime-parser`)
   .dependsOn(pkg)
-  .dependsOn(`edition-updater`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
 
@@ -1461,6 +1450,7 @@ lazy val `runtime-instrument-common` =
 lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
     .settings(
+      frgaalJavaCompilerSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings
     )
@@ -1642,8 +1632,8 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % Provided,
       "commons-cli"         % "commons-cli"  % commonsCliVersion,
       "com.monovore"       %% "decline"      % declineVersion,
       "org.jline"           % "jline"        % jlineVersion,
@@ -1664,21 +1654,33 @@ lazy val `engine-runner` = project
           "-H:IncludeResources=.*Main.enso$",
           "--macro:truffle",
           "--language:js",
-          //          "-g",
+          // "-g",
           //          "-H:+DashboardAll",
           //          "-H:DashboardDump=runner.bgv"
           "-Dnic=nic"
-        ),
+        ) ++ (if (
+                org.graalvm.polyglot.Engine
+                  .create()
+                  .getLanguages()
+                  .containsKey("java")
+              ) {
+                Seq(
+                  "-Dorg.graalvm.launcher.home=" + System.getProperty(
+                    "java.home"
+                  ),
+                  "--language:java"
+                )
+              } else {
+                Seq()
+              }),
         mainClass = Option("org.enso.runner.Main"),
         cp        = Option("runtime.jar"),
         initializeAtRuntime = Seq(
-          // Note [WSLoggerManager Shutdown Hook]
-          "org.enso.loggingservice.WSLoggerManager$",
           "org.jline.nativ.JLineLibrary",
           "io.methvin.watchservice.jna.CarbonAPI",
           "org.enso.syntax2.Parser",
-          "org.enso.loggingservice",
           "zio.internal.ZScheduler$$anon$4",
+          "org.enso.runner.Main$",
           "sun.awt",
           "sun.java2d",
           "sun.font",
@@ -1687,7 +1689,6 @@ lazy val `engine-runner` = project
           "akka.http"
         )
       )
-      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -1702,8 +1703,10 @@ lazy val `engine-runner` = project
   .dependsOn(cli)
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
-  .dependsOn(`polyglot-api`)
+  .dependsOn(`edition-updater`)
   .dependsOn(`logging-service`)
+  .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`polyglot-api`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -1727,13 +1730,8 @@ lazy val launcher = project
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$"
-        ),
-        initializeAtRuntime = Seq(
-          // Note [WSLoggerManager Shutdown Hook]
-          "org.enso.loggingservice.WSLoggerManager$"
         )
       )
-      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
       .value,
@@ -1763,13 +1761,21 @@ lazy val launcher = project
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
       .value,
-    Test / parallelExecution := false
+    (Test / testOnly) := (Test / testOnly)
+      .dependsOn(buildNativeImage)
+      .dependsOn(LauncherShimsForTest.prepare())
+      .evaluated,
+    Test / fork := true,
+    Test / javaOptions += s"-Dconfig.file=${sourceDirectory.value}/test/resources/application.conf"
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`logging-utils` % "test->test")
   .dependsOn(`logging-service`)
+  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
@@ -1998,7 +2004,6 @@ lazy val `library-manager` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
   .dependsOn(testkit % Test)
-  .dependsOn(`logging-service` % Test)
 
 lazy val `library-manager-test` = project
   .in(file("lib/scala/library-manager-test"))
@@ -2012,8 +2017,8 @@ lazy val `library-manager-test` = project
     )
   )
   .dependsOn(`library-manager`)
+  .dependsOn(`logging-utils` % "test->test")
   .dependsOn(testkit)
-  .dependsOn(`logging-service`)
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
@@ -2048,7 +2053,6 @@ lazy val `runtime-version-manager` = project
   )
   .dependsOn(pkg)
   .dependsOn(downloader)
-  .dependsOn(`logging-service`)
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(`edition-updater`)
@@ -2072,7 +2076,6 @@ lazy val `runtime-version-manager-test` = project
       .value
   )
   .dependsOn(`runtime-version-manager`)
-  .dependsOn(`logging-service`)
   .dependsOn(testkit)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)
@@ -2199,12 +2202,13 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "graal-sdk"               % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "com.univocity"       % "univocity-parsers"       % univocityParsersVersion,
-      "org.apache.poi"      % "poi-ooxml"               % poiOoxmlVersion,
-      "org.apache.xmlbeans" % "xmlbeans"                % xmlbeansVersion,
-      "org.antlr"           % "antlr4-runtime"          % antlrVersion
+      "org.graalvm.sdk"          % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
+      "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
+      "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
+      "org.antlr"                % "antlr4-runtime"          % antlrVersion,
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.18.0" // org.apache.poi uses log4j
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

@@ -16,6 +16,7 @@ import org.enso.interpreter.instrument.execution.{
 import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
+import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
@@ -34,7 +35,9 @@ import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters._
+import scala.util.Try
 
 /** Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
@@ -483,8 +486,14 @@ object ProgramExecutionSupport {
       Either
         .catchNonFatal {
           ctx.executionService.getLogger.log(
-            Level.FINE,
-            s"Executing visualization ${visualization.expressionId}"
+            Level.FINEST,
+            "Executing visualization [{0}] on expression [{1}] of [{2}]...",
+            Array[Object](
+              visualization.config,
+              expressionId,
+              Try(TypeOfNode.getUncached.execute(expressionValue))
+                .getOrElse(expressionValue.getClass)
+            )
           )
           ctx.executionService.callFunctionWithInstrument(
             visualization.cache,
@@ -496,10 +505,6 @@ object ProgramExecutionSupport {
         .flatMap(visualizationResultToBytes)
     val result = errorOrVisualizationData match {
       case Left(_: ThreadInterruptedException) =>
-        ctx.executionService.getLogger.log(
-          Level.FINE,
-          s"Visualization thread interrupted ${visualization.expressionId}."
-        )
         Completion.Interrupted
 
       case Left(error) =>
@@ -507,7 +512,14 @@ object ProgramExecutionSupport {
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         ctx.executionService.getLogger.log(
           Level.WARNING,
-          s"Visualization evaluation failed: $message."
+          "Execution of visualization [{0}] on value [{1}] of [{2}] failed.",
+          Array[Object](
+            visualization.config,
+            expressionId,
+            Try(TypeOfNode.getUncached.execute(expressionValue))
+              .getOrElse(expressionValue.getClass),
+            error
+          )
         )
         ctx.endpoint.sendToClient(
           Api.Response(
@@ -525,7 +537,8 @@ object ProgramExecutionSupport {
       case Right(data) =>
         ctx.executionService.getLogger.log(
           Level.FINEST,
-          s"Visualization computed ${visualization.expressionId}."
+          s"Visualization executed [{0}].",
+          expressionId
         )
         ctx.endpoint.sendToClient(
           Api.Response(

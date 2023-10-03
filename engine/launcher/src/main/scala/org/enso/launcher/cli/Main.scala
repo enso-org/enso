@@ -8,11 +8,6 @@ import org.enso.launcher.upgrade.LauncherUpgrader
 /** Defines the entry point for the launcher.
   */
 object Main {
-  private def setup(): Unit =
-    System.setProperty(
-      "org.apache.commons.logging.Log",
-      "org.apache.commons.logging.impl.NoOpLog"
-    )
 
   private def runAppHandlingParseErrors(args: Array[String]): Int =
     LauncherApplication.application.run(args) match {
@@ -29,7 +24,8 @@ object Main {
   /** Entry point of the application.
     */
   def main(args: Array[String]): Unit = {
-    setup()
+    // Disable logging prior to parsing arguments (may generate additional and unnecessary logs)
+    LauncherLogging.initLogger()
     val exitCode =
       try {
         LauncherUpgrader.recoverUpgradeRequiredErrors(args) {
@@ -37,7 +33,8 @@ object Main {
         }
       } catch {
         case e: Exception =>
-          logger.error(s"A fatal error has occurred: $e", e)
+          LauncherLogging.setupFallback()
+          logger.error("A fatal error has occurred: {}", e.getMessage, e)
           1
       }
 
@@ -46,7 +43,7 @@ object Main {
 
   /** Exits the program in a safe way.
     *
-    * This should be used ofer `sys.exit` to ensure that all services are
+    * This should be used after `sys.exit` to ensure that all services are
     * terminated gracefully and locks are released quickly (as the OS cleanup
     * may take a longer while). The only exception is for functions in the
     * [[InternalOpts]], because they may need to terminate the program as

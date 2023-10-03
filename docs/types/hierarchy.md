@@ -194,10 +194,8 @@ They are as follows:
   product types.
 - **Union - `|`:** This operator creates a typeset that contains the members in
   the union of its operands.
-- **Intersection - `|`:** This operator creates a typeset that contains the
+- **Intersection - `&`:** This operator creates a typeset that contains the
   members in the intersection of its operands.
-- **Subtraction - `\`:** This operator creates a typeset that contains all of
-  the members in the left operand that do not occur in the right operand.
 
 For information on the syntactic usage of these operators, please see the
 section on [type operators](#../syntax/types.md#type-operators) in the syntax

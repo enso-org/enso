@@ -4,6 +4,7 @@ import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Bits
 import project.Data.Type.Value_Type.Value_Type
 
+polyglot java import org.enso.base.polyglot.NumericConverter
 polyglot java import org.enso.table.data.column.storage.type.IntegerType
 
 ## PRIVATE
@@ -17,21 +18,27 @@ polyglot java import org.enso.table.data.column.storage.type.IntegerType
 most_specific_value_type : Any -> Boolean -> Value_Type
 most_specific_value_type value use_smallest=False =
     case value of
-        _ : Decimal     -> Value_Type.Float Bits.Bits_64
+        _ : Float       -> Value_Type.Float Bits.Bits_64
         _ : Boolean     -> Value_Type.Boolean
         _ : Date        -> Value_Type.Date
         _ : Time_Of_Day -> Value_Type.Time
         _ : Date_Time   -> Value_Type.Date_Time
-        i : Integer     -> case use_smallest of
-            False -> Value_Type.Integer Bits.Bits_64
-            True ->
-                storage_type = IntegerType.smallestFitting i
-                value_type = Storage.to_value_type storage_type
-                # We do a small rewrite here - for integers we always return the Integer type, even if the value is small enough to fit in a Byte.
-                if value_type == Value_Type.Byte then Value_Type.Integer Bits.Bits_16 else value_type
-        text : Text     -> case use_smallest of
-            False -> Value_Type.Char size=Nothing variable_length=True
-            True  -> Value_Type.Char size=text.length variable_length=False
+        i : Integer     ->
+            case NumericConverter.isBigInteger i of
+                False -> case use_smallest of
+                    False -> Value_Type.Integer Bits.Bits_64
+                    True ->
+                        storage_type = IntegerType.smallestFitting i
+                        value_type = Storage.to_value_type storage_type
+                        # We do a small rewrite here - for integers we always return the Integer type, even if the value is small enough to fit in a Byte.
+                        if value_type == Value_Type.Byte then Value_Type.Integer Bits.Bits_16 else value_type
+                True -> Value_Type.Decimal precision=Nothing scale=0
+        text : Text     ->
+            length = text.length
+            # Not using Char size=0 for empty strings, because that would be an invalid value.
+            case use_smallest && length > 0 of
+                True  -> Value_Type.Char size=text.length variable_length=False
+                False -> Value_Type.Char size=Nothing variable_length=True
         ## TODO [RW] once we add Enso Native Object Type Value Type, we probably
            want to prefer it over Mixed
         _               -> Value_Type.Mixed

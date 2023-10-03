@@ -1,8 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import Table, Column, Data_Formatter, Quote_Style
+from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Value_Type
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -63,18 +64,18 @@ spec =
             exponential_formatter = Data_Formatter.Value allow_exponential_notation=True
             plain_formatter.parse "1E3" . should_equal "1E3"
 
-            r1 = plain_formatter.parse "1E3" Decimal
+            r1 = plain_formatter.parse "1E3" Value_Type.Float
             r1.should_equal Nothing
-            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Decimal ["1E3"])]
+            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Value_Type.Float ["1E3"])]
 
             exponential_formatter.parse "1E3" . should_equal 1000.0
-            exponential_formatter.parse "1E3" Decimal . should_equal 1000.0
-            exponential_formatter.parse "1E3" Integer . should_equal Nothing
+            exponential_formatter.parse "1E3" Value_Type.Float . should_equal 1000.0
+            exponential_formatter.parse "1E3" Value_Type.Integer . should_equal Nothing
 
             plain_formatter.parse "1.2E-3" . should_equal "1.2E-3"
-            plain_formatter.parse "1.2E-3" Decimal . should_equal Nothing
+            plain_formatter.parse "1.2E-3" Value_Type.Float . should_equal Nothing
             exponential_formatter.parse "1.2E-3" . should_equal 0.0012
-            exponential_formatter.parse "1.2E-3" Decimal . should_equal 0.0012
+            exponential_formatter.parse "1.2E-3" Value_Type.Float . should_equal 0.0012
 
         Test.specify "handle leading zeros, only if enabled" <|
             Data_Formatter.Value.parse "0100" . should_equal "0100"
@@ -94,12 +95,12 @@ spec =
             formatter = Data_Formatter.Value true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
             formatter.parse "YES" . should_equal True
             formatter.parse "NO" . should_equal False
-            (Data_Formatter.Value true_values=[] false_values=[]).parse "True" datatype=Boolean . should_equal Nothing
+            (Data_Formatter.Value true_values=[] false_values=[]).parse "True" type=Value_Type.Boolean . should_equal Nothing
 
         Test.specify "should parse dates" <|
             formatter = Data_Formatter.Value
             formatter.parse "2022-01-01" . should_equal (Date.new 2022)
-            formatter.parse "2020-05-07" datatype=Date . should_equal (Date.new 2020 5 7)
+            formatter.parse "2020-05-07" type=Value_Type.Date . should_equal (Date.new 2020 5 7)
             formatter.parse "1999-01-01 00:00:00" . should_equal (Date_Time.new 1999)
             formatter.parse "1999-02-03 04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
             formatter.parse "1999-02-03T04:05:06" . should_equal (Date_Time.new 1999 2 3 4 5 6)
@@ -107,7 +108,7 @@ spec =
             formatter.parse "1999-02-03 04:05:06.000456" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 456)
             formatter.parse "1999-02-03 04:05:06.000000789" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 0 789)
             formatter.parse "1999-02-03 04:05:06.000000789[Europe/Madrid]" . should_equal (Date_Time.new 1999 2 3 4 5 6 0 0 789 zone=(Time_Zone.parse "Europe/Madrid"))
-            formatter.parse "1999-01-01 00:00" datatype=Date_Time . should_equal (Date_Time.new 1999)
+            formatter.parse "1999-01-01 00:00" type=Value_Type.Date_Time . should_equal (Date_Time.new 1999)
             formatter.parse "1999-02-03 04:05" . should_equal (Date_Time.new 1999 2 3 4 5 0)
             formatter.parse "00:00:00" . should_equal (Time_Of_Day.new)
             formatter.parse "17:34:59" . should_equal (Time_Of_Day.new 17 34 59)
@@ -115,12 +116,12 @@ spec =
             formatter.parse "17:34:59.000456" . should_equal (Time_Of_Day.new 17 34 59 0 456)
             formatter.parse "17:34:59.000000789" . should_equal (Time_Of_Day.new 17 34 59 0 0 789)
             formatter.parse "00:00" . should_equal (Time_Of_Day.new)
-            formatter.parse "17:34" datatype=Time_Of_Day . should_equal (Time_Of_Day.new 17 34)
+            formatter.parse "17:34" type=Value_Type.Time . should_equal (Time_Of_Day.new 17 34)
 
-            formatter.parse "00:00:65" datatype=Time_Of_Day . should_equal Nothing
-            formatter.parse "30:00:65" datatype=Time_Of_Day . should_equal Nothing
-            formatter.parse "1999-01-01 00:00" datatype=Time_Of_Day . should_equal Nothing
-            formatter.parse "1999-01-01 00:00" datatype=Date . should_equal Nothing
+            formatter.parse "00:00:65" type=Value_Type.Time . should_equal Nothing
+            formatter.parse "30:00:65" type=Value_Type.Time . should_equal Nothing
+            formatter.parse "1999-01-01 00:00" type=Value_Type.Time . should_equal Nothing
+            formatter.parse "1999-01-01 00:00" type=Value_Type.Date . should_equal Nothing
             formatter.parse "30:00:65" . should_equal "30:00:65"
 
         Test.specify "should fallback to Text" <|
@@ -137,20 +138,20 @@ spec =
                 r.should_equal Nothing
                 Problems.expect_only_warning Invalid_Format r
 
-            r1 = formatter.parse "Text" datatype=Decimal
+            r1 = formatter.parse "Text" type=Value_Type.Float
             w1 = expect_warning r1
-            w1.value_type . should_equal Decimal
+            w1.value_type . should_equal Value_Type.Float
             w1.column . should_equal Nothing
 
-            expect_warning <| formatter.parse "Text" datatype=Integer
-            expect_warning <| formatter.parse "Text" datatype=Boolean
-            expect_warning <| formatter.parse "Text" datatype=Date
-            expect_warning <| formatter.parse "Text" datatype=Date_Time
-            expect_warning <| formatter.parse "Text" datatype=Time_Of_Day
+            expect_warning <| formatter.parse "Text" type=Value_Type.Integer
+            expect_warning <| formatter.parse "Text" type=Value_Type.Boolean
+            expect_warning <| formatter.parse "Text" type=Value_Type.Date
+            expect_warning <| formatter.parse "Text" type=Value_Type.Date_Time
+            expect_warning <| formatter.parse "Text" type=Value_Type.Time
 
         Test.specify "should not allow unexpected types" <|
             formatter = Data_Formatter.Value
-            formatter.parse "Text" datatype=List . should_fail_with Illegal_Argument
+            formatter.parse "Text" type=List . should_fail_with Illegal_Argument
 
     Test.group "DataFormatter.format" <|
         Test.specify "should handle Nothing" <|
@@ -195,17 +196,17 @@ spec =
         Test.specify "should format dates" <|
             formatter = Data_Formatter.Value
             formatter.format (Date.new 2022) . should_equal "2022-01-01"
-            formatter.format (Date_Time.new 1999) . should_equal "1999-01-01 00:00:00"
-            formatter.format (Date_Time.new 1999 zone=Time_Zone.utc) . should_equal "1999-01-01 00:00:00"
-            formatter.format (Date_Time.new 1999 zone=(Time_Zone.parse "America/Los_Angeles")) . should_equal "1999-01-01 00:00:00"
+            formatter.format (Date_Time.new 1999) . should_contain "1999-01-01 00:00:00"
+            formatter.format (Date_Time.new 1999 zone=Time_Zone.utc) . should_equal '1999-01-01 00:00:00Z[UTC]'
+            formatter.format (Date_Time.new 1999 zone=(Time_Zone.parse "America/Los_Angeles")) . should_equal "1999-01-01 00:00:00-08:00[America/Los_Angeles]"
             formatter.format (Time_Of_Day.new) . should_equal "00:00:00"
 
         Test.specify "should allow custom date formats" <|
-            formatter = Data_Formatter.Value date_formats=["E, d MMM y", "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm [z]"] time_formats=["h:mma"] datetime_locale=Locale.uk
+            formatter = Data_Formatter.Value.with_datetime_formats date_formats=["ddd, d MMM y", Date_Time_Formatter.from_java "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm [ZZZZ]"] time_formats=["h:mma"]
             formatter.format (Date.new 2022 06 21) . should_equal "Tue, 21 Jun 2022"
-            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=Time_Zone.utc) . should_equal "03/02/1999 04:56 UTC"
+            formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=Time_Zone.utc) . should_equal "03/02/1999 04:56 GMT"
             formatter.format (Date_Time.new 1999 02 03 04 56 11 zone=(Time_Zone.parse "America/Los_Angeles")) . should_equal "03/02/1999 04:56 GMT-08:00"
-            formatter.format (Time_Of_Day.new 13 55) . should_equal "1:55pm"
+            formatter.format (Time_Of_Day.new 13 55) . should_equal "1:55PM"
 
         Test.specify "should act as identity on Text" <|
             formatter = Data_Formatter.Value
@@ -237,7 +238,7 @@ spec =
 
     Test.group "DataFormatter builders" <|
         # We create a formatter with all non-default values to ensure that the builders keep the existing values of other properties instead of switching to the constructor's defaults.
-        formatter_1 = Data_Formatter.Value trim_values=False allow_leading_zeros=True decimal_point=',' thousand_separator='_' allow_exponential_notation=True datetime_formats=["yyyy/MM/dd HH:mm:ss"] date_formats=["dd/MM/yyyy"] time_formats=["HH/mm/ss"] datetime_locale=Locale.uk true_values=["YES"] false_values=["NO"]
+        formatter_1 = Data_Formatter.Value trim_values=False allow_leading_zeros=True decimal_point=',' thousand_separator='_' allow_exponential_notation=True datetime_formats=[Date_Time_Formatter.from "yyyy/MM/dd HH:mm:ss"] date_formats=[Date_Time_Formatter.from "dd/MM/yyyy"] time_formats=[Date_Time_Formatter.from "HH/mm/ss"] true_values=["YES"] false_values=["NO"]
         Test.specify "should allow changing number formatting settings" <|
             formatter_2 = formatter_1.with_number_formatting decimal_point="*"
             formatter_2.decimal_point . should_equal "*"
@@ -249,7 +250,6 @@ spec =
             formatter_2.date_formats . should_equal formatter_1.date_formats
             formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
             formatter_2.time_formats . should_equal formatter_1.time_formats
-            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
             formatter_2.trim_values . should_equal formatter_1.trim_values
 
             formatter_3 = formatter_1.with_number_formatting thousand_separator="" allow_exponential_notation=False allow_leading_zeros=False
@@ -262,7 +262,7 @@ spec =
             formatter_1.with_datetime_formats . should_equal formatter_1
 
             formatter_2 = formatter_1.with_datetime_formats date_formats="dd.MM.yyyy"
-            formatter_2.date_formats . should_equal ["dd.MM.yyyy"]
+            formatter_2.date_formats.to_text . should_equal [Date_Time_Formatter.from "dd.MM.yyyy"].to_text
             formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
             formatter_2.time_formats . should_equal formatter_1.time_formats
             formatter_2.decimal_point . should_equal formatter_1.decimal_point
@@ -271,35 +271,10 @@ spec =
             formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
             formatter_2.true_values . should_equal formatter_1.true_values
             formatter_2.false_values . should_equal formatter_1.false_values
-            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
             formatter_2.trim_values . should_equal formatter_1.trim_values
 
             formatter_3 = formatter_1.with_datetime_formats date_formats=[] datetime_formats=["foobar"] time_formats="baz"
-            formatter_3.date_formats . should_equal []
-            formatter_3.datetime_formats . should_equal ["foobar"]
-            formatter_3.time_formats . should_equal ["baz"]
-            formatter_3.decimal_point . should_equal formatter_1.decimal_point
-            formatter_3.thousand_separator . should_equal formatter_1.thousand_separator
-            formatter_3.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
-            formatter_3.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
-            formatter_3.true_values . should_equal formatter_1.true_values
-            formatter_3.false_values . should_equal formatter_1.false_values
-            formatter_3.datetime_locale . should_equal formatter_1.datetime_locale
-            formatter_3.trim_values . should_equal formatter_1.trim_values
-
-        Test.specify "should allow changing the datetime locale" <|
-            formatter_2 = formatter_1.with_locale Locale.france
-            formatter_2.datetime_locale . should_equal Locale.france
-            formatter_2.date_formats . should_equal formatter_1.date_formats
-            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
-            formatter_2.time_formats . should_equal formatter_1.time_formats
-            formatter_2.decimal_point . should_equal formatter_1.decimal_point
-            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
-            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
-            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
-            formatter_2.true_values . should_equal formatter_1.true_values
-            formatter_2.false_values . should_equal formatter_1.false_values
-            formatter_2.trim_values . should_equal formatter_1.trim_values
+            formatter_3.should_fail_with Date_Time_Format_Parse_Error
 
         Test.specify "should allow changing booleans' representations" <|
             formatter_2 = formatter_1.with_boolean_values "1" "0"
@@ -312,7 +287,6 @@ spec =
             formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
             formatter_2.true_values . should_equal ["1"]
             formatter_2.false_values . should_equal ["0"]
-            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
             formatter_2.trim_values . should_equal formatter_1.trim_values
 
             formatter_3 = formatter_1.with_boolean_values false_values=[] true_values=[]

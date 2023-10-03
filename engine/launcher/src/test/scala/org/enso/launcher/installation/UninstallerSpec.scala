@@ -11,6 +11,8 @@ import org.enso.testkit.WithTemporaryDirectory
 class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
   def installedRoot: Path = getTestDirectory / "installed"
 
+  private val extraJVMProps = Map("ENSO_LOG_TO_FILE" -> "false")
+
   /** Prepares an installed distribution for the purposes of testing
     * uninstallation.
     *
@@ -59,7 +61,8 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
       runLauncherAt(
         launcher,
         Seq("--auto-confirm", "uninstall", "distribution"),
-        env
+        env,
+        extraJVMProps
       ) should returnSuccess
 
       assert(Files.notExists(installedRoot), "Should remove the data root.")
@@ -77,7 +80,8 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
       runLauncherAt(
         launcher,
         Seq("--auto-confirm", "uninstall", "distribution"),
-        env
+        env,
+        extraJVMProps
       ) should returnSuccess
 
       assert(Files.notExists(installedRoot), "Should remove the data root.")
@@ -93,7 +97,8 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
       runLauncherAt(
         launcher,
         Seq("--auto-confirm", "uninstall", "distribution"),
-        env
+        env,
+        extraJVMProps
       ) should returnSuccess
 
       assert(

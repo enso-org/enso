@@ -1,13 +1,14 @@
 package org.enso.runtimeversionmanager.runner
 
-import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
 import org.enso.logger.masking.MaskedString
-import org.enso.loggingservice.LogLevel
+import org.slf4j.event.Level
+
+import java.net.URI
 import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
   Engine,
@@ -31,7 +32,7 @@ class Runner(
   globalConfigurationManager: GlobalRunnerConfigurationManager,
   editionManager: EditionManager,
   environment: Environment,
-  loggerConnection: Future[Option[Uri]]
+  loggerConnection: Future[Option[URI]]
 ) {
 
   /** The current working directory that is a starting point when checking if
@@ -86,7 +87,7 @@ class Runner(
     options: LanguageServerOptions,
     project: Project,
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] = {
@@ -107,7 +108,7 @@ class Runner(
     options: LanguageServerOptions,
     projectPath: String,
     version: SemVer,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =

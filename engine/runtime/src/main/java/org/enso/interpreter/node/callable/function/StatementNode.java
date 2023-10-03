@@ -3,7 +3,6 @@ package org.enso.interpreter.node.callable.function;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
-import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
@@ -28,13 +27,13 @@ final class StatementNode extends ExpressionNode {
   }
 
   @Override
-  public SourceSection getSourceSection() {
-    return node.getSourceSection();
+  public int[] getSourceSectionBounds() {
+    return node.getSourceSectionBounds();
   }
 
   @Override
   public boolean isInstrumentable() {
-    return getSourceSection() != null && node.isInstrumentable();
+    return getSourceSectionBounds() != null && node.isInstrumentable();
   }
 
   @Override

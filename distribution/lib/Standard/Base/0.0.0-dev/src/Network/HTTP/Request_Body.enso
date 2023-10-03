@@ -1,35 +1,63 @@
-## The HTTP request body.
-type Request_Body
+import project.Any.Any
+import project.Data.Map.Map
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
+import project.Network.HTTP.Header.Header
+import project.Nothing.Nothing
+import project.System.File.File
+from project.Data.Boolean import Boolean, False, True
 
-    ## Empty request body.
-    Empty
+## The HTTP POST request body.
+type Request_Body
 
     ## Request body with text.
 
        Arguments:
        - text: The plain text in the request body.
-    Text text
+       - encoding: the text encoding to send as a Content-Encoding header
+       - content_type: the content_type to send as a Content-Type header
+    Text (text:Text) (encoding:(Encoding|Nothing)=Nothing) (content_type:(Text|Nothing)=Nothing)
 
-    ## Request body with JSON.
+    ## Request body with an object to be sent as JSON.
 
        Arguments:
-       - json: The JSON in the request body.
-    Json json
+       - x: The object to convert to JSON using `.to_json`.
+    Json (x:Any)
+
+    ## Request body with an object to be sent as a binary file.
+
+       Arguments:
+       - file: The file to send.
+    Binary (file:File)
 
     ## Request body with form data.
 
        Arguments:
-       - form: The form data in the request body.
-    Form form
+       - form_data: the form fields (text or file) to be sent
+       - url_encoded: if true, use a URL-encoded form; otherwise, use a
+         multi-part encoding.
+    Form_Data (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False)
 
-    ## Request body with file data.
+    ## Empty request body; used for GET
+    Empty
 
-       Arguments:
-       - file: The file data in the request body.
-    File file
+    ## PRIVATE
+       For `Request_Body.Form_Data url_encoded=False`, this returns `Nothing`,
+       because the content type must include a content boundary.
+    default_content_type_header : Header | Nothing
+    default_content_type_header self =
+        case self of
+            Request_Body.Text _ _ _ -> Header.content_type "text/plain" encoding=Encoding.utf_8
+            Request_Body.Json _ -> Header.content_type "application/json"
+            Request_Body.Binary _ -> Header.content_type "application/octet-stream"
+            Request_Body.Form_Data _ url_encoded -> if url_encoded then Header.application_x_www_form_urlencoded else Nothing
+            Request_Body.Empty -> Nothing
 
-    ## Request body with binary.
+## PRIVATE
+Request_Body.from (that:Text) = Request_Body.Text that
 
-       Arguments:
-       - bytes: The binary data in the request body.
-    Bytes bytes
+## PRIVATE
+Request_Body.from (that:File) = Request_Body.Binary that
+
+## PRIVATE
+Request_Body.from (that:Any) = Request_Body.Json that

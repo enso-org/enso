@@ -10,7 +10,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -101,9 +100,6 @@ public final class EnsoDate implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
   public Object toDisplayString(boolean allowSideEffects) {
-    return DATE_FORMATTER.format(date);
+    return Core_Date_Utils.defaultLocalDateFormatter.format(date);
   }
-
-  private static final DateTimeFormatter DATE_FORMATTER =
-      Core_Date_Utils.defaultLocalDateFormatter();
 }

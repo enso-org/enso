@@ -185,6 +185,9 @@ function AppRouter(props: AppProps) {
                 : true
             if (shouldHandleEvent && shortcuts.handleKeyboardEvent(event)) {
                 event.preventDefault()
+                // This is required to prevent the event from propagating to the event handler
+                // that focuses the search input.
+                event.stopImmediatePropagation()
             }
         }
         document.body.addEventListener('keydown', onKeyDown)
@@ -200,7 +203,7 @@ function AppRouter(props: AppProps) {
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
     const initialBackend: backend.Backend = isAuthenticationDisabled
-        ? new localBackend.LocalBackend(projectManagerUrl, null)
+        ? new localBackend.LocalBackend(projectManagerUrl)
         : // This is safe, because the backend is always set by the authentication flow.
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           null!

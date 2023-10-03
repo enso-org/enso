@@ -52,13 +52,13 @@ case object DataflowAnalysis extends IRPass {
   override type Metadata = DependencyInfo
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     AliasAnalysis,
     DemandAnalysis,
     TailCall
   )
 
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the dataflow analysis process on an Enso module.
     *
@@ -520,20 +520,6 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(subDep, Set(leftDep, rightDep))
 
         subsumption
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
-          .updateMetadata(this -->> info)
-      case subtraction @ `type`.Set.Subtraction(left, right, _, _, _) =>
-        val subDep   = asStatic(subtraction)
-        val leftDep  = asStatic(left)
-        val rightDep = asStatic(right)
-        info.dependents.updateAt(leftDep, Set(subDep))
-        info.dependents.updateAt(rightDep, Set(subDep))
-        info.dependencies.updateAt(subDep, Set(leftDep, rightDep))
-
-        subtraction
           .copy(
             left  = analyseExpression(left, info),
             right = analyseExpression(right, info)

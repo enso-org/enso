@@ -1,0 +1,59 @@
+/*
+ Generic description at the top of the site.
+*/
+#description {
+  margin: 40px 10%;
+  font-family: serif;
+  font-size: 1.2em;
+}
+
+/* Top panel with filters */
+#top-panel {
+  display: flex;
+  flex-flow: column;
+  padding-left: 15%;
+  padding-right: 15%;
+  padding-bottom: 50px;
+}
+
+#top-panel-filters {
+  margin-bottom: 20px;
+  display: flex;
+  flex-flow: column;
+  background-color: #f5f5f5;
+  box-shadow: 0 1px 0 #fff;
+}
+
+#top-panel-applied-filters {
+  margin-top: 30px;
+  display: flex;
+  flex-flow: column;
+  background-color: #f5f5f5;
+  box-shadow: 0 1px 0 #fff;
+}
+
+/* Container for all the benchmarks */
+#benchmarks-container {
+  display: flex;
+  flex-direction: column;
+  margin-left: 5%;
+  margin-right: 5%;
+}
+
+/*
+ Container for a single benchmark
+*/
+.bench-container {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  max-width: 95%;
+}
+
+.bench-chart {
+  max-width: 95%;
+}
+
+/* Selection info for a singel benchmark */
+.selection-info {
+  margin-top: 10px;
+}

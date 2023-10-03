@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.base.Text_Utils;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -30,8 +29,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
   public Storage<String> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
     if (storage instanceof StringStorage stringStorage) {
-      if (stringStorage.getType().equals(targetType)) {
-        return stringStorage;
+      if (canAvoidCopying(stringStorage)) {
+        return retypeStringStorage(stringStorage);
       } else {
         return adaptStringStorage(stringStorage, problemBuilder);
       }
@@ -76,9 +75,9 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return builder.seal();
   }
 
-  private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter();
-  private final DateTimeFormatter timeFormatter = Core_Date_Utils.defaultLocalTimeFormatter();
-  private final DateTimeFormatter dateTimeFormatter = Core_Date_Utils.defaultZonedDateTimeFormatter();
+  private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter;
+  private final DateTimeFormatter timeFormatter = Core_Date_Utils.defaultLocalTimeFormatter;
+  private final DateTimeFormatter dateTimeFormatter = Core_Date_Utils.defaultZonedDateTimeFormatter;
 
 
   private String convertDate(LocalDate date) {
@@ -140,7 +139,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = doubleStorage.getItem(i);
+        double value = doubleStorage.getItemAsDouble(i);
         builder.append(adapt(Double.toString(value), problemBuilder));
       }
 
@@ -151,7 +150,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return builder.seal();
   }
 
-  private <T> Storage<String> castDateTimeStorage(Storage<T> storage, Function<T, String> converter, CastProblemBuilder problemBuilder) {
+  private <T> Storage<String> castDateTimeStorage(Storage<T> storage, Function<T, String> converter,
+                                                  CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(storage.size(), targetType);
     for (int i = 0; i < storage.size(); i++) {
@@ -204,5 +204,44 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
     problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
+  }
+
+  private boolean canAvoidCopying(StringStorage stringStorage) {
+    if (targetType.fitsExactly(stringStorage.getType())) {
+      return true;
+    }
+
+    long maxLength = Long.MIN_VALUE;
+    long minLength = Long.MAX_VALUE;
+    for (int i = 0; i < stringStorage.size(); i++) {
+      String value = stringStorage.getItem(i);
+      if (value == null) {
+        continue;
+      }
+
+      long length = value.length();
+      if (length > maxLength) {
+        maxLength = length;
+      }
+      if (length < minLength) {
+        minLength = length;
+      }
+    }
+
+    if (targetType.fixedLength()) {
+      boolean effectivelyFixedLength = minLength == maxLength;
+      return effectivelyFixedLength && targetType.maxLength() == maxLength;
+    } else {
+      return targetType.maxLength() == -1 || maxLength <= targetType.maxLength();
+    }
+  }
+
+  /**
+   * Creates a new storage re-using the existing array.
+   * <p>
+   * This can only be done if the values do not need any adaptations, checked by {@code canAvoidCopying}.
+   */
+  private Storage<String> retypeStringStorage(StringStorage stringStorage) {
+    return new StringStorage(stringStorage.getData(), stringStorage.size(), targetType);
   }
 }
