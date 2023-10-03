@@ -2408,3 +2408,8 @@ default_join_condition : Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
 default_join_condition table join_kind = case join_kind of
     Join_Kind_Cross.Cross -> []
     _ -> [Join_Condition.Equals table.column_names.first]
+
+## PRIVATE
+Materialized_Table.from (that:Table) =
+    _ = [that]
+    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")

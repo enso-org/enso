@@ -58,6 +58,15 @@ spec setup =
             t4.row_count . should_equal 0
             t4.at "X" . to_vector . should_equal []
 
+        Test.specify "filter_blank_rows should work with a table with many columns" <|
+            cols = Vector.new 60 i->
+                ["col_"+i.to_text, [i, Nothing]]
+            t1 = table_builder cols
+            t2 = t1.filter_blank_rows
+            t2.columns.length . should_equal 60
+            t2.row_count . should_equal 1
+            t2.at 42 . to_vector . should_equal [42]
+
         Test.specify "should allow to select blank columns" <|
             r1 = t1.select_blank_columns
             r1.columns.map .name . should_equal ["f"]

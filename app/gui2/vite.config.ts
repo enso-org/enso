@@ -28,6 +28,9 @@ export default defineConfig({
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
     IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV !== 'production'),
     HISTOIRE: 'false',
+    CLOUD_ENV:
+      process.env.ENSO_CLOUD_ENV != null ? JSON.stringify(process.env.ENSO_CLOUD_ENV) : 'undefined',
+    RUNNING_VTEST: false,
   },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {

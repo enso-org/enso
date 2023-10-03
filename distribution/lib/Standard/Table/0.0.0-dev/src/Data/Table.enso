@@ -33,6 +33,8 @@ import project.Delimited.Delimited_Format.Delimited_Format
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Delimited_Reader
+import project.Internal.Delimited_Writer
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Parse_Values_Helper
@@ -40,7 +42,6 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
-import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Internal.Widget_Helpers
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
@@ -1407,15 +1408,11 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @new_name Widget_Helpers.make_column_name_selector
-    set : Column | Text | Array | Vector | Range | Date_Range -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    set : Text | Column -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column:(Text | Column) new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column -> column
-            _ : Vector -> Column.from_vector (new_name.if_nothing "Vector") column
-            _ : Array -> Column.from_vector (new_name.if_nothing "Vector") column.to_vector
-            _ : Range -> Column.from_vector (new_name.if_nothing "Range") column.to_vector
-            _ : Date_Range -> Column.from_vector (new_name.if_nothing "Date Range") column.to_vector
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
         renamed = case new_name of
@@ -1603,7 +1600,7 @@ type Table
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
-    join self right (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
+    join self right:Table (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
         if check_table "right" right then
             # [left_unmatched, matched, right_unmatched]
             rows_to_keep = case join_kind of
@@ -1665,7 +1662,7 @@ type Table
          example, by sorting the table; in-memory tables will keep the memory
          layout order while for database tables the order may be unspecified).
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
-    cross_join self right right_row_limit=100 right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
+    cross_join self right:Table right_row_limit=100 right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
         if check_table "right" right then
             limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
                 True ->
@@ -1727,7 +1724,7 @@ type Table
          The ordering of rows in the resulting table is not specified.
     @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
-    zip self right keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
+    zip self right:Table keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
         if check_table "right" right then
             keep_unmatched_bool = case keep_unmatched of
                 Report_Unmatched -> True
@@ -1837,6 +1834,7 @@ type Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
             v : Vector -> [self] + v
+            single_column : Column -> [self, single_column.to_table]
             single_table -> [self, single_table]
         all_tables.all (check_table "tables") . if_not_error <|
             problem_builder = Problem_Builder.new
@@ -2393,3 +2391,36 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
                 storage = parent_table.at i . java_column . getStorage
                 storage_builder.appendBulkStorage storage
     Column.from_storage column_set.name storage_builder.seal
+
+## PRIVATE
+   Conversion method to a Table from a Column.
+Table.from (that:Column) = that.to_table
+
+## Converts a Text value into a Table.
+
+   The format of the text is determined by the `format` argument.
+
+   Arguments:
+   - that: The text to convert.
+   - format: The format of the text.
+   - on_problems: What to do if there are problems reading the text.
+Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
+    case format of
+        _ : Delimited_Format -> Delimited_Reader.read_text that format on_problems
+        _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
+
+## Converts a Table into a Text value.
+
+   The format of the text is determined by the `format` argument.
+
+   Arguments:
+   - that: The table to convert.
+   - format: The format of the text.
+Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
+    case format of
+        _ : Delimited_Format -> Delimited_Writer.write_text that format
+        _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+
+## PRIVATE
+   Conversion method to a Table from a Vector.
+Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields

@@ -1,11 +1,9 @@
 // Fixes and extensions for dependencies' type definitions.
 
-import type * as d3Types from 'd3'
-
 declare module 'd3' {
-  function select<GElement extends d3Types.BaseType, OldDatum>(
+  function select<GElement extends import('d3').BaseType, OldDatum>(
     node: GElement | null | undefined,
-  ): d3Types.Selection<GElement, OldDatum, null, undefined>
+  ): import('d3').Selection<GElement, OldDatum, null, undefined>
 
   // These type parameters are defined on the original interface.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -106,10 +106,14 @@ export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string
   const connection = new YjsConnection(ws, wsDoc)
 
   const doClose = () => connection.close()
-  lsSession.on('error', doClose)
-  connection.on('close', () => {
+  lsSession.once('error', doClose)
+  connection.once('close', async () => {
     lsSession.off('error', doClose)
-    lsSession.release()
+    try {
+      await lsSession.release()
+    } catch (err) {
+      console.error('Session release failed.\n', err)
+    }
   })
 }
 
