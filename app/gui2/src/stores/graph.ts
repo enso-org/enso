@@ -14,7 +14,7 @@ import {
   type IdMap,
   type NodeMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
 
 export const useGraphStore = defineStore('graph', () => {
@@ -75,8 +75,6 @@ export const useGraphStore = defineStore('graph', () => {
 
   const _parsed = ref([] as Statement[])
   const _parsedEnso = ref<any>()
-
-  watchEffect(() => {})
 
   function updateState(affectedRanges?: ContentRange[]) {
     const module = proj.module

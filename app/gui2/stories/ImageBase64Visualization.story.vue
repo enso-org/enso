@@ -4,7 +4,7 @@
 import { ref } from 'vue'
 
 import ImageBase64Visualization from '@/components/visualizations/ImageBase64Visualization.vue'
-import HstFile from './HstFile.vue'
+import HstFile from './histoire/HstFile.vue'
 
 const data = ref<any>({
   mediaType: 'image/svg+xml',

@@ -81,6 +81,7 @@
     "esbuild": "^0.19.3",
     "eslint": "^8.49.0",
     "eslint-plugin-vue": "^9.16.1",
+    "floating-vue": "^2.0.0-beta.24",
     "histoire": "^0.17.2",
     "jsdom": "^22.1.0",
     "postcss-nesting": "^12.0.1",

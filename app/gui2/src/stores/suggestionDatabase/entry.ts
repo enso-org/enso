@@ -9,6 +9,10 @@ import {
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import type {
+  SuggestionEntryArgument,
+  SuggestionEntryScope,
+} from 'shared/languageServerTypes/suggestions'
 export type { Doc } from '@/util/ffi'
 export type {
   SuggestionEntryArgument,

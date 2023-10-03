@@ -1,5 +1,9 @@
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import {
+  documentationData,
+  type DocumentationData,
+} from '@/stores/suggestionDatabase/documentation'
+import {
   SuggestionKind,
   type Doc,
   type SuggestionEntry,
@@ -19,7 +23,6 @@ import {
 } from '@/util/qualifiedName'
 import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
-import { documentationData, type DocumentationData } from './documentation'
 
 interface UnfinishedEntry {
   kind: SuggestionKind
@@ -36,7 +39,7 @@ interface UnfinishedEntry {
   documentation?: Doc.Section[]
   scope?: SuggestionEntryScope
   iconName?: string
-  groupIndex?: number
+  groupIndex?: number | undefined
 }
 
 function setLsName(

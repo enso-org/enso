@@ -4,7 +4,7 @@ import { useWindowEvent } from '@/util/events'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
-import { ref, watchPostEffect } from 'vue'
+import { ref, watch } from 'vue'
 // y-codemirror.next does not provide type information. See https://github.com/yjs/y-codemirror.next/issues/27
 // @ts-ignore
 import { yCollab } from 'y-codemirror.next'
@@ -32,13 +32,13 @@ useWindowEvent('keydown', (e) => {
 
 const codeMirrorEl = ref(null)
 const editorView = ref<EditorView>()
-watchPostEffect((onCleanup) => {
+watch(codeMirrorEl, (codeMirrorEl, _, onCleanup) => {
   const yText = projectStore.module?.doc.contents
-  if (!yText || !codeMirrorEl.value) return
+  if (!yText || !codeMirrorEl) return
   const undoManager = projectStore.undoManager
   const awareness = projectStore.awareness
   const view = new EditorView({
-    parent: codeMirrorEl.value,
+    parent: codeMirrorEl,
     state: EditorState.create({
       doc: yText.toString(),
       extensions: [basicSetup, yCollab(yText, awareness, { undoManager })],

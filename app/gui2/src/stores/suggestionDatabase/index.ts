@@ -2,11 +2,11 @@ import { reactive, ref, type Ref } from 'vue'
 
 import { defineStore } from 'pinia'
 
+import { useProjectStore } from '@/stores/project'
 import { type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { LanguageServer } from 'shared/languageServer'
-import { useProjectStore } from '../project'
-import { applyUpdates, entryFromLs } from './lsUpdate'
 
 export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
 export const SuggestionDb = Map<SuggestionId, SuggestionEntry>

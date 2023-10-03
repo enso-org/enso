@@ -1,32 +1,12 @@
 <script setup lang="ts">
 /// <reference types="@histoire/plugin-vue/components" />
-import { computed } from 'vue'
+import { onMounted, ref } from 'vue'
 
 import GraphEditor from '@/components/GraphEditor.vue'
+import MockProjectStoreWrapper from './MockProjectStoreWrapper.vue'
+import HstCode from './histoire/HstCode.vue'
 
-import { useProjectStore } from '@/stores/project'
-import { onMounted } from 'vue'
-
-const projectStore = useProjectStore()
-
-const text = computed({
-  get() {
-    // const ret = projectStore.module?.doc.contents.toString() ?? ''
-    // console.log(ret, projectStore.module?.doc.contents)
-    // console.trace()
-    // return ret
-    return ''
-  },
-  set(value) {
-    // if (projectStore.module) {
-    //   projectStore.module.transact(() => {
-    //     const text = projectStore.module?.doc.contents
-    //     text?.delete(0, text.length - 1)
-    //     text?.insert(0, value)
-    //   })
-    // }
-  },
-})
+const text = ref('')
 
 onMounted(() => {
   text.value = `\
@@ -55,10 +35,12 @@ main = collect_benches . run_main`
 </script>
 
 <template>
-  <Story title="Editor" group="graph" responsive-disabled>
-    <GraphEditor />
+  <Story title="Editor" group="graph" responsive-disabled auto-props-disabled>
+    <MockProjectStoreWrapper v-model="text">
+      <GraphEditor />
+    </MockProjectStoreWrapper>
 
-    <template #controls><HstJson v-model="text" title="code" /></template>
+    <template #controls><HstCode v-model="text" title="code" /></template>
   </Story>
 </template>
 
