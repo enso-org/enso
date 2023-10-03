@@ -9,6 +9,7 @@
     "./tailwind.css": "./tailwind.css"
   },
   "scripts": {
+    "compile": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
