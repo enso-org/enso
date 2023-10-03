@@ -1746,7 +1746,7 @@ type Table
            duplicated rows if the database has changed in the meantime.
     lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        columns_settings = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+        columns_settings = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns on_problems
         columns_settings.if_not_error <|
             Error.throw "TODO"
 
