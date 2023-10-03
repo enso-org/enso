@@ -10,37 +10,48 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.netbeans.api.editor.mimelookup.MimeRegistration;
 import org.netbeans.api.lsp.StructureElement;
 import org.netbeans.spi.lsp.StructureProvider;
+import org.openide.filesystems.FileObject;
+import org.openide.util.Lookup;
 import scala.collection.Iterator;
 
 @MimeRegistration(mimeType = "application/x-enso", service = StructureProvider.class)
 public final class EnsoStructure implements StructureProvider {
   @Override
   public List<StructureElement> getStructure(Document dcmnt) {
+    FileObject file = null;
+    if (dcmnt.getProperty(Document.StreamDescriptionProperty) instanceof Lookup.Provider p) {
+      if (p.getLookup().lookup(FileObject.class) instanceof FileObject fo) {
+        file = fo;
+      }
+    }
+    var arr = new ArrayList<StructureElement>();
     try {
       var parser = new EnsoParser();
       var text = dcmnt.getText(0, dcmnt.getLength());
       var moduleIr = parser.compile(text);
-      var arr = new ArrayList<StructureElement>();
       var it = moduleIr.bindings().iterator();
-      collectStructure(arr, moduleIr.bindings().iterator());
+      collectStructure(file, arr, it);
       return arr;
+    } catch (LinkageError err) {
+      err.printStackTrace();
+      throw new IllegalStateException(err);
     } catch (BadLocationException ex) {
       throw new IllegalStateException(ex);
     }
   }
 
-  private static void collectStructure(List<StructureElement> arr, Iterator<? extends IR> it) {
+  private static void collectStructure(FileObject file, List<StructureElement> arr, Iterator<? extends IR> it) {
     while (it.hasNext()) {
       var b = it.next();
-      collectStructureItem(arr, b);
+      collectStructureItem(file, arr, b);
     }
   }
-  private static void collectStructureItem(List<StructureElement> arr, IR ir) {
+  private static void collectStructureItem(FileObject file, List<StructureElement> arr, IR ir) {
     var b = switch (ir) {
       case Definition.SugaredType type -> {
         var bldr = StructureProvider.newBuilder(type.name().name(), StructureElement.Kind.Class);
         var children = new ArrayList<StructureElement>();
-        collectStructure(children, type.body().iterator());
+        collectStructure(file, children, type.body().iterator());
         bldr.children(children);
         yield bldr;
       }
@@ -56,7 +67,10 @@ public final class EnsoStructure implements StructureProvider {
         var loc = ir.location().get().location();
         b.selectionStartOffset(loc.start());
         b.selectionEndOffset(loc.end());
+        b.expandedStartOffset(loc.start());
+        b.expandedEndOffset(loc.end());
       }
+      b.file(file);
       var e = b.build();
       arr.add(e);
     }
