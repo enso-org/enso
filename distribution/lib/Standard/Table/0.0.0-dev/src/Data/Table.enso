@@ -1717,7 +1717,7 @@ type Table
          - If this table or the lookup table is lacking any of the columns
            specified in `key_columns`, a `Missing_Input_Columns` error is raised.
          - If the lookup table contains multiple rows with the same values in
-           the `key_columns`, an `Non_Unique_Primary_Key` error is raised.
+           the `key_columns`, an `Non_Unique_Key` error is raised.
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
@@ -1736,12 +1736,12 @@ type Table
          ! Database Error-check Consistency
 
            Note that in the Database backend, the `Unmatched_Rows_In_Lookup` and
-           `Non_Unique_Primary_Key` are checked immediately when this operation
+           `Non_Unique_Key` are checked immediately when this operation
            is executed, whereas the actual join is performed only when the
            result data is materialized.
            This means that upon materialization there may be unmatched or
            duplicated rows if the database has changed in the meantime.
-    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Primary_Key | Unmatched_Rows_In_Lookup
+    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     lookup_and_replace lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Error.throw "TODO"
 

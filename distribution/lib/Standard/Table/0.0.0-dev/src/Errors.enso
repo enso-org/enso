@@ -740,3 +740,23 @@ type Unmatched_Rows_In_Lookup
     to_display_text : Text
     to_display_text self =
         "The lookup operation failed to match "+self.row_count.to_text+" rows."
+
+type Non_Unique_Key
+    ## PRIVATE
+       Indicates that the columns selected for the primary key do not uniquely
+       identify rows in the table.
+
+       Arguments:
+       - key_column_names: Names of columns comprising the key that is not
+         unique.
+       - clashing_example_key_values: The values of an example key that
+         corresponds to more than one row.
+       - clashing_example_row_count: The number of rows that correspond to the
+         example key.
+    Error (key_column_names : Vector Text) (clashing_example_key_values : Vector Any) (clashing_example_row_count : Integer)
+
+    ## PRIVATE
+       Pretty print the non-unique primary key error.
+    to_display_text : Text
+    to_display_text self =
+        "The key " + self.key_column_names.to_display_text + " is not unique, for example key "+self.clashing_example_key_values.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."

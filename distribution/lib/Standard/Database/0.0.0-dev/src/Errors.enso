@@ -147,25 +147,6 @@ type Table_Already_Exists
     to_display_text : Text
     to_display_text self = "Table " + self.table_name.pretty + " already exists in the database."
 
-type Non_Unique_Primary_Key
-    ## PRIVATE
-       Indicates that the columns selected for the primary key do not uniquely
-       identify rows in the table.
-
-       Arguments:
-       - primary_key: The primary key that is not unique.
-       - clashing_primary_key: The values of an example key that corresponds to
-         more than one row.
-       - clashing_example_row_count: The number of rows that correspond to the
-         example key.
-    Error (primary_key : Vector Text) (clashing_primary_key : Vector Any) (clashing_example_row_count : Integer)
-
-    ## PRIVATE
-       Pretty print the non-unique primary key error.
-    to_display_text : Text
-    to_display_text self =
-        "The primary key " + self.primary_key.to_display_text + " is not unique. The key "+self.clashing_primary_key.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."
-
 type Unmatched_Rows
     ## PRIVATE
        Indicates that the `Update` operation encountered input rows that did not
@@ -212,7 +193,7 @@ type Null_Values_In_Key_Columns
     ## PRIVATE
     to_display_text : Text
     to_display_text self =
-        "The update operation encountered input rows that contained NULL values in key columns (for example, the row " + self.example_row.to_display_text + "). The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
+        "The operation encountered input rows that contained NULL values in key columns (for example, the row " + self.example_row.to_display_text + "). The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
 
 type Unsupported_Database_Encoding
     ## PRIVATE

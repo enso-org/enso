@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import all
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Operation, Null_Values_In_Key_Columns
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -132,7 +132,7 @@ spec setup =
             t2 = my_table.lookup_and_replace lookup key_columns=["X", "Y"]
             t2.column_names . should_equal ["X", "Y", "Z", "W"]
 
-            m2 = t3 |> materialize |> _.order_by "W"
+            m2 = t2 |> materialize |> _.order_by "W"
             m2.at "W" . should_equal [1000, 2000, 3000, 4000]
             m2.at "X" . should_equal [1, 1, 1, 2]
             m2.at "Y" . should_equal ["A", "B", "A", "B"]
@@ -143,11 +143,11 @@ spec setup =
             my_table = table_builder [["X", [4, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
             r2 = my_table.lookup_and_replace lookup key_columns=["X"]
-            r2.should_fail_with Non_Unique_Primary_Key
+            r2.should_fail_with Non_Unique_Key
 
             lookup2 = table_builder [["X", [1, 1]], ["Y", ["A", "A"]], ["Z", [100, 100]]]
             r3 = my_table.lookup_and_replace lookup2 key_columns=["X", "Y"]
-            r3.should_fail_with Non_Unique_Primary_Key
+            r3.should_fail_with Non_Unique_Key
 
         Test.specify "will report Floating_Point_Equality if floating-point columns are used as key" <|
             lookup = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", ["A", "B", "C"]]]
@@ -174,6 +174,7 @@ spec setup =
             r2.catch.to_display_text . should_contain "Char"
             r2.catch.to_display_text . should_contain "when unifying column [X]"
 
+        # TODO maybe it could be permitted in-memory?
         Test.specify "will fail if key columns of either the source table or lookup table contain Nothing" <|
             lookup1 = table_builder [["X", [1, 2, Nothing]], ["Y", ["A", "B", "C"]]]
             my_table1 = table_builder [["X", [2, 3, 2, 3]], ["Z", [10, 20, 30, 40]]]
