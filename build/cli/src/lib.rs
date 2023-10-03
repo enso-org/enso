@@ -119,8 +119,7 @@ impl Deref for Processor {
 impl Processor {
     /// Setup common build environment information based on command line input and local
     /// environment.
-    pub async fn new(cli: &Cli, config: &Config) -> Result<Self> {
-        let build_config = config.clone();
+    pub async fn new(cli: &Cli) -> Result<Self> {
         let absolute_repo_path = cli.repo_path.absolutize()?;
         let octocrab = setup_octocrab().await?;
         let git = git::new(absolute_repo_path.as_ref()).await?;
@@ -135,7 +134,6 @@ impl Processor {
                 octocrab,
                 upload_artifacts: cli.upload_artifacts,
                 repo_root: enso_build::paths::new_repo_root(absolute_repo_path, &triple),
-                build_config,
             },
             triple,
             remote_repo: cli.repo_remote.clone(),
@@ -459,7 +457,6 @@ impl Processor {
     ) -> BoxFuture<'static, Result<enso_build::engine::RunContext>> {
         let paths = enso_build::paths::Paths::new_triple(&self.repo_root, self.triple.clone());
         let config = config.into();
-        let build_config = self.build_config.clone();
         let octocrab = self.octocrab.clone();
         async move {
             let paths = paths?;
@@ -468,7 +465,6 @@ impl Processor {
                 upload_artifacts: true,
                 octocrab,
                 cache: Cache::new_default().await?,
-                build_config,
             };
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
@@ -797,8 +793,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
         remove_if_exists(cli.repo_path.join("ci-build"))?;
     }
 
-    let ctx: Processor =
-        Processor::new(&cli, &config).instrument(info_span!("Building context.")).await?;
+    let ctx: Processor = Processor::new(&cli).instrument(info_span!("Building context.")).await?;
     match cli.target {
         Target::Wasm(wasm) => ctx.handle_wasm(wasm).await?,
         Target::Gui(gui) => ctx.handle_gui(gui).await?,

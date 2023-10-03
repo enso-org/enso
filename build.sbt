@@ -20,7 +20,6 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion = "2.13.11"
-// GraalVM versions should be synchronized with the build-config.yaml
 val graalVersion = "17.0.7"
 // Version used for the Graal/Truffle related Maven packages
 val graalMavenPackagesVersion = "23.0.0"

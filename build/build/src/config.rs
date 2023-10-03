@@ -17,13 +17,6 @@ pub fn load() -> Result<Config> {
     raw.try_into()
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct GraalVmVersion {
-    pub java_version:           String,
-    pub maven_packages_version: String,
-}
-
 #[derive(Clone, Debug, Display, PartialEq, Eq, Hash, Serialize, Deserialize, strum::EnumString)]
 pub enum RecognizedProgram {
     #[strum(default)]
@@ -57,7 +50,6 @@ impl RecognizedProgram {
 #[serde(rename_all = "kebab-case")]
 pub struct ConfigRaw {
     pub wasm_size_limit:   Option<String>,
-    pub graal_vm_version:  Option<GraalVmVersion>,
     pub required_versions: HashMap<String, String>,
 }
 
@@ -67,7 +59,6 @@ pub struct ConfigRaw {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
     pub wasm_size_limit:   Option<Byte>,
-    pub graal_vm_version:  Option<GraalVmVersion>,
     pub required_versions: HashMap<RecognizedProgram, VersionReq>,
 }
 
@@ -99,14 +90,11 @@ impl TryFrom<ConfigRaw> for Config {
             );
         }
 
-        let graal_vm_version = value.graal_vm_version;
-
         Ok(Self {
             wasm_size_limit: value
                 .wasm_size_limit
                 .map(|limit_text| <Byte as FromString>::from_str(&limit_text))
                 .transpose()?,
-            graal_vm_version,
             required_versions,
         })
     }
