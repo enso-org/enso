@@ -549,7 +549,6 @@ function fitAll() {
 function endBrushing() {
   brushExtent.value = undefined
   d3Brush.value.call(brush.value.move, null)
-  console.log('hello?', d3Brush, brush.value)
 }
 
 useEvent(document, 'keydown', (event) => {

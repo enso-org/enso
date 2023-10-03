@@ -12,6 +12,34 @@ export default defineConfig({
       { id: 'visualizations', title: 'Visualizations' },
     ],
   },
+  // Same as default, but with a light contrast color for the transparent background.
+  backgroundPresets: [
+    {
+      label: 'Transparent',
+      color: 'transparent',
+      contrastColor: '#ccc',
+    },
+    {
+      label: 'White',
+      color: '#fff',
+      contrastColor: '#333',
+    },
+    {
+      label: 'Light gray',
+      color: '#aaa',
+      contrastColor: '#eee',
+    },
+    {
+      label: 'Dark gray',
+      color: '#333',
+      contrastColor: '#ccc',
+    },
+    {
+      label: 'Black',
+      color: '#000',
+      contrastColor: '#fff',
+    },
+  ],
   vite: {
     resolve: {
       alias: {
@@ -36,6 +64,10 @@ export default defineConfig({
           'public/visualizations/ScatterplotVisualization.vue',
         '../public/visualizations/GeoMapVisualization.vue':
           'public/visualizations/GeoMapVisualization.vue',
+        '@/stores/project': 'stories/mockProjectStore.ts',
+        '@/stores/suggestionDatabase/entry': 'src/stores/suggestionDatabase/entry.ts',
+        '@/stores/suggestionDatabase': 'stories/mockSuggestionDatabaseStore.ts',
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
     define: {

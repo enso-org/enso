@@ -1,3 +1,4 @@
+import { useProjectStore } from '@/stores/project'
 import { assert, assertNever } from '@/util/assert'
 import { useObserveYjs } from '@/util/crdt'
 import { parseEnso } from '@/util/ffi'
@@ -15,7 +16,6 @@ import {
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import * as Y from 'yjs'
-import { useProjectStore } from './project'
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()

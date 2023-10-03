@@ -58,5 +58,7 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
     }
   }
 
+  initializeDb()
+
   return { entries, groups, initializeDb }
 })
