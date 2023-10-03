@@ -3,24 +3,30 @@
 
 import { ref } from 'vue'
 
-import HeatmapVisualization from '@/components/visualizations/HeatmapVisualization.vue'
+import HistogramVisualization from '@/components/visualizations/HistogramVisualization.vue'
 
-const data = ref<any>([
-  ['A', 'B', 'C', 'D', 'A'],
-  ['D', 'E', 'D', 'X', 'Z'],
-  [50, 25, 40, 20, 10],
-])
+const data = ref<any>({
+  axis: {
+    x: { label: 'x-axis label', scale: 'linear' },
+    y: { label: 'y-axis label', scale: 'logarithmic' },
+  },
+  color: 'rgb(1.0,0.0,0.0)',
+  bins: 10,
+  data: {
+    values: [0.1, 0.2, 0.1, 0.15, 0.7],
+  },
+})
 </script>
 
 <template>
   <Story
-    title="Heatmap"
+    title="Histogram"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
     auto-props-disabled
   >
     <div style="height: 322px">
-      <HeatmapVisualization :data="data" />
+      <HistogramVisualization :data="data" />
     </div>
 
     <template #controls>

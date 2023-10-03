@@ -3,24 +3,20 @@
 
 import { ref } from 'vue'
 
-import HeatmapVisualization from '@/components/visualizations/HeatmapVisualization.vue'
+import WarningsVisualization from '@/components/visualizations/WarningsVisualization.vue'
 
-const data = ref<any>([
-  ['A', 'B', 'C', 'D', 'A'],
-  ['D', 'E', 'D', 'X', 'Z'],
-  [50, 25, 40, 20, 10],
-])
+const data = ref<any>(['warning 1', "warning 2!!&<>;'\x22"])
 </script>
 
 <template>
   <Story
-    title="Heatmap"
+    title="Warnings"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
     auto-props-disabled
   >
     <div style="height: 322px">
-      <HeatmapVisualization :data="data" />
+      <WarningsVisualization :data="data" />
     </div>
 
     <template #controls>

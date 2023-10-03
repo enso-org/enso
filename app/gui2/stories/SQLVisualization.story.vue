@@ -3,24 +3,29 @@
 
 import { ref } from 'vue'
 
-import HeatmapVisualization from '@/components/visualizations/HeatmapVisualization.vue'
+import SQLVisualization from '@/components/visualizations/SQLVisualization.vue'
 
-const data = ref<any>([
-  ['A', 'B', 'C', 'D', 'A'],
-  ['D', 'E', 'D', 'X', 'Z'],
-  [50, 25, 40, 20, 10],
-])
+const data = ref<any>({
+  dialect: 'sql',
+  code: `SELECT * FROM \`foo\` WHERE \`a\` = ? AND b LIKE ?;`,
+  interpolations: [
+    // eslint-disable-next-line camelcase
+    { enso_type: 'Data.Numbers.Number', value: '123' },
+    // eslint-disable-next-line camelcase
+    { enso_type: 'Builtins.Main.Text', value: "a'bcd" },
+  ],
+})
 </script>
 
 <template>
   <Story
-    title="Heatmap"
+    title="SQL Query"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
     auto-props-disabled
   >
     <div style="height: 322px">
-      <HeatmapVisualization :data="data" />
+      <SQLVisualization :data="data" />
     </div>
 
     <template #controls>

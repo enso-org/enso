@@ -3,24 +3,27 @@
 
 import { ref } from 'vue'
 
-import HeatmapVisualization from '@/components/visualizations/HeatmapVisualization.vue'
+import TableVisualization from '@/components/visualizations/TableVisualization.vue'
 
-const data = ref<any>([
-  ['A', 'B', 'C', 'D', 'A'],
-  ['D', 'E', 'D', 'X', 'Z'],
-  [50, 25, 40, 20, 10],
-])
+const data = ref<any>({
+  type: 'Matrix',
+  // eslint-disable-next-line camelcase
+  column_count: 5,
+  // eslint-disable-next-line camelcase
+  all_rows_count: 10,
+  json: Array.from({ length: 10 }, (_, i) => Array.from({ length: 5 }, (_, j) => `${i},${j}`)),
+})
 </script>
 
 <template>
   <Story
-    title="Heatmap"
+    title="Table"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
     auto-props-disabled
   >
     <div style="height: 322px">
-      <HeatmapVisualization :data="data" />
+      <TableVisualization :data="data" />
     </div>
 
     <template #controls>
