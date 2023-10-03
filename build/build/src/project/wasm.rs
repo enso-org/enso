@@ -7,7 +7,7 @@ use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
 use crate::project::IsWatchable;
-use crate::source::BuildTargetJob;
+use crate::source::BuildSource;
 use crate::source::WatchTargetJob;
 use crate::source::WithDestination;
 
@@ -205,9 +205,9 @@ impl IsTarget for Wasm {
     fn build_internal(
         &self,
         context: Context,
-        job: BuildTargetJob<Self>,
+        job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let Context { octocrab: _, cache, upload_artifacts: _, repo_root } = context;
+        let Context { octocrab: _, cache, repo_root } = context;
         let WithDestination { inner, destination } = job;
         let span = info_span!("Building WASM.",
             repo = %repo_root.display(),
@@ -249,6 +249,7 @@ impl IsTarget for Wasm {
             info!("Building wasm.");
             let temp_dir = tempdir()?;
             let temp_dist = RepoRootDistWasm::new_root(temp_dir.path());
+            crate::web::install(&repo_root).await?;
             ensogl_pack::build(
                 ensogl_pack::WasmPackOutputs {
                     out_dir:  temp_dist.path.clone(),
@@ -327,11 +328,21 @@ impl IsWatchable for Wasm {
             .instrument(debug_span!("Initial single build of WASM before setting up cargo-watch."));
 
         async move {
-            let first_build_output = first_build_job.await?;
+            // Make sure that `npm install` was run, so we can spawned process to skip it.
+            // This prevents issues with multiple `npm install` invocations running in parallel.
+            let npm_install = crate::web::install(&context.repo_root);
+            let (first_build_output, npm_install) =
+                futures::future::join(first_build_job, npm_install).await;
+            npm_install?;
+            let first_build_output = first_build_output?;
 
             let WatchTargetJob {
                 watch_input: WatchInput { cargo_watch_options: cargo_watch_flags },
-                build: WithDestination { inner, destination },
+                build:
+                    WithDestination {
+                        inner: BuildSource { input, should_upload_artifact: _ },
+                        destination,
+                    },
             } = job;
             let BuildInput {
                 crate_path,
@@ -344,7 +355,7 @@ impl IsWatchable for Wasm {
                 uncollapsed_log_level,
                 wasm_size_limit,
                 system_shader_tools: _,
-            } = inner;
+            } = input;
 
 
             let current_exe = std::env::current_exe()?;
@@ -379,8 +390,8 @@ impl IsWatchable for Wasm {
                 .arg(current_exe)
                 .arg("--skip-version-check") // We already checked in the parent process.
                 .args(["--cache-path", context.cache.path().as_str()])
-                .args(["--upload-artifacts", context.upload_artifacts.to_string().as_str()])
-                .args(["--repo-path", context.repo_root.as_str()]);
+                .args(["--repo-path", context.repo_root.as_str()])
+                .args(["--skip-npm-install", "false"]);
 
             // === Build Script command and its options ===
             watch_cmd

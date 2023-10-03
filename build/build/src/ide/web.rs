@@ -4,6 +4,7 @@ use crate::ide::web::env::CSC_KEY_PASSWORD;
 use crate::paths::generated;
 use crate::project::gui::BuildInfo;
 use crate::project::wasm;
+use crate::project::IsArtifact;
 use crate::project::ProcessWrapper;
 
 use anyhow::Context;
@@ -165,9 +166,7 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         build_info: &BuildInfo,
         output_path: Output,
     ) -> Result<Self> {
-        // wasm build already does this, running `npm install` twice concurrently leads to broken
-        // builds.
-        // self.npm()?.install().run_ok().await?;
+        crate::web::install(&ide.repo_root).await?;
         let asset_dir = TempDir::new()?;
         let assets_download = download_js_assets(&asset_dir);
         let fonts_download = fonts::install_html_fonts(&ide.cache, &ide.octocrab, &asset_dir);
@@ -240,11 +239,11 @@ impl FallibleManipulator for ProjectManagerInfo {
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct IdeDesktop {
-    pub build_sbt:   generated::RepoRootBuildSbt,
-    pub package_dir: generated::RepoRoot,
+    pub build_sbt: generated::RepoRootBuildSbt,
+    pub repo_root: generated::RepoRoot,
     #[derivative(Debug = "ignore")]
-    pub octocrab:    Octocrab,
-    pub cache:       ide_ci::cache::Cache,
+    pub octocrab:  Octocrab,
+    pub cache:     ide_ci::cache::Cache,
 }
 
 impl IdeDesktop {
@@ -255,7 +254,7 @@ impl IdeDesktop {
     ) -> Self {
         Self {
             build_sbt: repo_root.build_sbt.clone(),
-            package_dir: repo_root.clone(),
+            repo_root: repo_root.clone(),
             octocrab,
             cache,
         }
@@ -265,13 +264,13 @@ impl IdeDesktop {
         let mut command = Npm.cmd()?;
         command.arg("--color").arg("always");
         command.arg("--yes");
-        command.current_dir(&self.package_dir);
+        command.current_dir(&self.repo_root);
         command.stdin(Stdio::null()); // nothing in that process subtree should require input
         Ok(command)
     }
 
     pub fn write_build_info(&self, info: &BuildInfo) -> Result {
-        let path = self.package_dir.join(&*BUILD_INFO);
+        let path = self.repo_root.join(&*BUILD_INFO);
         path.write_as_json(info)
     }
 
@@ -340,7 +339,7 @@ impl IdeDesktop {
         err))]
     pub async fn dist(
         &self,
-        gui: &crate::project::gui::Artifact,
+        gui: &impl IsArtifact,
         project_manager: &crate::project::backend::Artifact,
         output_path: impl AsRef<Path>,
         target_os: OS,
@@ -354,11 +353,12 @@ impl IdeDesktop {
             graalvm.install_if_missing(&self.cache).await?;
         }
 
-        self.npm()?.install().run_ok().await?;
+
+        crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
         let client_build = self
             .npm()?
-            .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
+            .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
@@ -389,7 +389,7 @@ impl IdeDesktop {
         self.npm()?
             .try_applying(&icons)?
             // .env("DEBUG", "electron-builder")
-            .set_env(env::ENSO_BUILD_GUI, gui.as_path())?
+            .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
@@ -416,7 +416,7 @@ impl IdeDesktop {
         get_project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
         ide_options: Vec<String>,
     ) -> Result {
-        let npm_install_job = self.npm()?.install().run_ok();
+        let npm_install_job = crate::web::install(&self.repo_root);
         // TODO: This could be possibly optimized by awaiting WASM a bit later, and passing its
         //       future to the ContentEnvironment. However, the code would get a little tricky.
         //       Should be reconsidered in the future, based on actual timings.
