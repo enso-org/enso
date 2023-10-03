@@ -52,13 +52,13 @@ case object DataflowAnalysis extends IRPass {
   override type Metadata = DependencyInfo
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     AliasAnalysis,
     DemandAnalysis,
     TailCall
   )
 
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the dataflow analysis process on an Enso module.
     *

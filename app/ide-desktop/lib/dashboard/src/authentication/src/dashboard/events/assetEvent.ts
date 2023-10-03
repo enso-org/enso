@@ -21,11 +21,12 @@ export enum AssetEventType {
     newProject = 'new-project',
     newFolder = 'new-folder',
     uploadFiles = 'upload-files',
-    newSecret = 'new-secret',
+    newDataConnector = 'new-data-connector',
     openProject = 'open-project',
     closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
+    restoreMultiple = 'restore-multiple',
     downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
 }
@@ -40,11 +41,12 @@ interface AssetEvents {
     newProject: AssetNewProjectEvent
     newFolder: AssetNewFolderEvent
     uploadFiles: AssetUploadFilesEvent
-    newSecret: AssetNewSecretEvent
+    newDataConnector: AssetNewDataConnectorEvent
     openProject: AssetOpenProjectEvent
     closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
+    restoreMultiple: AssetRestoreMultipleEvent
     downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
 }
@@ -76,8 +78,9 @@ export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.upl
     files: Map<backendModule.AssetId, File>
 }
 
-/** A signal to create a secret. */
-export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
+/** A signal to create a data connector. */
+export interface AssetNewDataConnectorEvent
+    extends AssetBaseEvent<AssetEventType.newDataConnector> {
     placeholderId: backendModule.SecretId
     value: string
 }
@@ -100,6 +103,11 @@ export interface AssetCancelOpeningAllProjectsEvent
 
 /** A signal to delete multiple assets. */
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
+    ids: Set<backendModule.AssetId>
+}
+
+/** A signal to restore assets from trash. */
+export interface AssetRestoreMultipleEvent extends AssetBaseEvent<AssetEventType.restoreMultiple> {
     ids: Set<backendModule.AssetId>
 }
 

@@ -4,21 +4,26 @@ import akka.testkit.TestDuration
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.editions.SemVerJson._
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
+import org.enso.runtimeversionmanager.CurrentVersion
+import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 import org.enso.testkit.FlakySpec
 
 import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.UUID
+
 import scala.concurrent.duration._
 import scala.io.Source
 
 class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
+    with OverrideTestVersionSuite
     with ProjectManagementOps {
+
+  override val testVersion: SemVer = SemVer(0, 0, 1)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -295,7 +300,7 @@ class ProjectManagementApiSpec
               "id": 1,
               "params": {
                 "name": "Foo",
-                "version": "0.0.1"
+                "version": ${CurrentVersion.version.toString()}
               }
             }
           """)
@@ -445,7 +450,7 @@ class ProjectManagementApiSpec
           """)
       val result = openProjectData
       result.projectName shouldEqual projectName
-      result.engineVersion shouldEqual SemVer("0.0.1").get
+      result.engineVersion shouldEqual CurrentVersion.version
 
       // teardown
       closeProject(projectId)
@@ -660,7 +665,6 @@ class ProjectManagementApiSpec
                   "name": "Foo",
                   "namespace": "local",
                   "id": $projectId1,
-                  "engineVersion": $engineToInstall,
                   "created": $projectCreationTime,
                   "lastOpened": $projectOpenTime
                 },
@@ -668,7 +672,6 @@ class ProjectManagementApiSpec
                   "name": "Foo",
                   "namespace": "local",
                   "id": $projectId2,
-                  "engineVersion": $engineToInstall,
                   "created": $projectCreationTime,
                   "lastOpened": null
                 }
@@ -773,7 +776,6 @@ class ProjectManagementApiSpec
                   "name": "Baz",
                   "namespace": "local",
                   "id": $bazId,
-                  "engineVersion": $engineToInstall,
                   "created": $projectBazCreationTime,
                   "lastOpened": null
                 },
@@ -781,7 +783,6 @@ class ProjectManagementApiSpec
                   "name": "Bar",
                   "namespace": "local",
                   "id": $barId,
-                  "engineVersion": $engineToInstall,
                   "created": $projectBarCreationTime,
                   "lastOpened": null
                 },
@@ -789,7 +790,6 @@ class ProjectManagementApiSpec
                   "name": "Foo",
                   "namespace": "local",
                   "id": $fooId,
-                  "engineVersion": $engineToInstall,
                   "created": $projectFooCreationTime,
                   "lastOpened": null
                 }
@@ -836,7 +836,6 @@ class ProjectManagementApiSpec
                   "name": "Bar",
                   "namespace": "local",
                   "id": $barId,
-                  "engineVersion": $engineToInstall,
                   "created": $projectBarCreationTime,
                   "lastOpened": null
                 },
@@ -844,7 +843,6 @@ class ProjectManagementApiSpec
                   "name": "Foo",
                   "namespace": "local",
                   "id": $fooId,
-                  "engineVersion": $engineToInstall,
                   "created": $projectFooCreationTime,
                   "lastOpened": null
                 }
@@ -895,7 +893,6 @@ class ProjectManagementApiSpec
                   "name": "Quux",
                   "namespace": "local",
                   "id": $quuxId,
-                  "engineVersion": $engineToInstall,
                   "created": $projectQuuxCreationTime,
                   "lastOpened": null
                 },
@@ -903,7 +900,6 @@ class ProjectManagementApiSpec
                   "name": "Baz",
                   "namespace": "local",
                   "id": $bazId,
-                  "engineVersion": $engineToInstall,
                   "created": $creationTime,
                   "lastOpened": $bazOpenTime
                 },
@@ -911,7 +907,6 @@ class ProjectManagementApiSpec
                   "name": "Bar",
                   "namespace": "local",
                   "id": $barId,
-                  "engineVersion": $engineToInstall,
                   "created": $creationTime,
                   "lastOpened": $barOpenTime
                 },
@@ -919,7 +914,6 @@ class ProjectManagementApiSpec
                   "name": "Foo",
                   "namespace": "local",
                   "id": $fooId,
-                  "engineVersion": $engineToInstall,
                   "created": $creationTime,
                   "lastOpened": null
                 }
@@ -968,7 +962,6 @@ class ProjectManagementApiSpec
                   "name": "Foo",
                   "namespace": "local",
                   "id": $projectId1,
-                  "engineVersion": $engineToInstall,
                   "created": $creationTime,
                   "lastOpened": null
                 },
@@ -976,7 +969,6 @@ class ProjectManagementApiSpec
                   "name": "Foo",
                   "namespace": "local",
                   "id": $projectId2,
-                  "engineVersion": $engineToInstall,
                   "created": $creationTime,
                   "lastOpened": null
                 }

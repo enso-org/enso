@@ -141,19 +141,14 @@ Text.at self index =
          "건반(Korean)".get 1 == "반"
 Text.get : Integer -> Any -> Any
 Text.get self index ~if_missing=Nothing =
-    case index < 0 of
-        True ->
-            length = self.length
-            new_index = index + length
-            if new_index < 0 then if_missing else
-                self.at new_index
-        False ->
-            iterator = BreakIterator.getCharacterInstance
-            iterator.setText self
-            first = iterator.next index
-            next = if first == -1 then -1 else iterator.next
-            if (next == -1) then if_missing else
-                Text_Utils.substring self first next
+    new_index = if index < 0 then index + self.length else index
+    if new_index < 0 then if_missing else
+        iterator = BreakIterator.getCharacterInstance
+        iterator.setText self
+        first = iterator.next new_index
+        next = if first == -1 then -1 else iterator.next
+        if (next == -1) then if_missing else
+            Text_Utils.substring self first next
 
 ## GROUP Selections
    Returns the first character from the text.
@@ -1790,6 +1785,35 @@ Text.parse_time_of_day self format:Date_Time_Formatter=Date_Time_Formatter.iso_t
          example_parse = "+03:02:01".parse_time_zone
 Text.parse_time_zone : Time_Zone ! Time_Error
 Text.parse_time_zone self = Time_Zone.parse self
+
+## ALIAS mid, slice, substring
+   GROUP Selections
+   Creates a new Text by selecting the specified range of the input.
+
+   Arguments:
+   - start: the character position to start the substring at. 0-based index. Has support for negative values.
+   - length: the number of characters to include from start.
+
+   Returns:
+   Part of the selected Text starting at start and stopping after length.
+
+   > Examples
+     Various different ways to take part of "Hello World!"
+
+         "Hello World!".substring 3 2 == "lo"
+         "Hello World!".substring 5 Nothing == " World!"
+         "Hello World!".substring 5 7 == " World!"
+         "Hello World!".substring -7 3 == " Wo"
+
+Text.substring : Integer -> Integer -> Range ! Index_Out_Of_Bounds
+Text.substring self start:Integer length:Integer=self.length =
+    if length < 0 then Error.throw (Illegal_Argument.Error "length must be greater than or equal to 0") else
+        if length == 0 then "" else
+            self_length = self.length
+            fixed_start = if start < 0 then start + self_length else start
+            if fixed_start < 0 then (Error.throw (Index_Out_Of_Bounds.Error start self_length)) else
+                range = fixed_start.up_to fixed_start+length
+                self.take range
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided

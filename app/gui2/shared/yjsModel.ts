@@ -1,5 +1,6 @@
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
+import * as random from 'lib0/random.js'
 import * as Y from 'yjs'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
@@ -10,7 +11,7 @@ export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as Ex
 export interface NodeMetadata {
   x: number
   y: number
-  vis?: string
+  vis?: unknown
 }
 
 export class DistributedProject {
@@ -69,70 +70,95 @@ export class DistributedProject {
   }
 }
 
-export class DistributedModule {
-  doc: Y.Doc
+export class ModuleDoc {
+  ydoc: Y.Doc
   contents: Y.Text
   idMap: Y.Map<Uint8Array>
   metadata: Y.Map<NodeMetadata>
+  constructor(ydoc: Y.Doc) {
+    this.ydoc = ydoc
+    this.contents = ydoc.getText('contents')
+    this.idMap = ydoc.getMap('idMap')
+    this.metadata = ydoc.getMap('metadata')
+  }
+}
 
-  static async load(doc: Y.Doc) {
-    doc.load()
-    await doc.whenLoaded
-    return new DistributedModule(doc)
+export class DistributedModule {
+  doc: ModuleDoc
+
+  static async load(ydoc: Y.Doc): Promise<DistributedModule> {
+    ydoc.load()
+    await ydoc.whenLoaded
+    return new DistributedModule(ydoc)
   }
 
-  constructor(doc: Y.Doc) {
-    this.doc = doc
-    this.contents = this.doc.getText('contents')
-    this.idMap = this.doc.getMap('idMap')
-    this.metadata = this.doc.getMap('metadata')
+  constructor(ydoc: Y.Doc) {
+    this.doc = new ModuleDoc(ydoc)
   }
 
   insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
     const range = [offset, offset + content.length]
-    const newId = crypto.randomUUID() as ExprId
-    this.doc.transact(() => {
-      this.contents.insert(offset, content + '\n')
-      const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
-      const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
-      this.idMap.set(newId, encodeRange([start, end]))
-      this.metadata.set(newId, meta)
+    const newId = random.uuidv4() as ExprId
+    this.transact(() => {
+      this.doc.contents.insert(offset, content + '\n')
+      const start = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[0]!)
+      const end = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[1]!)
+      this.doc.idMap.set(newId, encodeRange([start, end]))
+      this.doc.metadata.set(newId, meta)
     })
     return newId
   }
 
-  replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
-    const rangeBuffer = this.idMap.get(id)
+  deleteNode(id: ExprId): void {
+    const rangeBuffer = this.doc.idMap.get(id)
     if (rangeBuffer == null) return
     const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)?.index
-    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)?.index
+    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
+    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
+    if (start == null || end == null) return
+    this.transact(() => {
+      this.doc.idMap.delete(id)
+      this.doc.metadata.delete(id)
+      this.doc.contents.delete(start, end - start)
+    })
+  }
+
+  replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
+    const rangeBuffer = this.doc.idMap.get(id)
+    if (rangeBuffer == null) return
+    const [relStart, relEnd] = decodeRange(rangeBuffer)
+    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
+    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
     if (exprStart == null || exprEnd == null) return
     const start = range == null ? exprStart : exprStart + range[0]
     const end = range == null ? exprEnd : exprStart + range[1]
     if (start > end) throw new Error('Invalid range')
     if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
-    this.doc.transact(() => {
+    this.transact(() => {
       if (content.length > 0) {
-        this.contents.insert(start, content)
+        this.doc.contents.insert(start, content)
       }
       if (start !== end) {
-        this.contents.delete(start + content.length, end - start)
+        this.doc.contents.delete(start + content.length, end - start)
       }
     })
   }
 
+  transact<T>(fn: () => T): T {
+    return this.doc.ydoc.transact(fn)
+  }
+
   updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
-    const existing = this.metadata.get(id) ?? { x: 0, y: 0 }
-    this.metadata.set(id, { ...existing, ...meta })
+    const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0 }
+    this.doc.metadata.set(id, { ...existing, ...meta })
   }
 
   getIdMap(): IdMap {
-    return new IdMap(this.idMap, this.contents)
+    return new IdMap(this.doc.idMap, this.doc.contents)
   }
 
   dispose(): void {
-    this.doc.destroy()
+    this.doc.ydoc.destroy()
   }
 }
 
@@ -208,7 +234,7 @@ export class IdMap {
       this.accessed.add(val)
       return val
     } else {
-      const newId = crypto.randomUUID() as ExprId
+      const newId = random.uuidv4() as ExprId
       this.rangeToExpr.set(key, newId)
       this.accessed.add(newId)
       return newId
@@ -275,7 +301,7 @@ function encodeRange(range: RelativeRange): Uint8Array {
   return encoding.toUint8Array(encoder)
 }
 
-function decodeRange(buffer: Uint8Array): RelativeRange {
+export function decodeRange(buffer: Uint8Array): RelativeRange {
   const decoder = decoding.createDecoder(buffer)
   const startLen = decoding.readUint8(decoder)
   const start = decoding.readUint8Array(decoder, startLen)
@@ -285,7 +311,7 @@ function decodeRange(buffer: Uint8Array): RelativeRange {
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/
-export function isUuid(x: any): x is Uuid {
+export function isUuid(x: unknown): x is Uuid {
   return typeof x === 'string' && x.length === 36 && uuidRegex.test(x)
 }
 

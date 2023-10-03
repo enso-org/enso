@@ -144,14 +144,6 @@ body {
       background-color: rgba(255, 255, 255, 0.4);
     }
 
-    .search-bar.search-bar {
-      @media screen and (max-width: 59rem) {
-        position: unset;
-        transform: unset;
-        left: unset;
-      }
-    }
-
     .whatsnew-span-2.whatsnew-span-2 {
       @media screen and (max-width: 40.5625rem) {
         grid-column: span 1 / span 1;
@@ -162,5 +154,20 @@ body {
   .pointer-events-none-recursive,
   .pointer-events-none-recursive * {
     pointer-events: none;
+  }
+}
+
+.enso-dashboard .search-bar.search-bar {
+  @media screen and (max-width: 59rem) {
+    position: unset;
+    transform: unset;
+  }
+
+  @media screen and (min-width: 74rem) {
+    width: 33vw;
+
+    > input::placeholder {
+      text-align: center;
+    }
   }
 }

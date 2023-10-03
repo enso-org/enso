@@ -13,12 +13,14 @@ const emit = defineEmits<{
   'update:mode': [mode: string]
 }>()
 
+const LEFT_PADDING_PX = 11
+
 const config = useGuiConfig()
 
 const barStyle = computed(() => {
-  const offset = config.value.window?.topBarOffset ?? '0'
+  const offset = Number(config.value.window?.topBarOffset ?? '0')
   return {
-    marginLeft: `${offset}px`,
+    marginLeft: `${offset + LEFT_PADDING_PX}px`,
   }
 })
 </script>

@@ -21,15 +21,16 @@ export default defineConfig({
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // workaround for @open-rpc/client-js bug: https://github.com/open-rpc/client-js/issues/310
-      events: 'shared/event.ts',
     },
   },
   define: {
     REDIRECT_OVERRIDE: JSON.stringify('http://localhost:8080'),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    global: 'window',
+    global: 'globalThis',
     IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV !== 'production'),
+    CLOUD_ENV:
+      process.env.ENSO_CLOUD_ENV != null ? JSON.stringify(process.env.ENSO_CLOUD_ENV) : 'undefined',
+    RUNNING_VTEST: false,
   },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {
