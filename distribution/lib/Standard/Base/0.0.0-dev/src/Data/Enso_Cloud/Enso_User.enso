@@ -1,10 +1,12 @@
-import project.Data.Text.Text
 import project.Data.Enso_Cloud.Utils
+import project.Data.Text.Text
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+from project.Data.Boolean import Boolean, False, True
 
 type Enso_User
-    ## Represents a user within Enso Cloud.
+    ## PRIVATE
+       Represents a user within Enso Cloud.
     User name:Text email:Text id:Text
 
     ## Fetch the current user.
@@ -12,7 +14,7 @@ type Enso_User
     current =
         auth_header = Utils.authorization_header
         auth_header.if_not_error <|
-            user_api = Utils.cloud_root_uri + "users"
+            user_api = Utils.cloud_root_uri + "users/me"
             response = HTTP.fetch user_api HTTP_Method.Get [auth_header]
             response.if_not_error <|
                 js_object = response.decode_as_json

@@ -5,21 +5,19 @@ import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
 import project.System.File.File
 
-## PRIVATE
-cloud_root_uri = "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/"
+polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
 ## PRIVATE
-cred_ref = Ref.new Nothing
+cloud_root_uri = "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/"
 
 ## PRIVATE
    Construct the authoization header for the request
 authorization_header : Pair Text Text
 authorization_header =
-    result = cred_ref.get.if_nothing <|
+    result = AuthenticationProvider.getToken.if_nothing <|
         cred_file = File.home / ".enso" / "credentials"
         if cred_file.exists.not then Error.throw Not_Logged_In.Error else
-            cred_ref.put (cred_file.read_text)
-            cred_ref.get
+            AuthenticationProvider.setToken (cred_file.read_text)
     Pair.new "Authorization" "Bearer "+result
 
 ## PRIVATE

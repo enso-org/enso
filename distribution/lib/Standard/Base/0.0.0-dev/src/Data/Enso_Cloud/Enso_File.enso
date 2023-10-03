@@ -1,2 +1,6 @@
+import project.Data.Text.Text
 
 type Enso_File
+    ## PRIVATE
+       Represents a file or folder within the Enso cloud.
+    Value name:Text id:Text
