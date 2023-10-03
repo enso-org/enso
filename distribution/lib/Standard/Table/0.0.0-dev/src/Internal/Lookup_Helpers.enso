@@ -1,0 +1,38 @@
+from Standard.Base import all
+
+from project.Errors import Unexpected_Extra_Columns
+
+## PRIVATE
+type Lookup_Settings
+    ## PRIVATE
+    Value (columns_to_update : Set Text) (columns_to_add : Vector Text)
+
+## PRIVATE
+   Checks if `key_columns` are present in both tables and returns settings
+   indicating which columns will be updated and which will be added.
+
+   It also reports any errors or warnings related to selecting these columns.
+prepare_columns_for_lookup base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems =
+    my_key_columns = base_table.select_columns key_columns
+    lookup_table_key_columns = lookup_table.select_columns key_columns . catch Missing_Input_Columns error->
+        Error.throw (Missing_Input_Columns.Error error.criteria "the lookup table")
+
+    my_key_columns.if_not_error <| lookup_table_key_columns.if_not_error <|
+        key_set = Set.from_vector key_columns
+        my_column_set = Set.from_vector base_table.column_names
+        my_remaining_columns = my_column_set.difference key_set
+
+        lookup_table_remaining_columns = Set.from_vector lookup_table.column_names . difference key_set
+        to_update = my_remaining_columns.intersection lookup_table_remaining_columns
+
+        extra_columns = lookup_table.column_names.filter col->
+            is_new = my_column_set.contains col . not
+            is_new
+        to_add = case add_new_columns of
+            True -> extra_columns
+            False ->
+                if extra_columns.is_empty then [] else
+                    problem = Unexpected_Extra_Columns.Warning extra_columns
+                    on_problems.attach_problem_before problem []
+
+        Lookup_Settings.Value to_update to_add

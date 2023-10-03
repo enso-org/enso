@@ -37,6 +37,7 @@ import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
+import project.Internal.Lookup_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Split_Tokenize
@@ -1716,6 +1717,8 @@ type Table
 
          - If this table or the lookup table is lacking any of the columns
            specified in `key_columns`, a `Missing_Input_Columns` error is raised.
+         - If an empty vector is provided for `key_columns`, a
+           `No_Input_Columns_Selected` error is raised.
          - If the lookup table contains multiple rows with the same values in
            the `key_columns`, an `Non_Unique_Key` error is raised.
          - If a column that is being updated from the lookup table has a type
@@ -1729,7 +1732,7 @@ type Table
          - The following problems may be reported according to the `on_problems`
            setting:
            - If any of the `key_columns` is a floating-point type,
-             a `Floating_Point_Equality`/
+             a `Floating_Point_Equality`.
            - If `add_new_columns` is `False` and the lookup table has columns
              that are not present in this table, an `Unexpected_Extra_Columns`.
 
@@ -1743,7 +1746,9 @@ type Table
            duplicated rows if the database has changed in the meantime.
     lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        Error.throw "TODO"
+        columns_settings = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+        columns_settings.if_not_error <|
+            Error.throw "TODO"
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
