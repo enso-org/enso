@@ -27,9 +27,11 @@ import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -188,7 +190,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
           onReturnValue(null, result);
         } catch (InteropException e) {
-          callbacks.onExceptionalCallback(e);
+          throw new PanicException(Text.create(e.getMessage()), this);
         }
       }
 
