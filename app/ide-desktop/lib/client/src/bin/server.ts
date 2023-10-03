@@ -101,6 +101,8 @@ export class Server {
                         reject(err)
                     }
                     if (httpServer) {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                        // @typescript-eslint/no-unsafe-call
                         ydocServer.createGatewayServer(httpServer)
                     }
                     logger.log(`Server started on port ${this.config.port}.`)
