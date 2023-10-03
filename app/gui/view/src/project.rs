@@ -426,6 +426,8 @@ impl View {
         let _network = &self.frp.network;
         frp::extend! { _network
             self.model.code_editor.set_read_only <+ self.frp.set_read_only;
+            self.model.code_editor.hide <+ self.model.graph_editor.node_editing_started.constant(());
+            self.model.code_editor.hide <+ self.model.graph_editor.node_selected.constant(());
         }
         self
     }
