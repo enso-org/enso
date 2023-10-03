@@ -22,7 +22,7 @@ type ConnectionData = {
 
 export function createGatewayServer(httpServer: Server) {
   const wss = new WebSocketServer({ noServer: true })
-  wss.on('connection', (ws: WebSocket, request: IncomingMessage, data: ConnectionData) => {
+  wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {
     ws.on('error', onWebSocketError)
     setupGatewayClient(ws, data.lsUrl, data.doc)
   })

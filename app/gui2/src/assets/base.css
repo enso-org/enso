@@ -58,6 +58,7 @@
   --radius-full: 9999px;
   --radius-default: 16px;
   --section-gap: 160px;
+  --selected-node-border-width: 20px;
 }
 
 *,

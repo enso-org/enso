@@ -95,8 +95,8 @@ export const useProjectStore = defineStore('project', () => {
   const awareness = new Awareness(doc)
 
   const config = useGuiConfig()
-  const projectId = config.value.startup?.project
-  if (projectId == null) throw new Error('Missing project ID')
+  const projectName = config.value.startup?.project
+  if (projectName == null) throw new Error('Missing project name.')
 
   const lsUrls = resolveLsUrl(config.value)
   const initializedConnection = initializeLsRpcConnection(lsUrls)
@@ -148,7 +148,7 @@ export const useProjectStore = defineStore('project', () => {
   watchEffect((onCleanup) => {
     const mod = module.value
     if (mod == null) return
-    const scope: typeof undoManager.scope = [mod.contents, mod.idMap]
+    const scope: typeof undoManager.scope = [mod.doc.contents, mod.doc.idMap]
     undoManager.scope.push(...scope)
     onCleanup(() => {
       undoManager.scope = undoManager.scope.filter((s) => !scope.includes(s))
@@ -183,6 +183,7 @@ export const useProjectStore = defineStore('project', () => {
     setObservedFileName(name: string) {
       observedFileName.value = name
     },
+    name: projectName,
     createExecutionContextForMain,
     module,
     contentRoots,

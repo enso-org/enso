@@ -85,7 +85,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         switch (event.type) {
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.newSecret:
+            case assetEventModule.AssetEventType.newDataConnector:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
@@ -138,6 +138,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             }}
             onMouseLeave={() => {
                 setIsHovered(false)
+            }}
+            onKeyDown={event => {
+                if (rowState.isEditingName && event.key === 'Enter') {
+                    event.stopPropagation()
+                }
             }}
             onClick={event => {
                 if (

@@ -38,7 +38,7 @@ export default function UserMenu(props: UserMenuProps) {
     const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
 
     return (
-        <Modal className="absolute overflow-hidden bg-dim w-full h-full z-10">
+        <Modal className="absolute overflow-hidden bg-dim w-full h-full">
             <div
                 className="absolute flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl gap-3 right-2.25 top-2.25 w-51.5 px-2 py-2.25"
                 onClick={event => {

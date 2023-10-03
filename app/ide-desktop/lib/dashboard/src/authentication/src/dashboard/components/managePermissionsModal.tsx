@@ -235,7 +235,7 @@ export default function ManagePermissionsModal<
         return (
             <Modal
                 centered={eventTarget == null}
-                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-1"
+                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0"
             >
                 <div
                     tabIndex={-1}

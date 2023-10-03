@@ -7,13 +7,12 @@ import project.Data.Vector.Builder as Vector_Builder
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
+import project.Internal.Time.Format.Tokenizer.Format_Token
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-
-import project.Internal.Time.Format.Tokenizer.Format_Token
 
 ## PRIVATE
 type Text_Representation
@@ -161,6 +160,7 @@ type Parser
             any_pattern
         _ -> Panic.throw (Illegal_State.Error "Unexpected (here) token type: "+token.to_text)
 
+    ## PRIVATE
     fail_invalid_pattern self character count extra_message="" =
         Panic.throw (Date_Time_Format_Parse_Error.Error "The pattern "+(character*count)+" is not a valid pattern for the "+self.mode.pattern_format_name+" format."+extra_message)
 

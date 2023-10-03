@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Naming_Properties.Unlimited_Naming_Properties
+import project.Internal.Naming_Properties.Enso_Length_Limited_Naming_Properties
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project.Errors import Clashing_Column_Name, Invalid_Column_Names
 from project.Internal.Table_Helpers import is_column
@@ -13,7 +14,7 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
    An utility module for validating and generating column names.
 type Column_Naming_Helper
     ## PRIVATE
-    Value naming_properties
+    Value naming_properties generated_name_properties=naming_properties
 
     ## PRIVATE
     has_length_limit : Boolean
@@ -94,12 +95,14 @@ type Column_Naming_Helper
 
     ## PRIVATE
        Serializes a given object into an expression-like text approximation.
+       Note that it may not necessarily be a valid expression, it just tries to
+       be similar to one. In many cases it will be valid, but it is not a
+       guarantee.
 
-       For columns, it will return its name wrapped in `[` and `]`, with the `]`
-       symbols in the name escaped as `]]`, according to the expression rules.
+       For columns, it will return its name wrapped in `[` and `]`.
        For other objects, it will return its pretty-printed representation.
     to_expression_text self value =
-        if is_column value then "[" + value.name.replace "]" "]]" + "]" else
+        if is_column value then "[" + value.name + "]" else
             value.pretty
 
     ## PRIVATE
@@ -112,16 +115,17 @@ type Column_Naming_Helper
     concat self texts add_spaces=True =
         separator = if add_spaces then " " else ""
         joined = texts.join separator
-        case self.naming_properties.size_limit of
+        name_limits = self.generated_name_properties
+        case name_limits.size_limit of
             Nothing  -> joined
             max_size ->
-                base_size = self.naming_properties.encoded_size joined
+                base_size = name_limits.encoded_size joined
                 # If it still fits the limit, we are ok.
                 if base_size <= max_size then joined else
                     # If not, we need to truncate.
                     separator_size = case add_spaces of
                         False -> 0
-                        True -> self.naming_properties.encoded_size separator
+                        True -> name_limits.encoded_size separator
 
                     # Estimate the space left for each part to be concatenated.
                     remaining_space = max_size - (separator_size * (texts.length - 1))
@@ -139,7 +143,7 @@ type Column_Naming_Helper
                     initial_size_per_part = new_remaining_space.div parts_to_include.length
 
                     # Now we compute how many parts will fit the initial_size_per_part without truncating - these shorter parts fit as a whole.
-                    part_sizes = parts_to_include.map self.naming_properties.encoded_size
+                    part_sizes = parts_to_include.map name_limits.encoded_size
                     needs_truncating = part_sizes.map (size-> size > initial_size_per_part)
                     non_truncated_parts_size = part_sizes.zip needs_truncating (size-> is_truncated-> if is_truncated then 0 else size) . fold 0 (+)
                     truncated_parts_count = needs_truncating.fold 0 acc-> is_truncated->
@@ -149,26 +153,28 @@ type Column_Naming_Helper
                        we distribute the remaining space among the ones that do.
                     truncated_part_size = (new_remaining_space - non_truncated_parts_size).div truncated_parts_count
                     truncated_suffix = "..."
-                    truncated_suffix_size = self.naming_properties.encoded_size truncated_suffix
+                    truncated_suffix_size = name_limits.encoded_size truncated_suffix
                     transformed_parts = parts_to_include.zip needs_truncating part-> is_truncated->
                         case is_truncated of
                             False -> part
                             True ->
                                 ## Caveat: we now have more space for each part than when computing `needs_truncating`,
                                    so some parts may no longer need to be truncated if they were just slightly over the limit.
-                                still_needs_truncation = self.naming_properties.encoded_size part > truncated_part_size
+                                still_needs_truncation = name_limits.encoded_size part > truncated_part_size
                                 if still_needs_truncation.not then part else
-                                    self.naming_properties.truncate part (truncated_part_size - truncated_suffix_size) + truncated_suffix
+                                    name_limits.truncate part (truncated_part_size - truncated_suffix_size) + truncated_suffix
                     new_joined = transformed_parts.join separator
 
                     # Just to be sure, we still truncate the end result.
-                    self.naming_properties.truncate new_joined max_size
+                    name_limits.truncate new_joined max_size
 
     ## PRIVATE
        A `Column_Naming_Helper` for the in-memory backend - having no length limits.
     in_memory : Column_Naming_Helper
     in_memory =
-        Column_Naming_Helper.Value Unlimited_Naming_Properties.Instance
+        naming_properties = Unlimited_Naming_Properties.Instance
+        generated_name_properties = Enso_Length_Limited_Naming_Properties.Instance limit=255
+        Column_Naming_Helper.Value naming_properties generated_name_properties
 
     ## PRIVATE
        Create a column called "temp", possibly renamed.

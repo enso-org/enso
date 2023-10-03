@@ -33,7 +33,7 @@ make_value_formatter_for_value_type value_type locale = case value_type of
    Create a formatter for the given format string.
    The `value` parameter has to have a `format` method that takes a format and
    locale.
-make_value_formatter : Locale -> (Text -> Any -> Text)
+make_value_formatter : Locale -> Text | Nothing -> (Text -> Any -> Text)
 make_value_formatter locale (format : Text | Nothing) =
     if format.is_nothing || format.is_empty then .to_text else
         value->
@@ -42,14 +42,14 @@ make_value_formatter locale (format : Text | Nothing) =
 ## PRIVATE
    Create a `Boolean` formatter that takes the format string as the second
    parameter.
-make_boolean_formatter : (Text -> Boolean -> Text)
+make_boolean_formatter : Text | Nothing -> (Text -> Boolean -> Text)
 make_boolean_formatter (format : Text | Nothing) =
     if format.is_nothing || format.is_empty then .to_text else
         data_formatter = Data_Formatter.Value.with_format Value_Type.Boolean format
         bool -> data_formatter.format bool
 
 ## PRIVATE
-make_datetime_formatter : Locale -> Date_Time_Formatter | Text | Nothing -> (Any -> Text)
+make_datetime_formatter : Locale -> Text | Date_Time_Formatter | Nothing -> (Any -> Text)
 make_datetime_formatter (locale_override : Locale) (format : Text | Date_Time_Formatter | Nothing) =
     use_default = format.is_nothing || (format == "")
     if use_default then .to_text else
