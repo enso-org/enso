@@ -174,8 +174,8 @@ spec =
             test_file = enso_project.data / "xml" / "nested.xml"
             root = XML_Document.from_file test_file . root_element
             bars = root.get_elements_by_tag_name "bar"
-            bars.length . should_equal 3
-            bars.map (t-> t.at "@id") . should_equal ["2", "4", "5"]
+            bars.length . should_equal 4
+            bars.map (t-> t.at "@id") . should_equal ["2", "4", "5", "6"]
 
         Test.specify "Can get elements by name with a wildcard" <|
             root.get_elements_by_tag_name "*" . length . should_equal 20
