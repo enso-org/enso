@@ -97,12 +97,12 @@ export class DistributedModule {
   }
 
   insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length]
+    const range = [offset, offset + content.length] as const
     const newId = random.uuidv4() as ExprId
     this.transact(() => {
       this.doc.contents.insert(offset, content + '\n')
-      const start = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[0]!)
-      const end = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[1]!)
+      const start = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[0], -1)
+      const end = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[1])
       this.doc.idMap.set(newId, encodeRange([start, end]))
       this.doc.metadata.set(newId, meta)
     })
@@ -281,7 +281,7 @@ export class IdMap {
         // For all remaining expressions, we need to write them into the map.
         if (!this.accessed.has(expr)) return
         const range = IdMap.rangeForKey(key)
-        const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0])
+        const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0], -1)
         const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
         const encoded = encodeRange([start, end])
         this.yMap.set(expr, encoded)
