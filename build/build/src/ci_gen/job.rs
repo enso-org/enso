@@ -106,6 +106,22 @@ impl JobArchetype for NativeTest {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct NewGuiTest;
+impl JobArchetype for NewGuiTest {
+    fn job(&self, os: OS) -> Job {
+        plain_job(&os, "New (Vue) GUI tests", "gui2 test")
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct NewGuiBuild;
+impl JobArchetype for NewGuiBuild {
+    fn job(&self, os: OS) -> Job {
+        plain_job(&os, "New (Vue) GUI build", "gui2 build")
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct WasmTest;
 impl JobArchetype for WasmTest {
     fn job(&self, os: OS) -> Job {
@@ -132,7 +148,7 @@ impl JobArchetype for BuildWasm {
         plain_job_customized(
             &os,
             "Build GUI (WASM)",
-            " --upload-artifacts ${{ runner.os == 'Linux' }} wasm build",
+            "wasm build --wasm-upload-artifact ${{ runner.os == 'Linux' }}",
             |step| vec![step.with_secret_exposed(crate::env::ENSO_AG_GRID_LICENSE_KEY)],
         )
     }
@@ -222,13 +238,26 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct PackageIde;
-impl JobArchetype for PackageIde {
+pub struct PackageOldIde;
+impl JobArchetype for PackageOldIde {
     fn job(&self, os: OS) -> Job {
         plain_job_customized(
             &os,
-            "Package IDE",
+            "Package Old IDE",
             "ide build --wasm-source current-ci-run --backend-source current-ci-run",
+            |step| vec![expose_os_specific_signing_secret(os, step)],
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PackageNewIde;
+impl JobArchetype for PackageNewIde {
+    fn job(&self, os: OS) -> Job {
+        plain_job_customized(
+            &os,
+            "Package New IDE",
+            "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
             |step| vec![expose_os_specific_signing_secret(os, step)],
         )
     }
