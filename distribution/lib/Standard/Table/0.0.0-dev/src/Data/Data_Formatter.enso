@@ -1,9 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Widget import Vector_Editor
-from Standard.Base.Widget_Helpers import make_date_format_selector, make_time_format_selector, make_date_time_format_selector
+from Standard.Base.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_time_format_selector
 
 import project.Data.Type.Storage
 import project.Internal.Java_Problems
@@ -115,8 +114,8 @@ type Data_Formatter
     @datetime_formats (make_vector_widget make_date_time_format_selector)
     @date_formats (make_vector_widget make_date_format_selector)
     @time_formats (make_vector_widget make_time_format_selector)
-    with_datetime_formats : ((Vector Date_Time_Formatter) | Date_Time_Formatter) -> ((Vector Date_Time_Formatter) | Date_Time_Formatter) -> ((Vector Date_Time_Formatter) | Date_Time_Formatter) -> Data_Formatter
-    with_datetime_formats self (datetime_formats:Vector|Date_Time_Formatter = self.datetime_formats) (date_formats:Vector|Date_Time_Formatter = self.date_formats) (time_formats:Vector|Date_Time_Formatter = self.time_formats) =
+    with_datetime_formats : (Vector Date_Time_Formatter | Date_Time_Formatter) -> (Vector Date_Time_Formatter | Date_Time_Formatter) -> (Vector Date_Time_Formatter | Date_Time_Formatter) -> Data_Formatter
+    with_datetime_formats self datetime_formats:(Vector | Date_Time_Formatter)=self.datetime_formats date_formats:(Vector | Date_Time_Formatter)=self.date_formats time_formats:(Vector | Date_Time_Formatter)=self.time_formats =
         convert_formats formats =
             vector = case formats of
                 v : Vector -> v
@@ -173,7 +172,7 @@ type Data_Formatter
 
     ## PRIVATE
        Clone the instance with some properties overridden.
-    clone : Boolean -> Boolean -> Text -> Text -> Boolean -> Vector Text -> Vector Text -> Vector Text -> Locale -> Vector Text -> Vector Text -> Data_Formatter
+    clone : Boolean -> Boolean -> Text -> Text -> Boolean -> Vector Text -> Vector Text -> Vector Text -> Vector Text -> Vector Text -> Data_Formatter
     clone self (trim_values=self.trim_values) (allow_leading_zeros=self.allow_leading_zeros) (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_exponential_notation=self.allow_exponential_notation) (datetime_formats=self.datetime_formats) (date_formats=self.date_formats) (time_formats=self.time_formats) (true_values=self.true_values) (false_values=self.false_values) =
         Data_Formatter.Value trim_values=trim_values allow_leading_zeros=allow_leading_zeros decimal_point=decimal_point thousand_separator=thousand_separator allow_exponential_notation=allow_exponential_notation datetime_formats=datetime_formats date_formats=date_formats time_formats=time_formats true_values=true_values false_values=false_values
 

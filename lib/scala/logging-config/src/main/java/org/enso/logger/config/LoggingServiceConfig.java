@@ -19,13 +19,13 @@ public class LoggingServiceConfig implements BaseConfig {
   public static final String appendersKey = "appenders";
   public static final String defaultAppenderKey = "default-appender";
   public static final String logLevelKey = "log-level";
-  public static final String alwaysLogToFileKey = "always-log-to-file";
 
+  public static final String logToFileKey = "log-to-file";
   private final LoggersLevels loggers;
   private final Map<String, Appender> appenders;
 
   private final String defaultAppenderName;
-  private final boolean alwaysLogToFile;
+  private final LogToFile logToFile;
   private final Optional<String> logLevel;
   private final LoggingServer server;
 
@@ -34,12 +34,12 @@ public class LoggingServiceConfig implements BaseConfig {
       Optional<String> logLevel,
       Map<String, Appender> appenders,
       String defaultAppender,
-      boolean alwaysLogToFile,
+      LogToFile logTo,
       LoggingServer server) {
     this.loggers = loggers;
     this.appenders = appenders;
     this.defaultAppenderName = defaultAppender;
-    this.alwaysLogToFile = alwaysLogToFile;
+    this.logToFile = logTo;
     this.logLevel = logLevel;
     this.server = server;
   }
@@ -68,8 +68,10 @@ public class LoggingServiceConfig implements BaseConfig {
     } else {
       loggers = LoggersLevels.parse();
     }
-    boolean logToFile =
-        root.hasPath(alwaysLogToFileKey) ? root.getBoolean(alwaysLogToFileKey) : false;
+    LogToFile logToFile =
+        root.hasPath(logToFileKey)
+            ? LogToFile.fromConfig(root.getConfig(logToFileKey))
+            : LogToFile.disabled();
     return new LoggingServiceConfig(
         loggers,
         getStringOpt(logLevelKey, root),
@@ -141,6 +143,11 @@ public class LoggingServiceConfig implements BaseConfig {
   }
 
   @Override
+  public LogToFile logToFile() {
+    return logToFile;
+  }
+
+  @Override
   public String toString() {
     return "Loggers: "
         + loggers
@@ -154,10 +161,5 @@ public class LoggingServiceConfig implements BaseConfig {
         + logToFile()
         + ", server: "
         + server;
-  }
-
-  @Override
-  public boolean logToFile() {
-    return alwaysLogToFile;
   }
 }

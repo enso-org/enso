@@ -1,41 +1,56 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
-import project.Delimited.Delimited_Format.Delimited_Format
 import project.Errors.Invalid_JSON_Format
-import project.Internal.Delimited_Reader
-import project.Internal.Delimited_Writer
+import project.Errors.No_Such_Column
 import project.Internal.Parse_To_Table
+import project.Internal.Widget_Helpers
 
-## Converts a Text value into a Table.
+## GROUP Standard.Base.Conversions
+   Expand a column of objects to a new set of columns.
 
-   The format of the text is determined by the `format` argument.
+    Arguments:
+    - column: The column to expand.
+    - fields: The set fields to expand. If `Nothing` then all fields are added.
+    - prefix: Prefix to add to the column names. If `Nothing` then the column
+      name is used.
+@column Widget_Helpers.make_column_name_selector
+Table.expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+Table.expand_column self column fields=Nothing prefix=Nothing =
+    column_object = self.at column
+    expanded = Table.from_objects column_object.to_vector fields
+
+    output_builder = Vector.new_builder self.column_count+expanded.column_count-1
+
+    ## Resolve names
+    resolved_prefix = if prefix.is_nothing then column_object.name+" " else prefix
+    naming_strategy = self.column_naming_helper.create_unique_name_strategy
+    naming_strategy.mark_used (self.column_names.filter (c->c!=column_object.name))
+    new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> resolved_prefix+n)
+    new_columns = new_names.zip expanded.columns (n->c-> c.rename n)
+
+    ## Create Merged Columns
+    self.columns.each c->
+        if c.name != column_object.name then output_builder.append c else
+            output_builder.append_vector_range new_columns
+
+    Table.new output_builder.to_vector
+
+## GROUP Standard.Base.Conversions
+   Converts this `Vector` into a `Table`.
 
    Arguments:
-   - that: The text to convert.
-   - format: The format of the text.
-   - on_problems: What to do if there are problems reading the text.
-Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    case format of
-        _ : Delimited_Format -> Delimited_Reader.read_text that format on_problems
-        _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
-
-## Converts a Table into a Text value.
-
-   The format of the text is determined by the `format` argument.
-
-   Arguments:
-   - that: The table to convert.
-   - format: The format of the text.
-Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
-    case format of
-        _ : Delimited_Format -> Delimited_Writer.write_text that format
-        _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+   - fields: a Vector of Text representing the names of fields to look up.
+     If `Nothing` then all fields found are added.
+Vector.to_table : Vector | Nothing -> Table ! Type_Error
+Vector.to_table self fields=Nothing =
+    Table.from_objects self fields
 
 ## GROUP Standard.Base.Constants
    Converts an object or a Vector of object into a Table, by looking up the
@@ -70,6 +85,9 @@ Table.from_objects value fields=Nothing =
         _ : Number -> ["Value"]
         _ : Boolean -> ["Value"]
         _ : Text -> ["Value"]
+        _ : Date -> ["Value"]
+        _ : Time_Of_Day -> ["Value"]
+        _ : Date_Time -> ["Value"]
         _ -> Error.throw (Illegal_Argument.Error "Invalid item within Vector for Table.from_objects. Currently only JS_Object, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name v)+").")
 
     get_value v field = case v of
@@ -81,6 +99,9 @@ Table.from_objects value fields=Nothing =
         _ : Number -> table_for_value value
         _ : Boolean -> table_for_value value
         _ : Text -> table_for_value value
+        _ : Date -> table_for_value value
+        _ : Time_Of_Day -> table_for_value value
+        _ : Date_Time -> table_for_value value
         _ : JS_Object ->
             field_names = fields.if_nothing value.field_names
             values = field_names.map value.get
@@ -107,7 +128,7 @@ Table.from_objects value fields=Nothing =
 
             Table.new (used_fields.zip used_values)
         _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
-        _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
+        _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text, date/time and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
 
 ## GROUP Standard.Base.Conversions
    Converts a Text into a Table using a regular expression pattern.

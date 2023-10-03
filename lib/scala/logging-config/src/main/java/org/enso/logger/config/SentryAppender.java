@@ -50,8 +50,9 @@ public final class SentryAppender extends Appender {
   @Override
   public boolean setupForPath(
       Level logLevel, Path logRoot, String logPrefix, LoggerSetup loggerSetup) {
-    if (loggerSetup.getConfig().logToFile()) {
-      loggerSetup.setupFileAppender(Level.TRACE, logRoot, logPrefix);
+    if (loggerSetup.getConfig().logToFile().enabled()) {
+      loggerSetup.setupFileAppender(
+          loggerSetup.getConfig().logToFile().logLevel(), logRoot, logPrefix);
     }
     return loggerSetup.setupSentryAppender(logLevel, logRoot);
   }

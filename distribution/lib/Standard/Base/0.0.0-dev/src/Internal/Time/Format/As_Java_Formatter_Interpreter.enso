@@ -3,12 +3,10 @@ import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Vector.Vector
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Internal.Time.Format.Analyzer.Analyzer
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
-
-import project.Internal.Time.Format.Analyzer.Analyzer
-from project.Internal.Time.Format.Parser import Common_Nodes, Standard_Date_Patterns, ISO_Week_Year_Patterns, Time_Patterns, Time_Zone_Patterns
-from project.Internal.Time.Format.Parser import Text_Representation, Numeric_Representation, Two_Digit_Year_Representation
+from project.Internal.Time.Format.Parser import Common_Nodes, ISO_Week_Year_Patterns, Numeric_Representation, Standard_Date_Patterns, Text_Representation, Time_Patterns, Time_Zone_Patterns, Two_Digit_Year_Representation
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.format.DateTimeFormatterBuilder

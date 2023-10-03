@@ -8,20 +8,19 @@ import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
-import project.Nothing.Nothing
-import project.Panic.Panic
-from project.Data.Boolean import Boolean, False, True
-
 import project.Internal.Time.Format.Analyzer.Analyzer
 import project.Internal.Time.Format.As_Java_Formatter_Interpreter
 import project.Internal.Time.Format.Parser
 import project.Internal.Time.Format.Tokenizer.Tokenizer
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import org.enso.base.time.EnsoDateTimeFormatter
-polyglot java import org.enso.base.time.FormatterCacheKey
 polyglot java import org.enso.base.time.FormatterCache
+polyglot java import org.enso.base.time.FormatterCacheKey
 polyglot java import org.enso.base.time.FormatterKind
 
 type Date_Time_Formatter
