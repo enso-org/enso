@@ -910,7 +910,7 @@ spec =
     Test.group "[In-Memory-specific] Table.join" <|
         Test.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]
-            t.join 42 . should_fail_with Type_Error
+            Panic.recover Type_Error (t.join 42) . should_fail_with Type_Error
 
             db_connection = Database.connect (SQLite In_Memory)
             db_table = (Table.new [["Y", [4, 5, 6]]]).select_into_database_table db_connection "test"

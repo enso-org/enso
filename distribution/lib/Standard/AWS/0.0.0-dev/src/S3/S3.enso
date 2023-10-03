@@ -149,4 +149,4 @@ make_client credentials:(AWS_Credential | Nothing) =
    Utility method for running an action with Java exceptions mapping.
 handle_io_errors uri:URI ~action =
     Panic.catch IOException action caught_panic->
-        S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text
+        Error.throw (S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text)
