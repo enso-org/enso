@@ -7,7 +7,7 @@ import HeatmapVisualization from '@/components/visualizations/HeatmapVisualizati
 
 const data = ref<any>([
   ['A', 'B', 'C', 'D', 'A'],
-  [1, 2, 3, 2, 3],
+  ['D', 'E', 'D', 'X', 'Z'],
   [50, 25, 40, 20, 10],
 ])
 </script>
@@ -16,15 +16,15 @@ const data = ref<any>([
   <Story
     title="Heatmap"
     group="visualizations"
-    :layout="{ type: 'grid', width: 250 }"
+    :layout="{ type: 'grid', width: 400 }"
     auto-props-disabled
   >
-    <div style="height: 222px">
+    <div style="height: 322px">
       <HeatmapVisualization :data="data" />
     </div>
 
     <template #controls>
-      <HstJson v-model="data" />
+      <HstJson v-model="data" title="data" />
     </template>
   </Story>
 </template>

@@ -26,8 +26,8 @@ export const setupVue3 = defineSetupVue3(({ app }) => {
     visualizationConfigProvideKey$FOR$INTERNAL$USE$ONLY,
     ref({
       fullscreen: false,
-      width: 200,
-      height: 150,
+      width: 370,
+      height: 250,
       hide() {},
       isCircularMenuVisible: false,
       nodeSize: new Vec2(200, 150),

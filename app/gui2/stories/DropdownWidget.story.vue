@@ -32,7 +32,7 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
     <template #controls>
       <HstColorSelect v-model="color" title="color" />
       <HstSelect v-model="selectedValue" title="selectedValue" :options="values" />
-      <HstJson v-model="values" />
+      <HstJson v-model="values" title="values" />
     </template>
   </Story>
 </template>
