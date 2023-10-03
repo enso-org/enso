@@ -1,13 +1,11 @@
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
-import diff from 'fast-diff'
 import { simpleDiffString } from 'lib0/diff'
-import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
-import { Checksum, Path, TextEdit } from '../shared/languageServerTypes'
+import { Checksum, Path } from '../shared/languageServerTypes'
 import {
   DistributedProject,
   ExprId,
@@ -15,8 +13,8 @@ import {
   ModuleDoc,
   NodeMetadata,
   Uuid,
-  decodeRange,
 } from '../shared/yjsModel'
+import { applyDocumentUpdates, preParseContent, prettyPrintDiff } from './edits'
 import * as fileFormat from './fileFormat'
 import { WSSharedDoc } from './ydoc'
 
@@ -192,10 +190,6 @@ const pushPathSegment = (path: Path, segment: string): Path => {
   }
 }
 
-const META_TAG = '#### METADATA ####'
-
-type IdMapEntry = [{ index: { value: number }; size: { value: number } }, string]
-
 enum LsSyncState {
   Closed,
   Opening,
@@ -336,102 +330,52 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     if (this.syncedContent == null || this.syncedVersion == null) return
     if (contentDelta == null && idMapKeys == null && metadataKeys == null) return
 
-    const synced = preParseContent(this.syncedContent)
-
-    let newContent = ''
-
-    const allEdits: TextEdit[] = []
-    if (contentDelta && contentDelta.length > 0) {
-      const { code, edits } = convertDeltaToTextEdits(synced.code, contentDelta)
-      newContent += code
-      allEdits.push(...edits)
-    } else {
-      newContent += synced.code
-    }
-
-    const metaStartLine = (newContent.match(/\n/g) ?? []).length
-    let metaContent = META_TAG + '\n'
-
-    if (
-      idMapKeys != null ||
-      synced.idMapJson == null ||
-      (contentDelta && contentDelta.length > 0)
-    ) {
-      const idMapJson = json.stringify(idMapToArray(this.doc.idMap))
-      metaContent += idMapJson + '\n'
-    } else {
-      metaContent += (synced.idMapJson ?? '[]') + '\n'
-    }
-
-    const nodeMetadata = this.syncedMeta.ide.node
-    if (metadataKeys != null) {
-      for (const [key, op] of metadataKeys) {
-        switch (op.action) {
-          case 'delete':
-            delete nodeMetadata[key]
-            break
-          case 'add':
-          case 'update': {
-            const updatedMeta = this.doc.metadata.get(key)
-            const oldMeta = nodeMetadata[key] ?? {}
-            if (updatedMeta == null) continue
-            nodeMetadata[key] = {
-              ...oldMeta,
-              position: {
-                vector: [updatedMeta.x, updatedMeta.y],
-              },
-            }
-            break
-          }
-        }
-      }
-
-      const metadataJson = json.stringify(this.syncedMeta)
-      metaContent += metadataJson
-    } else {
-      metaContent += synced.metadataJson ?? '{}'
-    }
-
-    const oldMetaContent = this.syncedContent.slice(synced.code.length)
-    allEdits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
-    newContent += metaContent
+    const { edits, newContent, newMetadata } = applyDocumentUpdates(
+      this.doc,
+      this.syncedMeta,
+      this.syncedContent,
+      contentDelta,
+      idMapKeys,
+      metadataKeys,
+    )
 
     const newVersion = computeTextChecksum(newContent)
 
     if (DEBUG_LOG_SYNC) {
       console.log(' === changes === ')
-      console.log('number of edits:', allEdits.length)
+      console.log('number of edits:', edits.length)
       console.log('metadata:', metadataKeys)
       console.log('content:', contentDelta)
       console.log('idMap:', idMapKeys)
-      if (allEdits.length > 0) {
+      if (edits.length > 0) {
         console.log('version:', this.syncedVersion, '->', newVersion)
         console.log('Content diff:')
         console.log(prettyPrintDiff(this.syncedContent, newContent))
       }
       console.log(' =============== ')
     }
-    if (allEdits.length === 0) {
+    if (edits.length === 0) {
+      if (newVersion !== this.syncedVersion) {
+        console.error('Version mismatch:', this.syncedVersion, '->', newVersion)
+      }
       return
     }
-
-    const execute = (contentDelta && contentDelta.length > 0) || metadataKeys != null
 
     this.changeState(LsSyncState.WritingFile)
     const apply = this.ls.applyEdit(
       {
         path: this.path,
-        edits: allEdits,
+        edits,
         oldVersion: this.syncedVersion,
         newVersion,
       },
-      execute,
+      true,
     )
     return (this.lastAction = apply.then(
       () => {
         this.syncedContent = newContent
         this.syncedVersion = newVersion
-        this.syncedMeta.ide.node = nodeMetadata
+        this.syncedMeta = newMetadata
         this.changeState(LsSyncState.Synchronized)
       },
       (e) => {
@@ -581,238 +525,4 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
     return Promise.resolve()
   }
-}
-
-function applyDiffAsTextEdits(
-  lineOffset: number,
-  oldString: string,
-  newString: string,
-): TextEdit[] {
-  const changes = diff(oldString, newString)
-  let newIndex = 0
-  let lineNum = lineOffset
-  let lineStartIdx = 0
-  const edits = []
-  for (const [op, text] of changes) {
-    if (op === 1) {
-      const pos = {
-        character: newIndex - lineStartIdx,
-        line: lineNum,
-      }
-      edits.push({ range: { start: pos, end: pos }, text })
-      const numLineBreaks = (text.match(/\n/g) ?? []).length
-      if (numLineBreaks > 0) {
-        lineStartIdx = newIndex + text.lastIndexOf('\n') + 1
-      }
-      newIndex += text.length
-    } else if (op === -1) {
-      const start = {
-        character: newIndex - lineStartIdx,
-        line: lineNum,
-      }
-      const numLineBreaks = (text.match(/\n/g) ?? []).length
-      const character =
-        numLineBreaks > 0 ? text.lastIndexOf('\n') + 1 : newIndex - lineStartIdx + text.length
-      const end = {
-        character,
-        line: lineNum + numLineBreaks,
-      }
-      edits.push({ range: { start, end }, text: '' })
-    } else if (op === 0) {
-      const numLineBreaks = (text.match(/\n/g) ?? []).length
-      lineNum += numLineBreaks
-      if (numLineBreaks > 0) {
-        lineStartIdx = newIndex + text.lastIndexOf('\n') + 1
-      }
-      newIndex += text.length
-    }
-  }
-  return edits
-}
-
-function convertDeltaToTextEdits(
-  prevText: string,
-  contentDelta: Y.YTextEvent['delta'],
-): { code: string; edits: TextEdit[] } {
-  const edits = []
-  let index = 0
-  let newIndex = 0
-  let lineNum = 0
-  let lineStartIdx = 0
-  let code = ''
-  for (const op of contentDelta) {
-    if (op.insert != null && typeof op.insert === 'string') {
-      const pos = {
-        character: newIndex - lineStartIdx,
-        line: lineNum,
-      }
-      // if the last edit was a delete on the same position, we can merge the insert into it
-      const lastEdit = edits[edits.length - 1]
-      if (
-        lastEdit &&
-        lastEdit.text.length === 0 &&
-        lastEdit.range.start.line === pos.line &&
-        lastEdit.range.start.character === pos.character
-      ) {
-        lastEdit.text = op.insert
-      } else {
-        edits.push({ range: { start: pos, end: pos }, text: op.insert })
-      }
-      const numLineBreaks = (op.insert.match(/\n/g) ?? []).length
-      if (numLineBreaks > 0) {
-        lineStartIdx = newIndex + op.insert.lastIndexOf('\n') + 1
-      }
-      code += op.insert
-      newIndex += op.insert.length
-    } else if (op.delete != null) {
-      const start = {
-        character: newIndex - lineStartIdx,
-        line: lineNum,
-      }
-      const deleted = prevText.slice(index, index + op.delete)
-      const numLineBreaks = (deleted.match(/\n/g) ?? []).length
-      const character =
-        numLineBreaks > 0 ? deleted.lastIndexOf('\n') + 1 : newIndex - lineStartIdx + op.delete
-      const end = {
-        character,
-        line: lineNum + numLineBreaks,
-      }
-      edits.push({ range: { start, end }, text: '' })
-      index += op.delete
-    } else if (op.retain != null) {
-      const retained = prevText.slice(index, index + op.retain)
-      const numLineBreaks = (retained.match(/\n/g) ?? []).length
-      lineNum += numLineBreaks
-      if (numLineBreaks > 0) {
-        lineStartIdx = newIndex + retained.lastIndexOf('\n') + 1
-      }
-      code += retained
-      index += op.retain
-      newIndex += op.retain
-    }
-  }
-  code += prevText.slice(index)
-  return { code, edits }
-}
-
-interface PreParsedContent {
-  code: string
-  idMapJson: string | null
-  metadataJson: string | null
-}
-
-function preParseContent(content: string): PreParsedContent {
-  const splitPoint = content.lastIndexOf(META_TAG)
-  if (splitPoint < 0) {
-    return {
-      code: content,
-      idMapJson: null,
-      metadataJson: null,
-    }
-  }
-  const code = content.slice(0, splitPoint)
-  const metadataString = content.slice(splitPoint + META_TAG.length)
-  const metaLines = metadataString.trim().split('\n')
-  const idMapJson = metaLines[0] ?? null
-  const metadataJson = metaLines[1] ?? null
-  return { code, idMapJson, metadataJson }
-}
-
-function idMapToArray(map: Y.Map<Uint8Array>): IdMapEntry[] {
-  const entries: IdMapEntry[] = []
-  const doc = map.doc!
-  map.forEach((rangeBuffer, id) => {
-    const decoded = decodeRange(rangeBuffer)
-    const index = Y.createAbsolutePositionFromRelativePosition(decoded[0], doc)?.index
-    const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
-    if (index == null || endIndex == null) return
-    const size = endIndex - index
-    entries.push([{ index: { value: index }, size: { value: size } }, id])
-  })
-  entries.sort(idMapCmp)
-  return entries
-}
-
-function idMapCmp(a: IdMapEntry, b: IdMapEntry) {
-  const val1 = a[0]?.index?.value ?? 0
-  const val2 = b[0]?.index?.value ?? 0
-  if (val1 === val2) {
-    const size1 = a[0]?.size.value ?? 0
-    const size2 = b[0]?.size.value ?? 0
-    return size1 - size2
-  }
-  return val1 - val2
-}
-
-if (import.meta.vitest) {
-  const { test, expect, describe } = import.meta.vitest
-
-  describe('applyDiffAsTextEdits', () => {
-    test('no change', () => {
-      const edits = applyDiffAsTextEdits(0, 'abcd', 'abcd')
-      expect(edits).toStrictEqual([])
-    })
-    test('simple add', () => {
-      const before = 'abcd'
-      const after = 'abefcd'
-      const edits = applyDiffAsTextEdits(1, before, after)
-      expect(edits).toStrictEqual([
-        {
-          range: { end: { character: 2, line: 1 }, start: { character: 2, line: 1 } },
-          text: 'ef',
-        },
-      ])
-    })
-    test('two adds', () => {
-      const before = 'abcd'
-      const after = 'abefcdxy'
-      const edits = applyDiffAsTextEdits(1, before, after)
-      expect(edits).toStrictEqual([
-        {
-          range: { end: { character: 2, line: 1 }, start: { character: 2, line: 1 } },
-          text: 'ef',
-        },
-        {
-          range: { end: { character: 6, line: 1 }, start: { character: 6, line: 1 } },
-          text: 'xy',
-        },
-      ])
-    })
-  })
-}
-
-function prettyPrintDiff(from: string, to: string): string {
-  const colReset = '\x1b[0m'
-  const colRed = '\x1b[31m'
-  const colGreen = '\x1b[32m'
-
-  const diffs = diff(from, to)
-  if (diffs.length === 1 && diffs[0]![0] === 0) return 'No changes'
-  let content = ''
-  for (let i = 0; i < diffs.length; i++) {
-    const [op, text] = diffs[i]!
-    if (op === 1) {
-      content += colGreen + text
-    } else if (op === -1) {
-      content += colRed + text
-    } else if (op === 0) {
-      content += colReset
-      const numNewlines = (text.match(/\n/g) ?? []).length
-      if (numNewlines < 2) {
-        content += text
-      } else {
-        const firstNewline = text.indexOf('\n')
-        const lastNewline = text.lastIndexOf('\n')
-        const firstLine = text.slice(0, firstNewline + 1)
-        const lastLine = text.slice(lastNewline + 1)
-        const isFirst = i === 0
-        const isLast = i === diffs.length - 1
-        if (!isFirst) content += firstLine
-        if (!isFirst && !isLast) content += '...\n'
-        if (!isLast) content += lastLine
-      }
-    }
-  }
-  content += colReset
-  return content
 }

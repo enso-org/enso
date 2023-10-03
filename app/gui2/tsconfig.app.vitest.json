@@ -6,10 +6,5 @@
     "lib": [],
     "outDir": "../../node_modules/.cache/tsc",
     "types": ["node", "jsdom", "vitest/importMeta"]
-  },
-  "references": [
-    {
-      "path": "../ide-desktop/lib/dashboard/tsconfig.json"
-    }
-  ]
+  }
 }
