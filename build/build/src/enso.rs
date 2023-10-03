@@ -120,7 +120,7 @@ impl BuiltEnso {
         ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
         ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
 
-        ENSO_ENABLE_ASSERTIONS.set(&"true".to_string())?;
+        ENSO_ENABLE_ASSERTIONS.set("true")?;
 
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
