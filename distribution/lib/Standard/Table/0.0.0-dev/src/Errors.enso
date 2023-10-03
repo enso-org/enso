@@ -720,3 +720,23 @@ type Clashing_Column_Name
     to_display_text : Text
     to_display_text self =
         "The column name [" + self.provided_name.to_display_text + "] is clashing with the column name [" + self.clashing_name.to_display_text + "] - they cannot be distinguished because the backend is not case sensitive, so only one of these can exist within a single table. If you wanted to replace the column, use the exact (case sensitive) name of the column to replace."
+
+type Unexpected_Extra_Columns
+    ## PRIVATE
+    Warning (columns : Vector Text)
+
+    ## PRIVATE
+       Pretty print the unexpected extra columns warning.
+    to_display_text : Text
+    to_display_text self =
+        "The following unexpected columns were ignored: " + self.columns.to_display_text + "."
+
+type Unmatched_Rows_In_Lookup
+    ## PRIVATE
+    Error row_count:Integer
+
+    ## PRIVATE
+       Pretty print the unmatched rows in lookup error.
+    to_display_text : Text
+    to_display_text self =
+        "The lookup operation failed to match "+self.row_count.to_text+" rows."

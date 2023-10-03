@@ -1313,6 +1313,73 @@ type Table
             on_problems.attach_problems_before limit_problems <|
                 self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
 
+    ## Replaces values in this table by values from a lookup table.
+
+       This operation acts a bit like `Table.update_rows`, but instead of
+       updating the table in-place (which is only possible in the Database
+       table), it returns a new Table instance (which is a new table in-memory,
+       and a complex query in Database).
+
+       It joins rows from this table with the rows in the lookup table based on
+       the `key_columns`. Values in this table are replaced by values from
+       corresponding columns from the lookup table. Columns not present in the
+       lookup table are left unchanged.
+
+       Arguments:
+       - lookup_table: The table to use for looking up values.
+         The rows in the lookup table must be uniquely identified by the
+         `key_columns`.
+       - key_columns: Specifies the columns to use for correlating rows between
+         the two tables.
+       - add_new_columns: Specifies if columns from the lookup table that are
+         not present in this table should be added to the result. Defaults to
+         `True`. If set to `False`, any extra columns are skipped and an
+         `Unexpected_Extra_Columns` problem is reported.
+       - allow_unmatched_rows: Specifies what to do with rows in this table that
+         do not have a matching row in the lookup table.
+         - If `False` (the default), an `Unmatched_Rows_In_Lookup` error is
+           raised.
+         - If `True`, the unmatched rows are left unchanged.
+           If `add_new_columns=True`, any additional columns will be filled with
+          `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
+
+       ? Error Conditions
+
+         - If this table or the lookup table is lacking any of the columns
+           specified in `key_columns`, a `Missing_Input_Columns` error is raised.
+         - If the lookup table contains multiple rows with the same values in
+           the `key_columns`, an `Non_Unique_Primary_Key` error is raised.
+         - If `allow_unmatched_rows` is `False` and there are rows in this table
+           that do not have a matching row in the lookup table, an
+           `Unmatched_Rows_In_Lookup` error is raised.
+         - The following problems may be reported according to the `on_problems`
+           setting:
+           - If any of the `key_columns` is a floating-point type,
+             a `Floating_Point_Equality`/
+           - If `add_new_columns` is `False` and the lookup table has columns
+             that are not present in this table, an `Unexpected_Extra_Columns`.
+
+         ! Database Error-check Consistency
+
+           Note that in the Database backend, the `Unmatched_Rows_In_Lookup` and
+           `Non_Unique_Primary_Key` are checked immediately when this operation
+           is executed, whereas the actual join is performed only when the
+           result data is materialized.
+           This means that upon materialization there may be unmatched or
+           duplicated rows if the database has changed in the meantime.
+    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Primary_Key | Unmatched_Rows_In_Lookup
+    lookup_and_replace lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        Error.throw "TODO"
+
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
        Joins two tables by zipping rows from both tables table together - the
