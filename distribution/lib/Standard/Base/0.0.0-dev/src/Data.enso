@@ -12,12 +12,12 @@ import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
-from project.Network.HTTP.Request_Body import all
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS load, open
@@ -27,7 +27,8 @@ from project.System.File_Format import Auto_Detect, File_Format
    specified will use the file's extension to determine the file format.
 
    Arguments:
-   - path: The path to the file to read.
+   - path: The path to the file to read. If the path is a URI, then the data
+     will be fetched if from a supported protocol.
    - format: A `File_Format` object used to read file into memory.
      If `Auto_Detect` is specified; the provided file determines the specific
      type and configures it appropriately. If there is no matching type then
@@ -58,8 +59,10 @@ from project.System.File_Format import Auto_Detect, File_Format
          example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
 @format File_Format.default_widget
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
-read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
-    File.new path . read format on_problems
+read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case path of
+    _ : Text -> if (path.starts_with "http://") || (path.starts_with "https://") then fetch path else
+        read (File.new path) format on_problems
+    _ -> File.new path . read format on_problems
 
 ## ALIAS load text, open text
    GROUP Input
@@ -154,10 +157,9 @@ list_directory directory name_filter=Nothing recursive=False =
    - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
-
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
+   - try_auto_parse_response:  If successful should the body be attempted to be
+     parsed to an Enso native object.
 
    > Example
      Read from an HTTP endpoint.
@@ -177,7 +179,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
     if try_auto_parse_response.not then response.with_materialized_body else
         response.decode if_unsupported=response.with_materialized_body
 
-## ALIAS upload, http post
+## ALIAS http post, upload
    GROUP Input
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
@@ -300,18 +302,3 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
     response = HTTP.post uri body method headers
     if try_auto_parse_response.not then response.with_materialized_body else
         response.decode if_unsupported=response.with_materialized_body
-
-## ALIAS download, http get
-   GROUP Input
-   Fetches from the URI and returns the response, parsing the body if the
-   content-type is recognised. Returns an  error if the status code does not
-   represent a successful response.
-
-   Arguments:
-   - method: The HTTP method to use. Defaults to `GET`.
-   - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
-URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-URI.fetch self method=HTTP_Method.Get headers=[] try_auto_parse=True =
-    Data.fetch self method headers try_auto_parse
