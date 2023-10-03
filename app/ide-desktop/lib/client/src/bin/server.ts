@@ -102,6 +102,8 @@ export class Server {
                     }
                     // Prepare the YDoc server access point for the new Vue-based GUI.
                     if (httpServer) {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                        // @typescript-eslint/no-unsafe-call
                         ydocServer.createGatewayServer(httpServer)
                     }
                     logger.log(`Server started on port ${this.config.port}.`)

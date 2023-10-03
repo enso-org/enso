@@ -10,6 +10,7 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
+import project.Errors.Common.Not_Found
 import project.Nothing.Nothing
 import project.Polyglot.Java
 from project.Data.Boolean import Boolean, False, True
@@ -75,6 +76,22 @@ type Type
     name self =
         c = self.value
         get_short_type_name c
+
+    ## ADVANCED
+       GROUP Metadata
+
+       Finds type specified by fully qualified name. Searches
+       all the types known to the system by transitive closure
+       of import statements in executing modules.
+
+       Arguments:
+       - qualified_name: fully qualified name.
+    find : Text -> Type ! Not_Found
+    find qualified_name =
+        raw = find_type_by_qualified_name qualified_name
+        case Meta.meta raw of
+            t:Meta.Type -> t
+            _ -> Base_Error.throw Not_Found
 
 type Atom
     ## PRIVATE
@@ -561,3 +578,11 @@ get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
    - constructor: the constructor to get the declaring type of.
 get_constructor_declaring_type : Any -> Any
 get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
+
+## PRIVATE
+   Returns type specified by fully qualified name.
+
+   Arguments:
+   - fqn: fully qualified name.
+find_type_by_qualified_name : Text -> Any
+find_type_by_qualified_name fqn = @Builtin_Method "Meta.find_type_by_qualified_name"

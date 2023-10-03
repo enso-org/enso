@@ -300,12 +300,6 @@ function clearSelection() {
         @movePosition="moveNode(id, $event)"
       />
     </div>
-    <SelectionBrush
-      v-if="scaledMousePos"
-      :position="scaledMousePos"
-      :anchor="scaledSelectionAnchor"
-      :style="{ transform: navigator.prescaledTransform }"
-    />
     <ComponentBrowser
       v-if="componentBrowserVisible"
       :navigator="navigator"
@@ -323,6 +317,12 @@ function clearSelection() {
       @execute="console.log('\'execute\' button clicked.')"
     />
     <CodeEditor ref="codeEditor" />
+    <SelectionBrush
+      v-if="scaledMousePos"
+      :position="scaledMousePos"
+      :anchor="scaledSelectionAnchor"
+      :style="{ transform: navigator.prescaledTransform }"
+    />
   </div>
 </template>
 

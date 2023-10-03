@@ -1522,8 +1522,8 @@ type Column
     ## GROUP Standard.Base.Conversions
        Formatting values is not supported in database columns.
     @locale Locale.default_widget
-    format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
-    format self (format : Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default =
+    format : Text | Date_Time_Formatter | Column | Nothing -> Locale -> Column ! Illegal_Argument
+    format self format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default =
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.format` is not implemented yet for the Database backends."
 
@@ -1754,3 +1754,8 @@ adapt_unified_column column expected_type =
    A shorthand to be able to share the implementations between in-memory and
    database.
 simple_unary_op column op_kind = column.make_unary_op op_kind
+
+## PRIVATE
+Materialized_Column.from (that:Column) =
+    _ = [that]
+    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the column using `.read` before mixing it with an in-memory Table.")

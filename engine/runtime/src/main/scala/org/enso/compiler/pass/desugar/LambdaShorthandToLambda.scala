@@ -43,7 +43,7 @@ case object LambdaShorthandToLambda extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     DocumentationComments,
     FunctionBinding,
@@ -51,7 +51,7 @@ case object LambdaShorthandToLambda extends IRPass {
     OperatorToFunction,
     SectionsToBinOp
   )
-  override val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
     ApplicationSaturation,
     DataflowAnalysis,

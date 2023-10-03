@@ -10,7 +10,8 @@ const props = defineProps<{
 
 provideGuiConfig(toRef(props, 'config'))
 
-onMounted(() => useSuggestionDbStore().initializeDb())
+// Initialize suggestion db immediately, so it will be ready when user needs it.
+onMounted(() => useSuggestionDbStore())
 </script>
 
 <template>

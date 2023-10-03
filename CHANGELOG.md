@@ -578,6 +578,7 @@
 - [Renamed `Decimal` to `Float`.][7807]
 - [Implemented `Date_Time_Formatter` for more user-friendly date/time format
   parsing.][7826]
+- [Added `Table.expand_column` and improved JSON deserialization.][7859]
 - [Implemented `Table.auto_value_types` for in-memory tables.][7908]
 - [Implemented Text.substring to easily select part of a Text field][7913]
 
@@ -822,6 +823,7 @@
 [7776]: https://github.com/enso-org/enso/pull/7776
 [7807]: https://github.com/enso-org/enso/pull/7807
 [7826]: https://github.com/enso-org/enso/pull/7826
+[7859]: https://github.com/enso-org/enso/pull/7859
 [7908]: https://github.com/enso-org/enso/pull/7908
 [7913]: https://github.com/enso-org/enso/pull/7913
 

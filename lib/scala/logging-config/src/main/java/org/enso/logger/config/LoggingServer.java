@@ -13,7 +13,7 @@ import java.util.Map;
  * @param appender appender's configuration describing how to transform received log events
  * @param start if true, will be started by the service defining the configuration
  */
-public record LoggingServer(int port, Map<String, Appender> appenders, String appender, boolean start, boolean logToFile) implements BaseConfig {
+public record LoggingServer(int port, Map<String, Appender> appenders, String appender, boolean start, LogToFile logToFile) implements BaseConfig {
 
     public static final String startKey = "start";
 
@@ -33,7 +33,7 @@ public record LoggingServer(int port, Map<String, Appender> appenders, String ap
         }
         String defaultAppender = config.getString(LoggingServiceConfig.defaultAppenderKey);
         boolean start = config.hasPath(startKey) ? config.getBoolean(startKey) : false;
-        boolean logToFile = config.hasPath(LoggingServiceConfig.alwaysLogToFileKey) ? config.getBoolean(LoggingServiceConfig.alwaysLogToFileKey) : false;
+        LogToFile logToFile = config.hasPath(LoggingServiceConfig.logToFileKey) ? LogToFile.fromConfig(config.getConfig(LoggingServiceConfig.logToFileKey)) : LogToFile.disabled();
         return new LoggingServer(port, appendersMap, defaultAppender, start, logToFile);
     }
 
