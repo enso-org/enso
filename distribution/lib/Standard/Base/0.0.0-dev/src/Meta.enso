@@ -13,6 +13,7 @@ import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
 import project.Nothing.Nothing
 import project.Polyglot.Java
+from project.Runtime.Managed_Resource import Managed_Resource
 from project.Data.Boolean import Boolean, False, True
 
 type Type
@@ -652,13 +653,15 @@ type Instrumentor
     ## PRIVATE
        ADVANCED
 
-       Activates configured instrumentor.
+       Activates configured instrumentor. Returns managed resource to
+       deactivate the instrumentor later.
 
        Arguments:
        - value: The value of the atom in the meta representation.
     activate self =
-        instrumentor_builtin "activate" [ self.impl ]
-        self
+        finalize d = instrumentor_builtin "deactivate" [ d.impl ]
+        instrumentor_builtin "activate" [ self.impl, finalize ]
+
 ## PRIVATE
    Returns type specified by fully qualified name.
 

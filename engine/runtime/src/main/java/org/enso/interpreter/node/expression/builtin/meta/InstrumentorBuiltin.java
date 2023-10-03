@@ -1,6 +1,9 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import java.lang.ref.PhantomReference;
 import java.util.UUID;
+
+import org.enso.distribution.locking.ResourceManager;
 
 import com.oracle.truffle.api.nodes.Node;
 
@@ -11,13 +14,17 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.polyglot.debugger.IdExecutionService;
 
+import com.ibm.icu.impl.number.MutablePatternModifier;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.instrumentation.EventBinding;
+import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -38,6 +45,7 @@ public class InstrumentorBuiltin extends Node {
     Object onReturn;
     Object onFunction;
     Object onException;
+    EventBinding<ExecutionEventNodeFactory> close;
 
     Builder(Module module, IdExecutionService service, CallTarget target) {
       this.module = module;
@@ -58,7 +66,8 @@ public class InstrumentorBuiltin extends Node {
       case "onReturn" -> onReturn((Builder) arr[0], (Function) arr[1]);
       case "onFunction" -> onFunction((Builder) arr[0], (Function) arr[1]);
       case "onException" -> onException((Builder) arr[0], (Function) arr[1]);
-      case "activate" -> activate((Builder) arr[0]);
+      case "activate" -> activate((Builder) arr[0], (Function)arr[1]);
+      case "deactivate" -> deactivate((Builder) arr[0]);
       default -> null;
     };
     if (ret == null) {
@@ -107,7 +116,7 @@ public class InstrumentorBuiltin extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object activate(Builder builder) {
+  private Object activate(Builder builder, Function fn) {
     class Observe implements IdExecutionService.Callbacks {
       @Override
       public Object findCachedResult(UUID nodeId) {
@@ -153,9 +162,18 @@ public class InstrumentorBuiltin extends Node {
         }
       }
     }
-    builder.service.bind(
+    builder.close = builder.service.bind(
       builder.module, builder.target, new Observe(), new Timer.Disabled()
     );
+    var ctx = EnsoContext.get(this);
+    return ctx.getResourceManager().register(ctx, fn);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Object deactivate(Builder builder) {
+    if (builder.close != null) {
+      builder.close.dispose();
+    }
     return builder;
   }
 }

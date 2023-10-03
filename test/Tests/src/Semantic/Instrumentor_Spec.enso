@@ -17,28 +17,44 @@ spec =
                     b.append result
                 Nothing
 
-            Meta.meta .fib . instrument . on_return collect . activate
+            instrumenter = Meta.meta .fib . instrument . on_return collect . activate
+
+            instrumenter . with _->
+                result = fib 10
+
+                v = b.to_vector
+
+                v.length . should_equal 1
+                v.at 0 . should_equal 89
+                result . should_equal 89
+
+            instrumenter.finalize
+
             result = fib 10
-
-            v = b.to_vector
-
-            v.length . should_equal 1
-            v.at 0 . should_equal 89
             result . should_equal 89
+
+            # no more instrumenting after finalize
+            b.to_vector.length . should_equal 1
 
         Test.specify "replay with caches and specify different result" <|
             replay uuid:Text = case uuid of
-                "00000000-aaaa-bbbb-0000-000000000000" -> 42
+                "00000000-ffff-bbbb-0000-000000000000" -> 42
                 _ -> Nothing
 
-            Meta.meta .fib . instrument . on_enter replay . activate
-            result = fib 10
+            instrumenter = Meta.meta .fib . instrument . on_enter replay . activate
 
-            result . should_equal 42
+            instrumenter . with _->
+                result = fib 10
+                result . should_equal 42
+
+            instrumenter.finalize
+
+            result = fib 10
+            result . should_equal 89
 
 main = Test_Suite.run_main spec
 
 
 
 #### METADATA ####
-[[{"index":{"value":127},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"]]
+[[{"index":{"value":127},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"], [{"index":{"value":69},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"]]
