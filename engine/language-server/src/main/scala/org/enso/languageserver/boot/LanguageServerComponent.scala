@@ -191,7 +191,9 @@ object LanguageServerComponent {
     * @param sampler a sampler gathering the application performance statistics
     * @param mainModule a main module containing all components of the server
     * @param jsonBinding a http binding for rpc protocol
+    * @param secureJsonBinding an optional https binding for rpc protocol
     * @param binaryBinding a http binding for data protocol
+    * @param secureBinaryBinding an optional https binding for data protocol
     */
   case class ServerContext(
     sampler: MethodsSampler,

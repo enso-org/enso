@@ -206,6 +206,13 @@ object LauncherApplication {
             "RPC port for processing all incoming connections. Defaults to 8080."
           )
           .withDefault(8080)
+      val secureRpcPort =
+        Opts
+          .optionalParameter[Int](
+            "secure-rpc-port",
+            "SECURE_RPC_PORT",
+            "Secure RPC port for processing all incoming connections."
+          )
       val dataPort =
         Opts
           .optionalParameter[Int](
@@ -214,19 +221,12 @@ object LauncherApplication {
             "Data port for visualization protocol. Defaults to 8081."
           )
           .withDefault(8081)
-      val secureRpcPort =
-        Opts
-          .optionalParameter[Int](
-            "secure-rpc-port",
-            "SECURE_RPC_PORT",
-            "Secure RPC port for processing all incoming connections. Defaults to 8080."
-          )
       val secureDataPort =
         Opts
           .optionalParameter[Int](
             "secure-data-port",
             "SECURE_DATA_PORT",
-            "Secure data port for visualization protocol. Defaults to 8081."
+            "Secure data port for visualization protocol."
           )
       val additionalArgs = Opts.additionalArguments()
       (

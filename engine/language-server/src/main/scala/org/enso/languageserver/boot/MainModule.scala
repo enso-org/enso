@@ -502,7 +502,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Closed Language Server main module.")
   }
 
-  def applicationConfig(): com.typesafe.config.Config = {
+  private def applicationConfig(): com.typesafe.config.Config = {
     val empty = ConfigFactory.empty().atPath("akka.https")
     ConfigFactory
       .load()

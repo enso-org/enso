@@ -222,6 +222,13 @@ object Main {
       .argName("rpc-port")
       .desc("RPC port for processing all incoming connections")
       .build()
+    val secureRpcPortOption = CliOption.builder
+      .longOpt(SECURE_RPC_PORT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("rpc-port")
+      .desc("A secure RPC port for processing all incoming connections")
+      .build()
     val dataPortOption = CliOption.builder
       .longOpt(DATA_PORT_OPTION)
       .hasArg(true)
@@ -229,19 +236,12 @@ object Main {
       .argName("data-port")
       .desc("Data port for visualization protocol")
       .build()
-    val secureRpcPortOption = CliOption.builder
-      .longOpt(SECURE_RPC_PORT_OPTION)
-      .hasArg(true)
-      .numberOfArgs(1)
-      .argName("rpc-port")
-      .desc("RPC port for processing all incoming connections")
-      .build()
     val secureDataPortOption = CliOption.builder
       .longOpt(SECURE_DATA_PORT_OPTION)
       .hasArg(true)
       .numberOfArgs(1)
       .argName("data-port")
-      .desc("Data port for visualization protocol")
+      .desc("A secure data port for visualization protocol")
       .build()
     val uuidOption = CliOption.builder
       .hasArg(true)

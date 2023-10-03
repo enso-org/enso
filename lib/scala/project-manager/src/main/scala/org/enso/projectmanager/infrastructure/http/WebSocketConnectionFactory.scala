@@ -1,5 +1,6 @@
 package org.enso.projectmanager.infrastructure.http
 
+import org.enso.jsonrpc.SecureConnectionConfig
 import org.enso.projectmanager.data.Socket
 
 /** Abstract connection factory.
@@ -13,11 +14,14 @@ trait WebSocketConnectionFactory {
     */
   def createConnection(socket: Socket): WebSocketConnection
 
-  /** Creates web socket connection.
+  /** Creates a secure web socket connection.
     *
     * @param socket a server address
-    * @return a connection
+    * @return a secure connection
     */
-  def createSecureConnection(socket: Socket): WebSocketConnection
+  def createSecureConnection(
+    socket: Socket,
+    secureConfig: SecureConnectionConfig
+  ): WebSocketConnection
 
 }

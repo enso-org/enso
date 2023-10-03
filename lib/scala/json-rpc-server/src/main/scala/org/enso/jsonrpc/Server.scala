@@ -42,8 +42,14 @@ abstract class Server(implicit private val system: ActorSystem) {
     }
   }
 
+  /** Returns handlers for http requests supported by the server.
+    *
+    * @param port port number where the server will be listening to handle requests
+    * @return mapping between requests and responses supported by this server
+    */
   protected def serverRoute(port: Int): Route
 
+  /** Returns an optional configuration for supporting secure connections. */
   protected def secureConfig(): Option[SecureConnectionConfig]
 
 }

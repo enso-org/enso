@@ -27,7 +27,9 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
   *                        related to initializing the engine
   * @param descriptor a LS descriptor
   * @param rpcPort port to bind for RPC connections
+  * @param secureRpcPort an optional port to bind for secure RPC connections
   * @param dataPort port to bind for binary connections
+  * @param secureDataPort an optional port to bind for secure  binary connections
   * @param bootTimeout maximum time permitted to wait for the process to finish
   *                    initializing; if the initialization heartbeat is not
   *                    received within this time the boot is treated as failed
