@@ -12,12 +12,12 @@ type Lookup_Settings
    indicating which columns will be updated and which will be added.
 
    It also reports any errors or warnings related to selecting these columns.
-prepare_columns_for_lookup base_table lookup_table key_columns add_new_columns on_problems =
-    my_key_columns = base_table.select_columns key_columns
+prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_columns on_problems =
+    key_columns = base_table.select_columns key_columns . column_names
     lookup_table_key_columns = lookup_table.select_columns key_columns . catch Missing_Input_Columns error->
         Error.throw (Missing_Input_Columns.Error error.criteria "the lookup table")
 
-    my_key_columns.if_not_error <| lookup_table_key_columns.if_not_error <|
+    key_columns.if_not_error <| lookup_table_key_columns.if_not_error <|
         key_set = Set.from_vector key_columns
         my_column_set = Set.from_vector base_table.column_names
         my_remaining_columns = my_column_set.difference key_set
