@@ -6,8 +6,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.IR$Module$Scope$Definition$Data;
-import org.enso.compiler.core.IR$Module$Scope$Definition$SugaredType;
+import org.enso.compiler.core.ir.module.scope.Definition;
 import org.netbeans.api.editor.mimelookup.MimeRegistration;
 import org.netbeans.api.lsp.StructureElement;
 import org.netbeans.spi.lsp.StructureProvider;
@@ -38,7 +37,7 @@ public final class EnsoStructure implements StructureProvider {
   }
   private static void collectStructureItem(List<StructureElement> arr, IR ir) {
     var b = switch (ir) {
-      case IR$Module$Scope$Definition$SugaredType type -> {
+      case Definition.SugaredType type -> {
         var bldr = StructureProvider.newBuilder(type.name().name(), StructureElement.Kind.Class);
         var children = new ArrayList<StructureElement>();
         collectStructure(children, type.body().iterator());
@@ -46,7 +45,7 @@ public final class EnsoStructure implements StructureProvider {
         yield bldr;
       }
 
-      case IR$Module$Scope$Definition$Data data -> {
+      case Definition.Data data -> {
         var bldr = StructureProvider.newBuilder(data.name().name(), StructureElement.Kind.Constructor);
         yield bldr;
       }
