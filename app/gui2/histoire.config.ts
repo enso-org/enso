@@ -47,6 +47,7 @@ export default defineConfig({
         'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm':
           require.resolve('ag-grid-enterprise'),
         'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm': require.resolve('sql-formatter'),
+        builtins: 'src/util/visualizationBuiltins.ts',
         'builtins/VisualizationContainer.vue': fileURLToPath(
           new URL('./src/components/VisualizationContainer.vue', import.meta.url),
         ),

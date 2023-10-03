@@ -84,8 +84,10 @@ interface Color {
 </script>
 
 <script setup lang="ts">
-import { d3 } from 'builtins'
 import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+
+import * as d3 from 'd3'
+
 import FindIcon from './icons/find.svg'
 import ShowAllIcon from './icons/show_all.svg'
 

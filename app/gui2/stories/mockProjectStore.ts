@@ -14,6 +14,7 @@ export const useProjectStore = defineStore('project', () => {
     async createExecutionContextForMain() {
       return undefined
     },
+    name: 'Mock Project',
     awareness: new Awareness(doc),
     undoManager: new Y.UndoManager([], { doc }),
     module: new DistributedModule(doc),

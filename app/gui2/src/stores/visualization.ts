@@ -4,9 +4,9 @@ import { type DefineComponent } from 'vue'
 import * as vueUseCore from '@vueuse/core'
 import { defineStore } from 'pinia'
 
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { defineKeybinds } from '@/util/shortcuts'
+import * as builtins from '@/util/visualizationBuiltins'
+import * as d3 from 'd3'
+
 import type {
   AddImportNotification,
   AddRawImportNotification,
@@ -21,12 +21,12 @@ import type {
   RegisterBuiltinModulesRequest,
 } from '@/workers/visualizationCompiler'
 import Compiler from '@/workers/visualizationCompiler?worker'
-import * as d3 from 'd3'
 
 const moduleCache: Record<string, any> = {
   vue,
   '@vueuse/core': vueUseCore,
-  builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds, d3 },
+  d3,
+  builtins,
 }
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
 // else.
