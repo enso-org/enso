@@ -9,6 +9,7 @@
     "public/**/*",
     "public/**/*.vue",
     "stories/**/*",
+    "stories/**/*.json",
     "stories/**/*.vue"
   ],
   "exclude": ["src/**/__tests__/*"],
@@ -20,7 +21,6 @@
     "baseUrl": ".",
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "types": ["vitest/importMeta"],
