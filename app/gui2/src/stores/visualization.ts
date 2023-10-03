@@ -262,8 +262,7 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
         }
       }
       case 'JSON':
-      case 'Scatterplot':
-      case 'Scatterplot 2': {
+      case 'Scatterplot': {
         return {
           axis: {
             x: { label: 'x-axis label', scale: 'linear' },
@@ -272,13 +271,12 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
           focus: { x: 1.7, y: 2.1, zoom: 3.0 },
           points: { labels: 'visible' },
           data: [
-            { x: 0.1, y: 0.7, label: 'foo', color: 'FF0000', shape: 'circle', size: 0.2 },
-            { x: 0.4, y: 0.2, label: 'baz', color: '0000FF', shape: 'square', size: 0.3 },
+            { x: 0.1, y: 0.7, label: 'foo', color: '#FF0000', shape: 'circle', size: 0.2 },
+            { x: 0.4, y: 0.2, label: 'baz', color: '#0000FF', shape: 'square', size: 0.3 },
           ],
         }
       }
-      case 'Geo Map':
-      case 'Geo Map 2': {
+      case 'Geo Map': {
         return {
           latitude: 37.8,
           longitude: -122.45,
