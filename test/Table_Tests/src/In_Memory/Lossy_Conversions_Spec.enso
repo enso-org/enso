@@ -70,17 +70,13 @@ spec =
             w4 = Problems.expect_only_warning Loss_Of_Integer_Precision c4
             w4.affected_rows_count . should_equal 2
 
-            # Until #7352 is fixed, these tests are also useful:
-            # If we start with mixed before encountering large values, no issues occur:
+            # No precision loss should happen if the column is mixed:
             c5 = Column.from_vector "X" ["a", 1.0, x+1]
             Problems.assume_no_problems c5
             c5.to_vector.map .to_text . should_equal (["a", 1.0, x+1].map .to_text)
-            # But if we first have floats and ints and only later enter mixed, we again get precision loss:
             c6 = Column.from_vector "X" [x+1, 1.0, x+2, "a", x+3]
-            w6 = Problems.expect_only_warning Loss_Of_Integer_Precision c6
-            # The 2 integers that got into DoubleBuilder are affected, the one after upcasting to Mixed is preserved OK.
-            w6.affected_rows_count . should_equal 2
-            c6.to_vector.map .to_text . should_equal ([x+0.0, 1.0, x+0.0, "a", x+3].map .to_text)
+            Problems.assume_no_problems c6
+            c6.to_vector.map .to_text . should_equal ([x+1, 1.0, x+2, "a", x+3].map .to_text)
 
             # It should also work for from_vector_repeated:
             c7 = Column.from_vector_repeated "X" [1.5, x+2, 100] 10
