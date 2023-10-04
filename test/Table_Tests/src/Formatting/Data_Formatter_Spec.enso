@@ -47,6 +47,20 @@ spec =
             formatter.parse "-Infinity" . should_equal (Number.negative_infinity)
             formatter.parse "NaN" . is_nan . should_be_true
 
+        Test.specify "should prefer the US decimal point in auto mode" <|
+            formatter = Data_Formatter.Value
+            formatter.parse "1.5" . should_equal 1.5
+            formatter.parse "1.25" . should_equal 1.25
+            formatter.parse "1.125" . should_equal 1.125
+            formatter.parse "1,125" . should_equal 1125
+            formatter.parse "1,000,000" . should_equal 1000000
+            formatter.parse "1,000.5" . should_equal 1000.5
+
+            # But if it doesn't fit the US number, other formats should work as well:
+            formatter.parse "1.000,25" . should_equal 1000.25
+            formatter.parse "1'000" . should_equal 1000
+            formatter.parse "1.000.000" . should_equal 1000000
+
         Test.specify "should allow customizing the decimal point and thousand separator" <|
             formatter = Data_Formatter.Value thousand_separator="_" decimal_point=","
             formatter.parse "123" . should_equal 123
@@ -58,6 +72,36 @@ spec =
             formatter.parse "0" . should_equal 0
             formatter.parse "-1,0" . should_equal -1.0
             formatter.parse "1,0001" . should_equal 1.0001
+
+        Test.specify "should never infer thousand separator to be equal to decimal point" <|
+            f1 = Data_Formatter.Value decimal_point="."
+            f1.parse "1.0" . should_equal 1.0
+            f1.parse "1.000" . should_equal 1.0
+            # This only makes sense as thousand separator but because of the decimal point clashing, it cannot be parsed and stays as text:
+            f1.parse "1.000.000" . should_equal "1.000.000"
+            f1.parse "1,000,000" . should_equal 1000000
+
+            f2 = Data_Formatter.Value decimal_point=","
+            f2.parse "1,0" . should_equal 1.0
+            f2.parse "1,000" . should_equal 1.0
+            f2.parse "1,000,000" . should_equal "1,000,000"
+            f2.parse "1.0" . should_equal "1.0"
+            f2.parse "1.000" . should_equal 1000
+            f2.parse "1.000.000" . should_equal 1000000
+
+            f3 = Data_Formatter.Value thousand_separator="."
+            f3.parse "1.000" . should_equal 1000
+            f3.parse "1.0" . should_equal "1.0"
+
+            f4 = Data_Formatter.Value thousand_separator=","
+            f4.parse "1,000" . should_equal 1000
+            f4.parse "1,0" . should_equal "1,0"
+
+            r5 = Data_Formatter.Value . with_number_formatting decimal_point="." thousand_separator="."
+            r5.should_fail_with Illegal_Argument
+
+            r6 = Data_Formatter.Value decimal_point="." thousand_separator="."
+            r6.parse "1.000" . should_fail_with Illegal_Argument
 
         Test.specify "should support exponential notation, but only if explicitly enabled" <|
             plain_formatter = Data_Formatter.Value

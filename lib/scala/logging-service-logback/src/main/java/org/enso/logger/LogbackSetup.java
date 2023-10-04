@@ -55,6 +55,10 @@ public final class LogbackSetup extends LoggerSetup {
         return config;
     }
 
+    private boolean logToFileEnabled() {
+        return config.logToFile().enabled();
+    }
+
     private final LoggingServiceConfig config;
     private final LoggerContext context;
 
@@ -101,12 +105,13 @@ public final class LogbackSetup extends LoggerSetup {
         Level targetLogLevel;
         // Modify log level if we were asked to always log to a file.
         // The receiver needs to get all logs (up to `trace`) so as to be able to log all verbose messages.
-        if (config.logToFile()) {
-            targetLogLevel = Level.TRACE;
+        if (logToFileEnabled()) {
+            int min = Math.min(Level.TRACE.toInt(), config.logToFile().logLevel().toInt());
+            targetLogLevel = Level.intToLevel(min);
         } else {
             targetLogLevel = logLevel;
         }
-        LoggerAndContext env = contextInit(targetLogLevel, config, !config.logToFile());
+        LoggerAndContext env = contextInit(targetLogLevel, config, !logToFileEnabled());
 
         org.enso.logger.config.SocketAppender appenderConfig = config.getSocketAppender();
 
@@ -119,7 +124,7 @@ public final class LogbackSetup extends LoggerSetup {
             socketAppender.setReconnectionDelay(Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
 
 
-        env.finalizeAppender(socketAppender, config.logToFile());
+        env.finalizeAppender(socketAppender);
         return true;
     }
 
@@ -183,7 +188,7 @@ public final class LogbackSetup extends LoggerSetup {
             fileAppender.setEncoder(encoder);
 
 
-            env.finalizeAppender(fileAppender, false);
+            env.finalizeAppender(fileAppender);
         } catch (Throwable e) {
             e.printStackTrace();
             return false;
@@ -193,7 +198,7 @@ public final class LogbackSetup extends LoggerSetup {
 
     @Override
     public boolean setupConsoleAppender(Level logLevel) {
-        LoggerAndContext env = contextInit(logLevel, config, !getConfig().logToFile());
+        LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
         org.enso.logger.config.ConsoleAppender appenderConfig = config.getConsoleAppender();
         final PatternLayoutEncoder encoder = new PatternLayoutEncoder();
         try {
@@ -208,7 +213,7 @@ public final class LogbackSetup extends LoggerSetup {
         consoleAppender.setName("enso-console");
         consoleAppender.setEncoder(encoder);
 
-        env.finalizeAppender(consoleAppender, false);
+        env.finalizeAppender(consoleAppender);
         return true;
     }
 
@@ -217,7 +222,7 @@ public final class LogbackSetup extends LoggerSetup {
         // TODO: handle proxy
         // TODO: shutdown timeout configuration
         try {
-            LoggerAndContext env = contextInit(logLevel, config, !config.logToFile());
+            LoggerAndContext env = contextInit(logLevel, config, !logToFileEnabled());
 
             org.enso.logger.config.SentryAppender appenderConfig = config.getSentryAppender();
             if (appenderConfig == null) {
@@ -242,7 +247,7 @@ public final class LogbackSetup extends LoggerSetup {
             opts.setDsn(appenderConfig.getDsn());
             appender.setOptions(opts);
 
-            env.finalizeAppender(appender, config.logToFile());
+            env.finalizeAppender(appender);
         } catch (Throwable e) {
             e.printStackTrace();
             return false;
@@ -257,7 +262,7 @@ public final class LogbackSetup extends LoggerSetup {
         NOPAppender<ILoggingEvent> appender = new NOPAppender<>();
         appender.setName("enso-noop");
 
-        env.finalizeAppender(appender, false);
+        env.finalizeAppender(appender);
         return true;
     }
 
@@ -290,17 +295,20 @@ public final class LogbackSetup extends LoggerSetup {
             encoder.setContext(ctx);
             encoder.start();
         }
-        void finalizeAppender(ch.qos.logback.core.Appender<ILoggingEvent> appender, boolean isLogToFile) {
+        void finalizeAppender(ch.qos.logback.core.Appender<ILoggingEvent> appender) {
             ThresholdFilter threshold = new ThresholdFilter();
             threshold.setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(level).toString());
             appender.addFilter(threshold);
             threshold.setContext(ctx);
             threshold.start();
 
-            // Root's log level is set to TRACE, meaning we want to log all events.
+            // Root's log level is set to the minimal required log level.
             // Log level is controlled by `ThresholdFilter` instead, allowing is to specify different
             // log levels for different outputs.
-            logger.setLevel(ch.qos.logback.classic.Level.TRACE);
+            var minLevelInt = Math.min(Level.TRACE.toInt(), level.toInt());
+            var minLevel = ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.intToLevel(minLevelInt));
+
+            logger.setLevel(minLevel);
             if (filter != null) {
                 appender.addFilter(filter);
                 filter.setContext(ctx);

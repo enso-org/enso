@@ -50,7 +50,14 @@ watchPostEffect((onCleanup) => {
 </script>
 
 <template>
-  <div v-show="shown" ref="rootElement" class="CodeEditor" @keydown.enter.stop @wheel.stop.passive>
+  <div
+    v-show="shown"
+    ref="rootElement"
+    class="CodeEditor"
+    @keydown.enter.stop
+    @wheel.stop.passive
+    @pointerdown.stop
+  >
     <div ref="codeMirrorEl" class="codemirror-container"></div>
   </div>
 </template>

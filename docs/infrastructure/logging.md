@@ -352,10 +352,17 @@ way it can verify that all logs are being reported within the provided code.
 
 By default Enso will attempt to persist (verbose) logs into a designated log
 file. This means that even though a user might be shown `WARNING` level logs in
-the console, Logs with up to `TRACE` level will be dumped into the log file. A
+the console, logs with up to `DEBUG` level will be dumped into the log file. A
 user can disable this parallel logging to a file by setting the environment
 variable:
 
 ```
 ENSO_LOG_TO_FILE=false project-manager ...
+```
+
+Users can also modify the default maximal log level, `DEBUG`, used when logging
+to a log file by setting the environment variable:
+
+```
+ENSO_LOG_TO_FILE_LOG_LEVEL=trace project-manager ...
 ```

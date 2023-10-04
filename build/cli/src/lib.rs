@@ -262,13 +262,6 @@ impl Processor {
                 },
                 output_path.output_path,
             ))
-            // Ok(BuildTargetJob {
-            //     build:                  WithDestination {
-            //         destination: output_path.output_path,
-            //         inner:       input.await?,
-            //     },
-            //     should_upload_artifact: upload_artifact,
-            // })
         }
         .boxed()
     }
