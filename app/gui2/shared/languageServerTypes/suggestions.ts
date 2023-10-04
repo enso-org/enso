@@ -1,4 +1,4 @@
-import type { Uuid } from '../languageServerTypes'
+import type { Uuid } from 'shared/languageServerTypes'
 
 export type SuggestionId = number
 
