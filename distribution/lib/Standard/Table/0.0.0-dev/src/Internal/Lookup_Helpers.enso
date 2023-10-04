@@ -1,6 +1,8 @@
 from Standard.Base import all
 
-from project.Errors import Missing_Input_Columns, Unexpected_Extra_Columns
+import project.Data.Type.Value_Type.Value_Type
+import project.Data.Type.Value_Type_Helpers
+from project.Errors import Missing_Input_Columns, Unexpected_Extra_Columns, Floating_Point_Equality, No_Common_Type
 
 ## PRIVATE
 type Lookup_Settings
@@ -8,37 +10,66 @@ type Lookup_Settings
     Value (key_columns : Vector Text) (columns_to_update : Set Text) (columns_to_add : Vector Text)
 
 type Lookup_Column
-    Key_Column (base_column : Column) (lookup_column : Column)
-    Keep_Column (base_column : Column)
-    Replace_Column (base_column : Column) (lookup_column : Column)
-    Add_Column (lookup_column : Column)
+    Key_Column base_column lookup_column
+    Keep_Column base_column
+    Replace_Column base_column lookup_column (common_type : Value_Type)
+    Add_Column lookup_column
 
 ## PRIVATE
    Checks if `key_columns` are present in both tables and returns settings
    indicating which columns will be updated and which will be added.
 
    It also reports any errors or warnings related to selecting these columns.
-prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_columns on_problems =
+prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_columns allow_unmatched_rows on_problems =
     key_columns = base_table.select_columns key_columns_selector . column_names
     lookup_table_key_columns = lookup_table.select_columns key_columns . catch Missing_Input_Columns error->
         Error.throw (Missing_Input_Columns.Error error.criteria "the lookup table")
 
+    problems_to_add = Vector.new_builder
     key_columns.if_not_error <| lookup_table_key_columns.if_not_error <|
         key_set = Set.from_vector key_columns
+        my_updated_columns = base_table.columns.map base_column->
+            base_column_name = base_column.name
+            is_key = key_set.contains base_column_name
+            case is_key of
+                True ->
+                    lookup_column = lookup_table_key_columns.at base_column_name
+                    is_float_equality = base_column.value_type.is_floating_point || lookup_column.value_type.is_floating_point
+                    if is_float_equality then
+                        problems_to_add.append (Floating_Point_Equality.Error base_column_name)
+                    Lookup_Column.Key_Column base_column lookup_column
+                False ->
+                    lookup_column = lookup_table_key_columns.get base_column_name
+                    case lookup_column of
+                        Nothing -> Lookup_Column.Keep_Column base_column
+                        _ -> merge_columns base_column lookup_column allow_unmatched_rows
+
         my_column_set = Set.from_vector base_table.column_names
-        my_remaining_columns = my_column_set.difference key_set
-
-        lookup_table_remaining_columns = Set.from_vector lookup_table.column_names . difference key_set
-        to_update = my_remaining_columns.intersection lookup_table_remaining_columns
-
-        extra_columns = lookup_table.column_names.filter col->
-            is_new = my_column_set.contains col . not
+        extra_columns = lookup_table.columns.filter col->
+            is_new = my_column_set.contains col.name . not
             is_new
         to_add = case add_new_columns of
-            True -> extra_columns
+            True -> extra_columns.map Lookup_Column.Add_Column
             False ->
-                if extra_columns.is_empty then [] else
-                    problem = Unexpected_Extra_Columns.Warning extra_columns
-                    on_problems.attach_problem_before problem []
+                if extra_columns.not_empty then
+                    problems_to_add.append (Unexpected_Extra_Columns.Warning (extra_columns.map .name))
+                []
 
-        Lookup_Settings.Value key_columns to_update to_add
+        on_problems.attach_problems_before problems_to_add.to_vector <|
+            my_updated_columns+to_add
+
+## PRIVATE
+merge_columns base_column lookup_column allow_unmatched_rows =
+    case allow_unmatched_rows of
+        True ->
+            types = [base_column.value_type, lookup_column.value_type]
+            common_type = Value_Type_Helpers.find_common_type types strict=True
+            if common_type.is_nothing then
+                Error.throw (No_Common_Type.Error types related_column_name=base_column.name)
+            Lookup_Column.Replace_Column base_column lookup_column common_type
+
+        ## If unmatched rows are not allowed, we are essentially replacing the old column with the
+           new one - not keeping any of the old values, so we can just forget about the old column.
+           We do not need to reconcile types.
+        False ->
+            Lookup_Column.Add_Column lookup_column
