@@ -4,6 +4,7 @@
     "env.d.ts",
     "env.story.d.ts",
     "src/**/*",
+    "src/**/*.json",
     "src/**/*.vue",
     "shared/**/*",
     "shared/**/*.vue",

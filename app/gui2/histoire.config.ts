@@ -3,11 +3,17 @@ import { defineConfig } from 'histoire'
 import { fileURLToPath } from 'node:url'
 
 const order = [
+  // Graph
   'Editor',
   'Widgets',
   'Code Editor',
   'Component Browser',
+  'Node',
   'Top Bar',
+  'Circular Menu',
+  // Miscellaneous
+  'SVG Icon',
+  // Visualizations
   'JSON',
   'Table',
   'Scatterplot',
@@ -28,6 +34,7 @@ export default defineConfig({
   tree: {
     groups: [
       { id: 'graph', title: 'Graph' },
+      { id: 'misc', title: 'Miscellaneous' },
       { id: 'visualizations', title: 'Visualizations' },
     ],
     order(a, b) {
