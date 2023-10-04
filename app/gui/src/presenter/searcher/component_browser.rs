@@ -328,6 +328,7 @@ impl ComponentBrowserSearcher {
         let breadcrumbs = &browser.model().documentation.breadcrumbs;
         let documentation = &browser.model().documentation;
         frp::extend! { network
+            init <- source_();
             eval_ action_list_changed ([model, grid] {
                 model.provider.take();
                 let list = model.controller.components();
@@ -350,13 +351,16 @@ impl ComponentBrowserSearcher {
             documentation.frp.display_documentation <+ docs;
             eval grid.active ((entry) model.on_entry_for_docs_selected(*entry));
 
+            no_selection <- any(...);
+            no_selection <+ init.constant(true);
+            no_selection <+ grid.active.on_change().map(|e| e.is_none());
             eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
-            no_selection <- grid.active.on_change().map(|e| e.is_none());
             update_preview <- on_input_changed.gate(&no_selection);
             eval_ update_preview(model.update_preview());
             eval grid.active((entry) model.suggestion_selected(*entry));
             eval grid.module_entered((id) model.module_entered(*id));
         }
+        init.emit(());
 
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();
