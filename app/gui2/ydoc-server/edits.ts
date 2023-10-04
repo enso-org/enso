@@ -5,9 +5,8 @@
 
 import diff from 'fast-diff'
 import * as json from 'lib0/json'
-import { inspect } from 'node:util'
 import * as Y from 'yjs'
-import { Position, TextEdit } from '../shared/languageServerTypes'
+import { TextEdit } from '../shared/languageServerTypes'
 import { ModuleDoc, NodeMetadata, decodeRange } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
@@ -294,67 +293,4 @@ export function prettyPrintDiff(from: string, to: string): string {
   }
   content += colReset
   return content
-}
-
-/** Apply text edits intended for language server to a given starting text. Used for verification
- * during testing if generated edits were correct. This is intentionally a very simple, not
- * performant implementation.
- */
-export function applyTextEdits(content: string, edits: TextEdit[]): string {
-  let newContent = content
-  for (const edit of edits) {
-    try {
-      newContent = applySingleEdit(newContent, edit)
-    } catch (e) {
-      throw new ApplyEditError(edit, newContent, e)
-    }
-  }
-  return newContent
-}
-
-class ApplyEditError extends Error {
-  edit: TextEdit
-  content: string
-  inner: unknown
-  constructor(edit: TextEdit, content: string, inner: unknown) {
-    const message =
-      `Failed to apply edit ${inspect(edit)} to content:\n${JSON.stringify(content)}\n` +
-      String(inner)
-    super(message)
-    this.edit = edit
-    this.content = content
-    this.inner = inner
-  }
-}
-
-function applySingleEdit(content: string, edit: TextEdit): string {
-  const startOffset = lsPositionToTextOffset(content, edit.range.start)
-  const endOffset = lsPositionToTextOffset(content, edit.range.end)
-  return content.slice(0, startOffset) + edit.text + content.slice(endOffset)
-}
-
-function lsPositionToTextOffset(content: string, pos: Position): number {
-  const lineData = getNthLineLengthAndOffset(content, pos.line)
-  if (pos.character > lineData.length) {
-    throw new Error(
-      `Character ${pos.character} is out of bounds for line ${pos.line}. Line length ${lineData.length}.`,
-    )
-  }
-  return lineData.offset + pos.character
-}
-
-function getNthLineLengthAndOffset(
-  content: string,
-  line: number,
-): { offset: number; length: number } {
-  let offset = 0
-  for (let i = 0; i < line; i++) {
-    offset = content.indexOf('\n', offset) + 1
-    if (offset <= 0) {
-      throw new Error(`Line ${line} not found in content:\n${content}`)
-    }
-  }
-  const nextNewline = content.indexOf('\n', offset)
-  const length = nextNewline < 0 ? content.length - offset : nextNewline - offset
-  return { offset, length }
 }

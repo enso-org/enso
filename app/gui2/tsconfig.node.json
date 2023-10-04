@@ -9,6 +9,7 @@
     "node.env.d.ts"
   ],
   "compilerOptions": {
+    "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "outDir": "../../node_modules/.cache/tsc",
