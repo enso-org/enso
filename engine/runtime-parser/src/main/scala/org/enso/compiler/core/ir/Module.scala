@@ -12,6 +12,7 @@ import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
   * @param imports     the import statements that bring other modules into scope
   * @param exports     the export statements for this module
   * @param bindings    the top-level bindings for this module
+  * @param isPrivate    whether or not this module is private (project-private)
   * @param location    the source location that the node corresponds to
   * @param passData    the pass metadata associated with this node
   * @param diagnostics compiler diagnostics for this node
@@ -23,6 +24,7 @@ sealed case class Module(
   imports: List[Import],
   exports: List[Export],
   bindings: List[Definition],
+  isPrivate: Boolean,
   override val location: Option[IdentifiedLocation],
   override val passData: MetadataStorage      = MetadataStorage(),
   override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -51,7 +53,15 @@ sealed case class Module(
     id: Identifier                       = id
   ): Module = {
     val res =
-      Module(imports, exports, bindings, location, passData, diagnostics)
+      Module(
+        imports,
+        exports,
+        bindings,
+        isPrivate,
+        location,
+        passData,
+        diagnostics
+      )
     res.id = id
     res
   }

@@ -5,6 +5,7 @@ const INITIAL_URL_KEY = `Enso-initial-url`
 import './assets/main.css'
 
 import { basicSetup } from 'codemirror'
+import * as dashboard from 'enso-authentication'
 import { isMac } from 'lib0/environment'
 import { decodeQueryParams } from 'lib0/url'
 import { createPinia } from 'pinia'

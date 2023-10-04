@@ -27,7 +27,9 @@ use octocrab::models::repos::Asset;
 pub mod backend;
 pub mod engine;
 pub mod gui;
+pub mod gui2;
 pub mod ide;
+pub mod ide2;
 pub mod project_manager;
 pub mod runtime;
 pub mod wasm;
@@ -48,7 +50,7 @@ pub fn path_to_extract() -> Option<PathBuf> {
 /// A built target, contained under a single directory.
 ///
 /// The `AsRef<Path>` trait must return that directory path.
-pub trait IsArtifact: Clone + AsRef<Path> + Sized + Send + Sync + 'static {}
+pub trait IsArtifact: Clone + AsRef<Path> + Debug + Sized + Send + Sync + 'static {}
 
 /// Plain artifact is just a folder with... things.
 #[derive(Clone, Derivative)]
@@ -89,9 +91,6 @@ pub struct Context {
     /// Stores things like downloaded release assets to save time.
     pub cache: Cache,
 
-    /// Whether built artifacts should be uploaded as part of CI run. Works only in CI environment.
-    pub upload_artifacts: bool,
-
     /// Directory being an `enso` repository's working copy.
     ///
     /// The directory is not required to be a git repository. It is allowed to use source tarballs
@@ -126,6 +125,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
     /// Create a full artifact description from an on-disk representation.
     fn adapt_artifact(self, path: impl AsRef<Path>) -> BoxFuture<'static, Result<Self::Artifact>>;
 
+    /// Produce the target artifacts, according to the job description.
     fn get(
         &self,
         context: Context,
@@ -133,10 +133,10 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let GetTargetJob { destination, inner } = job;
         match inner {
-            Source::BuildLocally(inputs) =>
-                self.build(context, WithDestination { inner: inputs, destination }),
+            Source::BuildLocally(local_build) =>
+                self.build(context, WithDestination::new(local_build, destination)),
             Source::External(external) =>
-                self.get_external(context, WithDestination { inner: external, destination }),
+                self.get_external(context, WithDestination::new(external, destination)),
         }
     }
 
@@ -178,8 +178,8 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         job: BuildTargetJob<Self>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let span = debug_span!("Building.", ?self, ?context, ?job).entered();
-        let upload_artifacts = context.upload_artifacts;
-        let artifact_fut = self.build_internal(context, job);
+        let upload_artifacts = job.should_upload_artifact;
+        let artifact_fut = self.build_internal(context, job.map(|job| job.input));
         let this = self.clone();
         async move {
             let artifact = artifact_fut.await.context(format!("Failed to build {this:?}."))?;
@@ -208,7 +208,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
     fn build_internal(
         &self,
         context: Context,
-        job: BuildTargetJob<Self>,
+        job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>>;
 
     /// Upload artifact to the current GitHub Actions run.
@@ -226,7 +226,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         ci_run: CiRunSource,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let Context { octocrab, cache, upload_artifacts: _, repo_root: _ } = context;
+        let Context { octocrab, cache, repo_root: _ } = context;
         let CiRunSource { run_id, artifact_name, repository } = ci_run;
         let repository = repository.handle(&octocrab);
         let span = info_span!("Downloading CI Artifact.", %artifact_name, %repository, target = output_path.as_ref().as_str());
@@ -285,7 +285,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         source: ReleaseSource,
         destination: PathBuf,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let Context { octocrab, cache, upload_artifacts: _, repo_root: _ } = context;
+        let Context { octocrab, cache, repo_root: _ } = context;
         let span = info_span!("Downloading built target from a release asset.",
             asset_id = source.asset_id.0,
             repo = %source.repository);
@@ -403,19 +403,17 @@ pub fn perhaps_watch<T: IsWatchable>(
     job: GetTargetJob<T>,
     watch_input: T::WatchInput,
 ) -> BoxFuture<'static, Result<PerhapsWatched<T>>> {
-    match job.inner {
+    let WithDestination { inner, destination } = job;
+    match inner {
         Source::BuildLocally(local) => target
             .watch(context, WatchTargetJob {
                 watch_input,
-                build: WithDestination { inner: local, destination: job.destination },
+                build: WithDestination::new(local, destination),
             })
             .map_ok(PerhapsWatched::Watched)
             .boxed(),
         Source::External(external) => target
-            .get_external(context, WithDestination {
-                inner:       external,
-                destination: job.destination,
-            })
+            .get_external(context, WithDestination { inner: external, destination })
             .map_ok(PerhapsWatched::Static)
             .boxed(),
     }

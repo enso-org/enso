@@ -159,4 +159,9 @@ public class RuntimeOptions {
   private static String interpreterOptionName(String name) {
     return LanguageInfo.ID + ".interpreter." + name;
   }
+
+  /** True if experiemental Espresso support should be allowed. */
+  public static boolean isEspressoEnabled() {
+    return "espresso".equals(System.getenv("ENSO_JAVA"));
+  }
 }

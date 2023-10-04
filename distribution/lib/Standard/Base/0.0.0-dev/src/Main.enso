@@ -42,7 +42,6 @@ import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Day_Of_Week.Day_Of_Week
-import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
@@ -131,7 +130,6 @@ export project.Data.Time.Date_Range.Date_Range
 export project.Data.Time.Date_Time.Date_Time
 export project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 export project.Data.Time.Day_Of_Week.Day_Of_Week
-export project.Data.Time.Day_Of_Week_From
 export project.Data.Time.Duration.Duration
 export project.Data.Time.Period.Period
 export project.Data.Time.Time_Of_Day.Time_Of_Day

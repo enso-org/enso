@@ -11,10 +11,13 @@
       "path": "./tsconfig.app.json"
     },
     {
-      "path": "./tsconfig.vitest.json"
+      "path": "./tsconfig.app.vitest.json"
     },
     {
       "path": "./tsconfig.server.json"
+    },
+    {
+      "path": "./tsconfig.server.vitest.json"
     }
   ]
 }

@@ -100,6 +100,7 @@ export class Server {
                         logger.error(`Error creating server:`, err.http)
                         reject(err)
                     }
+                    // Prepare the YDoc server access point for the new Vue-based GUI.
                     if (httpServer) {
                         ydocServer.createGatewayServer(httpServer)
                     }
