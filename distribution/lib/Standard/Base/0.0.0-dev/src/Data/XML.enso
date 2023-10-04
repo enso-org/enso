@@ -148,7 +148,7 @@ type XML_Element
     get self key:(Text|Integer) ~if_missing=Nothing =
         case key of
             _ : Integer -> self.get_child_element key if_missing
-            _ : Text -> if is_attribute_key key then self.attribute (key.drop 1) if_missing else self.get_xpath key
+            _ : Text -> if is_attribute_key key then self.get_xpath key . get 0 if_missing else self.get_xpath key
 
     ## Gets a child or attribute of an XML element.
 
@@ -360,22 +360,23 @@ type XML_Error
    Wanted nodes are:
    - Elements
    - Text (if not completely whitespace)
+   - Attribute values (which only arise in the case of XPath keys)
 only_wanted_nodes : Vector Any -> Vector (Text | XML_Element)
 only_wanted_nodes nodes:(Vector Any) =
-    # If an Element, wrap in XML_Element. If Java_Text, extract the string.
+    is_wanted : Node -> Boolean
+    is_wanted node:Node =
+        is_element = node.getNodeType == Node.ELEMENT_NODE
+        is_attribute = node.getNodeType == Node.ATTRIBUTE_NODE
+        is_non_whitespace_text = node.getNodeType == Node.TEXT_NODE && node.getNodeValue.is_whitespace.not
+        is_element || is_attribute || is_non_whitespace_text
+
+    # If an Element, wrap in XML_Element. If Java_Text, extract the string. If an attribute, extract the value.
     convert node =
         if node.getNodeType == Node.ELEMENT_NODE then XML_Element.Value node else
             if node.getNodeType == Node.TEXT_NODE then node.getNodeValue else
-                Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))
-    nodes.filter is_element_or_non_whitespace_text . map convert
-
-## PRIVATE
-   Return children of this node that pass a filter.
-is_element_or_non_whitespace_text : Node -> Boolean
-is_element_or_non_whitespace_text node:Node =
-    is_element = node.getNodeType == Node.ELEMENT_NODE
-    is_non_whitespace_text = node.getNodeType == Node.TEXT_NODE && node.getNodeValue.is_whitespace.not
-    is_element || is_non_whitespace_text
+                if node.getNodeType == Node.ATTRIBUTE_NODE then node.getValue else
+                    Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))
+    nodes.filter is_wanted . map convert
 
 ## PRIVATE
    Returns true if `key` starts with "@".
