@@ -81,11 +81,6 @@ object ProgramExecutionSupport {
       }
     }
 
-    val onExceptionalCallback: Consumer[Exception] = { value =>
-      logger.log(Level.FINEST, s"ON_ERROR $value")
-      sendErrorUpdate(contextId, value)
-    }
-
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
         enterables += fun.getExpressionId -> fun.getCall
@@ -107,8 +102,7 @@ object ProgramExecutionSupport {
           callStack.headOption.map(_.expressionId).orNull,
           callablesCallback,
           onComputedValueCallback,
-          onCachedValueCallback,
-          onExceptionalCallback
+          onCachedValueCallback
         )
       case ExecutionFrame(
             ExecutionItem.CallData(expressionId, callData),
@@ -130,8 +124,7 @@ object ProgramExecutionSupport {
           callStack.headOption.map(_.expressionId).orNull,
           callablesCallback,
           onComputedValueCallback,
-          onCachedValueCallback,
-          onExceptionalCallback
+          onCachedValueCallback
         )
     }
 
@@ -304,25 +297,6 @@ object ProgramExecutionSupport {
 
     case ex: ServiceException =>
       Api.ExecutionResult.Failure(ex.getMessage, None)
-  }
-
-  private def sendErrorUpdate(contextId: ContextId, error: Exception)(implicit
-    ctx: RuntimeContext
-  ): Unit = {
-    ctx.endpoint.sendToClient(
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            getDiagnosticOutcome.applyOrElse(
-              error,
-              (ex: Exception) =>
-                Api.ExecutionResult.Diagnostic.error(ex.getMessage)
-            )
-          )
-        )
-      )
-    )
   }
 
   private def sendExpressionUpdate(
