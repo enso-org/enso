@@ -173,7 +173,7 @@ type XML_Element
     at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     at self key:(Text|Integer) =
         if_missing = case key of
-            _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.num_children)
+            _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.child_count)
             _ : Text -> Error.throw (No_Such_Key.Error self key)
         self.get key if_missing
 
@@ -207,17 +207,17 @@ type XML_Element
 
     ## Gets the number children of an XML element.
 
-       `num_children` only counts child elements and child text nodes that are
+       `child_count` only counts child elements and child text nodes that are
        not 100% whitespace. Other node types, such as comments, are not included
        in the count.
 
        > Example
          Get the number of children of an element.
 
-             XML_Document.from_string '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . num_children
+             XML_Document.from_string '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . child_count
              # => 2
-    num_children : Integer ! XML_Error
-    num_children self = self.children.length
+    child_count : Integer ! XML_Error
+    child_count self = self.children.length
 
     ## PRIVATE
        Get the child element indicated by the index.

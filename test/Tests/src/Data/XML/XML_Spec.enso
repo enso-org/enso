@@ -135,7 +135,7 @@ spec =
             children.at 4 . at "@studentId" . should_equal "1002"
 
         Test.specify "Can get the number of children" <|
-            root.num_children . should_equal 5
+            root.child_count . should_equal 5
 
     Test.group "text contents" <|
         Test.specify "Can get child text contents" <|
