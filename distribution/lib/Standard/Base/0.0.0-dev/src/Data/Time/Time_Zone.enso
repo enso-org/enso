@@ -4,6 +4,7 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
@@ -177,10 +178,16 @@ type Time_Zone
     to_js_object : JS_Object
     to_js_object self =
         type_pair = ["type", "Time_Zone"]
-        cons_pair = ["constructor", "new"]
+        cons_pair = ["constructor", "parse"]
         JS_Object.from_pairs [type_pair, cons_pair, ["id", self.zone_id]]
 
     ## PRIVATE
        Convert to a display representation of this Time_Zone.
     to_display_text : Text
     to_display_text self = self.to_text
+
+## PRIVATE
+Time_Zone.from (that:JS_Object) =
+    if that.get "type" == "Time_Zone" && ["id"].all that.contains_key then Time_Zone.parse (that.get "id") else
+        Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Zone.from.")
+

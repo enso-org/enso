@@ -10,6 +10,7 @@ use octocrab::models::RunId;
 
 
 
+/// Denotes an external source from which a target artifact can be obtained.
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub enum ExternalSource {
@@ -29,11 +30,23 @@ impl ExternalSource {
     }
 }
 
+/// Describes how to build a target and whether to upload the resulting artifact.
+#[derive(Clone, Debug)]
+pub struct BuildSource<Target: IsTarget> {
+    /// Data needed to build the target.
+    pub input:                  Target::BuildInput,
+    /// Whether to upload the resulting artifact as CI artifact.
+    pub should_upload_artifact: bool,
+}
+
+/// Describes how to get a target.
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub enum Source<Target: IsTarget> {
+    /// Build the target locally from the sources.
     #[derivative(Debug = "transparent")]
-    BuildLocally(Target::BuildInput),
+    BuildLocally(BuildSource<Target>),
+    /// Download the target from an external source.
     #[derivative(Debug = "transparent")]
     External(ExternalSource),
 }
@@ -83,6 +96,10 @@ impl<T: IsTarget> WithDestination<Source<T>> {
 }
 
 impl<T> WithDestination<T> {
+    pub fn new(inner: T, destination: impl Into<PathBuf>) -> Self {
+        Self { inner, destination: destination.into() }
+    }
+
     pub fn map<U>(self, f: impl FnOnce(T) -> U) -> WithDestination<U> {
         WithDestination { inner: f(self.inner), destination: self.destination }
     }
@@ -90,7 +107,7 @@ impl<T> WithDestination<T> {
 
 pub type GetTargetJob<Target> = WithDestination<Source<Target>>;
 pub type FetchTargetJob = WithDestination<ExternalSource>;
-pub type BuildTargetJob<Target> = WithDestination<<Target as IsTarget>::BuildInput>;
+pub type BuildTargetJob<Target> = WithDestination<BuildSource<Target>>;
 
 #[derive(Debug)]
 pub struct WatchTargetJob<Target: IsWatchable> {

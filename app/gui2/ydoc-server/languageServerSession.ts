@@ -349,16 +349,18 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       newContent += synced.code
     }
 
-    newContent += META_TAG + '\n'
-
     const metaStartLine = (newContent.match(/\n/g) ?? []).length
+    let metaContent = META_TAG + '\n'
 
-    if (idMapKeys != null || (contentDelta && contentDelta.length > 0)) {
+    if (
+      idMapKeys != null ||
+      synced.idMapJson == null ||
+      (contentDelta && contentDelta.length > 0)
+    ) {
       const idMapJson = json.stringify(idMapToArray(this.doc.idMap))
-      allEdits.push(...applyDiffAsTextEdits(metaStartLine, synced.idMapJson ?? '', idMapJson))
-      newContent += idMapJson + '\n'
+      metaContent += idMapJson + '\n'
     } else {
-      newContent += synced.idMapJson + '\n'
+      metaContent += (synced.idMapJson ?? '[]') + '\n'
     }
 
     const nodeMetadata = this.syncedMeta.ide.node
@@ -385,13 +387,14 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       }
 
       const metadataJson = json.stringify(this.syncedMeta)
-      allEdits.push(
-        ...applyDiffAsTextEdits(metaStartLine + 1, synced.metadataJson ?? '', metadataJson),
-      )
-      newContent += metadataJson
+      metaContent += metadataJson
     } else {
-      newContent += synced.metadataJson
+      metaContent += synced.metadataJson ?? '{}'
     }
+
+    const oldMetaContent = this.syncedContent.slice(synced.code.length)
+    allEdits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
+    newContent += metaContent
 
     const newVersion = computeTextChecksum(newContent)
 
