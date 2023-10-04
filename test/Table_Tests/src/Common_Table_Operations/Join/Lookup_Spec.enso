@@ -25,9 +25,9 @@ spec setup =
             t2 = my_table.lookup_and_replace lookup key_columns="X"
             t2.column_names . should_equal ["X", "Y", "Z"]
             m2 = t2 |> materialize |> _.order_by "Z"
-            m2.at "Z" . should_equal [10, 20, 30, 40]
-            m2.at "X" . should_equal [1, 2, 3, 2]
-            m2.at "Y" . should_equal ["A", "B", "A", "B"]
+            m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
+            m2.at "X" . to_vector . should_equal [1, 2, 3, 2]
+            m2.at "Y" . to_vector . should_equal ["A", "B", "A", "B"]
 
         Test.specify "should allow to add new columns from a lookup table (default)" <|
             lookup = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]]]
@@ -36,19 +36,19 @@ spec setup =
             t2 = my_table.lookup_and_replace lookup key_columns="code"
             t2.column_names . should_equal ["id", "code", "hmm", "status"]
             m2 = t2 |> materialize |> _.order_by "id"
-            m2.at "id" . should_equal [1, 2, 3, 4]
-            m2.at "code" . should_equal ["a", "c", "c", "b"]
-            m2.at "hmm" . should_equal [10, 20, 30, 40]
-            m2.at "status" . should_equal ["new", "changed", "changed", "old"]
+            m2.at "id" . to_vector . should_equal [1, 2, 3, 4]
+            m2.at "code" . to_vector . should_equal ["a", "c", "c", "b"]
+            m2.at "hmm" . to_vector . should_equal [10, 20, 30, 40]
+            m2.at "status" . to_vector . should_equal ["new", "changed", "changed", "old"]
 
             lookup2 = table_builder [["is_X", [True, False]], ["X", ["Yes", "No"]]]
             my_table2 = table_builder [["A", [1, 2, 3, 4]], ["is_X", [True, True, False, True]]]
             t3 = my_table2.lookup_and_replace lookup2 key_columns="is_X"
             t3.column_names . should_equal ["A", "is_X", "X"]
             m3 = t3 |> materialize |> _.order_by "A"
-            m3.at "A" . should_equal [1, 2, 3, 4]
-            m3.at "is_X" . should_equal [True, True, False, True]
-            m3.at "X" . should_equal ["Yes", "Yes", "No", "Yes"]
+            m3.at "A" . to_vector . should_equal [1, 2, 3, 4]
+            m3.at "is_X" . to_vector . should_equal [True, True, False, True]
+            m3.at "X" . to_vector . should_equal ["Yes", "Yes", "No", "Yes"]
 
         Test.specify "will warn if extra columns are unexpected (add_new_columns=False)" <|
             lookup = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]]]
@@ -57,9 +57,9 @@ spec setup =
             t2 = my_table.lookup_and_replace lookup key_columns="code" add_new_columns=False
             t2.column_names . should_equal ["id", "code", "hmm"]
             m2 = t2 |> materialize |> _.order_by "id"
-            m2.at "id" . should_equal [1, 2, 3, 4]
-            m2.at "code" . should_equal ["a", "c", "c", "b"]
-            m2.at "hmm" . should_equal [10, 20, 30, 40]
+            m2.at "id" . to_vector . should_equal [1, 2, 3, 4]
+            m2.at "code" . to_vector . should_equal ["a", "c", "c", "b"]
+            m2.at "hmm" . to_vector . should_equal [10, 20, 30, 40]
 
             w2 = Problems.expect_only_warning Unexpected_Extra_Columns t2
             w2.columns . should_equal ["status"]
@@ -74,9 +74,9 @@ spec setup =
             t3 = my_table.lookup_and_replace lookup2 key_columns=["code"] add_new_columns=False
             t3.column_names . should_equal ["id", "code", "hmm"]
             m3 = t3 |> materialize |> _.order_by "id"
-            m3.at "id" . should_equal [1, 2, 3, 4]
-            m3.at "code" . should_equal ["a", "c", "c", "b"]
-            m3.at "hmm" . should_equal [111, 333, 333, 222]
+            m3.at "id" . to_vector . should_equal [1, 2, 3, 4]
+            m3.at "code" . to_vector . should_equal ["a", "c", "c", "b"]
+            m3.at "hmm" . to_vector . should_equal [111, 333, 333, 222]
             w3 = Problems.expect_only_warning Unexpected_Extra_Columns t3
             w3.columns . should_equal ["status"]
 
@@ -96,9 +96,10 @@ spec setup =
             t2 = my_table.lookup_and_replace lookup key_columns=["X"] allow_unmatched_rows=True
             t2.column_names . should_equal ["X", "Y", "Z"]
             m2 = t2 |> materialize |> _.order_by "Z"
-            m2.at "Z" . should_equal [10, 20, 30, 40]
-            m2.at "X" . should_equal [1, 2, 3, 2]
-            m2.at "Y" . should_equal ["A", "B", "ZZZ", "B"]
+            m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
+            m2.at "X" . to_vector . should_equal [1, 2, 3, 2]
+            m2.at "Y" . to_vector . should_equal ["A", "B", "ZZZ", "B"]
+            m2.at "Y" . to_vector . should_equal ["A", "B", "ZZZ", "B"]
 
         Test.specify "will fill new columns of unmatched rows with Nothing (allow_unmatched_rows=True)" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]], ["W", [1.5, 2.0]]]
@@ -107,10 +108,10 @@ spec setup =
             t2 = my_table.lookup_and_replace lookup key_columns=["X"] allow_unmatched_rows=True
             t2.column_names . should_equal ["X", "Y", "Z", "W"]
             m2 = t2 |> materialize |> _.order_by "Z"
-            m2.at "Z" . should_equal [10, 20, 30, 40]
-            m2.at "X" . should_equal [1, 2, 3, 2]
-            m2.at "Y" . should_equal ["A", "B", "ZZZ", "B"]
-            m2.at "W" . should_equal [1.5, 2.0, Nothing, 2.0]
+            m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
+            m2.at "X" . to_vector . should_equal [1, 2, 3, 2]
+            m2.at "Y" . to_vector . should_equal ["A", "B", "ZZZ", "B"]
+            m2.at "W" . to_vector . should_equal [1.5, 2.0, Nothing, 2.0]
 
         Test.specify "will fail on missing key columns in either table" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
@@ -133,10 +134,10 @@ spec setup =
             t2.column_names . should_equal ["X", "Y", "Z", "W"]
 
             m2 = t2 |> materialize |> _.order_by "W"
-            m2.at "W" . should_equal [1000, 2000, 3000, 4000]
-            m2.at "X" . should_equal [1, 1, 1, 2]
-            m2.at "Y" . should_equal ["A", "B", "A", "B"]
-            m2.at "Z" . should_equal [100, 200, 100, 100]
+            m2.at "W" . to_vector . should_equal [1000, 2000, 3000, 4000]
+            m2.at "X" . to_vector . should_equal [1, 1, 1, 2]
+            m2.at "Y" . to_vector . should_equal ["A", "B", "A", "B"]
+            m2.at "Z" . to_vector . should_equal [100, 200, 100, 100]
 
         Test.specify "will fail on duplicate keys in the lookup table" <|
             lookup = table_builder [["X", [1, 2, 1]], ["Y", ["A", "B", "C"]]]
@@ -157,9 +158,9 @@ spec setup =
             t2 = my_table.lookup_and_replace lookup key_columns="X"
             t2.column_names . should_equal ["X", "Y", "Z"]
             m2 = t2 |> materialize |> _.order_by "Z"
-            m2.at "Z" . should_equal [10, 20, 30, 40]
-            m2.at "X" . should_equal [2.0, 3.0, 2.0, 3.0]
-            m2.at "Y" . should_equal ["B", "C", "B", "C"]
+            m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
+            m2.at "X" . to_vector . should_equal [2.0, 3.0, 2.0, 3.0]
+            m2.at "Y" . to_vector . should_equal ["B", "C", "B", "C"]
 
             w2 = Problems.expect_only_warning Floating_Point_Equality t2
             w2.to_display_text . should_contain "X"
@@ -183,9 +184,9 @@ spec setup =
             t2.column_names . should_equal ["X", "Y", "Z"]
             t2.at "Y" . value_type . is_integer . should_be_true
             m2 = t2 |> materialize |> _.order_by "Z"
-            m2.at "X" . should_equal [2, 3, 2, 3]
-            m2.at "Y" . should_equal [1, 11, 1, 11]
-            m2.at "Z" . should_equal [10, 20, 30, 40]
+            m2.at "X" . to_vector . should_equal [2, 3, 2, 3]
+            m2.at "Y" . to_vector . should_equal [1, 11, 1, 11]
+            m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
 
         # TODO maybe it could be permitted in-memory?
         Test.specify "will fail if key columns of either the source table or lookup table contain Nothing" <|
@@ -208,7 +209,7 @@ spec setup =
             t2 = my_table.lookup_and_replace lookup key_columns="Y"
             t2.column_names . should_equal ["X", "Y", "V"]
 
-            t2.at "X" . should_equal xs
-            t2.at "Y" . should_equal ys
+            t2.at "X" . to_vector . should_equal xs
+            t2.at "Y" . to_vector . should_equal ys
             vs = xs.map x-> if (x%2) == 1 then "TRUE" else "FALSE"
-            t2.at "V" . should_equal vs
+            t2.at "V" . to_vector . should_equal vs
