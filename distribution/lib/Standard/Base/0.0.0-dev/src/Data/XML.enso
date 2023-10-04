@@ -94,6 +94,7 @@ type XML_Document
     from_source input_source =
         document_builder_factory = DocumentBuilderFactory.newInstance
         document_builder = document_builder_factory.newDocumentBuilder
+        XML_Utils.setCustomErrorHandler document_builder
         XML_Document.Value (document_builder.parse input_source)
 
     ## Get the root element of the document.

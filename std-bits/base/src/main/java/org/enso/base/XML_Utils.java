@@ -1,6 +1,7 @@
 package org.enso.base;
 
 import java.io.ByteArrayOutputStream;
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -11,6 +12,9 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 public class XML_Utils {
   /**
@@ -48,5 +52,25 @@ public class XML_Utils {
       transformer.transform(source, target);
     }
     return out.toString();
+  }
+
+  public static void setCustomErrorHandler(DocumentBuilder documentBuilder) {
+    documentBuilder.setErrorHandler(
+        new ErrorHandler() {
+          @Override
+          public void warning(SAXParseException e) throws SAXException {
+            ;
+          }
+
+          @Override
+          public void fatalError(SAXParseException e) throws SAXException {
+            throw e;
+          }
+
+          @Override
+          public void error(SAXParseException e) throws SAXException {
+            throw e;
+          }
+        });
   }
 }
