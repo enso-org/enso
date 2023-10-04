@@ -157,10 +157,10 @@ object ImportExport {
 
   case class SymbolDoesNotExist(
     symbolName: String,
-    moduleName: String
+    moduleOrTypeName: String
   ) extends Reason {
     override def message: String =
-      s"The symbol $symbolName (module or type) does not exist in module $moduleName."
+      s"The symbol $symbolName (module, type, or constructor) does not exist in $moduleOrTypeName."
   }
 
   case class NoSuchConstructor(

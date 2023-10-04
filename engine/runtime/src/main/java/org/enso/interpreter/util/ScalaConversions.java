@@ -28,4 +28,9 @@ public class ScalaConversions {
   public static <T> List<T> asJava(Seq<T> list) {
     return CollectionConverters.asJava(list);
   }
+
+  @SuppressWarnings("unchecked")
+  public static <T> scala.collection.immutable.List<T> nil() {
+    return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
+  }
 }
