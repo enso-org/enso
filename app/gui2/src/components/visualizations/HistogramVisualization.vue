@@ -4,7 +4,7 @@ export const name = 'Histogram'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
 
-const bindings = defineKeybinds('scatterplot-visualization', {
+const bindings = defineKeybinds('histogram-visualization', {
   zoomIn: ['Mod+Z'],
   showAll: ['Mod+A'],
 })

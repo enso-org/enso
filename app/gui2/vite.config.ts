@@ -20,7 +20,15 @@ export default defineConfig({
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
-      // '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // These are required to be defined before `@` as they will be overridden by Histoire.
+      '@/stores/project': fileURLToPath(new URL('./src/stores/project.ts', import.meta.url)),
+      '@/stores/suggestionDatabase/entry': fileURLToPath(
+        new URL('./src/stores/suggestionDatabase/entry.ts', import.meta.url),
+      ),
+      '@/stores/suggestionDatabase': fileURLToPath(
+        new URL('./src/stores/mockSuggestionDatabaseStore.ts', import.meta.url),
+      ),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   define: {

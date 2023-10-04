@@ -66,7 +66,6 @@ export default defineConfig({
         '../public/visualizations/GeoMapVisualization.vue':
           'public/visualizations/GeoMapVisualization.vue',
         '@/stores/project': 'stories/mockProjectStore.ts',
-        '@/stores/suggestionDatabase/entry': 'src/stores/suggestionDatabase/entry.ts',
         '@/stores/suggestionDatabase': 'stories/mockSuggestionDatabaseStore.ts',
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
