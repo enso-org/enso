@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "run-p typecheck build-only",
+    "build": "npm --workspace enso-authentication run compile && run-p typecheck build-only",
     "preview": "vite preview",
     "test:unit": "vitest",
     "test:e2e": "playwright test",

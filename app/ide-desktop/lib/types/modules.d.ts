@@ -185,11 +185,7 @@ declare module 'create-servers' {
         option: CreateServersOptions,
         // The types come from a third-party API and cannot be changed.
         // eslint-disable-next-line no-restricted-syntax
-        handler: (
-            // eslint-disable-next-line no-restricted-syntax
-            err: HttpError | undefined,
-            servers: CreatedServers
-        ) => void
+        handler: (err: HttpError | undefined, servers: CreatedServers) => void
     ): unknown
 }
 
