@@ -49,7 +49,7 @@ watch(
   (text, oldText) => {
     if (!projectStore.module) return
     ignoreNextUpdate = true
-    applyEdits(projectStore.module, oldText, text)
+    // applyEdits(projectStore.module, oldText, text)
   },
 )
 
@@ -60,9 +60,9 @@ watch(
       ignoreNextUpdate = false
       return
     }
-    projectStore.module && applyEdits(projectStore.module, oldText, text)
-    const newValue = projectStore.module?.doc.contents.toString()
-    newValue != null && emit('update:modelValue', newValue)
+    // projectStore.module && applyEdits(projectStore.module, oldText, text)
+    // const newValue = projectStore.module?.doc.contents.toString()
+    // newValue != null && emit('update:modelValue', newValue)
   },
 )
 </script>

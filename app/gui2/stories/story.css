@@ -16,7 +16,7 @@
   min-width: 0 !important;
 }
 
-.CodeEditor.CodeEditor {
+.CodeEditor.standalone {
   width: 100% !important;
   height: 100% !important;
 }

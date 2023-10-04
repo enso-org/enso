@@ -4,7 +4,7 @@ import { useWindowEvent } from '@/util/events'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
-import { ref, watch } from 'vue'
+import { onMounted, ref, watchEffect } from 'vue'
 // y-codemirror.next does not provide type information. See https://github.com/yjs/y-codemirror.next/issues/27
 // @ts-ignore
 import { yCollab } from 'y-codemirror.next'
@@ -19,7 +19,6 @@ const shown = ref(props.showImmediately)
 const rootElement = ref<HTMLElement>()
 
 useWindowEvent('keydown', (e) => {
-  console.log('keydown', e)
   const graphEditorInFocus = document.activeElement === document.body
   const codeEditorInFocus = rootElement.value?.contains(document.activeElement)
   const validFocus = graphEditorInFocus || codeEditorInFocus
@@ -30,24 +29,26 @@ useWindowEvent('keydown', (e) => {
   }
 })
 
+console.log('b')
+onMounted(() => console.log('c'))
+
 // == CodeMirror editor setup  ==
 
-const codeMirrorEl = ref(null)
-const editorView = ref<EditorView>()
-watch(codeMirrorEl, (codeMirrorEl, _, onCleanup) => {
+const codemirrorNode = ref<HTMLElement>()
+watchEffect((onCleanup) => {
   const yText = projectStore.module?.doc.contents
-  if (!yText || !codeMirrorEl) return
+  if (!yText || !codemirrorNode.value) return
+  console.log('a')
   const undoManager = projectStore.undoManager
   const awareness = projectStore.awareness
   const view = new EditorView({
-    parent: codeMirrorEl,
+    parent: codemirrorNode.value,
     state: EditorState.create({
       doc: yText.toString(),
       extensions: [basicSetup, yCollab(yText, awareness, { undoManager })],
     }),
   })
   onCleanup(() => view.destroy())
-  editorView.value = view
 })
 </script>
 
@@ -60,7 +61,7 @@ watch(codeMirrorEl, (codeMirrorEl, _, onCleanup) => {
     @wheel.stop.passive
     @pointerdown.stop
   >
-    <div ref="codeMirrorEl" class="codemirror-container"></div>
+    <div ref="codemirrorNode" class="codemirror-container"></div>
   </div>
 </template>
 

@@ -38,19 +38,9 @@ main = collect_benches . run_main`)
     auto-props-disabled
   >
     <MockProjectStoreWrapper v-model="text">
-      <CodeEditor show-immediately />
+      <CodeEditor class="standalone" show-immediately />
     </MockProjectStoreWrapper>
 
     <template #controls><HstCode v-model="text" title="code" /></template>
   </Story>
 </template>
-
-<style>
-.CodeEditor {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 50%;
-  height: 30%;
-}
-</style>
