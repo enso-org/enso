@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 
 import GraphEditor from '@/components/GraphEditor.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import MockProjectStoreWrapper from './MockProjectStoreWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 
-const text = ref('')
-
-onMounted(() => {
-  text.value = `\
+const text = ref(`\
 from Standard.Base import all
 from Standard.Base.Runtime.Ref import Ref
 
@@ -30,8 +27,7 @@ collect_benches = Bench.build builder->
 
             cell.get . should_equal range_size
 
-main = collect_benches . run_main`
-})
+main = collect_benches . run_main`)
 </script>
 
 <template>
