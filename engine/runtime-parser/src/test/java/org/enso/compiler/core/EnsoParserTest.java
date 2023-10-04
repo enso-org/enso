@@ -5,11 +5,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.function.Function;
 import org.enso.compiler.core.ir.Module;
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -1237,6 +1240,29 @@ public class EnsoParserTest {
     equivalenceTest("a = x", "a = SKIP FREEZE x + y");
     equivalenceTest("a = x", "a = SKIP FREEZE x.f");
     equivalenceTest("a = x", "a = SKIP FREEZE x.f y");
+  }
+
+  @Test
+  public void testPrivateModules() throws Exception {
+    List<String> moduleCodes = List.of(
+        "private",
+        """
+        # Comment
+        private
+        """,
+        """
+        # Comment with empty line
+        
+        private
+        """
+    );
+    for (var moduleCode : moduleCodes) {
+      parseTest(moduleCode);
+      var module = compile("private");
+      assertTrue(module.isPrivate());
+    }
+    equivalenceTest("private", "# Line comment \nprivate");
+    equivalenceTest("private", "\n\nprivate");
   }
 
   @Test
