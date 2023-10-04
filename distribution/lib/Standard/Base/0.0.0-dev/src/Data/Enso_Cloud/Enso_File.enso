@@ -1,6 +1,69 @@
+import project.Data.Enso_Cloud.Utils
+import project.Data.Json.JS_Object
 import project.Data.Text.Text
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+
+## PRIVATE
+   Root address for listing folders
+directory_api = Utils.cloud_root_uri + "directories"
+
+## PRIVATE
+   Root address for listing folders
+files_api = Utils.cloud_root_uri + "files"
 
 type Enso_File
     ## PRIVATE
        Represents a file or folder within the Enso cloud.
-    Value name:Text id:Text
+    Value name:Text id:Text asset_type:Enso_Asset_Type
+
+    ## Represents the root folder of the current users.
+    root : Enso_File
+    root = Enso_File.Value "" "" Enso_Asset_Type.Folder
+
+    ## Gets a list of assets within self.
+    list : Vector Enso_File
+    list self = if self.asset_type != Enso_Asset_Type.Folder then Error.throw (Illegal_Argument.Error "Only folders can be listed.") else
+        auth_header = Utils.authorization_header
+        auth_header.if_not_error <|
+            target_url = if self.id == "" then directory_api else directory_api + "?parent_id=" + self.id
+            response = HTTP.fetch target_url HTTP_Method.Get [auth_header]
+            response.if_not_error <|
+                js_object = response.decode_as_json
+                assets = js_object.get "assets" []
+                files = assets.map t-> t:Enso_File
+                files.filter f-> f.asset_type != Enso_Asset_Type.Connection || f.name.starts_with "connection-"
+
+## PRIVATE
+Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
+    name = that.get "title"
+    id = that.get "id"
+    asset_type = (id.take (Text_Sub_Range.Before "-")):Enso_Asset_Type
+    Enso_File.Value name id asset_type
+
+type Enso_Asset_Type
+    ## Represents an Enso project.
+    Project
+
+    ## Represents an file.
+    File
+
+    ## Represents a folder.
+    Folder
+
+    ## Represents a connection to another data source.
+    Connection
+
+## PRIVATE
+Enso_Asset_Type.from (that:Text) = case that of
+    "project" -> Enso_Asset_Type.Project
+    "file" -> Enso_Asset_Type.File
+    "directory" -> Enso_Asset_Type.Folder
+    "secret" -> Enso_Asset_Type.Connection
+    _ -> Error.throw (Illegal_Argument.Error "Invalid asset type.")

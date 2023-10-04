@@ -16,16 +16,13 @@ authorization_header : Pair Text Text
 authorization_header =
     result = AuthenticationProvider.getToken.if_nothing <|
         cred_file = File.home / ".enso" / "credentials"
-        if cred_file.exists.not then Error.throw Not_Logged_In.Error else
+        if cred_file.exists.not then Error.throw Not_Logged_In else
             AuthenticationProvider.setToken (cred_file.read_text)
     Pair.new "Authorization" "Bearer "+result
 
 ## PRIVATE
    Error if the user is not logged into Enso Cloud.
 type Not_Logged_In
-    ## PRIVATE
-    Error
-
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "Not logged into Enso cloud. Please log in and restart."
