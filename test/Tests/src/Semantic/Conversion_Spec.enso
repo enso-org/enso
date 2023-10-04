@@ -47,6 +47,21 @@ Integer.from (that:MultiNumber) = that.v * 19
 Number.from (that:MultiNumber) = that.v * 0.3
 Float.from (that:MultiNumber) = that.v * 0.7
 
+type Back
+    Times n:Integer
+
+    exchange : (Back | Forth) -> (Back | Forth)
+    exchange value:(Back | Forth) = value
+
+type Forth
+    Times n:Integer
+
+    exchange : (Forth | Back) -> (Forth | Back)
+    exchange value:(Forth | Back) = value
+
+Back.from (that:Forth) = Back.Times that.n+1
+Forth.from (that:Back) = Forth.Times that.n+1
+
 foreign js make_str x = """
    return "js string"
 
@@ -200,6 +215,21 @@ spec =
             Meta.type_of second . should_equal Blob
             once . should_equal second
             Meta.is_same_object once second . should_be_true
+
+        Test.specify "Avoid back and forth conversions" <|
+            one = Forth.Times 1
+
+            two = Back.exchange one
+            three = Forth.exchange two
+            four = Back.exchange three
+            five = Forth.exchange four
+            six = Forth.exchange five
+            seven = Back.exchange six
+            eight = Back.exchange seven
+            nine = Forth.exchange eight
+
+            # no conversions needed when calling `exchange` methods
+            nine . should_equal one
 
         Test.specify "Requesting Text & Foo" <|
             check a (n : Text & Foo) = case a of
