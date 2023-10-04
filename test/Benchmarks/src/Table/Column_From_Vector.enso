@@ -8,15 +8,41 @@ from Standard.Test import Bench
 options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
 
 type Data
-    Value ~ints
+    Value ~ints ~floats ~floats_and_small_ints ~floats_and_large_ints
 
     create num_rows =
         # 0-argument block to make it lazy
         ints =
             Vector.new num_rows i->
                 i % 1000
-        Data.Value ints
+        floats =
+            Vector.new num_rows i->
+                (i % 1000) + 0.5
 
+        floats_and_small_ints =
+            Vector.new num_rows i->
+                case i % 2 of
+                    0 -> (i % 1000) + 0.5
+                    1 -> i % 1000
+
+        floats_and_large_ints =
+            Vector.new num_rows i->
+                case i % 3 of
+                    0 -> (i % 1000) + 0.5
+                    1 -> 2^60 + (i % 100)
+                    2 -> 2^100 + (i % 100)
+
+        Data.Value ints floats floats_and_small_ints floats_and_large_ints
+
+## A flag allowing to run some additional benchmarks.
+   They were used when analyzing performance of an optimization of Mixed
+   handler. They are disabled on the CI to avoid increasing the time of the
+   build, but they can be manually re-enabled in case this needs testing in the
+   future.
+
+   When set to `False`, only the core measurements checking the most common
+   cases are run.
+extended_tests = False
 
 collect_benches = Bench.build builder->
     num_rows = 1000000
@@ -31,5 +57,19 @@ collect_benches = Bench.build builder->
             Column.from_vector "Floats" data.ints value_type=Value_Type.Float
         group_builder.specify "Integers_type_Auto" <|
             Column.from_vector "Auto" data.ints value_type=Auto
+
+        group_builder.specify "Floats_type_Auto" <|
+            Column.from_vector "Auto" data.floats value_type=Auto
+        group_builder.specify "Floats_type_Float" <|
+            Column.from_vector "Floats" data.floats value_type=Value_Type.Float
+
+        if extended_tests then group_builder.specify "Numeric_Mix_Small_type_Auto" <|
+            Column.from_vector "Small_Mix" data.floats_and_small_ints value_type=Auto
+        if extended_tests then group_builder.specify "Numeric_Mix_Small_type_Float" <|
+            Column.from_vector "Small_Mix" data.floats_and_small_ints value_type=Value_Type.Float
+        if extended_tests then group_builder.specify "Numeric_Mix_Large_type_Auto" <|
+            Column.from_vector "Large_Mix" data.floats_and_large_ints value_type=Auto
+        if extended_tests then group_builder.specify "Numeric_Mix_Large_type_Float" <|
+            Column.from_vector "Large_Mix" data.floats_and_large_ints value_type=Value_Type.Float
 
 main = collect_benches . run_main
