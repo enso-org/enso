@@ -208,16 +208,31 @@ spec setup =
                 t3.at "A" . value_type . variable_length . should_be_true
 
         Test.specify "should find a common type that will fit the merged columns" <|
-            t1 = table_builder [["int+float", [0, 1, 2]]]
-            t2 = table_builder [["int+float", [1.0, 2.0, 2.5]]]
+            t1 = table_builder [["A", [0, 1, 2]]]
+            t2 = table_builder [["A", [1.0, 2.0, 2.5]]]
 
-            t1.at "int+float" . value_type . is_integer . should_be_true
-            t2.at "int+float" . value_type . is_floating_point . should_be_true
+            t1.at "A" . value_type . is_integer . should_be_true
+            t2.at "A" . value_type . is_floating_point . should_be_true
 
             t3 = t1.union t2
-            expect_column_names ["int+float"] t3
-            t3.at "int+float" . value_type . is_floating_point . should_be_true
-            t3.at "int+float" . to_vector . should_equal [0, 1, 2, 1.0, 2.0, 2.5]
+            expect_column_names ["A"] t3
+            t3.at "A" . value_type . is_floating_point . should_be_true
+            t3.at "A" . to_vector . should_equal [0, 1, 2, 1.0, 2.0, 2.5]
+
+            # Specific type tests that apply to in-memory. Database behaviour is up to implementation.
+            if setup.is_database.not then
+                t4 = table_builder [["A", [2^100, 2^10, 2]]]
+                t4.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
+
+                t5 = t2.union t4
+                expect_column_names ["A"] t5
+                t5.at "A" . value_type . is_floating_point . should_be_true
+                t5.at "A" . to_vector . should_equal [1.0, 2.0, 2.5, 2^100, 2^10, 2]
+
+                t6 = t1.union t4
+                expect_column_names ["A"] t6
+                t6.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
+                t6.at "A" . to_vector . should_equal [0, 1, 2, 2^100, 2^10, 2]
 
         # Database backends are not required to support Mixed types.
         if setup.is_database.not then
@@ -328,6 +343,24 @@ spec setup =
                 Problems.assume_no_problems t6
                 t6.at "X" . value_type . should_equal Value_Type.Mixed
                 t6.at "X" . to_vector . should_equal ["a", 1, Nothing, 1, 1.2, 2.3, 3.4, "a", "b", True, False]
+
+            Test.specify "when finding a common type for numeric columns to be Float, any precision loss should be reported" <|
+                t1 = table_builder [["X", [1, (2^62)-1, 3]]]
+                t2 = table_builder [["X", [1.5, 2.5, 3.5]]]
+                t3 = table_builder [["X", [(2^100)+1, 2^10, 2]]]
+
+                t1.at "X" . value_type . should_equal Value_Type.Integer
+                t2.at "X" . value_type . should_equal Value_Type.Float
+                t3.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+
+                t4 = t2.union [t1, t3] allow_type_widening=True
+                t4.at "X" . value_type . should_equal Value_Type.Float
+                # Inexact float equality will make this pass:
+                t4.at "X" . to_vector . should_equal [1.5, 2.5, 3.5, 1, (2^62)-1, 3, (2^100)+1, 2^10, 2]
+
+                w = Problems.expect_only_warning Loss_Of_Integer_Precision t4
+                # Losing precision on (2^62)-1 and 2^100+1.
+                w.affected_rows_count . should_equal 2
 
         Test.specify "if type mismatches cause all columns to be dropped, fail with No_Output_Columns" <|
             t1 = table_builder [["A", [1, 2, 3]]]

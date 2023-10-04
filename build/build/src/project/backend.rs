@@ -6,7 +6,6 @@ use crate::paths::TargetTriple;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
-use crate::source::BuildTargetJob;
 use crate::source::WithDestination;
 use crate::version::Versions;
 
@@ -147,7 +146,7 @@ impl IsTarget for Backend {
     fn build_internal(
         &self,
         context: Context,
-        job: BuildTargetJob<Self>,
+        job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let WithDestination { inner, destination } = job;
         let target_os = self.target_os;

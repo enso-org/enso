@@ -687,9 +687,15 @@ spec =
         Test.specify "Should handle parent-less file paths" <|
             transient = enso_project.data / "transient"
             f1 = transient / "./test1.txt"
-            f2 = File.new ("parentlesstest" + Date_Time.now.to_unix_epoch_milliseconds.to_text + ".txt")
+            f2_filename = "parentlesstest" + Date_Time.now.to_unix_epoch_milliseconds.to_text + ".txt"
+            f2 = File.new f2_filename
 
-            Panic.with_finalizer f2.delete <|
+            do_cleanup =
+                f2.delete_if_exists
+                f2_bak = File.new (f2_filename + ".bak")
+                f2_bak.delete_if_exists
+
+            Panic.with_finalizer do_cleanup <|
                 txt = "MY CONTENT"
                 txt.write f1
                 txt.write f2

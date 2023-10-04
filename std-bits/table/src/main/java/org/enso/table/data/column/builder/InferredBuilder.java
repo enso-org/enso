@@ -102,7 +102,7 @@ public class InferredBuilder extends Builder {
       // In inferred builder, we always default to 64-bits.
       currentBuilder = NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64);
     } else if (NumericConverter.isFloatLike(o)) {
-      currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
+      currentBuilder = NumericBuilder.createInferringDoubleBuilder(initialCapacity);
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else if (o instanceof BigInteger) {
@@ -156,7 +156,7 @@ public class InferredBuilder extends Builder {
 
   private void retypeToMixed() {
     ObjectBuilder objectBuilder = new MixedBuilder(initialSize);
-    currentBuilder.writeTo(objectBuilder.getData());
+    currentBuilder.retypeToMixed(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
     objectBuilder.setPreExistingProblems(currentBuilder.getProblems());
     currentBuilder = objectBuilder;

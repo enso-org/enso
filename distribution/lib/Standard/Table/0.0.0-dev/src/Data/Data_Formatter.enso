@@ -97,9 +97,10 @@ type Data_Formatter
        - thousand_separator: A separator that can be used to separate groups of digits in numbers.
        - allow_leading_zeros: Specifies if values starting with leading zeroes should be treated as numbers.
        - allow_exponential_notation: Allow parsing of exponential notation format.
-    with_number_formatting : Text -> Text -> Boolean -> Boolean -> Data_Formatter
+    with_number_formatting : Text -> Text -> Boolean -> Boolean -> Data_Formatter ! Illegal_Argument
     with_number_formatting self (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_leading_zeros=self.allow_leading_zeros) (allow_exponential_notation=self.allow_exponential_notation) =
-        self.clone decimal_point=decimal_point thousand_separator=thousand_separator allow_leading_zeros=allow_leading_zeros allow_exponential_notation=allow_exponential_notation
+        if decimal_point == thousand_separator then Error.throw (Illegal_Argument.Error "The decimal point and thousand separator must be different.") else
+            self.clone decimal_point=decimal_point thousand_separator=thousand_separator allow_leading_zeros=allow_leading_zeros allow_exponential_notation=allow_exponential_notation
 
     ## Specify values for Date/Time parsing.
 
@@ -187,14 +188,16 @@ type Data_Formatter
 
     ## PRIVATE
     make_integer_parser self auto_mode=False target_type=Value_Type.Integer =
-        separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
+        thousand_separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
+        decimal_point = if self.decimal_point == Auto then Nothing else self.decimal_point
         storage_type = Storage.from_value_type_strict target_type
-        NumberParser.createIntegerParser storage_type auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values separator
+        NumberParser.createIntegerParser storage_type auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values decimal_point thousand_separator
 
     ## PRIVATE
     make_decimal_parser self auto_mode=False =
-        if self.decimal_point == Auto then NumberParser.createAutoDecimalParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation else
-            NumberParser.createFixedDecimalParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation self.thousand_separator self.decimal_point
+        decimal_point = if self.decimal_point == Auto then Nothing else self.decimal_point
+        thousand_separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
+        NumberParser.createDecimalParser auto_mode.not (auto_mode.not || self.allow_leading_zeros) self.trim_values self.allow_exponential_notation decimal_point thousand_separator
 
     ## PRIVATE
     make_boolean_parser self = self.wrap_base_parser <|
@@ -219,7 +222,7 @@ type Data_Formatter
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
 
     ## PRIVATE
-    make_value_type_parser self value_type = case value_type of
+    make_value_type_parser self value_type = Illegal_Argument.handle_java_exception <| case value_type of
         Value_Type.Integer _ ->
             self.make_integer_parser target_type=value_type
         # TODO once we implement #6109 we can support 32-bit floats
@@ -234,7 +237,30 @@ type Data_Formatter
 
     ## PRIVATE
     get_specific_type_parsers self =
-        [self.make_integer_parser True, self.make_decimal_parser True, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
+        try_us_parsers_first = self.decimal_point == Auto && self.thousand_separator != "."
+        preferred_auto_parsers = case try_us_parsers_first of
+            ## If we are in auto mode, we will first try parsing US integers,
+               then US floats and only then other integers and floats.
+
+               Under normal circumstances, we first try integers and later
+               floats - but this would cause `1.000` to be interpreted as `1000`
+               because _all_ integers take precedence and floats are considered
+               later. But we want `1.000` to be interpreted as a `1.0` float by
+               default, so we change the ordering a bit.
+            True ->
+                us_preferred = self.with_number_formatting decimal_point='.'
+                [us_preferred.make_integer_parser auto_mode=True, us_preferred.make_decimal_parser auto_mode=True]
+
+            ## However, if the `decimal_point` is set to something else,
+               we don't do auto inference, so this extra logic is not needed.
+            False -> []
+        remaining_parsers = [self.make_integer_parser auto_mode=True, self.make_decimal_parser auto_mode=True, self.make_date_time_parser, self.make_date_parser, self.make_time_of_day_parser, self.make_boolean_parser]
+        parsers = preferred_auto_parsers + remaining_parsers
+        ## Unfortunately, the [] literal allows to create a vector containing
+           dataflow errors. That is not handled well later by Polyglot. So we
+           ensure all errors surface here.
+        parsers_with_propagated_error = parsers.map x->x
+        parsers_with_propagated_error
 
     ## PRIVATE
     make_auto_parser self =
