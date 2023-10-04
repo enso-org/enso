@@ -1,3 +1,12 @@
+/**
+ * Generates TypeScript bindings from a schema describing types and their serialization.
+ *
+ * Internally, the generated types deserialize their data on demand. This benefits performance: If we eagerly
+ * deserialized a serialized tree to a tree of objects in memory, creating the tree would produce many heap-allocated
+ * objects, and visiting the tree would require dereferencing chains of heap pointers. Deserializing while traversing
+ * allows the optimizer to stack-allocate the temporary objects, saving time and reducing GC pressure.
+ */
+
 import ts from 'typescript'
 const { factory: tsf } = ts
 import * as Schema from '@/schema'

@@ -158,6 +158,8 @@ export function fieldDeserializer(ident: ts.Identifier, type: Type, offset: numb
 
 // === Implementation ===
 
+/** Returns a function that, given an expression evaluating to a [`Cursor`], returns an expression applying a
+ * deserialization method with the given name to the cursor. */
 function primitiveReader(name: string): ExpressionTransformer {
     return (cursor) =>
         tsf.createCallExpression(tsf.createPropertyAccessExpression(cursor, name), [], [])
@@ -168,6 +170,10 @@ function primitiveReader(name: string): ExpressionTransformer {
  * base type, return a codegen-time function that generates a *reader* for a derived type from a *reader* for the base
  * type, where a *reader* is a function producing a deserialization expression from an expression that evaluates to a
  * `Cursor`.
+ *
+ * For example, if we have a reader produced by `primitiveReader('readU32')`, we can use it to create an expression
+ * representing the deserialization of a number from an expression that will evaluate to a location in the input. If we
+ * create a `readerTransformer('readOption')`, we can apply it to the number reader to yield an optional-number reader.
  */
 function readerTransformer(
     name: string,
@@ -200,6 +206,8 @@ function readerTransformer(
     }
 }
 
+/** Similar to [`readerTransformer`], but for deserialization-transformers that produce a reader by combining two input
+ * readers. */
 function readerTransformerTwoTyped(
     name: string,
 ): (readOk: ExpressionTransformer, readErr: ExpressionTransformer) => ExpressionTransformer {
@@ -226,6 +234,8 @@ function readerTransformerTwoTyped(
         }
 }
 
+/** Similar to [`readerTransformer`], but for deserialization-transformers are parameterized by the size of their
+ * element. */
 function readerTransformerSized(
     name: string,
 ): (readElement: ExpressionTransformer, size: number) => ExpressionTransformer {

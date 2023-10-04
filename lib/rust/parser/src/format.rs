@@ -1,7 +1,14 @@
+//! Serializer for a binary format compatible with a lazy deserialization strategy.
+//!
 //! # Design
 //!
-//! The format produced by this module is not actually "serial", as such there is a bit of an
-//! impedance mismatch using the `Serializer` trait: `serde` presents each field to the
+//! In order to support lazy deserialization, fields of each object are located at fixed offsets
+//! from the object; variable-sized objects (sequences, optional values, and discriminated unions)
+//! are stored out of band, with a reference in the owning object identifying the location of the
+//! data.
+//!
+//! Consequently, the format produced by this module is not actually "serial". This results in a bit
+//! of an impedance mismatch using the `Serializer` trait: `serde` presents each field to the
 //! serializer once, but we ultimately need to write to two different places in the output for
 //! each "boxed" field (the data, and the reference to it).
 //!

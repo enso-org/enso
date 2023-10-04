@@ -1,5 +1,5 @@
 //! Generate a schema representing `enso-parser`'s AST types. This schema can be used to generate
-//! AST representations and (de)serialization.
+//! AST representations and deserialization in other languages, such as TypeScript.
 //!
 //! The JSON schema data will be emitted to standard output.
 
