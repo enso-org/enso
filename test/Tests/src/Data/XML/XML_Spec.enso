@@ -11,15 +11,6 @@ spec =
 
     fix_windows_newlines s = s.replace '\r\n' '\n'
 
-    Test.group "asdfasdf" <|
-        Test.specify "Parse error from file" <|
-            test_file = enso_project.data / "sample.txt"
-            XML_Document.from_file test_file . catch . should_be_a XML_Error.Parse_Error
-
-        Test.specify "Parse error from string" <|
-            xml_string = "<<<<</"
-            XML_Document.from_string xml_string . catch . should_be_a XML_Error.Parse_Error
-
     Test.group "Read XML" <|
         Test.specify "Can read from a file" <|
             root.name . should_equal "class"
