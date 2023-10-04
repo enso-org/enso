@@ -139,6 +139,10 @@ function checkResourcesPath(projectId: backendModule.ProjectId) {
 function getSecretPath(secretId: backendModule.SecretId) {
     return `secrets/${secretId}`
 }
+/** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
+function associateTagPath(assetId: backendModule.AssetId) {
+    return `asset/${assetId}/labels`
+}
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
 function deleteTagPath(tagId: backendModule.TagAssetAssociationId) {
     return `tags/${tagId}`
@@ -316,7 +320,7 @@ export class RemoteBackend extends backendModule.Backend {
                     ...(query.filterBy != null ? { filter_by: query.filterBy } : {}),
                     // eslint-disable-next-line @typescript-eslint/naming-convention
                     ...(query.recentProjects ? { recent_projects: String(true) } : {}),
-                    ...(query.label != null ? { label: query.label } : {}),
+                    ...(query.labels != null ? { labels: query.labels.join(',') } : {}),
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
@@ -676,7 +680,7 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
-    /** Create a file tag or project tag.
+    /** Create a label used for categorizing assets.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async createTag(
@@ -686,31 +690,53 @@ export class RemoteBackend extends backendModule.Backend {
             value: body.value,
         })
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not create create tag '${body.value}'.`)
+            return this.throw(`Could not create label '${body.value}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Return file tags or project tags accessible by the user.
+    /** Return all labels accessible by the user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listTags(): Promise<backendModule.Label[]> {
         const response = await this.get<ListTagsResponseBody>(LIST_TAGS_PATH)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not list tags.`)
+            return this.throw(`Could not list labels.`)
         } else {
             return (await response.json()).tags
         }
     }
 
-    /** Delete a secret environment variable.
+    /** Set the full list of labels for a specific asset.
+     *
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async associateTag(
+        assetId: backendModule.AssetId,
+        labels: backendModule.LabelName[],
+        title: string | null
+    ) {
+        const response = await this.patch<ListTagsResponseBody>(associateTagPath(assetId), {
+            labels,
+        })
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Could not set labels for asset ${
+                    title != null ? `'${title}'` : `with ID '${assetId}'`
+                }.`
+            )
+        } else {
+            return
+        }
+    }
+
+    /** Delete a label.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async deleteTag(tagId: backendModule.TagAssetAssociationId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not delete tag with ID '${tagId}'.`)
+            return this.throw(`Could not delete label with ID '${tagId}'.`)
         } else {
             return
         }

@@ -84,8 +84,7 @@ export default function Drive(props: DriveProps) {
             categorySwitcher.Category.home
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
-    const [currentLabel, setCurrentLabel] =
-        React.useState<backendModule.TagAssetAssociationId | null>(null)
+    const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[]>([])
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -198,14 +197,12 @@ export default function Drive(props: DriveProps) {
                         <CategorySwitcher category={category} setCategory={setCategory} />
                         <Labels
                             labels={labels}
-                            currentLabel={currentLabel}
-                            setCurrentLabel={setCurrentLabel}
+                            currentLabels={currentLabels}
+                            setCurrentLabels={setCurrentLabels}
                             doCreateLabel={value => {
                                 const placeholderLabel: backendModule.Label = {
-                                    id: backendModule.TagAssetAssociationId(
-                                        uniqueString.uniqueString()
-                                    ),
-                                    value,
+                                    id: backendModule.TagId(uniqueString.uniqueString()),
+                                    value: backendModule.LabelName(value),
                                 }
                                 setLabels(oldLabels => [...oldLabels, placeholderLabel])
                                 void (async () => {
@@ -218,8 +215,12 @@ export default function Drive(props: DriveProps) {
                                                     : oldLabel
                                             )
                                         )
-                                        setCurrentLabel(oldLabel =>
-                                            oldLabel === placeholderLabel.id ? label.id : oldLabel
+                                        setCurrentLabels(oldLabels =>
+                                            oldLabels.map(oldLabel =>
+                                                oldLabel === placeholderLabel.value
+                                                    ? label.value
+                                                    : oldLabel
+                                            )
                                         )
                                     } catch (error) {
                                         toastAndLog(null, error)
@@ -228,8 +229,10 @@ export default function Drive(props: DriveProps) {
                                                 oldLabel => oldLabel.id !== placeholderLabel.id
                                             )
                                         )
-                                        setCurrentLabel(oldLabel =>
-                                            oldLabel === placeholderLabel.id ? null : oldLabel
+                                        setCurrentLabels(oldLabels =>
+                                            oldLabels.filter(
+                                                oldLabel => oldLabel !== placeholderLabel.value
+                                            )
                                         )
                                     }
                                 })()
@@ -240,7 +243,7 @@ export default function Drive(props: DriveProps) {
                 <AssetsTable
                     query={query}
                     category={category}
-                    currentLabel={currentLabel}
+                    currentLabels={currentLabels}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
                     queuedAssetEvents={queuedAssetEvents}

@@ -45,7 +45,15 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
-/** Unique identifier for an asset tag. */
+/** The name of an asset label. */
+export type LabelName = newtype.Newtype<string, 'LabelName'>
+export const LabelName = newtype.newtypeConstructor<LabelName>()
+
+/** Unique identifier for a label. */
+export type TagId = newtype.Newtype<string, 'TagId'>
+export const TagId = newtype.newtypeConstructor<TagId>()
+
+/** Unique identifier for an asset label. */
 export type TagAssetAssociationId = newtype.Newtype<string, 'TagAssetAssociationId'>
 export const TagAssetAssociationId = newtype.newtypeConstructor<TagAssetAssociationId>()
 
@@ -235,10 +243,16 @@ export interface SecretInfo {
     id: SecretId
 }
 
-/** A tag for an asset. */
+/** A label. */
 export interface Label {
+    id: TagId
+    value: LabelName
+}
+
+/** A label for an asset. */
+export interface AssetLabel {
     id: TagAssetAssociationId
-    value: string
+    value: LabelName
 }
 
 /** Type of application that a {@link Version} applies to.
@@ -394,7 +408,7 @@ export interface BaseAsset {
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
     permissions: UserPermission[] | null
-    labels: Label[] | null
+    labels: AssetLabel[] | null
 }
 
 /** Metadata uniquely identifying a directory entry.
@@ -584,7 +598,7 @@ export interface CreateTagRequestBody {
 export interface ListDirectoryRequestParams {
     parentId: string | null
     filterBy: FilterBy | null
-    label: string | null
+    labels: LabelName[] | null
     recentProjects: boolean
 }
 
@@ -743,11 +757,17 @@ export abstract class Backend {
     abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
     abstract listSecrets(): Promise<SecretInfo[]>
-    /** Create a file tag or project tag. */
+    /** Create a label used for categorizing assets. */
     abstract createTag(body: CreateTagRequestBody): Promise<Label>
-    /** Return file tags or project tags accessible by the user. */
+    /** Return all labels accessible by the user. */
     abstract listTags(): Promise<Label[]>
-    /** Delete a file tag or project tag. */
+    /** Set the full list of labels for a specific asset. */
+    abstract associateTag(
+        assetId: AssetId,
+        tagIds: LabelName[],
+        title: string | null
+    ): Promise<void>
+    /** Delete a label. */
     abstract deleteTag(tagId: TagAssetAssociationId): Promise<void>
     /** Return a list of backend or IDE versions. */
     abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>

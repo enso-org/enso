@@ -168,7 +168,7 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 export interface AssetsTableProps {
     query: string
     category: categorySwitcher.Category
-    currentLabel: backendModule.TagAssetAssociationId | null
+    currentLabels: backendModule.LabelName[]
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than
@@ -195,7 +195,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
         category,
-        currentLabel,
+        currentLabels,
         initialProjectName,
         projectStartupInfo,
         queuedAssetEvents: rawQueuedAssetEvents,
@@ -373,7 +373,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
                                 recentProjects: category === categorySwitcher.Category.recent,
-                                label: currentLabel,
+                                labels: currentLabels,
                             },
                             null
                         )
@@ -394,7 +394,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
                                 recentProjects: category === categorySwitcher.Category.recent,
-                                label: currentLabel,
+                                labels: currentLabels,
                             },
                             null
                         )
@@ -409,7 +409,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
         },
-        [category, currentLabel, accessToken, organization, backend]
+        [category, currentLabels, accessToken, organization, backend]
     )
 
     React.useEffect(() => {
@@ -506,7 +506,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             parentId: directoryId,
                             filterBy: CATEGORY_TO_FILTER_BY[category],
                             recentProjects: category === categorySwitcher.Category.recent,
-                            label: currentLabel,
+                            labels: currentLabels,
                         },
                         title ?? null
                     )
@@ -569,7 +569,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [category, currentLabel, nodeMap, backend]
+        [category, currentLabels, nodeMap, backend]
     )
 
     const getNewProjectName = React.useCallback(

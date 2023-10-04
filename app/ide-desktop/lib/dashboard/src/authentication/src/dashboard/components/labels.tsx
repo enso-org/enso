@@ -42,14 +42,14 @@ function Label(props: InternalLabelProps) {
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
     labels: backendModule.Label[]
-    currentLabel: backendModule.TagAssetAssociationId | null
-    setCurrentLabel: (currentLabel: backendModule.TagAssetAssociationId | null) => void
+    currentLabels: backendModule.LabelName[]
+    setCurrentLabels: React.Dispatch<React.SetStateAction<backendModule.LabelName[]>>
     doCreateLabel: (name: string) => void
 }
 
 /** A list of selectable labels. */
 export default function Labels(props: LabelsProps) {
-    const { labels, currentLabel, setCurrentLabel, doCreateLabel } = props
+    const { labels, currentLabels, setCurrentLabels, doCreateLabel } = props
     const { setModal } = modalProvider.useSetModal()
     return (
         <div className="flex flex-col items-start w-30">
@@ -62,10 +62,14 @@ export default function Labels(props: LabelsProps) {
                 {labels.map(label => (
                     <Label
                         key={label.id}
-                        active={label.id === currentLabel}
+                        active={currentLabels.includes(label.value)}
                         className="bg-frame-selected text-primary"
                         onClick={() => {
-                            setCurrentLabel(label.id === currentLabel ? null : label.id)
+                            setCurrentLabels(oldLabels =>
+                                oldLabels.includes(label.value)
+                                    ? oldLabels.filter(oldLabel => oldLabel !== label.value)
+                                    : [...oldLabels, label.value]
+                            )
                         }}
                     >
                         {label.value}
