@@ -4,6 +4,8 @@ import { onMounted, watch } from 'vue'
 import diff from 'fast-diff'
 
 import { useProjectStore } from '@/stores/project'
+import { computed } from 'vue'
+import { useObserveYjs } from '../src/util/crdt'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
@@ -47,24 +49,26 @@ function applyEdits(
 watch(
   () => props.modelValue,
   (text, oldText) => {
-    if (!projectStore.module) return
-    ignoreNextUpdate = true
-    // applyEdits(projectStore.module, oldText, text)
-  },
-)
-
-watch(
-  () => projectStore.module?.doc.contents.toString() ?? '',
-  (text, oldText) => {
     if (ignoreNextUpdate) {
       ignoreNextUpdate = false
       return
     }
-    // projectStore.module && applyEdits(projectStore.module, oldText, text)
-    // const newValue = projectStore.module?.doc.contents.toString()
-    // newValue != null && emit('update:modelValue', newValue)
+    ignoreNextUpdate = true
+    if (!projectStore.module) return
+    applyEdits(projectStore.module, oldText, text)
   },
 )
+
+const text = computed(() => projectStore.module?.doc.contents)
+
+useObserveYjs(text, () => {
+  if (ignoreNextUpdate) {
+    ignoreNextUpdate = false
+    return
+  }
+  ignoreNextUpdate = true
+  text.value && emit('update:modelValue', text.value?.toString())
+})
 </script>
 
 <template>

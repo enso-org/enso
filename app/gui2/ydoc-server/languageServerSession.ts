@@ -481,6 +481,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       this.syncedVersion = version
       this.syncedMeta = metadata
 
+      console.log('lss2')
       const codeDiff = simpleDiffString(this.doc.contents.toString(), code)
       this.doc.contents.delete(codeDiff.index, codeDiff.remove)
       this.doc.contents.insert(codeDiff.index, codeDiff.insert)
