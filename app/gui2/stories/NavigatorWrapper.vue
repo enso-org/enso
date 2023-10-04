@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/// <reference types="@histoire/plugin-vue/components" />
 import { ref } from 'vue'
 
 import { useNavigator } from '@/util/navigator'

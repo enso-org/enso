@@ -1,6 +1,4 @@
 <script setup lang="ts">
-/// <reference types="@histoire/plugin-vue/components" />
-
 import { ref } from 'vue'
 
 import TableVisualization from '@/components/visualizations/TableVisualization.vue'
@@ -31,10 +29,3 @@ const data = ref<any>({
     </template>
   </Story>
 </template>
-
-<style>
-.VisualizationContainer {
-  z-index: 0 !important;
-  min-width: 0 !important;
-}
-</style>

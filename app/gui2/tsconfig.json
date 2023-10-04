@@ -11,6 +11,9 @@
       "path": "./tsconfig.app.json"
     },
     {
+      "path": "./tsconfig.story.json"
+    },
+    {
       "path": "./tsconfig.vitest.json"
     },
     {

@@ -2,12 +2,16 @@
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": [
     "env.d.ts",
+    "env.story.d.ts",
     "src/**/*",
     "src/**/*.vue",
     "shared/**/*",
     "shared/**/*.vue",
     "public/**/*",
-    "public/**/*.vue"
+    "public/**/*.vue",
+    "stories/**/*",
+    "stories/**/*.json",
+    "stories/**/*.vue"
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {

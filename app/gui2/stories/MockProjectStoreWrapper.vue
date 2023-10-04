@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/// <reference types="@histoire/plugin-vue/components" />
 import diff from 'fast-diff'
 import { ref, watch } from 'vue'
 

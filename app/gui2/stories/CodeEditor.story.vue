@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
-import GraphEditor from '@/components/GraphEditor.vue'
+import CodeEditor from '@/components/CodeEditor.vue'
 import MockProjectStoreWrapper from './MockProjectStoreWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 
@@ -35,16 +35,25 @@ main = collect_benches . run_main`
 
 <template>
   <Story
-    title="Editor"
+    title="Code Editor"
     group="graph"
     :layout="{ type: 'single', iframe: false }"
-    responsive-disabled
     auto-props-disabled
   >
     <MockProjectStoreWrapper v-model="text">
-      <GraphEditor />
+      <CodeEditor show-immediately />
     </MockProjectStoreWrapper>
 
     <template #controls><HstCode v-model="text" title="code" /></template>
   </Story>
 </template>
+
+<style>
+.CodeEditor {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  height: 30%;
+}
+</style>

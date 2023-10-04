@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/// <reference types="@histoire/plugin-vue/components" />
 import { logEvent } from 'histoire/client'
 
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
@@ -17,7 +16,7 @@ const position = new Vec2(-329.5, 0)
     responsive-disabled
     auto-props-disabled
   >
-    <NavigatorWrapper>
+    <NavigatorWrapper style="height: 100%">
       <template #default="{ navigator }">
         <ComponentBrowser
           :position="position"
@@ -28,9 +27,3 @@ const position = new Vec2(-329.5, 0)
     </NavigatorWrapper>
   </Story>
 </template>
-
-<style>
-.NavigatorWrapper {
-  height: 100vh;
-}
-</style>

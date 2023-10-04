@@ -1,6 +1,4 @@
 <script setup lang="ts">
-/// <reference types="@histoire/plugin-vue/components" />
-
 import { ref } from 'vue'
 
 import { logEvent } from 'histoire/client'

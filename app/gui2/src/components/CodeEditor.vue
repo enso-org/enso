@@ -9,11 +9,13 @@ import { ref, watch } from 'vue'
 // @ts-ignore
 import { yCollab } from 'y-codemirror.next'
 
+const props = defineProps<{ showImmediately?: boolean }>()
+
 const projectStore = useProjectStore()
 
 // == Keyboard shortcut to toggle the CodeEditor ==
 
-const shown = ref(false)
+const shown = ref(props.showImmediately)
 const rootElement = ref<HTMLElement>()
 
 useWindowEvent('keydown', (e) => {
@@ -62,7 +64,7 @@ watch(codeMirrorEl, (codeMirrorEl, _, onCleanup) => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .CodeEditor {
   position: absolute;
   bottom: 0;
@@ -70,16 +72,17 @@ watch(codeMirrorEl, (codeMirrorEl, _, onCleanup) => {
   width: 50%;
   height: 30%;
 }
-.codemirror-container {
+
+:deep(.codemirror-container) {
   width: 100%;
   height: 100%;
   background-color: rgba(255, 255, 255, 0.3);
 }
-.cm-editor {
+:deep(.cm-editor) {
   width: 100%;
   height: 100%;
 }
-.cm-gutters {
+:deep(.cm-gutters) {
   display: none !important;
 }
 </style>

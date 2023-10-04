@@ -1,6 +1,4 @@
 <script setup lang="ts">
-/// <reference types="@histoire/plugin-vue/components" />
-
 import { ref } from 'vue'
 
 import ImageBase64Visualization from '@/components/visualizations/ImageBase64Visualization.vue'
@@ -46,10 +44,3 @@ async function updateFile(file: File) {
     </template>
   </Story>
 </template>
-
-<style>
-.VisualizationContainer {
-  z-index: 0 !important;
-  min-width: 0 !important;
-}
-</style>

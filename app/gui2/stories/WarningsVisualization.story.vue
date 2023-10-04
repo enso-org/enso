@@ -1,6 +1,4 @@
 <script setup lang="ts">
-/// <reference types="@histoire/plugin-vue/components" />
-
 import { ref } from 'vue'
 
 import WarningsVisualization from '@/components/visualizations/WarningsVisualization.vue'
@@ -24,10 +22,3 @@ const data = ref<any>(['warning 1', "warning 2!!&<>;'\x22"])
     </template>
   </Story>
 </template>
-
-<style>
-.VisualizationContainer {
-  z-index: 0 !important;
-  min-width: 0 !important;
-}
-</style>

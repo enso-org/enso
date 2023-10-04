@@ -8,6 +8,7 @@ import { visualizationConfigProvideKey$FOR$INTERNAL$USE$ONLY } from '@/providers
 
 import '@/assets/base.css'
 import { Vec2 } from '@/util/vec2'
+import './story.css'
 
 export const setupVue3 = defineSetupVue3(({ app }) => {
   // Required for graph stories.

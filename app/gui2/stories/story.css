@@ -1,0 +1,18 @@
+[data-v-app]:has(*) {
+  height: 100%;
+}
+
+.viewport {
+  height: 100%;
+  width: 100%;
+}
+
+.VisualizationContainer {
+  z-index: 0 !important;
+  min-width: 0 !important;
+}
+
+.CodeEditor.CodeEditor {
+  width: 100% !important;
+  height: 100% !important;
+}
