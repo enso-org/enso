@@ -147,7 +147,7 @@ type XML_Element
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get self key:(Text|Integer) ~if_missing=Nothing =
         case key of
-            _ : Integer -> self.get_child_element key if_missing
+            _ : Integer -> self.children.get key if_missing
             _ : Text -> if is_attribute_key key then self.get_xpath key . get 0 if_missing else self.get_xpath key
 
     ## Gets a child or attribute of an XML element.
@@ -192,7 +192,7 @@ type XML_Element
     get_xpath self key:Text =
         XML_Error.handle_java_exceptions <|
             xpath = XPathFactory.newInstance.newXPath
-            only_wanted_nodes (nodelist_to_vector (xpath.evaluate key self.java_element XPathConstants.NODESET))
+            only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
 
     ## Gets the child elements of an XML element.
 
@@ -203,7 +203,9 @@ type XML_Element
              XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . children
              # => [XML_Document.from_string "<baz>hello</baz>"]
     children : Vector (XML_Element | Text) ! XML_Error
-    children self = only_wanted_nodes self.all_children
+    children self =
+        XML_Error.handle_java_exceptions <|
+            only_wanted_nodes self.java_element.getChildNodes
 
     ## Gets the number children of an XML element.
 
@@ -218,23 +220,6 @@ type XML_Element
              # => 2
     child_count : Integer ! XML_Error
     child_count self = self.children.length
-
-    ## PRIVATE
-       Get the child element indicated by the index.
-
-       `get_child_element` only returns child elements and child text nodes that
-       are not 100% whitespace. Other node types, such as comments, are not
-       considered.
-    get_child_element : Integer -> Any -> Any | Text | XML_Element ! No_Such_Key
-    get_child_element self n:Integer ~if_missing =
-        self.children.get n if_missing
-
-    ## PRIVATE
-       Get all children of this element.
-    all_children : Vector Any ! XML_Error
-    all_children self =
-        XML_Error.handle_java_exceptions <|
-            nodelist_to_vector self.java_element.getChildNodes
 
     ## Get an attribute of an XML element.
 
@@ -316,7 +301,7 @@ type XML_Element
     get_elements_by_tag_name : Text -> Vector XML_Element ! XML_Error
     get_elements_by_tag_name self tag_name:Text =
         XML_Error.handle_java_exceptions <|
-            only_wanted_nodes (nodelist_to_vector (self.java_element.getElementsByTagName tag_name))
+            only_wanted_nodes (self.java_element.getElementsByTagName tag_name)
 
     ## PRIVATE
     Value (java_element:Element)
@@ -361,8 +346,10 @@ type XML_Error
    - Elements
    - Text (if not completely whitespace)
    - Attribute values (which only arise in the case of XPath keys)
-only_wanted_nodes : Vector Any -> Vector (Text | XML_Element)
-only_wanted_nodes nodes:(Vector Any) =
+only_wanted_nodes : NodeList -> Vector (Text | XML_Element)
+only_wanted_nodes node_list:NodeList =
+    nodes = 0.up_to (node_list.getLength) . map i->
+        node_list.item i
     is_wanted : Node -> Boolean
     is_wanted node:Node =
         is_element = node.getNodeType == Node.ELEMENT_NODE
@@ -382,10 +369,3 @@ only_wanted_nodes nodes:(Vector Any) =
    Returns true if `key` starts with "@".
 is_attribute_key : Text -> Boolean
 is_attribute_key s:Text = s.starts_with "@"
-
-## PRIVATE
-   Convert NodeList to Vector.
-nodelist_to_vector : NodeList -> Vector Any
-nodelist_to_vector node_list:NodeList =
-    0.up_to (node_list.getLength) . map i->
-        node_list.item i
