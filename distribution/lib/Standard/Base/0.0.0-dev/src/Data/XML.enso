@@ -1,5 +1,7 @@
 import project.Any.Any
 import project.Data.Boolean.Boolean
+import project.Data.Json.Extensions
+import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
@@ -81,9 +83,9 @@ type XML_Document
          Read an XML document from an string.
 
              xml_string = "<foo></foo>"
-             doc = XML_Document.from_string xml_string
-    from_string : Text -> XML_Document ! XML_Error
-    from_string xml_string:Text =
+             doc = XML_Document.from_text xml_string
+    from_text : Text -> XML_Document ! XML_Error
+    from_text xml_string:Text =
         XML_Error.handle_java_exceptions <|
             string_reader = StringReader.new xml_string
             XML_Document.from_source (InputSource.new string_reader)
@@ -110,6 +112,16 @@ type XML_Document
             XML_Element.Value java_element
 
     ## PRIVATE
+       Convert to a JavaScript Object representing this XML_Document.
+    to_js_object : JS_Object
+    to_js_object self = self.root_element.to_js_object
+
+    ## PRIVATE
+       Convert to a display representation of this XML_Document.
+    to_display_text : Text
+    to_display_text self = "XML_Document (" + self.root_element.to_display_text + ")"
+
+    ## PRIVATE
     Value (java_document:Document)
 
 type XML_Element
@@ -118,7 +130,7 @@ type XML_Element
        > Example
          Get the tag of an XML element.
 
-             XML_Document.from_string '<foo>hello</foo>' . root_element . name
+             XML_Document.from_text '<foo>hello</foo>' . root_element . name
              # => "foo"
     name : Text ! XML_Error
     name self =
@@ -134,13 +146,13 @@ type XML_Element
          returns the attribute with the given name.
 
        > Example
-           XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . get 0
-           # => XML_Document.from_string "<baz>hello</baz>" . root_element
+           XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . get 0
+           # => XML_Document.from_text "<baz>hello</baz>" . root_element
 
        > Example
          Get a tag attribute.
 
-             root = XML_Document.from_string '<foo bar="one">hello</foo>' . root_element
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
              root.get "@bar"
              # => "one"
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
@@ -160,13 +172,13 @@ type XML_Element
        > Example
          Get a nested tag:
 
-             XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . at 0
-             # => XML_Document.from_string "<baz>hello</baz>" . root_element
+             XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . at 0
+             # => XML_Document.from_text "<baz>hello</baz>" . root_element
 
        > Example
          Get a tag attribute.
 
-             root = XML_Document.from_string '<foo bar="one">hello</foo>' . root_element
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
              root.at "@bar"
              # => "one"
     at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
@@ -186,7 +198,7 @@ type XML_Element
 
              root = XML_Document.from_file test_file . root_element
              root.at "/class/teacher[1]/firstname"
-             # => [XML_Document.from_string "<firstname>Alice</firstname>" . root_element]
+             # => [XML_Document.from_text "<firstname>Alice</firstname>" . root_element]
     get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
     get_xpath self key:Text =
         XML_Error.handle_java_exceptions <|
@@ -199,8 +211,8 @@ type XML_Element
        100% whitespace. Other node types, such as comments, are not included.
 
        > Example
-             XML_Document.from_string '<foo><baz>hello</baz></foo>' . root_element . children
-             # => [XML_Document.from_string "<baz>hello</baz>"]
+             XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . children
+             # => [XML_Document.from_text "<baz>hello</baz>"]
     children : Vector (XML_Element | Text) ! XML_Error
     children self = only_wanted_nodes self.all_children
 
@@ -213,7 +225,7 @@ type XML_Element
        > Example
          Get the number of children of an element.
 
-             XML_Document.from_string '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . num_children
+             XML_Document.from_text '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . num_children
              # => 2
     num_children : Integer ! XML_Error
     num_children self = self.children.length
@@ -244,7 +256,7 @@ type XML_Element
        > Example
          Get an attribute of an element.
 
-             root = XML_Document.from_string '<foo bar="one">hello</foo>' . root_element
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
              root.attribute "bar"
              # => "one"
     attribute : Text -> Any -> Text | Any ! XML_Error
@@ -256,7 +268,7 @@ type XML_Element
     ## Gets a map containing f the attributes of an XML element.
 
        > Example
-           XML_Document.from_string '<foo bar="one">hello</foo>' . root_element . attributes
+           XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . attributes
            # => Map.from_vector [["bar", "one"]]
     attributes : Map Text Text ! XML_Error
     attributes self =
@@ -273,7 +285,7 @@ type XML_Element
        > Example
          Get the text content of an element.
 
-             XML_Document.from_string '<foo>hello</foo>' . root_element . text
+             XML_Document.from_text '<foo>hello</foo>' . root_element . text
              # => "hello"
     text : Text ! XML_Error
     text self =
@@ -285,7 +297,7 @@ type XML_Element
        > Example
          Get the outer XML of an element.
 
-             XML_Document.from_string '<foo>hello</foo>' . root_element . outer_xml
+             XML_Document.from_text '<foo>hello</foo>' . root_element . outer_xml
              # => '<foo>hello</foo>'
     outer_xml : Text ! XML_Error
     outer_xml self =
@@ -298,7 +310,7 @@ type XML_Element
        > Example
          Get the inner XML of an element.
 
-             XML_Document.from_string '<foo><bar>hello</bar></foo>' . root_element . inner_xml
+             XML_Document.from_text '<foo><bar>hello</bar></foo>' . root_element . inner_xml
              # => '<bar>hello</bar>'
     inner_xml : Text ! XML_Error
     inner_xml self =
@@ -310,12 +322,28 @@ type XML_Element
        This searches through all descendants of the node, not just immediate children.
 
        > Example
-             XML_Document.from_string '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
-             # => [XML_Document.from_string "<baz>hello</baz>" . root_element, XML_Document.from_string "<baz>goodbye</baz>" . root_element]
+             XML_Document.from_text '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
+             # => [XML_Document.from_text "<baz>hello</baz>" . root_element, XML_Document.from_text "<baz>goodbye</baz>" . root_element]
     get_elements_by_tag_name : Text -> Vector XML_Element ! XML_Error
     get_elements_by_tag_name self tag_name:Text =
         XML_Error.handle_java_exceptions <|
             only_wanted_nodes (nodelist_to_vector (self.java_element.getElementsByTagName tag_name))
+
+    ## PRIVATE
+       Convert to a display representation of this XML_Element.
+    to_display_text : Text
+    to_display_text self = 'XML_Element "' + self.name + '"'
+
+    ## PRIVATE
+       Convert to a JavaScript Object representing this XML_Element.
+    to_js_object : JS_Object ! XML_Error
+    to_js_object self =
+        builder = Vector.new_builder 4
+        builder.append ["type", "XML_Element"]
+        builder.append ["tag", self.name]
+        builder.append ["attributes", self.attributes.to_js_object]
+        builder.append ["children", self.children.to_js_object]
+        JS_Object.from_pairs builder.to_vector
 
     ## PRIVATE
     Value (java_element:Element)
@@ -332,13 +360,6 @@ type XML_Error
     Other (error : Text)
 
     ## PRIVATE
-       Convert the XML_Error to a human-readable format.
-    to_display_text : Text
-    to_display_text self = case self of
-        XML_Error.Parse_Error line_number column_number -> "The XML document could not be parsed at line " + line_number.to_text + ", column " + column_number.to_text
-        XML_Error.Other error -> error
-
-    ## PRIVATE
 
        Utility method for running an action with Java exceptions mapping.
     handle_java_exceptions : Any -> Any ! XML_Error
@@ -353,6 +374,13 @@ type XML_Error
     wrap_java_exception exception:JException = case exception of
         _ : SAXParseException -> Error.throw (XML_Error.Parse_Error exception.getLineNumber exception.getColumnNumber)
         _ -> Error.throw (XML_Error.Other "An Exception has occurred: "+exception.to_text)
+
+    ## PRIVATE
+       Convert the XML_Error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = case self of
+        XML_Error.Parse_Error line_number column_number -> "The XML document could not be parsed at line " + line_number.to_text + ", column " + column_number.to_text
+        XML_Error.Other error -> error
 
 ## PRIVATE
    Filter out unwanted nodes.

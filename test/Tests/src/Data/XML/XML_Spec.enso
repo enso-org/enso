@@ -7,7 +7,8 @@ import Standard.Test.Extensions
 
 spec =
     test_file = enso_project.data / "xml" / "sample.xml"
-    root = XML_Document.from_file test_file . root_element
+    document = XML_Document.from_file test_file
+    root = document . root_element
 
     fix_windows_newlines s = s.replace '\r\n' '\n'
 
@@ -26,12 +27,12 @@ spec =
 
         Test.specify "Can read from a string" <|
             xml_string = test_file.read_text
-            doc = XML_Document.from_string xml_string
+            doc = XML_Document.from_text xml_string
             doc.root_element.name . should_equal "class"
 
         Test.specify "Can read from a short string" <|
             xml_string = "<class></class>"
-            doc = XML_Document.from_string xml_string
+            doc = XML_Document.from_text xml_string
             doc.root_element.name . should_equal "class"
 
         Test.specify "Parse error from file" <|
@@ -40,7 +41,7 @@ spec =
 
         Test.specify "Parse error from string" <|
             xml_string = "<<<<</"
-            XML_Document.from_string xml_string . catch . should_be_a XML_Error.Parse_Error
+            XML_Document.from_text xml_string . catch . should_be_a XML_Error.Parse_Error
 
     Test.group "at/get" <|
         Test.specify "Can get children by index" <|
@@ -191,5 +192,37 @@ spec =
             doc = Data.fetch "https://enso-data-samples.s3.us-west-1.amazonaws.com/sample.xml"
             doc.root_element.name . should_equal "class"
             doc.root_element.at 1 . name . should_equal "teacher"
+
+    Test.group "display text" <|
+        Test.specify "Can generate display text" <|
+            document.to_display_text . should_equal 'XML_Document (XML_Element "class")'
+            root.to_display_text .  should_equal 'XML_Element "class"'
+
+    Test.group "JSON" <|
+        Test.specify "Can convert to JS_Object" <|
+            test_file = enso_project.data / "xml" / "small.xml"
+            document = XML_Document.from_file test_file
+            root = document . root_element
+            expected = Json.parse '''
+                {
+                "type": "XML_Element",
+                "tag": "class",
+                "attributes": [],
+                "children": [
+                    {
+                    "type": "XML_Element",
+                    "tag": "teacher",
+                    "attributes": [ [ "id", "100" ]
+                    ],
+                    "children": [
+                        { "type": "XML_Element", "tag": "firstname", "attributes": [], "children": [ "Mary" ] },
+                        { "type": "XML_Element", "tag": "lastname", "attributes": [], "children": [ "Smith" ] },
+                        { "type": "XML_Element", "tag": "bio", "attributes": [], "children": [ "\\n            Blah blah\\n        " ] }
+                    ]
+                    }
+                ]
+                }
+            js = root.to_js_object
+            js.should_equal expected
 
 main = Test_Suite.run_main spec
