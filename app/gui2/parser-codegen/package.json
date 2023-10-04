@@ -8,7 +8,7 @@
   },
   "main": "dist/codegen.js",
   "scripts": {
-    "generate-ast-schema": "cargo run -p enso-parser-schema > generated/ast-schema.json",
+    "generate-ast-schema": "cargo run -p enso-parser-schema --bin enso-parser-schema > generated/ast-schema.json",
     "preinstall": "npm run generate-ast-schema",
     "generate-bindings": "tsc --build && node dist/codegen.js generated/ast-schema.json"
   },

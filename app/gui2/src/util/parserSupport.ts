@@ -66,7 +66,9 @@ export class Cursor {
   }
 
   readPointer(): Cursor {
-    return new Cursor(this.blob.buffer, this.readU32())
+    const pointee = this.readU32();
+    console.log(`readPointer: ${this.address()} -> ${pointee}`)
+    return new Cursor(this.blob.buffer, pointee)
   }
 
   readU8(): number {
@@ -113,23 +115,23 @@ export class Cursor {
   seek(offset: number): Cursor {
     return new Cursor(this.blob.buffer, this.blob.byteOffset + offset)
   }
+
+  address(): number {
+    return this.blob.byteOffset
+  }
 }
 
-export function debugHelper(value: any): object | undefined {
-  if (value == null) {
-    return undefined
-  }
-  if (typeof value['debug'] === 'function') {
-    return value.debug()
-  }
-  if (typeof value[Symbol.iterator] === 'function') {
-    return Array.from(value, debugHelper)
-  }
+export function debugHelper(value: any | undefined): any | undefined {
   if (typeof value === 'object') {
+    if ('debug' in value && typeof value['debug'] === 'function') {
+      return value.debug()
+    }
+    if (Symbol.iterator in value && typeof value[Symbol.iterator] === 'function') {
+      return Array.from(value, debugHelper)
+    }
     // FIXME: Include the `hide` reflect property in the schema, and apply it during code generation to avoid magic
     //  strings here.
     const hide = [
-        /*
       'codeReprBegin',
       'codeReprLen',
       'leftOffsetCodeReprBegin',
@@ -138,7 +140,6 @@ export function debugHelper(value: any): object | undefined {
       'spanLeftOffsetCodeReprBegin',
       'spanLeftOffsetCodeReprLen',
       'spanLeftOffsetVisible',
-         */
     ]
     return Object.fromEntries(Object.entries(value).filter(([key, _val]) => !hide.includes(key)))
   }

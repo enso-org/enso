@@ -47,34 +47,34 @@ pub fn schema() -> impl serde::Serialize {
 // === Schema ===
 // ==============
 
-#[derive(serde::Serialize)]
-struct Schema {
-    types:         HashMap<TypeId, Type>,
-    serialization: HashMap<TypeId, Layout>,
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Schema {
+    pub types:         HashMap<TypeId, Type>,
+    pub serialization: HashMap<TypeId, Layout>,
 }
 
 
 // === Type graph ===
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Type {
-    name:   Rc<str>,
-    fields: HashMap<FieldName, TypeRef>,
+pub struct Type {
+    pub name:   Rc<str>,
+    pub fields: HashMap<FieldName, TypeRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    parent: Option<TypeId>,
+    pub parent: Option<TypeId>,
 }
 
-#[derive(serde::Serialize, Clone, Hash, PartialEq, Eq)]
-struct TypeId(Rc<str>);
+#[derive(serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
+pub struct TypeId(Rc<str>);
 
-#[derive(serde::Serialize, Clone, Hash, PartialEq, Eq)]
-struct FieldName(Rc<str>);
+#[derive(serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
+pub struct FieldName(Rc<str>);
 
-#[derive(serde::Serialize, Clone, Hash, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "class")]
-enum TypeRef {
+pub enum TypeRef {
     Type { id: TypeId },
     Primitive { r#type: Primitive },
     Sequence { r#type: Box<TypeRef> },
@@ -82,9 +82,9 @@ enum TypeRef {
     Result { r#type0: Box<TypeRef>, r#type1: Box<TypeRef> },
 }
 
-#[derive(serde::Serialize, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Copy, Clone, Hash, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-enum Primitive {
+pub enum Primitive {
     Bool,
     U32,
     U64,
@@ -97,17 +97,17 @@ enum Primitive {
 
 // === Serialization ===
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Layout<Id = TypeId> {
-    fields:        Vec<(FieldName, usize)>,
+pub struct Layout<Id = TypeId> {
+    pub fields:        Vec<(FieldName, usize)>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    discriminants: Option<BTreeMap<Discriminant, Id>>,
-    size:          usize,
+    pub discriminants: Option<BTreeMap<Discriminant, Id>>,
+    pub size:          usize,
 }
 
-#[derive(serde::Serialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Discriminant(u32);
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
+pub struct Discriminant(pub u32);
 
 
 
@@ -288,7 +288,11 @@ fn layouts<'g>(
                         .map(|field| {
                             let entry =
                                 (FieldName(field.name.to_snake_case().unwrap().into()), offset);
-                            offset += sizes[&field.type_];
+                            offset += if graph[&field.type_].discriminants.is_empty() {
+                                sizes[&field.type_]
+                            } else {
+                                POINTER
+                            };
                             entry
                         })
                         .collect()

@@ -105,7 +105,7 @@ use enso_shapely_macros::tagged_enum;
 // =============
 
 /// The lexical token definition. See the module docs to learn more about its usage scenarios.
-#[derive(Clone, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Debug, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Token<'s, T = Variant> {
     #[reflect(flatten, hide)]
@@ -167,13 +167,6 @@ impl<'s, T> Token<'s, T> {
     pub fn span<'a>(&'a self) -> span::Ref<'s, 'a> {
         let code_length = self.code.length();
         span::Ref { left_offset: &self.left_offset, code_length }
-    }
-}
-
-impl<'s, T: Debug> Debug for Token<'s, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}:{:?}] ", self.left_offset.visible, self.code)?;
-        Debug::fmt(&self.variant, f)
     }
 }
 

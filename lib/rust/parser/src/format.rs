@@ -43,6 +43,9 @@ pub fn serialize<T: Serialize>(value: T) -> Result<Vec<u8>> {
     let mut serializer = Serializer::new();
     value.serialize(&mut serializer)?;
     serializer.heap.append(&mut serializer.stack);
+    debug_assert_eq!(serializer.recursion_depth, 0);
+    debug_assert_eq!(serializer.object_depth, 0);
+    debug_assert_eq!(&serializer.parent_structs, &[]);
     Ok(serializer.heap)
 }
 
@@ -86,6 +89,7 @@ impl Serializer {
         self.recursion_depth -= 1;
         self.object_depth -= 1;
         let address = self.heap.len();
+        eprintln!("-> {address}");
         self.heap.extend(self.stack.drain(begin..));
         self.serialize_u32(u32::try_from(address).unwrap())
     }
@@ -111,10 +115,12 @@ impl<'a> ObjectSerializer<'a> {
 // ==== Parent Struct ===
 
 /// Information for transforming a struct into a combined parent/child representation.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct ParentStruct {
     object_depth_inside: usize,
     begin:               usize,
+    // Useful for debugging.
+    _name:               &'static str,
 }
 
 
@@ -243,7 +249,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self,
         name: &'static str,
         variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         value: &T,
     ) -> Result<()>
     where
@@ -253,12 +259,15 @@ impl<'a> ser::Serializer for &'a mut Serializer {
                 && let Some(ancestor) = self.parent_structs.last()
                 && ancestor.object_depth_inside == self.object_depth {
             let parent_start = ancestor.begin;
+            let _ancestor_name = ancestor._name;
             // Add the child's fields to the stack (following the parent's fields).
             value.serialize(&mut *self)?;
             // Build the object on the heap.
             let address = self.heap.len();
             self.heap.extend_from_slice(&variant_index.to_le_bytes());
             self.heap.extend(self.stack.drain(parent_start..));
+            let end_address = self.heap.len();
+            eprintln!(">> {address}-{end_address} [{_ancestor_name}::{variant}]");
             self.serialize_u32(u32::try_from(address).unwrap())?;
         } else {
             let mut ser = self.object_serializer()?;
@@ -311,7 +320,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         if matches!(name, "Tree" | "Token") {
             let object_depth_inside = self.object_depth;
             let begin = self.stack.len();
-            self.parent_structs.push(ParentStruct { object_depth_inside, begin });
+            self.parent_structs.push(ParentStruct { object_depth_inside, begin, _name: name });
         }
         Ok(self)
     }

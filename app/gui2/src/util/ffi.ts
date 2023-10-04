@@ -10,7 +10,6 @@ if (RUNNING_VTEST) {
 } else {
   await init()
 }
-
 export function parseEnso(code: string): Ast.Tree {
   const json = parse_to_json(code)
   return JSON.parse(json)
@@ -537,10 +536,10 @@ export namespace Doc {
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
   test('testParse', () => {
-    const identInput = ' foo bar'
+    const identInput = ' foo bar\n'
     const tree = parseEnso2(identInput)
-    expect(tree.debug()).toBe({
-      spanCodeLengthUtf16: 7,
+    expect(tree.debug()).toStrictEqual({
+      spanCodeLengthUtf16: 8,
       spanLeftOffsetCodeOffsetUtf16: 0,
       spanLeftOffsetCodeUtf16: 1,
       statements: [
@@ -551,7 +550,7 @@ if (import.meta.vitest) {
               spanLeftOffsetCodeOffsetUtf16: 4,
               spanLeftOffsetCodeUtf16: 1,
               token: {
-                codeOffsetUtf16: 4,
+                codeOffsetUtf16: 5,
                 codeUtf16: 3,
                 isFree: false,
                 isOperatorLexically: false,
@@ -564,7 +563,7 @@ if (import.meta.vitest) {
             func: {
               spanCodeLengthUtf16: 3,
               spanLeftOffsetCodeOffsetUtf16: 0,
-              spanLeftOffsetCodeUtf16: 1,
+              spanLeftOffsetCodeUtf16: 0,
               token: {
                 codeOffsetUtf16: 1,
                 codeUtf16: 3,
@@ -587,6 +586,15 @@ if (import.meta.vitest) {
             leftOffsetCodeUtf16: 0,
           },
         },
+        {
+          expression: undefined,
+          newline: {
+            codeOffsetUtf16: 8,
+            codeUtf16: 1,
+            leftOffsetCodeOffsetUtf16: 8,
+            leftOffsetCodeUtf16: 0,
+          },
+        }
       ],
     })
   })

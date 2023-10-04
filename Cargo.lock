@@ -2378,6 +2378,7 @@ dependencies = [
  "enso-reflect",
  "lexpr",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2410,6 +2411,7 @@ dependencies = [
  "enso-reflect",
  "serde",
  "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]

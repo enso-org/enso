@@ -23,7 +23,7 @@ pub mod block;
 // ============
 
 /// The Abstract Syntax Tree of the language.
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Debug, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[reflect(flatten, hide)]
@@ -39,19 +39,6 @@ pub struct Tree<'s> {
 pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Variant<'s>>) -> Tree<'s> {
     let variant = Box::new(variant.into());
     Tree { variant, span }
-}
-
-impl<'s> Debug for Tree<'s> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let max_code_len = 30;
-        let ellipsis = "...";
-        let mut code = self.code();
-        if code.len() > max_code_len {
-            code = format!("{}{}", &code[..max_code_len - ellipsis.len()], ellipsis);
-        }
-        write!(f, "[{}:{}:\"{}\"] ", self.span.left_offset.visible, self.span.code_length, code)?;
-        Debug::fmt(&self.variant, f)
-    }
 }
 
 impl<'s> AsRef<Span<'s>> for Tree<'s> {
