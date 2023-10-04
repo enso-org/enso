@@ -3,6 +3,9 @@ import { defineConfig } from 'histoire'
 import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
+  theme: {
+    title: 'Enso Demo Scenes',
+  },
   setupFile: './stories/setup.ts',
   plugins: [HstVue()],
   tree: {
@@ -12,34 +15,6 @@ export default defineConfig({
       { id: 'visualizations', title: 'Visualizations' },
     ],
   },
-  // Same as default, but with a light contrast color for the transparent background.
-  backgroundPresets: [
-    {
-      label: 'Transparent',
-      color: 'transparent',
-      contrastColor: '#ccc',
-    },
-    {
-      label: 'White',
-      color: '#fff',
-      contrastColor: '#333',
-    },
-    {
-      label: 'Light gray',
-      color: '#aaa',
-      contrastColor: '#eee',
-    },
-    {
-      label: 'Dark gray',
-      color: '#333',
-      contrastColor: '#ccc',
-    },
-    {
-      label: 'Black',
-      color: '#000',
-      contrastColor: '#fff',
-    },
-  ],
   vite: {
     resolve: {
       alias: {

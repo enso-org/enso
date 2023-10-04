@@ -70,7 +70,6 @@
 
 body {
   min-height: 100vh;
-  color: var(--color-text);
   /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
   background: #e4d4be;
   transition:

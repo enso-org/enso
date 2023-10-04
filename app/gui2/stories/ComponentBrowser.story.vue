@@ -10,7 +10,13 @@ const position = new Vec2(-329.5, 0)
 </script>
 
 <template>
-  <Story title="Component Browser" group="graph" responsive-disabled auto-props-disabled>
+  <Story
+    title="Component Browser"
+    group="graph"
+    :layout="{ type: 'single', iframe: false }"
+    responsive-disabled
+    auto-props-disabled
+  >
     <NavigatorWrapper>
       <template #default="{ navigator }">
         <ComponentBrowser

@@ -35,7 +35,13 @@ main = collect_benches . run_main`
 </script>
 
 <template>
-  <Story title="Editor" group="graph" responsive-disabled auto-props-disabled>
+  <Story
+    title="Editor"
+    group="graph"
+    :layout="{ type: 'single', iframe: false }"
+    responsive-disabled
+    auto-props-disabled
+  >
     <MockProjectStoreWrapper v-model="text">
       <GraphEditor />
     </MockProjectStoreWrapper>
@@ -45,12 +51,12 @@ main = collect_benches . run_main`
 </template>
 
 <style>
-:root {
-  --color-text: var(--histoire-contrast-color);
+[data-v-app] {
+  height: 100%;
 }
 
 .viewport {
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
 }
 </style>

@@ -2,6 +2,7 @@
 
 body {
   display: flex;
+  color: var(--color-text);
 }
 
 #app {
