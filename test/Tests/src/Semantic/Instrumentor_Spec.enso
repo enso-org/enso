@@ -6,6 +6,12 @@ fib n = if n <= 1 then 1 else
     b = fib n-2
     a+b
 
+fib2 n =
+    acc at n1 n2 = if at > n then n1 else
+        @Tail_Call acc at+1 n2 n1+n2
+
+    acc 1 1 1
+
 spec =
     Test.group "Instrument fibonacci" <|
         Test.specify "collect and filter on return updates" <|
@@ -52,9 +58,44 @@ spec =
             result = fib 10
             result . should_equal 89
 
+    Test.group "Instrument @Tail_Call fibonacci" <|
+        Test.specify "check fib & fib2 are the same" <|
+            r1 = -10.up_to 10 . map fib
+            r2 = -10.up_to 10 . map fib2
+            r1 . should_equal r2
+
+        Test.specify "collect and filter on return updates" <|
+            b = Vector.new_builder
+
+            call_fn _:Text _ =
+                Nothing
+
+            collect uuid:Text result =
+                a_plus_b_uuid = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+                if uuid == a_plus_b_uuid then
+                    b.append result
+                Nothing
+
+            instrumenter = Meta.meta .fib2 . instrument . on_return collect . on_function call_fn . activate
+
+            instrumenter . with _->
+                result = fib2 10
+
+                v = b.to_vector
+                v . should_equal [2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
+                result . should_equal 89
+
+            instrumenter.finalize
+
+            result = fib2 10
+            result . should_equal 89
+
+            # no more instrumenting after finalize
+            b.to_vector.length . should_equal 10
+
 main = Test_Suite.run_main spec
 
 
 
 #### METADATA ####
-[[{"index":{"value":127},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"], [{"index":{"value":69},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"]]
+[[{"index":{"value":127},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":69},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":214},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"]]
