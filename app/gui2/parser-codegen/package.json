@@ -2,6 +2,7 @@
   "name": "enso-parser-codegen",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "author": {
     "name": "Enso Team",
     "email": "contact@enso.org"
@@ -14,6 +15,7 @@
   },
   "keywords": [],
   "dependencies": {
+    "change-case": "^5.0.2",
     "typescript": "^5.2.2"
   }
 }

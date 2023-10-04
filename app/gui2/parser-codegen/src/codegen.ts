@@ -1,6 +1,7 @@
 import * as fs from 'fs'
-import * as ts from 'typescript'
-import { factory as tsf } from 'typescript'
+import ts from 'typescript'
+const { factory: tsf } = ts
+import * as changeCase from 'change-case'
 
 module Schema {
   export type TypeId = string
@@ -40,29 +41,14 @@ type Schema = {
   serialization: Schema.Serialization
 }
 
-function fromSnake(ident: string, to: 'camel' | 'pascal', prefix?: string): string {
-  const segments = []
-  if (prefix != null) {
-    segments.push(...prefix.split('_'))
-  }
-  segments.push(...ident.split('_'))
-  return segments
-    .map((seg, i) => {
-      if (to === 'camel' && i === 0) {
-        return seg
-      } else {
-        return seg.charAt(0).toUpperCase() + seg.slice(1)
-      }
-    })
-    .join('')
+function toPascal(ident: string): string {
+  if (ident.includes('.')) throw new Error("toPascal cannot be applied to a namespaced name.")
+  return changeCase.pascalCase(ident)
 }
 
-function toPascal(ident: string, prefix?: string): string {
-  return fromSnake(ident, 'pascal', prefix)
-}
-
-function toCamel(ident: string, prefix?: string): string {
-  return fromSnake(ident, 'camel', prefix)
+function toCamel(ident: string): string {
+  if (ident.includes('.')) throw new Error("toCamel cannot be applied to a namespaced name.")
+  return changeCase.camelCase(ident)
 }
 
 function legalizeIdent(ident: string): string {
@@ -190,7 +176,7 @@ function namespacedName(name: string, namespace?: string): string {
 function abstractTypeReader(name: string): ExpressionTransformer {
   return (cursor: ts.Expression) =>
     tsf.createCallExpression(
-      tsf.createPropertyAccessExpression(tsf.createIdentifier(toPascal(name)), 'read'),
+      tsf.createPropertyAccessExpression(tsf.createIdentifier(name), 'read'),
       [],
       [cursorMethods.readPointer(cursor)],
     )
@@ -199,7 +185,7 @@ function abstractTypeReader(name: string): ExpressionTransformer {
 function concreteTypeReader(name: string): ExpressionTransformer {
   return (cursor: ts.Expression) =>
     tsf.createCallExpression(
-      tsf.createPropertyAccessExpression(tsf.createIdentifier(toPascal(name)), 'read'),
+      tsf.createPropertyAccessExpression(tsf.createIdentifier(name), 'read'),
       [],
       [cursor],
     )
