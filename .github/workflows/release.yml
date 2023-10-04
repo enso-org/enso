@@ -106,7 +106,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build
+      - run: ./run wasm build --wasm-upload-artifact ${{ runner.os == 'Linux' }}
         env:
           ENSO_AG_GRID_LICENSE_KEY: ${{ secrets.ENSO_AG_GRID_LICENSE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -154,7 +154,7 @@ export const useGraphStore = defineStore('graph', () => {
       rootSpan: stmt.expression,
       position: meta == null ? Vec2.Zero() : new Vec2(meta.x, -meta.y),
       docRange: [
-        Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset),
+        Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset, -1),
         Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset + stmt.expression.length),
       ],
     }

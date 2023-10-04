@@ -1189,6 +1189,35 @@ fn pattern_match_auto_scope() {
     test(&code.join("\n"), expected);
 }
 
+// === Private (project-private) keyword ===
+#[test]
+fn private_keyword() {
+    test("private", block![(Private())]);
+    test("private func", block![(Private (Ident func))]);
+}
+
+
+#[test]
+#[ignore]
+fn private_is_first_statement() {
+    // Comments and empty lines are allowed before `private`.
+    #[rustfmt::skip]
+    let lines = vec![
+        "# Some comment",
+        "# Other comment",
+        "",
+        "private"
+    ];
+    test(&lines.join("\n"), block![()()()(Private)]);
+
+    #[rustfmt::skip]
+    let lines = vec![
+        "type T",
+        "",
+        "private"
+    ];
+    expect_invalid_node(&lines.join("\n"));
+}
 
 // === Array/tuple literals ===
 

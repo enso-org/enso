@@ -9,7 +9,7 @@ public abstract class TypedBuilder extends Builder {
    *
    * @param items the buffer to dump elements into
    */
-  public abstract void writeTo(Object[] items);
+  public abstract void retypeToMixed(Object[] items);
 
   /**
    * Checks if the builder can be efficiently retyped to the given storage type.

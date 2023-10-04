@@ -55,6 +55,7 @@ where T: serde::Serialize + Reflect {
         TextEnd::reflect(),
         TextStart::reflect(),
         Wildcard::reflect(),
+        Private::reflect(),
     ];
     skip_tokens.into_iter().for_each(|token| to_s_expr.skip(rust_to_meta[&token.id]));
     let ident_token = rust_to_meta[&Ident::reflect().id];

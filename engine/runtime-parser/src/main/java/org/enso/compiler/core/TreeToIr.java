@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
@@ -40,6 +41,7 @@ import org.enso.syntax2.Tree;
 
 import org.enso.syntax2.Tree.Invalid;
 
+import org.enso.syntax2.Tree.Private;
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
 import scala.collection.immutable.List;
@@ -152,9 +154,11 @@ final class TreeToIr {
   Module translateModule(Tree module) {
     return switch (module) {
       case Tree.BodyBlock b -> {
+        boolean isPrivate = false;
         List<Definition> bindings = nil();
         List<Import> imports = nil();
         List<Export> exports = nil();
+        List<Diagnostic> diag = nil();
         for (Line line : b.getStatements()) {
           var expr = line.getExpression();
           // Documentation found among imports/exports or at the top of the module (if it starts with imports) is
@@ -169,6 +173,18 @@ final class TreeToIr {
             bindings = cons(c, bindings);
             expr = doc.getExpression();
           }
+          if (expr instanceof Private priv) {
+            if (priv.getBody() != null) {
+              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax("Private token with body"));
+              diag = cons(error, diag);
+            }
+            if (isPrivate) {
+              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax("Private token specified more than once"));
+              diag = cons(error, diag);
+            }
+            isPrivate = true;
+            continue;
+          }
           switch (expr) {
             case Tree.Import imp -> imports = cons(translateImport(imp), imports);
             case Tree.Export exp -> exports = cons(translateExport(exp), exports);
@@ -176,11 +192,12 @@ final class TreeToIr {
             default -> bindings = translateModuleSymbol(expr, bindings);
           }
         }
-        yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
+        yield new Module(imports.reverse(), exports.reverse(), bindings.reverse(), isPrivate, getIdentifiedLocation(module), meta(), DiagnosticStorage.apply(diag));
       }
       default -> new Module(
         nil(), nil(),
         cons(translateSyntaxError(module, new Syntax.UnsupportedSyntax("translateModule")), nil()),
+        false,
         getIdentifiedLocation(module), meta(), diag()
       );
     };

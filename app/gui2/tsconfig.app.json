@@ -9,7 +9,7 @@
     "public/**/*",
     "public/**/*.vue"
   ],
-  "exclude": ["src/**/__tests__/*"],
+  "exclude": ["src/**/__tests__/*", "shared/**/__tests__/*", "public/**/__tests__/*"],
   "compilerOptions": {
     "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "resolvePackageJsonExports": false,
@@ -18,7 +18,6 @@
     "baseUrl": ".",
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "types": ["vitest/importMeta"],
