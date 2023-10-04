@@ -22,9 +22,11 @@ const conf = [
         ecmaVersion: 'latest',
         project: [
           './tsconfig.app.json',
-          './tsconfig.story.json',
           './tsconfig.node.json',
-          './tsconfig.vitest.json',
+          './tsconfig.server.json',
+          './tsconfig.app.vitest.json',
+          './tsconfig.server.vitest.json',
+          './tsconfig.story.json',
         ],
       },
     },

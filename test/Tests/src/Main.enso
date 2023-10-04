@@ -65,6 +65,7 @@ import project.Network.Http_Spec
 import project.Network.URI_Spec
 
 import project.Runtime.Ascribed_Parameters_Spec
+import project.Runtime.Asserts_Spec
 import project.Runtime.Lazy_Spec
 import project.Runtime.Lazy_Generator_Spec
 import project.Runtime.Managed_Resource_Spec
@@ -132,6 +133,7 @@ main = Test_Suite.run_main <|
     Ref_Spec.spec
     Regex_Spec.spec
     Ascribed_Parameters_Spec.spec
+    Asserts_Spec.spec
     Lazy_Spec.spec
     Runtime_Spec.spec
     Self_Type_Spec.spec
