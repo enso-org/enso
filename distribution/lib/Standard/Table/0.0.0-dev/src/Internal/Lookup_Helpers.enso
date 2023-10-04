@@ -5,7 +5,13 @@ from project.Errors import Missing_Input_Columns, Unexpected_Extra_Columns
 ## PRIVATE
 type Lookup_Settings
     ## PRIVATE
-    Value (columns_to_update : Set Text) (columns_to_add : Vector Text)
+    Value (key_columns : Vector Text) (columns_to_update : Set Text) (columns_to_add : Vector Text)
+
+type Lookup_Column
+    Key_Column (base_column : Column) (lookup_column : Column)
+    Keep_Column (base_column : Column)
+    Replace_Column (base_column : Column) (lookup_column : Column)
+    Add_Column (lookup_column : Column)
 
 ## PRIVATE
    Checks if `key_columns` are present in both tables and returns settings
@@ -13,7 +19,7 @@ type Lookup_Settings
 
    It also reports any errors or warnings related to selecting these columns.
 prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_columns on_problems =
-    key_columns = base_table.select_columns key_columns . column_names
+    key_columns = base_table.select_columns key_columns_selector . column_names
     lookup_table_key_columns = lookup_table.select_columns key_columns . catch Missing_Input_Columns error->
         Error.throw (Missing_Input_Columns.Error error.criteria "the lookup table")
 
@@ -35,4 +41,4 @@ prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_
                     problem = Unexpected_Extra_Columns.Warning extra_columns
                     on_problems.attach_problem_before problem []
 
-        Lookup_Settings.Value to_update to_add
+        Lookup_Settings.Value key_columns to_update to_add

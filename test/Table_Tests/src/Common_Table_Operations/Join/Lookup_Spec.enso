@@ -118,11 +118,11 @@ spec setup =
 
             r2 = my_table.lookup_and_replace lookup key_columns=["Y"]
             r2.should_fail_with Missing_Input_Columns
-            r2.catch . columns . should_equal ["Y"]
+            r2.catch.criteria . should_equal ["Y"]
 
             r3 = my_table.lookup_and_replace lookup key_columns=["Z"]
             r3.should_fail_with Missing_Input_Columns
-            r3.catch . columns . should_equal ["Z"]
+            r3.catch.criteria . should_equal ["Z"]
             r3.catch.to_display_text . should_contain "in the lookup table"
 
         Test.specify "should allow matching by multiple key columns" <|
@@ -173,6 +173,19 @@ spec setup =
             r2.catch.to_display_text . should_contain "Integer"
             r2.catch.to_display_text . should_contain "Char"
             r2.catch.to_display_text . should_contain "when unifying column [X]"
+
+        Test.specify "will allow incompatible types if allow_unmatched_rows=False" <|
+            lookup = table_builder [["X", [1, 2, 3]], ["Y", [1, 11, 111]]]
+            my_table = table_builder [["X", [2, 3, 2, 3]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
+            my_table.at "Y" . value_type . is_text . should_be_true
+
+            t2 = my_table.lookup_and_replace lookup key_columns="X"
+            t2.column_names . should_equal ["X", "Y", "Z"]
+            t2.at "Y" . value_type . is_integer . should_be_true
+            m2 = t2 |> materialize |> _.order_by "Z"
+            m2.at "X" . should_equal [2, 3, 2, 3]
+            m2.at "Y" . should_equal [1, 11, 1, 11]
+            m2.at "Z" . should_equal [10, 20, 30, 40]
 
         # TODO maybe it could be permitted in-memory?
         Test.specify "will fail if key columns of either the source table or lookup table contain Nothing" <|

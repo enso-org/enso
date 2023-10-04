@@ -138,6 +138,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     Context context = Context.getCurrent();
     for (List<Integer> rowIndexes : this.locs.values()) {
       for (Integer rowIndex : rowIndexes) {
+        assert idx < rowCount;
         output[idx++] = rowIndex;
         context.safepoint();
       }
@@ -156,6 +157,10 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
   public List<Integer> get(KeyType key) {
     return this.locs.get(key);
+  }
+
+  public Map<KeyType, List<Integer>> mapping() {
+    return locs;
   }
 
   public int size() {
