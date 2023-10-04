@@ -1,0 +1,27 @@
+from Standard.Base import all
+
+from Standard.Base.Errors.Common import Assertion_Error
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+foreign js js_check = """
+    return (4 == 2 + 2)
+
+on_ci = if Environment.get "ENSO_RUNNER_CONTAINER_NAME" . is_nothing . not then Nothing else "Not in CI"
+
+spec = Test.group "Asserts" pending=on_ci <|
+    Test.specify "should be enabled on the CI" <|
+        p = Panic.catch Assertion_Error (Runtime.assert False) err->
+            err.payload
+        Meta.type_of p . should_be_a Assertion_Error
+
+    Test.specify "should be able to take foreign functions as expressions" <|
+        ret = Runtime.assert js_check
+        ret . should_be_a Nothing
+
+    Test.specify "should be able to take lambdas as expressions" <|
+        Runtime.assert <|
+            4 == 2 + 2
+
+main = Test_Suite.run_main spec

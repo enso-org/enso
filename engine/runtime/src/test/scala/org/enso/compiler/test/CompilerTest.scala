@@ -258,7 +258,7 @@ trait CompilerRunner {
       runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), None)
+      Module(List(), List(), List(), false, None)
         .updateMetadata(
           BindingAnalysis -->> BindingsMap(
             List(),
