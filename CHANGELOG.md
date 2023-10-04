@@ -978,6 +978,7 @@
 - [New `project/status` route for reporting LS state][7801]
 - [Add Enso-specific assertions][7883]
 - [Modules can be `private`][7840]
+- [HTTPS and WSS support in Language Server][7937]
 - [Export of non-existing symbols results in error][7960]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -1126,6 +1127,7 @@
 [7861]: https://github.com/enso-org/enso/pull/7861
 [7883]: https://github.com/enso-org/enso/pull/7883
 [7840]: https://github.com/enso-org/enso/pull/7840
+[7937]: https://github.com/enso-org/enso/pull/7937
 [7960]: https://github.com/enso-org/enso/pull/7960
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
