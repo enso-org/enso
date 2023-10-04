@@ -22,11 +22,17 @@ export default defineConfig({
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       // These are required to be defined before `@` as they will be overridden by Histoire.
       '@/stores/project': fileURLToPath(new URL('./src/stores/project.ts', import.meta.url)),
+      '@/stores/suggestionDatabase/documentation': fileURLToPath(
+        new URL('./src/stores/suggestionDatabase/documentation.ts', import.meta.url),
+      ),
       '@/stores/suggestionDatabase/entry': fileURLToPath(
         new URL('./src/stores/suggestionDatabase/entry.ts', import.meta.url),
       ),
+      '@/stores/suggestionDatabase/lsUpdate': fileURLToPath(
+        new URL('./src/stores/suggestionDatabase/lsUpdate.ts', import.meta.url),
+      ),
       '@/stores/suggestionDatabase': fileURLToPath(
-        new URL('./src/stores/mockSuggestionDatabaseStore.ts', import.meta.url),
+        new URL('./src/stores/suggestionDatabase/index.ts', import.meta.url),
       ),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },

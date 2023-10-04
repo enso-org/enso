@@ -2,7 +2,9 @@ import type { NonEmptyArray } from '@/util/array'
 import type { Opt } from '@/util/opt'
 import init, { parse_doc_to_json, parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
 
-if (typeof global !== 'undefined') {
+// Normally `global` is node-specific, but a workaround requires `global` to also exist
+// in the browser for Amplify to work.
+if (typeof global !== 'undefined' && (global as any)[Symbol.toStringTag] === 'global') {
   const fs = await import('node:fs/promises')
   const buffer = await fs.readFile('./rust-ffi/pkg/rust_ffi_bg.wasm')
   await init(buffer)

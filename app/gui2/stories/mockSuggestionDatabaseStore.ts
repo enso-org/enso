@@ -1,10 +1,4 @@
-import {
-  SuggestionKind,
-  type SuggestionEntry,
-  type SuggestionId,
-} from '@/stores/suggestionDatabase/entry'
-import { findIndexOpt } from '@/util/array'
-import { isSome } from '@/util/opt'
+import { type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 import mockDb from './mockSuggestions.json' assert { type: 'json' }
@@ -17,30 +11,8 @@ export interface Group {
   name: string
 }
 
-function fromJson(data: any, groups: Group[]): SuggestionEntry {
-  function tagValue(tag: string): string {
-    return data.documentation.find((section: any) => section['Tag']?.tag === tag)?.Tag.body
-  }
-  return {
-    kind: data.kind,
-    definedIn: data.defined_in,
-    memberOf: data.kind === SuggestionKind.Constructor ? data.return_type : data.self_type,
-    selfType: !data.is_static ? data.self_type : null,
-    isPrivate: isSome(tagValue('Private')),
-    isUnstable: isSome(tagValue('Unstable')) || isSome(tagValue('Advanced')),
-    name: data.name.content,
-    aliases: Array.from(tagValue('Alias')?.split(',') ?? [], (alias) => alias.trim()),
-    arguments: data.arguments,
-    returnType: data.return_type,
-    documentation: data.documentation,
-    iconName: data.icon_name,
-    groupIndex: findIndexOpt(groups, (group) => data.group_name == group.name) ?? undefined,
-    reexportedIn: data.reexported_in,
-  }
-}
-
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
-  const entries = reactive(new SuggestionDb())
+  const entries = reactive(new SuggestionDb(mockDb.map((entry, i) => [i, entry as any])))
   const groups = ref<Group[]>([
     { color: '#4D9A29', name: 'Input' },
     { color: '#B37923', name: 'Web' },
@@ -51,13 +23,5 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
     { color: '#4D9A29', name: 'Output' },
   ])
 
-  function initializeDb() {
-    for (const [id, entry] of Object.entries(mockDb)) {
-      entries.set(+id, fromJson(entry, groups.value))
-    }
-  }
-
-  initializeDb()
-
-  return { entries, groups, initializeDb }
+  return { entries, groups, initializeDb() {} }
 })

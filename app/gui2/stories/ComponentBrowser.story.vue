@@ -2,6 +2,7 @@
 import { logEvent } from 'histoire/client'
 
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Vec2 } from '@/util/vec2'
 import NavigatorWrapper from './NavigatorWrapper.vue'
 
@@ -13,6 +14,11 @@ const position = new Vec2(-329.5, 0)
     title="Component Browser"
     group="graph"
     :layout="{ type: 'single', iframe: false }"
+    :setup-app="
+      () => {
+        useSuggestionDbStore()
+      }
+    "
     responsive-disabled
     auto-props-disabled
   >

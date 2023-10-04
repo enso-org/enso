@@ -82,5 +82,6 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   ])
 
   const synchronizer = new Synchronizer(entries, groups)
+  window.__entries = entries
   return { entries, groups, _synchronizer: synchronizer }
 })

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 
 import GraphEditor from '@/components/GraphEditor.vue'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import MockProjectStoreWrapper from './MockProjectStoreWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 
@@ -38,6 +39,11 @@ main = collect_benches . run_main`
     title="Editor"
     group="graph"
     :layout="{ type: 'single', iframe: false }"
+    :setup-app="
+      () => {
+        useSuggestionDbStore()
+      }
+    "
     responsive-disabled
     auto-props-disabled
   >
