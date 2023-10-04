@@ -1,10 +1,14 @@
-[data-v-app]:has(*) {
+.__histoire-render-story > [data-v-app] {
   height: 100%;
 }
 
 .viewport {
   height: 100%;
   width: 100%;
+}
+
+.image-button {
+  cursor: pointer !important;
 }
 
 .VisualizationContainer {

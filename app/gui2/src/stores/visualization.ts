@@ -63,7 +63,6 @@ const builtinVisualizationImports: Record<string, () => Promise<VisualizationMod
 }
 
 const dynamicVisualizationPaths: Record<string, string> = {
-  Test: '/visualizations/TestVisualization.vue',
   Scatterplot: '/visualizations/ScatterplotVisualization.vue',
   'Geo Map': '/visualizations/GeoMapVisualization.vue',
 }

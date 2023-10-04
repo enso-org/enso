@@ -29,7 +29,7 @@ async function updateFile(file: File) {
 
 <template>
   <Story
-    title="Image Base 64"
+    title="Image"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
     auto-props-disabled
