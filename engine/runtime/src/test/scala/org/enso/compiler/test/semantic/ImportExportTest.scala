@@ -502,6 +502,34 @@ class ImportExportTest
         .symbolName shouldEqual "Non_Existing_Ctor"
     }
 
+    "fail when exporting from type" in {
+      """
+        |type A_Type
+        |  A_Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |export $namespace.$packageName.A_Module.A_Type.FOO
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "FOO"
+    }
+
     "fail when exporting from module with `from`" in {
       """
         |foo = 42
