@@ -6,34 +6,8 @@ import PlusIcon from 'enso-assets/plus.svg'
 import * as backendModule from '../backend'
 import * as modalProvider from '../../providers/modal'
 
+import Label from './label'
 import NewLabelModal from './newLabelModal'
-
-// =============
-// === Label ===
-// =============
-
-/** Props for a {@link Label}. */
-interface InternalLabelProps extends React.PropsWithChildren {
-    /** When true, the button is not faded out even when not hovered. */
-    active?: boolean
-    className: string
-    onClick: React.MouseEventHandler<HTMLDivElement>
-}
-
-/** An entry in a {@link CategorySwitcher}. */
-function Label(props: InternalLabelProps) {
-    const { active = false, className, onClick, children } = props
-    return (
-        <div
-            className={`cursor-pointer flex items-center rounded-full gap-1.5 h-6 px-2.25 hover:opacity-100 ${className} ${
-                active ? 'bg-frame-selected' : 'text-not-selected opacity-50'
-            }`}
-            onClick={onClick}
-        >
-            {children}
-        </div>
-    )
-}
 
 // ==============
 // === Labels ===
@@ -63,7 +37,6 @@ export default function Labels(props: LabelsProps) {
                     <Label
                         key={label.id}
                         active={currentLabels.includes(label.value)}
-                        className="bg-frame-selected text-primary"
                         onClick={() => {
                             setCurrentLabels(oldLabels =>
                                 oldLabels.includes(label.value)

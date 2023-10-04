@@ -128,6 +128,7 @@ const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.Fil
 export interface AssetsTableState {
     numberOfSelectedItems: number
     category: categorySwitcher.Category
+    labels: backendModule.LabelName[]
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
@@ -168,6 +169,7 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 export interface AssetsTableProps {
     query: string
     category: categorySwitcher.Category
+    allLabels: backendModule.LabelName[]
     currentLabels: backendModule.LabelName[]
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
@@ -195,6 +197,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
         category,
+        allLabels,
         currentLabels,
         initialProjectName,
         projectStartupInfo,
@@ -845,6 +848,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         (): AssetsTableState => ({
             numberOfSelectedItems: selectedKeys.size,
             category,
+            labels: allLabels,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -860,6 +864,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         [
             selectedKeys.size,
             category,
+            allLabels,
             sortColumn,
             sortDirection,
             assetEvents,

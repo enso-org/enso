@@ -85,6 +85,7 @@ export default function Drive(props: DriveProps) {
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[]>([])
+    const labelNames = React.useMemo(() => labels.map(label => label.value), [labels])
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -243,6 +244,7 @@ export default function Drive(props: DriveProps) {
                 <AssetsTable
                     query={query}
                     category={category}
+                    allLabels={labelNames}
                     currentLabels={currentLabels}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}

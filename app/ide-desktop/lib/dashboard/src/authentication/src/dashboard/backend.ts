@@ -249,12 +249,6 @@ export interface Label {
     value: LabelName
 }
 
-/** A label for an asset. */
-export interface AssetLabel {
-    id: TagAssetAssociationId
-    value: LabelName
-}
-
 /** Type of application that a {@link Version} applies to.
  *
  * We keep track of both backend and IDE versions, so that we can update the two independently.
@@ -408,7 +402,7 @@ export interface BaseAsset {
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
     permissions: UserPermission[] | null
-    labels: AssetLabel[] | null
+    labels: LabelName[] | null
 }
 
 /** Metadata uniquely identifying a directory entry.

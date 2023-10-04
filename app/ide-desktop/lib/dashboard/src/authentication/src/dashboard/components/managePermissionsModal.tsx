@@ -97,7 +97,7 @@ export default function ManagePermissionsModal<
         // and `organization` is absent only when offline - in which case the user should only
         // be able to access the local backend.
         // This MUST be an error, otherwise the hooks below are considered as conditionally called.
-        throw new Error('Cannot share projects on the local backend.')
+        throw new Error('Cannot share assets on the local backend.')
     } else {
         const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
         const allUsers = React.useMemo(
