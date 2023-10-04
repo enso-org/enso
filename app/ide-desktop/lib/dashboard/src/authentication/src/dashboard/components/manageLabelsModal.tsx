@@ -5,6 +5,7 @@ import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as string from '../../string'
 
 import Label from './label'
 import Modal from './modal'
@@ -36,9 +37,14 @@ export default function ManageLabelsModal<
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [labels, setLabels] = React.useState(item.labels ?? [])
-    const [filter, setFilter] = React.useState('')
+    const [query, setQuery] = React.useState('')
     const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const labelNames = React.useMemo(() => new Set(labels), [labels])
+    const regex = React.useMemo(() => new RegExp(string.regexEscape(query), 'i'), [query])
+    const canCreateNewLabel = React.useMemo(
+        () => query !== '' && allLabels.filter(label => regex.test(label)).length === 0,
+        [allLabels, query, regex]
+    )
 
     React.useEffect(() => {
         setItem(oldItem => ({ ...oldItem, labels }))
@@ -116,14 +122,21 @@ export default function ManageLabelsModal<
                                     placeholder="Type labels to search"
                                     className="grow bg-transparent leading-170 h-6 py-px"
                                     onChange={event => {
-                                        setFilter(event.currentTarget.value)
+                                        setQuery(event.currentTarget.value)
                                     }}
                                 />
                             </div>
+                            <button
+                                type="submit"
+                                disabled={!canCreateNewLabel}
+                                className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
+                            >
+                                <div className="h-6 py-0.5">Create</div>
+                            </button>
                         </form>
                         <div className="overflow-auto pl-1 pr-12 max-h-80">
                             {allLabels
-                                .filter(label => label.includes(filter))
+                                .filter(label => regex.test(label))
                                 .map(label => (
                                     <div key={label} className="flex items-center h-8">
                                         <Label
