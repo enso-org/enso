@@ -423,8 +423,8 @@ class ImportExportTest
       val mainIr =
         s"""
            |
-           |from project.Main.Main_Type import Main_Constructor
-           |from project.Main.Main_Type export Main_Constructor, Non_Existing_Ctor
+           |from $namespace.$packageName.Main.Main_Type import Main_Constructor
+           |from $namespace.$packageName.Main.Main_Type export Main_Constructor, Non_Existing_Ctor
            |
            |type Main_Type
            |  Main_Constructor
@@ -454,7 +454,7 @@ class ImportExportTest
       val mainIr =
         s"""
            |import $namespace.$packageName.A_Module
-           |from A_Module export baz
+           |from $namespace.$packageName.A_Module export baz
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
@@ -474,7 +474,7 @@ class ImportExportTest
         .symbolName shouldEqual "baz"
     }
 
-    "fail when exporting from type" in {
+    "fail when exporting from type with `from`" in {
       """
         |type A_Type
         |  A_Constructor
@@ -484,7 +484,7 @@ class ImportExportTest
       val mainIr =
         s"""
            |import $namespace.$packageName.A_Module.A_Type
-           |from A_Type export Non_Existing_Ctor
+           |from $namespace.$packageName.A_Module.A_Type export Non_Existing_Ctor
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
@@ -512,7 +512,7 @@ class ImportExportTest
       val mainIr =
         s"""
            |import $namespace.$packageName.A_Module
-           |from A_Module export foo, bar, baz
+           |from $namespace.$packageName.A_Module export foo, bar, baz
            |""".stripMargin
           .createModule(packageQualifiedName.createChild("Main"))
           .getIr
