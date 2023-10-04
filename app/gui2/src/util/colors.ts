@@ -1,3 +1,4 @@
+import type { Oklch } from 'culori/fn'
 import { formatCss, formatRgb, modeOklch, modeRgb, useMode } from 'culori/fn'
 import { v3 as hashString } from 'murmurhash'
 
@@ -18,7 +19,7 @@ export function colorFromString(s: string) {
   const chroma = mapInt32(part1, 0.05, 0.14, 12)
   const hue = mapInt32(part2, 0, 360, 10)
   const lightness = mapInt32(part3, 0.52, 0.57, 10)
-  const color = {
+  const color: Oklch = {
     mode: 'oklch',
     l: lightness,
     c: chroma,
