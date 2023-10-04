@@ -1,6 +1,6 @@
 import project.Any.Any
-import project.Data.Ordering.Comparable
 import project.Data.Locale.Locale
+import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.Arithmetic_Error

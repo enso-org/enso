@@ -27,7 +27,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
-  updateContent: [range: ContentRange, content: string]
+  updateContent: [updates: [range: ContentRange, content: string][]]
   movePosition: [delta: Vec2]
   delete: []
   replaceSelection: []
@@ -142,6 +142,7 @@ watch(editsToApply, () => {
   if (editsToApply.length === 0) return
   saveSelections()
   let edit: TextEdit | undefined
+  const updates: [ContentRange, string][] = []
   while ((edit = editsToApply.shift())) {
     const range = edit.range
     const content = edit.content
@@ -156,8 +157,9 @@ watch(editsToApply, () => {
         selectionToRecover.focus = updateOffset(selectionToRecover.focus, range[1], adjust)
       }
     }
-    emit('updateContent', range, content)
+    updates.push([range, content])
   }
+  emit('updateContent', updates)
 })
 
 interface SavedSelections {
