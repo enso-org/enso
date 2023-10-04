@@ -905,4 +905,97 @@ class ImportExportTest
       mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe false
     }
   }
+
+  "Private modules" should {
+    "not be able to export private module" in {
+      """
+        |private
+        |""".stripMargin
+        .createModule(
+          packageQualifiedName.createChild("Priv_Module")
+        )
+
+      val mainIr = s"""
+                      |import $namespace.$packageName.Priv_Module
+                      |export $namespace.$packageName.Priv_Module
+                      |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.ExportPrivateModule] shouldBe true
+    }
+
+    "not be able to export anything from private module itself" in {
+      val mainIr =
+        s"""
+           |private
+           |
+           |from $namespace.$packageName export Type_In_Priv_Module
+           |
+           |type Type_In_Priv_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[
+          errors.ImportExport.ExportSymbolsFromPrivateModule
+        ] shouldBe true
+
+    }
+
+    "not be able to export anything from private module from Main module" in {
+      """
+        |private
+        |type Type_In_Priv_Module
+        |""".stripMargin
+        .createModule(
+          packageQualifiedName.createChild("Priv_Module")
+        )
+
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.Priv_Module import Type_In_Priv_Module
+           |from $namespace.$packageName.Priv_Module export Type_In_Priv_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.ExportPrivateModule] shouldBe true
+    }
+
+    "be able to import stuff from private modules in the same library" in {
+      """
+        |private
+        |type Type_In_Priv_Module
+        |""".stripMargin
+        .createModule(
+          packageQualifiedName.createChild("Priv_Module")
+        )
+
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.Priv_Module import Type_In_Priv_Module
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
+      errors.size shouldEqual 0
+    }
+  }
 }
