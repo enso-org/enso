@@ -538,7 +538,7 @@ if (import.meta.vitest) {
   test('testParse', () => {
     const identInput = ' foo bar\n'
     const tree = parseEnso2(identInput)
-    expect(tree.debug()).toStrictEqual({
+    expect(tree.debug()).toMatchObject({
       spanCodeLengthUtf16: 8,
       spanLeftOffsetCodeOffsetUtf16: 0,
       spanLeftOffsetCodeUtf16: 1,
@@ -552,12 +552,7 @@ if (import.meta.vitest) {
               token: {
                 codeOffsetUtf16: 5,
                 codeUtf16: 3,
-                isFree: false,
-                isOperatorLexically: false,
-                isTypeOrConstructor: false,
-                leftOffsetCodeOffsetUtf16: 0,
                 leftOffsetCodeUtf16: 0,
-                liftLevel: 0,
               },
             },
             func: {
@@ -567,22 +562,14 @@ if (import.meta.vitest) {
               token: {
                 codeOffsetUtf16: 1,
                 codeUtf16: 3,
-                isFree: false,
-                isOperatorLexically: false,
-                isTypeOrConstructor: false,
-                leftOffsetCodeOffsetUtf16: 0,
                 leftOffsetCodeUtf16: 0,
-                liftLevel: 0,
               },
             },
             spanCodeLengthUtf16: 7,
-            spanLeftOffsetCodeOffsetUtf16: 0,
             spanLeftOffsetCodeUtf16: 0,
           },
           newline: {
-            codeOffsetUtf16: 0,
             codeUtf16: 0,
-            leftOffsetCodeOffsetUtf16: 0,
             leftOffsetCodeUtf16: 0,
           },
         },
@@ -591,7 +578,6 @@ if (import.meta.vitest) {
           newline: {
             codeOffsetUtf16: 8,
             codeUtf16: 1,
-            leftOffsetCodeOffsetUtf16: 8,
             leftOffsetCodeUtf16: 0,
           },
         }

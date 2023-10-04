@@ -67,7 +67,6 @@ export class Cursor {
 
   readPointer(): Cursor {
     const pointee = this.readU32();
-    console.log(`readPointer: ${this.address()} -> ${pointee}`)
     return new Cursor(this.blob.buffer, pointee)
   }
 

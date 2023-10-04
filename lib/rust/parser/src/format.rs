@@ -32,6 +32,9 @@ use std::fmt::Formatter;
 /// [`test::wasm::test_infinite_recursion`]).
 const RECURSION_LIMIT: usize = 1024;
 
+/// If enabled, logs debugging info to stderr.
+const DEBUG: bool = false;
+
 
 
 // =================
@@ -89,7 +92,9 @@ impl Serializer {
         self.recursion_depth -= 1;
         self.object_depth -= 1;
         let address = self.heap.len();
-        eprintln!("-> {address}");
+        if DEBUG {
+            eprintln!("-> {address}");
+        }
         self.heap.extend(self.stack.drain(begin..));
         self.serialize_u32(u32::try_from(address).unwrap())
     }
@@ -267,7 +272,9 @@ impl<'a> ser::Serializer for &'a mut Serializer {
             self.heap.extend_from_slice(&variant_index.to_le_bytes());
             self.heap.extend(self.stack.drain(parent_start..));
             let end_address = self.heap.len();
-            eprintln!(">> {address}-{end_address} [{_ancestor_name}::{variant}]");
+            if DEBUG {
+                eprintln!(">> {address}-{end_address} [{_ancestor_name}::{variant}]");
+            }
             self.serialize_u32(u32::try_from(address).unwrap())?;
         } else {
             let mut ser = self.object_serializer()?;

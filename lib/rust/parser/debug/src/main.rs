@@ -44,6 +44,5 @@ fn check_file(path: &str, mut code: &str) {
         assert_eq!(parsed, original, "Bug: dropped tokens, while parsing: {path}");
     }
     let s_expr = enso_parser_debug::to_s_expr(&ast, code);
-    //println!("{s_expr}");
-    println!("{ast:?}");
+    println!("{s_expr}");
 }
