@@ -35,7 +35,7 @@ public abstract class LongBuilder extends NumericBuilder {
   }
 
   @Override
-  public void writeTo(Object[] items) {
+  public void retypeToMixed(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
       if (isMissing.get(i)) {
         items[i] = null;
@@ -55,7 +55,7 @@ public abstract class LongBuilder extends NumericBuilder {
     if (Objects.equals(type, BigIntegerType.INSTANCE)) {
       return BigIntegerBuilder.retypeFromLongBuilder(this);
     } else if (Objects.equals(type, FloatType.FLOAT_64)) {
-      return DoubleBuilder.retypeFromLongBuilder(this);
+      return InferringDoubleBuilder.retypeFromLongBuilder(this);
     } else {
       throw new UnsupportedOperationException();
     }

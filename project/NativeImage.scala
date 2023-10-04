@@ -162,6 +162,7 @@ object NativeImage {
         quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
         Seq("--no-fallback", "--no-server") ++
+        Seq("-march=compatibility") ++
         initializeAtBuildtimeOptions ++
         initializeAtRuntimeOptions ++
         buildMemoryLimitOptions ++
