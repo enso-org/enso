@@ -11,11 +11,15 @@ import {
 } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
-import { useVisualizationStore, type Visualization } from '@/stores/visualization'
+import {
+  DEFAULT_VISUALIZATION_CONFIGURATION,
+  useVisualizationStore,
+  type Visualization,
+} from '@/stores/visualization'
 import { keyboardBusy, useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { useProjectStore, type NodeVisualizationConfiguration } from '../stores/project'
+import { useProjectStore } from '../stores/project'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 
@@ -40,7 +44,13 @@ const visualizationStore = useVisualizationStore()
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
-const visualizationConfiguration = ref<NodeVisualizationConfiguration>()
+
+type PreprocessorDef = {
+  visualizationModule: string
+  expression: string
+  positionalArgumentsExpressions: string[]
+}
+const preprocessor = ref<PreprocessorDef>()
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
@@ -50,11 +60,15 @@ const visualizationType = ref('Scatterplot')
 const visualization = shallowRef<Visualization>()
 
 const projectStore = useProjectStore()
-const visualizationData = projectStore.useVisualizationData(
-  props.node.rootSpan.id,
-  visualizationConfiguration,
-  isVisualizationVisible,
-)
+
+const visualizationData = projectStore.useVisualizationData(() => {
+  if (!isVisualizationVisible.value) return
+  return {
+    ...DEFAULT_VISUALIZATION_CONFIGURATION,
+    ...(preprocessor.value ?? {}),
+    expressionId: props.node.rootSpan.id,
+  }
+})
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -275,15 +289,16 @@ onUpdated(() => {
   }
 })
 
-function updatePreprocessor(module: string, method: string, ...args: string[]) {
-  visualizationConfiguration.value = {
-    expression: { module, definedOnType: module, name: method },
-    ...(args.length !== 0 ? { positionalArgumentsExpressions: args } : {}),
-  }
+function updatePreprocessor(
+  visualizationModule: string,
+  expression: string,
+  ...positionalArgumentsExpressions: string[]
+) {
+  preprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
 }
 
 function switchToDefaultPreprocessor() {
-  visualizationConfiguration.value = undefined
+  preprocessor.value = undefined
 }
 
 const visualizationConfig = ref<VisualizationConfig>({

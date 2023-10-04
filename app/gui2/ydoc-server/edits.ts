@@ -16,7 +16,7 @@ interface AppliedUpdates {
   newMetadata: fileFormat.Metadata
 }
 
-const META_TAG = '#### METADATA ####'
+const META_TAG = '\n\n\n#### METADATA ####'
 
 export function applyDocumentUpdates(
   doc: ModuleDoc,

@@ -135,8 +135,6 @@ export const useGraphStore = defineStore('graph', () => {
             node.position = pos
           }
         }
-      } else {
-        console.log(op)
       }
     }
   })

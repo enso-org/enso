@@ -1,32 +1,35 @@
-import { useGuiConfig,type GuiConfig } from '@/providers/guiConfig'
-import { DEFAULT_VISUALIZATION_CONFIGURATION } from '@/stores/visualization'
+import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { attachProvider } from '@/util/crdt'
-import { Client,RequestManager,WebSocketTransport } from '@open-rpc/client-js'
+import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
+import { isSome, type Opt } from '@/util/opt'
+import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
+import * as array from 'lib0/array'
+import * as object from 'lib0/object'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
-import { OutboundPayload,VisualizationUpdate } from 'shared/binaryProtocol'
+import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import type {
-ContentRoot,
-ContextId,
-MethodPointer,
-VisualizationConfiguration,
+  ContentRoot,
+  ContextId,
+  ExpressionId,
+  MethodPointer,
+  StackItem,
+  VisualizationConfiguration,
 } from 'shared/languageServerTypes'
 import { WebsocketClient } from 'shared/websocket'
-import { DistributedProject,type ExprId,type Uuid } from 'shared/yjsModel'
+import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
 import {
-computed,
-markRaw,
-onMounted,
-onUnmounted,
-ref,
-shallowRef,
-watch,
-watchEffect,
-type Ref,
-type ShallowRef,
+  computed,
+  markRaw,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+  type ShallowRef,
+  type WatchSource,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -35,27 +38,6 @@ interface LsUrls {
   rpcUrl: string
   dataUrl: string
 }
-
-export type NodeVisualizationConfiguration = Omit<
-  VisualizationConfiguration,
-  'executionContextId' | 'visualizationModule'
->
-
-const MAIN_DEFINITION_NAME = 'main'
-/** Endpoint used by default by a locally run Project Manager. */
-const PROJECT_MANAGER_ENDPOINT = 'ws://127.0.0.1:30535'
-/** Default project name used by IDE on startup. */
-const DEFAULT_PROJECT_NAME = 'Unnamed'
-/** The default namespace used when opening a project. */
-const DEFAULT_PROJECT_NAMESPACE = 'local'
-/** Visualization folder where IDE can look for user-defined visualizations per project. */
-const VISUALIZATION_DIRECTORY = 'visualization'
-/** How many times IDE will try attaching visualization when there is a timeout error.
- *
- * Timeout error suggests that there might be nothing wrong with the request, just that the backend
- * is currently too busy to reply or that there is some connectivity hiccup. Thus, it makes sense
- * to give it a few more tries. */
-const ATTACHING_TIMEOUT_RETRIES = 50
 
 function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
@@ -82,7 +64,16 @@ async function initializeLsRpcConnection(
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
-  const contentRoots = (await connection.initProtocolConnection(clientId)).contentRoots
+
+  const initialization = await lsRpcWithRetries(() => connection.initProtocolConnection(clientId), {
+    onBeforeRetry: (error, _, delay) => {
+      console.warn(
+        `Failed to initialize language server connection, retrying after ${delay}ms...\n`,
+        error,
+      )
+    },
+  })
+  const contentRoots = initialization.contentRoots
   return { connection, contentRoots }
 }
 
@@ -91,6 +82,38 @@ async function initializeDataConnection(clientId: Uuid, url: string) {
   const connection = new DataServer(client)
   await connection.initialize(clientId)
   return connection
+}
+
+export type NodeVisualizationConfiguration = Omit<
+  VisualizationConfiguration,
+  'executionContextId'
+> & {
+  expressionId: ExprId
+}
+
+interface ExecutionContextState {
+  lsRpc: LanguageServer
+  created: boolean
+  visualizations: Map<Uuid, NodeVisualizationConfiguration>
+  stack: StackItem[]
+}
+
+function visualizationConfigEqual(
+  a: NodeVisualizationConfiguration,
+  b: NodeVisualizationConfiguration,
+): boolean {
+  return (
+    a === b ||
+    (a.visualizationModule === b.visualizationModule &&
+      array.equalFlat(
+        a.positionalArgumentsExpressions ?? [],
+        b.positionalArgumentsExpressions ?? [],
+      ) &&
+      (a.expression === b.expression ||
+        (typeof a.expression === 'object' &&
+          typeof b.expression === 'object' &&
+          object.equalFlat(a.expression, b.expression))))
+  )
 }
 
 /**
@@ -103,31 +126,196 @@ async function initializeDataConnection(clientId: Uuid, url: string) {
  * run only when the previous call is done.
  */
 export class ExecutionContext {
-  state: Promise<{ lsRpc: LanguageServer; id: ContextId }>
+  id: ContextId = random.uuidv4() as ContextId
+  queue: AsyncQueue<ExecutionContextState>
+  taskRunning = false
+  visSyncScheduled = false
+  visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
+  abortCtl = new AbortController()
 
-  constructor(
-    lsRpc: Promise<LanguageServer>,
-    call: {
-      methodPointer: MethodPointer
-      thisArgumentExpression?: string
-      positionalArgumentsExpressions?: string[]
-    },
+  constructor(lsRpc: Promise<LanguageServer>) {
+    this.queue = new AsyncQueue(
+      lsRpc.then((lsRpc) => ({
+        lsRpc,
+        created: false,
+        visualizations: new Map(),
+        stack: [],
+      })),
+    )
+    this.create()
+  }
+
+  private withBackoff<T>(f: () => Promise<T>, message: string): Promise<T> {
+    return lsRpcWithRetries(f, {
+      onBeforeRetry: (error, _, delay) => {
+        if (this.abortCtl.signal.aborted) return false
+        console.warn(
+          `${message}: ${error.payload.cause.message}. Retrying after ${delay}ms...\n`,
+          error,
+        )
+      },
+    })
+  }
+
+  private syncVisualizations() {
+    if (this.visSyncScheduled) return
+    this.visSyncScheduled = true
+    this.queue.pushTask(async (state) => {
+      this.visSyncScheduled = false
+      if (!state.created) return state
+      const promises: Promise<void>[] = []
+
+      const attach = (id: Uuid, config: NodeVisualizationConfiguration) => {
+        return this.withBackoff(
+          () =>
+            state.lsRpc.attachVisualization(id, config.expressionId, {
+              executionContextId: this.id,
+              expression: config.expression,
+              visualizationModule: config.visualizationModule,
+              positionalArgumentsExpressions: config.positionalArgumentsExpressions,
+            }),
+          'Failed to attach visualization',
+        ).then(() => {
+          state.visualizations.set(id, config)
+        })
+      }
+
+      const modify = (id: Uuid, config: NodeVisualizationConfiguration) => {
+        return this.withBackoff(
+          () =>
+            state.lsRpc.modifyVisualization(id, {
+              executionContextId: this.id,
+              expression: config.expression,
+              visualizationModule: config.visualizationModule,
+              positionalArgumentsExpressions: config.positionalArgumentsExpressions,
+            }),
+          'Failed to modify visualization',
+        ).then(() => {
+          state.visualizations.set(id, config)
+        })
+      }
+
+      const detach = (id: Uuid, config: NodeVisualizationConfiguration) => {
+        return this.withBackoff(
+          () => state.lsRpc.detachVisualization(id, config.expressionId, this.id),
+          'Failed to detach visualization',
+        ).then(() => {
+          state.visualizations.delete(id)
+        })
+      }
+
+      // Attach new and update existing visualizations.
+      for (const [id, config] of this.visualizationConfigs) {
+        const previousConfig = state.visualizations.get(id)
+        if (previousConfig == null) {
+          console.log('attach new', config)
+          promises.push(attach(id, config))
+        } else if (!visualizationConfigEqual(previousConfig, config)) {
+          console.log('modify', previousConfig, '->', config)
+          if (previousConfig.expressionId === config.expressionId) {
+            promises.push(modify(id, config))
+          } else {
+            console.log('detach and attach', previousConfig, '->', config)
+            promises.push(detach(id, previousConfig).then(() => attach(id, config)))
+          }
+        }
+      }
+
+      // Detach removed visualizations.
+      for (const [id, config] of state.visualizations) {
+        if (this.visualizationConfigs.get(id) == undefined) {
+          console.log('deleted', config)
+          promises.push(detach(id, config))
+        }
+      }
+      const settled = await Promise.allSettled(promises)
+
+      // Emit errors for failed requests.
+      const errors = settled
+        .map((result) => (result.status === 'rejected' ? result.reason : null))
+        .filter(isSome)
+      if (errors.length > 0) {
+        console.error('Failed to synchronize visualizations:', errors)
+      }
+
+      // State object was updated in-place in each successful promise.
+      return state
+    })
+  }
+
+  private pushItem(item: StackItem) {
+    this.queue.pushTask(async (state) => {
+      if (!state.created) return state
+      await this.withBackoff(
+        () => state.lsRpc.pushExecutionContextItem(this.id, item),
+        'Failed to push item to execution context stack',
+      )
+      state.stack.push(item)
+      return state
+    })
+  }
+
+  pushCall(
+    methodPointer: MethodPointer,
+    thisArgumentExpression?: string,
+    positionalArgumentsExpressions?: string[],
   ) {
-    this.state = lsRpc.then(async (lsRpc) => {
-      const { contextId } = await lsRpc.createExecutionContext()
-      await lsRpc.pushExecutionContextItem(contextId, {
-        type: 'ExplicitCall',
-        positionalArgumentsExpressions: call.positionalArgumentsExpressions ?? [],
-        ...call,
-      })
-      return { lsRpc, id: contextId }
+    this.pushItem({
+      type: 'ExplicitCall',
+      methodPointer,
+      thisArgumentExpression,
+      positionalArgumentsExpressions: positionalArgumentsExpressions ?? [],
+    })
+  }
+
+  pushLocal(expressionId: ExpressionId) {
+    this.pushItem({ type: 'LocalCall', expressionId })
+  }
+
+  pop() {
+    this.queue.pushTask(async (state) => {
+      if (!state.created) return state
+      if (state.stack.length === 0) {
+        throw new Error('Cannot pop from empty execution context stack')
+      }
+      await this.withBackoff(
+        () => state.lsRpc.popExecutionContextItem(this.id),
+        'Failed to pop item from execution context stack',
+      )
+      state.stack.pop()
+      return state
+    })
+  }
+
+  async setVisualization(id: Uuid, configuration: Opt<NodeVisualizationConfiguration>) {
+    if (configuration == null) {
+      this.visualizationConfigs.delete(id)
+    } else {
+      this.visualizationConfigs.set(id, configuration)
+    }
+    this.syncVisualizations()
+  }
+
+  private create() {
+    this.queue.pushTask(async (state) => {
+      if (state.created) return state
+      return this.withBackoff(async () => {
+        const result = await state.lsRpc.createExecutionContext(this.id)
+        if (result.contextId !== this.id) {
+          throw new Error('Unexpected Context ID returned by the language server.')
+        }
+        return { ...state, created: true }
+      }, 'Failed to create execution context')
     })
   }
 
   destroy() {
-    this.state = this.state.then(({ lsRpc, id }) => {
-      lsRpc.destroyExecutionContext(id)
-      return { lsRpc, id }
+    this.abortCtl.abort()
+    this.queue.clear()
+    this.queue.pushTask(async (state) => {
+      if (!state.created) return state
+      await state.lsRpc.destroyExecutionContext(this.id)
+      return { ...state, created: false }
     })
   }
 }
@@ -158,8 +346,6 @@ export const useProjectStore = defineStore('project', () => {
 
   const name = computed(() => config.value.startup?.project)
   const namespace = computed(() => config.value.engine?.namespace)
-
-  const mainModule = computed(() => `${DEFAULT_PROJECT_NAMESPACE}.${name.value}.Main`)
 
   watchEffect((onCleanup) => {
     // For now, let's assume that the websocket server is running on the same host as the web server.
@@ -208,10 +394,9 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
-  async function createExecutionContextForMain(): Promise<ExecutionContext | undefined> {
+  function createExecutionContextForMain(): ExecutionContext {
     if (name.value == null) {
-      console.error('Cannot create execution context. Unknown project name.')
-      return
+      throw new Error('Cannot create execution context. Unknown project name.')
     }
     if (namespace.value == null) {
       console.warn(
@@ -220,85 +405,43 @@ export const useProjectStore = defineStore('project', () => {
     }
     const projectName = `${namespace.value ?? 'local'}.${name.value}`
     const mainModule = `${projectName}.Main`
-    const projectRoot = (await contentRoots).find((root) => root.type === 'Project')
-    if (projectRoot == null) {
-      console.error(
-        'Cannot create execution context. Protocol connection initialization did not return a project root.',
-      )
-      return
-    }
-    return new ExecutionContext(lsRpcConnection, {
-      methodPointer: { module: mainModule, definedOnType: mainModule, name: 'main' },
-    })
+    const ctx = new ExecutionContext(lsRpcConnection)
+    ctx.pushCall({ module: mainModule, definedOnType: mainModule, name: 'main' })
+    return ctx
   }
 
-  const executionContextRef = shallowRef<ExecutionContext>()
-  const executionContext = lsRpcConnection
-    .then(createExecutionContextForMain)
-    .then((executionContext) => {
-      executionContextRef.value = executionContext
-      return executionContext
-    })
-  const executionContextId = executionContext
-    .then((context) => context?.state)
-    .then((state) => state?.id)
+  const executionContext = createExecutionContextForMain()
+  const dataConnectionRef = computedAsync<DataServer | undefined>(() => dataConnection)
 
   function useVisualizationData(
-    expressionId: ExprId,
-    configuration: Ref<NodeVisualizationConfiguration | undefined>,
-    visible: Ref<boolean>,
+    configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
   ): ShallowRef<{} | undefined> {
     const id = random.uuidv4() as Uuid
     const visualizationData = shallowRef<{}>()
 
-    watch(visible, async (visible) => {
-      if (visible) {
-        await (
-          await lsRpcConnection
-        ).attachVisualization(id, expressionId, {
-          executionContextId: (await executionContextId)!,
-          visualizationModule: mainModule.value,
-          ...(configuration.value ?? DEFAULT_VISUALIZATION_CONFIGURATION),
-        })
-      } else {
-        await (
-          await lsRpcConnection
-        ).detachVisualization(id, expressionId, (await executionContextId)!)
-      }
+    watch(configuration, async (config, _, onCleanup) => {
+      executionContext.setVisualization(id, config)
+      onCleanup(() => {
+        executionContext.setVisualization(id, null)
+      })
     })
 
-    watchEffect(async () => {
-      if (!visible.value) return
-      const mainModule_ = mainModule.value
-      const config = configuration.value
-      await (
-        await lsRpcConnection
-      ).modifyVisualization(id, {
-        executionContextId: (await executionContextId)!,
-        visualizationModule: mainModule_,
-        ...(config ?? DEFAULT_VISUALIZATION_CONFIGURATION),
+    watchEffect((onCleanup) => {
+      const connection = dataConnectionRef.value
+      const dataEvent = `${OutboundPayload.VISUALIZATION_UPDATE}:${id}`
+      if (connection == null) return
+      connection.on(dataEvent, onVisualizationUpdate)
+      onCleanup(() => {
+        connection.off(dataEvent, onVisualizationUpdate)
       })
     })
 
     function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
+      console.log('viz update', vizUpdate)
       const json = vizUpdate.dataString()
       const newData = json != null ? JSON.parse(json) : undefined
       visualizationData.value = newData
     }
-
-    onMounted(async () => {
-      ;(await dataConnection).on(
-        `${OutboundPayload.VISUALIZATION_UPDATE}:${id as string}`,
-        onVisualizationUpdate,
-      )
-    })
-
-    onUnmounted(async () => {
-      ;(await dataConnection).off(
-        `${OutboundPayload.VISUALIZATION_UPDATE}:${id}`,
-        onVisualizationUpdate,
-      )
-    })
 
     return visualizationData
   }
@@ -309,7 +452,7 @@ export const useProjectStore = defineStore('project', () => {
     },
     name: projectName,
     createExecutionContextForMain,
-    executionContext: executionContextRef,
+    executionContext,
     module,
     contentRoots,
     undoManager,

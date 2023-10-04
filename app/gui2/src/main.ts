@@ -13,8 +13,6 @@ import { createApp, type App } from 'vue'
 import VueCodemirror from 'vue-codemirror'
 import AppRoot from './App.vue'
 
-import * as dashboard from 'enso-authentication'
-
 const params = decodeQueryParams(location.href)
 
 // Temporary hardcode

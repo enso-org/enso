@@ -265,7 +265,7 @@ export interface VisualizationConfiguration {
   /** An expression that creates a visualization. */
   expression: string | MethodPointer
   /** A list of arguments to pass to the visualization expression. */
-  positionalArgumentsExpressions?: string[]
+  positionalArgumentsExpressions: string[]
 }
 
 export interface VCSSave {
@@ -311,7 +311,7 @@ export type StackItem = ExplicitCall | LocalCall
 export interface ExplicitCall {
   type: 'ExplicitCall'
   methodPointer: MethodPointer
-  thisArgumentExpression?: string
+  thisArgumentExpression?: string | undefined
   positionalArgumentsExpressions: string[]
 }
 
