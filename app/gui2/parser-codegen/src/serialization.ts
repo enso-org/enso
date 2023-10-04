@@ -1,0 +1,277 @@
+import ts from "typescript";
+
+const {factory: tsf} = ts
+import {casesOrThrow, modifiers} from "@/util";
+
+
+// === Definitions ===
+
+const noneType = tsf.createTypeReferenceNode('undefined')
+const cursorFieldIdent = tsf.createIdentifier('lazyObjectData')
+const POINTER_SIZE: number = 4
+// Symbols exported by the `parserSupport` module.
+export const supportImports = {
+    LazyObject: false,
+    Cursor: false,
+    debugHelper: false,
+    Result: true,
+} as const
+export const support = {
+    LazyObject: tsf.createIdentifier('LazyObject'),
+    Cursor: tsf.createTypeReferenceNode(tsf.createIdentifier('Cursor')),
+    debugHelper: tsf.createIdentifier('debugHelper'),
+    Result: (t0: ts.TypeNode, t1: ts.TypeNode) =>
+        tsf.createTypeReferenceNode(tsf.createIdentifier('Result'), [t0, t1]),
+} as const
+
+const cursorMethods = {
+    readString: primitiveReader('readString'),
+    readBool: primitiveReader('readBool'),
+    readU32: primitiveReader('readU32'),
+    readI32: primitiveReader('readI32'),
+    readU64: primitiveReader('readU64'),
+    readI64: primitiveReader('readI64'),
+    readPointer: primitiveReader('readPointer'),
+    readSequence: readerTransformerSized('readSequence'),
+    readOption: readerTransformer('readOption'),
+    readResult: readerTransformerTwoTyped('readResult'),
+} as const
+
+type ExpressionTransformer = (expression: ts.Expression) => ts.Expression
+
+
+// === Public API ===
+
+export class Type {
+    readonly type: ts.TypeNode
+    readonly reader: ExpressionTransformer
+    readonly size: number
+
+    private constructor(type: ts.TypeNode, reader: ExpressionTransformer, size: number) {
+        this.type = type
+        this.reader = reader
+        this.size = size
+    }
+
+    static Abstract(name: string): Type {
+        return new Type(tsf.createTypeReferenceNode(name), abstractTypeReader(name), POINTER_SIZE)
+    }
+
+    static Concrete(name: string, size: number): Type {
+        return new Type(tsf.createTypeReferenceNode(name), concreteTypeReader(name), size)
+    }
+
+    static Sequence(element: Type): Type {
+        return new Type(
+            tsf.createTypeReferenceNode('Iterable', [element.type]),
+            cursorMethods.readSequence(element.reader, element.size),
+            POINTER_SIZE,
+        )
+    }
+
+    static Option(element: Type): Type {
+        return new Type(
+            tsf.createUnionTypeNode([element.type, noneType]),
+            cursorMethods.readOption(element.reader),
+            POINTER_SIZE + 1,
+        )
+    }
+
+    static Result(ok: Type, err: Type): Type {
+        return new Type(
+            support.Result(ok.type, err.type),
+            cursorMethods.readResult(ok.reader, err.reader),
+            POINTER_SIZE,
+        )
+    }
+
+    static Boolean: Type = new Type(tsf.createTypeReferenceNode('boolean'), cursorMethods.readBool, 1)
+    static UInt32: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readU32, 4)
+    static Int32: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readI32, 4)
+    static UInt64: Type = new Type(tsf.createTypeReferenceNode('bigint'), cursorMethods.readU64, 8)
+    static Int64: Type = new Type(tsf.createTypeReferenceNode('bigint'), cursorMethods.readI64, 8)
+    static Char: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readU32, 4)
+    static String: Type = new Type(tsf.createTypeReferenceNode('string'), cursorMethods.readString, POINTER_SIZE)
+}
+
+export function seekCursor(cursor: ts.Expression, offset: number): ts.Expression {
+    if (offset === 0) {
+        return cursor
+    } else {
+        return tsf.createCallExpression(
+            tsf.createPropertyAccessExpression(cursor, 'seek'),
+            [],
+            [tsf.createNumericLiteral(offset)],
+        )
+    }
+}
+
+export function abstractTypeDeserializer(
+    ident: ts.Identifier,
+    cases: ts.CaseClause[],
+): ts.FunctionDeclaration {
+    const cursorIdent = tsf.createIdentifier('cursor')
+    return tsf.createFunctionDeclaration(
+        [modifiers.export],
+        undefined,
+        'read',
+        [],
+        [
+            tsf.createParameterDeclaration(
+                [],
+                undefined,
+                cursorIdent,
+                undefined,
+                support.Cursor,
+                undefined,
+            ),
+        ],
+        tsf.createTypeReferenceNode(ident),
+        tsf.createBlock([
+            tsf.createSwitchStatement(
+                cursorMethods.readU32(cursorIdent),
+                casesOrThrow(cases, 'Unexpected discriminant while deserializing.'),
+            ),
+        ]),
+    )
+}
+
+export function fieldDeserializer(ident: ts.Identifier, type: Type, offset: number): ts.GetAccessorDeclaration {
+    return tsf.createGetAccessorDeclaration(
+        [],
+        ident,
+        [],
+        type.type,
+        tsf.createBlock([
+            tsf.createReturnStatement(
+                type.reader(
+                    seekCursor(
+                        tsf.createPropertyAccessExpression(tsf.createThis(), cursorFieldIdent),
+                        offset,
+                    ),
+                ),
+            ),
+        ]),
+    )
+}
+
+
+// === Implementation ===
+
+function primitiveReader(name: string): ExpressionTransformer {
+    return (cursor) =>
+        tsf.createCallExpression(tsf.createPropertyAccessExpression(cursor, name), [], [])
+}
+
+/**
+ * Given the name of a runtime `Cursor` method that deserializes a derived type given a function to deserialize a
+ * base type, return a codegen-time function that generates a *reader* for a derived type from a *reader* for the base
+ * type, where a *reader* is a function producing a deserialization expression from an expression that evaluates to a
+ * `Cursor`.
+ */
+function readerTransformer(
+    name: string,
+): (readElement: ExpressionTransformer) => ExpressionTransformer {
+    const innerParameter = tsf.createIdentifier('element')
+    return (readElement: ExpressionTransformer) => (cursor: ts.Expression) => {
+        return tsf.createCallExpression(
+            tsf.createPropertyAccessExpression(cursor, name),
+            [],
+            [
+                tsf.createArrowFunction(
+                    [],
+                    [],
+                    [
+                        tsf.createParameterDeclaration(
+                            [],
+                            undefined,
+                            innerParameter,
+                            undefined,
+                            support.Cursor,
+                            undefined,
+                        ),
+                    ],
+                    undefined,
+                    undefined,
+                    readElement(innerParameter),
+                ),
+            ],
+        )
+    }
+}
+
+function readerTransformerTwoTyped(
+    name: string,
+): (readOk: ExpressionTransformer, readErr: ExpressionTransformer) => ExpressionTransformer {
+    function makeArrow(reader: ExpressionTransformer, data: ts.Identifier) {
+        return tsf.createArrowFunction(
+            [],
+            [],
+            [tsf.createParameterDeclaration([], undefined, data, undefined, support.Cursor, undefined)],
+            undefined,
+            undefined,
+            reader(data),
+        )
+    }
+
+    const okData = tsf.createIdentifier('okData')
+    const errData = tsf.createIdentifier('errData')
+    return (readOk: ExpressionTransformer, readErr: ExpressionTransformer) =>
+        (cursor: ts.Expression) => {
+            return tsf.createCallExpression(
+                tsf.createPropertyAccessExpression(cursor, name),
+                [],
+                [makeArrow(readOk, okData), makeArrow(readErr, errData)],
+            )
+        }
+}
+
+function readerTransformerSized(
+    name: string,
+): (readElement: ExpressionTransformer, size: number) => ExpressionTransformer {
+    const innerParameter = tsf.createIdentifier('element')
+    return (readElement: ExpressionTransformer, size: number) => (cursor: ts.Expression) => {
+        return tsf.createCallExpression(
+            tsf.createPropertyAccessExpression(cursor, name),
+            [],
+            [
+                tsf.createArrowFunction(
+                    [],
+                    [],
+                    [
+                        tsf.createParameterDeclaration(
+                            [],
+                            undefined,
+                            innerParameter,
+                            undefined,
+                            support.Cursor,
+                            undefined,
+                        ),
+                    ],
+                    undefined,
+                    undefined,
+                    readElement(innerParameter),
+                ),
+                tsf.createNumericLiteral(size),
+            ],
+        )
+    }
+}
+
+function abstractTypeReader(name: string): ExpressionTransformer {
+    return (cursor: ts.Expression) =>
+        tsf.createCallExpression(
+            tsf.createPropertyAccessExpression(tsf.createIdentifier(name), 'read'),
+            [],
+            [cursorMethods.readPointer(cursor)],
+        )
+}
+
+function concreteTypeReader(name: string): ExpressionTransformer {
+    return (cursor: ts.Expression) =>
+        tsf.createCallExpression(
+            tsf.createPropertyAccessExpression(tsf.createIdentifier(name), 'read'),
+            [],
+            [cursor],
+        )
+}

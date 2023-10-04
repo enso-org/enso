@@ -1,5 +1,6 @@
 /** This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`. */
 
+export { type Result } from '@/util/result'
 import { Err, Ok, type Result } from '@/util/result'
 
 /** Base class for objects that lazily deserialize fields when accessed. */
