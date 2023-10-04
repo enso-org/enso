@@ -131,12 +131,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  @Override
-  public final void onExceptionalCallback(Exception e) {
-    onExceptionalCallback.accept(e);
-  }
-
-  @CompilerDirectives.TruffleBoundary
   private void passExpressionValueToCallback(ExpressionValue expressionValue) {
     onComputedCallback.accept(expressionValue);
   }
