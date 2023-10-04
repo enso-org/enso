@@ -143,8 +143,10 @@ impl<'s> Resolver<'s> {
     /// Create a new resolver, in statement context.
     pub fn new_statement() -> Self {
         let scopes = default();
-        let open_blocks =
-            vec![syntax::item::Line { newline: token::newline(Code::empty(), Code::empty()), items: default() }];
+        let open_blocks = vec![syntax::item::Line {
+            newline: token::newline(Code::empty(), Code::empty()),
+            items:   default(),
+        }];
         let macro_stack = default();
         let segments = default();
         let items = default();

@@ -1512,7 +1512,7 @@ mod tests {
             ("foo\n    +", vec![
                 ident_("", "foo"),
                 block_start_(Code::empty(), Code::empty()),
-                newline.clone(),
+                newline,
                 operator_("    ", "+"),
                 block_end_(Code::empty(), Code::empty()),
             ]),
@@ -1526,15 +1526,15 @@ mod tests {
         test_lexer_many(vec![
             ("\n  foo\n bar\nbaz", vec![
                 block_start_(Code::empty(), Code::empty()),
-                newline, ident_("  ", "foo"),
-                newline, ident_(" ", "bar"),
+                newline.clone(), ident_("  ", "foo"),
+                newline.clone(), ident_(" ", "bar"),
                 block_end_(Code::empty(), Code::empty()),
-                newline, ident_("", "baz"),
+                newline.clone(), ident_("", "baz"),
             ]),
             ("\n  foo\n bar\n  baz", vec![
                 block_start_(Code::empty(), Code::empty()),
-                newline, ident_("  ", "foo"),
-                newline, ident_(" ", "bar"),
+                newline.clone(), ident_("  ", "foo"),
+                newline.clone(), ident_(" ", "bar"),
                 newline, ident_("  ", "baz"),
                 block_end_(Code::empty(), Code::empty()),
             ]),
@@ -1546,7 +1546,7 @@ mod tests {
         test_lexer_many(vec![("foo\n    \nbar", vec![
             ident_("", "foo"),
             newline_(Code::empty(), Code::from_str_without_offset("\n")),
-            newline_("    ", Code::from_str_without_offset("\n")),
+            newline_(Code::from_str_without_offset("    "), Code::from_str_without_offset("\n")),
             ident_("", "bar"),
         ])]);
     }

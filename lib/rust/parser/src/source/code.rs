@@ -103,7 +103,7 @@ impl<'a, 'b> PartialEq<&'b str> for Code<'a> {
 impl AsRef<str> for Code<'_> {
     #[inline(always)]
     fn as_ref(&self) -> &str {
-        &self.repr.0
+        self.repr.0
     }
 }
 

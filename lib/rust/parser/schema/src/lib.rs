@@ -47,67 +47,114 @@ pub fn schema() -> impl serde::Serialize {
 // === Schema ===
 // ==============
 
-#[derive(serde::Serialize, serde::Deserialize)]
+/// Describes a set of types and their serialization.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
+    /// The type definitions.
     pub types:         HashMap<TypeId, Type>,
+    /// Serialization information for the types.
     pub serialization: HashMap<TypeId, Layout>,
 }
 
 
 // === Type graph ===
 
-#[derive(serde::Serialize, serde::Deserialize)]
+/// Describes a type.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Type {
+    /// The type's name, in snake case.
     pub name:   Rc<str>,
+    /// The type's fields.
     pub fields: HashMap<FieldName, TypeRef>,
+    /// The type's parent, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<TypeId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
+/// Arbitrary key uniquely identifying a type within the schema.
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct TypeId(Rc<str>);
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
+/// The name of a field, in snake case.
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct FieldName(Rc<str>);
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
+/// A reference to a type, which may be a [`Type`] defined in the schema, a primitive, or a
+/// parameterized generic type.
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "class")]
 pub enum TypeRef {
-    Type { id: TypeId },
-    Primitive { r#type: Primitive },
-    Sequence { r#type: Box<TypeRef> },
-    Option { r#type: Box<TypeRef> },
-    Result { r#type0: Box<TypeRef>, r#type1: Box<TypeRef> },
+    /// A type defined in the schema.
+    Type {
+        /// Identifies the type.
+        id: TypeId,
+    },
+    /// A [`Primitive`].
+    Primitive {
+        /// A [`Primitive`].
+        r#type: Primitive,
+    },
+    /// A sequence of values of a type.
+    Sequence {
+        /// The type of the elements of the sequence.
+        r#type: Box<TypeRef>,
+    },
+    /// An optional value of a type.
+    Option {
+        /// The type of the value, if present.
+        r#type: Box<TypeRef>,
+    },
+    /// A value that may indicate success or error.
+    Result {
+        /// The type of the value, in case of success.
+        r#type0: Box<TypeRef>,
+        /// The type of the value, in case of error.
+        r#type1: Box<TypeRef>,
+    },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Copy, Clone, Hash, PartialEq, Eq)]
+/// The base types that all [`Type`]s defined in the schema are ultimately composed of.
+#[derive(Debug, serde::Serialize, serde::Deserialize, Copy, Clone, Hash, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Primitive {
+    /// A boolean value.
     Bool,
+    /// A 32-bit unsigned integer.
     U32,
+    /// A 64-bit unsigned integer.
     U64,
+    /// A 32-bit signed integer.
     I32,
+    /// A 64-bit signed integer.
     I64,
+    /// A unicode codepoint, in the range 0x0000..=0x10FFFF.
     Char,
+    /// A UTF-8 string.
     String,
 }
 
 
 // === Serialization ===
 
-#[derive(serde::Serialize, serde::Deserialize)]
+/// Describes the serialized layout of a type.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Layout<Id = TypeId> {
+    /// The fields, in order. Names are references to the fields defined in the [`Type`].
     pub fields:        Vec<(FieldName, usize)>,
+    /// Values that encode the possible child types of this type.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub discriminants: Option<BTreeMap<Discriminant, Id>>,
+    /// The number of bytes this type's encoding takes as a field of a containing struct, element
+    /// of a sequence, or parent of another type.
     pub size:          usize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
-pub struct Discriminant(pub u32);
+/// Number distinguishing different possible child types.
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
+pub struct Discriminant(u32);
 
 
 
@@ -203,9 +250,9 @@ fn types(graph: &meta::TypeGraph) -> Types {
 // === Serialization ===
 // =====================
 
-fn serialization<'g>(
-    graph: &'g meta::TypeGraph,
-) -> impl Iterator<Item = (meta::TypeId, Layout<meta::TypeId>)> + 'g + '_ {
+fn serialization(
+    graph: &meta::TypeGraph,
+) -> impl Iterator<Item = (meta::TypeId, Layout<meta::TypeId>)> + '_ {
     let sizes = solve_sizes(graph);
     layouts(graph, sizes)
 }
@@ -272,10 +319,10 @@ fn solve_sizes(graph: &meta::TypeGraph) -> HashMap<meta::TypeId, usize> {
 
 /// Given the sizes of all types in the graph, compute the field offsets and return the layouts for
 /// all the types.
-fn layouts<'g>(
-    graph: &'g meta::TypeGraph,
+fn layouts(
+    graph: &meta::TypeGraph,
     sizes: HashMap<meta::TypeId, usize>,
-) -> impl Iterator<Item = (meta::TypeId, Layout<meta::TypeId>)> + 'g + '_ {
+) -> impl Iterator<Item = (meta::TypeId, Layout<meta::TypeId>)> + '_ {
     graph.types.iter().map(move |(key, ty)| {
         (key, {
             let mut offset = ty.parent.map_or(0, |key| sizes[&key]);
