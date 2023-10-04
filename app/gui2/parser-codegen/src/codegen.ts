@@ -1,68 +1,7 @@
-import * as fs from 'fs'
 import ts from 'typescript'
 const { factory: tsf } = ts
-import * as changeCase from 'change-case'
-
-module Schema {
-  export type TypeId = string
-  export type Types = {
-    [id: TypeId]: Type
-  }
-  export type Type = {
-    name: string
-    fields: Fields
-    parent?: string
-  }
-  export type Fields = {
-    [name: string]: TypeRef
-  }
-  export type TypeRef = Class | Primitive | Sequence | Option | Result
-  export type Class = { class: 'type'; id: TypeId }
-  export type Primitive = { class: 'primitive'; type: PrimitiveType }
-  export type Sequence = { class: 'sequence'; type: TypeRef }
-  export type Option = { class: 'option'; type: TypeRef }
-  export type Result = { class: 'result'; type0: TypeRef; type1: TypeRef }
-  export type PrimitiveType = 'bool' | 'u32' | 'u64' | 'i32' | 'i64' | 'char' | 'string'
-
-  export type Serialization = {
-    [id: TypeId]: Layout
-  }
-  export type Layout = {
-    discriminants?: DiscriminantMap
-    fields: [name: string, offset: number][]
-    size: number
-  }
-  export type DiscriminantMap = {
-    [discriminant: number]: TypeId
-  }
-}
-type Schema = {
-  types: Schema.Types
-  serialization: Schema.Serialization
-}
-
-function toPascal(ident: string): string {
-  if (ident.includes('.')) throw new Error("toPascal cannot be applied to a namespaced name.")
-  return changeCase.pascalCase(ident)
-}
-
-function toCamel(ident: string): string {
-  if (ident.includes('.')) throw new Error("toCamel cannot be applied to a namespaced name.")
-  return changeCase.camelCase(ident)
-}
-
-function legalizeIdent(ident: string): string {
-  // FIXME: We should accept a renaming table as an input alongside the schema, then emit an error if a keyword is
-  //  encountered ("constructor") or a field name is duplicated ("type").
-  switch (ident) {
-    case 'constructor':
-      return 'ident'
-    case 'type':
-      return 'typeNode'
-    default:
-      return ident
-  }
-}
+import * as Schema from '@/schema'
+import { toPascal, toCamel, legalizeIdent, namespacedName } from '@/util'
 
 type ExpressionTransformer = (expression: ts.Expression) => ts.Expression
 
@@ -165,14 +104,6 @@ function readerTransformerSized(
   }
 }
 
-function namespacedName(name: string, namespace?: string): string {
-  if (namespace == null) {
-    return toPascal(name)
-  } else {
-    return toPascal(namespace) + '.' + toPascal(name)
-  }
-}
-
 function abstractTypeReader(name: string): ExpressionTransformer {
   return (cursor: ts.Expression) =>
     tsf.createCallExpression(
@@ -202,7 +133,7 @@ class Type {
     this.size = size
   }
 
-  static new(ref: Schema.TypeRef, schema: Schema): Type {
+  static new(ref: Schema.TypeRef, schema: Schema.Schema): Type {
     const c = ref.class
     switch (c) {
       case 'type':
@@ -294,7 +225,7 @@ function makeGetter(
   fieldName: string,
   typeRef: Schema.TypeRef,
   offset: number,
-  schema: Schema,
+  schema: Schema.Schema,
 ): ts.GetAccessorDeclaration {
   const type = Type.new(typeRef, schema)
   return tsf.createGetAccessorDeclaration(
@@ -322,7 +253,7 @@ function createAssignmentStatement(left: ts.Expression, right: ts.Expression): t
   )
 }
 
-function makeConcreteType(id: string, schema: Schema): ts.ClassDeclaration {
+function makeConcreteType(id: string, schema: Schema.Schema): ts.ClassDeclaration {
   const ident = tsf.createIdentifier(toPascal(schema.types[id].name))
   const paramIdent = tsf.createIdentifier('cursor')
   const cursorParam = tsf.createParameterDeclaration(
@@ -392,7 +323,7 @@ function makeDebugFunction(fields: string[]): ts.MethodDeclaration {
   )
 }
 
-function makeGetters(id: string, schema: Schema): ts.ClassElement[] {
+function makeGetters(id: string, schema: Schema.Schema): ts.ClassElement[] {
   return schema.serialization[id].fields.map(([name, offset]: [string, number]) =>
     makeGetter(name, schema.types[id].fields[name], offset, schema))
 }
@@ -402,7 +333,7 @@ function makeClass(
   name: ts.Identifier,
   members: ts.ClassElement[],
   id: string,
-  schema: Schema,
+  schema: Schema.Schema,
 ): ts.ClassDeclaration {
   return tsf.createClassDeclaration(
     modifiers,
@@ -432,7 +363,7 @@ function makeChildType(
   base: ts.Identifier,
   id: string,
   discrim: string,
-  schema: Schema,
+  schema: Schema.Schema,
 ): ChildType {
   const ty: Schema.Type = schema.types[id]
   const name = toPascal(ty.name)
@@ -568,7 +499,7 @@ function abstractTypeDeserializer(
   )
 }
 
-function makeAbstractType(id: string, discriminants: Schema.DiscriminantMap, schema: Schema) {
+function makeAbstractType(id: string, discriminants: Schema.DiscriminantMap, schema: Schema.Schema, emit: ((node: ts.Node) => void)) {
   const ty = schema.types[id]
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
@@ -617,17 +548,51 @@ function makeAbstractType(id: string, discriminants: Schema.DiscriminantMap, sch
   emit(abstractTypeExport)
 }
 
-function emit(data: ts.Node) {
-  output += printer.printNode(ts.EmitHint.Unspecified, data, file)
-  output += '\n'
-}
-
 // ============
 // === Main ===
 // ============
 
-const schema: Schema = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
-let output = '// *** THIS FILE GENERATED BY `parser-codegen` ***\n'
+export function implement(schema: Schema.Schema): string {
+  let output = '// *** THIS FILE GENERATED BY `parser-codegen` ***\n'
+  function emit(data: ts.Node) {
+    output += printer.printNode(ts.EmitHint.Unspecified, data, file)
+    output += '\n'
+  }
+  emit(
+      tsf.createImportDeclaration(
+          [],
+          tsf.createImportClause(
+              false,
+              undefined,
+              tsf.createNamedImports(
+                  Array.from(Object.entries(supportImports), ([name, isTypeOnly]) =>
+                      tsf.createImportSpecifier(isTypeOnly, undefined, tsf.createIdentifier(name)),
+                  ),
+              ),
+          ),
+          tsf.createStringLiteral('@/util/parserSupport', true),
+          undefined,
+      ),
+  )
+  for (const id in schema.types) {
+    const ty = schema.types[id]
+    if (ty.parent == null) {
+      const discriminants = schema.serialization[id].discriminants
+      if (discriminants == null) {
+        emit(makeConcreteType(id, schema))
+      } else {
+        makeAbstractType(id, discriminants, schema, emit)
+      }
+    } else {
+      // Ignore child types; they are generated when `makeAbstractType` processes the parent.
+    }
+  }
+  output += `export function deserializeTree(data: ArrayBuffer): Tree {
+    const cursor = new Cursor(data, data.byteLength - 4)
+    return Tree.read(cursor.readPointer())
+  }`
+  return output
+}
 const file = ts.createSourceFile('source.ts', '', ts.ScriptTarget.ESNext, false, ts.ScriptKind.TS)
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed })
 const noneType = tsf.createTypeReferenceNode('undefined')
@@ -666,37 +631,3 @@ const support = {
   Result: (t0: ts.TypeNode, t1: ts.TypeNode) =>
     tsf.createTypeReferenceNode(tsf.createIdentifier('Result'), [t0, t1]),
 } as const
-emit(
-  tsf.createImportDeclaration(
-    [],
-    tsf.createImportClause(
-      false,
-      undefined,
-      tsf.createNamedImports(
-        Array.from(Object.entries(supportImports), ([name, isTypeOnly]) =>
-          tsf.createImportSpecifier(isTypeOnly, undefined, tsf.createIdentifier(name)),
-        ),
-      ),
-    ),
-    tsf.createStringLiteral('@/util/parserSupport', true),
-    undefined,
-  ),
-)
-for (const id in schema.types) {
-  const ty = schema.types[id]
-  if (ty.parent == null) {
-    const discriminants = schema.serialization[id].discriminants
-    if (discriminants == null) {
-      emit(makeConcreteType(id, schema))
-    } else {
-      makeAbstractType(id, discriminants, schema)
-    }
-  } else {
-    // Ignore child types; they are generated when `makeAbstractType` processes the parent.
-  }
-}
-output += `export function deserializeTree(data: ArrayBuffer): Tree {
-  const cursor = new Cursor(data, data.byteLength - 4)
-  return Tree.read(cursor.readPointer())
-}`
-fs.writeFileSync(process.argv[3], output)

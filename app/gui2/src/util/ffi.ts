@@ -584,4 +584,11 @@ if (import.meta.vitest) {
       ],
     })
   })
+  /*
+  test('TryParseSmthing', () => {
+    const smthing = 'Data.read file="name"'
+    const parsed = parseEnso2(smthing)
+    Array.from(parsed.statements)[0].expression.name.isTypeOrConstructor
+  })
+   */
 }

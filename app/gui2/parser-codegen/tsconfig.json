@@ -2,6 +2,14 @@
   "extends": "@tsconfig/node18/tsconfig.json",
   "compilerOptions": {
     "sourceMap": true,
-    "outDir": "dist"
-  }
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "outDir": "dist",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [ "src/**/*" ]
 }
