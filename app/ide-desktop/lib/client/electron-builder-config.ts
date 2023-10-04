@@ -99,7 +99,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         extraMetadata: {
             version: BUILD_INFO.version,
         },
-        copyright: 'Copyright © 2022 ${author}.',
+        copyright: `Copyright © ${new Date().getFullYear()} ${common.COMPANY_NAME}`,
         artifactName: 'enso-${os}-${version}.${ext}',
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *

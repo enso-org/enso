@@ -17,7 +17,6 @@ const shown = ref(false)
 const rootElement = ref<HTMLElement>()
 
 useWindowEvent('keydown', (e) => {
-  console.log('keydown', e)
   const graphEditorInFocus = document.activeElement === document.body
   const codeEditorInFocus = rootElement.value?.contains(document.activeElement)
   const validFocus = graphEditorInFocus || codeEditorInFocus
@@ -50,7 +49,14 @@ watchPostEffect((onCleanup) => {
 </script>
 
 <template>
-  <div v-show="shown" ref="rootElement" class="CodeEditor" @keydown.enter.stop @wheel.stop.passive>
+  <div
+    v-show="shown"
+    ref="rootElement"
+    class="CodeEditor"
+    @keydown.enter.stop
+    @wheel.stop.passive
+    @pointerdown.stop
+  >
     <div ref="codeMirrorEl" class="codemirror-container"></div>
   </div>
 </template>

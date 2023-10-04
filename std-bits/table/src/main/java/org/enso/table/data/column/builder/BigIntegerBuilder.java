@@ -4,10 +4,12 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
@@ -24,8 +26,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   }
 
   @Override
-  public void writeTo(Object[] items) {
-    super.writeTo(items);
+  public void retypeToMixed(Object[] items) {
+    super.retypeToMixed(items);
   }
 
   @Override
@@ -36,7 +38,7 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   @Override
   public TypedBuilder retypeTo(StorageType type) {
     if (type instanceof FloatType) {
-      DoubleBuilder res = NumericBuilder.createDoubleBuilder(currentSize);
+      DoubleBuilder res = NumericBuilder.createInferringDoubleBuilder(currentSize);
       for (int i = 0; i < currentSize; i++) {
         if (data[i] == null) {
           res.appendNulls(1);
@@ -97,5 +99,29 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
       context.safepoint();
     }
     return res;
+  }
+
+  @Override
+  public void appendBulkStorage(Storage<?> storage) {
+    if (storage.getType() instanceof IntegerType) {
+      if (storage instanceof AbstractLongStorage longStorage) {
+        int n = longStorage.size();
+        for (int i = 0; i < n; i++) {
+          if (storage.isNa(i)) {
+            data[currentSize++] = null;
+          } else {
+            long item = longStorage.getItem(i);
+            data[currentSize++] = BigInteger.valueOf(item);
+          }
+        }
+      } else {
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type INTEGER: "
+                + storage
+                + ". This is a bug in the Table library.");
+      }
+    } else {
+      super.appendBulkStorage(storage);
+    }
   }
 }

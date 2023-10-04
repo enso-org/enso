@@ -1,0 +1,5 @@
+# This import should fail - importing private module
+import local.Test_Private_Modules_1.Priv_Mod
+
+main =
+    "Success"
