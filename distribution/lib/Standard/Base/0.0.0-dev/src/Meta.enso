@@ -659,7 +659,7 @@ type Instrumentor
        Arguments:
        - value: The value of the atom in the meta representation.
     activate self =
-        finalize d = instrumentor_builtin "deactivate" [ d.impl ]
+        finalize _ = instrumentor_builtin "deactivate" [ self.impl ]
         instrumentor_builtin "activate" [ self.impl, finalize ]
 
 ## PRIVATE
