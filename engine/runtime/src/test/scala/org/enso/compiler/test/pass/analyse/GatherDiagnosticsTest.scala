@@ -98,6 +98,7 @@ class GatherDiagnosticsTest extends CompilerTest {
           definition.Method
             .Explicit(method2Ref, error3, None)
         ),
+        false,
         None
       )
 

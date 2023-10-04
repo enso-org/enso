@@ -151,16 +151,6 @@ public class InstrumentorBuiltin extends Node {
         }
         return null;
       }
-
-      @Override
-      public void onExceptionalCallback(Exception e) {
-        try {
-          if (builder.onException != null) {
-            InteropLibrary.getUncached().execute(builder.onReturn, (TruffleObject) e);
-          }
-        } catch (ClassCastException | UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
-        }
-      }
     }
     builder.close = builder.service.bind(
       builder.module, builder.target, new Observe(), new Timer.Disabled()

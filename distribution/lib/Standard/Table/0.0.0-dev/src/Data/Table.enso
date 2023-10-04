@@ -2390,7 +2390,9 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
             _ : Integer ->
                 storage = parent_table.at i . java_column . getStorage
                 storage_builder.appendBulkStorage storage
-    Column.from_storage column_set.name storage_builder.seal
+    sealed_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems <|
+        storage_builder.sealWithProblems
+    Column.from_storage column_set.name sealed_storage
 
 ## PRIVATE
    Conversion method to a Table from a Column.

@@ -39,13 +39,6 @@ public interface IdExecutionService {
      *     the execution and return the value as a result.
      */
     Object onFunctionReturn(UUID nodeId, TruffleObject result);
-
-    /**
-     * Notification on an exception.
-     *
-     * @param e the reported exception
-     */
-    void onExceptionalCallback(Exception e);
   }
 
   /**
