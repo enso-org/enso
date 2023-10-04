@@ -40,5 +40,9 @@ ci-build/
 enso/
 
 # Popular IDEs
-.idea
 .bsp
+.idea
+.vscode
+
+# Stray files generated during build
+svm_*.md
