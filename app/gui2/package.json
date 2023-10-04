@@ -48,7 +48,7 @@
     "y-textarea": "^1.0.0",
     "y-websocket": "^1.5.0",
     "yjs": "^13.6.7",
-    "zod": "^3.22.2"
+    "zod": "^3.22.3"
   },
   "devDependencies": {
     "@danmarshall/deckgl-typings": "^4.9.28",
