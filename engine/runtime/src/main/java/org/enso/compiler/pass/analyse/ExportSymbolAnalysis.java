@@ -94,16 +94,20 @@ public class ExportSymbolAnalysis implements IRPass {
       }
       default -> export;
     });
-    return moduleIr.copy(
-        moduleIr.imports(),
-        exportErrors.isEmpty() ? moduleIr.exports() : CollectionConverters.asScala(exportErrors).toList(),
-        moduleIr.bindings(),
-        moduleIr.location(),
-        moduleIr.passData(),
-        moduleIr.diagnostics(),
-        moduleIr.id()
-    );
 
+    if (exportErrors.isEmpty()) {
+      return moduleIr;
+    } else {
+      return moduleIr.copy(
+          moduleIr.imports(),
+          CollectionConverters.asScala(exportErrors).toList(),
+          moduleIr.bindings(),
+          moduleIr.location(),
+          moduleIr.passData(),
+          moduleIr.diagnostics(),
+          moduleIr.id()
+      );
+    }
   }
 
   @Override
