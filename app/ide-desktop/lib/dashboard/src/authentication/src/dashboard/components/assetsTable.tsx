@@ -395,7 +395,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         // `overwriteAssets` is a callback, not a dependency.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [backend])
+    }, [backend, category])
 
     hooks.useAsyncEffect(
         null,
