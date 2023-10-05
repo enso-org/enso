@@ -11,6 +11,7 @@ const order = [
   'Node',
   'Top Bar',
   'Circular Menu',
+  'Selection Brush',
   // Miscellaneous
   'SVG Icon',
   // Visualizations

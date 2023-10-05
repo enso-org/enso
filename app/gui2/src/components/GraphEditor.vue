@@ -96,7 +96,7 @@ function moveNode(id: ExprId, delta: Vec2) {
 const selectionAnchor = shallowRef<Vec2>()
 const initiallySelectedNodes = ref(new Set(selectedNodes.value))
 
-const selection = usePointer((pos, _, eventType) => {
+const selection = usePointer((_, __, eventType) => {
   if (selection.dragging && selectionAnchor.value == null) {
     selectionAnchor.value = navigator.sceneMousePos?.copy()
   } else if (eventType === 'stop') {
