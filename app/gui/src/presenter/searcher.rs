@@ -16,7 +16,6 @@ use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
-use ide_view::project::SearcherType;
 
 
 // ==============
@@ -54,7 +53,6 @@ pub trait SearcherPresenter: Debug {
                 Mode::EditNode { edited_node_id: new_node, original_node_id: node_id },
             None => Mode::NewNode { node_id: new_node, source_node },
         };
-        let target_node = mode.node_id();
 
         Ok(mode)
     }

@@ -48,15 +48,15 @@ pub struct NoSuchComponent(component_grid::EntryId);
 
 #[derive(Clone, Debug)]
 struct Model {
-    controller:       controller::Searcher,
+    controller: controller::Searcher,
     graph_controller: controller::Graph,
-    graph_presenter:  presenter::Graph,
-    project:          view::project::View,
-    provider:         Rc<RefCell<Option<provider::Component>>>,
-    input_view:       ViewNodeId,
-    view:             component_browser::View,
-    mode:             Immutable<Mode>,
-    transaction:      Rc<Transaction>,
+    graph_presenter: presenter::Graph,
+    project: view::project::View,
+    provider: Rc<RefCell<Option<provider::Component>>>,
+    input_view: ViewNodeId,
+    view: component_browser::View,
+    mode: Immutable<Mode>,
+    transaction: Rc<Transaction>,
     visualization_was_enabled: bool,
 }
 
@@ -133,9 +133,7 @@ impl Model {
         if let Mode::EditNode { original_node_id, .. } = *self.mode {
             self.reenable_visualization_if_needed();
 
-            self
-                .graph_presenter
-                .assign_node_view_explicitly(self.input_view, original_node_id);
+            self.graph_presenter.assign_node_view_explicitly(self.input_view, original_node_id);
             // Force view update so resets to the old expression.
             self.graph_presenter.force_view_update.emit(original_node_id);
         }
@@ -262,7 +260,7 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 
         let mut visualization_was_enabled = false;
         if let Mode::EditNode { original_node_id, .. } = mode {
-            if let Some(target_node_view) = graph_presenter.view_id_of_ast_node(mode.node_id()) {
+            if let Some(target_node_view) = graph_presenter.view_id_of_ast_node(original_node_id) {
                 view.graph().model.with_node(target_node_view, |node| {
                     visualization_was_enabled = node.visualization_enabled.value();
                     if visualization_was_enabled {
@@ -272,8 +270,8 @@ impl SearcherPresenter for ComponentBrowserSearcher {
                 });
             }
         }
-        
-    
+
+
         let searcher_controller = controller::Searcher::new_from_graph_controller(
             ide_controller,
             &project_controller.model,
@@ -294,7 +292,16 @@ impl SearcherPresenter for ComponentBrowserSearcher {
         }
 
         let input = parameters.input;
-        Ok(Self::new(searcher_controller, &graph, graph_presenter, view, input, mode, transaction, visualization_was_enabled))
+        Ok(Self::new(
+            searcher_controller,
+            &graph,
+            graph_presenter,
+            view,
+            input,
+            mode,
+            transaction,
+            visualization_was_enabled,
+        ))
     }
 
     fn expression_accepted(
@@ -317,6 +324,7 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 
 impl ComponentBrowserSearcher {
     #[profile(Task)]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         controller: controller::Searcher,
         graph_controller: &controller::Graph,
