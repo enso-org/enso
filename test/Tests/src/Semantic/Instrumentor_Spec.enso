@@ -35,6 +35,8 @@ spec =
                 result . should_equal 89
 
             instrumenter.finalize
+            # no op:
+            instrumenter.finalize
 
             result = fib 10
             result . should_equal 89

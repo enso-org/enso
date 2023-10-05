@@ -609,8 +609,8 @@ type Instrumentor
        Arguments:
        - fn: The callback function accepting UUID.
     on_enter self (fn : Text -> Any | Nothing) =
-        instrumentor_builtin "onEnter" [ self.impl, fn ]
-        self
+        new = instrumentor_builtin "onEnter" [ self.impl, fn ]
+        Instrumentor.Value new
 
     ## PRIVATE
        ADVANCED
@@ -623,8 +623,8 @@ type Instrumentor
        Arguments:
        - fn: The callback function accepting UUID and computed value
     on_return self (fn : Text -> Any -> Nothing) =
-        instrumentor_builtin "onReturn" [ self.impl, fn ]
-        self
+        new = instrumentor_builtin "onReturn" [ self.impl, fn ]
+        Instrumentor.Value new
 
     ## PRIVATE
        ADVANCED
@@ -638,19 +638,8 @@ type Instrumentor
        Arguments:
        - fn: The callback function accepting UUID and function value
     on_call self (fn : Text -> Function -> Vector Any -> Any | Nothing) =
-        instrumentor_builtin "onCall" [ self.impl, fn ]
-        self
-
-    ## PRIVATE
-       ADVANCED
-
-       Registers callback to be executed when there is an exception.
-
-       Arguments:
-       - fn: The callback function accepting any object.
-    on_exception self (fn : Any -> Nothing) =
-        instrumentor_builtin "onException" [ self.impl, fn ]
-        self
+        new = instrumentor_builtin "onCall" [ self.impl, fn ]
+        Instrumentor.Value new
 
     ## PRIVATE
        ADVANCED
@@ -661,8 +650,9 @@ type Instrumentor
        Arguments:
        - value: The value of the atom in the meta representation.
     activate self =
-        finalize _ = instrumentor_builtin "deactivate" [ self.impl ]
-        instrumentor_builtin "activate" [ self.impl, finalize ]
+        finalize impl = instrumentor_builtin "deactivate" [ impl ]
+        managed = (instrumentor_builtin "activate" [ self.impl, finalize ]) : Managed_Resource
+        managed
 
 ## PRIVATE
    Returns type specified by fully qualified name.
