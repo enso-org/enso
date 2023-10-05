@@ -17,6 +17,21 @@ export interface Group {
   project: QualifiedName
 }
 
+const standardBase = 'Standard.Base' as QualifiedName
+
+// This should be a function, to ensure a deep copy is created every time.
+export function defaultGroups(): Group[] {
+  return [
+    { color: '#4D9A29', name: 'Input', project: standardBase },
+    { color: '#B37923', name: 'Web', project: standardBase },
+    { color: '#9735B9', name: 'Parse', project: standardBase },
+    { color: '#4D9A29', name: 'Select', project: standardBase },
+    { color: '#B37923', name: 'Join', project: standardBase },
+    { color: '#9735B9', name: 'Transform', project: standardBase },
+    { color: '#4D9A29', name: 'Output', project: standardBase },
+  ]
+}
+
 class Synchronizer {
   entries: SuggestionDb
   groups: Ref<Group[]>
@@ -70,18 +85,8 @@ class Synchronizer {
 
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = reactive(new SuggestionDb())
-  const standardBase = 'Standard.Base' as QualifiedName
-  const groups = ref<Group[]>([
-    { color: '#4D9A29', name: 'Input', project: standardBase },
-    { color: '#B37923', name: 'Web', project: standardBase },
-    { color: '#9735B9', name: 'Parse', project: standardBase },
-    { color: '#4D9A29', name: 'Select', project: standardBase },
-    { color: '#B37923', name: 'Join', project: standardBase },
-    { color: '#9735B9', name: 'Transform', project: standardBase },
-    { color: '#4D9A29', name: 'Output', project: standardBase },
-  ])
+  const groups = ref<Group[]>(defaultGroups())
 
   const synchronizer = new Synchronizer(entries, groups)
-  window.__entries = entries
   return { entries, groups, _synchronizer: synchronizer }
 })

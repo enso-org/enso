@@ -10,7 +10,7 @@ const props = defineProps<{ name: string; width?: number; height?: number }>()
 </script>
 
 <template>
-  <svg :style="{ width: `${width}px`, height: `${height}px` }">
+  <svg :style="{ '--width': `${width}px`, '--height': `${height}px` }">
     <use :href="`${icons}#${props.name}`"></use>
   </svg>
 </template>
