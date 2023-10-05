@@ -64,7 +64,8 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
     try {
       if (onEnter != null) {
         var ret = InteropLibrary.getUncached().execute(onEnter, nodeId.toString());
-        return InteropLibrary.getUncached().isNull(ret) ? null : ret;
+        ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
+        return handle.isDisposed() ? null : ret;
       }
     } catch (InteropException ex) {
     }
@@ -91,7 +92,8 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
                 call.getFunction(),
                 ArrayLikeHelpers.asVectorWithCheckAt(call.getArguments())
         );
-        return InteropLibrary.getUncached().isNull(ret) ? null : ret;
+        ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
+        return handle.isDisposed() ? null : ret;
       }
     } catch (InteropException ex) {
     }

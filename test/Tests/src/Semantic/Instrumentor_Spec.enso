@@ -178,8 +178,8 @@ spec =
                         Runtime.gc
                         @Tail_Call repeat_gc count-1
 
-            # instrumentor is gone and fib2 10 is again 89
-            repeat_gc 1000 . should_equal 89
+            # instrumentor is gone and `fib2 10` is again `89`
+            repeat_gc 999 . should_equal 89
 
             result3 = fib2 10
             result3 . should_equal 89
