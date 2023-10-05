@@ -1267,29 +1267,6 @@ lazy val `runtime-language-epb` =
     )
     .dependsOn(`polyglot-api`)
 
-/** Runs gu (GraalVM updater) command with given `args`.
-  * For example `runGu(Seq("install", "js"))`.
-  * @param logger Logger for the `gu` command.
-  * @param args Arguments for the `gu` command.
-  */
-def runGu(logger: ManagedLogger, args: Seq[String]): String = {
-  val javaHome = new File(
-    System.getProperty("java.home")
-  )
-  val os = {
-    if (Platform.isLinux) DistributionPackage.OS.Linux
-    else if (Platform.isMacOS) DistributionPackage.OS.MacOS
-    else if (Platform.isWindows) DistributionPackage.OS.Windows
-    else throw new RuntimeException("Unknown platform")
-  }
-  packageBuilder.gu(
-    logger,
-    os,
-    javaHome,
-    args: _*
-  )
-}
-
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
