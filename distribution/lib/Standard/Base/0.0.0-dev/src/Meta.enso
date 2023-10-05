@@ -12,6 +12,7 @@ import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
 import project.Nothing.Nothing
+import project.Function.Function
 import project.Polyglot.Java
 from project.Runtime.Managed_Resource import Managed_Resource
 from project.Data.Boolean import Boolean, False, True
@@ -628,15 +629,16 @@ type Instrumentor
     ## PRIVATE
        ADVANCED
 
-       Registers callback to be executed when a node/expression result is a function.
-       The callback `fn` gets UUID as well as a wrapper around the function. The callback
-       can return `Nothing` (in such case the execution continues) or some other value,
-       which is then returned.
+       Registers callback to be executed when a node/expression representing function is about to be called.
+       The callback `fn` shall accept three arguments. The UUID to identify the expression, the function to be
+       invoked and the arguments to pass to the function. The callback can return `Nothing`
+       (in such case the function gets executed with provided arguments) or some other value,
+       which is then returned instead of calling the function.
 
        Arguments:
        - fn: The callback function accepting UUID and function value
-    on_function self (fn : Text -> Any -> Any | Nothing) =
-        instrumentor_builtin "onFunction" [ self.impl, fn ]
+    on_call self (fn : Text -> Function -> Vector Any -> Any | Nothing) =
+        instrumentor_builtin "onCall" [ self.impl, fn ]
         self
 
     ## PRIVATE

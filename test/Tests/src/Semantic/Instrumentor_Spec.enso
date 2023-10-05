@@ -64,25 +64,33 @@ spec =
             r2 = -10.up_to 10 . map fib2
             r1 . should_equal r2
 
-        Test.specify "collect and filter on return updates" <|
+        Test.specify "call and collect on return updates" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
             b = Vector.new_builder
 
-            call_fn _:Text _ =
+            call_fn uuid:Text fn:Function (args : Vector Any) =
+                fn.to_text . should_contain "Integer.+"
+                uuid . should_equal n1_plus_n2
+                b.append args
                 Nothing
 
             collect uuid:Text result =
-                a_plus_b_uuid = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
-                if uuid == a_plus_b_uuid then
-                    b.append result
+                uuid . should_equal n1_plus_n2
+                v = b.last:Vector
+                n1 = v.at 0
+                n2 = v.at 1
+
+                # arguments collected at `call_fn` were really added together
+                result . should_equal n1+n2
                 Nothing
 
-            instrumenter = Meta.meta .fib2 . instrument . on_return collect . on_function call_fn . activate
+            instrumenter = Meta.meta .fib2 . instrument . on_return collect . on_call call_fn . activate
 
             instrumenter . with _->
                 result = fib2 10
 
                 v = b.to_vector
-                v . should_equal [2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
+                v . should_equal [[1, 1], [1, 2], [2, 3], [3, 5], [5, 8], [8, 13], [13, 21], [21, 34], [34, 55], [55, 89]]
                 result . should_equal 89
 
             instrumenter.finalize

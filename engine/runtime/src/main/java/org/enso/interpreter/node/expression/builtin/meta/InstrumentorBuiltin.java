@@ -9,6 +9,7 @@ import com.oracle.truffle.api.nodes.Node;
 
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.instrument.Timer;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -17,6 +18,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.polyglot.debugger.IdExecutionService;
 
@@ -43,8 +45,7 @@ public class InstrumentorBuiltin extends Node {
     final Module module;
     Object onEnter;
     Object onReturn;
-    Object onFunction;
-    Object onException;
+    Object onCall;
     EventBinding<ExecutionEventNodeFactory> close;
 
     Builder(Module module, IdExecutionService service, CallTarget target) {
@@ -64,8 +65,7 @@ public class InstrumentorBuiltin extends Node {
       case "newBuilder" -> newBuilder(ctx, arr);
       case "onEnter" -> onEnter((Builder) arr[0], (Function) arr[1]);
       case "onReturn" -> onReturn((Builder) arr[0], (Function) arr[1]);
-      case "onFunction" -> onFunction((Builder) arr[0], (Function) arr[1]);
-      case "onException" -> onException((Builder) arr[0], (Function) arr[1]);
+      case "onCall" -> onCall((Builder) arr[0], (Function) arr[1]);
       case "activate" -> activate((Builder) arr[0], (Function)arr[1]);
       case "deactivate" -> deactivate((Builder) arr[0]);
       default -> null;
@@ -104,14 +104,8 @@ public class InstrumentorBuiltin extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object onFunction(Builder b, Function fn) {
-    b.onFunction = fn;
-    return b;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private Object onException(Builder b, Function fn) {
-    b.onException = fn;
+  private Object onCall(Builder b, Function fn) {
+    b.onCall = fn;
     return b;
   }
 
@@ -143,8 +137,13 @@ public class InstrumentorBuiltin extends Node {
       @Override
       public Object onFunctionReturn(UUID nodeId, TruffleObject result) {
         try {
-          if (builder.onFunction != null) {
-            var ret = InteropLibrary.getUncached().execute(builder.onFunction, nodeId.toString(), result);
+          if (builder.onCall != null && result instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+            var ret = InteropLibrary.getUncached().execute(
+              builder.onCall,
+              nodeId.toString(),
+              call.getFunction(),
+              ArrayLikeHelpers.asVectorWithCheckAt(call.getArguments())
+            );
             return InteropLibrary.getUncached().isNull(ret) ? null : ret;
           }
         } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
