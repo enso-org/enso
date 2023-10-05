@@ -49,6 +49,10 @@ export type AssetId = IdType[keyof IdType]
 export type LabelName = newtype.Newtype<string, 'LabelName'>
 export const LabelName = newtype.newtypeConstructor<LabelName>()
 
+/** A CSS color. */
+export type Color = newtype.Newtype<string, 'Color'>
+export const Color = newtype.newtypeConstructor<Color>()
+
 /** Unique identifier for a label. */
 export type TagId = newtype.Newtype<string, 'TagId'>
 export const TagId = newtype.newtypeConstructor<TagId>()
@@ -247,6 +251,7 @@ export interface SecretInfo {
 export interface Label {
     id: TagId
     value: LabelName
+    color: Color
 }
 
 /** Type of application that a {@link Version} applies to.

@@ -25,8 +25,8 @@ import * as uniqueString from '../uniqueString'
 
 import * as assetsTable from './components/assetsTable'
 import * as categorySwitcher from './components/categorySwitcher'
+import Label, * as labelModule from './components/label'
 import AssetNameColumn from './components/assetNameColumn'
-import Label from './components/label'
 import ManageLabelsModal from './components/manageLabelsModal'
 import ManagePermissionsModal from './components/managePermissionsModal'
 import PermissionDisplay from './components/permissionDisplay'
@@ -281,6 +281,7 @@ function LabelsColumn(props: AssetColumnProps) {
             {(asset.labels ?? []).map(label => (
                 <Label
                     key={label}
+                    color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
                     onClick={() => {
                         setAsset(oldAsset => {
                             const newLabels =

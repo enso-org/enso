@@ -14,6 +14,7 @@ import * as localStorageProvider from '../../providers/localStorage'
 import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
+import * as labelModule from './label'
 import * as pageSwitcher from './pageSwitcher'
 import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
 import AssetsTable from './assetsTable'
@@ -85,7 +86,10 @@ export default function Drive(props: DriveProps) {
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[]>([])
-    const labelNames = React.useMemo(() => labels.map(label => label.value), [labels])
+    const allLabels = React.useMemo(
+        () => new Map(labels.map(label => [label.value, label])),
+        [labels]
+    )
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -204,22 +208,23 @@ export default function Drive(props: DriveProps) {
                                 const placeholderLabel: backendModule.Label = {
                                     id: backendModule.TagId(uniqueString.uniqueString()),
                                     value: backendModule.LabelName(value),
+                                    color: labelModule.DEFAULT_LABEL_COLOR,
                                 }
                                 setLabels(oldLabels => [...oldLabels, placeholderLabel])
                                 void (async () => {
                                     try {
-                                        const label = await backend.createTag({ value })
+                                        const newLabel = await backend.createTag({ value })
                                         setLabels(oldLabels =>
                                             oldLabels.map(oldLabel =>
                                                 oldLabel.id === placeholderLabel.id
-                                                    ? label
+                                                    ? newLabel
                                                     : oldLabel
                                             )
                                         )
                                         setCurrentLabels(oldLabels =>
                                             oldLabels.map(oldLabel =>
                                                 oldLabel === placeholderLabel.value
-                                                    ? label.value
+                                                    ? newLabel.value
                                                     : oldLabel
                                             )
                                         )
@@ -244,7 +249,7 @@ export default function Drive(props: DriveProps) {
                 <AssetsTable
                     query={query}
                     category={category}
-                    allLabels={labelNames}
+                    allLabels={allLabels}
                     currentLabels={currentLabels}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}

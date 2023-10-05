@@ -6,7 +6,7 @@ import PlusIcon from 'enso-assets/plus.svg'
 import * as backendModule from '../backend'
 import * as modalProvider from '../../providers/modal'
 
-import Label from './label'
+import Label, * as labelModule from './label'
 import NewLabelModal from './newLabelModal'
 
 // ==============
@@ -36,6 +36,7 @@ export default function Labels(props: LabelsProps) {
                 {labels.map(label => (
                     <Label
                         key={label.id}
+                        color={label.color}
                         active={currentLabels.includes(label.value)}
                         onClick={() => {
                             setCurrentLabels(oldLabels =>
@@ -50,6 +51,7 @@ export default function Labels(props: LabelsProps) {
                 ))}
                 <Label
                     active
+                    color={labelModule.DEFAULT_LABEL_COLOR}
                     className="bg-frame-selected text-not-selected"
                     onClick={event => {
                         event.stopPropagation()

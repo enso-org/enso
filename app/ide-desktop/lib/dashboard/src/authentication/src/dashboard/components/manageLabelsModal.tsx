@@ -21,7 +21,7 @@ export interface ManageLabelsModalProps<
     item: Asset
     setItem: React.Dispatch<React.SetStateAction<Asset>>
     self: backendModule.UserPermission
-    allLabels: backendModule.LabelName[]
+    allLabels: Map<backendModule.LabelName, backendModule.Label>
     /** If this is `null`, this modal will be centered. */
     eventTarget: HTMLElement | null
 }
@@ -42,7 +42,9 @@ export default function ManageLabelsModal<
     const labelNames = React.useMemo(() => new Set(labels), [labels])
     const regex = React.useMemo(() => new RegExp(string.regexEscape(query), 'i'), [query])
     const canCreateNewLabel = React.useMemo(
-        () => query !== '' && allLabels.filter(label => regex.test(label)).length === 0,
+        () =>
+            query !== '' &&
+            Array.from(allLabels.keys()).filter(label => regex.test(label)).length === 0,
         [allLabels, query, regex]
     )
 
@@ -135,13 +137,14 @@ export default function ManageLabelsModal<
                             </button>
                         </form>
                         <div className="overflow-auto pl-1 pr-12 max-h-80">
-                            {allLabels
-                                .filter(label => regex.test(label))
+                            {Array.from(allLabels.values())
+                                .filter(label => regex.test(label.value))
                                 .map(label => (
-                                    <div key={label} className="flex items-center h-8">
+                                    <div key={label.id} className="flex items-center h-8">
                                         <Label
+                                            color={label.color}
                                             onClick={async () => {
-                                                await doToggleLabel(label)
+                                                await doToggleLabel(label.value)
                                             }}
                                         />
                                     </div>
