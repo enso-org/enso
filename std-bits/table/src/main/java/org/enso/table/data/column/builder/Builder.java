@@ -85,13 +85,4 @@ public abstract class Builder {
 
   /** @return the current storage type of this builder */
   public abstract StorageType getType();
-
-  /** @return any problems that occurred when building the Storage. */
-  public AggregatedProblems getProblems() {
-    return AggregatedProblems.of();
-  }
-
-  public WithAggregatedProblems<Storage<?>> sealWithProblems() {
-    return new WithAggregatedProblems<>(seal(), getProblems());
-  }
 }
