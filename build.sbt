@@ -12,6 +12,7 @@ import src.main.scala.licenses.{
   DistributionDescription,
   SBTDistributionComponent
 }
+import com.sandinh.javamodule.moduleinfo.AutomaticModule
 
 import java.io.File
 
@@ -226,6 +227,19 @@ ThisBuild / Test / testOptions ++=
     }
 
 Compile / console / scalacOptions ~= (_ filterNot (_ == "-Xfatal-warnings"))
+
+// ============================================================================
+// === Modules Configuration ==================================================
+// ============================================================================
+
+// With this, the legacy .jar files of your libraryDependencies will be transformed to modules
+// which are stored in target/moduleInfo directory
+Global / moduleInfos := Seq(
+  // Add `Automatic-Module-Name: paranamer` to paranamer.jar/META-INF/MANIFEST.MF
+  AutomaticModule(
+    "org.enso.runtime", // id in format org:name
+  ),
+)
 
 // ============================================================================
 // === Benchmark Configuration ================================================
@@ -1311,6 +1325,11 @@ lazy val runtime = (project in file("engine/runtime"))
       "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
       "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
       "com.lihaoyi"        %% "fansi"                 % fansiVersion
+    ),
+    moduleInfos := Seq(
+      AutomaticModule(
+        "org.enso.runtime"
+      )
     ),
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
