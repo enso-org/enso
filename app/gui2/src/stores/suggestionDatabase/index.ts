@@ -28,7 +28,6 @@ class Synchronizer {
     this.lastUpdate = projectStore.lsRpcConnection.then(async (lsRpc) => {
       await lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {})
       this.setupUpdateHandler(lsRpc)
-      this.setupGroupsFetcher(lsRpc)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
     })
   }
@@ -65,10 +64,7 @@ class Synchronizer {
         }
       })
     })
-  }
-
-  private setupGroupsFetcher(lsRpc: LanguageServer) {
-    lsRpc.once('executionContext/executionComplete', async () => {
+    lsRpc.on('executionContext/executionComplete', async () => {
       const groups = await lsRpc.getComponentGroups()
       this.groups.value = groups.componentGroups.map(
         (group): Group => ({
