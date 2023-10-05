@@ -14,6 +14,7 @@ const order = [
   // Miscellaneous
   'SVG Icon',
   // Visualizations
+  'Selector',
   'JSON',
   'Table',
   'Scatterplot',
