@@ -581,6 +581,7 @@
 - [Added `Table.expand_column` and improved JSON deserialization.][7859]
 - [Implemented `Table.auto_value_types` for in-memory tables.][7908]
 - [Implemented Text.substring to easily select part of a Text field][7913]
+- [Implemented `Table.lookup_and_replace` for the in-memory backend.][7979]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -826,6 +827,7 @@
 [7859]: https://github.com/enso-org/enso/pull/7859
 [7908]: https://github.com/enso-org/enso/pull/7908
 [7913]: https://github.com/enso-org/enso/pull/7913
+[7979]: https://github.com/enso-org/enso/pull/7979
 
 #### Enso Compiler
 
