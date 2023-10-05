@@ -159,6 +159,17 @@ spec setup =
             r3 = my_table.lookup_and_replace lookup2 key_columns=["X", "Y"]
             r3.should_fail_with Non_Unique_Key
 
+        Test.specify "will preserve count of rows, even if there are duplicates" <|
+            lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
+            my_table = table_builder [["X", [1, 2, 2, 2, 1]], ["Z", [10, 20, 20, 20, 50]]]
+
+            t2 = my_table.lookup_and_replace lookup key_columns=["X"]
+            t2.column_names . should_equal ["X", "Z", "Y"]
+            m2 = t2 |> materialize |> _.order_by "Z"
+            m2.at "X" . to_vector . should_equal [1, 2, 2, 2, 1]
+            m2.at "Y" . to_vector . should_equal ["A", "B", "B", "B", "A"]
+            m2.at "Z" . to_vector . should_equal [10, 20, 20, 20, 50]
+
         Test.specify "will report Floating_Point_Equality if floating-point columns are used as key" <|
             lookup = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", ["A", "B", "C"]]]
             my_table = table_builder [["X", [2.0, 3.0, 2.0, 3.0]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
