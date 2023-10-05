@@ -154,6 +154,36 @@ spec =
             result3 = fib2 10
             result3 . should_equal 89
 
+
+        Test.specify "GC disables Instrumentor" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            enable_instrumentor value:Integer =
+                return_cached_value uuid:Text =
+                    uuid . should_equal n1_plus_n2
+                    value
+
+                Meta.meta .fib2 . instrument . on_enter return_cached_value . activate
+
+                # make sure the managed resource is forgotten in this frame
+                Nothing
+
+            enable_instrumentor 42
+
+            repeat_gc count =
+                result = fib2 10
+                if result == 89 then result else
+                    if count <= 0 then result else
+                        if count % 100 == 0 then IO.println "Trying to GC instrumentor (still "+count.to_text+" to go), but result still remains "+result.to_text
+                        Runtime.gc
+                        @Tail_Call repeat_gc count-1
+
+            # instrumentor is gone and fib2 10 is again 89
+            repeat_gc 1000 . should_equal 89
+
+            result3 = fib2 10
+            result3 . should_equal 89
+
 main = Test_Suite.run_main spec
 
 

@@ -650,9 +650,9 @@ type Instrumentor
        Arguments:
        - value: The value of the atom in the meta representation.
     activate self =
-        finalize impl = instrumentor_builtin "deactivate" [ impl ]
-        managed = (instrumentor_builtin "activate" [ self.impl, finalize ]) : Managed_Resource
-        managed
+        finalize_instrumentor impl = instrumentor_builtin "deactivate" [ impl ]
+        create action = (instrumentor_builtin action [ self.impl, finalize_instrumentor ]) : Managed_Resource
+        create "activate"
 
 ## PRIVATE
    Returns type specified by fully qualified name.
