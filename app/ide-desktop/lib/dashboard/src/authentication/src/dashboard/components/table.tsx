@@ -69,6 +69,8 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
         event: React.MouseEvent<HTMLDivElement>,
         setSelectedKeys: (items: Set<Key>) => void
     ) => void
+    draggableRows?: boolean
+    onRowDragStart?: React.DragEventHandler<HTMLTableRowElement>
 }
 
 /** Props for a {@link Table}. */
@@ -99,6 +101,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
         isLoading,
         placeholder,
         onContextMenu,
+        draggableRows,
+        onRowDragStart,
         ...rowProps
     } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -301,6 +305,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
                             setSelectedKeys(new Set([key]))
                         }
                     }}
+                    draggable={draggableRows}
+                    onDragStart={onRowDragStart}
                 />
             )
         })

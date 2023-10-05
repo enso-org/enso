@@ -24,11 +24,13 @@ import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
 import * as categorySwitcher from './categorySwitcher'
+import AssetNameColumn from './assetNameColumn'
 import AssetRow from './assetRow'
 import Button from './button'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenus from './contextMenus'
+import DragModal from './dragModal'
 import GlobalContextMenu from './globalContextMenu'
 import MenuEntry from './menuEntry'
 import Table from './table'
@@ -1097,6 +1099,42 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 </ContextMenus>
                             )
                         }
+                    }}
+                    draggableRows
+                    onRowDragStart={event => {
+                        event.preventDefault()
+                        const nodes = assetTreeNode
+                            .assetTreePreorderTraversal(assetTree)
+                            .filter(node => selectedKeys.has(node.key))
+                        const data = nodes.map(node => ({ key: node.key, asset: node.item }))
+                        event.dataTransfer.setData('enso/asset-list', JSON.stringify(data))
+                        const blankElement = document.createElement('div')
+                        blankElement.style.height = blankElement.style.width = '0'
+                        document.body.appendChild(blankElement)
+                        event.dataTransfer.setDragImage(blankElement, 0, 0)
+                        blankElement.remove()
+                        setModal(
+                            <DragModal
+                                event={event}
+                                className="flex flex-col bg-frame rounded-2xl backdrop-blur-3xl"
+                            >
+                                {nodes.map(node => (
+                                    <AssetNameColumn
+                                        key={node.key}
+                                        keyProp={node.key}
+                                        item={node}
+                                        state={state}
+                                        // Default states.
+                                        selected={false}
+                                        rowState={INITIAL_ROW_STATE}
+                                        // The drag placeholder cannot be interacted with.
+                                        setSelected={() => {}}
+                                        setItem={() => {}}
+                                        setRowState={() => {}}
+                                    />
+                                ))}
+                            </DragModal>
+                        )
                     }}
                 />
             </div>
