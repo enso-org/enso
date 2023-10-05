@@ -10,11 +10,14 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.NonUniqueLookupKey;
+import org.enso.table.error.NullValuesInKeyColumns;
 import org.enso.table.error.UnmatchedRow;
 import org.enso.table.util.ConstantList;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 public class LookupJoin {
   private static final TextFoldingStrategy TEXT_FOLDING = TextFoldingStrategy.unicodeNormalizedFold;
@@ -31,6 +34,7 @@ public class LookupJoin {
   }
 
   private final List<LookupColumnDescription> columnDescriptions;
+  private final List<String> keyColumnNames;
 
   private final MultiValueIndex<UnorderedMultiValueKey> lookupIndex;
 
@@ -50,6 +54,9 @@ public class LookupJoin {
     textFoldingStrategies = ConstantList.make(TEXT_FOLDING, baseKeyStorages.length);
 
     Column[] lookupKeyColumns = keys.stream().map(Equals::right).toArray(Column[]::new);
+    checkNullsInKey(lookupKeyColumns);
+    keyColumnNames = Arrays.stream(lookupKeyColumns).map(Column::getName).toList();
+
     assert lookupKeyColumns.length > 0;
     // tableSize parameter is only needed if there are no key columns, but that is not possible
     lookupIndex = MultiValueIndex.makeUnorderedIndex(lookupKeyColumns, 0, textFoldingStrategies);
@@ -60,7 +67,31 @@ public class LookupJoin {
     for (Map.Entry<UnorderedMultiValueKey, List<Integer>> group : lookupIndex.mapping().entrySet()) {
       int groupSize = group.getValue().size();
       if (groupSize > 1) {
-        throw new NonUniqueLookupKey();
+        UnorderedMultiValueKey key = group.getKey();
+        List<Object> exampleValues = IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();
+        throw new NonUniqueLookupKey(keyColumnNames, exampleValues, groupSize);
+      }
+    }
+  }
+
+  private static void checkNullsInKey(Column[] lookupKeyColumns) {
+    for (Column c : lookupKeyColumns) {
+      boolean containsNulls = c.getStorage().countMissing() > 0;
+      if (containsNulls) {
+        Storage<?> s = c.getStorage();
+        int missingRow = -1;
+        for (int i = 0; i < s.size(); i++) {
+          if (s.isNa(i)) {
+            missingRow = i;
+            break;
+          }
+        }
+
+        assert missingRow != -1;
+        final int row = missingRow;
+        List<Object> exampleValues =
+            IntStream.range(0, lookupKeyColumns.length).mapToObj(i -> (Object) s.getItemBoxed(row)).toList();
+        throw new NullValuesInKeyColumns(exampleValues);
       }
     }
   }
@@ -79,7 +110,7 @@ public class LookupJoin {
 
     for (int i = 0; i < baseTableRowCount; i++) {
       // Find corresponding row in the lookup table
-      int lookupRow = findLookupRow(i, allowUnmatchedRows);
+      int lookupRow = findLookupRow(i);
 
       assert allowUnmatchedRows || lookupRow != Index.NOT_FOUND;
 
@@ -104,22 +135,20 @@ public class LookupJoin {
     return new Table(columns);
   }
 
-  private int findLookupRow(int baseRowIx, boolean allowUnmatchedRows) {
+  private int findLookupRow(int baseRowIx) {
     UnorderedMultiValueKey key = makeTableRowKey(baseRowIx);
     List<Integer> lookupRowIndices = lookupIndex.get(key);
-    if (lookupRowIndices == null) {
+    if (lookupRowIndices == null || lookupRowIndices.isEmpty()) {
       if (allowUnmatchedRows) {
         return Index.NOT_FOUND;
       } else {
-        throw new UnmatchedRow();
+        List<Object> exampleKeyValues = IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();
+        throw new UnmatchedRow(exampleKeyValues);
       }
     }
 
-    if (lookupRowIndices.size() > 1) {
-      throw new NonUniqueLookupKey();
-    }
 
-    assert lookupRowIndices.size() == 1 : "empty group should never occur in an index";
+    assert lookupRowIndices.size() == 1 : "This should have been checked in verifyLookupUniqueness()";
     return lookupRowIndices.get(0);
   }
 

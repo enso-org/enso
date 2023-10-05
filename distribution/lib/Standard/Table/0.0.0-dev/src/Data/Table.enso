@@ -64,6 +64,9 @@ polyglot java import org.enso.table.data.table.join.LookupColumnDescription
 polyglot java import org.enso.table.data.table.join.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.error.TooManyColumnsException
+polyglot java import org.enso.table.error.NullValuesInKeyColumns
+polyglot java import org.enso.table.error.UnmatchedRow
+polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.operations.OrderBuilder
 
 ## Represents a column-oriented table data structure.
@@ -1728,8 +1731,8 @@ type Table
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
-         - If a key column contains `Nothing` values, either in this table or
-           the lookup table, a `Null_Values_In_Key_Columns` error is raised.
+         - If a key column contains `Nothing` values, either in the lookup table,
+           a `Null_Values_In_Key_Columns` error is raised.
          - If `allow_unmatched_rows` is `False` and there are rows in this table
            that do not have a matching row in the lookup table, an
            `Unmatched_Rows_In_Lookup` error is raised.
@@ -1758,7 +1761,7 @@ type Table
             Lookup_Column.Keep_Column base_column ->
                 LookupColumnDescription.KeepOriginal.new base_column.java_column
             Lookup_Column.Replace_Column base_column lookup_column common_type ->
-                storage_type = Storage.from_value_type common_type
+                storage_type = Storage.from_value_type common_type Problem_Behavior.Ignore
                 LookupColumnDescription.MergeColumns.new base_column.java_column lookup_column.java_column storage_type
             Lookup_Column.Add_Column lookup_column ->
                 LookupColumnDescription.AddNew.new lookup_column.java_column
@@ -1768,8 +1771,29 @@ type Table
         keys = lookup_columns.filter is_key
         java_keys = keys.map key_column->
             Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
-        java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows
-        Table.Value java_table
+
+        handle_java_errors ~action =
+            translate_null_values_exception caught_panic =
+                exception = caught_panic.payload
+                example_values = Vector.from_polyglot_array exception.exampleValues
+                Error.throw (Null_Values_In_Key_Columns.Error example_values)
+            translate_unmatched_row_exception caught_panic =
+                exception = caught_panic.payload
+                example_key_values = Vector.from_polyglot_array exception.exampleKeyValues
+                Error.throw (Unmatched_Rows_In_Lookup.Error example_key_values)
+            translate_non_unique_lookup_key_exception caught_panic =
+                exception = caught_panic.payload
+                key_column_names = Vector.from_polyglot_array exception.keyColumns
+                example_values = Vector.from_polyglot_array exception.exampleValues
+                example_count = exception.exampleCount
+                Error.throw (Non_Unique_Key.Error key_column_names example_values example_count)
+            Panic.catch NonUniqueLookupKey handler=translate_non_unique_lookup_key_exception <|
+                Panic.catch UnmatchedRow handler=translate_unmatched_row_exception <|
+                    Panic.catch NullValuesInKeyColumns handler=translate_null_values_exception <|
+                        action
+        handle_java_errors <|
+            java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows
+            Table.Value java_table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations

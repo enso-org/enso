@@ -733,13 +733,13 @@ type Unexpected_Extra_Columns
 
 type Unmatched_Rows_In_Lookup
     ## PRIVATE
-    Error row_count:Integer
+    Error example_key_values:Vector
 
     ## PRIVATE
        Pretty print the unmatched rows in lookup error.
     to_display_text : Text
     to_display_text self =
-        "The lookup operation failed to match "+self.row_count.to_text+" rows."
+        "The lookup operation failed to find a corresponding row in the lookup table for the key "+self.example_key_values.to_display_text+"."
 
 type Non_Unique_Key
     ## PRIVATE
@@ -760,3 +760,16 @@ type Non_Unique_Key
     to_display_text : Text
     to_display_text self =
         "The key " + self.key_column_names.to_display_text + " is not unique, for example key "+self.clashing_example_key_values.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."
+
+type Null_Values_In_Key_Columns
+    ## PRIVATE
+       Indicates that the source table contained NULL values in key columns.
+       Rows containing NULL values as part of their key will not be correctly
+       correlated with target rows due to how NULL equality works in SQL.
+    Error (example_row : Vector Any) (add_sql_suffix:Boolean=False)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        suffix = if self.add_sql_suffix.not then "" else " The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
+        "The operation encountered input rows that contained Nothing values in key columns (for example, the row " + self.example_row.to_display_text + ")."+suffix

@@ -610,7 +610,7 @@ check_for_null_keys table key_columns ~continuation =
         True -> continuation
         False ->
             example_key = example.first_row.to_vector
-            Error.throw (Null_Values_In_Key_Columns.Error example_key)
+            Error.throw (Null_Values_In_Key_Columns.Error example_key add_sql_suffix=True)
 
 ## PRIVATE
 check_for_null_keys_if_any_keys_set table key_columns ~continuation =
