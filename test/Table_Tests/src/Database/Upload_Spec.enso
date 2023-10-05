@@ -1043,7 +1043,7 @@ spec make_new_connection prefix persistent_connector=True =
             s2 = source_table_builder [["X", ["b", Nothing]], ["f", [10, 20]]]
             r1 = t2.delete_rows s2 key_columns=["X"]
             r1.should_fail_with Null_Values_In_Key_Columns
-            r1.catch.to_display_text . should_contain "NULL values in key columns"
+            r1.catch.to_display_text . should_contain "Nothing values in key columns"
             r1.catch.to_display_text . should_contain "[Nothing, 20]"
 
     Test.group prefix+"Deleting rows from a Database table (source=in-memory)" <|
