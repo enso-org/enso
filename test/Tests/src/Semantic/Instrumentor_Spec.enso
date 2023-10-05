@@ -101,6 +101,32 @@ spec =
             # no more instrumenting after finalize
             b.to_vector.length . should_equal 10
 
+        Test.specify "* instead of + on return updates" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            call_fn uuid:Text fn:Function (args : Vector Any) =
+                fn.to_text . should_contain "Integer.+"
+                uuid . should_equal n1_plus_n2
+                n1 = args.at 0
+                n2 = args.at 1
+                if n2 == 1 then Nothing else
+                    n1 * n2
+
+            result1 = fib2 10
+            result1 . should_equal 89
+
+            instrumenter = Meta.meta .fib2 . instrument . on_call call_fn . activate
+
+            instrumenter . with _->
+                result2 = fib2 10
+                result2 . should_equal 17179869184
+
+            instrumenter.finalize
+
+            # behaves normally again
+            result3 = fib2 10
+            result3 . should_equal 89
+
 main = Test_Suite.run_main spec
 
 
