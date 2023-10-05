@@ -50,7 +50,7 @@ class Passes(
       ImportSymbolAnalysis,
       ExportSymbolAnalysis.INSTANCE,
       AmbiguousImportsAnalysis,
-      PrivateModuleAnalysis.getInstance(),
+      PrivateModuleAnalysis.INSTANCE,
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,
