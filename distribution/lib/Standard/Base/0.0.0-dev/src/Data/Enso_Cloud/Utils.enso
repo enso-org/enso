@@ -8,7 +8,7 @@ import project.System.File.File
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
 ## PRIVATE
-cloud_root_uri = "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/"
+cloud_root_uri = AuthenticationProvider.getCloudRootUri
 
 ## PRIVATE
    Construct the authoization header for the request

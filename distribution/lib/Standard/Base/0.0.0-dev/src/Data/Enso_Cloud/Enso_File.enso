@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Enso_Cloud.Utils
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
@@ -21,11 +22,11 @@ files_api = Utils.cloud_root_uri + "files"
 type Enso_File
     ## PRIVATE
        Represents a file or folder within the Enso cloud.
-    Value name:Text id:Text asset_type:Enso_Asset_Type
+    Value name:Text id:Text organisation:Text asset_type:Enso_Asset_Type
 
     ## Represents the root folder of the current users.
     root : Enso_File
-    root = Enso_File.Value "" "" Enso_Asset_Type.Folder
+    root = Enso_File.Value "" "" "" Enso_Asset_Type.Folder
 
     ## Gets a list of assets within self.
     list : Vector Enso_File
@@ -40,12 +41,25 @@ type Enso_File
                 files = assets.map t-> t:Enso_File
                 files.filter f-> f.asset_type != Enso_Asset_Type.Connection || f.name.starts_with "connection-"
 
+    ## Reads the contents of the file.
+    read : Any
+    read self = case self.asset_type of
+        Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
+        Enso_Asset_Type.Folder -> self.list
+        Enso_Asset_Type.File ->
+            extension = if self.name.contains "." then "." + self.name.take (Text_Sub_Range.After_Last ".") else ""
+            url = "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/" + self.organisation + "/" + self.id + extension
+            response = HTTP.fetch url HTTP_Method.Get []
+            response.if_not_error <| response.decode if_unsupported=response.with_materialized_body
+        Enso_Asset_Type.Connection -> Error.throw (Illegal_Argument.Error "Connections cannot be read within Enso code. Open using the IDE.")
+
 ## PRIVATE
 Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
     name = that.get "title"
     id = that.get "id"
+    org = that.get "organizationId" ""
     asset_type = (id.take (Text_Sub_Range.Before "-")):Enso_Asset_Type
-    Enso_File.Value name id asset_type
+    Enso_File.Value name id org asset_type
 
 type Enso_Asset_Type
     ## Represents an Enso project.
