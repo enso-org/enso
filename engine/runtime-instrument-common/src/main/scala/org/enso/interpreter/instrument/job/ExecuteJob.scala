@@ -39,29 +39,33 @@ class ExecuteJob(
       executionEnvironment.foreach(env =>
         context.setExecutionEnvironment(ExecutionEnvironment.forName(env.name))
       )
-      val outcome = ProgramExecutionSupport.runProgram(contextId, stack)
-      outcome match {
-        case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
-          if (diagnostic.isError) {
+      try {
+        val outcome = ProgramExecutionSupport.runProgram(contextId, stack)
+        outcome match {
+          case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+            if (diagnostic.isError) {
+              ctx.endpoint.sendToClient(
+                Api.Response(Api.ExecutionFailed(contextId, diagnostic))
+              )
+            } else {
+              ctx.endpoint.sendToClient(
+                Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
+              )
+              ctx.endpoint.sendToClient(
+                Api.Response(Api.ExecutionComplete(contextId))
+              )
+            }
+          case Some(failure: Api.ExecutionResult.Failure) =>
             ctx.endpoint.sendToClient(
-              Api.Response(Api.ExecutionFailed(contextId, diagnostic))
+              Api.Response(Api.ExecutionFailed(contextId, failure))
             )
-          } else {
-            ctx.endpoint.sendToClient(
-              Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
-            )
+          case None =>
             ctx.endpoint.sendToClient(
               Api.Response(Api.ExecutionComplete(contextId))
             )
-          }
-        case Some(failure: Api.ExecutionResult.Failure) =>
-          ctx.endpoint.sendToClient(
-            Api.Response(Api.ExecutionFailed(contextId, failure))
-          )
-        case None =>
-          ctx.endpoint.sendToClient(
-            Api.Response(Api.ExecutionComplete(contextId))
-          )
+        }
+      } finally {
+        originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
       }
     } catch {
       case t: Throwable =>
@@ -74,7 +78,6 @@ class ExecuteJob(
           )
         )
     } finally {
-      originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
       ctx.locking.releaseReadCompilationLock()
       logger.log(
         Level.FINEST,
