@@ -10,7 +10,9 @@ use ide_ci::cache::goodie::graalvm::locate_graal;
 /// Version of the bundled GraalVM.
 #[derive(Clone, Debug)]
 pub struct GraalVmVersion {
+    /// Version of the GraalVM runtime. Corresponds to the `graalVersion` in build.sbt.
     pub graal:    Version,
+    /// Version of the Maven packages. Corresponds to the `graalMavenPackagesVersion` in build.sbt.
     pub packages: Version,
 }
 
