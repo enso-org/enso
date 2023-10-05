@@ -21,10 +21,10 @@ import java.io.File
 
 val scalacVersion = "2.13.11"
 // Since the release of GraalVM 23.0.0, the versioning is the same for Graal and OpenJDK.
-val graalVersion = "17.0.7"
+val graalVersion = "21"
 // Version used for the Graal/Truffle related Maven packages
 val graalMavenPackagesVersion = "23.1.0"
-val targetJavaVersion         = graalVersion.split("\\.")(0)
+val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
@@ -1647,21 +1647,7 @@ lazy val `engine-runner` = project
           //          "-H:+DashboardAll",
           //          "-H:DashboardDump=runner.bgv"
           "-Dnic=nic"
-        ) ++ (if (
-                org.graalvm.polyglot.Engine
-                  .create()
-                  .getLanguages()
-                  .containsKey("java")
-              ) {
-                Seq(
-                  "-Dorg.graalvm.launcher.home=" + System.getProperty(
-                    "java.home"
-                  ),
-                  "--language:java"
-                )
-              } else {
-                Seq()
-              }),
+        ),
         mainClass = Option("org.enso.runner.Main"),
         cp        = Option("runtime.jar"),
         initializeAtRuntime = Seq(
