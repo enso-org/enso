@@ -240,8 +240,9 @@ impl<'s> Lexer<'s> {
     #[inline(always)]
     fn marker_token<T>(&mut self, elem: T) -> Token<'s, T> {
         let visible_offset = VisibleOffset(0);
-        let offset = Offset(visible_offset, Code::empty());
-        Token(offset, Code::empty(), elem)
+        let start = self.current_offset - self.last_spaces_offset;
+        let offset = Offset(visible_offset, Code::empty_at(start.utf16));
+        Token(offset, Code::empty_at(start.utf16), elem)
     }
 
     /// Push the [`token`] to the result stream.

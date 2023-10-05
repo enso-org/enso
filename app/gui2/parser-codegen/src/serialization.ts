@@ -1,7 +1,9 @@
+/** Generates code lazily deserializing from an application-specific binary format. */
+
 import ts from "typescript";
 
 const {factory: tsf} = ts
-import {casesOrThrow, modifiers} from "@/util";
+import {casesOrThrow, modifiers} from "./util.js";
 
 
 // === Definitions ===
@@ -13,15 +15,17 @@ const POINTER_SIZE: number = 4
 export const supportImports = {
     LazyObject: false,
     Cursor: false,
-    debugHelper: false,
     Result: true,
+    DynValue: true,
+    Dyn: false,
 } as const
 export const support = {
     LazyObject: tsf.createIdentifier('LazyObject'),
     Cursor: tsf.createTypeReferenceNode(tsf.createIdentifier('Cursor')),
-    debugHelper: tsf.createIdentifier('debugHelper'),
     Result: (t0: ts.TypeNode, t1: ts.TypeNode) =>
         tsf.createTypeReferenceNode(tsf.createIdentifier('Result'), [t0, t1]),
+    DynValue: 'DynValue',
+    Dyn: tsf.createIdentifier('Dyn'),
 } as const
 
 const cursorMethods = {
@@ -36,6 +40,13 @@ const cursorMethods = {
     readOption: readerTransformer('readOption'),
     readResult: readerTransformerTwoTyped('readResult'),
 } as const
+const dynBuilders = {
+    Primitive: dynReader('Primitive'),
+    Result: dynReader('Result'),
+    Sequence: dynReader('Sequence'),
+    Option: dynReader('Option'),
+    Object: dynReader('Object'),
+} as const
 
 type ExpressionTransformer = (expression: ts.Expression) => ts.Expression
 
@@ -45,26 +56,31 @@ type ExpressionTransformer = (expression: ts.Expression) => ts.Expression
 export class Type {
     readonly type: ts.TypeNode
     readonly reader: ExpressionTransformer
+    readonly dynReader: ExpressionTransformer
     readonly size: number
 
-    private constructor(type: ts.TypeNode, reader: ExpressionTransformer, size: number) {
+    private constructor(type: ts.TypeNode, reader: ExpressionTransformer, dynReader: ExpressionTransformer, size: number) {
         this.type = type
         this.reader = reader
+        this.dynReader = dynReader
         this.size = size
     }
 
     static Abstract(name: string): Type {
-        return new Type(tsf.createTypeReferenceNode(name), abstractTypeReader(name), POINTER_SIZE)
+        const valueReader = abstractTypeReader(name)
+        return new Type(tsf.createTypeReferenceNode(name), valueReader, dynBuilders.Object(valueReader), POINTER_SIZE)
     }
 
     static Concrete(name: string, size: number): Type {
-        return new Type(tsf.createTypeReferenceNode(name), concreteTypeReader(name), size)
+        const valueReader = concreteTypeReader(name)
+        return new Type(tsf.createTypeReferenceNode(name), valueReader, dynBuilders.Object(valueReader), size)
     }
 
     static Sequence(element: Type): Type {
         return new Type(
             tsf.createTypeReferenceNode('Iterable', [element.type]),
             cursorMethods.readSequence(element.reader, element.size),
+            dynBuilders.Sequence(cursorMethods.readSequence(element.dynReader, element.size)),
             POINTER_SIZE,
         )
     }
@@ -73,6 +89,7 @@ export class Type {
         return new Type(
             tsf.createUnionTypeNode([element.type, noneType]),
             cursorMethods.readOption(element.reader),
+            dynBuilders.Option(cursorMethods.readOption(element.dynReader)),
             POINTER_SIZE + 1,
         )
     }
@@ -81,17 +98,18 @@ export class Type {
         return new Type(
             support.Result(ok.type, err.type),
             cursorMethods.readResult(ok.reader, err.reader),
+            dynBuilders.Result(cursorMethods.readResult(ok.dynReader, err.dynReader)),
             POINTER_SIZE,
         )
     }
 
-    static Boolean: Type = new Type(tsf.createTypeReferenceNode('boolean'), cursorMethods.readBool, 1)
-    static UInt32: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readU32, 4)
-    static Int32: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readI32, 4)
-    static UInt64: Type = new Type(tsf.createTypeReferenceNode('bigint'), cursorMethods.readU64, 8)
-    static Int64: Type = new Type(tsf.createTypeReferenceNode('bigint'), cursorMethods.readI64, 8)
-    static Char: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readU32, 4)
-    static String: Type = new Type(tsf.createTypeReferenceNode('string'), cursorMethods.readString, POINTER_SIZE)
+    static Boolean: Type = new Type(tsf.createTypeReferenceNode('boolean'), cursorMethods.readBool, dynBuilders.Primitive(cursorMethods.readBool), 1)
+    static UInt32: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readU32, dynBuilders.Primitive(cursorMethods.readU32), 4)
+    static Int32: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readI32, dynBuilders.Primitive(cursorMethods.readI32), 4)
+    static UInt64: Type = new Type(tsf.createTypeReferenceNode('bigint'), cursorMethods.readU64, dynBuilders.Primitive(cursorMethods.readU64), 8)
+    static Int64: Type = new Type(tsf.createTypeReferenceNode('bigint'), cursorMethods.readI64, dynBuilders.Primitive(cursorMethods.readI64), 8)
+    static Char: Type = new Type(tsf.createTypeReferenceNode('number'), cursorMethods.readU32, dynBuilders.Primitive(cursorMethods.readU32), 4)
+    static String: Type = new Type(tsf.createTypeReferenceNode('string'), cursorMethods.readString, dynBuilders.Primitive(cursorMethods.readString), POINTER_SIZE)
 }
 
 export function seekCursor(cursor: ts.Expression, offset: number): ts.Expression {
@@ -152,6 +170,15 @@ export function fieldDeserializer(ident: ts.Identifier, type: Type, offset: numb
                 ),
             ),
         ]),
+    )
+}
+
+export function fieldDynValue(type: Type, offset: number): ts.Expression {
+    return type.dynReader(
+        seekCursor(
+            tsf.createPropertyAccessExpression(tsf.createThis(), cursorFieldIdent),
+            offset,
+        ),
     )
 }
 
@@ -264,6 +291,16 @@ function readerTransformerSized(
                 ),
                 tsf.createNumericLiteral(size),
             ],
+        )
+    }
+}
+
+function dynReader(name: string): (readValue: ExpressionTransformer) => ExpressionTransformer {
+    return (readValue: ExpressionTransformer) => (cursor: ts.Expression) => {
+        return tsf.createCallExpression(
+            tsf.createPropertyAccessExpression(support.Dyn, name),
+            [],
+            [readValue(cursor)]
         )
     }
 }

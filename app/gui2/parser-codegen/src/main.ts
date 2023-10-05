@@ -1,6 +1,6 @@
 import fs from "fs";
-import * as Schema from '@/schema'
-import * as codegen from "@/codegen";
+import * as Schema from './schema.js'
+import * as codegen from "./codegen.js";
 
 const schema: Schema.Schema = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
 const code = codegen.implement(schema)

@@ -1,7 +1,36 @@
 /** This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`. */
 
 export { type Result } from '@/util/result'
-import { Err, Ok, type Result } from '@/util/result'
+import {Err, Error, Ok, type Result} from '@/util/result'
+
+export type Primitive = {
+  type: 'primitive',
+  value: boolean | number | bigint | string
+}
+export type DynValue = Primitive | DynSequence | DynResult | DynOption | DynObject
+export type DynResult = {
+  type: 'result',
+  value: Result<DynValue, DynValue>,
+}
+export type DynSequence = {
+  type: 'sequence',
+  value: Iterable<DynValue>,
+}
+export type DynOption = {
+  type: 'option',
+  value: DynValue | undefined,
+}
+export type DynObject = {
+  type: 'object',
+  getFields: () => [string, DynValue][],
+}
+export const Dyn = {
+  Primitive: (value: boolean | number | bigint | string): DynValue => ({ type: 'primitive', value: value }),
+  Result: (value: Result<DynValue, DynValue>): DynValue => ({ type: 'result', value: value }),
+  Sequence: (value: Iterable<DynValue>): DynValue => ({ type: 'sequence', value: value }),
+  Option: (value: DynValue | undefined): DynValue => ({ type: 'option', value: value }),
+  Object: (value: LazyObject): DynValue => ({ type: 'object', getFields: value.fields.bind(value) }),
+} as const
 
 /** Base class for objects that lazily deserialize fields when accessed. */
 export abstract class LazyObject {
@@ -11,8 +40,8 @@ export abstract class LazyObject {
     this.lazyObjectData = data
   }
 
-  debug(): {} {
-    return {}
+  fields(): [string, DynValue][] {
+    return []
   }
 }
 
@@ -121,27 +150,91 @@ export class Cursor {
   }
 }
 
-export function debugHelper(value: any | undefined): any | undefined {
-  if (typeof value === 'object') {
-    if ('debug' in value && typeof value['debug'] === 'function') {
-      return value.debug()
-    }
-    if (Symbol.iterator in value && typeof value[Symbol.iterator] === 'function') {
-      return Array.from(value, debugHelper)
-    }
-    // FIXME: Include the `hide` reflect property in the schema, and apply it during code generation to avoid magic
-    //  strings here.
-    const hide = [
-      'codeReprBegin',
-      'codeReprLen',
-      'leftOffsetCodeReprBegin',
-      'leftOffsetCodeReprLen',
-      'leftOffsetVisible',
-      'spanLeftOffsetCodeReprBegin',
-      'spanLeftOffsetCodeReprLen',
-      'spanLeftOffsetVisible',
-    ]
-    return Object.fromEntries(Object.entries(value).filter(([key, _val]) => !hide.includes(key)))
+export function debug(obj: LazyObject): any {
+  return debug_(Dyn.Object(obj))
+}
+
+function debug_(value: DynValue): any {
+  switch (value.type) {
+    case 'sequence':
+      return Array.from(value.value, debug_)
+    case 'result':
+      if (value.value.ok)
+        return Ok(debug_(value.value.value))
+      else
+        return Err(debug_(value.value.error.payload))
+    case 'option':
+      if (value.value != null)
+        return debug_(value.value)
+      else
+        return undefined
+    case 'object':
+      // FIXME: Include the `hide` reflect property in the schema, and apply it during code generation to avoid magic
+      //  strings here.
+      const hide = [
+        'codeReprBegin',
+        'codeReprLen',
+        'leftOffsetCodeReprBegin',
+        'leftOffsetCodeReprLen',
+        'leftOffsetVisible',
+        'spanLeftOffsetCodeReprBegin',
+        'spanLeftOffsetCodeReprLen',
+        'spanLeftOffsetVisible',
+      ]
+      return Object.fromEntries(value.getFields().filter(([name, _]) => !hide.includes(name)).map(([name, value]) => [name, debug_(value)]))
+    case 'primitive':
+      return value.value
   }
-  return value
+}
+
+export function validateSpans(obj: LazyObject, initialPos?: number): number {
+  const state = { pos: initialPos ?? 0 }
+  validateSpans_(Dyn.Object(obj), state)
+  return state.pos
+}
+
+function validateSpans_(value: DynValue, state: { pos: number }) {
+  switch (value.type) {
+    case 'sequence':
+      for (const elem of value.value)
+        validateSpans_(elem, state)
+      break
+    case 'result':
+      if (value.value.ok)
+        validateSpans_(value.value.value, state)
+      else
+        validateSpans_(value.value.error.payload, state)
+      break
+    case 'option':
+      if (value.value != null)
+        validateSpans_(value.value, state)
+      break
+    case 'object':
+      const fields = new Map(value.getFields())
+      const whitespaceStart = fields.get('whitespaceLength')
+      const whitespaceLength = fields.get('whitespaceLength')
+      const codeStart = fields.get('codeStart')
+      const codeLength = fields.get('codeLength')
+      const childrenCodeLength = fields.get('childrenCodeLength')
+      if (whitespaceStart?.type === 'primitive' && whitespaceStart.value !== state.pos)
+        throw new Error('Span error (whitespace).')
+      if (whitespaceLength?.type === 'primitive')
+        state.pos += whitespaceLength.value as number
+      if (codeStart?.type === 'primitive' && codeStart.value !== state.pos)
+        throw new Error('Span error (code).')
+      if (codeLength?.type === 'primitive')
+        state.pos += codeLength.value as number
+      let endPos: number | undefined
+      if (childrenCodeLength?.type === 'primitive')
+        endPos = state.pos + (childrenCodeLength.value as number)
+      for (const entry of fields) {
+        const [_name, value] = entry
+        validateSpans_(value, state)
+      }
+      if (endPos != null && state.pos !== endPos)
+        throw new Error('Span error (children).')
+      break
+    case 'primitive':
+      break
+  }
 }

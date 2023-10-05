@@ -1,5 +1,6 @@
 import type { NonEmptyArray } from '@/util/array'
 import type { Opt } from '@/util/opt'
+import {debug, validateSpans} from '@/util/parserSupport'
 import init, { parse, parse_doc_to_json, parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
 import * as Ast2 from '../generated/ast'
 
@@ -538,50 +539,54 @@ if (import.meta.vitest) {
   test('testParse', () => {
     const identInput = ' foo bar\n'
     const tree = parseEnso2(identInput)
-    expect(tree.debug()).toMatchObject({
-      spanCodeLengthUtf16: 8,
-      spanLeftOffsetCodeOffsetUtf16: 0,
-      spanLeftOffsetCodeUtf16: 1,
+    expect(debug(tree)).toMatchObject({
+      childrenCodeLength: 8,
+      whitespaceStart: 0,
+      whitespaceLength: 1,
       statements: [
         {
           expression: {
             arg: {
-              spanCodeLengthUtf16: 3,
-              spanLeftOffsetCodeOffsetUtf16: 4,
-              spanLeftOffsetCodeUtf16: 1,
+              childrenCodeLength: 3,
+              whitespaceStart: 4,
+              whitespaceLength: 1,
               token: {
-                codeOffsetUtf16: 5,
-                codeUtf16: 3,
-                leftOffsetCodeUtf16: 0,
+                codeStart: 5,
+                codeLength: 3,
+                whitespaceLength: 0,
               },
+              type: 'Ident',
             },
             func: {
-              spanCodeLengthUtf16: 3,
-              spanLeftOffsetCodeOffsetUtf16: 0,
-              spanLeftOffsetCodeUtf16: 0,
+              childrenCodeLength: 3,
+              whitespaceStart: 0,
+              whitespaceLength: 0,
               token: {
-                codeOffsetUtf16: 1,
-                codeUtf16: 3,
-                leftOffsetCodeUtf16: 0,
+                codeStart: 1,
+                codeLength: 3,
+                whitespaceLength: 0,
               },
+              type: 'Ident',
             },
-            spanCodeLengthUtf16: 7,
-            spanLeftOffsetCodeUtf16: 0,
+            childrenCodeLength: 7,
+            whitespaceLength: 0,
+            type: 'App',
           },
           newline: {
-            codeUtf16: 0,
-            leftOffsetCodeUtf16: 0,
+            codeLength: 0,
+            whitespaceLength: 0,
           },
         },
         {
           expression: undefined,
           newline: {
-            codeOffsetUtf16: 8,
-            codeUtf16: 1,
-            leftOffsetCodeUtf16: 0,
+            codeStart: 8,
+            codeLength: 1,
+            whitespaceLength: 0,
           },
         }
       ],
+      type: 'BodyBlock',
     })
   })
   /*
@@ -591,4 +596,10 @@ if (import.meta.vitest) {
     Array.from(parsed.statements)[0].expression.name.isTypeOrConstructor
   })
    */
+  test('testSpans', () => {
+    const identInput = ' foo bar\n'
+    const tree = parseEnso2(identInput)
+    const endPos = validateSpans(tree)
+    expect(endPos).toStrictEqual(identInput.length)
+  })
 }

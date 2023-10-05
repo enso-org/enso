@@ -15,18 +15,22 @@ export function toCamel(ident: string): string {
     return changeCase.camelCase(ident)
 }
 
-export function legalizeIdent(ident: string): string {
-    // FIXME: We should accept a renaming table as an input alongside the schema, then emit an error if a keyword is
-    //  encountered ("constructor") or a field name is duplicated ("type").
-    switch (ident) {
-        case 'constructor':
-            return 'ident'
-        case 'type':
-            return 'typeNode'
-        default:
-            return ident
-    }
+const RENAME = new Map([
+    ['constructor', 'ident'],
+    ['type', 'typeNode'],
+    ['spanLeftOffsetCodeOffsetUtf16', 'whitespaceStart'],
+    ['spanLeftOffsetCodeUtf16', 'whitespaceLength'],
+    ['leftOffsetCodeOffsetUtf16', 'whitespaceStart'],
+    ['leftOffsetCodeUtf16', 'whitespaceLength'],
+    ['spanCodeLengthUtf16', 'childrenCodeLength'],
+    ['codeUtf16', 'codeLength'],
+    ['codeOffsetUtf16', 'codeStart'],
+])
+
+export function mapIdent(ident: string): string {
+    return RENAME.get(ident) ?? ident
 }
+
 export function namespacedName(name: string, namespace?: string): string {
     if (namespace == null) {
         return toPascal(name)

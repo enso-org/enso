@@ -9,24 +9,25 @@
 
 import ts from 'typescript'
 const { factory: tsf } = ts
-import * as Schema from '@/schema'
+import * as Schema from './schema.js'
 import {
     toPascal,
     toCamel,
-    legalizeIdent,
+    mapIdent,
     namespacedName,
     assignmentStatement,
     forwardToSuper,
     modifiers
-} from '@/util'
+} from './util.js'
 import {
     Type,
     support,
     supportImports,
     seekCursor,
     abstractTypeDeserializer,
-    fieldDeserializer
-} from '@/serialization'
+    fieldDeserializer,
+    fieldDynValue
+} from './serialization.js'
 
 
 // === Public API ===
@@ -121,13 +122,27 @@ function makeType(ref: Schema.TypeRef, schema: Schema.Schema): Type {
   }
 }
 
-function makeGetter(
-    fieldName: string,
+type Field = {
+    name: string,
+    type: Type,
+    offset: number,
+}
+
+function makeField(
+    name: string,
     typeRef: Schema.TypeRef,
     offset: number,
     schema: Schema.Schema,
-): ts.GetAccessorDeclaration {
-    return fieldDeserializer(tsf.createIdentifier(legalizeIdent(toCamel(fieldName))), makeType(typeRef, schema), offset)
+): Field {
+    return {
+        name: mapIdent(toCamel(name)),
+        type: makeType(typeRef, schema),
+        offset: offset,
+    }
+}
+
+function makeGetter(field: Field): ts.GetAccessorDeclaration {
+    return fieldDeserializer(tsf.createIdentifier(field.name), field.type, field.offset)
 }
 
 function makeConcreteType(id: string, schema: Schema.Schema): ts.ClassDeclaration {
@@ -164,45 +179,57 @@ function makeConcreteType(id: string, schema: Schema.Schema): ts.ClassDeclaratio
     )
 }
 
-function debugValue(ident: ts.Identifier): ts.Expression {
-    const value = tsf.createPropertyAccessExpression(tsf.createThis(), ident)
-    return tsf.createCallExpression(support.debugHelper, [], [value])
-}
-
-function makeDebugFunction(fields: string[]): ts.MethodDeclaration {
-    const getterIdent = (fieldName: string) => tsf.createIdentifier(legalizeIdent(toCamel(fieldName)))
+function makeDebugFunction(fields: Field[], typeName?: string): ts.MethodDeclaration {
+    const ident = tsf.createIdentifier('fields')
+    const fieldAssignments = fields.map(field =>
+        tsf.createArrayLiteralExpression([
+            tsf.createStringLiteral(field.name),
+            fieldDynValue(field.type, field.offset)
+        ])
+    )
+    if (typeName != null) {
+        fieldAssignments.push(
+            tsf.createArrayLiteralExpression([
+                tsf.createStringLiteral('type'),
+                tsf.createObjectLiteralExpression([
+                    tsf.createPropertyAssignment('type', tsf.createStringLiteral('primitive')),
+                    tsf.createPropertyAssignment('value', tsf.createStringLiteral(typeName)),
+                ])
+            ])
+        )
+    }
     return tsf.createMethodDeclaration(
         [],
         undefined,
-        'debug',
+        ident,
         undefined,
         [],
         [],
-        tsf.createTypeReferenceNode('any'),
+        tsf.createTypeReferenceNode(`[string, ${support.DynValue}][]`),
         tsf.createBlock([
             tsf.createReturnStatement(
-                tsf.createCallExpression(support.debugHelper, [], [
-                    tsf.createObjectLiteralExpression([
-                        tsf.createSpreadAssignment(
-                            tsf.createCallExpression(
-                                tsf.createPropertyAccessExpression(tsf.createSuper(), 'debug'),
-                                [],
-                                [],
-                            ),
-                        ),
-                        ...fields.map((name: string) =>
-                            tsf.createPropertyAssignment(getterIdent(name), debugValue(getterIdent(name))),
-                        ),
-                    ])
-                ]),
+                tsf.createArrayLiteralExpression([
+                    tsf.createSpreadElement(
+                        tsf.createCallExpression(
+                            tsf.createPropertyAccessExpression(tsf.createSuper(), ident),
+                            undefined,
+                            undefined,
+                        )
+                    ),
+                    ...fieldAssignments
+                ])
             ),
         ]),
     )
 }
 
-function makeGetters(id: string, schema: Schema.Schema): ts.ClassElement[] {
-    return schema.serialization[id].fields.map(([name, offset]: [string, number]) =>
-        makeGetter(name, schema.types[id].fields[name], offset, schema))
+function makeGetters(id: string, schema: Schema.Schema, typeName?: string): ts.ClassElement[] {
+    const fields = schema.serialization[id].fields.map(([name, offset]: [string, number]) =>
+        makeField(name, schema.types[id].fields[name], offset, schema))
+    return [
+        ...fields.map(makeGetter),
+        makeDebugFunction(fields, typeName),
+    ]
 }
 
 function makeClass(
@@ -224,7 +251,6 @@ function makeClass(
         [
             ...members,
             ...makeGetters(id, schema),
-            makeDebugFunction(Object.getOwnPropertyNames(schema.types[id].fields)),
         ],
     )
 }
@@ -307,8 +333,7 @@ function makeChildType(
                         tsf.createReturnStatement(tsf.createNewExpression(ident, [], [cursorIdent])),
                     ]),
                 ),
-                ...makeGetters(id, schema),
-                makeDebugFunction(Object.getOwnPropertyNames(ty.fields)),
+                ...makeGetters(id, schema, name),
             ],
         ),
         reference: tsf.createTypeReferenceNode(name),

@@ -7,15 +7,17 @@
     "name": "Enso Team",
     "email": "contact@enso.org"
   },
-  "main": "dist/codegen.js",
   "scripts": {
     "generate-ast-schema": "cargo run -p enso-parser-schema --bin enso-parser-schema > generated/ast-schema.json",
     "preinstall": "npm run generate-ast-schema",
-    "generate-bindings": "tsc --build && node dist/codegen.js generated/ast-schema.json"
+    "generate-bindings": "tsc --build && node dist/main.js generated/ast-schema.json"
   },
   "keywords": [],
   "dependencies": {
     "change-case": "^5.0.2",
     "typescript": "^5.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.2"
   }
 }
