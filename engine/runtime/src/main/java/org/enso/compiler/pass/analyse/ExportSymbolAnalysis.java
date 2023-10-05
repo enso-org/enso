@@ -19,8 +19,9 @@ import scala.jdk.javaapi.CollectionConverters;
 /**
  * This pass ensures that all the symbols that are exported exist. If not, an IR error is generated.
  */
-public class ExportSymbolAnalysis implements IRPass {
+public final class ExportSymbolAnalysis implements IRPass {
   public static final ExportSymbolAnalysis INSTANCE = new ExportSymbolAnalysis();
+  private static scala.collection.immutable.List<IRPass> precursorPasses;
   private UUID uuid;
 
   private ExportSymbolAnalysis() {}
@@ -37,11 +38,14 @@ public class ExportSymbolAnalysis implements IRPass {
 
   @Override
   public Seq<IRPass> precursorPasses() {
-    List<IRPass> passes = List.of(
-        BindingAnalysis$.MODULE$,
-        ImportSymbolAnalysis$.MODULE$
-    );
-    return CollectionConverters.asScala(passes).toList();
+    if (precursorPasses == null) {
+      List<IRPass> passes = List.of(
+          BindingAnalysis$.MODULE$,
+          ImportSymbolAnalysis$.MODULE$
+      );
+      precursorPasses = CollectionConverters.asScala(passes).toList();
+    }
+    return precursorPasses;
   }
 
   @Override
