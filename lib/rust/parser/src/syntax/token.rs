@@ -281,6 +281,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub base: Option<Base>
         },
         NumberBase,
+        Private,
         TextStart,
         TextEnd,
         TextSection,

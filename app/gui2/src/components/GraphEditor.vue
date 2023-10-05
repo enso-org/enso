@@ -21,6 +21,8 @@ import TopBar from '@/components/TopBar.vue'
 import { useGraphStore } from '@/stores/graph'
 import { ExecutionContext, useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { colorFromString } from '@/util/colors'
 import { keyboardBusy, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
@@ -38,6 +40,7 @@ const projectStore = useProjectStore()
 const executionCtx = shallowRef<ExecutionContext>()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
+const suggestionDb = useSuggestionDbStore()
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
@@ -261,6 +264,16 @@ function clearSelection() {
     document.activeElement.blur()
   }
 }
+
+const groupColors = computed(() => {
+  const styles: { [key: string]: string } = {}
+  for (let group of suggestionDb.groups) {
+    const name = group.name.replace(/\s/g, '-')
+    let color = group.color ?? colorFromString(name)
+    styles[`--group-color-${name}`] = color
+  }
+  return styles
+})
 </script>
 
 <template>
@@ -269,6 +282,7 @@ function clearSelection() {
     class="viewport"
     v-on.="navigator.events"
     v-on..="selection.events"
+    :style="groupColors"
     @pointerdown="nodeSelectionHandler"
     @pointermove="selection.dragging && mouseHandler($event)"
   >
@@ -332,6 +346,7 @@ function clearSelection() {
   contain: layout;
   overflow: clip;
   cursor: none;
+  --group-color-fallback: #006b8a;
 }
 
 svg {

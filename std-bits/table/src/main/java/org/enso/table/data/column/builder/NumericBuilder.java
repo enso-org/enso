@@ -16,8 +16,17 @@ public abstract class NumericBuilder extends TypedBuilder {
     this.currentSize = currentSize;
   }
 
+  /**
+   * Creates a {@link DoubleBuilder} that should be used to create columns of boolean type and are
+   * not expected to be retyped.
+   */
   public static DoubleBuilder createDoubleBuilder(int size) {
     return new DoubleBuilder(new BitSet(), new long[size], 0);
+  }
+
+  /** Creates a {@link DoubleBuilder} that may be retyped to Mixed type. */
+  public static DoubleBuilder createInferringDoubleBuilder(int size) {
+    return new InferringDoubleBuilder(new BitSet(), new long[size], 0);
   }
 
   public static LongBuilder createLongBuilder(int size, IntegerType type) {
