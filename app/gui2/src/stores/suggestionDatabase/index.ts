@@ -1,3 +1,4 @@
+import { colorFromString } from '@/util/colors'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
@@ -72,7 +73,7 @@ class Synchronizer {
       this.groups.value = groups.componentGroups.map(
         (group): Group => ({
           name: group.name,
-          ...(group.color ? { color: group.color } : {}),
+          color: group.color ?? colorFromString(`${group.library}.${group.name}`),
           project: group.library as QualifiedName,
         }),
       )
