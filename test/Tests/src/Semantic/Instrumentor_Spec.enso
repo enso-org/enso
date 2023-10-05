@@ -127,6 +127,31 @@ spec =
             result3 = fib2 10
             result3 . should_equal 89
 
+        Test.specify "Caching in on_enter prevents on_call" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            ninety uuid:Text =
+                uuid . should_equal n1_plus_n2
+                90
+
+            call_fn _:Text fn:Function _:Any =
+                Test.fail "Don't call me: "+fn.to_text
+
+            result1 = fib2 10
+            result1 . should_equal 89
+
+            instrumenter = Meta.meta .fib2 . instrument . on_enter ninety . on_call call_fn . activate
+
+            instrumenter . with _->
+                result2 = fib2 10
+                result2 . should_equal 90
+
+            instrumenter.finalize
+
+            # behaves normally again
+            result3 = fib2 10
+            result3 . should_equal 89
+
 main = Test_Suite.run_main spec
 
 
