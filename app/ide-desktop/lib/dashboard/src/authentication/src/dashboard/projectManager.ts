@@ -100,7 +100,7 @@ export interface CreateProject {
 
 /** The return value of the "open project" endpoint. */
 export interface OpenProject {
-    engineVersion?: string
+    engineVersion: string
     languageServerJsonAddress: IpWithSocket
     languageServerBinaryAddress: IpWithSocket
     projectName: ProjectName

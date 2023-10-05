@@ -27,35 +27,12 @@ export class LocalBackend extends backend.Backend {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
-    protected fallbackEngineVersion: Promise<string>
     private readonly projectManager: projectManager.ProjectManager
 
     /** Create a {@link LocalBackend}. */
     constructor(projectManagerUrl: string | null) {
         super()
         this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
-        this.fallbackEngineVersion = this.projectManager
-            .listInstalledEngineVersions()
-            .then(versions => {
-                const version = versions.versions[0]
-                if (version == null) {
-                    return this.projectManager
-                        .listAvailableEngineVersions()
-                        .then(availableVersions => {
-                            const availableVersion =
-                                availableVersions.versions[0]
-                            if (availableVersion == null) {
-                                // Warning: `listAvailableEngineVersions` calls the GitHub API
-                                // which is relatively rate-limited.
-                                throw new Error('No engine versions could be found.')
-                            } else {
-                                return availableVersion.version
-                            }
-                        })
-                } else {
-                    return version.version
-                }
-            })
         if (IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.
@@ -168,7 +145,6 @@ export class LocalBackend extends backend.Backend {
         if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
-            const engineVersion = project?.engineVersion ?? (await this.fallbackEngineVersion)
             if (project == null) {
                 throw new Error(
                     `Could not get details of project ${
@@ -176,16 +152,17 @@ export class LocalBackend extends backend.Backend {
                     }.`
                 )
             } else {
+                const version =
+                    project.engineVersion == null
+                        ? null
+                        : {
+                              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
+                              value: project.engineVersion,
+                          }
                 return {
                     name: project.name,
-                    engineVersion: {
-                        lifecycle: backend.detectVersionLifecycle(engineVersion),
-                        value: engineVersion,
-                    },
-                    ideVersion: {
-                        lifecycle: backend.detectVersionLifecycle(engineVersion),
-                        value: engineVersion,
-                    },
+                    engineVersion: version,
+                    ideVersion: version,
                     jsonAddress: null,
                     binaryAddress: null,
                     organizationId: '',
@@ -204,16 +181,15 @@ export class LocalBackend extends backend.Backend {
                 }
             }
         } else {
-            const engineVersion = cachedProject.engineVersion ?? (await this.fallbackEngineVersion)
             return {
                 name: cachedProject.projectName,
                 engineVersion: {
-                    lifecycle: backend.detectVersionLifecycle(engineVersion),
-                    value: engineVersion,
+                    lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
+                    value: cachedProject.engineVersion,
                 },
                 ideVersion: {
-                    lifecycle: backend.detectVersionLifecycle(engineVersion),
-                    value: engineVersion,
+                    lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
+                    value: cachedProject.engineVersion,
                 },
                 jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
                 binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
@@ -276,20 +252,20 @@ export class LocalBackend extends backend.Backend {
             }
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
-            const engineVersion = project?.engineVersion ?? (await this.fallbackEngineVersion)
+            const version =
+                project?.engineVersion == null
+                    ? null
+                    : {
+                          lifecycle: backend.detectVersionLifecycle(project.engineVersion),
+                          value: project.engineVersion,
+                      }
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
             } else {
                 return {
                     ami: null,
-                    engineVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
-                        value: engineVersion,
-                    },
-                    ideVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
-                        value: engineVersion,
-                    },
+                    engineVersion: version,
+                    ideVersion: version,
                     name: project.name,
                     organizationId: '',
                     projectId,
