@@ -54,11 +54,6 @@ public interface IdExecutionService {
      *   result.
      */
     Object onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result);
-
-    /** Notification on an exception.
-     * @param e the reported exception
-     */
-    void onExceptionalCallback(Exception e);
   }
 
 
