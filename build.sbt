@@ -23,7 +23,7 @@ val scalacVersion = "2.13.11"
 // Since the release of GraalVM 23.0.0, the versioning is the same for Graal and OpenJDK.
 val graalVersion = "17.0.7"
 // Version used for the Graal/Truffle related Maven packages
-val graalMavenPackagesVersion = "23.0.0"
+val graalMavenPackagesVersion = "23.1.0"
 val targetJavaVersion         = graalVersion.split("\\.")(0)
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -237,11 +237,6 @@ lazy val Benchmark = config("bench") extend sbt.Test
 lazy val rebuildNativeImage = taskKey[Unit]("Force to rebuild native image")
 lazy val buildNativeImage =
   taskKey[Unit]("Ensure that the Native Image is built.")
-
-// Bootstrap task
-lazy val bootstrap =
-  taskKey[Unit]("Prepares Truffle JARs that are required by the sbt JVM")
-bootstrap := {}
 
 // ============================================================================
 // === Global Project =========================================================
@@ -1340,9 +1335,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
       "com.lihaoyi"        %% "fansi"                 % fansiVersion
     ),
-    Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(CopyTruffleJAR.preCompileTask)
-      .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
       "-Dgraalvm.locatorDisabled=true",
@@ -1354,8 +1346,7 @@ lazy val runtime = (project in file("engine/runtime"))
     ),
     Global / onLoad := GraalVersionCheck.addVersionCheck(
       graalVersion
-    )((Global / onLoad).value),
-    bootstrap := CopyTruffleJAR.bootstrapJARs.value
+    )((Global / onLoad).value)
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
