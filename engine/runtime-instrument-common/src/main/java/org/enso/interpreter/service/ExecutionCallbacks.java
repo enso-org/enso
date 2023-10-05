@@ -32,7 +32,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
-  private final Consumer<Exception> onExceptionalCallback;
 
   /** Creates callbacks instance.
    *
@@ -43,13 +42,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
    * @param functionCallCallback the consumer of function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
-   * @param onExceptionalCallback the consumer of the exceptional events.
    */
   ExecutionCallbacks(
           UUID nextExecutionItem,
           RuntimeCache cache, MethodCallsCache methodCallsCache, UpdatesSynchronizationState syncState,
           Consumer<ExpressionValue> onCachedCallback, Consumer<ExpressionValue> onComputedCallback,
-          Consumer<ExpressionCall> functionCallCallback, Consumer<Exception> onExceptionalCallback
+          Consumer<ExpressionCall> functionCallCallback
   ) {
     this.nextExecutionItem = nextExecutionItem;
     this.cache = cache;
@@ -58,7 +56,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.onCachedCallback = onCachedCallback;
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
-    this.onExceptionalCallback = onExceptionalCallback;
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -128,12 +125,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
     methodCallsCache.setExecuted(nodeId);
     return null;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  @Override
-  public final void onExceptionalCallback(Exception e) {
-    onExceptionalCallback.accept(e);
   }
 
   @CompilerDirectives.TruffleBoundary

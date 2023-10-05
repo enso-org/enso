@@ -50,6 +50,7 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Data.XML.XML_Document
 import project.Data.XML.XML_Error
+import project.Data.XML.XML_Format.XML_Format
 import project.Error.Error
 import project.Errors
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -87,7 +88,6 @@ from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
-from project.Data.XML.XML_Format import XML_Format
 from project.Errors.Problem_Behavior.Problem_Behavior import all
 from project.Meta.Enso_Project import enso_project
 from project.Network.Extensions import all
@@ -141,6 +141,7 @@ export project.Data.Time.Time_Zone.Time_Zone
 export project.Data.Vector.Vector
 export project.Data.XML.XML_Document
 export project.Data.XML.XML_Error
+export project.Data.XML.XML_Format.XML_Format
 export project.Error.Error
 export project.Errors
 export project.Errors.Problem_Behavior.Problem_Behavior
@@ -181,7 +182,6 @@ from project.Data.Range.Extensions export all
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
 from project.Data.Text.Extensions export all
 from project.Data.Time.Conversions export all
-from project.Data.XML.XML_Format export XML_Format
 from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.Function export all
 from project.Meta.Enso_Project export enso_project
