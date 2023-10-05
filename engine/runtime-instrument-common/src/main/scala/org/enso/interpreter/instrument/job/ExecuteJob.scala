@@ -39,33 +39,33 @@ class ExecuteJob(
       executionEnvironment.foreach(env =>
         context.setExecutionEnvironment(ExecutionEnvironment.forName(env.name))
       )
-      try {
-        val outcome = ProgramExecutionSupport.runProgram(contextId, stack)
-        outcome match {
-          case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
-            if (diagnostic.isError) {
-              ctx.endpoint.sendToClient(
-                Api.Response(Api.ExecutionFailed(contextId, diagnostic))
-              )
-            } else {
-              ctx.endpoint.sendToClient(
-                Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
-              )
-              ctx.endpoint.sendToClient(
-                Api.Response(Api.ExecutionComplete(contextId))
-              )
-            }
-          case Some(failure: Api.ExecutionResult.Failure) =>
+      val outcome =
+        try ProgramExecutionSupport.runProgram(contextId, stack)
+        finally {
+          originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
+        }
+      outcome match {
+        case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+          if (diagnostic.isError) {
             ctx.endpoint.sendToClient(
-              Api.Response(Api.ExecutionFailed(contextId, failure))
+              Api.Response(Api.ExecutionFailed(contextId, diagnostic))
             )
-          case None =>
+          } else {
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
+            )
             ctx.endpoint.sendToClient(
               Api.Response(Api.ExecutionComplete(contextId))
             )
-        }
-      } finally {
-        originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
+          }
+        case Some(failure: Api.ExecutionResult.Failure) =>
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ExecutionFailed(contextId, failure))
+          )
+        case None =>
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ExecutionComplete(contextId))
+          )
       }
     } catch {
       case t: Throwable =>
