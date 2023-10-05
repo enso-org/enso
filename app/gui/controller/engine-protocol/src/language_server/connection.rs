@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 #[allow(missing_docs)]
 #[derive(Fail, Debug)]
-#[fail(display = "Failed to initialize language server RPC connection: {}.", _0)]
+#[fail(display = "Failed to initialize language server RPC connection: {}", _0)]
 pub struct FailedToInitializeProtocol(failure::Error);
 
 #[allow(missing_docs)]

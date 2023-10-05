@@ -154,17 +154,15 @@ public final class ExecutionService {
       UUID nextExecutionItem,
       Consumer<IdExecutionService.ExpressionCall> funCallCallback,
       Consumer<IdExecutionService.ExpressionValue> onComputedCallback,
-      Consumer<IdExecutionService.ExpressionValue> onCachedCallback,
-      Consumer<Exception> onExceptionalCallback)
-      throws ArityException, SourceNotFoundException, UnsupportedMessageException,
-          UnsupportedTypeException {
+      Consumer<IdExecutionService.ExpressionValue> onCachedCallback
+  ) throws ArityException, SourceNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
     SourceSection src = call.getFunction().getSourceSection();
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
     var callbacks = new ExecutionCallbacks(
       nextExecutionItem, cache, methodCallsCache, syncState,
-      onCachedCallback, onComputedCallback, funCallCallback, onExceptionalCallback
+      onCachedCallback, onComputedCallback, funCallCallback
     );
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(service -> service.bind(
@@ -196,7 +194,6 @@ public final class ExecutionService {
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
-   * @param onExceptionalCallback the consumer of the exceptional events.
    */
   public void execute(
       String moduleName,
@@ -208,8 +205,8 @@ public final class ExecutionService {
       UUID nextExecutionItem,
       Consumer<IdExecutionService.ExpressionCall> funCallCallback,
       Consumer<IdExecutionService.ExpressionValue> onComputedCallback,
-      Consumer<IdExecutionService.ExpressionValue> onCachedCallback,
-      Consumer<Exception> onExceptionalCallback)
+      Consumer<IdExecutionService.ExpressionValue> onCachedCallback
+    )
       throws ArityException, TypeNotFoundException, MethodNotFoundException,
           ModuleNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
     Module module =
@@ -225,8 +222,8 @@ public final class ExecutionService {
         nextExecutionItem,
         funCallCallback,
         onComputedCallback,
-        onCachedCallback,
-        onExceptionalCallback);
+        onCachedCallback
+    );
   }
 
   /**
@@ -307,7 +304,7 @@ public final class ExecutionService {
 
     var callbacks = new ExecutionCallbacks(
       nextExecutionItem, cache, methodCallsCache, syncState,
-      onCachedCallback, onComputedCallback, funCallCallback, onExceptionalCallback
+      onCachedCallback, onComputedCallback, funCallCallback
     );
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(service -> service.bind(

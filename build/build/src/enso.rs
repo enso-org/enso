@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::paths::Paths;
+use crate::paths::ENSO_ENABLE_ASSERTIONS;
 use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::postgres;
@@ -118,6 +119,8 @@ impl BuiltEnso {
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
         ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
         ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
+
+        ENSO_ENABLE_ASSERTIONS.set("true")?;
 
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {

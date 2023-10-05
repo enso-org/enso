@@ -17,7 +17,6 @@ const shown = ref(false)
 const rootElement = ref<HTMLElement>()
 
 useWindowEvent('keydown', (e) => {
-  console.log('keydown', e)
   const graphEditorInFocus = document.activeElement === document.body
   const codeEditorInFocus = rootElement.value?.contains(document.activeElement)
   const validFocus = graphEditorInFocus || codeEditorInFocus
