@@ -37,7 +37,7 @@ if (IS_DEV_MODE) {
 authentication.run({
     logger: console,
     // This file is only included when building for the cloud.
-    supportsLocalBackend: false,
+    supportsLocalBackend: true,
     supportsDeepLinks: false,
     isAuthenticationDisabled: false,
     shouldShowDashboard: true,

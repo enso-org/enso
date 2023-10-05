@@ -27,13 +27,35 @@ export class LocalBackend extends backend.Backend {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
-    protected fallbackEngineVersion: string | null = null
+    protected fallbackEngineVersion: Promise<string>
     private readonly projectManager: projectManager.ProjectManager
 
     /** Create a {@link LocalBackend}. */
     constructor(projectManagerUrl: string | null) {
         super()
         this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
+        this.fallbackEngineVersion = this.projectManager
+            .listInstalledEngineVersions()
+            .then(versions => {
+                const version = versions.versions[0]
+                if (version == null) {
+                    return this.projectManager
+                        .listAvailableEngineVersions()
+                        .then(availableVersions => {
+                            const availableVersion =
+                                availableVersions.versions[0]
+                            if (availableVersion == null) {
+                                // Warning: `listAvailableEngineVersions` calls the GitHub API
+                                // which is relatively rate-limited.
+                                throw new Error('No engine versions could be found.')
+                            } else {
+                                return availableVersion.version
+                            }
+                        })
+                } else {
+                    return version.version
+                }
+            })
         if (IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.
@@ -146,7 +168,7 @@ export class LocalBackend extends backend.Backend {
         if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
-            const engineVersion = project?.engineVersion ?? (await this.getFallbackEngineVersion())
+            const engineVersion = project?.engineVersion ?? (await this.fallbackEngineVersion)
             if (project == null) {
                 throw new Error(
                     `Could not get details of project ${
@@ -182,8 +204,7 @@ export class LocalBackend extends backend.Backend {
                 }
             }
         } else {
-            const engineVersion =
-                cachedProject.engineVersion ?? (await this.getFallbackEngineVersion())
+            const engineVersion = cachedProject.engineVersion ?? (await this.fallbackEngineVersion)
             return {
                 name: cachedProject.projectName,
                 engineVersion: {
@@ -255,7 +276,7 @@ export class LocalBackend extends backend.Backend {
             }
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
-            const engineVersion = project?.engineVersion ?? (await this.getFallbackEngineVersion())
+            const engineVersion = project?.engineVersion ?? (await this.fallbackEngineVersion)
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
             } else {
@@ -316,7 +337,7 @@ export class LocalBackend extends backend.Backend {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             version_type: params.versionType,
         })
-        return engineVersions.map(engineVersionToVersion)
+        return engineVersions.versions.map(engineVersionToVersion)
     }
 
     // === Endpoints that intentionally do not work on the Local Backend ===
@@ -411,25 +432,5 @@ export class LocalBackend extends backend.Backend {
     /** Do nothing. This function should never need to be called. */
     override deleteTag() {
         return Promise.resolve()
-    }
-
-    // === Protected methods ===
-
-    /** Get a fallback engine version. */
-    protected async getFallbackEngineVersion(): Promise<string> {
-        if (this.fallbackEngineVersion != null) {
-            return this.fallbackEngineVersion
-        } else {
-            const versions = await this.listVersions({
-                versionType: backend.VersionType.backend,
-                default: true,
-            })
-            const version = versions[versions.length - 1]
-            if (version == null) {
-                throw new Error('A fallback engine version could not be found.')
-            } else {
-                return (this.fallbackEngineVersion = version.number.value)
-            }
-        }
     }
 }
