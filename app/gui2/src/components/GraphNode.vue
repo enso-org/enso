@@ -29,7 +29,6 @@ const emit = defineEmits<{
   updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [updates: [range: ContentRange, content: string][]]
   movePosition: [delta: Vec2]
-  delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
 }>()
