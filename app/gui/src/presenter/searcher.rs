@@ -56,15 +56,6 @@ pub trait SearcherPresenter: Debug {
         };
         let target_node = mode.node_id();
 
-        // We only want to show the preview of the node if it is a component browser searcher.
-        if matches!(parameters.searcher_type, SearcherType::ComponentBrowser) {
-            if let Some(target_node_view) = graph_presenter.view_id_of_ast_node(target_node) {
-                graph_editor.model.with_node(target_node_view, |node| node.show_preview());
-            }
-        } else {
-            warn!("No view associated with node {:?}.", target_node);
-        }
-
         Ok(mode)
     }
 

@@ -46,7 +46,7 @@ pub struct NoSuchComponent(component_grid::EntryId);
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, Debug)]
 struct Model {
     controller:       controller::Searcher,
     graph_controller: controller::Graph,
@@ -57,6 +57,7 @@ struct Model {
     view:             component_browser::View,
     mode:             Immutable<Mode>,
     transaction:      Rc<Transaction>,
+    visualization_was_enabled: bool,
 }
 
 impl Model {
@@ -71,6 +72,7 @@ impl Model {
         view: component_browser::View,
         mode: Mode,
         transaction: Rc<Transaction>,
+        visualization_was_enabled: bool,
     ) -> Self {
         let provider = default();
         let graph_controller = graph_controller.clone_ref();
@@ -87,6 +89,7 @@ impl Model {
             input_view,
             mode,
             transaction,
+            visualization_was_enabled,
         }
     }
 
@@ -124,6 +127,24 @@ impl Model {
         }
     }
 
+    fn abort_editing(&self) {
+        self.transaction.ignore();
+        self.controller.abort_editing();
+        if let Mode::EditNode { original_node_id, .. } = *self.mode {
+            self.reenable_visualization_if_needed();
+
+            self
+                .graph_presenter
+                .assign_node_view_explicitly(self.input_view, original_node_id);
+            // Force view update so resets to the old expression.
+            self.graph_presenter.force_view_update.emit(original_node_id);
+        }
+        let node_id = self.mode.node_id();
+        if let Err(err) = self.graph_controller.remove_node(node_id) {
+            error!("Error while removing a temporary node: {err}.");
+        }
+    }
+
     fn breadcrumb_selected(&self, id: BreadcrumbId) {
         self.controller.select_breadcrumb(id);
     }
@@ -148,6 +169,18 @@ impl Model {
         }
     }
 
+    fn reenable_visualization_if_needed(&self) {
+        if let Mode::EditNode { original_node_id, .. } = *self.mode {
+            if let Some(node_view) = self.graph_presenter.view_id_of_ast_node(original_node_id) {
+                self.project.graph().model.with_node(node_view, |node| {
+                    if self.visualization_was_enabled {
+                        node.enable_visualization();
+                    }
+                });
+            }
+        }
+    }
+
     fn expression_accepted(&self, entry_id: Option<component_grid::EntryId>) -> Option<AstNodeId> {
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
@@ -156,6 +189,8 @@ impl Model {
             match self.controller.commit_node() {
                 Ok(ast_id) => {
                     if let Mode::EditNode { original_node_id, edited_node_id } = *self.mode {
+                        self.reenable_visualization_if_needed();
+
                         self.graph_presenter
                             .assign_node_view_explicitly(self.input_view, original_node_id);
                         if let Err(err) = self.graph_controller.remove_node(edited_node_id) {
@@ -225,6 +260,20 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 
         let mode = Self::init_input_node(parameters, graph_presenter, view.graph(), &graph)?;
 
+        let mut visualization_was_enabled = false;
+        if let Mode::EditNode { original_node_id, .. } = mode {
+            if let Some(target_node_view) = graph_presenter.view_id_of_ast_node(mode.node_id()) {
+                view.graph().model.with_node(target_node_view, |node| {
+                    visualization_was_enabled = node.visualization_enabled.value();
+                    if visualization_was_enabled {
+                        node.disable_visualization();
+                    }
+                    node.show_preview();
+                });
+            }
+        }
+        
+    
         let searcher_controller = controller::Searcher::new_from_graph_controller(
             ide_controller,
             &project_controller.model,
@@ -245,7 +294,7 @@ impl SearcherPresenter for ComponentBrowserSearcher {
         }
 
         let input = parameters.input;
-        Ok(Self::new(searcher_controller, &graph, graph_presenter, view, input, mode, transaction))
+        Ok(Self::new(searcher_controller, &graph, graph_presenter, view, input, mode, transaction, visualization_was_enabled))
     }
 
     fn expression_accepted(
@@ -258,19 +307,7 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 
 
     fn abort_editing(self: Box<Self>) {
-        self.model.transaction.ignore();
-        self.model.controller.abort_editing();
-        if let Mode::EditNode { original_node_id, .. } = *self.model.mode {
-            self.model
-                .graph_presenter
-                .assign_node_view_explicitly(self.model.input_view, original_node_id);
-            // Force view update so resets to the old expression.
-            self.model.graph_presenter.force_view_update.emit(original_node_id);
-        }
-        let node_id = self.model.mode.node_id();
-        if let Err(err) = self.model.graph_controller.remove_node(node_id) {
-            error!("Error while removing a temporary node: {err}.");
-        }
+        self.model.abort_editing();
     }
 
     fn input_view(&self) -> ViewNodeId {
@@ -288,6 +325,7 @@ impl ComponentBrowserSearcher {
         input_view: ViewNodeId,
         mode: Mode,
         transaction: Rc<Transaction>,
+        visualization_was_enabled: bool,
     ) -> Self {
         let searcher_view = view.searcher().clone_ref();
         let model = Rc::new(Model::new(
@@ -299,6 +337,7 @@ impl ComponentBrowserSearcher {
             searcher_view,
             mode,
             transaction,
+            visualization_was_enabled,
         ));
         let network = frp::Network::new("presenter::Searcher");
 
