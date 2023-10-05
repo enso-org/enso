@@ -220,7 +220,7 @@ object FrgaalJavaCompiler {
     withArgumentFile(allArguments) { argsFile =>
       val limitModulesArgs = Seq(
         "--limit-modules",
-        "java.base,jdk.zipfs,jdk.internal.vm.compiler.management,org.graalvm.locator,java.desktop,java.net.http"
+        "java.base,jdk.zipfs,jdk.internal.vm.compiler.management,java.desktop,java.net.http"
       )
       // strippedJArgs needs to be passed via cmd line, and not via the argument file
       val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(
