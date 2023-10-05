@@ -27,6 +27,7 @@ const conf = [
           './tsconfig.app.vitest.json',
           './tsconfig.server.vitest.json',
           './tsconfig.story.json',
+          './tsconfig.scripts.json',
         ],
       },
     },

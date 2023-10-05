@@ -21,6 +21,9 @@
     },
     {
       "path": "./tsconfig.story.json"
+    },
+    {
+      "path": "./tsconfig.scripts.json"
     }
   ]
 }

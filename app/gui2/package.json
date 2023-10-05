@@ -23,6 +23,7 @@
     "lint": "eslint .",
     "format": "prettier --write src/ && eslint . --fix",
     "build-rust-ffi": "cd rust-ffi && wasm-pack build --release --target web",
+    "generate": "node scripts/generateIcons.js",
     "preinstall": "npm run build-rust-ffi"
   },
   "dependencies": {
