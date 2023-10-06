@@ -408,17 +408,6 @@ public class Table {
     return new Table(newColumns);
   }
 
-  private static class NamedBuilder {
-    private final String name;
-    private final InferredBuilder builder;
-
-    private NamedBuilder(String name, int size) {
-      this.name = name;
-      this.builder = new InferredBuilder(size);
-    }
-  }
-
-
   /**
    * Transpose tables.
    *
@@ -476,57 +465,6 @@ public class Table {
     return new Table(new_columns);
   }
 
-  /**
-   * Concatenates tables. Any column that is present in one table, but missing in another, will be
-   * {@code null}-padded in the positions corresponding to the missing column.
-   *
-   * @param tables the (non-empty) list of tables to concatenate.
-   * @return a table result from concatenating both tables
-   */
-  public static Table concat(List<Table> tables) {
-    Context context = Context.getCurrent();
-    int resultSize = tables.stream().mapToInt(Table::rowCount).sum();
-
-    List<NamedBuilder> builders = new ArrayList<>();
-    int completedRows = 0;
-    for (var table : tables) {
-      for (var column : table.getColumns()) {
-        var matchingBuilder =
-            builders.stream().filter(bldr -> Text_Utils.equals(bldr.name, column.getName())).findFirst();
-        NamedBuilder builder;
-        if (matchingBuilder.isPresent()) {
-          builder = matchingBuilder.get();
-        } else {
-          builder = new NamedBuilder(column.getName(), resultSize);
-          builders.add(builder);
-          builder.builder.appendNulls(completedRows);
-        }
-        var storage = column.getStorage();
-        for (int i = 0; i < storage.size(); i++) {
-          builder.builder.appendNoGrow(storage.getItemBoxed(i));
-          context.safepoint();
-        }
-
-        context.safepoint();
-      }
-      for (var builder : builders) {
-        var columnExists =
-            Arrays.stream(table.getColumns()).anyMatch(col -> Text_Utils.equals(col.getName(), builder.name));
-        if (!columnExists) {
-          builder.builder.appendNulls(table.rowCount());
-        }
-
-        context.safepoint();
-      }
-      completedRows += table.rowCount();
-    }
-
-    Column[] newColumns =
-        builders.stream()
-            .map(builder -> new Column(builder.name, builder.builder.seal()))
-            .toArray(Column[]::new);
-    return new Table(newColumns);
-  }
   /** @return a copy of the Table containing a slice of the original data */
   public Table slice(int offset, int limit) {
     Column[] newColumns = new Column[columns.length];
