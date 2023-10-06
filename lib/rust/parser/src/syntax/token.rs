@@ -137,7 +137,7 @@ impl<'s, T> Token<'s, T> {
     #[inline(always)]
     pub fn split_at(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>, T) {
         let left_lexeme_offset = self.left_offset;
-        let right_lexeme_offset = Offset::default();
+        let right_lexeme_offset = self.code.position_after();
         let (left_code, right_code) = self.code.split_at(offset.unchecked_raw());
         let left = Token(left_lexeme_offset, left_code, ());
         let right = Token(right_lexeme_offset, right_code, ());
@@ -179,8 +179,7 @@ impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
 impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = mem::take(&mut self.left_offset);
-        self.left_offset.code.offset_utf16 = left_offset.code.offset_utf16 + left_offset.code.utf16;
+        let left_offset = self.left_offset.take();
         let code_length = self.code.length();
         Span { left_offset, code_length }
     }

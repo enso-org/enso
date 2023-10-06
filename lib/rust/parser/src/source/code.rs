@@ -21,11 +21,11 @@ pub struct Code<'s> {
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
     #[reflect(as = "crate::serialization::Code", flatten, hide)]
     #[deref]
-    pub repr:         StrRef<'s>,
+    pub repr:     StrRef<'s>,
     #[reflect(hide)]
-    pub offset_utf16: u32,
+    offset_utf16: u32,
     #[reflect(hide)]
-    pub utf16:        u32,
+    utf16:        u32,
 }
 
 impl<'s> Code<'s> {
@@ -42,6 +42,32 @@ impl<'s> Code<'s> {
     #[inline(always)]
     pub fn from_str_without_offset(repr: &'s str) -> Self {
         Self::from_str_at_offset(repr, 0)
+    }
+
+    #[inline(always)]
+    pub fn take(&mut self) -> Self {
+        let end = self.offset_utf16 + self.utf16;
+        Self {
+            repr:         mem::take(&mut self.repr),
+            offset_utf16: mem::replace(&mut self.offset_utf16, end),
+            utf16:        mem::take(&mut self.utf16),
+        }
+    }
+
+    pub fn position_before(&self) -> Self {
+        Self { repr: default(), offset_utf16: self.offset_utf16, utf16: default() }
+    }
+
+    pub fn position_after(&self) -> Self {
+        Self {
+            repr:         default(),
+            offset_utf16: self.offset_utf16 + self.utf16,
+            utf16:        default(),
+        }
+    }
+
+    pub fn len_utf16(&self) -> u32 {
+        self.utf16
     }
 
     /// Split the UTF-8 code at the given byte offset.
@@ -130,8 +156,15 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: &Code<'s>) {
         match (self.is_empty(), other.is_empty()) {
-            (_, true) => (),
-            (true, _) => {
+            (false, true) => (),
+            (true, true) => {
+                // The span builder works by starting with `Span::new()` (producing a span with no
+                // location in the document), and appending to the right side. In order to ensure
+                // every span has a location: When the LHS is empty, take the location from the RHS
+                // even if the RHS is also empty.
+                self.offset_utf16 = other.offset_utf16;
+            }
+            (true, false) => {
                 *self = other.clone();
             }
             (false, false) => {

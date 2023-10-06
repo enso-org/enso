@@ -339,7 +339,7 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
         return line_expression;
     }
     let mut last_argument_default = default();
-    let mut left_offset = crate::source::Offset::default();
+    let mut left_offset = line_expression.span.left_offset.position_before();
     let lhs = match &line_expression {
         Tree {
             variant: box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
@@ -437,8 +437,9 @@ fn case_body<'s>(
             _ => initial_case.push(item),
         }
     }
-    if !initial_case.is_empty() {
-        let newline = syntax::token::newline(Code::empty_without_offset(), Code::empty_without_offset());
+    if let Some(first) = initial_case.first() {
+        let newline =
+            syntax::token::newline(Code::empty_without_offset(), Code::empty_without_offset());
         case_builder.push(syntax::item::Line { newline, items: initial_case });
     }
     block.into_iter().for_each(|line| case_builder.push(line));

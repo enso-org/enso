@@ -1076,15 +1076,17 @@ impl<'s> Lexer<'s> {
                 }
                 if let Some(indent) = new_indent {
                     if indent <= *block_indent {
-                        self.output
-                            .push(Token::from(token::text_end(Code::empty_without_offset(), Code::empty_without_offset())));
+                        self.output.push(Token::from(token::text_end(
+                            Code::empty_without_offset(),
+                            Code::empty_without_offset(),
+                        )));
                         self.end_blocks(indent);
                         self.output.extend(newlines);
                         if self.current_offset == text_start.0 {
                             self.last_spaces_visible_offset = text_start.1.visible;
                             self.last_spaces_offset = StrOffset {
                                 utf8:  text_start.1.code.len(),
-                                utf16: text_start.1.code.utf16,
+                                utf16: text_start.1.code.len_utf16(),
                             };
                         }
                         return TextEndedAt::End;
@@ -1438,30 +1440,34 @@ pub mod test {
     use super::*;
     pub use token::*;
 
+    fn test_code(code: &str) -> Code {
+        Code::from_str_without_offset(code)
+    }
+
     /// Constructor.
     pub fn ident_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count() as u32;
         let is_uppercase = code.chars().next().map(|c| c.is_uppercase()).unwrap_or_default();
         let is_operator = false;
-        let left_offset = Code::from_str_without_offset(left_offset);
-        let code = Code::from_str_without_offset(code);
+        let left_offset = test_code(left_offset);
+        let code = test_code(code);
         token::ident_(left_offset, code, is_free, lift_level, is_uppercase, is_operator, false)
     }
 
     /// Constructor.
     pub fn wildcard_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count() as u32;
-        let left_offset = Code::from_str_without_offset(left_offset);
-        let code = Code::from_str_without_offset(code);
+        let left_offset = test_code(left_offset);
+        let code = test_code(code);
         token::wildcard_(left_offset, code, lift_level)
     }
 
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let variant = token::Variant::operator(analyze_operator(code));
-        let left_offset = Code::from_str_without_offset(left_offset);
-        let code = Code::from_str_without_offset(code);
+        let left_offset = test_code(left_offset);
+        let code = test_code(code);
         Token(left_offset, code, variant)
     }
 }
@@ -1470,6 +1476,14 @@ pub mod test {
 mod tests {
     use super::test::*;
     use super::*;
+
+    fn empty() -> Code {
+        Code::empty_without_offset()
+    }
+
+    fn test_code(code: &str) -> Code {
+        Code::from_str_without_offset(code)
+    }
 
     fn test_lexer_many<'s>(inputs: Vec<(&'s str, Vec<Token<'s>>)>) {
         for (input, output) in inputs {
@@ -1499,45 +1513,45 @@ mod tests {
 
     #[test]
     fn test_case_block() {
-        let newline = newline_(Code::empty_without_offset(), Code::from_str_without_offset("\n"));
+        let newline = newline_(empty(), test_code("\n"));
         test_lexer_many(vec![
-            ("\n", vec![newline_(Code::empty_without_offset(), Code::from_str_without_offset("\n"))]),
+            ("\n", vec![newline_(empty(), test_code("\n"))]),
             ("\n  foo\n  bar", vec![
-                block_start_(Code::empty_without_offset(), Code::empty_without_offset()),
+                block_start_(empty(), empty()),
                 newline.clone(),
                 ident_("  ", "foo"),
                 newline.clone(),
                 ident_("  ", "bar"),
-                block_end_(Code::empty_without_offset(), Code::empty_without_offset()),
+                block_end_(empty(), empty()),
             ]),
             ("foo\n    +", vec![
                 ident_("", "foo"),
-                block_start_(Code::empty_without_offset(), Code::empty_without_offset()),
+                block_start_(empty(), empty()),
                 newline,
                 operator_("    ", "+"),
-                block_end_(Code::empty_without_offset(), Code::empty_without_offset()),
+                block_end_(empty(), empty()),
             ]),
         ]);
     }
 
     #[test]
     fn test_case_block_bad_indents() {
-        let newline = newline_(Code::empty_without_offset(), Code::from_str_without_offset("\n"));
+        let newline = newline_(empty(), test_code("\n"));
         #[rustfmt::skip]
         test_lexer_many(vec![
             ("\n  foo\n bar\nbaz", vec![
-                block_start_(Code::empty_without_offset(), Code::empty_without_offset()),
+                block_start_(empty(), empty()),
                 newline.clone(), ident_("  ", "foo"),
                 newline.clone(), ident_(" ", "bar"),
-                block_end_(Code::empty_without_offset(), Code::empty_without_offset()),
+                block_end_(empty(), empty()),
                 newline.clone(), ident_("", "baz"),
             ]),
             ("\n  foo\n bar\n  baz", vec![
-                block_start_(Code::empty_without_offset(), Code::empty_without_offset()),
+                block_start_(empty(), empty()),
                 newline.clone(), ident_("  ", "foo"),
                 newline.clone(), ident_(" ", "bar"),
                 newline, ident_("  ", "baz"),
-                block_end_(Code::empty_without_offset(), Code::empty_without_offset()),
+                block_end_(empty(), empty()),
             ]),
         ]);
     }
@@ -1546,8 +1560,8 @@ mod tests {
     fn test_case_whitespace_only_line() {
         test_lexer_many(vec![("foo\n    \nbar", vec![
             ident_("", "foo"),
-            newline_(Code::empty_without_offset(), Code::from_str_without_offset("\n")),
-            newline_(Code::from_str_without_offset("    "), Code::from_str_without_offset("\n")),
+            newline_(empty(), test_code("\n")),
+            newline_(test_code("    "), test_code("\n")),
             ident_("", "bar"),
         ])]);
     }
@@ -1572,7 +1586,7 @@ mod tests {
 
     #[test]
     fn test_numeric_literal() {
-        test_lexer("10", vec![digits_(Code::empty_without_offset(), Code::from_str_without_offset("10"), None)]);
+        test_lexer("10", vec![digits_(empty(), test_code("10"), None)]);
     }
 
     #[test]

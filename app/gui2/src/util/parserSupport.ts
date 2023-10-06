@@ -219,7 +219,7 @@ function validateSpans_(value: DynValue, state: { pos: number }) {
       if (!(whitespaceLength?.type === 'primitive' && whitespaceLength.value === 0
           && codeLength?.type === 'primitive' && codeLength?.value === 0)) {
         if (whitespaceStart?.type === 'primitive' && whitespaceStart.value !== state.pos)
-          throw new Error('Span error (whitespace).')
+          throw new Error(`Span error (whitespace) in: ${JSON.stringify(debug_(value))}.`)
         if (whitespaceLength?.type === 'primitive')
           state.pos += whitespaceLength.value as number
         if (codeStart?.type === 'primitive' && codeStart.value !== state.pos)

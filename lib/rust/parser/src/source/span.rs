@@ -86,6 +86,19 @@ impl<'s> Offset<'s> {
     pub fn exists(&self) -> bool {
         !self.is_empty()
     }
+
+    #[inline(always)]
+    pub fn take(&mut self) -> Self {
+        Self { visible: mem::take(&mut self.visible), code: self.code.take() }
+    }
+
+    pub fn position_before(&self) -> Self {
+        Self { visible: default(), code: self.code.position_before() }
+    }
+
+    pub fn position_after(&self) -> Self {
+        Self { visible: default(), code: self.code.position_before() }
+    }
 }
 
 impl<'s> AsRef<Offset<'s>> for Offset<'s> {
@@ -125,7 +138,7 @@ impl<'s> AddAssign<&Offset<'s>> for Offset<'s> {
 /// element. This is done in order to not duplicate the data. For example, some AST nodes contain a
 /// lot of tokens. They need to remember their span, but they do not need to remember their code,
 /// because it is already stored in the tokens.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Span<'s> {
     #[reflect(hide, flatten)]
@@ -138,7 +151,10 @@ pub struct Span<'s> {
 impl<'s> Span<'s> {
     /// Constructor.
     pub fn new() -> Self {
-        default()
+        Self {
+            left_offset: Code::empty_without_offset().into(),
+            code_length: default(),
+        }
     }
 
     /// Check whether the span is empty.
@@ -256,8 +272,7 @@ pub trait FirstChildTrim<'s> {
 impl<'s> FirstChildTrim<'s> for Span<'s> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = mem::take(&mut self.left_offset);
-        self.left_offset.code.offset_utf16 = left_offset.code.offset_utf16 + left_offset.code.utf16;
+        let left_offset = self.left_offset.take();
         let code_length = self.code_length;
         Span { left_offset, code_length }
     }

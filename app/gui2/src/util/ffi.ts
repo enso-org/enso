@@ -588,10 +588,16 @@ if (import.meta.vitest) {
       type: 'BodyBlock',
     })
   })
-  test('testSpans', () => {
-    const identInput = ' foo bar\n'
-    const tree = parseEnso2(identInput)
+  test('testCase', () => {
+    const input = 'Data.read\n2 + 2'
+    const tree = parseEnso2(input)
     const endPos = validateSpans(tree)
-    expect(endPos).toStrictEqual(identInput.length)
+    expect(endPos).toStrictEqual(input.length)
+  })
+  test('testSpans', () => {
+    const input = ' foo bar\n'
+    const tree = parseEnso2(input)
+    const endPos = validateSpans(tree)
+    expect(endPos).toStrictEqual(input.length)
   })
 }
