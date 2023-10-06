@@ -478,7 +478,6 @@ public class DelimitedReader {
         throw new EmptyFileException();
       }
 
-      // TODO initialize parser only here
       initBuilders(columnCount);
       while (canFitMoreRows()) {
         var currentRow = readNextRow();
@@ -494,20 +493,17 @@ public class DelimitedReader {
     }
 
     Column[] columns = new Column[builders.length];
-    AggregatedProblems[] problems = new AggregatedProblems[builders.length + 1];
     for (int i = 0; i < builders.length; i++) {
       String columnName = effectiveColumnNames[i];
       Storage<String> col = builders[i].seal();
 
-      WithAggregatedProblems<Storage<?>> parseResult = valueParser.parseColumn(columnName, col);
-      Storage<?> storage = parseResult.value();
-      problems[i] = parseResult.problems();
+      Storage<?> storage = valueParser.parseColumn(columnName, col, problemAggregator);
       columns[i] = new Column(columnName, storage);
       context.safepoint();
     }
 
-    problems[builders.length] = getReportedProblems(headerProblems);
-    return new WithAggregatedProblems<>(new Table(columns), AggregatedProblems.merge(problems));
+    AggregatedProblems.addToAggregator(getReportedProblems(headerProblems), problemAggregator);
+    return new Table(columns);
   }
 
   private boolean wasAlreadyUsed = false;

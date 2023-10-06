@@ -11,6 +11,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
@@ -20,17 +21,19 @@ import java.util.Objects;
  * A builder for integer columns.
  */
 public abstract class LongBuilder extends NumericBuilder {
-  protected LongBuilder(BitSet isMissing, long[] data, int currentSize) {
+  protected final ProblemAggregator problemAggregator;
+  protected LongBuilder(BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
     super(isMissing, data, currentSize);
+    this.problemAggregator = problemAggregator;
   }
 
-  static LongBuilder make(int initialSize, IntegerType type) {
+  static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
     BitSet isMissing = new BitSet();
     long[] data = new long[initialSize];
     if (type.equals(IntegerType.INT_64)) {
-      return new LongBuilderUnchecked(isMissing, data, 0);
+      return new LongBuilderUnchecked(isMissing, data, 0, problemAggregator);
     } else {
-      return new LongBuilderChecked(isMissing, data, 0, type);
+      return new LongBuilderChecked(isMissing, data, 0, type, problemAggregator);
     }
   }
 

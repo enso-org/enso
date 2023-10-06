@@ -46,7 +46,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
 
   public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size(), targetType);
+    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size(), targetType, problemBuilder);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -85,14 +85,13 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
   private Storage<Long> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     int n = boolStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemBuilder);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -104,14 +103,13 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
   private Storage<Long> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     int n = doubleStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemBuilder);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -129,7 +127,6 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 

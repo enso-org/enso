@@ -40,7 +40,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
 
   public Storage<Double> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(mixedStorage.size());
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(mixedStorage.size(), problemBuilder);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -63,13 +63,12 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
   private Storage<Double> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
     int n = longStorage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemBuilder);
     for (int i = 0; i < n; i++) {
       if (longStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -79,13 +78,12 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       }
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
   private Storage<Double> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
     int n = boolStorage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemBuilder);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -95,7 +93,6 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       }
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -105,7 +102,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
 
   private Storage<Double> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemBuilder problemBuilder) {
     int n = storage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemBuilder);
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
       BigInteger value = storage.getItemBoxed(i);
@@ -118,7 +115,6 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

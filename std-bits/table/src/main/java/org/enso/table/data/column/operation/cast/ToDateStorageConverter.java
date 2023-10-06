@@ -41,7 +41,6 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -58,7 +57,6 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

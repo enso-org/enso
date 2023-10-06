@@ -1,9 +1,11 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 
-/** An aggregator for parsing problems. */
-public interface ParseProblemAggregator {
+/**
+ * An aggregator for parsing problems.
+ */
+public sealed interface ParseProblemAggregator permits ParseProblemAggregatorImpl, NoOpParseProblemAggregator, SimplifiedParseProblemAggregator {
 
   /**
    * Reports a cell with an invalid format.
@@ -13,17 +15,18 @@ public interface ParseProblemAggregator {
    */
   void reportInvalidFormat(String cell);
 
-  /** Reports that a mismatched quote has been encountered. */
+  /**
+   * Reports that a mismatched quote has been encountered.
+   */
   void reportMismatchedQuote(String cellText);
 
   /**
    * Checks if there are any problems already reported.
-   *
-   * <p>This method returns true if and only if {@code getAggregatedProblems} would return a
-   * non-empty list.
    */
   boolean hasProblems();
 
-  /** Return aggregated problems. */
-  AggregatedProblems getAggregatedProblems();
+  /** The preferred way to construct a ParseProblemAggregator. */
+  static ParseProblemAggregatorImpl make(ProblemAggregator parent, String columnName) {
+    return new ParseProblemAggregatorImpl(parent, columnName);
+  }
 }

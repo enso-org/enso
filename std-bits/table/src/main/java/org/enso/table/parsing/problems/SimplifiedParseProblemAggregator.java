@@ -1,8 +1,6 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.AggregatedProblems;
-
-public class SimplifiedParseProblemAggregator implements ParseProblemAggregator {
+public final class SimplifiedParseProblemAggregator implements ParseProblemAggregator {
 
   private boolean hasProblems = false;
 
@@ -19,10 +17,5 @@ public class SimplifiedParseProblemAggregator implements ParseProblemAggregator 
   @Override
   public boolean hasProblems() {
     return hasProblems;
-  }
-
-  @Override
-  public AggregatedProblems getAggregatedProblems() {
-    throw new IllegalStateException("Problem aggregation is not available in this implementation.");
   }
 }

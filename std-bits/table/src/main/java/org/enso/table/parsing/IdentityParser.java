@@ -4,10 +4,11 @@ import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 
-/** A parser that just returns its input. Useful as a fallback. */
+/**
+ * A parser that just returns its input. Useful as a fallback.
+ */
 public class IdentityParser extends IncrementalDatatypeParser {
 
   @Override
@@ -16,13 +17,12 @@ public class IdentityParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public StringBuilder makeBuilderWithCapacity(int capacity) {
+  public StringBuilder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
     return new StringBuilder(capacity, TextType.VARIABLE_LENGTH);
   }
 
   @Override
-  public WithAggregatedProblems<Storage<?>> parseColumn(
-      String columnName, Storage<String> sourceStorage) {
-    return new WithAggregatedProblems<>(sourceStorage, AggregatedProblems.of());
+  public Storage<?> parseColumn(String columnName, Storage<String> sourceStorage, ProblemAggregator problemAggregator) {
+    return sourceStorage;
   }
 }

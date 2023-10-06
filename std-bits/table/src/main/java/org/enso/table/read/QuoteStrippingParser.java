@@ -5,6 +5,7 @@ import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.parsing.IncrementalDatatypeParser;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 
 /**
  * A parser that parses a text column, stripping any enclosing quotes from the values.
@@ -35,7 +36,7 @@ public class QuoteStrippingParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(int capacity) {
+  protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
     return new StringBuilder(capacity, TextType.VARIABLE_LENGTH);
   }
 }

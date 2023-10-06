@@ -42,7 +42,6 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -59,7 +58,6 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

@@ -128,15 +128,4 @@ public class ObjectBuilder extends TypedBuilder {
   protected void resize(int desiredCapacity) {
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
-
-  private AggregatedProblems preExistingProblems = AggregatedProblems.of();
-
-  public void setPreExistingProblems(AggregatedProblems preExistingProblems) {
-    this.preExistingProblems = preExistingProblems;
-  }
-
-  @Override
-  public AggregatedProblems getProblems() {
-    return preExistingProblems;
-  }
 }

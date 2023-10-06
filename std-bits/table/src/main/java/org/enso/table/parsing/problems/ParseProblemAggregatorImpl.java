@@ -1,14 +1,17 @@
 package org.enso.table.parsing.problems;
 
+import org.enso.table.problems.Problem;
+import org.enso.table.problems.ProblemAggregator;
+
 import java.util.ArrayList;
 import java.util.List;
-import org.enso.table.problems.AggregatedProblems;
 
-public class ParseProblemAggregatorImpl implements ParseProblemAggregator {
+public final class ParseProblemAggregatorImpl extends ProblemAggregator implements ParseProblemAggregator {
   public final String relatedColumnName;
   private final List<String> invalidFormatCells = new ArrayList<>();
 
-  public ParseProblemAggregatorImpl(String relatedColumnName) {
+  public ParseProblemAggregatorImpl(ProblemAggregator parent, String relatedColumnName) {
+    super(parent);
     this.relatedColumnName = relatedColumnName;
   }
 
@@ -28,13 +31,13 @@ public class ParseProblemAggregatorImpl implements ParseProblemAggregator {
   }
 
   @Override
-  public AggregatedProblems getAggregatedProblems() {
-    AggregatedProblems problems = new AggregatedProblems();
+  public ProblemSummary summarize() {
+    ProblemSummary baseSummary = super.summarize();
 
     if (!invalidFormatCells.isEmpty()) {
-      problems.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
+      baseSummary.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
     }
 
-    return problems;
+    return baseSummary;
   }
 }

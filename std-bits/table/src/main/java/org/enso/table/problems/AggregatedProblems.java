@@ -122,11 +122,10 @@ public class AggregatedProblems {
 
     @Override
     public ProblemSummary summarize() {
-      var baseSummary = super.summarize();
-      List<Problem> problems = new ArrayList<>(baseSummary.problems());
-      problems.addAll(problemsToAdd.problems);
-      long count = baseSummary.allProblemsCount() + problemsToAdd.count;
-      return new ProblemSummary(problems, count);
+      var summary = super.summarize();
+      summary.problems.addAll(problemsToAdd.problems);
+      summary.allProblemsCount += problemsToAdd.count;
+      return summary;
     }
   }
 }

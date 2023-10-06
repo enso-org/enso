@@ -71,7 +71,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -110,7 +109,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -128,7 +126,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -146,7 +143,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -166,7 +162,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -202,7 +197,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
