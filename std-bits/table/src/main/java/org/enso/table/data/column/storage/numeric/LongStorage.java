@@ -127,7 +127,7 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   private WithAggregatedProblems<Storage<?>> fillMissingBigInteger(BigInteger bigInteger) {
-    final var builder = new BigIntegerBuilder(size);
+    final var builder = new BigIntegerBuilder(size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {

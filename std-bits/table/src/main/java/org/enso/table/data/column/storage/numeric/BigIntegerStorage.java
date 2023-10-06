@@ -70,7 +70,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new BigIntegerBuilder(capacity);
+    return new BigIntegerBuilder(capacity, problemAggregator);
   }
 
   private long cachedMaxPrecisionStored = -1;

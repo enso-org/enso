@@ -5,8 +5,7 @@ import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for creating columns dynamically. */
 public abstract class Builder {
@@ -14,7 +13,7 @@ public abstract class Builder {
    * <p>
    * If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer the type from the data.
    */
-  public static Builder getForType(StorageType type, int size) {
+  public static Builder getForType(StorageType type, int size, ProblemAggregator problemAggregator) {
     Builder builder = switch (type) {
       case AnyObjectType x -> new MixedBuilder(size);
       case BooleanType x -> new BoolBuilder(size);
@@ -22,13 +21,13 @@ public abstract class Builder {
       case DateTimeType x -> new DateTimeBuilder(size);
       case TimeOfDayType x -> new TimeOfDayBuilder(size);
       case FloatType floatType -> switch (floatType.bits()) {
-        case BITS_64 -> NumericBuilder.createDoubleBuilder(size);
+        case BITS_64 -> NumericBuilder.createDoubleBuilder(size, problemAggregator);
         default -> throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
       };
-      case IntegerType integerType -> NumericBuilder.createLongBuilder(size, integerType);
+      case IntegerType integerType -> NumericBuilder.createLongBuilder(size, integerType, problemAggregator);
       case TextType textType -> new StringBuilder(size, textType);
-      case BigIntegerType x -> new BigIntegerBuilder(size);
-      case null -> new InferredBuilder(size);
+      case BigIntegerType x -> new BigIntegerBuilder(size, problemAggregator);
+      case null -> new InferredBuilder(size, problemAggregator);
     };
     assert builder.getType().equals(type);
     return builder;

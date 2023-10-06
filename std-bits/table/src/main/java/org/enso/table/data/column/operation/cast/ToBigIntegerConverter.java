@@ -31,7 +31,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
 
   private Storage<BigInteger> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
     int n = doubleStorage.size();
-    BigIntegerBuilder builder = new BigIntegerBuilder(n);
+    BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -46,7 +46,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
 
   private Storage<BigInteger> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
     int n = longStorage.size();
-    BigIntegerBuilder builder = new BigIntegerBuilder(n);
+    BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (longStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -61,7 +61,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
 
   private Storage<BigInteger> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
     int n = boolStorage.size();
-    BigIntegerBuilder builder = new BigIntegerBuilder(n);
+    BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -76,7 +76,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
 
   private Storage<BigInteger> castFromMixed(Storage<?> storage, CastProblemBuilder problemBuilder) {
     int n = storage.size();
-    BigIntegerBuilder builder = new BigIntegerBuilder(n);
+    BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
       Object o = storage.getItemBoxed(i);
       switch (o) {

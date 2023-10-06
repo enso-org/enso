@@ -16,7 +16,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -109,7 +108,7 @@ public class InferredBuilder extends Builder {
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else if (o instanceof BigInteger) {
-      currentBuilder = new BigIntegerBuilder(initialCapacity);
+      currentBuilder = new BigIntegerBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {
