@@ -21,4 +21,16 @@ spec =
             expected = Table.new [["Value", single_values]]
             Table.from_objects single_values . should_equal expected
 
+        Test.specify "A single value with a field list results in columns of Nothing" <|
+            expected = Table.new [["aaa", [Nothing]], ["bbb", [Nothing]]]
+            Table.from_objects 1 ['aaa', 'bbb'] . should_equal expected
+
+        Test.specify "A single value with the field list [Value] results in a column with the value" <|
+            expected = Table.new [["Value", [1]], ["bbb", [Nothing]]]
+            Table.from_objects 1 ["Value", "bbb"] . should_equal expected
+
+        Test.specify "A vector of single values with a field list results in a column of Nothing" <|
+            expected = Table.new [["aaa", [Nothing, Nothing]], ["bbb", [Nothing, Nothing]]]
+            Table.from_objects [1, 2] ['aaa', 'bbb'] . should_equal expected
+
 main = Test_Suite.run_main spec
