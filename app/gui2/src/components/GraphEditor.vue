@@ -16,7 +16,7 @@ import type { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onMounted, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 </script>
 <script setup lang="ts">
 const EXECUTION_MODES = ['design', 'live']
@@ -267,6 +267,35 @@ function clearSelection() {
   }
 }
 
+/// Track play button presses
+function onPlayButtonPress() {
+  projectStore.lsRpcConnection.then(async (rpc) => {
+    const ctxID = await executionCtx.value?.state.then((ctx) => ctx?.id)
+    if (ctxID == undefined) {
+      console.warn('No execution context available for setting the execution mode.')
+      return
+    }
+    const mode_value = mode.value
+    if (mode_value == undefined) {
+      console.error('No execution mode available for setting the execution mode.')
+      return
+    }
+    await rpc.recomputeExecutionContext(ctxID, 'all', mode_value === 'live' ? 'Live' : 'Design')
+  })
+}
+
+/// Observe execution mode changes
+watchEffect(async () => {
+  const ctxID = await executionCtx.value?.state.then((ctx) => ctx?.id)
+  projectStore.lsRpcConnection.then(async (rpc) => {
+    if (ctxID == undefined) {
+      console.warn('No execution context available for setting the execution mode.')
+      return
+    }
+    await rpc.setExecutionEnvironment(ctxID, mode.value === 'live' ? 'Live' : 'Design')
+  })
+})
+
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
@@ -333,7 +362,7 @@ const groupColors = computed(() => {
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
       @back="console.log('breadcrumbs \'back\' button clicked.')"
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
-      @execute="console.log('\'execute\' button clicked.')"
+      @execute="onPlayButtonPress()"
     />
     <div ref="codeEditorArea">
       <Suspense>
