@@ -391,7 +391,7 @@ impl IsWatchable for Wasm {
                 .arg("--skip-version-check") // We already checked in the parent process.
                 .args(["--cache-path", context.cache.path().as_str()])
                 .args(["--repo-path", context.repo_root.as_str()])
-                .args(["--skip-npm-install", "false"]);
+                .arg("--skip-npm-install");
 
             // === Build Script command and its options ===
             watch_cmd
