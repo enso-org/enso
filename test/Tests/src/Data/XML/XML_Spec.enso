@@ -1,0 +1,228 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Syntax_Error
+import Standard.Base.Errors.File_Error.File_Error
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec =
+    test_file = enso_project.data / "xml" / "sample.xml"
+    document = XML_Document.from_file test_file
+    root = document . root_element
+
+    fix_windows_newlines s = s.replace '\r\n' '\n'
+
+    Test.group "Read XML" <|
+        Test.specify "Can read from a file" <|
+            root.name . should_equal "class"
+
+        Test.specify "Error if file does not exist" <|
+            test_file = enso_project.data / "xml" / "sample.xmlnotexists"
+            XML_Document.from_file test_file . should_fail_with File_Error
+
+        Test.specify "Can read from a stream" <|
+            test_file.with_input_stream [File_Access.Read] input_stream->
+                doc = XML_Document.from_stream input_stream
+                doc.root_element.name . should_equal "class"
+
+        Test.specify "Can read from a string" <|
+            xml_string = test_file.read_text
+            doc = XML_Document.from_text xml_string
+            doc.root_element.name . should_equal "class"
+
+        Test.specify "Can read from a short string" <|
+            xml_string = "<class></class>"
+            doc = XML_Document.from_text xml_string
+            doc.root_element.name . should_equal "class"
+
+        Test.specify "Parse error from file" <|
+            test_file = enso_project.data / "sample.txt"
+            XML_Document.from_file test_file . catch . should_be_a XML_Error.Parse_Error
+
+        Test.specify "Parse error from string" <|
+            xml_string = "<<<<</"
+            XML_Document.from_text xml_string . catch . should_be_a XML_Error.Parse_Error
+
+    Test.group "at/get" <|
+        Test.specify "Can get children by index" <|
+            root.at 0 . name . should_equal "teacher"
+
+            root.at 0 . at 0 . name . should_equal "firstname"
+            root.at 0 . at 1 . name . should_equal "lastname"
+            root.at 0 . at 2 . name . should_equal "bio"
+            root.at 0 . at 2 . at 0 . should_equal '\n            Blah blah\n        '
+
+            root.at 3 . at 0 . name . should_equal "firstname"
+            root.at 3 . at 1 . name . should_equal "lastname"
+            root.at 3 . at 2 . name . should_equal "gpa"
+            root.at 3 . at 2 . at 0 . should_equal "3.99"
+
+        Test.specify "Can get text children by index" <|
+            root.at 4 . at 0 . should_equal '\n        Some\n        '
+            root.at 4 . at 2 . should_equal '\n        Extra\n        '
+            root.at 4 . at 4 . should_equal '\n        Text\n        '
+
+        Test.specify "Can get element attributes" <|
+            root.at 0 . at "@id" . should_equal "100"
+            root.at 1 . at "@id" . should_equal "101"
+            root.at 2 . at "@studentId" . should_equal "1000"
+            root.at 3 . at "@studentId" . should_equal "1001"
+
+            root.at 0 . attribute "id" . should_equal "100"
+            root.at 1 . attribute "id" . should_equal "101"
+            root.at 2 . attribute "studentId" . should_equal "1000"
+            root.at 3 . attribute "studentId" . should_equal "1001"
+
+            root.at 3 . attribute "does_not_exist" if_missing="if_missing" . should_equal "if_missing"
+
+        Test.specify "Can get element an attribute map" <|
+            root.at 2 . attributes . should_equal (Map.from_vector [["studentId", "1000"], ["year", "2"]])
+            root.at 3 . attributes . should_equal (Map.from_vector [["studentId", "1001"], ["year", "3"]])
+
+        Test.specify "Can get nodes via xpath" <|
+            classes = root.at "/class"
+            classes.length . should_equal 1
+            classes.at 0 . name . should_equal "class"
+
+            teachers = root.at "/class/teacher"
+            teachers.length . should_equal 2
+            teachers.at 0 . at "@id" . should_equal "100"
+            teachers.at 1 . at "@id" . should_equal "101"
+
+            students = root.at "/class/student"
+            students.length . should_equal 3
+            students.at 0 . at "@studentId" . should_equal "1000"
+            students.at 1 . at "@studentId" . should_equal "1001"
+
+            root.at "/class/teacher[1]/firstname" . at 0 . text . should_equal "Mary"
+            root.at "/class/teacher[2]/firstname" . at 0 . text . should_equal "Bob"
+            root.at "/class/teacher[1]/firstname/text()" . should_equal ["Mary"]
+            root.at "/class/teacher[2]/firstname/text()" . should_equal ["Bob"]
+            root.at "/class/teacher/firstname/text()" . should_equal ["Mary", "Bob"]
+            root.at "/class/teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
+            root.at "/class/teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+            root.get "/class/teacher[23]" . should_equal []
+
+            root.at "teacher[1]/firstname" . at 0 . text . should_equal "Mary"
+            root.at "teacher[2]/firstname" . at 0 . text . should_equal "Bob"
+            root.at "teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
+            root.at "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+
+        Test.specify "Can get children using .get" <|
+            root.get 0 . get 0 . name . should_equal "firstname"
+            root.get 0 . get "@id" . should_equal "100"
+            root.get "/class/teacher[1]/firstname" . get 0 . text . should_equal "Mary"
+
+            root.get 0 . get 32 "if_missing" . should_equal "if_missing"
+            root.get 0 . get "@not_there" "if_missing" . should_equal "if_missing"
+
+        Test.specify "Can handle a bad xpath" <|
+            root.at "/qqq[[[[1" . at 0 . text . should_fail_with XML_Error
+
+    Test.group "tag name" <|
+        Test.specify "Can get the tag name" <|
+            root.name . should_equal "class"
+            root.at 0 . name . should_equal "teacher"
+            root.at 1 . at 1 . name . should_equal "lastname"
+
+    Test.group "children" <|
+        Test.specify "Can get the list of children" <|
+            children = root.children
+            children.length . should_equal 5
+            children.at 0 . at "@id" . should_equal "100"
+            children.at 1 . at "@id" . should_equal "101"
+            children.at 2 . at "@studentId" . should_equal "1000"
+            children.at 3 . at "@studentId" . should_equal "1001"
+            children.at 4 . at "@studentId" . should_equal "1002"
+
+        Test.specify "Can get the number of children" <|
+            root.child_count . should_equal 5
+
+    Test.group "text contents" <|
+        Test.specify "Can get child text contents" <|
+            root.at 4 . at 1 . text . should_equal "Randy"
+            root.at 4 . text . should_equal '\n        Some\n        Randy\n        Extra\n        Brown\n        Text\n        3.99\n    '
+
+    Test.group "inner / outer xml" <|
+        Test.specify "Can get the inner xml" <|
+            fix_windows_newlines (root.at "/class/teacher[1]" . at 0 . inner_xml) . should_equal '\n        <firstname>Mary</firstname>\n        <lastname>Smith</lastname>\n        <bio>\n            Blah blah\n        </bio>\n    '
+            fix_windows_newlines (root.at "/class/teacher[1]/bio" . at 0 . inner_xml) . should_equal '\n            Blah blah\n        '
+            fix_windows_newlines (root.at "/class/teacher[2]/bio" . at 0 . inner_xml) . should_equal '\n            This that\n        '
+            fix_windows_newlines (root.at "/class/teacher[2]" . at 0 . inner_xml) . should_equal '\n        <firstname>Bob</firstname>\n        <lastname>Jones</lastname>\n        <bio>\n            This that\n        </bio>\n    '
+
+        Test.specify "Can get the outer xml" <|
+            fix_windows_newlines (root.at "/class/teacher[1]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            Blah blah\n        </bio>'
+            fix_windows_newlines (root.at "/class/teacher[2]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            This that\n        </bio>'
+
+    Test.group "get_elements_by_tag_name" <|
+        Test.specify "Can get elements by tag name" <|
+            teachers = root.get_elements_by_tag_name "teacher"
+            students = root.get_elements_by_tag_name "student"
+            gpas = root.get_elements_by_tag_name "gpa"
+
+            teachers.length . should_equal 2
+            students.length . should_equal 3
+            gpas.length . should_equal 3
+
+            teachers.at 0 . at "@id" . should_equal "100"
+            teachers.at 1 . at "@id" . should_equal "101"
+            students.at 0 . at "@studentId" . should_equal "1000"
+            students.at 1 . at "@studentId" . should_equal "1001"
+            students.at 2 . at "@studentId" . should_equal "1002"
+            gpas.at 0 . text . should_equal "4.01"
+            gpas.at 1 . text . should_equal "3.99"
+            gpas.at 2 . text . should_equal "3.99"
+
+        Test.specify "Can get nested elements" <|
+            test_file = enso_project.data / "xml" / "nested.xml"
+            root = XML_Document.from_file test_file . root_element
+            bars = root.get_elements_by_tag_name "bar"
+            bars.length . should_equal 4
+            bars.map (t-> t.at "@id") . should_equal ["2", "4", "5", "6"]
+
+        Test.specify "Can get elements by name with a wildcard" <|
+            root.get_elements_by_tag_name "*" . length . should_equal 20
+
+    Test.group "Data.read / File_Format" <|
+        Test.specify "Can read from a file" <|
+            doc = Data.read test_file
+            doc.root_element.name . should_equal "class"
+
+        Test.specify "Can read from an endpoint" <|
+            doc = Data.fetch "https://enso-data-samples.s3.us-west-1.amazonaws.com/sample.xml"
+            doc.root_element.name . should_equal "class"
+            doc.root_element.at 1 . name . should_equal "teacher"
+
+    Test.group "display text" <|
+        Test.specify "Can generate display text" <|
+            document.to_display_text . should_equal 'XML_Document (XML_Element "class")'
+            root.to_display_text .  should_equal 'XML_Element "class"'
+
+    Test.group "JSON" <|
+        Test.specify "Can convert to JS_Object" <|
+            test_file = enso_project.data / "xml" / "small.xml"
+            document = XML_Document.from_file test_file
+            root = document . root_element
+            expected = Json.parse '''
+                {
+                "type": "XML_Element",
+                "tag": "class",
+                "attributes": [],
+                "children": [
+                    {
+                    "type": "XML_Element",
+                    "tag": "teacher",
+                    "attributes": [ [ "id", "100" ]
+                    ],
+                    "children": [
+                        { "type": "XML_Element", "tag": "firstname", "attributes": [], "children": [ "Mary" ] },
+                        { "type": "XML_Element", "tag": "lastname", "attributes": [], "children": [ "Smith" ] },
+                        { "type": "XML_Element", "tag": "bio", "attributes": [], "children": [ "\\n            Blah blah\\n        " ] }
+                    ]
+                    }
+                ]
+                }
+            js = root.to_js_object
+            js.should_equal expected
+
+main = Test_Suite.run_main spec
