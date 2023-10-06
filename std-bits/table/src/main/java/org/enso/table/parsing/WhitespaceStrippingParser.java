@@ -16,7 +16,7 @@ public class WhitespaceStrippingParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
+  public Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     String stripped = text.strip();
     return innerParser.parseSingleValue(stripped, problemAggregator);
   }

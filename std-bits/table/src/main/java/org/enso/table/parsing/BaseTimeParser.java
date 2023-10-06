@@ -18,7 +18,7 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
+  public Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     for (EnsoDateTimeFormatter formatter : formatters) {
       try {
         return parseStrategy.parse(text, formatter);

@@ -79,7 +79,7 @@ type Data_Formatter
         parser = self.make_value_type_parser type
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             related_column_name = Nothing
-            parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator related_column_name
+            parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator related_column_name type
             parser.parseSingleValue text parse_problem_aggregator
 
     ## PRIVATE

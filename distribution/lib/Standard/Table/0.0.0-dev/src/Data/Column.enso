@@ -35,6 +35,7 @@ polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
+polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type Column
     ## GROUP Standard.Base.Input
@@ -1610,8 +1611,9 @@ type Column
             parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
 
-            new_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
-                parser.parseColumn self.name storage
+            new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator self.name type
+                parser.parseColumn storage parse_problem_aggregator
             Column.Value (Java_Column.new self.name new_storage)
 
     ## GROUP Standard.Base.Conversions
@@ -2323,14 +2325,15 @@ run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expecte
 run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
-    new_storage = case operand of
-        other_column : Column ->
-            Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.zip function other_column.java_column.getStorage skip_nulls storage_type
-        _ ->
-            Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.binaryMap function operand skip_nulls storage_type
-    Column.Value (Java_Column.new new_name new_storage)
+    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+        new_storage = case operand of
+            other_column : Column ->
+                Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s.zip function other_column.java_column.getStorage skip_nulls storage_type problem_builder
+            _ ->
+                Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s.binaryMap function operand skip_nulls storage_type problem_builder
+        Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
    Runs a unary operation over the provided column.
@@ -2348,9 +2351,10 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
 run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
-    new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s.unaryMap function skip_nulls storage_type
-    Column.Value (Java_Column.new new_name new_storage)
+    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+        new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+            s.unaryMap function skip_nulls storage_type problem_builder
+        Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
 

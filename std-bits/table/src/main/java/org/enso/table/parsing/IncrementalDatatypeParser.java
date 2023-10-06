@@ -2,7 +2,7 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
@@ -30,16 +30,15 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */
-  public Storage<?> parseColumn(
-      String columnName, Storage<String> sourceStorage, ProblemAggregator problemAggregator) {
-    var innerAggregator = ParseProblemAggregator.make(problemAggregator, columnName);
-    Builder builder = makeBuilderWithCapacity(sourceStorage.size(), innerAggregator);
+  @Override
+  public Storage<?> parseColumn(Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
+    Builder builder = makeBuilderWithCapacity(sourceStorage.size(), problemAggregator);
 
     Context context = Context.getCurrent();
     for (int i = 0; i < sourceStorage.size(); ++i) {
       String cell = sourceStorage.getItemBoxed(i);
       if (cell != null) {
-        Object parsed = parseSingleValue(cell, innerAggregator);
+        Object parsed = parseSingleValue(cell, problemAggregator);
         builder.appendNoGrow(parsed);
       } else {
         builder.appendNoGrow(null);

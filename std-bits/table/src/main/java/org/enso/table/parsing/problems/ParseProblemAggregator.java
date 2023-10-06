@@ -26,7 +26,7 @@ public sealed interface ParseProblemAggregator permits ParseProblemAggregatorImp
   boolean hasProblems();
 
   /** The preferred way to construct a ParseProblemAggregator. */
-  static ParseProblemAggregatorImpl make(ProblemAggregator parent, String columnName) {
-    return new ParseProblemAggregatorImpl(parent, columnName);
+  static ParseProblemAggregatorImpl make(ProblemAggregator parent, String columnName, Object expectedEnsoValueType) {
+    return new ParseProblemAggregatorImpl(parent, columnName, expectedEnsoValueType);
   }
 }

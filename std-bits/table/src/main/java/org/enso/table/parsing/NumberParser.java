@@ -6,9 +6,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 
 import java.util.ArrayList;
@@ -225,7 +223,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     }
 
     @Override
-    protected Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
+    public Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
         int index = 0;
         var pattern = patternForIndex(index);
         while (pattern != null) {
@@ -243,7 +241,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     }
 
     @Override
-    public Storage<?> parseColumn(String columnName, Storage<String> sourceStorage, ProblemAggregator problemAggregator) {
+    public Storage<?> parseColumn(Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
         int index = 0;
         var pattern = patternForIndex(index);
 
@@ -269,7 +267,7 @@ public class NumberParser extends IncrementalDatatypeParser {
             pattern = patternForIndex(index);
         }
 
-        ParseProblemAggregatorImpl aggregator = ParseProblemAggregator.make(problemAggregator, columnName);
+        ParseProblemAggregatorImpl aggregator = problemAggregator.createContextAwareChild();
         Builder fallback = makeBuilderWithCapacity(sourceStorage.size(), aggregator);
         parseColumnWithPattern(patternForIndex(bestIndex), sourceStorage, fallback, aggregator);
         return fallback.seal();

@@ -15,6 +15,8 @@ import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
 import org.enso.table.parsing.problems.NoOpParseProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.Problem;
 import org.enso.table.problems.ProblemAggregator;
@@ -497,7 +499,11 @@ public class DelimitedReader {
       String columnName = effectiveColumnNames[i];
       Storage<String> col = builders[i].seal();
 
-      Storage<?> storage = valueParser.parseColumn(columnName, col, problemAggregator);
+      // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type that we expect, so it can safely be null.
+      Object expectedEnsoValueType = null;
+      ParseProblemAggregatorImpl parseProblemAggregator =
+          ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
+      Storage<?> storage = valueParser.parseColumn(col, parseProblemAggregator);
       columns[i] = new Column(columnName, storage);
       context.safepoint();
     }

@@ -7,11 +7,16 @@ import org.enso.table.problems.ProblemAggregator;
 public final class ParseProblemAggregatorImpl extends ProblemAggregator
     implements ParseProblemAggregator {
   public final String relatedColumnName;
+
+  // Used for the InvalidFormat error
+  public final Object expectedEnsoValueType;
   private final List<String> invalidFormatCells = new ArrayList<>();
 
-  public ParseProblemAggregatorImpl(ProblemAggregator parent, String relatedColumnName) {
+  public ParseProblemAggregatorImpl(
+      ProblemAggregator parent, String relatedColumnName, Object expectedEnsoValueType) {
     super(parent);
     this.relatedColumnName = relatedColumnName;
+    this.expectedEnsoValueType = expectedEnsoValueType;
   }
 
   @Override
@@ -34,9 +39,14 @@ public final class ParseProblemAggregatorImpl extends ProblemAggregator
     ProblemSummary baseSummary = super.summarize();
 
     if (!invalidFormatCells.isEmpty()) {
-      baseSummary.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
+      baseSummary.add(
+          new InvalidFormat(relatedColumnName, expectedEnsoValueType, invalidFormatCells));
     }
 
     return baseSummary;
+  }
+
+  public ParseProblemAggregatorImpl createContextAwareChild() {
+    return new ParseProblemAggregatorImpl(this, relatedColumnName, expectedEnsoValueType);
   }
 }

@@ -44,9 +44,8 @@ type Excel_Workbook
     from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
     from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
         stream.with_java_stream java_stream->
-            Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                workbook = ExcelReader.readWorkbook java_stream xls_format java_problem_aggregator
-                Excel_Workbook.Value workbook file xls_format headers
+            workbook = ExcelReader.readWorkbook java_stream xls_format
+            Excel_Workbook.Value workbook file xls_format headers
 
     ## PRIVATE
        Creates an Excel_Workbook connection.

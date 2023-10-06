@@ -60,6 +60,7 @@ polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Joi
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.error.TooManyColumnsException
 polyglot java import org.enso.table.operations.OrderBuilder
+polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -939,8 +940,9 @@ type Table
             new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
                 Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
-                    new_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
-                        parser.parseColumn column.name storage
+                    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                        parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
+                        parser.parseColumn storage parse_problem_aggregator
                     Column.Value (Java_Column.new column.name new_storage)
             Table.new new_columns
 

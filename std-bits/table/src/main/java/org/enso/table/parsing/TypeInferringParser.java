@@ -5,7 +5,6 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.parsing.problems.SimplifiedParseProblemAggregator;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -40,21 +39,19 @@ public class TypeInferringParser extends DatatypeParser {
   }
 
   @Override
-  public Storage<?> parseColumn(
-      String columnName, Storage<String> sourceStorage, ProblemAggregator problemAggregator) {
+  public Storage<?> parseColumn(Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
     // If there are no values, the Auto parser would guess some random type (the first one that is
     // checked). Instead, we just return the empty column unchanged.
     boolean hasNoValues =
         (sourceStorage.size() == 0) || (sourceStorage.countMissing() == sourceStorage.size());
     if (hasNoValues) {
-      return fallbackParser.parseColumn(columnName, sourceStorage, problemAggregator);
+      return fallbackParser.parseColumn(sourceStorage, problemAggregator);
     }
 
     Context context = Context.getCurrent();
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
-      ParseProblemAggregatorImpl innerAggregator =
-          ParseProblemAggregator.make(problemAggregator, columnName);
+      ParseProblemAggregatorImpl innerAggregator = problemAggregator.createContextAwareChild();
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size(), innerAggregator);
 
       for (int i = 0; i < sourceStorage.size(); ++i) {
@@ -78,6 +75,6 @@ public class TypeInferringParser extends DatatypeParser {
       return builder.seal();
     }
 
-    return fallbackParser.parseColumn(columnName, sourceStorage, problemAggregator);
+    return fallbackParser.parseColumn(sourceStorage, problemAggregator);
   }
 }
