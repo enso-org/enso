@@ -70,6 +70,39 @@ const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 
+// ============================
+// === AssetRowsDragPayload ===
+// ============================
+
+const ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE = 'application/x-enso-asset-list'
+
+/** Resolve to an {@link AssetRowsDragPayload}, if any, else resolve to `null`. */
+export function tryFindAssetRowsDragPayload(dataTransfer: DataTransfer) {
+    return new Promise<AssetRowsDragPayload | null>(resolve => {
+        for (const item of dataTransfer.items) {
+            if (item.type.startsWith(ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE)) {
+                item.getAsString(json => {
+                    // `JSON.parse` is unsafe; this error is unavoidable.
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                    resolve(JSON.parse(json))
+                })
+                // eslint-disable-next-line no-restricted-syntax
+                return
+            }
+        }
+        resolve(null)
+    })
+}
+
+/** Metadata for an asset row. */
+interface AssetRowsDragPayloadItem {
+    key: backendModule.AssetId
+    asset: backendModule.AnyAsset
+}
+
+/** Data for a {@link DragEvent} started from an {@link AssetsTable}. */
+export type AssetRowsDragPayload = AssetRowsDragPayloadItem[]
+
 // ===================================
 // === insertAssetTreeNodeChildren ===
 // ===================================
@@ -1102,12 +1135,17 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }}
                     draggableRows
                     onRowDragStart={event => {
-                        event.preventDefault()
                         const nodes = assetTreeNode
                             .assetTreePreorderTraversal(assetTree)
                             .filter(node => selectedKeys.has(node.key))
-                        const data = nodes.map(node => ({ key: node.key, asset: node.item }))
-                        event.dataTransfer.setData('enso/asset-list', JSON.stringify(data))
+                        const data: AssetRowsDragPayload = nodes.map(node => ({
+                            key: node.key,
+                            asset: node.item,
+                        }))
+                        event.dataTransfer.setData(
+                            ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE,
+                            JSON.stringify(data)
+                        )
                         const blankElement = document.createElement('div')
                         blankElement.style.height = blankElement.style.width = '0'
                         document.body.appendChild(blankElement)
@@ -1116,7 +1154,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         setModal(
                             <DragModal
                                 event={event}
-                                className="flex flex-col bg-frame rounded-2xl backdrop-blur-3xl"
+                                className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
                             >
                                 {nodes.map(node => (
                                     <AssetNameColumn

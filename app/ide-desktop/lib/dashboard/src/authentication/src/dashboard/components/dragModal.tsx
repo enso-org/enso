@@ -41,27 +41,34 @@ export default function DragModal(props: DragModalProps) {
     const [top, setTop] = React.useState(event.pageY - (offsetPx ?? offsetYPx))
 
     React.useEffect(() => {
-        const onMouseMove = (moveEvent: MouseEvent) => {
-            setLeft(oldLeft => oldLeft + moveEvent.movementX)
-            setTop(oldTop => oldTop + moveEvent.movementY)
+        const onDrag = (moveEvent: MouseEvent) => {
+            if (moveEvent.pageX !== 0 || moveEvent.pageY !== 0) {
+                setLeft(moveEvent.pageX - (offsetPx ?? offsetXPx))
+                setTop(moveEvent.pageY - (offsetPx ?? offsetYPx))
+            }
         }
-        const onMouseUp = () => {
+        const onDragEnd = () => {
             unsetModal()
         }
-        document.addEventListener('mousemove', onMouseMove)
-        document.addEventListener('mouseup', onMouseUp)
+        document.addEventListener('drag', onDrag)
+        document.addEventListener('dragend', onDragEnd)
         return () => {
-            document.removeEventListener('mousemove', onMouseMove)
-            document.removeEventListener('mouseup', onMouseUp)
+            document.removeEventListener('drag', onDrag)
+            document.removeEventListener('dragend', onDragEnd)
         }
-    }, [/* should never change */ unsetModal])
+    }, [
+        /* should never change */ offsetPx,
+        /* should never change */ offsetXPx,
+        /* should never change */ offsetYPx,
+        /* should never change */ unsetModal,
+    ])
 
     return (
         <Modal className="absolute overflow-hidden pointer-events-none w-full h-full">
             <div
                 {...passthrough}
                 style={{ left, top, ...style }}
-                className={`sticky w-min ${className ?? ''}`}
+                className={`relative w-min ${className ?? ''}`}
             >
                 {children}
             </div>

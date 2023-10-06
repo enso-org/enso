@@ -71,6 +71,8 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     ) => void
     draggableRows?: boolean
     onRowDragStart?: React.DragEventHandler<HTMLTableRowElement>
+    onRowDrag?: React.DragEventHandler<HTMLTableRowElement>
+    onRowDragEnd?: React.DragEventHandler<HTMLTableRowElement>
 }
 
 /** Props for a {@link Table}. */
@@ -103,6 +105,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
         onContextMenu,
         draggableRows,
         onRowDragStart,
+        onRowDrag,
+        onRowDragEnd,
         ...rowProps
     } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -307,6 +311,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     }}
                     draggable={draggableRows}
                     onDragStart={onRowDragStart}
+                    onDrag={onRowDrag}
+                    onDragEnd={onRowDragEnd}
                 />
             )
         })
