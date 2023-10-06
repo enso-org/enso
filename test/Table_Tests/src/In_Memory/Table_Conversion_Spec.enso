@@ -55,6 +55,10 @@ spec =
             expected = Table.from_rows ["first", "middle", "last", "age"] [["Mary", Nothing, "Smith", 23], ["Joe", Nothing, "Burton", 34]]
             Table.from_objects uniform_json ["first", "middle", "last", "age"] . should_equal expected
 
+        Test.specify "Generates a table from a vector of JSON objects, with missing and extra fields" <|
+            expected = Table.from_rows ["first", "middle", "age"] [["Mary", Nothing, 23], ["Joe", Nothing, 34]]
+            Table.from_objects uniform_json ["first", "middle", "age"] . should_equal expected
+
         Test.specify "Generates a table from a mixed vector of single values and JSON objects" <|
             expected = Table.from_rows ["first", "last", "age", "Value"] [["Mary", "Smith", 23, Nothing], ["Joe", "Burton", 34, Nothing], [Nothing, Nothing, Nothing, 12]]
             Table.from_objects uniform_json+[12] . should_equal expected
