@@ -10,7 +10,6 @@ import org.enso.interpreter.instrument.job.{
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 
-import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that modifies a visualization.
@@ -21,32 +20,12 @@ import scala.concurrent.{ExecutionContext, Future}
 class ModifyVisualizationCmd(
   maybeRequestId: Option[Api.RequestId],
   request: Api.ModifyVisualization
-) extends AsynchronousCommand(maybeRequestId) {
+) extends ContextCmd(
+      request.visualizationConfig.executionContextId,
+      maybeRequestId
+    ) {
 
-  /** @inheritdoc */
-  override def executeAsynchronously(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
-    val logger        = ctx.executionService.getLogger
-    val contextId     = request.visualizationConfig.executionContextId
-    val lockTimestamp = ctx.locking.acquireContextLock(contextId)
-    try {
-      if (doesContextExist) {
-        modifyVisualization()
-      } else {
-        replyWithContextNotExistError()
-      }
-    } finally {
-      ctx.locking.releaseContextLock(contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
-      )
-    }
-  }
-
-  private def modifyVisualization()(implicit
+  override protected def executeCmd()(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
@@ -96,23 +75,6 @@ class ModifyVisualizationCmd(
               _ <- ctx.jobProcessor.run(ExecuteJob(exec))
             } yield ()
         }
-    }
-  }
-
-  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
-    ctx.contextManager.contains(
-      request.visualizationConfig.executionContextId
-    )
-  }
-
-  private def replyWithContextNotExistError()(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
-    Future {
-      reply(
-        Api.ContextNotExistError(request.visualizationConfig.executionContextId)
-      )
     }
   }
 

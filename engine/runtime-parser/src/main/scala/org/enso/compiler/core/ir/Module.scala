@@ -18,7 +18,7 @@ import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
   * @param diagnostics compiler diagnostics for this node
   */
 @SerialVersionUID(
-  7681L // SuggestionBuilder needs to send ascribedType of constructor parameters
+  7953L // instrumentor
 )       // prevents reading broken caches, see PR-3692 for details
 sealed case class Module(
   imports: List[Import],

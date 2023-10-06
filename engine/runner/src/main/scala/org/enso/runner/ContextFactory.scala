@@ -7,6 +7,7 @@ import org.enso.polyglot.debugger.{
   DebuggerSessionManagerEndpoint
 }
 import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
+import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.slf4j.event.Level
 
@@ -109,7 +110,14 @@ class ContextFactory {
     if (graalpy.exists()) {
       builder.option("python.Executable", graalpy.getAbsolutePath());
     }
-    if (RuntimeOptions.isEspressoEnabled()) {
+    if (
+      Engine
+        .newBuilder()
+        .allowExperimentalOptions(true)
+        .build()
+        .getLanguages()
+        .containsKey("java")
+    ) {
       builder
         .option("java.ExposeNativeJavaVM", "true")
         .option("java.Polyglot", "true")
