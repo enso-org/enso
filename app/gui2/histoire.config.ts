@@ -14,6 +14,7 @@ const order = [
   'Selection Brush',
   // Miscellaneous
   'SVG Icon',
+  'All SVG Icons',
   // Visualizations
   'Selector',
   'JSON',

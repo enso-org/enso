@@ -4,6 +4,7 @@ import { logEvent } from 'histoire/client'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Vec2 } from '@/util/vec2'
+import GroupColorsWrapper from './GroupColorsWrapper.vue'
 import NavigatorWrapper from './NavigatorWrapper.vue'
 
 const position = new Vec2(-329.5, 0)
@@ -24,11 +25,13 @@ const position = new Vec2(-329.5, 0)
   >
     <NavigatorWrapper style="height: 100%">
       <template #default="{ navigator }">
-        <ComponentBrowser
-          :position="position"
-          :navigator="navigator"
-          @finished="logEvent('finished', [])"
-        />
+        <GroupColorsWrapper>
+          <ComponentBrowser
+            :position="position"
+            :navigator="navigator"
+            @finished="logEvent('finished', [])"
+          />
+        </GroupColorsWrapper>
       </template>
     </NavigatorWrapper>
   </Story>

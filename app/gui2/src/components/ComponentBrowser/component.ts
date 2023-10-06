@@ -5,13 +5,14 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
+import type { Icon } from '@/util/iconName'
 import { isSome } from '@/util/opt'
 import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
 import { Filtering, type MatchResult } from './filtering'
 
 export interface Component {
   suggestionId: SuggestionId
-  icon: string
+  icon: Icon
   label: string
   match: MatchResult
   group?: number | undefined

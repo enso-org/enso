@@ -11,16 +11,16 @@ const props = defineProps<{ name: Icon; width?: number; height?: number }>()
 </script>
 
 <template>
-  <svg :style="{ '--width': `${width}px`, '--height': `${height}px` }">
+  <svg :style="{ '--width': `${width ?? 16}px`, '--height': `${height ?? 16}px` }">
     <use :href="`${icons}#${props.name}`"></use>
   </svg>
 </template>
 
 <style scoped>
 svg {
-  width: var(--width, 16px);
-  min-width: var(--width, 16px);
-  height: var(--height, 16px);
-  min-height: var(--height, 16px);
+  width: var(--width);
+  min-width: var(--width);
+  height: var(--height);
+  min-height: var(--height);
 }
 </style>

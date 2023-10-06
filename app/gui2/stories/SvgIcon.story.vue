@@ -6,15 +6,16 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 
 import iconList from '@/util/iconList.json'
+import type { Icon } from '@/util/iconName'
 
-const name = ref('enso_logo')
+const name = ref<Icon>('enso_logo')
 
 const toggledOn = ref(false)
-const icon = ref('enso_logo')
+const icon = ref<Icon>('enso_logo')
 </script>
 
 <template>
-  <Story title="SVG Icon" group="misc" :layout="{ type: 'grid', width: 200 }" auto-props-disabled>
+  <Story title="SVG Icon" group="misc" :layout="{ type: 'grid', width: 100 }" auto-props-disabled>
     <Variant title="icon">
       <SvgIcon :name="name" @click="logEvent('click', [])" />
 
