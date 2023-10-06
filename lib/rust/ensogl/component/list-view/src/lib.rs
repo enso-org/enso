@@ -33,6 +33,7 @@ pub mod entry;
 /// Commonly used types and functions.
 pub mod prelude {
     pub use ensogl_core::prelude::*;
+
 }
 
 use crate::prelude::*;
