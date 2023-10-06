@@ -9,9 +9,16 @@ import Standard.Test.Extensions
 from project.Util import all
 
 spec =
+    single_values = [Nothing, 12, 13.4, True, "hello", Date.new 2023 10 6, Time_Of_Day.new 3 4 5 200, Date_Time.new 2023 11 7 2 3 4]
+
     Test.group "Single values" <|
-        Test.specify "Can create a table from Nothing" <|
-            expected = Table.from_rows ["Value"] [[Nothing]]
-            Table.from_objects Nothing . should_equal expected
+        Test.specify "Can create a table from a single value" <|
+            single_values.map v->
+                expected = Table.from_rows ["Value"] [[v]]
+                Table.from_objects v . should_equal expected
+
+        Test.specify "Can create a table from a vector of single values" <|
+            expected = Table.new [["Value", single_values]]
+            Table.from_objects single_values . should_equal expected
 
 main = Test_Suite.run_main spec
