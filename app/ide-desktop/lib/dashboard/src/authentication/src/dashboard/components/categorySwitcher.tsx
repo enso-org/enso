@@ -153,7 +153,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     }}
                     onDragOver={event => {
                         if (
-                            (currentCategory === Category.trash && category !== Category.trash) ||
+                            (currentCategory === Category.trash && category === Category.home) ||
                             (currentCategory !== Category.trash && category === Category.trash)
                         ) {
                             event.preventDefault()
@@ -161,7 +161,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     }}
                     onDrop={async event => {
                         if (
-                            (currentCategory === Category.trash && category !== Category.trash) ||
+                            (currentCategory === Category.trash && category === Category.home) ||
                             (currentCategory !== Category.trash && category === Category.trash)
                         ) {
                             event.preventDefault()
