@@ -177,11 +177,18 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
+  public Storage<?> appendNulls(int count) {
+    T[] newData = newUnderlyingArray(size + count);
+    System.arraycopy(data, 0, newData, 0, size);
+    return newInstance(newData, size + count);
+  }
+
+  @Override
   public List<Object> toList() {
     return new ReadOnlyList<>(this);
   }
 
-  private class ReadOnlyList<S> extends AbstractList<Object> {
+  private static class ReadOnlyList<S> extends AbstractList<Object> {
     private final SpecializedStorage<S> storage;
 
     public ReadOnlyList(SpecializedStorage<S> storage) {

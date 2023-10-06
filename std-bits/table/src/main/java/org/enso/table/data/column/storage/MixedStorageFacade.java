@@ -109,6 +109,12 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
+  public Storage<?> appendNulls(int count) {
+    Storage<?> newStorage = underlyingStorage.appendNulls(count);
+    return new MixedStorageFacade(newStorage);
+  }
+
+  @Override
   public Storage<Object> slice(List<SliceRange> ranges) {
     Storage<?> newStorage = underlyingStorage.slice(ranges);
     return new MixedStorageFacade(newStorage);

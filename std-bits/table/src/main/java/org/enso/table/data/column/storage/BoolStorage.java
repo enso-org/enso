@@ -15,6 +15,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -405,6 +406,13 @@ public final class BoolStorage extends Storage<Boolean> {
         isMissing.get(offset, offset + limit),
         newSize,
         negated);
+  }
+
+  @Override
+  public Storage<?> appendNulls(int count) {
+    BitSet newMissing = BitSets.makeDuplicate(isMissing);
+    newMissing.set(size, size + count);
+    return new BoolStorage(values, newMissing, size + count, negated);
   }
 
   @Override

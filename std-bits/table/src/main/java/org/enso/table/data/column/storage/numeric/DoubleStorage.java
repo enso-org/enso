@@ -32,6 +32,7 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -363,6 +364,16 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
     return new DoubleStorage(newData, newSize, newMask);
+  }
+
+  @Override
+  public DoubleStorage appendNulls(int count) {
+    BitSet newMissing = BitSets.makeDuplicate(isMissing);
+    newMissing.set(size, size + count);
+
+    long[] newData = new long[size + count];
+    System.arraycopy(data, 0, newData, 0, size);
+    return new DoubleStorage(newData, size + count, newMissing);
   }
 
   @Override

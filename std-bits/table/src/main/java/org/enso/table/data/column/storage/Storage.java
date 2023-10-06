@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -12,7 +11,6 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -213,8 +211,8 @@ public abstract class Storage<T> {
       BiFunction<Object, Object, Object> function,
       Object argument,
       boolean skipNulls,
-      StorageType expectedResultType) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size());
+      StorageType expectedResultType, ProblemAggregator problemAggregator) {
+    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
     if (skipNulls && argument == null) {
       storageBuilder.appendNulls(size());
       return storageBuilder.seal();
@@ -322,7 +320,7 @@ public abstract class Storage<T> {
       return runVectorizedBinaryMap(name, argument, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return binaryMap(fallback, argument, skipNulls, expectedResultType);
+      return binaryMap(fallback, argument, skipNulls, expectedResultType, problemBuilder);
     }
   }
 
@@ -380,7 +378,7 @@ public abstract class Storage<T> {
       return runVectorizedZip(name, other, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return ip(fallback, other, skipNulls, expectedResultType, problemBuilder);
+      return zip(fallback, other, skipNulls, expectedResultType, problemBuilder);
     }
   }
 

@@ -95,7 +95,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     boolean emptyScenario = size == 0 && keyColumnsLength == 0;
     Builder[] storage =
         Arrays.stream(columns)
-            .map(c -> Builder.getForType(c.getType(), emptyScenario ? 1 : size))
+            .map(c -> Builder.getForType(c.getType(), emptyScenario ? 1 : size, problemAggregator))
             .toArray(Builder[]::new);
 
     if (emptyScenario) {
