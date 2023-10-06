@@ -23,6 +23,7 @@ import type {
 } from '@/workers/visualizationCompiler'
 import Compiler from '@/workers/visualizationCompiler?worker'
 import type { VisualizationConfiguration } from 'shared/languageServerTypes'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
 
 /** A module containing the default visualization function. */
 const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'
@@ -37,6 +38,11 @@ export const DEFAULT_VISUALIZATION_CONFIGURATION = {
   positionalArgumentsExpressions: DEFAULT_VISUALIZATION_ARGUMENTS,
 } satisfies Partial<VisualizationConfiguration>
 
+export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
+  module: { kind: 'Builtin' },
+  name: 'JSON',
+}
+
 const moduleCache: Record<string, any> = {
   vue,
   '@vueuse/core': vueUseCore,
@@ -49,23 +55,23 @@ window.__visualizationModules = moduleCache
 
 export type Visualization = DefineComponent<
   // Props
-  { data: {} },
+  { data: { type: vue.PropType<unknown>; required: true } },
   {},
-  {},
+  unknown,
   {},
   {},
   {},
   {},
   // Emits
   {
-    'update:preprocessor': (module: string, method: string, ...args: string[]) => void
+    'update:preprocessor'?: (module: string, method: string, ...args: string[]) => void
   }
 >
 type VisualizationModule = {
   default: Visualization
   name: string
-  inputType: string
-  defaultPreprocessor: [module: string, method: string, ...args: string[]]
+  inputType?: string
+  defaultPreprocessor?: readonly [module: string, method: string, ...args: string[]]
   scripts?: string[]
   styles?: string[]
 }
@@ -90,7 +96,13 @@ export const useVisualizationStore = defineStore('visualization', () => {
   const imports = { ...builtinVisualizationImports }
   const paths = { ...dynamicVisualizationPaths }
   let cache: Record<string, VisualizationModule> = {}
-  const types = [...Object.keys(imports), ...Object.keys(paths)]
+  const builtinTypes = [...Object.keys(imports), ...Object.keys(paths)]
+  const types = builtinTypes.map(
+    (name): VisualizationIdentifier => ({
+      module: { kind: 'Builtin' },
+      name,
+    }),
+  )
   let worker: Worker | undefined
   let workerMessageId = 0
   const workerCallbacks: Record<
@@ -237,7 +249,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
   }
 
   // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
-  async function get(type: string) {
+  async function get(meta: VisualizationIdentifier) {
+    if (meta.module.kind !== 'Builtin') {
+      console.warn('Custom visualization module support is not yet implemented:', meta.module)
+      return
+    }
+    const type = meta.name
     let module = cache[type]
     if (module == null) {
       module = await imports[type]?.()

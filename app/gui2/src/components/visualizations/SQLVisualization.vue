@@ -4,7 +4,7 @@ export const inputType = 'Standard.Database.Data.Table.Table | Standard.Database
 export const defaultPreprocessor = [
   'Standard.Visualization.SQL.Visualization',
   'prepare_visualization',
-]
+] as const
 
 /**
  * A visualization that pretty-prints generated SQL code and displays type hints related to
@@ -127,7 +127,7 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <div class="sql-visualization scrollable">
       <pre v-if="data.error" class="sql" v-text="data.error"></pre>
       <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->

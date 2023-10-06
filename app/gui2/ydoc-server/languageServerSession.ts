@@ -14,7 +14,12 @@ import {
   type NodeMetadata,
   type Uuid,
 } from '../shared/yjsModel'
-import { applyDocumentUpdates, preParseContent, prettyPrintDiff } from './edits'
+import {
+  applyDocumentUpdates,
+  preParseContent,
+  prettyPrintDiff,
+  translateVisualizationFromFile,
+} from './edits'
 import * as fileFormat from './fileFormat'
 import { WSSharedDoc } from './ydoc'
 
@@ -362,6 +367,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
 
     this.changeState(LsSyncState.WritingFile)
+
+    const execute = true // contentDelta != null || idMapKeys != null
     const apply = this.ls.applyEdit(
       {
         path: this.path,
@@ -369,7 +376,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         oldVersion: this.syncedVersion,
         newVersion,
       },
-      true,
+      execute,
     )
     return (this.lastAction = apply.then(
       () => {
@@ -408,13 +415,12 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       }
 
       const keysToDelete = new Set(this.doc.metadata.keys())
-      for (const [id, meta_] of Object.entries(nodeMeta)) {
-        const meta = meta_ as any
+      for (const [id, meta] of Object.entries(nodeMeta)) {
         if (typeof id !== 'string') continue
         const formattedMeta: NodeMetadata = {
-          x: meta?.position?.vector?.[0] ?? 0,
-          y: meta?.position?.vector?.[1] ?? 0,
-          vis: meta?.visualization ?? undefined,
+          x: meta.position.vector[0],
+          y: meta.position.vector[1],
+          vis: (meta.visualization && translateVisualizationFromFile(meta.visualization)) ?? null,
         }
         keysToDelete.delete(id)
         this.doc.metadata.set(id, formattedMeta)

@@ -1,18 +1,4 @@
 <script lang="ts">
-import { defineKeybinds } from '@/util/shortcuts'
-
-const graphBindings = defineKeybinds('graph-editor', {
-  undo: ['Mod+Z'],
-  redo: ['Mod+Y', 'Mod+Shift+Z'],
-  dragScene: ['PointerAux', 'Mod+PointerMain'],
-  openComponentBrowser: ['Enter'],
-  newNode: ['N'],
-})
-</script>
-
-<script setup lang="ts">
-import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-
 import { nodeBindings } from '@/bindings/nodeSelection'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
@@ -27,9 +13,21 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
+import { defineKeybinds } from '@/util/shortcuts'
 import { Vec2 } from '@/util/vec2'
+import * as set from 'lib0/set'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
+import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 
+const graphBindings = defineKeybinds('graph-editor', {
+  undo: ['Mod+Z'],
+  redo: ['Mod+Y', 'Mod+Shift+Z'],
+  dragScene: ['PointerAux', 'Mod+PointerMain'],
+  openComponentBrowser: ['Enter'],
+  newNode: ['N'],
+})
+</script>
+<script setup lang="ts">
 const EXECUTION_MODES = ['design', 'live']
 const SELECTION_BRUSH_MARGIN_PX = 6
 
@@ -56,9 +54,6 @@ function updateExprRect(id: ExprId, rect: Rect) {
 }
 
 useWindowEvent('keydown', (event) => {
-  if (keyboardBusy()) {
-    return
-  }
   graphBindingsHandler(event) || nodeSelectionHandler(event)
 })
 
@@ -74,13 +69,15 @@ function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
 
 function moveNode(id: ExprId, delta: Vec2) {
   const scaledDelta = delta.scale(1 / navigator.scale)
-  for (const id_ of selectedNodes.value.has(id) ? selectedNodes.value : [id]) {
-    const node = graphStore.nodes.get(id_)
-    if (node == null) {
-      continue
+  graphStore.transact(() => {
+    for (const id_ of selectedNodes.value.has(id) ? selectedNodes.value : [id]) {
+      const node = graphStore.nodes.get(id_)
+      if (node == null) {
+        continue
+      }
+      graphStore.setNodePosition(id_, node.position.add(scaledDelta))
     }
-    graphStore.setNodePosition(id_, node.position.add(scaledDelta))
-  }
+  })
 }
 
 const selectionAnchor = shallowRef<Vec2>()
@@ -158,15 +155,13 @@ function updateLatestSelectedNode(id: ExprId) {
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
-    projectStore.undoManager.undo()
+    projectStore.module?.undoManager.undo()
   },
   redo() {
-    projectStore.undoManager.redo()
+    projectStore.module?.undoManager.redo()
   },
   openComponentBrowser() {
-    if (keyboardBusy()) {
-      return false
-    }
+    if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
       componentBrowserPosition.value = navigator.sceneMousePos
       componentBrowserVisible.value = true
@@ -181,11 +176,14 @@ const graphBindingsHandler = graphBindings.handler({
 
 const nodeSelectionHandler = nodeBindings.handler({
   deleteSelected() {
-    for (const node of selectedNodes.value) {
-      graphStore.deleteNode(node)
-    }
+    graphStore.transact(() => {
+      for (const node of selectedNodes.value) {
+        graphStore.deleteNode(node)
+      }
+    })
   },
   selectAll() {
+    if (keyboardBusy()) return
     for (const id of graphStore.nodes.keys()) {
       selectedNodes.value.add(id)
     }
@@ -193,6 +191,19 @@ const nodeSelectionHandler = nodeBindings.handler({
   deselectAll() {
     clearSelection()
     selectedNodes.value.clear()
+    graphStore.stopCapturingUndo()
+  },
+  toggleVisualization() {
+    if (keyboardBusy()) return false
+    graphStore.transact(() => {
+      const allHidden = set
+        .toArray(selectedNodes.value)
+        .every((id) => graphStore.nodes.get(id)?.vis?.visible !== true)
+
+      for (const nodeId of selectedNodes.value) {
+        graphStore.setNodeVisualizationVisible(nodeId, allHidden)
+      }
+    })
   },
 })
 
@@ -281,9 +292,9 @@ const groupColors = computed(() => {
         v-for="(edge, index) in graphStore.edges"
         :key="index"
         :edge="edge"
-        :node-rects="nodeRects"
-        :expr-rects="exprRects"
-        :expr-nodes="graphStore.exprNodes"
+        :nodeRects="nodeRects"
+        :exprRects="exprRects"
+        :exprNodes="graphStore.exprNodes"
       />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
@@ -292,7 +303,8 @@ const groupColors = computed(() => {
         :key="id"
         :node="node"
         :selected="selectedNodes.has(id)"
-        :is-latest-selected="id === latestSelectedNode"
+        :isLatestSelected="id === latestSelectedNode"
+        :fullscreenVis="false"
         @update:selected="setSelected(id, $event), $event && updateLatestSelectedNode(id)"
         @replaceSelection="
           selectedNodes.clear(), selectedNodes.add(id), updateLatestSelectedNode(id)
@@ -301,6 +313,8 @@ const groupColors = computed(() => {
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
         @updateContent="updateNodeContent(id, $event)"
+        @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
+        @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
         @movePosition="moveNode(id, $event)"
       />
     </div>

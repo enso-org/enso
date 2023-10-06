@@ -1,10 +1,27 @@
 <script setup lang="ts">
+import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
 
-const props = defineProps<{ types: string[] }>()
-const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
+const props = defineProps<{ types: VisualizationIdentifier[]; value: VisualizationIdentifier }>()
+const emit = defineEmits<{ hide: []; 'update:value': [type: VisualizationIdentifier] }>()
 
 const rootNode = ref<HTMLElement>()
+
+function visIdLabel(id: VisualizationIdentifier) {
+  switch (id.module.kind) {
+    case 'Builtin':
+      return id.name
+    case 'Library':
+      return `${id.name} (from library ${id.module.name})`
+    case 'CurrentProject':
+      return `${id.name} (from project)`
+  }
+}
+
+function visIdKey(id: VisualizationIdentifier) {
+  const kindKey = id.module.kind === 'Library' ? `Library::${id.module.name}` : id.module.kind
+  return `${kindKey}::${id.name}`
+}
 
 onMounted(() => {
   setTimeout(() => rootNode.value?.focus(), 0)
@@ -17,9 +34,10 @@ onMounted(() => {
     <ul>
       <li
         v-for="type_ in props.types"
-        :key="type_"
-        @pointerdown.stop="emit('update:type', type_)"
-        v-text="type_"
+        :key="visIdKey(type_)"
+        :class="{ selected: visIdentifierEquals(props.value, type_) }"
+        @pointerdown.stop="emit('update:value', type_)"
+        v-text="visIdLabel(type_)"
       ></li>
     </ul>
   </div>
@@ -62,6 +80,10 @@ li {
   padding: 0 8px;
   border-radius: 12px;
   white-space: nowrap;
+
+  &.selected {
+    background: var(--color-menu-entry-selected-bg);
+  }
 
   &:hover {
     background: var(--color-menu-entry-hover-bg);

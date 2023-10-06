@@ -7,7 +7,7 @@ import diff from 'fast-diff'
 import * as json from 'lib0/json'
 import * as Y from 'yjs'
 import { TextEdit } from '../shared/languageServerTypes'
-import { ModuleDoc, NodeMetadata, decodeRange } from '../shared/yjsModel'
+import { ModuleDoc, NodeMetadata, VisualizationMetadata, decodeRange } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
 interface AppliedUpdates {
@@ -66,6 +66,9 @@ export function applyDocumentUpdates(
             position: {
               vector: [updatedMeta.x, updatedMeta.y],
             },
+            visualization: updatedMeta.vis
+              ? translateVisualizationToFile(updatedMeta.vis)
+              : undefined,
           }
           break
         }
@@ -89,6 +92,54 @@ export function applyDocumentUpdates(
     edits: allEdits,
     newContent,
     newMetadata: newMetadata,
+  }
+}
+
+function translateVisualizationToFile(
+  vis: VisualizationMetadata,
+): fileFormat.VisualizationMetadata | undefined {
+  let project = undefined
+  switch (vis.module.kind) {
+    case 'Builtin':
+      project = { project: 'Builtin' } as const
+      break
+    case 'CurrentProject':
+      project = { project: 'CurrentProject' } as const
+      break
+    case 'Library':
+      project = { project: 'Library', contents: vis.module.name } as const
+      break
+    default:
+      return
+  }
+  return {
+    name: vis.name,
+    show: vis.visible,
+    project,
+  }
+}
+
+export function translateVisualizationFromFile(
+  vis: fileFormat.VisualizationMetadata,
+): VisualizationMetadata | undefined {
+  let module
+  switch (vis.project.project) {
+    case 'Builtin':
+      module = { kind: 'Builtin' } as const
+      break
+    case 'CurrentProject':
+      module = { kind: 'CurrentProject' } as const
+      break
+    case 'Library':
+      module = { kind: 'Library', name: vis.project.contents } as const
+      break
+    default:
+      return
+  }
+  return {
+    name: vis.name,
+    visible: vis.show,
+    module,
   }
 }
 

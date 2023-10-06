@@ -207,18 +207,18 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
-watchPostEffect(() => {
-  width.value = config.value.fullscreen
+const width = computed(() =>
+  config.value.fullscreen
     ? containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
-})
-const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
-watchPostEffect(() => {
-  height.value = config.value.fullscreen
+    : Math.max(config.value.width ?? 0, config.value.nodeSize.x),
+)
+
+const height = computed(() =>
+  config.value.fullscreen
     ? containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
-})
+    : config.value.height ?? (config.value.nodeSize.x * 3) / 4,
+)
+
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xTicks = computed(() => boxWidth.value / 40)
@@ -541,7 +541,7 @@ useEvent(document, 'scroll', endBrushing)
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
         <img :src="ShowAllIcon" alt="Fit all" @pointerdown="showAll" />

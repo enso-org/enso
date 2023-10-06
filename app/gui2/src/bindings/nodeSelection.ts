@@ -9,4 +9,5 @@ export const nodeBindings = defineKeybinds('node-selection', {
   remove: ['Shift+Alt+PointerMain'],
   toggle: ['Shift+PointerMain'],
   invert: ['Mod+Shift+Alt+PointerMain'],
+  toggleVisualization: ['Space'],
 })

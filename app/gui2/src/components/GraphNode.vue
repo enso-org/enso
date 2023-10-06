@@ -5,6 +5,7 @@ import { nodeBindings } from '@/bindings/nodeSelection'
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import {
   provideVisualizationConfig,
   type VisualizationConfig,
@@ -13,12 +14,14 @@ import type { Node } from '@/stores/graph'
 import { Rect } from '@/stores/rect'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
+  DEFAULT_VISUALIZATION_IDENTIFIER,
   useVisualizationStore,
   type Visualization,
 } from '@/stores/visualization'
-import { keyboardBusy, useDocumentEvent, usePointer, useResizeObserver } from '@/util/events'
+import { usePointer, useResizeObserver } from '@/util/events'
+import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
-import type { ContentRange, ExprId } from 'shared/yjsModel'
+import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { useProjectStore } from '../stores/project'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
@@ -27,6 +30,7 @@ const props = defineProps<{
   node: Node
   selected: boolean
   isLatestSelected: boolean
+  fullscreenVis: boolean
 }>()
 
 const emit = defineEmits<{
@@ -34,6 +38,8 @@ const emit = defineEmits<{
   updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [updates: [range: ContentRange, content: string][]]
   movePosition: [delta: Vec2]
+  setVisualizationId: [id: Opt<VisualizationIdentifier>]
+  setVisualizationVisible: [visible: boolean]
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
@@ -50,22 +56,20 @@ type PreprocessorDef = {
   expression: string
   positionalArgumentsExpressions: string[]
 }
-const preprocessor = ref<PreprocessorDef>()
+const visPreprocessor = ref<PreprocessorDef>(DEFAULT_VISUALIZATION_CONFIGURATION)
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
-const isVisualizationVisible = ref(false)
+const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
-const visualizationType = ref('Scatterplot')
 const visualization = shallowRef<Visualization>()
 
 const projectStore = useProjectStore()
 
 const visualizationData = projectStore.useVisualizationData(() => {
-  if (!isVisualizationVisible.value) return
+  if (!isVisualizationVisible.value || !visPreprocessor.value) return
   return {
-    ...DEFAULT_VISUALIZATION_CONFIGURATION,
-    ...(preprocessor.value ?? {}),
+    ...visPreprocessor.value,
     expressionId: props.node.rootSpan.id,
   }
 })
@@ -294,67 +298,62 @@ function updatePreprocessor(
   expression: string,
   ...positionalArgumentsExpressions: string[]
 ) {
-  preprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
+  visPreprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
 }
 
 function switchToDefaultPreprocessor() {
-  preprocessor.value = undefined
+  visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
+}
+
+function setVisualizationVisible(visible: boolean) {
+  emit('setVisualizationVisible', visible)
+}
+
+function setVisualizationIdentifier(id: VisualizationIdentifier) {
+  emit('setVisualizationId', id)
 }
 
 const visualizationConfig = ref<VisualizationConfig>({
   fullscreen: false,
   types: visualizationStore.types,
   width: null,
-  height: 150, // FIXME:
+  height: 150,
   hide() {
-    isVisualizationVisible.value = false
+    setVisualizationVisible(false)
   },
-  updateType(type) {
-    visualizationType.value = type
-  },
+  updateType: setVisualizationIdentifier,
   isCircularMenuVisible: props.isLatestSelected,
   get nodeSize() {
     return nodeSize.value
   },
+  get currentType() {
+    return props.node.vis ?? DEFAULT_VISUALIZATION_IDENTIFIER
+  },
 })
 provideVisualizationConfig(visualizationConfig)
 
-useDocumentEvent('keydown', (event) => {
-  if (keyboardBusy()) {
-    return
-  }
-  if (event.key === ' ') {
-    if (event.shiftKey) {
-      if (isVisualizationVisible.value) {
-        visualizationConfig.value.fullscreen = !visualizationConfig.value.fullscreen
-      } else {
-        isVisualizationVisible.value = true
-        visualizationConfig.value.fullscreen = true
-      }
-    } else {
-      isVisualizationVisible.value = !isVisualizationVisible.value
-    }
-  }
-})
-
-watch(visualizationType, () => {
-  visualization.value = undefined
-  visualizationData.value = undefined
-})
-
 watchEffect(async () => {
-  if (!isVisualizationVisible.value) {
+  if (props.node.vis == null) {
     return
   }
-  const module = await visualizationStore.get(visualizationType.value)
-  if (module?.defaultPreprocessor != null) {
-    updatePreprocessor(...module.defaultPreprocessor)
-  } else {
-    switchToDefaultPreprocessor()
+
+  visualization.value = undefined
+  const module = await visualizationStore.get(props.node.vis)
+  if (module) {
+    if (module.defaultPreprocessor != null) {
+      updatePreprocessor(...module.defaultPreprocessor)
+    } else {
+      switchToDefaultPreprocessor()
+    }
+    visualization.value = module.default
   }
-  if (visualization.value == null) {
-    visualization.value = module?.default
+})
+
+const effectiveVisualization = computed(() => {
+  if (!visualization.value || visualizationData.value == null) {
+    return LoadingVisualization
   }
+  return visualization.value
 })
 
 watch(
@@ -412,7 +411,11 @@ const dragPointer = usePointer((pos, event, type) => {
     ref="rootNode"
     class="GraphNode"
     :style="{ transform }"
-    :class="{ dragging: dragPointer.dragging, selected }"
+    :class="{
+      dragging: dragPointer.dragging,
+      selected,
+      visualizationVisible: isVisualizationVisible,
+    }"
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
@@ -422,11 +425,12 @@ const dragPointer = usePointer((pos, event, type) => {
       v-if="isLatestSelected"
       v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
       v-model:is-docs-visible="isDocsVisible"
-      v-model:is-visualization-visible="isVisualizationVisible"
+      :isVisualizationVisible="isVisualizationVisible"
+      @update:isVisualizationVisible="setVisualizationVisible"
     />
     <component
-      :is="visualization"
-      v-if="isVisualizationVisible && visualization && visualizationData"
+      :is="effectiveVisualization"
+      v-if="isVisualizationVisible && effectiveVisualization != null"
       :data="visualizationData"
       @update:preprocessor="updatePreprocessor"
     />
@@ -439,6 +443,7 @@ const dragPointer = usePointer((pos, event, type) => {
         spellcheck="false"
         @beforeinput="editContent"
         @pointerdown.stop
+        @blur="projectStore.stopCapturingUndo()"
       >
         <NodeSpan
           :content="node.content"
@@ -453,10 +458,16 @@ const dragPointer = usePointer((pos, event, type) => {
 
 <style scoped>
 .GraphNode {
+  --node-height: 30px;
+  --node-border-radius: calc(var(--node-height) * 0.5);
+
   --node-color-primary: #357ab9;
   position: absolute;
   border-radius: var(--radius-full);
   transition: box-shadow 0.2s ease-in-out;
+  ::selection {
+    background-color: rgba(255, 255, 255, 20%);
+  }
 }
 
 .node {
@@ -464,9 +475,10 @@ const dragPointer = usePointer((pos, event, type) => {
   top: 0;
   left: 0;
   caret-shape: bar;
+  height: var(--node-height);
   background: var(--node-color-primary);
   background-clip: padding-box;
-  border-radius: var(--radius-full);
+  border-radius: var(--node-border-radius);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -474,17 +486,15 @@ const dragPointer = usePointer((pos, event, type) => {
   padding: 4px 8px;
   z-index: 2;
 }
-
 .GraphNode .selection {
   position: absolute;
   inset: calc(0px - var(--selected-node-border-width));
-  border-radius: var(--radius-full);
 
   &:before {
     content: '';
     opacity: 0;
     position: absolute;
-    border-radius: var(--radius-full);
+    border-radius: var(--node-border-radius);
     display: block;
     inset: var(--selected-node-border-width);
     box-shadow: 0 0 0 0 var(--node-color-primary);
@@ -495,7 +505,7 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 }
 
-.GraphNode.selected .selection:before,
+.GraphNode:is(:hover, .selected) .selection:before,
 .GraphNode .selection:hover:before {
   box-shadow: 0 0 0 var(--selected-node-border-width) var(--node-color-primary);
 }
@@ -510,7 +520,6 @@ const dragPointer = usePointer((pos, event, type) => {
 .GraphNode.selected .selection:hover:before {
   opacity: 0.3;
 }
-
 .binding {
   user-select: none;
   margin-right: 10px;
@@ -519,6 +528,13 @@ const dragPointer = usePointer((pos, event, type) => {
   right: 100%;
   top: 50%;
   transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.GraphNode .selection:hover + .binding,
+.GraphNode.selected .binding {
+  opacity: 1;
 }
 
 .editable {
@@ -538,13 +554,7 @@ const dragPointer = usePointer((pos, event, type) => {
   margin-right: 10px;
 }
 
-.visualization {
-  position: absolute;
-  top: 100%;
-  width: 100%;
-  margin-top: 4px;
-  padding: 4px;
-  background: #222;
-  border-radius: 16px;
+.CircularMenu {
+  z-index: 1;
 }
 </style>

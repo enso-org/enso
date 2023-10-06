@@ -127,8 +127,9 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             <VisualizationSelector
               v-if="isSelectorVisible"
               :types="config.types"
+              :value="config.currentType"
               @hide="isSelectorVisible = false"
-              @update:type="
+              @update:value="
                 (type) => {
                   isSelectorVisible = false
                   config.updateType(type)
@@ -153,7 +154,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   position: absolute;
   min-width: 100%;
   width: min-content;
-  z-index: -1;
   border-radius: var(--radius-default);
 }
 

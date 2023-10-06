@@ -208,14 +208,11 @@ export class ExecutionContext {
       for (const [id, config] of this.visualizationConfigs) {
         const previousConfig = state.visualizations.get(id)
         if (previousConfig == null) {
-          console.log('attach new', config)
           promises.push(attach(id, config))
         } else if (!visualizationConfigEqual(previousConfig, config)) {
-          console.log('modify', previousConfig, '->', config)
           if (previousConfig.expressionId === config.expressionId) {
             promises.push(modify(id, config))
           } else {
-            console.log('detach and attach', previousConfig, '->', config)
             promises.push(detach(id, previousConfig).then(() => attach(id, config)))
           }
         }
@@ -224,7 +221,6 @@ export class ExecutionContext {
       // Detach removed visualizations.
       for (const [id, config] of state.visualizations) {
         if (this.visualizationConfigs.get(id) == undefined) {
-          console.log('deleted', config)
           promises.push(detach(id, config))
         }
       }
@@ -342,8 +338,6 @@ export const useProjectStore = defineStore('project', () => {
   const contentRoots = initializedConnection.then(({ contentRoots }) => contentRoots)
   const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl)
 
-  const undoManager = new Y.UndoManager([], { doc })
-
   const name = computed(() => config.value.startup?.project)
   const namespace = computed(() => config.value.engine?.namespace)
 
@@ -381,17 +375,9 @@ export const useProjectStore = defineStore('project', () => {
     if (guid == null) return null
     const moduleName = projectModel.findModuleByDocId(guid)
     if (moduleName == null) return null
-    return await projectModel.openModule(moduleName)
-  })
-
-  watchEffect((onCleanup) => {
-    const mod = module.value
-    if (mod == null) return
-    const scope: typeof undoManager.scope = [mod.doc.contents, mod.doc.idMap]
-    undoManager.scope.push(...scope)
-    onCleanup(() => {
-      undoManager.scope = undoManager.scope.filter((s) => !scope.includes(s))
-    })
+    const mod = await projectModel.openModule(moduleName)
+    mod?.undoManager.addTrackedOrigin('local')
+    return mod
   })
 
   function createExecutionContextForMain(): ExecutionContext {
@@ -437,13 +423,16 @@ export const useProjectStore = defineStore('project', () => {
     })
 
     function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
-      console.log('viz update', vizUpdate)
       const json = vizUpdate.dataString()
       const newData = json != null ? JSON.parse(json) : undefined
       visualizationData.value = newData
     }
 
     return visualizationData
+  }
+
+  function stopCapturingUndo() {
+    module.value?.undoManager.stopCapturing()
   }
 
   return {
@@ -455,10 +444,10 @@ export const useProjectStore = defineStore('project', () => {
     executionContext,
     module,
     contentRoots,
-    undoManager,
     awareness,
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
+    stopCapturingUndo,
   }
 })

@@ -4,7 +4,7 @@ export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.V
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
-]
+] as const
 
 type Data = HeatmapData | HeatmapArrayData | HeatmapJSONData | HeatmapUpdate
 
@@ -211,7 +211,7 @@ watchPostEffect(() => {
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <div ref="containerNode" class="HeatmapVisualization">
       <svg :width="width" :height="height">
         <g :transform="`translate(${MARGIN.left},${MARGIN.top})`">

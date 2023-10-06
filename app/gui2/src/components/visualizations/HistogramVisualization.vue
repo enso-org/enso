@@ -4,7 +4,10 @@ import { defineKeybinds } from '@/util/shortcuts'
 export const name = 'Histogram'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
-export const defaultPreprocessor = ['Standard.Visualization.Histogram', 'process_to_json_text']
+export const defaultPreprocessor = [
+  'Standard.Visualization.Histogram',
+  'process_to_json_text',
+] as const
 
 const bindings = defineKeybinds('histogram-visualization', {
   zoomIn: ['Mod+Z'],
@@ -573,7 +576,7 @@ useEvent(document, 'scroll', endBrushing)
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
         <SvgIcon name="show_all" alt="Fit all" @click="showAll" />

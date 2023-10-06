@@ -8,14 +8,18 @@ import * as set from 'lib0/set'
 import { defineStore } from 'pinia'
 import {
   rangeIntersects,
+  visMetadataEquals,
   type ContentRange,
   type ExprId,
   type IdMap,
   type NodeMetadata,
+  type VisualizationIdentifier,
+  type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
 import { useProjectStore } from './project'
+import { DEFAULT_VISUALIZATION_IDENTIFIER } from './visualization'
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -130,10 +134,7 @@ export const useGraphStore = defineStore('graph', () => {
         const data = meta.get(id)
         const node = nodes.get(id as ExprId)
         if (data != null && node != null) {
-          const pos = new Vec2(data.x, -data.y)
-          if (!node.position.equals(pos)) {
-            node.position = pos
-          }
+          assignUpdatedMetadata(node, data)
         }
       }
     }
@@ -148,11 +149,15 @@ export const useGraphStore = defineStore('graph', () => {
       content,
       binding: stmt.binding ?? '',
       rootSpan: stmt.expression,
-      position: meta == null ? Vec2.Zero() : new Vec2(meta.x, -meta.y),
+      position: Vec2.Zero(),
+      vis: undefined,
       docRange: [
         Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset, -1),
         Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset + stmt.expression.length),
       ],
+    }
+    if (meta) {
+      assignUpdatedMetadata(node, meta)
     }
     identDefinitions.set(node.binding, nodeId)
     addSpanUsages(nodeId, node)
@@ -173,10 +178,20 @@ export const useGraphStore = defineStore('graph', () => {
     } else {
       node.rootSpan = stmt.expression
     }
-    if (meta != null && !node.position.equals(new Vec2(meta.x, -meta.y))) {
-      node.position = new Vec2(meta.x, -meta.y)
+    if (meta != null) {
+      assignUpdatedMetadata(node, meta)
     }
     addSpanUsages(nodeId, node)
+  }
+
+  function assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
+    const newPosition = new Vec2(meta.x, -meta.y)
+    if (!node.position.equals(newPosition)) {
+      node.position = newPosition
+    }
+    if (!visMetadataEquals(node.vis, meta.vis)) {
+      node.vis = meta.vis
+    }
   }
 
   function addSpanUsages(id: ExprId, node: Node) {
@@ -247,6 +262,7 @@ export const useGraphStore = defineStore('graph', () => {
     const meta: NodeMetadata = {
       x: position.x,
       y: -position.y,
+      vis: null,
     }
     const ident = generateUniqueIdent()
     const content = `${ident} = ${expression}`
@@ -271,16 +287,50 @@ export const useGraphStore = defineStore('graph', () => {
     return proj.module?.transact(fn)
   }
 
-  function replaceNodeSubexpression(id: ExprId, range: ContentRange, content: string) {
-    const node = nodes.get(id)
+  function stopCapturingUndo() {
+    proj.stopCapturingUndo()
+  }
+
+  function replaceNodeSubexpression(nodeId: ExprId, range: ContentRange, content: string) {
+    const node = nodes.get(nodeId)
     if (node == null) return
     proj.module?.replaceExpressionContent(node.rootSpan.id, content, range)
   }
 
-  function setNodePosition(id: ExprId, position: Vec2) {
-    const node = nodes.get(id)
+  function setNodePosition(nodeId: ExprId, position: Vec2) {
+    const node = nodes.get(nodeId)
     if (node == null) return
-    proj.module?.updateNodeMetadata(id, { x: position.x, y: -position.y })
+    proj.module?.updateNodeMetadata(nodeId, { x: position.x, y: -position.y })
+  }
+
+  function normalizeVisMetadata(
+    id: Opt<VisualizationIdentifier>,
+    visible?: boolean,
+  ): VisualizationMetadata | null {
+    const vis: VisualizationMetadata = {
+      ...(id ?? DEFAULT_VISUALIZATION_IDENTIFIER),
+      visible: visible ?? false,
+    }
+    if (
+      visMetadataEquals(vis, {
+        ...DEFAULT_VISUALIZATION_IDENTIFIER,
+        visible: false,
+      })
+    )
+      return null
+    return vis
+  }
+
+  function setNodeVisualizationId(nodeId: ExprId, vis: Opt<VisualizationIdentifier>) {
+    const node = nodes.get(nodeId)
+    if (node == null) return
+    proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(vis, node.vis?.visible) })
+  }
+
+  function setNodeVisualizationVisible(nodeId: ExprId, visible: boolean) {
+    const node = nodes.get(nodeId)
+    if (node == null) return
+    proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
   }
 
   return {
@@ -298,6 +348,9 @@ export const useGraphStore = defineStore('graph', () => {
     setExpressionContent,
     replaceNodeSubexpression,
     setNodePosition,
+    setNodeVisualizationId,
+    setNodeVisualizationVisible,
+    stopCapturingUndo,
   }
 })
 
@@ -311,6 +364,7 @@ export interface Node {
   rootSpan: Span
   position: Vec2
   docRange: [Y.RelativePosition, Y.RelativePosition]
+  vis: Opt<VisualizationMetadata>
 }
 
 export const enum SpanKind {

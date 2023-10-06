@@ -6,13 +6,11 @@ export const inputType = 'Any'
 <script setup lang="ts">
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
-type Data = Record<string, unknown>
-
-const props = defineProps<{ data: Data }>()
+const props = defineProps<{ data: unknown }>()
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <div class="JSONVisualization" v-text="props.data"></div>
   </VisualizationContainer>
 </template>

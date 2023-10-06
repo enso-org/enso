@@ -3,7 +3,7 @@ import { useProjectStore } from '@/stores/project'
 import { useWindowEvent } from '@/util/events'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { basicSetup } from 'codemirror'
+import { minimalSetup } from 'codemirror'
 import { ref, watchPostEffect } from 'vue'
 // y-codemirror.next does not provide type information. See https://github.com/yjs/y-codemirror.next/issues/27
 // @ts-ignore
@@ -32,15 +32,16 @@ useWindowEvent('keydown', (e) => {
 const codeMirrorEl = ref(null)
 const editorView = ref<EditorView>()
 watchPostEffect((onCleanup) => {
-  const yText = projectStore.module?.doc.contents
-  if (!yText || !codeMirrorEl.value) return
-  const undoManager = projectStore.undoManager
+  const module = projectStore.module
+  if (!module || !codeMirrorEl.value) return
+  const yText = module.doc.contents
+  const undoManager = module.undoManager
   const awareness = projectStore.awareness
   const view = new EditorView({
     parent: codeMirrorEl.value,
     state: EditorState.create({
       doc: yText.toString(),
-      extensions: [basicSetup, yCollab(yText, awareness, { undoManager })],
+      extensions: [minimalSetup, yCollab(yText, awareness, { undoManager })],
     }),
   })
   onCleanup(() => view.destroy())
@@ -72,7 +73,11 @@ watchPostEffect((onCleanup) => {
 .codemirror-container {
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  border-top-right-radius: 10px;
+  opacity: 1;
+  color: white;
 }
 .cm-editor {
   width: 100%;
