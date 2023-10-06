@@ -1969,7 +1969,7 @@ type Table
 
         unique.mark_used (id_columns.map .name)
         java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-            Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name)
+            Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name) java_problem_aggregator
         result = Table.Value java_table
         problem_builder.report_unique_name_strategy unique
 

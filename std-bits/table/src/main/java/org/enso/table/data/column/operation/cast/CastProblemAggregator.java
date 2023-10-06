@@ -16,7 +16,7 @@ public class CastProblemAggregator extends ProblemAggregator {
   private final ArrayList<Object> numberOutOfRangeExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
   private final ArrayList<String> textTooLongExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
 
-  public CastProblemAggregator(String columnName, StorageType targetType, ProblemAggregator parent) {
+  public CastProblemAggregator(ProblemAggregator parent, String columnName, StorageType targetType) {
     super(parent);
     this.columnName = columnName;
     this.targetType = targetType;

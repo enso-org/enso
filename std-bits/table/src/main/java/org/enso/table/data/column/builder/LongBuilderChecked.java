@@ -19,7 +19,7 @@ public class LongBuilderChecked extends LongBuilder {
     // Currently we have no correlation with column name, and it may not be necessary for now.
     // TODO ideally we want to pass the column through a problem aggregator context
     String relatedColumnName = null;
-    this.castProblemAggregator = new CastProblemAggregator(relatedColumnName, type, problemAggregator);
+    this.castProblemAggregator = new CastProblemAggregator(problemAggregator, relatedColumnName, type);
   }
 
   @Override

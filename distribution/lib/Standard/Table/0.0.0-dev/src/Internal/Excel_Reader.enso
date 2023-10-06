@@ -6,6 +6,7 @@ import Standard.Base.System.Input_Stream.Input_Stream
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
+import project.Internal.Java_Problems
 from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet_Error, Invalid_Column_Names, Invalid_Location
 
 polyglot java import org.apache.poi.poifs.filesystem.NotOLE2FileException
@@ -61,8 +62,8 @@ read_file file section headers on_problems xls_format=False =
         Excel_Section.Cell_Range address skip_rows row_limit ->
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 java_table = case address of
-                    _ : Excel_Range -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
-                    _ : Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
+                    _ : Excel_Range -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format java_problem_aggregator
+                    _ : Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format java_problem_aggregator
                 Table.Value java_table
 
     handle_reader file reader

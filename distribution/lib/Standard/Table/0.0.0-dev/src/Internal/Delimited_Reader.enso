@@ -92,7 +92,7 @@ read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> 
 read_from_reader format java_reader on_problems max_columns=4096 =
     Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <| Empty_File_Error.handle_java_exception <|
         reader = prepare_reader format max_columns on_problems
-        Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             reader.read java_reader java_problem_aggregator
         Table.Value java_table
 
