@@ -1,7 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -36,11 +34,6 @@ public sealed class ObjectStorage extends SpecializedStorage<Object> permits Mix
   @Override
   public StorageType getType() {
     return AnyObjectType.INSTANCE;
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new ObjectBuilder(capacity);
   }
 
   public static <T, S extends SpecializedStorage<T>> MapOperationStorage<T, S> buildObjectOps() {

@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.builder.Builder;
+
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -32,7 +32,6 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -364,11 +363,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
     return new DoubleStorage(newData, newSize, newMask);
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return NumericBuilder.createDoubleBuilder(capacity);
   }
 
   @Override

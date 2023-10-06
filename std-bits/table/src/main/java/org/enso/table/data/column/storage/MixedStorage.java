@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -278,11 +277,6 @@ public final class MixedStorage extends ObjectStorage {
       // Even if the operation is not available, we rely on super to report an exception.
       return super.runVectorizedZip(name, argument, problemBuilder);
     }
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new MixedBuilder(capacity);
   }
 
   @Override

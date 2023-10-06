@@ -505,13 +505,6 @@ public abstract class Storage<T> {
   }
 
   /**
-   * Creates a builder that is capable of creating storages of the same type as the current one.
-   *
-   * <p>This is useful for example when copying the current storage with some modifications.
-   */
-  public abstract Builder createDefaultBuilderOfSameType(int capacity);
-
-  /**
    * @return a copy of the storage consisting of slices of the original data
    */
   public abstract Storage<T> slice(List<SliceRange> ranges);

@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -15,9 +14,7 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -408,11 +405,6 @@ public final class BoolStorage extends Storage<Boolean> {
         isMissing.get(offset, offset + limit),
         newSize,
         negated);
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new BoolBuilder(capacity);
   }
 
   @Override

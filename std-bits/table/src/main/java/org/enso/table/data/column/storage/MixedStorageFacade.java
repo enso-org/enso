@@ -2,8 +2,7 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.MixedBuilder;
+
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -107,11 +106,6 @@ public class MixedStorageFacade extends Storage<Object> {
   public Storage<Object> slice(int offset, int limit) {
     Storage<?> newStorage = underlyingStorage.slice(offset, limit);
     return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new MixedBuilder(capacity);
   }
 
   @Override

@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -14,7 +13,6 @@ import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -60,11 +58,6 @@ public final class StringStorage extends SpecializedStorage<String> {
     } else {
       return super.fillMissing(arg, commonType, problemAggregator);
     }
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new StringBuilder(capacity, type);
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
