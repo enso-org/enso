@@ -196,7 +196,7 @@ public class DoubleBuilder extends NumericBuilder {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
-      reportPrecisionLoss(integer, floatingPointValue);
+      precisionLossAggregator.reportPrecisionLoss(integer, floatingPointValue);
     }
     return floatingPointValue;
   }
@@ -206,7 +206,7 @@ public class DoubleBuilder extends NumericBuilder {
     BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
     if (isLosingPrecision) {
-      reportPrecisionLoss(bigInteger, floatingPointValue);
+      precisionLossAggregator.reportPrecisionLoss(bigInteger, floatingPointValue);
     }
     return floatingPointValue;
   }

@@ -43,8 +43,9 @@ type Excel_Workbook
     from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
     from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
         stream.with_java_stream java_stream->
-            workbook = ExcelReader.readWorkbook java_stream xls_format
-            Excel_Workbook.Value workbook file xls_format headers
+            Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                workbook = ExcelReader.readWorkbook java_stream xls_format java_problem_aggregator
+                Excel_Workbook.Value workbook file xls_format headers
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
@@ -163,9 +164,11 @@ type Excel_Workbook
     read : Text -> Integer | Nothing -> Table
     read self query limit=Nothing =
         java_headers = Excel_Reader.make_java_headers self.headers
-        Excel_Reader.prepare_reader_table Report_Warning <| case query of
-            _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit
-            _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit
+        java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            case query of
+                _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit java_problem_aggregator
+                _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit java_problem_aggregator
+        Table.Value java_table
 
     ## GROUP Standard.Base.Input
        Read an Excel_Section from the Workbook
@@ -187,9 +190,12 @@ type Excel_Workbook
                         if (sheet < 1 || sheet >= names.length) then Error.throw (Illegal_Argument.Error "Worksheet index out of range.") else
                             names.at (sheet - 1)
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
-                Excel_Reader.prepare_reader_table Report_Warning <|
-                    ExcelReader.readRangeByName self.workbook sheet_name java_headers skip_rows row_limit
+                java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                    ExcelReader.readRangeByName self.workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
+                Table.Value java_table
             Excel_Section.Cell_Range address skip_rows row_limit ->
-                Excel_Reader.prepare_reader_table Report_Warning <| case address of
-                    _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit
-                    _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit
+                java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                    case address of
+                        _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
+                        _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit java_problem_aggregator
+                Table.Value java_table
