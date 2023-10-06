@@ -19,7 +19,7 @@ import {
 } from '@/stores/visualization'
 import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
-import { methodNameToIcon } from '@/util/methodIcon'
+import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
@@ -416,7 +416,16 @@ const expressionInfo = computed(() =>
 )
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const icon = computed(() => methodNameToIcon(expressionInfo.value?.methodCall?.methodPointer.name))
+const icon = computed(() => {
+  const methodName = expressionInfo.value?.methodCall?.methodPointer.name
+  if (methodName != null) {
+    return methodNameToIcon(methodName)
+  } else if (outputTypeName.value != null) {
+    return typeNameToIcon(outputTypeName.value)
+  } else {
+    return 'in_out'
+  }
+})
 </script>
 
 <template>

@@ -777,6 +777,28 @@
             </g>
         </svg>
     </g>
+    <g id="remove_column">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 9L11 7L15 7L15 9L11 9Z" fill="currentColor"/>
+            <path opacity="0.4" d="M0 5L-1.74846e-07 1L4 1L4 5L0 5Z" fill="currentColor"/>
+            <path d="M5 5L5 1L9 1L9 5L5 5Z" fill="currentColor"/>
+            <path opacity="0.4" d="M0 10L-1.74846e-07 6L4 6L4 10L0 10Z" fill="currentColor"/>
+            <path d="M5 10L5 6L9 6L9 10L5 10Z" fill="currentColor"/>
+            <rect opacity="0.4" y="15" width="4" height="4" transform="rotate(-90 0 15)" fill="currentColor"/>
+            <rect x="5" y="15" width="4" height="4" transform="rotate(-90 5 15)" fill="currentColor"/>
+        </svg>
+    </g>
+    <g id="remove_row">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 12L10 14L6 14L6 12L10 12Z" fill="currentColor"/>
+            <path opacity="0.4" d="M11 0H15V4H11V0Z" fill="currentColor"/>
+            <path d="M11 5H15V9H11V5Z" fill="currentColor"/>
+            <path opacity="0.4" d="M6 0H10V4H6V0Z" fill="currentColor"/>
+            <path d="M6 5H10V9H6V5Z" fill="currentColor"/>
+            <rect opacity="0.4" x="1" width="4" height="4" fill="currentColor"/>
+            <rect x="1" y="5" width="4" height="4" fill="currentColor"/>
+        </svg>
+    </g>
     <g id="right_side_panel" fill="none">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g id="icon/right_side_panel">
