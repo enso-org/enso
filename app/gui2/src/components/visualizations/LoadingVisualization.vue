@@ -1,5 +1,5 @@
 <script lang="ts">
-export const name = 'JSON'
+export const name = 'Loading'
 export const inputType = 'Any'
 </script>
 

@@ -189,11 +189,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   transition-property: padding-left;
 }
 
-.VisualizationContainer.fullscreen .toolbars,
-.VisualizationContainer:not(.circular-menu-visible) .toolbars {
-  padding-left: 4px;
-}
-
 .content {
   overflow: auto;
 }
