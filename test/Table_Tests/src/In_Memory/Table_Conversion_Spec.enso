@@ -10,6 +10,11 @@ from project.Util import all
 
 spec =
     single_values = [Nothing, 12, 13.4, True, "hello", Date.new 2023 10 6, Time_Of_Day.new 3 4 5 200, Date_Time.new 2023 11 7 2 3 4]
+    uniform_json = Json.parse <| '''
+        [
+            { "first": "Mary", "last": "Smith", "age": 23 },
+            { "first": "Joe", "last": "Burton", "age": 34 }
+        ]
 
     Test.group "Single values" <|
         Test.specify "Can create a table from a single value" <|
@@ -32,5 +37,26 @@ spec =
         Test.specify "A vector of single values with a field list results in a column of Nothing" <|
             expected = Table.new [["aaa", [Nothing, Nothing]], ["bbb", [Nothing, Nothing]]]
             Table.from_objects [1, 2] ['aaa', 'bbb'] . should_equal expected
+
+    Test.group "JSON" <|
+        Test.specify "Generates a single-row table from a JSON object" <|
+            expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23], ["Joe", "Burton", 34]]
+            Table.from_objects uniform_json . should_equal expected
+
+        Test.specify "Generates a table from a vector of JSON objects, with exact fields" <|
+            expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23], ["Joe", "Burton", 34]]
+            Table.from_objects uniform_json ["first", "last", "age"] . should_equal expected
+
+        Test.specify "Generates a table from a vector of JSON objects, with a subset of fields" <|
+            expected = Table.from_rows ["last", "age"] [["Smith", 23], ["Burton", 34]]
+            Table.from_objects uniform_json ["last", "age"] . should_equal expected
+
+        Test.specify "Generates a table from a vector of JSON objects, with extra fields" <|
+            expected = Table.from_rows ["first", "middle", "last", "age"] [["Mary", Nothing, "Smith", 23], ["Joe", Nothing, "Burton", 34]]
+            Table.from_objects uniform_json ["first", "middle", "last", "age"] . should_equal expected
+
+        Test.specify "Generates a table from a mixed vector of single values and JSON objects" <|
+            expected = Table.from_rows ["first", "last", "age", "Value"] [["Mary", "Smith", 23, Nothing], ["Joe", "Burton", 34, Nothing], [Nothing, Nothing, Nothing, 12]]
+            Table.from_objects uniform_json+[12] . should_equal expected
 
 main = Test_Suite.run_main spec
