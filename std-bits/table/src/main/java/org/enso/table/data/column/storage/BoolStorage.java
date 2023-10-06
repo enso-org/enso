@@ -16,6 +16,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -208,11 +209,11 @@ public final class BoolStorage extends Storage<Boolean> {
     return negated;
   }
 
-  public WithAggregatedProblems<Storage<?>> iif(Value when_true, Value when_false, StorageType resultStorageType) {
+  public Storage<?> iif(Value when_true, Value when_false, StorageType resultStorageType, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     var on_true = makeRowProvider(when_true);
     var on_false = makeRowProvider(when_false);
-    Builder builder = Builder.getForType(resultStorageType, size);
+    Builder builder = Builder.getForType(resultStorageType, size, problemAggregator);
     for (int i = 0; i < size; i++) {
       if (isMissing.get(i)) {
         builder.append(null);
@@ -225,8 +226,7 @@ public final class BoolStorage extends Storage<Boolean> {
       context.safepoint();
     }
 
-    Storage<?> result = builder.seal();
-    return new WithAggregatedProblems<>(result, builder.getProblems());
+    return builder.seal();
   }
 
   private static IntFunction<Object> makeRowProvider(Value value) {

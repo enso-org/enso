@@ -123,14 +123,14 @@ public class CrossTabIndex {
     // Create the storage
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < yColumns.length; i++) {
-      storage[i] = Builder.getForType(yColumns[i].getStorage().getType(), yKeysCount());
+      storage[i] = Builder.getForType(yColumns[i].getStorage().getType(), yKeysCount(), problemAggregator);
       context.safepoint();
     }
 
     for (int i = 0; i < xKeysCount(); i++) {
       int offset = yColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] = Builder.getForType(aggregates[j].getType(), yKeysCount());
+        storage[offset + j] = Builder.getForType(aggregates[j].getType(), yKeysCount(), problemAggregator);
         context.safepoint();
       }
     }
