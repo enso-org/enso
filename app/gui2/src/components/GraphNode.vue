@@ -458,7 +458,7 @@ const dragPointer = usePointer((pos, event, type) => {
 
 <style scoped>
 .GraphNode {
-  --node-height: 30px;
+  --node-height: 32px;
   --node-border-radius: calc(var(--node-height) * 0.5);
 
   --node-color-primary: #357ab9;
