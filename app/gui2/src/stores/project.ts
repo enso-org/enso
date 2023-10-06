@@ -14,6 +14,7 @@ import { LanguageServer } from 'shared/languageServer'
 import type {
   ContentRoot,
   ContextId,
+  ExplicitCall,
   ExpressionId,
   MethodPointer,
   StackItem,
@@ -116,6 +117,8 @@ function visualizationConfigEqual(
   )
 }
 
+type EntryPoint = Omit<ExplicitCall, 'type'>
+
 /**
  * Execution Context
  *
@@ -133,7 +136,7 @@ export class ExecutionContext {
   visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
   abortCtl = new AbortController()
 
-  constructor(lsRpc: Promise<LanguageServer>) {
+  constructor(lsRpc: Promise<LanguageServer>, entryPoint: EntryPoint) {
     this.queue = new AsyncQueue(
       lsRpc.then((lsRpc) => ({
         lsRpc,
@@ -143,6 +146,7 @@ export class ExecutionContext {
       })),
     )
     this.create()
+    this.pushItem({ type: 'ExplicitCall', ...entryPoint })
   }
 
   private withBackoff<T>(f: () => Promise<T>, message: string): Promise<T> {
@@ -255,20 +259,7 @@ export class ExecutionContext {
     })
   }
 
-  pushCall(
-    methodPointer: MethodPointer,
-    thisArgumentExpression?: string,
-    positionalArgumentsExpressions?: string[],
-  ) {
-    this.pushItem({
-      type: 'ExplicitCall',
-      methodPointer,
-      thisArgumentExpression,
-      positionalArgumentsExpressions: positionalArgumentsExpressions ?? [],
-    })
-  }
-
-  pushLocal(expressionId: ExpressionId) {
+  push(expressionId: ExpressionId) {
     this.pushItem({ type: 'LocalCall', expressionId })
   }
 
@@ -395,9 +386,11 @@ export const useProjectStore = defineStore('project', () => {
     }
     const projectName = `${namespace.value ?? 'local'}.${name.value}`
     const mainModule = `${projectName}.Main`
-    const ctx = new ExecutionContext(lsRpcConnection)
-    ctx.pushCall({ module: mainModule, definedOnType: mainModule, name: 'main' })
-    return ctx
+    const entryPoint = { module: mainModule, definedOnType: mainModule, name: 'main' }
+    return new ExecutionContext(lsRpcConnection, {
+      methodPointer: entryPoint,
+      positionalArgumentsExpressions: [],
+    })
   }
 
   const executionContext = createExecutionContextForMain()
