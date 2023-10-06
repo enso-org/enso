@@ -39,7 +39,11 @@ class ExecuteJob(
       executionEnvironment.foreach(env =>
         context.setExecutionEnvironment(ExecutionEnvironment.forName(env.name))
       )
-      val outcome = ProgramExecutionSupport.runProgram(contextId, stack)
+      val outcome =
+        try ProgramExecutionSupport.runProgram(contextId, stack)
+        finally {
+          originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
+        }
       outcome match {
         case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
           if (diagnostic.isError) {
@@ -74,7 +78,6 @@ class ExecuteJob(
           )
         )
     } finally {
-      originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
       ctx.locking.releaseReadCompilationLock()
       logger.log(
         Level.FINEST,
