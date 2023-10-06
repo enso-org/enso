@@ -8,9 +8,17 @@ public class ProblemAggregator {
   protected List<Problem> directlyReportedProblems = new ArrayList<>();
   protected List<ProblemAggregator> children = new ArrayList<>();
   protected final ProblemAggregator parent;
+  protected boolean isFinished = false;
+
+  protected void checkNotFinished() {
+    if (isFinished) {
+      throw new IllegalStateException("This ProblemAggregator instance has already been summarized. The problem " + problem + " would most likely be lost. Using ProblemAggregator after it has been summarized is a bug.");
+    }
+  }
 
   /* Called by any processing code to report a simple problem. Specialized implementations may be available too. */
   public void report(Problem problem) {
+    checkNotFinished();
     directlyReportedProblems.add(problem);
   }
 
@@ -19,6 +27,7 @@ public class ProblemAggregator {
    */
   @Deprecated
   public void reportAll(List<Problem> problems) {
+    checkNotFinished();
     directlyReportedProblems.addAll(problems);
   }
 
@@ -46,6 +55,7 @@ public class ProblemAggregator {
 
   /* Called by the top-level user after all processing is completed, to summarize problems that happened. */
   public ProblemSummary summarize() {
+    isFinished = true;
     List<Problem> problems = new ArrayList<>(directlyReportedProblems);
     long count = directlyReportedProblems.size();
     for (ProblemAggregator child : children) {
@@ -58,6 +68,7 @@ public class ProblemAggregator {
   }
 
   protected void registerChild(ProblemAggregator child) {
+    checkNotFinished();
     children.add(child);
   }
 
@@ -110,7 +121,9 @@ public class ProblemAggregator {
     parent.children.remove(this);
   }
 
-  /** Creates a child aggregator that will forward all of its problems to the parent, unless it is later detached. */
+  /**
+   * Creates a child aggregator that will forward all of its problems to the parent, unless it is later detached.
+   */
   public ProblemAggregator createSimpleChild() {
     return new ProblemAggregator(this);
   }
