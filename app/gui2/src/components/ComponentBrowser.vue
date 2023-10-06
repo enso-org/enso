@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
-import SvgIcon from '@/components/SvgIcon.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
+import { default as SvgIcon } from '@/components/SvgIcon.vue'
+import { default as ToggleIcon } from '@/components/ToggleIcon.vue'
+import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useApproach } from '@/util/animation'
 import { useResizeObserver } from '@/util/events'
@@ -68,7 +69,7 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    emit('finished')
+    //emit('finished')
   }
 }
 
@@ -202,10 +203,10 @@ function updateScroll() {
   }
 }
 
-// === Documentation Panel ===
+ // === Documentation Panel ===
 
-const docsVisible = ref(true)
-
+ const docsVisible = ref(true) 
+ 
 // === Key Events Handler ===
 
 function handleKeydown(e: KeyboardEvent) {
@@ -290,7 +291,9 @@ function handleKeydown(e: KeyboardEvent) {
           </div>
         </div>
       </div>
-      <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
+      <div class="panel docs" :class="{ hidden: !docsVisible }">
+		<DocumentationPanel />
+	  </div>
     </div>
     <div class="CBInput"><input ref="inputField" v-model="inputText" /></div>
   </div>
