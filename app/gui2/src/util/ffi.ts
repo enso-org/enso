@@ -559,7 +559,6 @@ if (import.meta.vitest) {
             },
             func: {
               childrenCodeLength: 3,
-              whitespaceStart: 0,
               whitespaceLength: 0,
               token: {
                 codeStart: 1,
@@ -589,13 +588,6 @@ if (import.meta.vitest) {
       type: 'BodyBlock',
     })
   })
-  /*
-  test('TryParseSmthing', () => {
-    const smthing = 'Data.read file="name"'
-    const parsed = parseEnso2(smthing)
-    Array.from(parsed.statements)[0].expression.name.isTypeOrConstructor
-  })
-   */
   test('testSpans', () => {
     const identInput = ' foo bar\n'
     const tree = parseEnso2(identInput)

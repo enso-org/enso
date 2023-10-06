@@ -211,19 +211,22 @@ function validateSpans_(value: DynValue, state: { pos: number }) {
       break
     case 'object':
       const fields = new Map(value.getFields())
-      const whitespaceStart = fields.get('whitespaceLength')
+      const whitespaceStart = fields.get('whitespaceStart')
       const whitespaceLength = fields.get('whitespaceLength')
       const codeStart = fields.get('codeStart')
       const codeLength = fields.get('codeLength')
       const childrenCodeLength = fields.get('childrenCodeLength')
-      if (whitespaceStart?.type === 'primitive' && whitespaceStart.value !== state.pos)
-        throw new Error('Span error (whitespace).')
-      if (whitespaceLength?.type === 'primitive')
-        state.pos += whitespaceLength.value as number
-      if (codeStart?.type === 'primitive' && codeStart.value !== state.pos)
-        throw new Error('Span error (code).')
-      if (codeLength?.type === 'primitive')
-        state.pos += codeLength.value as number
+      if (!(whitespaceLength?.type === 'primitive' && whitespaceLength.value === 0
+          && codeLength?.type === 'primitive' && codeLength?.value === 0)) {
+        if (whitespaceStart?.type === 'primitive' && whitespaceStart.value !== state.pos)
+          throw new Error('Span error (whitespace).')
+        if (whitespaceLength?.type === 'primitive')
+          state.pos += whitespaceLength.value as number
+        if (codeStart?.type === 'primitive' && codeStart.value !== state.pos)
+          throw new Error('Span error (code).')
+        if (codeLength?.type === 'primitive')
+          state.pos += codeLength.value as number
+      }
       let endPos: number | undefined
       if (childrenCodeLength?.type === 'primitive')
         endPos = state.pos + (childrenCodeLength.value as number)

@@ -241,8 +241,8 @@ impl<'s> Lexer<'s> {
     fn marker_token<T>(&mut self, elem: T) -> Token<'s, T> {
         let visible_offset = VisibleOffset(0);
         let start = self.current_offset - self.last_spaces_offset;
-        let offset = Offset(visible_offset, Code::empty_at(start.utf16));
-        Token(offset, Code::empty_at(start.utf16), elem)
+        let offset = Offset(visible_offset, Code::empty(start.utf16));
+        Token(offset, Code::empty(start.utf16), elem)
     }
 
     /// Push the [`token`] to the result stream.
@@ -896,8 +896,8 @@ impl<'s> Lexer<'s> {
                     .with_binary_infix_precedence(u32::MAX)
                     .as_token_joiner();
                 self.submit_token(Token(
-                    Code::empty(),
-                    Code::empty(),
+                    Code::empty_without_offset(),
+                    Code::empty_without_offset(),
                     token::Variant::operator(joiner),
                 ));
                 // Every number has a digits-token, even if it's zero-length.
@@ -1077,7 +1077,7 @@ impl<'s> Lexer<'s> {
                 if let Some(indent) = new_indent {
                     if indent <= *block_indent {
                         self.output
-                            .push(Token::from(token::text_end(Code::empty(), Code::empty())));
+                            .push(Token::from(token::text_end(Code::empty_without_offset(), Code::empty_without_offset())));
                         self.end_blocks(indent);
                         self.output.extend(newlines);
                         if self.current_offset == text_start.0 {
@@ -1150,7 +1150,7 @@ impl<'s> Lexer<'s> {
             let close_quote_end = self.mark();
             self.make_token(text_end, close_quote_end, token::Variant::text_end())
         } else {
-            Token::from(token::text_end(Code::empty(), Code::empty()))
+            Token::from(token::text_end(Code::empty_without_offset(), Code::empty_without_offset()))
         };
         self.output.push(end_token);
         TextEndedAt::End
@@ -1408,7 +1408,7 @@ impl<'s> Lexer<'s> {
                 Code::from_str_at_offset(offset_code, left_offset_start.utf16),
             );
             let eof = token::variant::Variant::Newline(token::variant::Newline());
-            self.submit_token(Token(offset, Code::empty(), eof));
+            self.submit_token(Token(offset, Code::empty(self.current_offset.utf16), eof));
         }
         let mut internal_error = self.internal_error.take();
         if self.current_char.is_some() {
@@ -1499,45 +1499,45 @@ mod tests {
 
     #[test]
     fn test_case_block() {
-        let newline = newline_(Code::empty(), Code::from_str_without_offset("\n"));
+        let newline = newline_(Code::empty_without_offset(), Code::from_str_without_offset("\n"));
         test_lexer_many(vec![
-            ("\n", vec![newline_(Code::empty(), Code::from_str_without_offset("\n"))]),
+            ("\n", vec![newline_(Code::empty_without_offset(), Code::from_str_without_offset("\n"))]),
             ("\n  foo\n  bar", vec![
-                block_start_(Code::empty(), Code::empty()),
+                block_start_(Code::empty_without_offset(), Code::empty_without_offset()),
                 newline.clone(),
                 ident_("  ", "foo"),
                 newline.clone(),
                 ident_("  ", "bar"),
-                block_end_(Code::empty(), Code::empty()),
+                block_end_(Code::empty_without_offset(), Code::empty_without_offset()),
             ]),
             ("foo\n    +", vec![
                 ident_("", "foo"),
-                block_start_(Code::empty(), Code::empty()),
+                block_start_(Code::empty_without_offset(), Code::empty_without_offset()),
                 newline,
                 operator_("    ", "+"),
-                block_end_(Code::empty(), Code::empty()),
+                block_end_(Code::empty_without_offset(), Code::empty_without_offset()),
             ]),
         ]);
     }
 
     #[test]
     fn test_case_block_bad_indents() {
-        let newline = newline_(Code::empty(), Code::from_str_without_offset("\n"));
+        let newline = newline_(Code::empty_without_offset(), Code::from_str_without_offset("\n"));
         #[rustfmt::skip]
         test_lexer_many(vec![
             ("\n  foo\n bar\nbaz", vec![
-                block_start_(Code::empty(), Code::empty()),
+                block_start_(Code::empty_without_offset(), Code::empty_without_offset()),
                 newline.clone(), ident_("  ", "foo"),
                 newline.clone(), ident_(" ", "bar"),
-                block_end_(Code::empty(), Code::empty()),
+                block_end_(Code::empty_without_offset(), Code::empty_without_offset()),
                 newline.clone(), ident_("", "baz"),
             ]),
             ("\n  foo\n bar\n  baz", vec![
-                block_start_(Code::empty(), Code::empty()),
+                block_start_(Code::empty_without_offset(), Code::empty_without_offset()),
                 newline.clone(), ident_("  ", "foo"),
                 newline.clone(), ident_(" ", "bar"),
                 newline, ident_("  ", "baz"),
-                block_end_(Code::empty(), Code::empty()),
+                block_end_(Code::empty_without_offset(), Code::empty_without_offset()),
             ]),
         ]);
     }
@@ -1546,7 +1546,7 @@ mod tests {
     fn test_case_whitespace_only_line() {
         test_lexer_many(vec![("foo\n    \nbar", vec![
             ident_("", "foo"),
-            newline_(Code::empty(), Code::from_str_without_offset("\n")),
+            newline_(Code::empty_without_offset(), Code::from_str_without_offset("\n")),
             newline_(Code::from_str_without_offset("    "), Code::from_str_without_offset("\n")),
             ident_("", "bar"),
         ])]);
@@ -1572,7 +1572,7 @@ mod tests {
 
     #[test]
     fn test_numeric_literal() {
-        test_lexer("10", vec![digits_(Code::empty(), Code::from_str_without_offset("10"), None)]);
+        test_lexer("10", vec![digits_(Code::empty_without_offset(), Code::from_str_without_offset("10"), None)]);
     }
 
     #[test]

@@ -257,6 +257,7 @@ impl<'s> FirstChildTrim<'s> for Span<'s> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
         let left_offset = mem::take(&mut self.left_offset);
+        self.left_offset.code.offset_utf16 = left_offset.code.offset_utf16 + left_offset.code.utf16;
         let code_length = self.code_length;
         Span { left_offset, code_length }
     }

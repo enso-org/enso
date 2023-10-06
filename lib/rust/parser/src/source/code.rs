@@ -63,13 +63,13 @@ impl<'s> Code<'s> {
         )
     }
 
-    /// Return a reference to an empty string, without any location in the document.
-    pub fn empty() -> Self {
+    /// Return a reference to an empty string, not associated with any location in the document.
+    pub fn empty_without_offset() -> Self {
         Self { repr: StrRef(""), offset_utf16: 0, utf16: 0 }
     }
 
     /// Return a reference to an empty string.
-    pub fn empty_at(offset: u32) -> Self {
+    pub fn empty(offset: u32) -> Self {
         Self { repr: StrRef(""), offset_utf16: offset, utf16: 0 }
     }
 

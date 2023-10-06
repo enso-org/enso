@@ -144,7 +144,7 @@ impl<'s> Resolver<'s> {
     pub fn new_statement() -> Self {
         let scopes = default();
         let open_blocks = vec![syntax::item::Line {
-            newline: token::newline(Code::empty(), Code::empty()),
+            newline: token::newline(Code::empty_without_offset(), Code::empty_without_offset()),
             items:   default(),
         }];
         let macro_stack = default();
