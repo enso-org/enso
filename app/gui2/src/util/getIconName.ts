@@ -17,7 +17,8 @@ export function methodNameToIcon(methodName: string): string {
 }
 
 const typeNameToIconLookup: Record<string, string> = {
-  'Standard.Base.Data.Vector.Vector': 'array_new',
+  'Standard.Base.Data.Table.Table': 'array_new',
+  'Standard.Base.Data.Vector.Vector': 'array_new2',
 }
 
 export function typeNameToIcon(typeName: string): string {
