@@ -150,4 +150,9 @@ spec =
             table.expand_column "bbb" . should_fail_with Illegal_Argument
             table2.expand_column "bbb" . should_fail_with Illegal_Argument
 
+        Test.specify "Can expand with a prefix" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["expanded last", ["Smith", Nothing]], ["expanded height", [Nothing, 1.9]], ["expanded foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" ["last", "height", "foo"] "expanded " . should_equal expected
+
 main = Test_Suite.run_main spec
