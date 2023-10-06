@@ -2378,18 +2378,18 @@ check_table arg_name table =
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.
 concat_columns column_set all_tables result_type result_row_count on_problems =
-    storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count
-    column_set.column_indices.zip all_tables i-> parent_table->
-        case i of
-            Nothing ->
-                null_row_count = parent_table.row_count
-                storage_builder.appendNulls null_row_count
-            _ : Integer ->
-                storage = parent_table.at i . java_column . getStorage
-                storage_builder.appendBulkStorage storage
-    sealed_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems <|
-        storage_builder.sealWithProblems
-    Column.from_storage column_set.name sealed_storage
+    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
+        column_set.column_indices.zip all_tables i-> parent_table->
+            case i of
+                Nothing ->
+                    null_row_count = parent_table.row_count
+                    storage_builder.appendNulls null_row_count
+                _ : Integer ->
+                    storage = parent_table.at i . java_column . getStorage
+                    storage_builder.appendBulkStorage storage
+        sealed_storage = storage_builder.seal
+        Column.from_storage column_set.name sealed_storage
 
 ## PRIVATE
    Conversion method to a Table from a Column.

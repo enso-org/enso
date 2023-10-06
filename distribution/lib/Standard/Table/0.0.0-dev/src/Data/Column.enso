@@ -2459,9 +2459,9 @@ slice_ranges column ranges =
 
    If a value type is not supported, its closest match is selected and
    an `Inexact_Type_Coercion` problem is reported.
-make_storage_builder_for_type value_type on_problems initial_size=128 =
+make_storage_builder_for_type value_type on_problems initial_size java_problem_aggregator =
     closest_storage_type = Storage.from_value_type value_type on_problems
-    Storage.make_builder closest_storage_type initial_size
+    Storage.make_builder closest_storage_type initial_size java_problem_aggregator
 
 ## PRIVATE
    Helper for case case_sensitivity based text operations.
