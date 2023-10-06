@@ -63,7 +63,7 @@ class Synchronizer {
         }
       })
     })
-    lsRpc.on('executionContext/executionComplete', async () => {
+    lsRpc.once('executionContext/executionComplete', async () => {
       const groups = await lsRpc.getComponentGroups()
       this.groups.value = groups.componentGroups.map(
         (group): Group => ({
