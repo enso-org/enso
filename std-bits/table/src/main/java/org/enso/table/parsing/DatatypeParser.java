@@ -22,5 +22,6 @@ public abstract class DatatypeParser {
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */
-  public abstract Storage<?> parseColumn(Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator);
+  public abstract Storage<?> parseColumn(
+      Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator);
 }

@@ -39,7 +39,8 @@ public class TypeInferringParser extends DatatypeParser {
   }
 
   @Override
-  public Storage<?> parseColumn(Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
+  public Storage<?> parseColumn(
+      Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
     // If there are no values, the Auto parser would guess some random type (the first one that is
     // checked). Instead, we just return the empty column unchanged.
     boolean hasNoValues =

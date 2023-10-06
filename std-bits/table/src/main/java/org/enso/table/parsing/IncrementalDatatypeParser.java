@@ -31,7 +31,8 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * containing the parsed elements.
    */
   @Override
-  public Storage<?> parseColumn(Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
+  public Storage<?> parseColumn(
+      Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
     Builder builder = makeBuilderWithCapacity(sourceStorage.size(), problemAggregator);
 
     Context context = Context.getCurrent();

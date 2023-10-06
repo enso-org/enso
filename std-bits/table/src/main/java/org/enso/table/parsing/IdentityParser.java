@@ -21,7 +21,8 @@ public class IdentityParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Storage<?> parseColumn(Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
+  public Storage<?> parseColumn(
+      Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
     return sourceStorage;
   }
 }
