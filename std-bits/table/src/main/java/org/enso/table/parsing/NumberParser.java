@@ -303,8 +303,8 @@ public class NumberParser extends IncrementalDatatypeParser {
     @Override
     protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
         return allowDecimal
-                ? NumericBuilder.createDoubleBuilder(capacity)
-                : NumericBuilder.createLongBuilder(capacity, integerTargetType);
+                ? NumericBuilder.createDoubleBuilder(capacity, problemAggregator)
+                : NumericBuilder.createLongBuilder(capacity, integerTargetType, problemAggregator);
     }
 
     private Object innerParseSingleValue(String text, Pattern pattern) {
