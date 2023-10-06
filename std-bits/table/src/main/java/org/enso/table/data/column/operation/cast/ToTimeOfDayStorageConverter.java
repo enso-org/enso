@@ -11,19 +11,19 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 
 public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> {
-  public Storage<LocalTime> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  public Storage<LocalTime> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
       return timeOfDayStorage;
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return convertDateTimeStorage(dateTimeStorage, problemBuilder);
+      return convertDateTimeStorage(dateTimeStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Time_Of_Day.");
     }
   }
 
-  public Storage<LocalTime> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+  public Storage<LocalTime> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     TimeOfDayBuilder builder = new TimeOfDayBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -33,7 +33,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
         case LocalTime d -> builder.append(d);
         case ZonedDateTime d -> builder.append(convertDateTime(d));
         default -> {
-          problemBuilder.reportConversionFailure(o);
+          problemAggregator.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       }
@@ -41,7 +41,6 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -49,7 +48,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
     return dateTime.toLocalTime();
   }
 
-  private Storage<LocalTime> convertDateTimeStorage(DateTimeStorage dateTimeStorage, CastProblemBuilder problemBuilder) {
+  private Storage<LocalTime> convertDateTimeStorage(DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     TimeOfDayBuilder builder = new TimeOfDayBuilder(dateTimeStorage.size());
     for (int i = 0; i < dateTimeStorage.size(); i++) {
@@ -59,7 +58,6 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

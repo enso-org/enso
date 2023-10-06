@@ -13,7 +13,7 @@ import java.math.BigInteger;
 
 public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   @Override
-  public Storage<BigInteger> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  public Storage<BigInteger> cast(Storage<?> storage, CastProblemAggregator problemBuilder) {
     if (storage instanceof BigIntegerStorage bigIntegerStorage) {
       return bigIntegerStorage;
     } else if (storage instanceof AbstractLongStorage longStorage) {
@@ -29,7 +29,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     }
   }
 
-  private Storage<BigInteger> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
+  private Storage<BigInteger> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     int n = doubleStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -44,7 +44,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     return builder.seal();
   }
 
-  private Storage<BigInteger> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
+  private Storage<BigInteger> convertLongStorage(AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     int n = longStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -59,7 +59,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     return builder.seal();
   }
 
-  private Storage<BigInteger> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
+  private Storage<BigInteger> convertBoolStorage(BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     int n = boolStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -74,7 +74,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     return builder.seal();
   }
 
-  private Storage<BigInteger> castFromMixed(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  private Storage<BigInteger> castFromMixed(Storage<?> storage, CastProblemAggregator problemAggregator) {
     int n = storage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -86,7 +86,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         case Double d -> builder.appendRawNoGrow(BigDecimal.valueOf(d).toBigInteger());
         case BigInteger bigInteger -> builder.appendRawNoGrow(bigInteger);
         default -> {
-          problemBuilder.reportConversionFailure(o);
+          problemAggregator.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       }

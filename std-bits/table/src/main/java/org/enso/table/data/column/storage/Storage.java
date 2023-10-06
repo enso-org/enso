@@ -8,7 +8,7 @@ import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.operation.cast.CastProblemBuilder;
+import org.enso.table.data.column.operation.cast.CastProblemAggregator;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -518,8 +518,8 @@ public abstract class Storage<T> {
     return new LongStorage(data, IntegerType.INT_64);
   }
 
-  public final Storage<?> cast(StorageType targetType, CastProblemBuilder castProblemBuilder) {
+  public final Storage<?> cast(StorageType targetType, CastProblemAggregator castProblemAggregator) {
     StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
-    return converter.cast(this, castProblemBuilder);
+    return converter.cast(this, castProblemAggregator);
   }
 }

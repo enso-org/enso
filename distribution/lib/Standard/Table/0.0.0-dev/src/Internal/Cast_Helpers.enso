@@ -7,7 +7,7 @@ import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 from project.Errors import Conversion_Failure
 
-polyglot java import org.enso.table.data.column.operation.cast.CastProblemBuilder
+polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.storage.type.StorageType
 
 ## PRIVATE

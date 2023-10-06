@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.graalvm.polyglot.Context;
 
 public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
-  public Storage<Boolean> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  public Storage<Boolean> cast(Storage<?> storage, CastProblemAggregator problemBuilder) {
     if (storage instanceof BoolStorage boolStorage) {
       return boolStorage;
     } else if (storage.getType() instanceof AnyObjectType) {
@@ -17,7 +17,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
     }
   }
 
-  public Storage<Boolean> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+  public Storage<Boolean> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     BoolBuilder builder = new BoolBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -26,7 +26,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
         case null -> builder.appendNulls(1);
         case Boolean b -> builder.appendBoolean(b);
         default -> {
-          problemBuilder.reportConversionFailure(o);
+          problemAggregator.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       }

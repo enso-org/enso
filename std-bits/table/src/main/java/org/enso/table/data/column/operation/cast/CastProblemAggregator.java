@@ -2,10 +2,9 @@ package org.enso.table.data.column.operation.cast;
 
 import java.util.ArrayList;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.ProblemAggregator;
 
-public class CastProblemBuilder extends ProblemAggregator {
+public class CastProblemAggregator extends ProblemAggregator {
   private final String columnName;
   private final StorageType targetType;
   private int failedConversionsCount = 0;
@@ -17,7 +16,7 @@ public class CastProblemBuilder extends ProblemAggregator {
   private final ArrayList<Object> numberOutOfRangeExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
   private final ArrayList<String> textTooLongExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
 
-  public CastProblemBuilder(String columnName, StorageType targetType, ProblemAggregator parent) {
+  public CastProblemAggregator(String columnName, StorageType targetType, ProblemAggregator parent) {
     super(parent);
     this.columnName = columnName;
     this.targetType = targetType;

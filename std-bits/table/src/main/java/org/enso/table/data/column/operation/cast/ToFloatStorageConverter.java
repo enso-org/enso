@@ -22,25 +22,25 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     }
   }
 
-  public Storage<Double> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  public Storage<Double> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof DoubleStorage doubleStorage) {
       return doubleStorage;
     } else if (storage instanceof AbstractLongStorage longStorage) {
-      return convertLongStorage(longStorage, problemBuilder);
+      return convertLongStorage(longStorage, problemAggregator);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return convertBoolStorage(boolStorage, problemBuilder);
+      return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-      return convertBigIntegerStorage(bigIntegerStorage, problemBuilder);
+      return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Float.");
     }
   }
 
-  public Storage<Double> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+  public Storage<Double> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(mixedStorage.size(), problemBuilder);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(mixedStorage.size(), problemAggregator);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -56,7 +56,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       } else if (o instanceof BigInteger bigInteger) {
         builder.appendBigInteger(bigInteger);
       } else {
-        problemBuilder.reportConversionFailure(o);
+        problemAggregator.reportConversionFailure(o);
         builder.appendNulls(1);
       }
 
@@ -66,9 +66,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return builder.seal();
   }
 
-  private Storage<Double> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
+  private Storage<Double> convertLongStorage(AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     int n = longStorage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemBuilder);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (longStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -81,9 +81,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return builder.seal();
   }
 
-  private Storage<Double> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
+  private Storage<Double> convertBoolStorage(BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     int n = boolStorage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemBuilder);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -100,9 +100,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return value ? 1.0 : 0.0;
   }
 
-  private Storage<Double> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemBuilder problemBuilder) {
+  private Storage<Double> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemAggregator problemAggregator) {
     int n = storage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemBuilder);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
       BigInteger value = storage.getItemBoxed(i);

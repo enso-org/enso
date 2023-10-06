@@ -12,7 +12,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
-  public Storage<ZonedDateTime> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  public Storage<ZonedDateTime> cast(Storage<?> storage, CastProblemAggregator problemBuilder) {
     if (storage instanceof DateTimeStorage dateTimeStorage) {
       return dateTimeStorage;
     } else if (storage instanceof DateStorage dateStorage) {
@@ -24,7 +24,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     }
   }
 
-  public Storage<ZonedDateTime> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+  public Storage<ZonedDateTime> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemBuilder) {
     Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -49,7 +49,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     return date.atStartOfDay().atZone(ZoneId.systemDefault());
   }
 
-  private Storage<ZonedDateTime> convertDateStorage(DateStorage dateStorage, CastProblemBuilder problemBuilder) {
+  private Storage<ZonedDateTime> convertDateStorage(DateStorage dateStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(dateStorage.size());
     for (int i = 0; i < dateStorage.size(); i++) {

@@ -10,7 +10,7 @@ public interface StorageConverter<T> {
   /**
    * Convert a given storage to the target type of this converter, reporting any problems.
    */
-  Storage<T> cast(Storage<?> storage, CastProblemBuilder problemBuilder);
+  Storage<T> cast(Storage<?> storage, CastProblemAggregator problemBuilder);
 
   /**
    * Construct a StorageConverter for the given target type.
