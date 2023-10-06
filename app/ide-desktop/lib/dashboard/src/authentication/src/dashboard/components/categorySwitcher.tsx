@@ -153,16 +153,16 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     }}
                     onDragOver={event => {
                         if (
-                            (currentCategory === Category.trash && category === Category.home) ||
-                            (currentCategory !== Category.trash && category === Category.trash)
+                            (category === Category.trash && currentCategory === Category.home) ||
+                            (category !== Category.trash && currentCategory === Category.trash)
                         ) {
                             event.preventDefault()
                         }
                     }}
                     onDrop={async event => {
                         if (
-                            (currentCategory === Category.trash && category === Category.home) ||
-                            (currentCategory !== Category.trash && category === Category.trash)
+                            (category === Category.trash && currentCategory === Category.home) ||
+                            (category !== Category.trash && currentCategory === Category.trash)
                         ) {
                             event.preventDefault()
                             unsetModal()
