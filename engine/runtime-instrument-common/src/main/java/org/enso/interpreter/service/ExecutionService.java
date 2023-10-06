@@ -164,7 +164,6 @@ public final class ExecutionService {
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
-   * @param onExceptionalCallback the consumer of the exceptional events.
    */
   public void execute(
       Module module,
@@ -321,8 +320,6 @@ public final class ExecutionService {
         (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
     Consumer<ExpressionValue> onCachedCallback =
         (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
-    Consumer<Exception> onExceptionalCallback =
-        (value) -> context.getLogger().finest("_ON_ERROR " + value);
 
     var callbacks = new ExecutionCallbacks(
       nextExecutionItem, cache, methodCallsCache, syncState,
