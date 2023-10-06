@@ -497,12 +497,7 @@ public abstract class Storage<T> {
    * @return a new storage instance, containing the same elements as this one, with {@code count} nulls appended at the
    *     end
    */
-  public Storage<?> appendNulls(int count) {
-    Builder builder = new InferredBuilder(size() + count);
-    builder.appendBulkStorage(this);
-    builder.appendNulls(count);
-    return builder.seal();
-  }
+  public abstract Storage<?> appendNulls(int count);
 
   /**
    * @return a copy of the storage consisting of slices of the original data

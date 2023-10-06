@@ -417,7 +417,7 @@ public class Table {
    * @param value_field the name of the Value field in the output.
    * @return a table result from transposing the specified columns.
    */
-  public static Table transpose(Column[] id_columns, Column[] to_transpose, String name_field, String value_field) {
+  public static Table transpose(Column[] id_columns, Column[] to_transpose, String name_field, String value_field, ProblemAggregator problemAggregator) {
     if (to_transpose.length == 0) {
       // Nothing to transpose, add two null columns to the existing set.
       Column[] newColumns = new Column[id_columns.length + 2];
@@ -438,9 +438,9 @@ public class Table {
 
     // Create Storage
     Builder[] storage = new Builder[id_columns.length + 2];
-    IntStream.range(0, id_columns.length).forEach(i -> storage[i] = Builder.getForType(id_columns[i].getStorage().getType(), new_count));
+    IntStream.range(0, id_columns.length).forEach(i -> storage[i] = Builder.getForType(id_columns[i].getStorage().getType(), new_count, problemAggregator));
     storage[id_columns.length] = new StringBuilder(new_count, TextType.VARIABLE_LENGTH);
-    storage[id_columns.length + 1] = new InferredBuilder(new_count);
+    storage[id_columns.length + 1] = new InferredBuilder(new_count, problemAggregator);
 
     // Load Data
     Context context = Context.getCurrent();

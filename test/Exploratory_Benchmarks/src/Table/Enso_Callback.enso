@@ -80,8 +80,8 @@ type Primitive_Enso_Callback_Test
         mapped = vector_proxy.map self.fn
         # No expected storage will use inferred builder.
         expected_storage_type = Storage.from_value_type_strict Value_Type.Integer
-        java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Error <|
-            Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type)
+        java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Error java_problem_aggregator->
+            Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type java_problem_aggregator
         Column.Value java_column
 
     enso_map_with_builder_2_calls_unboxed self =
