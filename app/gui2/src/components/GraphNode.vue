@@ -305,23 +305,15 @@ function switchToDefaultPreprocessor() {
   visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
 }
 
-function setVisualizationVisible(visible: boolean) {
-  emit('setVisualizationVisible', visible)
-}
-
-function setVisualizationIdentifier(id: VisualizationIdentifier) {
-  emit('setVisualizationId', id)
-}
-
 const visualizationConfig = ref<VisualizationConfig>({
   fullscreen: false,
   types: visualizationStore.types,
   width: null,
   height: 150,
   hide() {
-    setVisualizationVisible(false)
+    emit('setVisualizationVisible', false)
   },
-  updateType: setVisualizationIdentifier,
+  updateType: (id) => emit('setVisualizationId', id),
   isCircularMenuVisible: props.isLatestSelected,
   get nodeSize() {
     return nodeSize.value
@@ -426,7 +418,7 @@ const dragPointer = usePointer((pos, event, type) => {
       v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
       v-model:is-docs-visible="isDocsVisible"
       :isVisualizationVisible="isVisualizationVisible"
-      @update:isVisualizationVisible="setVisualizationVisible"
+      @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
     <component
       :is="effectiveVisualization"

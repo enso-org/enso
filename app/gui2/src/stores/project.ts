@@ -105,10 +105,10 @@ function visualizationConfigEqual(
   return (
     a === b ||
     (a.visualizationModule === b.visualizationModule &&
-      array.equalFlat(
-        a.positionalArgumentsExpressions ?? [],
-        b.positionalArgumentsExpressions ?? [],
-      ) &&
+      (a.positionalArgumentsExpressions === b.positionalArgumentsExpressions ||
+        (Array.isArray(a.positionalArgumentsExpressions) &&
+          Array.isArray(b.positionalArgumentsExpressions) &&
+          array.equalFlat(a.positionalArgumentsExpressions, b.positionalArgumentsExpressions))) &&
       (a.expression === b.expression ||
         (typeof a.expression === 'object' &&
           typeof b.expression === 'object' &&
@@ -172,7 +172,9 @@ export class ExecutionContext {
               executionContextId: this.id,
               expression: config.expression,
               visualizationModule: config.visualizationModule,
-              positionalArgumentsExpressions: config.positionalArgumentsExpressions,
+              ...(config.positionalArgumentsExpressions
+                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+                : {}),
             }),
           'Failed to attach visualization',
         ).then(() => {
@@ -187,7 +189,9 @@ export class ExecutionContext {
               executionContextId: this.id,
               expression: config.expression,
               visualizationModule: config.visualizationModule,
-              positionalArgumentsExpressions: config.positionalArgumentsExpressions,
+              ...(config.positionalArgumentsExpressions
+                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+                : {}),
             }),
           'Failed to modify visualization',
         ).then(() => {

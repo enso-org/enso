@@ -127,9 +127,9 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             <VisualizationSelector
               v-if="isSelectorVisible"
               :types="config.types"
-              :value="config.currentType"
+              :modelValue="config.currentType"
               @hide="isSelectorVisible = false"
-              @update:value="
+              @update:modelValue="
                 (type) => {
                   isSelectorVisible = false
                   config.updateType(type)

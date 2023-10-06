@@ -2,8 +2,11 @@
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { onMounted, ref } from 'vue'
 
-const props = defineProps<{ types: VisualizationIdentifier[]; value: VisualizationIdentifier }>()
-const emit = defineEmits<{ hide: []; 'update:value': [type: VisualizationIdentifier] }>()
+const props = defineProps<{
+  types: VisualizationIdentifier[]
+  modelValue: VisualizationIdentifier
+}>()
+const emit = defineEmits<{ hide: []; 'update:modelValue': [type: VisualizationIdentifier] }>()
 
 const rootNode = ref<HTMLElement>()
 
@@ -35,8 +38,8 @@ onMounted(() => {
       <li
         v-for="type_ in props.types"
         :key="visIdKey(type_)"
-        :class="{ selected: visIdentifierEquals(props.value, type_) }"
-        @pointerdown.stop="emit('update:value', type_)"
+        :class="{ selected: visIdentifierEquals(props.modelValue, type_) }"
+        @pointerdown.stop="emit('update:modelValue', type_)"
         v-text="visIdLabel(type_)"
       ></li>
     </ul>

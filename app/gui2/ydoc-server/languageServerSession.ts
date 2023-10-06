@@ -368,7 +368,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
     this.changeState(LsSyncState.WritingFile)
 
-    const execute = true // contentDelta != null || idMapKeys != null
+    const execute = contentDelta != null || idMapKeys != null
     const apply = this.ls.applyEdit(
       {
         path: this.path,

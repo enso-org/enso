@@ -7,7 +7,12 @@ import diff from 'fast-diff'
 import * as json from 'lib0/json'
 import * as Y from 'yjs'
 import { TextEdit } from '../shared/languageServerTypes'
-import { ModuleDoc, NodeMetadata, VisualizationMetadata, decodeRange } from '../shared/yjsModel'
+import {
+  ModuleDoc,
+  decodeRange,
+  type NodeMetadata,
+  type VisualizationMetadata,
+} from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
 interface AppliedUpdates {
