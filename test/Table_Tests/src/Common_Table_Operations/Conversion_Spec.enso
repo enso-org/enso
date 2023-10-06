@@ -28,6 +28,7 @@ spec setup =
     materialize = setup.materialize
     supports_dates = setup.test_selection.date_time
     supports_conversion_failure_reporting = setup.is_database.not
+
     Test.group prefix+"Table/Column.cast - to text" <|
         Test.specify "should allow to cast columns of various basic types to text" <|
             t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
@@ -546,6 +547,16 @@ spec setup =
             t = table_builder [["X", [1, 2, 3]]]
             t.auto_value_types . should_fail_with Unsupported_Database_Operation
             t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation
+
+    if setup.is_database then Test.group prefix+"Table.from_objects" <|
+        Test.specify "should report unsupported" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            t.from_objects . should_fail_with Unsupported_Database_Operation
+
+    if setup.is_database then Test.group prefix+"Table.expand_column" <|
+        Test.specify "should report unsupported" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            t.expand_column . should_fail_with Unsupported_Database_Operation
 
     if setup.is_database.not then Test.group prefix+"Table/Column auto value type" <|
         Test.specify "should allow to narrow down types of a Mixed column" <|
