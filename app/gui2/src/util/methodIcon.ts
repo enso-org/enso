@@ -1,6 +1,7 @@
 const methodNameToIconLookup: Record<string, string> = {
-  join: 'join2',
+  join: 'join3',
   union: 'union',
+  set: 'edit',
 }
 
 export function methodNameToIcon(methodName: string | undefined): string {

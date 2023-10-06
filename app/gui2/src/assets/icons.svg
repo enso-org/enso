@@ -386,6 +386,14 @@
             </g>
         </svg>
     </g>
+    <g id="edit" fill="none">
+        <svg width="16" height="16" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10.7845" y="3.98548" width="5" height="10" transform="rotate(45 10.7845 3.98548)" fill="currentColor"/>
+            <path d="M12.1987 2.57127C12.9797 1.79022 14.2461 1.79022 15.0271 2.57127L15.7342 3.27838C16.5153 4.05943 16.5153 5.32576 15.7342 6.10681L15.0271 6.81391L11.4916 3.27838L12.1987 2.57127Z" fill="currentColor"/>
+            <path d="M3.71339 11.0565L7.24893 14.5921L3.71339 14.5921L3.71339 11.0565Z" fill="currentColor"/>
+            <rect x="2" y="16" width="16" height="2" fill="currentColor"/>
+        </svg>
+    </g>
     <g id="enso_logo" fill="none">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g id="icon/enso_logo">
@@ -514,6 +522,17 @@
                         fill="currentColor" />
                 </g>
             </g>
+        </svg>
+    </g>
+    <g id="join3" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="16" y="2.5" width="3" height="3" transform="rotate(90 16 2.5)" fill="currentColor"/>
+            <rect x="3" y="2.5" width="3" height="3" transform="rotate(90 3 2.5)" fill="currentColor"/>
+            <rect x="16" y="6.5" width="3" height="3" transform="rotate(90 16 6.5)" fill="currentColor"/>
+            <rect x="3" y="6.5" width="3" height="3" transform="rotate(90 3 6.5)" fill="currentColor"/>
+            <rect x="16" y="10.5" width="3" height="3" transform="rotate(90 16 10.5)" fill="currentColor"/>
+            <rect x="3" y="10.5" width="3" height="3" transform="rotate(90 3 10.5)" fill="currentColor"/>
+            <path d="M8 5V11M5 8H11" stroke="currentColor"/>
         </svg>
     </g>
     <g id="lab" fill="none">
@@ -1004,6 +1023,17 @@
             </g>
         </svg>
     </g>
+    <g id="union">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2.5" width="3" height="3" fill="currentColor"/>
+            <rect x="2.5" y="13" width="3" height="3" fill="currentColor"/>
+            <rect x="6.5" width="3" height="3" fill="currentColor"/>
+            <rect x="6.5" y="13" width="3" height="3" fill="currentColor"/>
+            <rect x="10.5" width="3" height="3" fill="currentColor"/>
+            <rect x="10.5" y="13" width="3" height="3" fill="currentColor"/>
+            <path d="M8 5V11M5 8H11" stroke="currentColor"/>
+        </svg>
+    </g>
     <g id="unstable2" fill="none">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g id="icon/unstable2">
@@ -1040,7 +1070,6 @@
             </g>
         </svg>
     </g>
-
     <g id="marketplace" fill="none">
         <g opacity="0.8">
             <mask id="path-1-inside-1_4001_9980" fill="white">
@@ -1064,7 +1093,6 @@
                 mask="url(#path-3-inside-3_4001_9980)" />
         </g>
         <path d="M3.5 0V7M0 3.5H7" stroke="currentColor" stroke-width="1.5" />
-
     </g>
     <g id="arrow_left" fill="none">
         <path fill-rule="evenodd" clip-rule="evenodd"
