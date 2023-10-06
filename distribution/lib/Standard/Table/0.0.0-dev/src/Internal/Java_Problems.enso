@@ -8,6 +8,7 @@ from project.Errors import all
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
@@ -112,3 +113,10 @@ with_problem_aggregator on_problems f =
     aggregator = ProblemAggregator.makeTopLevelAggregator
     result = f aggregator
     on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
+
+## PRIVATE
+with_map_operation_problem_builder : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemBuilder -> Any) -> Any
+with_map_operation_problem_builder (location : Text | Nothing) on_problems f =
+    with_problem_aggregator on_problems java_aggregator->
+        problem_builder = MapOperationProblemBuilder.new java_aggregator location
+        f problem_builder

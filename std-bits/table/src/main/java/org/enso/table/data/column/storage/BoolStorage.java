@@ -124,23 +124,22 @@ public final class BoolStorage extends Storage<Boolean> {
    * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
    * values are `values && (~isMissing)`.
    */
-  private WithAggregatedProblems<Storage<?>> fillMissingBoolean(boolean arg) {
+  private Storage<?> fillMissingBoolean(boolean arg) {
     final var newValues = (BitSet) values.clone();
     if (arg) {
       newValues.or(isMissing);
     } else {
       newValues.andNot(isMissing);
     }
-    var storage = new BoolStorage(newValues, new BitSet(), size, negated);
-    return new WithAggregatedProblems<>(storage, AggregatedProblems.of());
+    return new BoolStorage(newValues, new BitSet(), size, negated);
   }
 
   @Override
-  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
+  public Storage<?> fillMissing(Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isBoolean()) {
       return fillMissingBoolean(arg.asBoolean());
     } else {
-      return super.fillMissing(arg, commonType);
+      return super.fillMissing(arg, commonType, problemAggregator);
     }
   }
 

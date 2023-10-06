@@ -1,9 +1,12 @@
 package org.enso.exploratory_benchmark_helpers;
 
-import java.util.BitSet;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.problems.BlackholeProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
+
+import java.util.BitSet;
 
 public class LongNullHandling {
   public interface Operation {
@@ -100,8 +103,12 @@ public class LongNullHandling {
     }
   }
 
+  // Currently ignoring problem reporting in the benchmarks, for simplicity. We may want to revisit this and pass a
+  // proper aggregator.
+  private static final ProblemAggregator parentAggregatorForBenchmarks = BlackholeProblemAggregator.INSTANCE;
+
   public static LongStorage runNoNulls(LongStorage arg1, LongStorage arg2) {
-    MapOperationProblemBuilder problemBuilder = new MapOperationProblemBuilder(null);
+    MapOperationProblemBuilder problemBuilder = new MapOperationProblemBuilder(parentAggregatorForBenchmarks, null);
     NoNulls operation =
         new NoNulls() {
           @Override
@@ -119,7 +126,7 @@ public class LongNullHandling {
   }
 
   public static LongStorage runBoxingNulls(LongStorage arg1, LongStorage arg2) {
-    MapOperationProblemBuilder problemBuilder = new MapOperationProblemBuilder(null);
+    MapOperationProblemBuilder problemBuilder = new MapOperationProblemBuilder(parentAggregatorForBenchmarks, null);
     BoxingNulls operation =
         new BoxingNulls() {
           @Override
@@ -137,7 +144,7 @@ public class LongNullHandling {
   }
 
   public static LongStorage runReportingNulls(LongStorage arg1, LongStorage arg2) {
-    MapOperationProblemBuilder problemBuilder = new MapOperationProblemBuilder(null);
+    MapOperationProblemBuilder problemBuilder = new MapOperationProblemBuilder(parentAggregatorForBenchmarks, null);
     ReportingNulls operation =
         new ReportingNulls() {
           @Override

@@ -30,7 +30,6 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
@@ -788,7 +787,7 @@ type Column
                         error = Illegal_State.Error "`iif` got a storage "+s.to_display_text+" that does not support the `iif` operation. This is a bug in the Table library."
                         Panic.throw error
                 rs = Panic.catch No_Such_Method handler=handle_no_iif <|
-                    Java_Problems.with_problem_aggregator Problem_Behavior java_problem_aggregator->
+                    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                         s.iif true_val false_val storage_type java_problem_aggregator
                 Column.Value (Java_Column.new new_name rs)
 
@@ -1118,12 +1117,13 @@ type Column
         common_type.if_not_error <|
             storage = self.java_column.getStorage
             storage_type = Storage.from_value_type_strict common_type
-            new_st = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <| case default of
-                Column.Value java_col ->
-                    other_storage = java_col.getStorage
-                    storage.fillMissingFrom other_storage storage_type
-                _ ->
-                    storage.fillMissing default storage_type
+            new_st = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                case default of
+                    Column.Value java_col ->
+                        other_storage = java_col.getStorage
+                        storage.fillMissingFrom other_storage storage_type java_problem_aggregator
+                    _ ->
+                        storage.fillMissing default storage_type java_problem_aggregator
             col = Java_Column.new self.name new_st
             Column.Value col
 
@@ -2234,17 +2234,15 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
         naming_helper.function_name name all_operands
     common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
     common_type.if_not_error <|
-        problem_builder = MapOperationProblemBuilder.new effective_new_name
-        storage_type = resolve_storage_type common_type
-        folded = effective_operands.fold column.java_column.getStorage current-> operand->
-            case operand of
-                _ : Column -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
-                _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
-        result = Column.Value (Java_Column.new effective_new_name folded)
-        Problem_Behavior.Report_Warning.attach_problems_after result <|
-            Java_Problems.parse_aggregated_problems problem_builder.getProblems
+        Java_Problems.with_map_operation_problem_builder effective_new_name Problem_Behavior.Report_Warning problem_builder->
+            storage_type = resolve_storage_type common_type
+            folded = effective_operands.fold column.java_column.getStorage current-> operand->
+                case operand of
+                    _ : Column -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                        current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
+                    _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                        current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
+            Column.Value (Java_Column.new effective_new_name folded)
 
 ## PRIVATE
 
@@ -2266,22 +2264,20 @@ run_vectorized_binary_op : Column -> Text -> Any -> Text|Nothing -> (Any -> Any 
 run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
     effective_new_name = new_name.if_nothing <|
         naming_helper.binary_operation_name name column operand
-    problem_builder = MapOperationProblemBuilder.new column.name
-    storage_type = resolve_storage_type expected_result_type
-    result = case operand of
-        Column.Value col2 ->
-            s1 = column.java_column.getStorage
-            s2 = col2.getStorage
-            rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
-            Column.Value (Java_Column.new effective_new_name rs)
-        _ ->
-            s1 = column.java_column.getStorage
-            rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
-            Column.Value (Java_Column.new effective_new_name rs)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+        storage_type = resolve_storage_type expected_result_type
+        case operand of
+            Column.Value col2 ->
+                s1 = column.java_column.getStorage
+                s2 = col2.getStorage
+                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
+                Column.Value (Java_Column.new effective_new_name rs)
+            _ ->
+                s1 = column.java_column.getStorage
+                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
+                Column.Value (Java_Column.new effective_new_name rs)
 
 ## PRIVATE
 
@@ -2302,14 +2298,12 @@ run_vectorized_ternary_op : Column -> Text -> Any -> Any -> Text|Nothing -> Valu
 run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expected_result_type=Nothing skip_nulls=True =
     effective_new_name = new_name.if_nothing <|
         naming_helper.function_name name [column, operand0, operand1]
-    problem_builder = MapOperationProblemBuilder.new column.name
-    storage_type = resolve_storage_type expected_result_type
-    s1 = column.java_column.getStorage
-    rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
-    result = Column.Value (Java_Column.new effective_new_name rs)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+        storage_type = resolve_storage_type expected_result_type
+        s1 = column.java_column.getStorage
+        rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+            s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
+        Column.Value (Java_Column.new effective_new_name rs)
 
 ## PRIVATE
    Runs a binary operation over the provided column and operand which may be
@@ -2379,25 +2373,23 @@ run_unary_op column function new_name skip_nulls=True expected_result_type=Nothi
      `False`, the null values are passed as any other value and can have custom
      handling logic.
 run_vectorized_binary_op_with_fallback_problem_handling column name operand fallback_fn new_name expected_result_type=Nothing skip_nulls=True =
-    problem_builder = MapOperationProblemBuilder.new new_name
-    applied_fn = case fallback_fn of
-        Nothing -> Nothing
-        _ -> fallback_fn problem_builder
-    storage_type = resolve_storage_type expected_result_type
-    result = case operand of
-        Column.Value col2 ->
-            s1 = column.java_column.getStorage
-            s2 = col2.getStorage
-            rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
-            Column.Value (Java_Column.new new_name rs)
-        _ ->
-            s1 = column.java_column.getStorage
-            rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn operand skip_nulls storage_type
-            Column.Value (Java_Column.new new_name rs)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    Java_Problems.with_map_operation_problem_builder new_name Problem_Behavior.Report_Warning problem_builder->
+        applied_fn = case fallback_fn of
+            Nothing -> Nothing
+            _ -> fallback_fn problem_builder
+        storage_type = resolve_storage_type expected_result_type
+        case operand of
+            Column.Value col2 ->
+                s1 = column.java_column.getStorage
+                s2 = col2.getStorage
+                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
+                Column.Value (Java_Column.new new_name rs)
+            _ ->
+                s1 = column.java_column.getStorage
+                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn operand skip_nulls storage_type
+                Column.Value (Java_Column.new new_name rs)
 
 ## PRIVATE
 
@@ -2416,14 +2408,12 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
      handling logic.
 run_vectorized_unary_op : Column -> Text -> Text -> (Any -> Any) -> Value_Type -> Any -> Column
 run_vectorized_unary_op column name new_name fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
-    problem_builder = MapOperationProblemBuilder.new column.name
-    s = column.java_column.getStorage
-    storage_type = resolve_storage_type expected_result_type
-    rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s.vectorizedOrFallbackUnaryMap name problem_builder fallback_fn skip_nulls storage_type
-    result = Column.Value (Java_Column.new new_name rs)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+        s = column.java_column.getStorage
+        storage_type = resolve_storage_type expected_result_type
+        rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+            s.vectorizedOrFallbackUnaryMap name problem_builder fallback_fn skip_nulls storage_type
+        Column.Value (Java_Column.new new_name rs)
 
 ## PRIVATE
 

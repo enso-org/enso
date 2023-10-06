@@ -1,6 +1,6 @@
 package org.enso.table.problems;
 
-import org.enso.table.data.table.problems.ColumnAggregatedProblems;
+import org.enso.table.data.table.problems.ColumnAggregatedProblem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,10 +44,10 @@ public class AggregatedProblems {
   }
 
   public void add(Problem problem) {
-    if (problem instanceof ColumnAggregatedProblems) {
+    if (problem instanceof ColumnAggregatedProblem) {
       for (Problem p : problems) {
-        if (p instanceof ColumnAggregatedProblems
-            && ((ColumnAggregatedProblems) p).merge((ColumnAggregatedProblems) problem)) {
+        if (p instanceof ColumnAggregatedProblem
+            && ((ColumnAggregatedProblem) p).merge((ColumnAggregatedProblem) problem)) {
           return;
         }
       }

@@ -31,6 +31,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -145,8 +146,8 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     return ops.runZip(name, this, argument, problemBuilder);
   }
 
-  private WithAggregatedProblems<Storage<?>> fillMissingDouble(double arg) {
-    final var builder = NumericBuilder.createDoubleBuilder(size());
+  private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
+    final var builder = NumericBuilder.createDoubleBuilder(size(), problemAggregator);
     long rawArg = Double.doubleToRawLongBits(arg);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
@@ -158,12 +159,12 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
       context.safepoint();
     }
-    return builder.sealWithProblems();
+    return builder.seal();
   }
 
   /** Special handling to ensure loss of precision is reported. */
-  private WithAggregatedProblems<Storage<?>> fillMissingBigInteger(BigInteger arg) {
-    final var builder = NumericBuilder.createDoubleBuilder(size());
+  private Storage<?> fillMissingBigInteger(BigInteger arg, ProblemAggregator problemAggregator) {
+    final var builder = NumericBuilder.createDoubleBuilder(size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -174,12 +175,12 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
       context.safepoint();
     }
-    return builder.sealWithProblems();
+    return builder.seal();
   }
 
   /** Special handling to ensure loss of precision is reported. */
-  private WithAggregatedProblems<Storage<?>> fillMissingLong(long arg) {
-    final var builder = NumericBuilder.createDoubleBuilder(size());
+  private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
+    final var builder = NumericBuilder.createDoubleBuilder(size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -190,22 +191,22 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
       context.safepoint();
     }
-    return builder.sealWithProblems();
+    return builder.seal();
   }
 
   @Override
-  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
+  public Storage<?> fillMissing(Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
-        return fillMissingLong(arg.asLong());
+        return fillMissingLong(arg.asLong(), problemAggregator);
       } else if (arg.fitsInBigInteger()) {
-        return fillMissingBigInteger(arg.asBigInteger());
+        return fillMissingBigInteger(arg.asBigInteger(), problemAggregator);
       } else if (arg.fitsInDouble()) {
-        return fillMissingDouble(arg.asDouble());
+        return fillMissingDouble(arg.asDouble(), problemAggregator);
       }
     }
 
-    return super.fillMissing(arg, commonType);
+    return super.fillMissing(arg, commonType, problemAggregator);
   }
 
   @Override
