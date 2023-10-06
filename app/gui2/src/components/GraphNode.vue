@@ -9,6 +9,7 @@ import {
   type VisualizationConfig,
 } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import { Rect } from '@/stores/rect'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
@@ -16,12 +17,13 @@ import {
   useVisualizationStore,
   type Visualization,
 } from '@/stores/visualization'
+import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
+import { methodNameToIcon } from '@/util/methodIcon'
 import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-import { useProjectStore } from '../stores/project'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 
@@ -409,24 +411,22 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const expressionInfo = computed(() => {
-  return projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.id)
-})
-
-const outputTypeName = computed(() => {
-  return expressionInfo.value?.typename ?? 'Unknown'
-})
-
-const executionState = computed(() => {
-  return expressionInfo.value?.payload.type ?? 'Unknown'
-})
+const expressionInfo = computed(() =>
+  projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.id),
+)
+const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
+const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
+const icon = computed(() => methodNameToIcon(expressionInfo.value?.methodCall?.methodPointer.name))
 </script>
 
 <template>
   <div
     ref="rootNode"
     class="GraphNode"
-    :style="{ transform }"
+    :style="{
+      transform,
+      '--node-color-primary': colorFromString(expressionInfo?.typename ?? 'Unknown'),
+    }"
     :class="{
       dragging: dragPointer.dragging,
       selected,
@@ -452,7 +452,7 @@ const executionState = computed(() => {
       @update:preprocessor="updatePreprocessor"
     />
     <div class="node" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" name="number_input"></SvgIcon>
+      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <div
         ref="editableRootNode"
         class="editable"
