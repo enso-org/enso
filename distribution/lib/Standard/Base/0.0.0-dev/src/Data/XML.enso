@@ -331,17 +331,9 @@ type XML_Element
 
     ## PRIVATE
 
-       Build the child list, filtering out unwanted child nodes.
-    build_child_list : Element -> Vector (XML_Element | Text) ! XML_Error
-    build_child_list java_element =
-        XML_Error.handle_java_exceptions <|
-            only_wanted_nodes java_element.getChildNodes
-
-    ## PRIVATE
-
        Build a new XML_Element, populating the lazy `children_cache` field.
     new : Element -> XML_Element
-    new java_element = XML_Element.Value java_element (XML_Element.build_child_list java_element)
+    new java_element = XML_Element.Value java_element (build_child_list java_element)
 
     ## PRIVATE
     Value (java_element:Element) (~children_cache:(Vector (XML_Element | Text)))
@@ -404,6 +396,14 @@ only_wanted_nodes node_list:NodeList =
                 if node.getNodeType == Node.ATTRIBUTE_NODE then node.getValue else
                     Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))
     nodes.filter is_wanted . map convert
+
+## PRIVATE
+
+    Build the child list, filtering out unwanted child nodes.
+build_child_list : Element -> Vector (XML_Element | Text) ! XML_Error
+build_child_list java_element =
+    XML_Error.handle_java_exceptions <|
+        only_wanted_nodes java_element.getChildNodes
 
 ## PRIVATE
    Returns true if `key` starts with "@".
