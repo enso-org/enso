@@ -55,6 +55,7 @@ class RuntimeConnector(
           s"Message endpoint [{}] is initialized. Runtime connector can accept messages.",
           engine
         )
+        unstashAll()
         context.become(initialized(engine, Map()))
       case _ => stash()
     })
