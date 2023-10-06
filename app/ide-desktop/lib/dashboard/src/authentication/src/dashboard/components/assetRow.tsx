@@ -221,7 +221,11 @@ export default function AssetRow(props: AssetRowProps) {
                                     <AssetContextMenu
                                         innerProps={innerProps}
                                         event={event}
-                                        eventTarget={event.currentTarget}
+                                        eventTarget={
+                                            event.target instanceof HTMLElement
+                                                ? event.target
+                                                : event.currentTarget
+                                        }
                                         doDelete={doDelete}
                                     />
                                 )
