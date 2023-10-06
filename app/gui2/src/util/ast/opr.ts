@@ -2,7 +2,7 @@ import { Tree, type MultipleOperatorError, type Token } from '@/generated/ast'
 import { readAstSpan, readTokenSpan } from '@/util/ast'
 import type { Result } from '@/util/result'
 import { assert } from '../assert'
-import { parseEnso2 } from '../ffi'
+import { parseEnso2, parseEnsoLine } from '../ffi'
 
 export type GeneralOperand =
   | Operand
@@ -33,6 +33,14 @@ export class GeneralOprApp {
 
   lastOpr(): Result<Token.Operator, MultipleOperatorError> | null {
     return this.apps[this.apps.length - 1]?.opr ?? null
+  }
+
+  *readSpansOfCompnents(code: string): Generator<string | null> {
+    yield this.lhs != null ? readAstSpan(this.lhs, code) : null
+    for (const app of this.apps) {
+      yield app.opr.ok ? readTokenSpan(app.opr.value, code) : null
+      yield app.expr != null ? readAstSpan(app.expr, code) : null
+    }
   }
 
   *operandsOfLeftAssocOprChain(
@@ -102,22 +110,108 @@ if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
   test.each([
-    { code: '2 + 2', result: ['2', '+', '2'] },
-    { code: '2 + 2 + 2', result: ['2 + 2', '+', '2'] },
+    { code: '2 + 3', result: ['2', '+', '3'] },
+    { code: '2 + 4 + 5', result: ['2 + 4', '+', '5'] },
+    { code: '2\n + 3\n + 4', result: ['2', '+', '3', '+', '4'] },
+    { code: '2 + 3\n + 4\n * 5', result: ['2 + 3', '+', '4', '*', '5'] },
   ])('Generalized infix from $code', ({ code, result }) => {
     const ast = parseEnso2(code)
     assert(ast.type === Tree.Type.BodyBlock)
     const oprAst = Array.from(ast.statements)[0]?.expression
     assert(oprAst != null)
     assert(oprAst.type === Tree.Type.OprApp || oprAst.type === Tree.Type.OperatorBlockApplication)
-    console.log(oprAst.opr.value.debug())
     const opr = new GeneralOprApp(oprAst)
-    expect(opr.lhs !== null ? readAstSpan(opr.lhs, code) : null).toBe(result[0])
-    for (let i = 1; i < result.length; i += 2) {
-      const appIndex = Math.ceil(i / 2)
-      const app = opr.apps[appIndex]!
-      expect(app.opr.ok ? readTokenSpan(app.opr.value, code) : null).toBe(result[i])
-      expect(app.expr != null ? readAstSpan(app.expr, code) : null).toBe(result[i + 1])
+    expect(opr.readSpansOfCompnents(code)).toStrictEqual(result)
+  })
+
+  test.each([
+    {
+      code: '2 + 3',
+      result: [
+        { type: 'ast', repr: '2' },
+        { type: 'ast', repr: '3' },
+      ],
+    },
+    {
+      code: '2 + 3 + 4',
+      result: [
+        { type: 'ast', repr: '2' },
+        { type: 'ast', repr: '3' },
+        { type: 'ast', repr: '4' },
+      ],
+    },
+    {
+      code: '2 * 3 + 4',
+      result: [
+        { type: 'ast', repr: '2 * 3' },
+        { type: 'ast', repr: '4' },
+      ],
+    },
+    {
+      code: '2\n + 3\n + 4',
+      result: [
+        { type: 'ast', repr: '2' },
+        { type: 'ast', repr: '3' },
+        { type: 'ast', repr: '4' },
+      ],
+    },
+    {
+      code: '2 + 3\n + 4',
+      result: [
+        { type: 'ast', repr: '2' },
+        { type: 'ast', repr: '3' },
+        { type: 'ast', repr: '4' },
+      ],
+    },
+    {
+      code: '2\n * 3\n + 4',
+      result: [
+        { type: 'partOfOprBlockApp', repr: '2\n * 3\n + 4', statemets: 1 },
+        { type: 'ast', repr: '4' },
+      ],
+    },
+    {
+      code: '2\n + 3\n * 4\n + 5',
+      result: [
+        { type: 'partOfOprBlockApp', repr: '2\n + 3\n * 4\n + 5', statemets: 2 },
+        { type: 'ast', repr: '5' },
+      ],
+    },
+    {
+      code: '2 * 3\n + 4',
+      result: [
+        { type: 'ast', repr: '2 * 3' },
+        { type: 'ast', repr: '4' },
+      ],
+    },
+    {
+      code: 'foo bar',
+      result: [{ type: 'ast', repr: 'foo bar' }],
+    },
+    {
+      code: '2 * 3',
+      opr: '+',
+      result: [{ type: 'ast', repr: '2 * 3' }],
+    },
+  ])('Getting left-associative operator operands in $code', ({ code, opr, result }) => {
+    const ast = parseEnsoLine(code)
+    const actual = operandsOfLeftAssocOprChain(ast, code, opr)
+    const actualWithExpected = Array.from(actual, (operand, i) => {
+      return { actual: operand, expected: result[i] }
+    })
+    for (const { actual, expected } of actualWithExpected) {
+      if (expected === null) {
+        expect(actual).toBeNull()
+      } else {
+        expect(actual?.type).toStrictEqual(expected?.type)
+        if (actual?.type === 'ast') {
+          expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
+        } else {
+          assert(actual?.type == 'partOfOprBlockApp')
+          expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
+          expect(actual.statements).toStrictEqual(expected?.statemets)
+        }
+      }
     }
   })
 }

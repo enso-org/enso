@@ -1,14 +1,16 @@
 import * as Ast from '@/generated/ast'
 import { astContainingChar, readAstSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp, operandsOfLeftAssocOprChain } from '@/util/ast/opr'
-import { parseEnso2 } from '@/util/ffi'
+import { parseEnso2, parseEnsoLine } from '@/util/ffi'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { Filter } from './filtering'
 
 function asQualifiedName(accessorChain: GeneralOprApp, code: string): QualifiedName | null {
-  const operandsAsIdents = Array.from(operandsOfLeftAssocOprChain(astNode, code, '.'), (operand) =>
-    operand?.type === Ast.Tree.Type.Ident ? operand : null,
+  const operandsAsIdents = Array.from(
+    accessorChain.operandsOfLeftAssocOprChain(code, '.'),
+    (operand) =>
+      operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand : null,
   )
   if (operandsAsIdents.some((optIdent) => optIdent == null)) return null
   const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
@@ -126,7 +128,69 @@ export class Input {
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
-  test('childrenAstNodes', () => {
-    // console.log(Array.from)
-  })
+  test.each([
+    ['', 0, { type: 'insert', position: 0 }, {}],
+    [
+      'Data.',
+      5,
+      { type: 'insert', position: 5, accessorChain: ['Data', '.', null] },
+      { qualifiedNamePattern: 'Data' },
+    ],
+    ['Data.', 4, { type: 'changeIdentifier', identifier: 'Data' }, { pattern: 'Data' }],
+    [
+      'Data.read',
+      5,
+      { type: 'insert', position: 5, accessorChain: ['Data', '.', 'read'] },
+      { qualifiedNamePattern: 'Data' },
+    ],
+    [
+      'Data.read',
+      7,
+      { type: 'changeIdentifier', identifier: 'read', accessorChain: ['Data', '.', 'read'] },
+      { pattern: 're', qualifiedNamePattern: 'Data' },
+    ],
+  ])(
+    "Input context and filtering, when content is '%s' and cursor at %i",
+    (
+      code,
+      cursorPosition,
+      expContext: {
+        type: string
+        position?: number
+        accessorChain?: (string | null)[]
+        identifier?: string
+        literal?: string
+      },
+      expFiltering: { pattern?: string; qualifiedNamePattern?: string },
+    ) => {
+      const input = new Input()
+      input.code.value = ''
+      input.cursorPosition.value = cursorPosition
+      const context = input.context.value
+      const filter = input.filter.value
+      expect(context.type).toStrictEqual(expContext.type)
+      switch (context.type) {
+        case 'insert':
+          expect(context.position).toStrictEqual(expContext.position)
+          expect(
+            context.accessorChain != null
+              ? context.accessorChain.readSpansOfCompnents(code)
+              : undefined,
+          ).toStrictEqual(expContext.accessorChain)
+          break
+        case 'changeIdentifier':
+          expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
+          expect(
+            context.accessorChain != null
+              ? context.accessorChain.readSpansOfCompnents(code)
+              : undefined,
+          ).toStrictEqual(expContext.accessorChain)
+          break
+        case 'changeLiteral':
+          expect(readAstSpan(context.literal, code)).toStrictEqual(expContext.literal)
+      }
+      expect(filter.pattern).toStrictEqual(expFiltering.pattern)
+      expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
+    },
+  )
 }
