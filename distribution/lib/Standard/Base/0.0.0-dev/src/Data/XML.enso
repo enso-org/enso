@@ -110,7 +110,7 @@ type XML_Document
     root_element self =
         XML_Error.handle_java_exceptions <|
             java_element = self.java_document.getDocumentElement
-            XML_Element.Value java_element
+            XML_Element.new java_element
 
     ## PRIVATE
        Convert to a JavaScript Object representing this XML_Document.
@@ -159,7 +159,7 @@ type XML_Element
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get self key:(Text|Integer) ~if_missing=Nothing =
         case key of
-            _ : Integer -> self.children.get key if_missing
+            _ : Integer -> self.children_cache.get key if_missing
             _ : Text -> if is_attribute_key key then self.get_xpath key . get 0 if_missing else self.get_xpath key
 
     ## Gets a child or attribute of an XML element.
@@ -215,9 +215,7 @@ type XML_Element
              XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . children
              # => [XML_Document.from_text "<baz>hello</baz>"]
     children : Vector (XML_Element | Text) ! XML_Error
-    children self =
-        XML_Error.handle_java_exceptions <|
-            only_wanted_nodes self.java_element.getChildNodes
+    children self = self.children_cache
 
     ## Gets the number children of an XML element.
 
@@ -231,7 +229,7 @@ type XML_Element
              XML_Document.from_text '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . root_element . child_count
              # => 2
     child_count : Integer ! XML_Error
-    child_count self = self.children.length
+    child_count self = self.children_cache.length
 
     ## Get an attribute of an XML element.
 
@@ -328,11 +326,17 @@ type XML_Element
         builder.append ["type", "XML_Element"]
         builder.append ["tag", self.name]
         builder.append ["attributes", self.attributes.to_js_object]
-        builder.append ["children", self.children.to_js_object]
+        builder.append ["children", self.children_cache.to_js_object]
         JS_Object.from_pairs builder.to_vector
 
     ## PRIVATE
-    Value (java_element:Element)
+
+       Build a new XML_Element, populating the lazy `children_cache` field.
+    new : Element -> XML_Element
+    new java_element = XML_Element.Value java_element (build_child_list java_element)
+
+    ## PRIVATE
+    Value (java_element:Element) (~children_cache:(Vector (XML_Element | Text)))
 
 type XML_Error
     # An error that indicates that the XML data could not be parsed.
@@ -387,11 +391,19 @@ only_wanted_nodes node_list:NodeList =
 
     # If an Element, wrap in XML_Element. If Java_Text, extract the string. If an attribute, extract the value.
     convert node =
-        if node.getNodeType == Node.ELEMENT_NODE then XML_Element.Value node else
+        if node.getNodeType == Node.ELEMENT_NODE then XML_Element.new node else
             if node.getNodeType == Node.TEXT_NODE then node.getNodeValue else
                 if node.getNodeType == Node.ATTRIBUTE_NODE then node.getValue else
                     Panic.throw (Illegal_State.Error ("Unexpected child type " + node.getNodeType.to_text))
     nodes.filter is_wanted . map convert
+
+## PRIVATE
+
+    Build the child list, filtering out unwanted child nodes.
+build_child_list : Element -> Vector (XML_Element | Text) ! XML_Error
+build_child_list java_element =
+    XML_Error.handle_java_exceptions <|
+        only_wanted_nodes java_element.getChildNodes
 
 ## PRIVATE
    Returns true if `key` starts with "@".
