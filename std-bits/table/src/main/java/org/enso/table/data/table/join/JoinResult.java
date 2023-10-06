@@ -4,7 +4,9 @@ import org.enso.base.arrays.IntArrayBuilder;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.problems.AggregatedProblems;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public record JoinResult(int[] matchedRowsLeftIndices, int[] matchedRowsRightIndices, AggregatedProblems problems) {

@@ -1,6 +1,9 @@
 package org.enso.table.data.index;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.enso.base.text.TextFoldingStrategy;

@@ -1,9 +1,5 @@
 package org.enso.table.data.table.join.scan;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
-
 import org.enso.base.ObjectComparator;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
@@ -13,8 +9,12 @@ import org.enso.table.data.table.join.Between;
 import org.enso.table.data.table.join.Equals;
 import org.enso.table.data.table.join.EqualsIgnoreCase;
 import org.enso.table.data.table.join.JoinCondition;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.AggregatedProblems;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 public class MatcherFactory {
   public Matcher create(JoinCondition condition) {

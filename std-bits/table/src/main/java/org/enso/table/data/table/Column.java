@@ -1,6 +1,5 @@
 package org.enso.table.data.table;
 
-import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -14,7 +13,6 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 

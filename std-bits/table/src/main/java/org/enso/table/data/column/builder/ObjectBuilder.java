@@ -5,7 +5,6 @@ import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.problems.AggregatedProblems;
 
 import java.util.Arrays;
 

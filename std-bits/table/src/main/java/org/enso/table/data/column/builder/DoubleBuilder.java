@@ -13,7 +13,6 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 

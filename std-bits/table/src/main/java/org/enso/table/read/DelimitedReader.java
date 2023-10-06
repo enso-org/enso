@@ -20,13 +20,17 @@ import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.Problem;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.enso.table.problems.WithProblems;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 
 import java.io.Reader;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 /** A helper for reading delimited (CSV-like) files. */

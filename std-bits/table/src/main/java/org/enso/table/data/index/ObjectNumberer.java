@@ -1,6 +1,9 @@
 package org.enso.table.data.index;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /** Map objects to serial numbers starting at 0. */
 public class ObjectNumberer<T> {

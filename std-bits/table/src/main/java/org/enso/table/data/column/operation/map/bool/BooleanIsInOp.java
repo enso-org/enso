@@ -1,12 +1,13 @@
 package org.enso.table.data.column.operation.map.bool;
 
-import java.util.BitSet;
-import java.util.List;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Context;
+
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * A specialized implementation for the IS_IN operation on booleans - since booleans have just three

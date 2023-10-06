@@ -1,12 +1,12 @@
 package org.enso.table.data.column.operation.map;
 
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.List;
-
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Context;
+
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * A specialized implementation for the IS_IN operation for builtin types, relying on hashing. Since

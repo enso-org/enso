@@ -1,8 +1,8 @@
 package org.enso.table.data.column.operation.cast;
 
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
-import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.graalvm.polyglot.Context;

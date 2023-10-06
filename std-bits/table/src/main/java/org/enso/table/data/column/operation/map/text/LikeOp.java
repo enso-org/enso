@@ -1,8 +1,5 @@
 package org.enso.table.data.column.operation.map.text;
 
-import java.util.BitSet;
-import java.util.regex.Pattern;
-
 import com.ibm.icu.impl.UnicodeRegex;
 import org.enso.base.Regex_Utils;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -11,6 +8,9 @@ import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
+
+import java.util.BitSet;
+import java.util.regex.Pattern;
 
 public class LikeOp extends StringBooleanOp {
   public LikeOp() {
