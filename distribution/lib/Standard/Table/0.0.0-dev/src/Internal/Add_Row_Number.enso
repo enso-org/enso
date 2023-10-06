@@ -4,6 +4,8 @@ import project.Data.Column.Column
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
+import project.Data.Type.Value_Type.Bits
+import project.Internal.Java_Problems
 import project.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
 import project.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
 import project.Internal.Problem_Builder.Problem_Builder
@@ -60,15 +62,16 @@ make_range_column name start step length =
 ## PRIVATE
 make_grouped_enumeration name grouping_columns start step =
     n = grouping_columns.at 0 . length
-    column_builder = make_long_builder n
-    0.up_to n . fold Map.empty grouping_counters-> ix->
-        key = Unordered_Multi_Value_Key.from_row grouping_columns ix
-        enum_index = grouping_counters.get key 0
-        column_builder.appendLong (nth_index start step enum_index)
-        new_counters = grouping_counters.insert key (enum_index + 1)
-        new_counters
-    storage = column_builder.seal
-    Column.from_storage name storage
+    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+        column_builder = make_long_builder n bits=Bits.Bits_64 java_problem_aggregator
+        0.up_to n . fold Map.empty grouping_counters-> ix->
+            key = Unordered_Multi_Value_Key.from_row grouping_columns ix
+            enum_index = grouping_counters.get key 0
+            column_builder.appendLong (nth_index start step enum_index)
+            new_counters = grouping_counters.insert key (enum_index + 1)
+            new_counters
+        storage = column_builder.seal
+        Column.from_storage name storage
 
 ## PRIVATE
    If the `grouping_columns` are empty, all rows are considered to be in the same group.
