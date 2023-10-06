@@ -2,7 +2,7 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.parsing.problems.ProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
 import org.graalvm.collections.EconomicSet;
 
 public class BooleanParser extends IncrementalDatatypeParser {
@@ -22,7 +22,7 @@ public class BooleanParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     // TODO we may want to use equality checks taking Unicode Normalization into account, to be
     // revised in: https://www.pivotaltracker.com/story/show/182166382
     if (trueValues.contains(text)) return true;

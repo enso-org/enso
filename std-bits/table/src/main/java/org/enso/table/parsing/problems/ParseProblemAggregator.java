@@ -3,7 +3,7 @@ package org.enso.table.parsing.problems;
 import org.enso.table.problems.AggregatedProblems;
 
 /** An aggregator for parsing problems. */
-public interface ProblemAggregator {
+public interface ParseProblemAggregator {
 
   /**
    * Reports a cell with an invalid format.

@@ -4,8 +4,8 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.parsing.problems.ProblemAggregator;
-import org.enso.table.parsing.problems.ProblemAggregatorImpl;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
@@ -224,7 +224,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     }
 
     @Override
-    protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+    protected Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
         int index = 0;
         var pattern = patternForIndex(index);
         while (pattern != null) {
@@ -265,12 +265,12 @@ public class NumberParser extends IncrementalDatatypeParser {
         }
 
         Builder fallback = makeBuilderWithCapacity(sourceStorage.size());
-        ProblemAggregator aggregator = new ProblemAggregatorImpl(columnName);
+        ParseProblemAggregator aggregator = new ParseProblemAggregatorImpl(columnName);
         parseColumnWithPattern(patternForIndex(bestIndex), sourceStorage, fallback, aggregator);
         return sealBuilderAndMergeProblems(fallback, aggregator);
     }
 
-    private WithAggregatedProblems<Storage<?>> sealBuilderAndMergeProblems(Builder builder, ProblemAggregator aggregator) {
+    private WithAggregatedProblems<Storage<?>> sealBuilderAndMergeProblems(Builder builder, ParseProblemAggregator aggregator) {
         AggregatedProblems problems = builder.getProblems();
         if (aggregator != null) {
             problems = AggregatedProblems.merge(problems, aggregator.getAggregatedProblems());
@@ -278,7 +278,7 @@ public class NumberParser extends IncrementalDatatypeParser {
         return new WithAggregatedProblems<>(builder.seal(), problems);
     }
 
-    private int parseColumnWithPattern(Pattern pattern, Storage<String> sourceStorage, Builder builder, ProblemAggregator aggregator) {
+    private int parseColumnWithPattern(Pattern pattern, Storage<String> sourceStorage, Builder builder, ParseProblemAggregator aggregator) {
         Context context = Context.getCurrent();
         for (int i = 0; i < sourceStorage.size(); i++) {
             var text = sourceStorage.getItemBoxed(i);

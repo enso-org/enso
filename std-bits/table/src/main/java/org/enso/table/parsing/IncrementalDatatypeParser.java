@@ -2,7 +2,7 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.parsing.problems.ProblemAggregatorImpl;
+import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
@@ -33,7 +33,7 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
   public WithAggregatedProblems<Storage<?>> parseColumn(
       String columnName, Storage<String> sourceStorage) {
     Builder builder = makeBuilderWithCapacity(sourceStorage.size());
-    var aggregator = new ProblemAggregatorImpl(columnName);
+    var aggregator = new ParseProblemAggregatorImpl(columnName);
 
     Context context = Context.getCurrent();
     for (int i = 0; i < sourceStorage.size(); ++i) {

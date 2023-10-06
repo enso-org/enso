@@ -1,7 +1,7 @@
 package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.parsing.problems.ProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
 
 /**
  * An incremental parser which wraps another parser of that type, delegating the parsing logic to
@@ -15,7 +15,7 @@ public class WhitespaceStrippingParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     String stripped = text.strip();
     return innerParser.parseSingleValue(stripped, problemAggregator);
   }

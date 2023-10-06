@@ -1,8 +1,8 @@
 package org.enso.table.parsing;
 
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.parsing.problems.ProblemAggregator;
-import org.enso.table.parsing.problems.ProblemAggregatorImpl;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.problems.WithAggregatedProblems;
 
 /** A base type for a parser capable of parsing a column of text values into some other type. */
@@ -17,7 +17,7 @@ public abstract class DatatypeParser {
    * @return the parsed value or null if the value could not be parsed or could be parsed but should
    *     be treated as missing value
    */
-  protected abstract Object parseSingleValue(String text, ProblemAggregator problemAggregator);
+  protected abstract Object parseSingleValue(String text, ParseProblemAggregator problemAggregator);
 
   /**
    * Parses a single value not contained in a column.
@@ -25,7 +25,7 @@ public abstract class DatatypeParser {
    * <p>Any reported problems will contain {@code null} as the related column reference.
    */
   public WithAggregatedProblems<Object> parseIndependentValue(String text) {
-    ProblemAggregator problemAggregator = new ProblemAggregatorImpl(null);
+    ParseProblemAggregator problemAggregator = new ParseProblemAggregatorImpl(null);
     Object result = parseSingleValue(text, problemAggregator);
     return new WithAggregatedProblems<>(result, problemAggregator.getAggregatedProblems());
   }

@@ -2,9 +2,9 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.parsing.problems.ProblemAggregator;
-import org.enso.table.parsing.problems.ProblemAggregatorImpl;
-import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
+import org.enso.table.parsing.problems.SimplifiedParseProblemAggregator;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
@@ -28,9 +28,9 @@ public class TypeInferringParser extends DatatypeParser {
   }
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  public Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     for (IncrementalDatatypeParser parser : baseParsers) {
-      SimplifiedProblemAggregator internal = new SimplifiedProblemAggregator();
+      SimplifiedParseProblemAggregator internal = new SimplifiedParseProblemAggregator();
       Object result = parser.parseSingleValue(text, internal);
       if (!internal.hasProblems()) {
         return result;
@@ -55,7 +55,7 @@ public class TypeInferringParser extends DatatypeParser {
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
-      var aggregator = new ProblemAggregatorImpl(columnName);
+      var aggregator = new ParseProblemAggregatorImpl(columnName);
 
       for (int i = 0; i < sourceStorage.size(); ++i) {
         String cell = sourceStorage.getItemBoxed(i);

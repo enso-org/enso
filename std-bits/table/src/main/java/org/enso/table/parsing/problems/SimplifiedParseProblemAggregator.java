@@ -2,7 +2,7 @@ package org.enso.table.parsing.problems;
 
 import org.enso.table.problems.AggregatedProblems;
 
-public class SimplifiedProblemAggregator implements ProblemAggregator {
+public class SimplifiedParseProblemAggregator implements ParseProblemAggregator {
 
   private boolean hasProblems = false;
 

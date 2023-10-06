@@ -3,7 +3,7 @@ package org.enso.table.parsing.problems;
 import org.enso.table.problems.AggregatedProblems;
 
 /** A problem aggregator which ignores problems. */
-public class NoOpProblemAggregator implements ProblemAggregator {
+public class NoOpParseProblemAggregator implements ParseProblemAggregator {
 
   @Override
   public void reportInvalidFormat(String cell) {}

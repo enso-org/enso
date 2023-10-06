@@ -3,7 +3,7 @@ package org.enso.table.parsing;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.parsing.problems.ProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.WithAggregatedProblems;
 
@@ -11,7 +11,7 @@ import org.enso.table.problems.WithAggregatedProblems;
 public class IdentityParser extends IncrementalDatatypeParser {
 
   @Override
-  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     return text;
   }
 

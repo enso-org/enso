@@ -14,9 +14,10 @@ import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
-import org.enso.table.parsing.problems.NoOpProblemAggregator;
+import org.enso.table.parsing.problems.NoOpParseProblemAggregator;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.Problem;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.problems.WithAggregatedProblems;
 import org.enso.table.problems.WithProblems;
 import org.enso.table.util.NameDeduplicator;
@@ -59,7 +60,7 @@ public class DelimitedReader {
   private final boolean keepInvalidRows;
   private String newlineSetting;
   private final boolean warningsAsErrors;
-  private final NoOpProblemAggregator noOpProblemAggregator = new NoOpProblemAggregator();
+  private final NoOpParseProblemAggregator noOpProblemAggregator = new NoOpParseProblemAggregator();
   private long invalidRowsCount = 0;
   private long targetTableIndex = 0;
   /** The line number of the start of the current row in the input file. */
@@ -466,7 +467,7 @@ public class DelimitedReader {
    * <p>
    * It should only be called once.
    */
-  public WithAggregatedProblems<Table> read(Reader input) {
+  public Table read(Reader input, ProblemAggregator problemAggregator) {
     markUsed();
     Context context = Context.getCurrent();
     try {

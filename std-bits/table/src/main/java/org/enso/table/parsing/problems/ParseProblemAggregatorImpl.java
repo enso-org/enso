@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.table.problems.AggregatedProblems;
 
-public class ProblemAggregatorImpl implements ProblemAggregator {
+public class ParseProblemAggregatorImpl implements ParseProblemAggregator {
   public final String relatedColumnName;
   private final List<String> invalidFormatCells = new ArrayList<>();
 
-  public ProblemAggregatorImpl(String relatedColumnName) {
+  public ParseProblemAggregatorImpl(String relatedColumnName) {
     this.relatedColumnName = relatedColumnName;
   }
 
