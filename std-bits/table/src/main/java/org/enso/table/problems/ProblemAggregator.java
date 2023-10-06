@@ -28,7 +28,7 @@ public class ProblemAggregator {
    * The count may be larger than the list size, meaning that some problems were dropped due to count limits - it can be
    * used to add an `Additional_Warnings` problem.
    */
-  public class ProblemSummary {
+  public static class ProblemSummary {
     public final List<Problem> problems;
     public long allProblemsCount;
 
@@ -72,6 +72,7 @@ public class ProblemAggregator {
   guaranteeing that all other implementations are forced to specify a parent. */
   protected ProblemAggregator(BlackholeProblemAggregator.PrivateConstructorToken token) {
     Objects.requireNonNull(token);
+    parent = null;
   }
 
   /* The constructor to use for inheritors, that guarantees that it is attached to a parent. */

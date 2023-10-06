@@ -4,6 +4,12 @@ import java.util.List;
 
 public class BlackholeProblemAggregator extends ProblemAggregator {
 
+  /**
+   * An instance of ProblemAggregator that discards any problems.
+   * <p>
+   * It should be used rather rarely to avoid losing problems. But it may be useful when we are doing some internal
+   * checks whose problems are never supposed to surface.
+   */
   public static final BlackholeProblemAggregator INSTANCE = new BlackholeProblemAggregator();
 
   private BlackholeProblemAggregator() {
@@ -11,17 +17,21 @@ public class BlackholeProblemAggregator extends ProblemAggregator {
   }
 
   protected static class PrivateConstructorToken {
-    private PrivateConstructorToken() {}
+    private PrivateConstructorToken() {
+    }
   }
 
   @Override
-  public void report(Problem problem) {}
+  public void report(Problem problem) {
+  }
 
   @Override
-  public void reportAll(List<Problem> problems) {}
+  public void reportAll(List<Problem> problems) {
+  }
 
   @Override
-  protected void registerChild(ProblemAggregator child) {}
+  protected void registerChild(ProblemAggregator child) {
+  }
 
   @Override
   public ProblemSummary summarize() {
