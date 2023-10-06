@@ -58,7 +58,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
             return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
         } else {
             // Return double storage.
-            DoubleBuilder doubleBuilder = NumericBuilder.createDoubleBuilder(storage.size());
+            DoubleBuilder doubleBuilder = NumericBuilder.createDoubleBuilder(storage.size(), problemBuilder);
 
             for (int i = 0; i < storage.size(); i++) {
                 if (!storage.isNa(i)) {
