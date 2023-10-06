@@ -3,7 +3,6 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
-
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -195,7 +194,8 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   }
 
   @Override
-  public Storage<?> fillMissing(Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
+  public Storage<?> fillMissing(
+      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
         return fillMissingLong(arg.asLong(), problemAggregator);

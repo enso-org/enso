@@ -1,12 +1,11 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.Problem;
-import org.enso.table.problems.ProblemAggregator;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.table.problems.ProblemAggregator;
 
-public final class ParseProblemAggregatorImpl extends ProblemAggregator implements ParseProblemAggregator {
+public final class ParseProblemAggregatorImpl extends ProblemAggregator
+    implements ParseProblemAggregator {
   public final String relatedColumnName;
   private final List<String> invalidFormatCells = new ArrayList<>();
 

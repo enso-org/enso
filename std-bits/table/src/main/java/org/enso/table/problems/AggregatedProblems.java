@@ -1,9 +1,8 @@
 package org.enso.table.problems;
 
-import org.enso.table.data.table.problems.ColumnAggregatedProblem;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.table.data.table.problems.ColumnAggregatedProblem;
 
 @Deprecated
 public class AggregatedProblems {
@@ -96,10 +95,11 @@ public class AggregatedProblems {
   }
 
   /**
-   * A helper method for migration from {@link AggregatedProblems} to {@link ProblemAggregator} in an easy way.
+   * A helper method for migration from {@link AggregatedProblems} to {@link ProblemAggregator} in
+   * an easy way.
    *
-   * @deprecated It will be removed together with {@link AggregatedProblems}, but can be used to perform migration in
-   *     parts.
+   * @deprecated It will be removed together with {@link AggregatedProblems}, but can be used to
+   *     perform migration in parts.
    */
   @Deprecated
   public static void addToAggregator(AggregatedProblems problems, ProblemAggregator aggregator) {
@@ -107,7 +107,8 @@ public class AggregatedProblems {
       return;
     }
 
-    // Merely creating this class registers it to the parent and will ensure the problems will be added when summarizing.
+    // Merely creating this class registers it to the parent and will ensure the problems will be
+    // added when summarizing.
     new AggregatedProblemsProxyAggregator(aggregator, problems);
   }
 
@@ -115,7 +116,8 @@ public class AggregatedProblems {
 
     private final AggregatedProblems problemsToAdd;
 
-    protected AggregatedProblemsProxyAggregator(ProblemAggregator parent, AggregatedProblems problemsToAdd) {
+    protected AggregatedProblemsProxyAggregator(
+        ProblemAggregator parent, AggregatedProblems problemsToAdd) {
       super(parent);
       this.problemsToAdd = problemsToAdd;
     }

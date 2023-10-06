@@ -11,7 +11,8 @@ import org.enso.table.problems.ProblemAggregator;
  * larger integers will come to appendLong anyway.
  */
 public class LongBuilderUnchecked extends LongBuilder {
-  protected LongBuilderUnchecked(BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
+  protected LongBuilderUnchecked(
+      BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
     super(isMissing, data, currentSize, problemAggregator);
   }
 

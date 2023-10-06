@@ -13,7 +13,6 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -113,7 +112,8 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
-    final var builder = NumericBuilder.createLongBuilder(size, IntegerType.INT_64, problemAggregator);
+    final var builder =
+        NumericBuilder.createLongBuilder(size, IntegerType.INT_64, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
@@ -128,7 +128,8 @@ public final class LongStorage extends AbstractLongStorage {
     return builder.seal();
   }
 
-  private Storage<?> fillMissingBigInteger(BigInteger bigInteger, ProblemAggregator problemAggregator) {
+  private Storage<?> fillMissingBigInteger(
+      BigInteger bigInteger, ProblemAggregator problemAggregator) {
     final var builder = new BigIntegerBuilder(size, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
@@ -145,7 +146,8 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public Storage<?> fillMissing(Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
+  public Storage<?> fillMissing(
+      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (NumericConverter.isCoercibleToLong(arg.as(Object.class))) {
         return fillMissingLong(arg.asLong(), problemAggregator);

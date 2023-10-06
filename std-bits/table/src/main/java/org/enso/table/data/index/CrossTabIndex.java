@@ -104,7 +104,8 @@ public class CrossTabIndex {
     return yKeyNumberer.size();
   }
 
-  public Table makeCrossTabTable(Aggregator[] aggregates, String[] aggregateNames, ProblemAggregator problemAggregator) {
+  public Table makeCrossTabTable(
+      Aggregator[] aggregates, String[] aggregateNames, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
@@ -123,14 +124,16 @@ public class CrossTabIndex {
     // Create the storage
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < yColumns.length; i++) {
-      storage[i] = Builder.getForType(yColumns[i].getStorage().getType(), yKeysCount(), problemAggregator);
+      storage[i] =
+          Builder.getForType(yColumns[i].getStorage().getType(), yKeysCount(), problemAggregator);
       context.safepoint();
     }
 
     for (int i = 0; i < xKeysCount(); i++) {
       int offset = yColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] = Builder.getForType(aggregates[j].getType(), yKeysCount(), problemAggregator);
+        storage[offset + j] =
+            Builder.getForType(aggregates[j].getType(), yKeysCount(), problemAggregator);
         context.safepoint();
       }
     }
@@ -199,7 +202,8 @@ public class CrossTabIndex {
       offset += aggregates.length;
     }
 
-    // TODO this is not how we will be merging problems - instead the aggregator should be passed downwards to each call; but we do all step by step
+    // TODO this is not how we will be merging problems - instead the aggregator should be passed
+    // downwards to each call; but we do all step by step
     AggregatedProblems.addToAggregator(combinedIndex.getProblems(), problemAggregator);
     problemAggregator.reportAll(outputTableNameDeduplicator.getProblems());
     for (Aggregator aggregate : aggregates) {

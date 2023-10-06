@@ -1,5 +1,11 @@
 package org.enso.table.read;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -17,19 +23,9 @@ import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithProblems;
 import org.graalvm.polyglot.Context;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-/**
- * A table reader for MS Excel files.
- */
+/** A table reader for MS Excel files. */
 public class ExcelReader {
   /**
    * Loads a workbook (either XLSX or XLS format from the specified input stream.
@@ -106,7 +102,7 @@ public class ExcelReader {
    * @param row_limit maximum number of rows to read.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
-   * @throws IOException              when the input stream cannot be read.
+   * @throws IOException when the input stream cannot be read.
    * @throws InvalidLocationException when the sheet name is not found.
    */
   public static Table readSheetByName(
@@ -144,7 +140,7 @@ public class ExcelReader {
    * @param row_limit maximum number of rows to read.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
-   * @throws IOException              when the input stream cannot be read.
+   * @throws IOException when the input stream cannot be read.
    * @throws InvalidLocationException when the sheet index is not valid.
    */
   public static Table readSheetByIndex(
@@ -175,7 +171,8 @@ public class ExcelReader {
   }
 
   /**
-   * Reads a range by sheet name, named range or address for the specified XLSX/XLS file into a table.
+   * Reads a range by sheet name, named range or address for the specified XLSX/XLS file into a
+   * table.
    *
    * @param stream an {@link InputStream} allowing to read the XLSX file contents.
    * @param rangeNameOrAddress sheet name, range name or address to read.
@@ -184,7 +181,7 @@ public class ExcelReader {
    * @param row_limit maximum number of rows to read.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
-   * @throws IOException              when the input stream cannot be read.
+   * @throws IOException when the input stream cannot be read.
    * @throws InvalidLocationException when the range name or address is not found.
    */
   public static Table readRangeByName(
@@ -197,7 +194,8 @@ public class ExcelReader {
       ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
-    return readRangeByName(workbook, rangeNameOrAddress, headers, skip_rows, row_limit, problemAggregator);
+    return readRangeByName(
+        workbook, rangeNameOrAddress, headers, skip_rows, row_limit, problemAggregator);
   }
 
   /**
@@ -264,7 +262,13 @@ public class ExcelReader {
       boolean xls_format,
       ProblemAggregator problemAggregator)
       throws IOException, InvalidLocationException {
-    return readRange(getWorkbook(stream, xls_format), excelRange, headers, skip_rows, row_limit, problemAggregator);
+    return readRange(
+        getWorkbook(stream, xls_format),
+        excelRange,
+        headers,
+        skip_rows,
+        row_limit,
+        problemAggregator);
   }
 
   /**
@@ -317,10 +321,10 @@ public class ExcelReader {
       ExcelRow currentRow = sheet.get(excelRange.getTopRow());
       if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
         return new Table(
-            new Column[]{
-                new Column(
-                    CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
-                    new ObjectStorage(new Object[0], 0))
+            new Column[] {
+              new Column(
+                  CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
+                  new ObjectStorage(new Object[0], 0))
             });
       }
 
@@ -353,8 +357,8 @@ public class ExcelReader {
         wholeRow
             ? new ArrayList<>()
             : IntStream.range(startCol, endCol + 1)
-            .mapToObj(i -> new InferredBuilder(size, problemAggregator))
-            .collect(Collectors.toList());
+                .mapToObj(i -> new InferredBuilder(size, problemAggregator))
+                .collect(Collectors.toList());
 
     // Read Cell Data
     int row = startRow;
@@ -399,8 +403,12 @@ public class ExcelReader {
     return new Table(columns);
   }
 
-  private static void expandBuilders(List<Builder> builders, int size, int columnCount, int rows,
-                                     ProblemAggregator problemAggregator) {
+  private static void expandBuilders(
+      List<Builder> builders,
+      int size,
+      int columnCount,
+      int rows,
+      ProblemAggregator problemAggregator) {
     for (int i = builders.size(); i <= columnCount; i++) {
       Builder builder = new InferredBuilder(size, problemAggregator);
       builder.appendNulls(rows);

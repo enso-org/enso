@@ -68,5 +68,4 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   public StorageType getType() {
     return DateTimeType.INSTANCE;
   }
-
 }

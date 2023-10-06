@@ -14,7 +14,8 @@ import org.graalvm.polyglot.Context;
  * A column backing Mixed storage.
  *
  * <p>It stores the objects as Object[] and reports a Mixed type, but it may specialize itself to a
- * more precise type if all values have a common type, and will allow operations on this more specific type.
+ * more precise type if all values have a common type, and will allow operations on this more
+ * specific type.
  */
 public final class MixedStorage extends ObjectStorage {
   private StorageType inferredType = null;
@@ -23,12 +24,12 @@ public final class MixedStorage extends ObjectStorage {
    * Holds a specialized storage for the inferred type, if available.
    *
    * <p>This storage may provide vectorized implementations of operations for more specific types.
-   * Used when the Mixed type column pretends to be of another type, by reporting a more specialized inferred type. This
-   * allows it to support operations of that type.
+   * Used when the Mixed type column pretends to be of another type, by reporting a more specialized
+   * inferred type. This allows it to support operations of that type.
    *
    * <p>Once the specialized storage is first computed, all vectorized operations will be forwarded
-   * to it - assuming that it will most likely provide more efficient implementations, even for operations that are also
-   * defined on ObjectStorage.
+   * to it - assuming that it will most likely provide more efficient implementations, even for
+   * operations that are also defined on ObjectStorage.
    */
   private Storage<?> cachedInferredStorage = null;
 
@@ -124,9 +125,11 @@ public final class MixedStorage extends ObjectStorage {
       if (inferredType instanceof AnyObjectType) {
         cachedInferredStorage = null;
       } else {
-        // Any problems will be discarded - this is not a real conversion but just an approximation for purposes of a
+        // Any problems will be discarded - this is not a real conversion but just an approximation
+        // for purposes of a
         // computation.
-        Builder builder = Builder.getForType(inferredType, size(), BlackholeProblemAggregator.INSTANCE);
+        Builder builder =
+            Builder.getForType(inferredType, size(), BlackholeProblemAggregator.INSTANCE);
         for (int i = 0; i < size(); i++) {
           builder.appendNoGrow(getItemBoxed(i));
         }
@@ -151,10 +154,10 @@ public final class MixedStorage extends ObjectStorage {
    * with a more efficient implementation.
    *
    * <p>2. If it is not yet cached, we do not want to compute it (since it is costly) unless it is
-   * necessary - if our basic storage already provides the operation, we will use that implementation - even if it may
-   * not be as fast as a specialized one, the cost of computing the precise storage may just not be worth it. If our
-   * storage does not provide the operation, we now need to try getting the inferred storage, to check if it may provide
-   * it.
+   * necessary - if our basic storage already provides the operation, we will use that
+   * implementation - even if it may not be as fast as a specialized one, the cost of computing the
+   * precise storage may just not be worth it. If our storage does not provide the operation, we now
+   * need to try getting the inferred storage, to check if it may provide it.
    */
   private VectorizedOperationAvailability resolveUnaryOp(String name) {
     // Shortcut - if the storage is already specialized - we prefer it.
@@ -175,9 +178,7 @@ public final class MixedStorage extends ObjectStorage {
     }
   }
 
-  /**
-   * {@see resolveUnaryOp} for explanations.
-   */
+  /** {@see resolveUnaryOp} for explanations. */
   private VectorizedOperationAvailability resolveBinaryOp(String name) {
     // Shortcut - if the storage is already specialized - we prefer it.
     if (cachedInferredStorage != null && cachedInferredStorage.isBinaryOpVectorized(name)) {
@@ -197,9 +198,7 @@ public final class MixedStorage extends ObjectStorage {
     }
   }
 
-  /**
-   * {@see resolveUnaryOp} for explanations.
-   */
+  /** {@see resolveUnaryOp} for explanations. */
   private VectorizedOperationAvailability resolveTernaryOp(String name) {
     // Shortcut - if the storage is already specialized - we prefer it.
     if (cachedInferredStorage != null && cachedInferredStorage.isTernaryOpVectorized(name)) {

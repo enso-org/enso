@@ -62,5 +62,4 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   public StorageType getType() {
     return TimeOfDayType.INSTANCE;
   }
-
 }

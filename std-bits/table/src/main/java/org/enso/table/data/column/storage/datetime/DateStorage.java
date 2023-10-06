@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.datetime;
 
 import java.time.LocalDate;
-
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DatePartExtractors;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
@@ -45,5 +44,4 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   public StorageType getType() {
     return DateType.INSTANCE;
   }
-
 }

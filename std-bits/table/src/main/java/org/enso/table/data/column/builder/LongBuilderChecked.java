@@ -12,14 +12,20 @@ public class LongBuilderChecked extends LongBuilder {
   private final IntegerType type;
   private final CastProblemAggregator castProblemAggregator;
 
-  protected LongBuilderChecked(BitSet isMissing, long[] data, int currentSize, IntegerType type, ProblemAggregator problemAggregator) {
+  protected LongBuilderChecked(
+      BitSet isMissing,
+      long[] data,
+      int currentSize,
+      IntegerType type,
+      ProblemAggregator problemAggregator) {
     super(isMissing, data, currentSize, problemAggregator);
     this.type = type;
 
     // Currently we have no correlation with column name, and it may not be necessary for now.
     // TODO ideally we want to pass the column through a problem aggregator context
     String relatedColumnName = null;
-    this.castProblemAggregator = new CastProblemAggregator(problemAggregator, relatedColumnName, type);
+    this.castProblemAggregator =
+        new CastProblemAggregator(problemAggregator, relatedColumnName, type);
   }
 
   @Override

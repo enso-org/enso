@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.map;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.ArithmeticError;
 import org.enso.table.data.table.problems.ArithmeticOverflow;
@@ -7,9 +9,6 @@ import org.enso.table.data.table.problems.ColumnAggregatedProblem;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.data.table.problems.IllegalArgumentError;
 import org.enso.table.problems.ProblemAggregator;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This class is used to aggregate problems occurring during map operations performed on a storage.
@@ -57,7 +56,7 @@ public class MapOperationProblemBuilder extends ProblemAggregator {
     overflowCount++;
     if (overflowTargetType == null) {
       overflowTargetType = targetType;
-      overflowExample = new Object[]{x, op, y};
+      overflowExample = new Object[] {x, op, y};
     }
   }
 
@@ -69,8 +68,7 @@ public class MapOperationProblemBuilder extends ProblemAggregator {
   public ProblemSummary summarize() {
     var summary = super.summarize();
     if (overflowCount > 0) {
-      summary.add(
-          new ArithmeticOverflow(overflowTargetType, overflowCount, overflowExample));
+      summary.add(new ArithmeticOverflow(overflowTargetType, overflowCount, overflowExample));
     }
 
     for (var p : aggregatedProblemList) {

@@ -21,8 +21,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final Map<KeyType, List<Integer>> locs;
 
   // We should remove this. But in a separate commit.
-  @Deprecated
-  private final AggregatedProblems problems;
+  @Deprecated private final AggregatedProblems problems;
 
   public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
       Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
@@ -116,7 +115,9 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     }
 
     AggregatedProblems.addToAggregator(this.problems, problemAggregator);
-    IntStream.range(0, length).forEach(i -> AggregatedProblems.addToAggregator(columns[i].getProblems(), problemAggregator));
+    IntStream.range(0, length)
+        .forEach(
+            i -> AggregatedProblems.addToAggregator(columns[i].getProblems(), problemAggregator));
 
     return new Table(
         IntStream.range(0, length)

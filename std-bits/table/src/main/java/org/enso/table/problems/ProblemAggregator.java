@@ -12,8 +12,9 @@ public class ProblemAggregator {
 
   protected void checkNotFinished() {
     if (isFinished) {
-      throw new IllegalStateException("This ProblemAggregator instance has already been summarized. Using " +
-          "ProblemAggregator after it has been summarized is a bug, because the problems will be lost.");
+      throw new IllegalStateException(
+          "This ProblemAggregator instance has already been summarized. Using "
+              + "ProblemAggregator after it has been summarized is a bug, because the problems will be lost.");
     }
   }
 
@@ -23,9 +24,7 @@ public class ProblemAggregator {
     directlyReportedProblems.add(problem);
   }
 
-  /**
-   * A helper method, I'm not sure if we should have it, but it helps during migration.
-   */
+  /** A helper method, I'm not sure if we should have it, but it helps during migration. */
   @Deprecated
   public void reportAll(List<Problem> problems) {
     checkNotFinished();
@@ -34,9 +33,9 @@ public class ProblemAggregator {
 
   /**
    * A summary that includes gathered problems and a count.
-   * <p>
-   * The count may be larger than the list size, meaning that some problems were dropped due to count limits - it can be
-   * used to add an `Additional_Warnings` problem.
+   *
+   * <p>The count may be larger than the list size, meaning that some problems were dropped due to
+   * count limits - it can be used to add an `Additional_Warnings` problem.
    */
   public static class ProblemSummary {
     public final List<Problem> problems;
@@ -74,7 +73,7 @@ public class ProblemAggregator {
   }
 
   /* The simple constructor is private, so children need to use one that specifies the parent, thus guaranteeing that
-   a parent exists. */
+  a parent exists. */
   private ProblemAggregator() {
     parent = null;
   }
@@ -109,21 +108,24 @@ public class ProblemAggregator {
   }
 
   /**
-   * This method may be called to avoid passing problems from this aggregator to its parent, when summarize is called.
-   * <p>
-   * All aggregators pass their problems upstream by default, but we can decide to opt-out of this, for example when
-   * performing 'backtracking' and rolling back a failed branch.
+   * This method may be called to avoid passing problems from this aggregator to its parent, when
+   * summarize is called.
+   *
+   * <p>All aggregators pass their problems upstream by default, but we can decide to opt-out of
+   * this, for example when performing 'backtracking' and rolling back a failed branch.
    */
   public void detachFromParent() {
     if (parent == null) {
-      throw new NullPointerException("Cannot detach the top-level aggregator, because it has no parents.");
+      throw new NullPointerException(
+          "Cannot detach the top-level aggregator, because it has no parents.");
     }
 
     parent.children.remove(this);
   }
 
   /**
-   * Creates a child aggregator that will forward all of its problems to the parent, unless it is later detached.
+   * Creates a child aggregator that will forward all of its problems to the parent, unless it is
+   * later detached.
    */
   public ProblemAggregator createSimpleChild() {
     return new ProblemAggregator(this);

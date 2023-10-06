@@ -6,9 +6,7 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
-/**
- * A parser that just returns its input. Useful as a fallback.
- */
+/** A parser that just returns its input. Useful as a fallback. */
 public class IdentityParser extends IncrementalDatatypeParser {
 
   @Override
@@ -22,7 +20,8 @@ public class IdentityParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Storage<?> parseColumn(String columnName, Storage<String> sourceStorage, ProblemAggregator problemAggregator) {
+  public Storage<?> parseColumn(
+      String columnName, Storage<String> sourceStorage, ProblemAggregator problemAggregator) {
     return sourceStorage;
   }
 }

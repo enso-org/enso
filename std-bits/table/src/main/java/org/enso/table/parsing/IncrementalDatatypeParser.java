@@ -3,10 +3,7 @@ package org.enso.table.parsing;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
-import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -26,13 +23,15 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * builder returned here expects - it should never return a value that cannot be accepted by the
    * builder.
    */
-  protected abstract Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator);
+  protected abstract Builder makeBuilderWithCapacity(
+      int capacity, ProblemAggregator problemAggregator);
 
   /**
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */
-  public Storage<?> parseColumn(String columnName, Storage<String> sourceStorage, ProblemAggregator problemAggregator) {
+  public Storage<?> parseColumn(
+      String columnName, Storage<String> sourceStorage, ProblemAggregator problemAggregator) {
     var innerAggregator = ParseProblemAggregator.make(problemAggregator, columnName);
     Builder builder = makeBuilderWithCapacity(sourceStorage.size(), innerAggregator);
 

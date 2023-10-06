@@ -96,10 +96,15 @@ public class MapHelpers {
   }
 
   public static Storage<?> mapCallback(
-      Storage<?> storage, Function<Object, Object> fn, StorageType expectedType, ProblemAggregator problemAggregator) {
+      Storage<?> storage,
+      Function<Object, Object> fn,
+      StorageType expectedType,
+      ProblemAggregator problemAggregator) {
     int n = storage.size();
     Builder builder =
-        expectedType == null ? new InferredBuilder(n, problemAggregator) : Builder.getForType(expectedType, n, problemAggregator);
+        expectedType == null
+            ? new InferredBuilder(n, problemAggregator)
+            : Builder.getForType(expectedType, n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (!storage.isNa(i)) {
         builder.append(fn.apply(storage.getItemBoxed(i)));

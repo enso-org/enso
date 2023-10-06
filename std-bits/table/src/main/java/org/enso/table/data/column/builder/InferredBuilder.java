@@ -102,9 +102,11 @@ public class InferredBuilder extends Builder {
       currentBuilder = new BoolBuilder();
     } else if (NumericConverter.isCoercibleToLong(o)) {
       // In inferred builder, we always default to 64-bits.
-      currentBuilder = NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64, problemAggregator);
+      currentBuilder =
+          NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64, problemAggregator);
     } else if (NumericConverter.isFloatLike(o)) {
-      currentBuilder = NumericBuilder.createInferringDoubleBuilder(initialCapacity, problemAggregator);
+      currentBuilder =
+          NumericBuilder.createInferringDoubleBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else if (o instanceof BigInteger) {

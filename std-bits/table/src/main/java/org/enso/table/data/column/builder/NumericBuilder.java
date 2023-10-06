@@ -26,11 +26,13 @@ public abstract class NumericBuilder extends TypedBuilder {
   }
 
   /** Creates a {@link DoubleBuilder} that may be retyped to Mixed type. */
-  public static DoubleBuilder createInferringDoubleBuilder(int size, ProblemAggregator problemAggregator) {
+  public static DoubleBuilder createInferringDoubleBuilder(
+      int size, ProblemAggregator problemAggregator) {
     return new InferringDoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
   }
 
-  public static LongBuilder createLongBuilder(int size, IntegerType type, ProblemAggregator problemAggregator) {
+  public static LongBuilder createLongBuilder(
+      int size, IntegerType type, ProblemAggregator problemAggregator) {
     return LongBuilder.make(size, type, problemAggregator);
   }
 
