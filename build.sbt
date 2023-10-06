@@ -229,19 +229,6 @@ ThisBuild / Test / testOptions ++=
 Compile / console / scalacOptions ~= (_ filterNot (_ == "-Xfatal-warnings"))
 
 // ============================================================================
-// === Modules Configuration ==================================================
-// ============================================================================
-
-// With this, the legacy .jar files of your libraryDependencies will be transformed to modules
-// which are stored in target/moduleInfo directory
-Global / moduleInfos := Seq(
-  // Add `Automatic-Module-Name: paranamer` to paranamer.jar/META-INF/MANIFEST.MF
-  AutomaticModule(
-    "org.enso.runtime", // id in format org:name
-  ),
-)
-
-// ============================================================================
 // === Benchmark Configuration ================================================
 // ============================================================================
 
