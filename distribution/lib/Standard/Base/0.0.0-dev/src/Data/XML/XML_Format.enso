@@ -1,0 +1,50 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Data.XML.XML_Document
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Network.URI.URI
+import project.Nothing.Nothing
+import project.System.File.File
+import project.System.Input_Stream.Input_Stream
+from project.Data.Text.Extensions import all
+
+## A `File_Format` for reading and writing XML files.
+type XML_Format
+    ## PRIVATE
+       If the File_Format supports reading from the file, return a configured instance.
+    for_file_read : File -> XML_Format | Nothing
+    for_file_read file:File =
+        case file.extension of
+            ".xml" -> XML_Format
+            _ -> Nothing
+
+    ## PRIVATE
+       If this File_Format should be used for writing to that file, return a configured instance.
+    for_file_write : File -> XML_Format | Nothing
+    for_file_write file:File =
+        _ = [file]
+        Nothing
+
+    ## PRIVATE
+       If the File_Format supports reading from the web response, return a configured instance.
+    for_web : Text -> URI|Text -> XML_Format | Nothing
+    for_web content_type:Text uri:(URI|Text) =
+        _ = [uri]
+        first = content_type.split ';' . first . trim
+        case first of
+            "application/xml" -> XML_Format
+            "text/xml" -> XML_Format
+            _ -> Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file:File on_problems:Problem_Behavior =
+        _ = [on_problems]
+        XML_Document.from_file file
+
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        XML_Document.from_stream stream

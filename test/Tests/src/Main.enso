@@ -57,6 +57,7 @@ import project.Data.Text.Parse_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Span_Spec
 import project.Data.Text.Utils_Spec
+import project.Data.XML.XML_Spec
 
 import project.Data.Vector.Slicing_Helpers_Spec
 
@@ -157,3 +158,4 @@ main = Test_Suite.run_main <|
     Warnings_Spec.spec
     System_Spec.spec
     Random_Spec.spec
+    XML_Spec.spec
