@@ -20,15 +20,15 @@ import type {
 import type { Uuid } from './yjsModel'
 
 const DEBUG_LOG_RPC = false
-const RPC_TIMEOUT_MS = 10000
+const RPC_TIMEOUT_MS = 15000
 
-class RpcError extends Error {
+export class LsRpcError extends Error {
   cause: Error
   request: string
   params: object
-  constructor(inner: Error, request: string, params: object) {
-    super(`Language server request failed.`)
-    this.cause = inner
+  constructor(cause: Error, request: string, params: object) {
+    super(`Language server request '${request}' failed.`)
+    this.cause = cause
     this.request = request
     this.params = params
   }
@@ -47,6 +47,9 @@ export class LanguageServer extends ObservableV2<Notifications> {
     client.onNotification((notification) => {
       this.emit(notification.method as keyof Notifications, [notification.params])
     })
+    client.onError((error) => {
+      console.error(`Unexpected LS connection error:`, error)
+    })
   }
 
   // The "magic bag of holding" generic that is only present in the return type is UNSOUND.
@@ -62,7 +65,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
       return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
     } catch (e) {
       if (e instanceof Error) {
-        throw new RpcError(e, method, params)
+        throw new LsRpcError(e, method, params)
       }
       throw e
     } finally {
@@ -271,12 +274,12 @@ export class LanguageServer extends ObservableV2<Notifications> {
   detachVisualization(
     visualizationId: Uuid,
     expressionId: ExpressionId,
-    executionContextId: ContextId,
+    contextId: ContextId,
   ): Promise<void> {
     return this.request('executionContext/detachVisualization', {
       visualizationId,
       expressionId,
-      executionContextId,
+      contextId,
     })
   }
 

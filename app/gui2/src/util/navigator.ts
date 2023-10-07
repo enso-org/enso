@@ -19,9 +19,12 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     center.value = center.value.addScaled(pos.delta, -1 / scale.value)
   }, PointerButtonMask.Auxiliary)
 
-  function eventToScenePos(event: PointerEvent, client?: Vec2): Vec2 {
+  function eventScreenPos(e: PointerEvent): Vec2 {
+    return new Vec2(e.clientX, e.clientY)
+  }
+
+  function clientToScenePos(clientPos: Vec2): Vec2 {
     const rect = elemRect(viewportNode.value)
-    const clientPos = client ?? new Vec2(event.clientX, event.clientY)
     const canvasPos = clientPos.sub(rect.pos)
     const v = viewport.value
     return new Vec2(
@@ -31,9 +34,9 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
   }
 
   let zoomPivot = Vec2.Zero()
-  const zoomPointer = usePointer((pos, event, ty) => {
+  const zoomPointer = usePointer((pos, _event, ty) => {
     if (ty === 'start') {
-      zoomPivot = eventToScenePos(event, pos.initial)
+      zoomPivot = clientToScenePos(pos.initial)
     }
 
     const prevScale = scale.value
@@ -87,17 +90,20 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     { capture: true },
   )
 
-  const sceneMousePos = ref<Vec2 | null>(null)
+  const eventMousePos = ref<Vec2 | null>(null)
+  const sceneMousePos = computed(() =>
+    eventMousePos.value ? clientToScenePos(eventMousePos.value) : null,
+  )
 
   return proxyRefs({
     events: {
       pointermove(e: PointerEvent) {
-        sceneMousePos.value = eventToScenePos(e)
+        eventMousePos.value = eventScreenPos(e)
         panPointer.events.pointermove(e)
         zoomPointer.events.pointermove(e)
       },
       pointerleave() {
-        sceneMousePos.value = null
+        eventMousePos.value = null
       },
       pointerup(e: PointerEvent) {
         panPointer.events.pointerup(e)
