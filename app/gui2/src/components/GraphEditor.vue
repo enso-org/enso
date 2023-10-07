@@ -1,5 +1,5 @@
 <script lang="ts">
-import { nodeBindings } from '@/bindings/nodeSelection'
+import { codeEditorBindings, graphBindings, nodeBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
@@ -11,21 +11,12 @@ import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { keyboardBusy, usePointer, useWindowEvent } from '@/util/events'
+import { keyboardBusy, keyboardBusyExceptIn, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
-import { defineKeybinds } from '@/util/shortcuts'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-
-const graphBindings = defineKeybinds('graph-editor', {
-  undo: ['Mod+Z'],
-  redo: ['Mod+Y', 'Mod+Shift+Z'],
-  dragScene: ['PointerAux', 'Mod+PointerMain'],
-  openComponentBrowser: ['Enter'],
-  newNode: ['N'],
-})
 </script>
 <script setup lang="ts">
 const EXECUTION_MODES = ['design', 'live']
@@ -54,7 +45,7 @@ function updateExprRect(id: ExprId, rect: Rect) {
 }
 
 useWindowEvent('keydown', (event) => {
-  graphBindingsHandler(event) || nodeSelectionHandler(event)
+  graphBindingsHandler(event) || nodeSelectionHandler(event) || codeEditorHandler(event)
 })
 
 onMounted(() => viewportNode.value?.focus())
@@ -171,6 +162,15 @@ const graphBindingsHandler = graphBindings.handler({
     if (navigator.sceneMousePos != null) {
       graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
     }
+  },
+})
+
+const codeEditorArea = ref<HTMLElement>()
+const showCodeEditor = ref(false)
+const codeEditorHandler = codeEditorBindings.handler({
+  toggle() {
+    if (keyboardBusyExceptIn(codeEditorArea.value)) return false
+    showCodeEditor.value = !showCodeEditor.value
   },
 })
 
@@ -334,7 +334,13 @@ const groupColors = computed(() => {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="console.log('\'execute\' button clicked.')"
     />
-    <CodeEditor ref="codeEditor" />
+    <div ref="codeEditorArea">
+      <Suspense>
+        <Transition>
+          <CodeEditor v-if="showCodeEditor" />
+        </Transition>
+      </Suspense>
+    </div>
     <SelectionBrush
       v-if="scaledMousePos"
       :position="scaledMousePos"

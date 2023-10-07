@@ -1,10 +1,3 @@
-import * as vue from 'vue'
-import { type DefineComponent } from 'vue'
-
-import * as vueUseCore from '@vueuse/core'
-import * as d3 from 'd3'
-import { defineStore } from 'pinia'
-
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { defineKeybinds } from '@/util/shortcuts'
@@ -22,8 +15,11 @@ import type {
   RegisterBuiltinModulesRequest,
 } from '@/workers/visualizationCompiler'
 import Compiler from '@/workers/visualizationCompiler?worker'
+import { defineStore } from 'pinia'
 import type { VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
+import * as vue from 'vue'
+import { type DefineComponent } from 'vue'
 
 /** A module containing the default visualization function. */
 const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'
@@ -45,8 +41,9 @@ export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
 
 const moduleCache: Record<string, any> = {
   vue,
-  '@vueuse/core': vueUseCore,
-  d3,
+  get d3() {
+    return import('d3')
+  },
   builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds },
 }
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere

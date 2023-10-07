@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-
-import { nodeBindings } from '@/bindings/nodeSelection'
+import { nodeBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -22,6 +20,7 @@ import { usePointer, useResizeObserver } from '@/util/events'
 import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 import { useProjectStore } from '../stores/project'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300

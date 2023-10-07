@@ -235,7 +235,7 @@ export function defineKeybinds<
   BindingName extends keyof T = keyof T,
 >(namespace: string, bindings: Keybinds<T>) {
   if (definedNamespaces.has(namespace)) {
-    console.error(`The keybind namespace '${namespace}' has already been defined.`)
+    console.warn(`The keybind namespace '${namespace}' has already been defined.`)
   } else {
     definedNamespaces.add(namespace)
   }

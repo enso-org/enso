@@ -7,7 +7,6 @@ import { defineConfig, type Plugin } from 'vite'
 import topLevelAwait from 'vite-plugin-top-level-await'
 import * as tailwindConfig from '../ide-desktop/lib/dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
-
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 // https://vitejs.dev/config/
@@ -27,11 +26,13 @@ export default defineConfig({
   define: {
     REDIRECT_OVERRIDE: JSON.stringify('http://localhost:8080'),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    global: 'globalThis',
     IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV !== 'production'),
     CLOUD_ENV:
       process.env.ENSO_CLOUD_ENV != null ? JSON.stringify(process.env.ENSO_CLOUD_ENV) : 'undefined',
     RUNNING_VTEST: false,
+    'import.meta.vitest': false,
+    // Single hardcoded usage of `global` in by aws-amplify.
+    'global.TYPED_ARRAY_SUPPORT': true,
   },
   assetsInclude: ['**/*.yaml', '**/*.svg'],
   css: {
@@ -42,6 +43,14 @@ export default defineConfig({
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          fontawesome: ['@fortawesome/react-fontawesome', '@fortawesome/free-brands-svg-icons'],
+          'aws-amplify': ['@aws-amplify/core', '@aws-amplify/auth'],
+        },
+      },
+    },
   },
 })
 

@@ -37,7 +37,6 @@ export async function exponentialBackoff<T, E>(
       options.retryDelayMax,
       options.retryDelay * options.retryDelayMultiplier ** retries,
     )
-    console.log(delay)
     if (
       result.ok ||
       retries >= options.maxRetries ||
@@ -117,7 +116,7 @@ export class AsyncQueue<State> {
 }
 
 if (import.meta.vitest) {
-  const { describe, test, expect, beforeEach, afterEach, vi } = await import('vitest')
+  const { describe, test, expect, beforeEach, afterEach, vi } = import.meta.vitest
 
   beforeEach(() => {
     vi.useFakeTimers()
@@ -185,7 +184,7 @@ if (import.meta.vitest) {
       expect(task).toHaveBeenCalledTimes(5)
     })
 
-    test.only('wait before retrying', async () => {
+    test('wait before retrying', async () => {
       const task = vi.fn(async () => Err(null))
       exponentialBackoff(task, {
         maxRetries: 10,

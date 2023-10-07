@@ -16,7 +16,6 @@ import type {
   ContextId,
   ExplicitCall,
   ExpressionId,
-  MethodPointer,
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
