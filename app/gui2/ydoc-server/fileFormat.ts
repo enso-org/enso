@@ -4,8 +4,20 @@ import z from 'zod'
 export type Vector = z.infer<typeof vector>
 export const vector = z.tuple([z.number(), z.number()])
 
+const visualizationProject = z.discriminatedUnion('project', [
+  z.object({ project: z.literal('Builtin') }),
+  z.object({ project: z.literal('CurrentProject') }),
+  z.object({ project: z.literal('Library'), contents: z.string() }),
+])
+
 export type VisualizationMetadata = z.infer<typeof visualizationMetadata>
-const visualizationMetadata = z.object({}).passthrough()
+const visualizationMetadata = z
+  .object({
+    show: z.boolean().default(true),
+    project: visualizationProject,
+    name: z.string(),
+  })
+  .passthrough()
 
 export type NodeMetadata = z.infer<typeof nodeMetadata>
 export const nodeMetadata = z
@@ -14,7 +26,7 @@ export const nodeMetadata = z
       printError(ctx)
       return { vector: [0, 0] satisfies Vector }
     }),
-    visualization: visualizationMetadata.catch(() => ({})),
+    visualization: visualizationMetadata.optional().catch(() => undefined),
   })
   .passthrough()
 

@@ -1,6 +1,7 @@
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
-import * as random from 'lib0/random.js'
+import * as object from 'lib0/object'
+import * as random from 'lib0/random'
 import * as Y from 'yjs'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
@@ -8,10 +9,38 @@ declare const brandExprId: unique symbol
 export type ExprId = Uuid & { [brandExprId]: never }
 export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
 
+export type VisualizationModule =
+  | { kind: 'Builtin' }
+  | { kind: 'CurrentProject' }
+  | { kind: 'Library'; name: string }
+
+export interface VisualizationIdentifier {
+  module: VisualizationModule
+  name: string
+}
+
+export interface VisualizationMetadata extends VisualizationIdentifier {
+  visible: boolean
+}
+
+export function visMetadataEquals(
+  a: VisualizationMetadata | null | undefined,
+  b: VisualizationMetadata | null | undefined,
+) {
+  return (
+    (a == null && b == null) ||
+    (a != null && b != null && a.visible === b.visible && visIdentifierEquals(a, b))
+  )
+}
+
+export function visIdentifierEquals(a: VisualizationIdentifier, b: VisualizationIdentifier) {
+  return a.name === b.name && object.equalFlat(a.module, b.module)
+}
+
 export interface NodeMetadata {
   x: number
   y: number
-  vis?: unknown
+  vis: VisualizationMetadata | null
 }
 
 export class DistributedProject {
@@ -85,6 +114,7 @@ export class ModuleDoc {
 
 export class DistributedModule {
   doc: ModuleDoc
+  undoManager: Y.UndoManager
 
   static async load(ydoc: Y.Doc): Promise<DistributedModule> {
     ydoc.load()
@@ -94,6 +124,7 @@ export class DistributedModule {
 
   constructor(ydoc: Y.Doc) {
     this.doc = new ModuleDoc(ydoc)
+    this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
   }
 
   insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
@@ -145,12 +176,14 @@ export class DistributedModule {
   }
 
   transact<T>(fn: () => T): T {
-    return this.doc.ydoc.transact(fn)
+    return this.doc.ydoc.transact(fn, 'local')
   }
 
   updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
-    const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0 }
-    this.doc.metadata.set(id, { ...existing, ...meta })
+    const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0, vis: null }
+    this.transact(() => {
+      this.doc.metadata.set(id, { ...existing, ...meta })
+    })
   }
 
   getIdMap(): IdMap {

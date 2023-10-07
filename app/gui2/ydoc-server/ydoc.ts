@@ -9,7 +9,7 @@ import * as Y from 'yjs'
 
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
-import { ObservableV2 } from 'lib0/observable.js'
+import { ObservableV2 } from 'lib0/observable'
 import { WebSocket } from 'ws'
 import { LanguageServerSession } from './languageServerSession'
 
@@ -117,7 +117,7 @@ export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string
   })
 }
 
-class YjsConnection extends ObservableV2<{ close: () => void }> {
+class YjsConnection extends ObservableV2<{ close(): void }> {
   ws: WebSocket
   wsDoc: WSSharedDoc
   constructor(ws: WebSocket, wsDoc: WSSharedDoc) {
