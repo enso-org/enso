@@ -46,6 +46,8 @@ use strum::IntoEnumIterator;
 pub mod job;
 pub mod step;
 
+
+
 #[derive(Clone, Copy, Debug)]
 pub struct BenchmarkRunner;
 
@@ -232,8 +234,21 @@ impl JobArchetype for PublishRelease {
 pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(&self, os: OS) -> Job {
-        plain_job_customized(&os, "Build IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", |step| 
+        plain_job_customized(&os, "Build Old IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", |step| 
             vec![expose_os_specific_signing_secret(os, step)]
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct UploadIde2;
+impl JobArchetype for UploadIde2 {
+    fn job(&self, os: OS) -> Job {
+        plain_job_customized(
+            &os,
+            "Build New IDE",
+            "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
+            |step| vec![expose_os_specific_signing_secret(os, step)],
         )
     }
 }

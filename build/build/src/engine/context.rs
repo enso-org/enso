@@ -223,27 +223,28 @@ impl RunContext {
         }
 
 
-        let _test_results_upload_guard = if self.config.test_standard_library {
-            // If we run tests, make sure that old and new results won't end up mixed together.
-            let test_results_dir = ENSO_TEST_JUNIT_DIR
-                .get()
-                .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-            ide_ci::fs::reset_dir(&test_results_dir)?;
+        let _test_results_upload_guard =
+            if self.config.test_scala || self.config.test_standard_library {
+                // If we run tests, make sure that old and new results won't end up mixed together.
+                let test_results_dir = ENSO_TEST_JUNIT_DIR
+                    .get()
+                    .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
+                ide_ci::fs::reset_dir(&test_results_dir)?;
 
-            // If we are run in CI conditions and we prepared some test results, we want to
-            // upload them as a separate artifact to ease debugging. And we do want to do that
-            // even if the tests fail and we are leaving the scope with an error.
-            is_in_env().then(|| {
-                scopeguard::guard(test_results_dir, |test_results_dir| {
-                    ide_ci::global::spawn(
-                        "Upload test results",
-                        upload_test_results(test_results_dir),
-                    );
+                // If we are run in CI conditions and we prepared some test results, we want to
+                // upload them as a separate artifact to ease debugging. And we do want to do that
+                // even if the tests fail and we are leaving the scope with an error.
+                is_in_env().then(|| {
+                    scopeguard::guard(test_results_dir, |test_results_dir| {
+                        ide_ci::global::spawn(
+                            "Upload test results",
+                            upload_test_results(test_results_dir),
+                        );
+                    })
                 })
-            })
-        } else {
-            None
-        };
+            } else {
+                None
+            };
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
         // We target files like
@@ -329,7 +330,7 @@ impl RunContext {
                 tasks.push("buildLauncherDistribution");
             }
             sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
-            } else {
+        } else {
             // If we are run on a weak machine (like GH-hosted runner), we need to build things one
             // by one.
             sbt.call_arg("compile").await?;
@@ -354,7 +355,7 @@ impl RunContext {
 
             // Prepare Project Manager Distribution
             sbt.call_arg("buildProjectManagerDistribution").await?;
-            }
+        }
         // === End of Build project-manager distribution and native image ===
 
         let ret = self.expected_artifacts();
@@ -395,18 +396,6 @@ impl RunContext {
         }
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
-        }
-        // If we are run in CI conditions and we prepared some test results, we want to upload
-        // them as a separate artifact to ease debugging.
-        if let Some(test_results_dir) = test_results_dir && is_in_env() {
-            // Each platform gets its own log results, so we need to generate unique names.
-            let name = format!("Test_Results_{TARGET_OS}");
-            if let Err(err) = ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name)
-                .await {
-                // We wouldn't want to fail the whole build if we can't upload the test results.
-                // Still, it should be somehow visible in the build summary.
-                ide_ci::actions::workflow::message(MessageLevel::Warning, format!("Failed to upload test results: {err}"));
-            }
         }
 
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
@@ -475,18 +464,18 @@ impl RunContext {
                         let runtime_bench_report =
                             &self.paths.repo_root.engine.runtime.bench_report_xml;
                         if runtime_bench_report.exists() {
-                ide_ci::actions::artifacts::upload_single_file(
+                            ide_ci::actions::artifacts::upload_single_file(
                                 runtime_bench_report,
-                    "Runtime Benchmark Report",
-                )
-                .await?;
-            } else {
+                                "Runtime Benchmark Report",
+                            )
+                            .await?;
+                        } else {
                             warn!(
                                 "No Runtime Benchmark Report file found at {}, nothing to upload.",
                                 runtime_bench_report.display()
                             );
-            }
-        }
+                        }
+                    }
                     Benchmarks::EnsoJMH => {
                         let enso_jmh_report =
                             &self.paths.repo_root.std_bits.benchmarks.bench_report_xml;
@@ -501,7 +490,7 @@ impl RunContext {
                                 "No Enso JMH Benchmark Report file found at {}, nothing to upload.",
                                 enso_jmh_report.display()
                             );
-        }
+                        }
                     }
                     _ => {}
                 }
