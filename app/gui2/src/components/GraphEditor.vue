@@ -11,13 +11,10 @@ import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { keyboardBusy, keyboardBusyExceptIn, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import type { IJSONRPCNotification } from '@open-rpc/client-js/build/Request'
 import * as set from 'lib0/set'
-import type { Notifications } from 'shared/languageServerTypes.ts'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 </script>
@@ -38,33 +35,6 @@ const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
 const selectedNodes = ref(new Set<ExprId>())
 const latestSelectedNode = ref<ExprId>()
-const computedValueRegistry = new ComputedValueRegistry()
-
-onMounted(async () => {
-  const executionCtxPromise = projectStore.createExecutionContextForMain()
-  onUnmounted(async () => {
-    executionCtx.value = undefined
-    const ctx = await executionCtxPromise
-    if (ctx != null) ctx.destroy()
-  })
-  executionCtx.value = (await executionCtxPromise) ?? undefined
-
-  /// Init processing of expression updates.
-  projectStore.lsRpcConnection.then((rpc) => {
-    rpc.client.onNotification(handleExprUpdate)
-  })
-})
-
-function handleExprUpdate(data: IJSONRPCNotification) {
-  if (data.method === 'executionContext/expressionUpdates') {
-    const params = data.params as Parameters<Notifications['executionContext/expressionUpdates']>[0]
-    const updates = params.updates ?? []
-    for (let update of updates) {
-      const { exprId, info } = computedValueRegistry.processUpdate(update)
-      graphStore.updateNodeInfo(exprId, info)
-    }
-  }
-}
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)

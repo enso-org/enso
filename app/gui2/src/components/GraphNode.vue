@@ -27,6 +27,7 @@ const MAXIMUM_CLICK_LENGTH_MS = 300
 
 const props = defineProps<{
   node: Node
+  // id: string & ExprId
   selected: boolean
   isLatestSelected: boolean
   fullscreenVis: boolean
@@ -395,6 +396,18 @@ const dragPointer = usePointer((pos, event, type) => {
     }
   }
 })
+
+const expressionInfo = computed(() => {
+  return projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.id)
+})
+
+const outputTypeName = computed(() => {
+  return expressionInfo.value?.typename ?? 'Unknown'
+})
+
+const executionState = computed(() => {
+  return expressionInfo.value?.payload.type ?? 'Unknown'
+})
 </script>
 
 <template>
@@ -406,6 +419,7 @@ const dragPointer = usePointer((pos, event, type) => {
       dragging: dragPointer.dragging,
       selected,
       visualizationVisible: isVisualizationVisible,
+      ['executionState-' + executionState]: true,
     }"
   >
     <div class="selection" v-on="dragPointer.events"></div>
@@ -444,7 +458,7 @@ const dragPointer = usePointer((pos, event, type) => {
         />
       </div>
     </div>
-    <div class="outputTypeName">{{ node.outputTypeName }}</div>
+    <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>
 </template>
 
@@ -454,6 +468,24 @@ const dragPointer = usePointer((pos, event, type) => {
   --node-border-radius: calc(var(--node-height) * 0.5);
 
   --node-color-primary: #357ab9;
+
+  &.executionState-Unknown {
+    --node-color-primary: #999;
+  }
+
+  &.executionState-Error,
+  &.executionState-Panic {
+    /* --node-color-primary: ; */
+
+    .node {
+      outline: 8px solid rgba(255, 0, 0, 0.4);
+    }
+  }
+
+  &.executionState-Pending {
+    --node-color-primary: #5394d1;
+  }
+
   position: absolute;
   border-radius: var(--radius-full);
   transition: box-shadow 0.2s ease-in-out;
@@ -477,6 +509,10 @@ const dragPointer = usePointer((pos, event, type) => {
   white-space: nowrap;
   padding: 4px 8px;
   z-index: 2;
+  transition:
+    background 0.2s ease,
+    outline 0.2s ease;
+  outline: 0px solid transparent;
 }
 .GraphNode .selection {
   position: absolute;

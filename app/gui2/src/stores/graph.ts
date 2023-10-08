@@ -1,5 +1,4 @@
 import { assert, assertNever } from '@/util/assert'
-import type { ExpressionInfo } from '@/util/computedValueRegistry.ts'
 import { useObserveYjs } from '@/util/crdt'
 import { parseEnso, type Ast } from '@/util/ffi'
 import type { Opt } from '@/util/opt'
@@ -147,7 +146,6 @@ export const useGraphStore = defineStore('graph', () => {
   function nodeInserted(stmt: Statement, text: Y.Text, content: string, meta: Opt<NodeMetadata>) {
     const nodeId = stmt.expression.id
     const node: Node = {
-      outputTypeName: 'Unknown',
       content,
       binding: stmt.binding ?? '',
       rootSpan: stmt.expression,
@@ -335,12 +333,6 @@ export const useGraphStore = defineStore('graph', () => {
     proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
   }
 
-  function updateNodeInfo(id: ExprId, info: ExpressionInfo) {
-    const node = nodes.get(id)
-    if (node == null) return
-    node.outputTypeName = info.typename ?? ''
-  }
-
   return {
     _parsed,
     _parsedEnso: _parsedEnso,
@@ -354,7 +346,6 @@ export const useGraphStore = defineStore('graph', () => {
     deleteNode,
     setNodeContent,
     setExpressionContent,
-    updateNodeInfo,
     replaceNodeSubexpression,
     setNodePosition,
     setNodeVisualizationId,
@@ -369,7 +360,6 @@ function randomString() {
 
 export interface Node {
   content: string
-  outputTypeName: string
   binding: string
   rootSpan: Span
   position: Vec2
