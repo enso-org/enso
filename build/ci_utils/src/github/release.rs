@@ -117,7 +117,7 @@ pub trait IsReleaseExt: IsRelease + Sync {
     }
 
     /// Upload a new asset to the release from a given file with a custom name.
-    #[instrument(skip_all, fields(source = %path.as_ref().display()), err)]
+    #[instrument(skip_all, fields(source = %path.as_ref().display(), asset = %asset_filename.as_ref().display()), err)]
     async fn upload_asset_file_as(
         &self,
         path: impl AsRef<Path> + Send,
