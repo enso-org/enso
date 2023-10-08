@@ -331,6 +331,10 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         ]);
         packaging_job_ids.push(build_ide_job_id.clone());
 
+        let build_ide2_job_id =
+            workflow.add_dependent(os, UploadIde2, [&prepare_job_id, &backend_job_id]);
+        packaging_job_ids.push(build_ide2_job_id.clone());
+
         // Deploying our release to cloud needs to be done only once.
         // We could do this on any platform, but we choose Linux, because it's most easily
         // available and performant.
