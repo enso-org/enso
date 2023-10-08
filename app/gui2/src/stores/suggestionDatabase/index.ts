@@ -1,3 +1,4 @@
+import { AsyncQueue, rpcWithRetries } from '@/util/net'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
@@ -18,17 +19,22 @@ export interface Group {
 class Synchronizer {
   entries: SuggestionDb
   groups: Ref<Group[]>
-  lastUpdate: Promise<{ currentVersion: number }>
+  queue: AsyncQueue<{ currentVersion: number }>
 
   constructor(entries: SuggestionDb, groups: Ref<Group[]>) {
     this.entries = entries
     this.groups = groups
+
     const projectStore = useProjectStore()
-    this.lastUpdate = projectStore.lsRpcConnection.then(async (lsRpc) => {
-      await lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {})
+    const initState = projectStore.lsRpcConnection.then(async (lsRpc) => {
+      await rpcWithRetries(() =>
+        lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
+      )
       this.setupUpdateHandler(lsRpc)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
     })
+
+    this.queue = new AsyncQueue(initState)
   }
 
   static async loadDatabase(
@@ -51,7 +57,7 @@ class Synchronizer {
 
   private setupUpdateHandler(lsRpc: LanguageServer) {
     lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
-      this.lastUpdate = this.lastUpdate.then(async ({ currentVersion }) => {
+      this.queue.pushTask(async ({ currentVersion }) => {
         if (param.currentVersion <= currentVersion) {
           console.log(
             `Skipping suggestion database update ${param.currentVersion}, because it's already applied`,

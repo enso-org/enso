@@ -1099,22 +1099,10 @@
             fill="currentColor" />
     </g>
     <g id="docs" fill="none">
-        <svg width="16" height="16" viewBox="0.5 0.5 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2.54419" y="1.45581" width="12" height="2" fill="black" fill-opacity="0.6" />
-            <rect x="2.54419" y="5.45581" width="8" height="2" fill="black" fill-opacity="0.6" />
-            <rect x="4.54419" y="9.45581" width="8" height="2" fill="black" fill-opacity="0.6" />
-            <rect x="2.54419" y="13.4558" width="12" height="2" fill="black" fill-opacity="0.6" />
-        </svg>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M2.04419 0.95581H14.0442V2.95581H2.04419V0.95581ZM2.04419 4.95581H10.0442V6.95581H2.04419V4.95581ZM12.0442 8.95581H4.04419V10.9558H12.0442V8.95581ZM2.04419 12.9558H14.0442V14.9558H2.04419V12.9558Z" fill="black" fill-opacity="0.6"/>
     </g>
     <g id="eye" fill="none">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" clip-rule="evenodd"
-                d="M7.99988 2.5C11.4999 2.5 13.9999 5.25 15.9999 8L10.4999 8C10.4999 6.61929 9.38059 5.5 7.99988 5.5C6.61917 5.5 5.49988 6.61929 5.49988 8L-0.000123032 8C1.99988 5.25 4.49988 2.5 7.99988 2.5Z"
-                fill="black" fill-opacity="0.6" />
-            <path fill-rule="evenodd" clip-rule="evenodd"
-                d="M7.99988 13.5C4.49988 13.5 1.99988 10.75 -0.000120628 8L5.49988 8C5.49988 9.38071 6.61917 10.5 7.99988 10.5C9.38059 10.5 10.4999 9.38071 10.4999 8L15.9999 8C13.9999 10.75 11.4999 13.5 7.99988 13.5Z"
-                fill="black" fill-opacity="0.6" />
-        </svg>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M16 8C14 5.25 11.5 2.5 8 2.5C4.5 2.5 2 5.25 0 8C2 10.75 4.5 13.5 8 13.5C11.5 13.5 14 10.75 16 8ZM5.5 8C5.5 9.38071 6.61929 10.5 8 10.5C9.38071 10.5 10.5 9.38071 10.5 8C10.5 6.61929 9.38071 5.5 8 5.5C6.61929 5.5 5.5 6.61929 5.5 8Z" fill="black" fill-opacity="0.6"/>
     </g>
     <g id="no_auto_replay" fill="none">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

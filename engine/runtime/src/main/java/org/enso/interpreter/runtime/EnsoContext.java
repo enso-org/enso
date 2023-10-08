@@ -520,7 +520,10 @@ public final class EnsoContext {
     }
     guestJava = null;
     var envJava = System.getenv("ENSO_JAVA");
-    if (RuntimeOptions.isEspressoEnabled()) {
+    if (envJava == null) {
+      return guestJava;
+    }
+    if ("espresso".equals(envJava)) {
       var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
       try {
         guestJava = environment.parsePublic(src).call();
@@ -536,6 +539,8 @@ public final class EnsoContext {
           throw ise;
         }
       }
+    } else {
+      throw new IllegalStateException("Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
     }
     return guestJava;
   }
