@@ -113,7 +113,7 @@ spec =
             expected = Table.from_rows ["first", "last", "blah", "Value"] [["Mary", "Smith", Nothing, Nothing], ["Joe", "Burton", Nothing, Nothing], [Nothing, Nothing, Nothing, 12]]
             Table.from_objects uniform_json+[12] ["first", "last", "blah", "Value"] . should_equal expected
 
-    Test.group "Array" <|
+    Test.group "from_objects with Array" <|
         Test.specify "Generates a table from a mixed vector of single values and JSON objects, with missing and extra fields" <|
             expected = Table.from_rows ["first", "last", "blah", "Value"] [["Mary", "Smith", Nothing, Nothing], ["Joe", "Burton", Nothing, Nothing], [Nothing, Nothing, Nothing, 12]]
             Table.from_objects (uniform_json+[12]).to_array ["first", "last", "blah", "Value"] . should_equal expected
