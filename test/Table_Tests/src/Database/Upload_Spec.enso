@@ -80,15 +80,23 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should fail if the table already exists" <|
             name = Name_Generator.random_name "table-already-exists 1"
             structure = [Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char]
-            connection.create_table name structure=structure temporary=True
+            preexisting = connection.create_table name structure=structure temporary=True
+            preexisting.update_rows (Table.new [["X", [42]], ["Y", ["a"]]]) . should_succeed
 
             run_with_and_without_output <|
                 r1 = connection.create_table name structure=structure temporary=True
                 r1.should_fail_with Table_Already_Exists
 
+            preexisting2 = connection.query name
+            preexisting2.column_names . should_equal ["X", "Y"]
+            preexisting2.at "X" . to_vector . should_equal [42]
+            preexisting2.at "Y" . to_vector . should_equal ["a"]
+
         Test.specify "should not fail if the table exists, if `allow_existing=True`, even if the structure does not match" <|
             name = Name_Generator.random_name "table-already-exists 2"
-            connection.create_table name structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char] temporary=True
+            preexisting = connection.create_table name structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char] temporary=True
+            preexisting.update_rows (Table.new [["X", [42]], ["Y", ["a"]]]) . should_succeed
+
             run_with_and_without_output <|
                 r1 = connection.create_table name structure=[Column_Description.Value "Z" Value_Type.Float] temporary=True allow_existing=True
                 ## Even in dry-run mode, if the table already exists - it is
@@ -96,6 +104,9 @@ spec make_new_connection prefix persistent_connector=True =
                    there is no need to create one.
                 r1.name . should_equal name
                 r1.column_names . should_equal ["X", "Y"]
+                # The preexisting data is preserved.
+                r1.at "X" . to_vector . should_equal [42]
+                r1.at "Y" . to_vector . should_equal ["a"]
 
         Test.specify "should fail if an unsupported type is specified" <|
             run_with_and_without_output <|
@@ -321,7 +332,8 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should fail if the target table already exists" <|
             name = Name_Generator.random_name "table-already-exists"
-            db_table = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
+            preexisting = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
+            preexisting.update_rows (Table.new [["X", [42]]]) . should_succeed
             t = Table.new [["Y", ['a', 'b']]]
             run_with_and_without_output <|
                 r1 = t.select_into_database_table connection name temporary=True
@@ -329,8 +341,10 @@ spec make_new_connection prefix persistent_connector=True =
                 r2 = t.select_into_database_table connection name temporary=False
                 r2.should_fail_with Table_Already_Exists
 
-            db_table.column_names . should_equal ["X"]
-            db_table.at "X" . to_vector . should_equal []
+            # Ensure that the table was not modified.
+            preexisting2 = connection.query name
+            preexisting2.column_names . should_equal ["X"]
+            preexisting2.at "X" . to_vector . should_equal [42]
 
     Test.group prefix+"Persisting a Database Table (query)" <|
         Test.specify "should be able to create a persistent copy of a DB table" <|
@@ -460,7 +474,8 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should fail if the target table already exists" <|
             name = Name_Generator.random_name "table-already-exists"
-            db_table = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
+            preexisting = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
+            preexisting.update_rows (Table.new [["X", [42]]]) . should_succeed
             t = Table.new [["Y", ['a', 'b']]]
             db_table_2 = t.select_into_database_table connection (Name_Generator.random_name "source-table") temporary=True
 
@@ -470,8 +485,9 @@ spec make_new_connection prefix persistent_connector=True =
                 r2 = db_table_2.select_into_database_table connection name temporary=False
                 r2.should_fail_with Table_Already_Exists
 
-            db_table.column_names . should_equal ["X"]
-            db_table.at "X" . to_vector . should_equal []
+            preexisting2 = connection.query name
+            preexisting2.column_names . should_equal ["X"]
+            preexisting2.at "X" . to_vector . should_equal [42]
 
     test_table_append source_table_builder target_table_builder =
         Test.specify "should be able to append new rows to a table" <|
