@@ -64,14 +64,21 @@ public class LookupJoin {
   }
 
   private void verifyLookupUniqueness() {
-    for (Map.Entry<UnorderedMultiValueKey, List<Integer>> group : lookupIndex.mapping().entrySet()) {
-      int groupSize = group.getValue().size();
-      if (groupSize > 1) {
-        UnorderedMultiValueKey key = group.getKey();
-        List<Object> exampleValues = IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();
-        throw new NonUniqueLookupKey(keyColumnNames, exampleValues, groupSize);
+    if (!lookupIndex.isUnique()) {
+
+      // Find the duplicated key
+      for (Map.Entry<UnorderedMultiValueKey, List<Integer>> group : lookupIndex.mapping().entrySet()) {
+        int groupSize = group.getValue().size();
+        if (groupSize > 1) {
+          UnorderedMultiValueKey key = group.getKey();
+          List<Object> exampleValues = IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();
+          throw new NonUniqueLookupKey(keyColumnNames, exampleValues, groupSize);
+        }
       }
+
+      assert false : "isUnique returned false, but no duplicated key was found.";
     }
+
   }
 
   private static void checkNullsInKey(Column[] lookupKeyColumns) {

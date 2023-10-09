@@ -19,6 +19,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final int keyColumnsLength;
   private final Map<KeyType, List<Integer>> locs;
   private final AggregatedProblems problems;
+  private final boolean isUnique;
 
   public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
       Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
@@ -57,6 +58,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     this.locs = initialLocs;
 
     if (keyColumns.length != 0) {
+      boolean isUnique = true;
       int size = keyColumns[0].getSize();
 
       Context context = Context.getCurrent();
@@ -73,13 +75,21 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
         ids.add(i);
+        isUnique = isUnique && ids.size() == 1;
 
         context.safepoint();
       }
+
+      this.isUnique = isUnique;
     } else {
+      this.isUnique = tableSize <= 1;
       this.locs.put(
           keyFactory.apply(0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
+  }
+
+  public boolean isUnique() {
+    return isUnique;
   }
 
   public Table makeTable(Aggregator[] columns) {
