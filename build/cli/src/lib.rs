@@ -498,8 +498,13 @@ impl Processor {
         name_prefix: Option<String>,
     ) -> BoxFuture<'static, Result> {
         let release = self.release(release_id);
-        let add_prefix =
-            move |name: String| format!("{}{}", name, name_prefix.as_ref().unwrap_or(&default()));
+        let add_prefix = move |name: String| {
+            if let Some(prefix) = name_prefix.clone() {
+                format!("{prefix}-{name}")
+            } else {
+                name
+            }
+        };
         async move {
             let artifacts = build_job.await?;
             release
