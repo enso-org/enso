@@ -9,6 +9,7 @@ import {
   type VisualizationConfig,
 } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
+import { useProjectStore } from '@/stores/project'
 import { Rect } from '@/stores/rect'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
@@ -17,11 +18,11 @@ import {
   type Visualization,
 } from '@/stores/visualization'
 import { usePointer, useResizeObserver } from '@/util/events'
+import type { UnsafeMutable } from '@/util/mutable'
 import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-import { useProjectStore } from '../stores/project'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 
@@ -305,9 +306,11 @@ function switchToDefaultPreprocessor() {
   visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
 }
 
-const visualizationConfig = ref<VisualizationConfig>({
+// This usage of `UnsafeMutable` is SAFE, as it is being used on a type without an associated value.
+const visualizationConfig = ref<UnsafeMutable<VisualizationConfig>>({
   fullscreen: false,
-  types: visualizationStore.types,
+  // We do not know the type yet.
+  types: visualizationStore.types(undefined),
   width: null,
   height: 150,
   hide() {
@@ -419,6 +422,10 @@ const outputTypeName = computed(() => {
 
 const executionState = computed(() => {
   return expressionInfo.value?.payload.type ?? 'Unknown'
+})
+
+watchEffect(() => {
+  visualizationConfig.value.types = visualizationStore.types(expressionInfo.value?.typename)
 })
 </script>
 
