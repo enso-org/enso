@@ -26,6 +26,14 @@ public abstract class MultiValueKeyBase {
     return storages[column].getItemBoxed(rowIndex);
   }
 
+  public List<Object> getValues() {
+    List<Object> result = new ArrayList<>(storages.length);
+    for (int i = 0; i < storages.length; i++) {
+      result.add(get(i));
+    }
+    return result;
+  }
+
   @Override
   public abstract boolean equals(Object o);
 
@@ -37,6 +45,16 @@ public abstract class MultiValueKeyBase {
       }
     }
     return true;
+  }
+
+  /** Checks if any cells in the current row are missing. */
+  public boolean hasAnyNulls() {
+    for (Storage<?> storage : storages) {
+      if (storage.isNa(rowIndex)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /* Checks if any cell contains float values.

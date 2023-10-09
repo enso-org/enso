@@ -1,6 +1,13 @@
 package org.enso.table.data.index;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -16,7 +23,7 @@ import org.enso.table.util.ConstantList;
 import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
-  private final int keyColumnsLength;
+  private final Column[] keyColumns;
   private final Map<KeyType, List<Integer>> locs;
   private final AggregatedProblems problems;
   private final boolean isUnique;
@@ -53,7 +60,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       int tableSize,
       Map<KeyType, List<Integer>> initialLocs,
       IntFunction<KeyType> keyFactory) {
-    this.keyColumnsLength = keyColumns.length;
+    this.keyColumns = keyColumns;
     this.problems = new AggregatedProblems();
     this.locs = initialLocs;
 
@@ -97,7 +104,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     final int length = columns.length;
     final int size = locs.size();
 
-    boolean emptyScenario = size == 0 && keyColumnsLength == 0;
+    boolean emptyScenario = size == 0 && keyColumns.length == 0;
     Builder[] storage =
         Arrays.stream(columns)
             .map(c -> Builder.getForType(c.getType(), emptyScenario ? 1 : size))
@@ -175,5 +182,26 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
   public int size() {
     return this.locs.size();
+  }
+
+  /**
+   * Finds a key of which at least one cell is null. Returns that key, or null if no such key is
+   * found.
+   */
+  public KeyType findAnyNullKey() {
+    for (Column c : keyColumns) {
+      boolean containsNulls = c.getStorage().countMissing() > 0;
+      if (containsNulls) {
+        for (KeyType key : locs.keySet()) {
+          if (key.hasAnyNulls()) {
+            return key;
+          }
+        }
+
+        assert false : "Null values found in a column, so a null key should be found";
+      }
+    }
+
+    return null;
   }
 }

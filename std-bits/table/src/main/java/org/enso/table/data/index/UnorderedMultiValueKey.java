@@ -23,6 +23,12 @@ import org.enso.table.data.column.storage.Storage;
 public class UnorderedMultiValueKey extends MultiValueKeyBase {
   private final int hashCodeValue;
   private final List<TextFoldingStrategy> textFoldingStrategy;
+  private boolean hasAnyNulls = false;
+
+  @Override
+  public boolean hasAnyNulls() {
+    return hasAnyNulls;
+  }
 
   public UnorderedMultiValueKey(
       Storage<?>[] storages, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
@@ -35,7 +41,9 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
       h = 31 * h;
 
       Object value = this.get(i);
-      if (value != null) {
+      if (value == null) {
+        hasAnyNulls = true;
+      } else {
         hasFloatValues = hasFloatValues || NumericConverter.isFloatLike(value);
         Object folded = EnsoObjectWrapper.foldObject(value, textFoldingStrategy.get(i));
         h += folded.hashCode();

@@ -29,6 +29,7 @@ public class LookupJoin {
     }
 
     LookupJoin joiner = new LookupJoin(keys, columnDescriptions, allowUnmatchedRows);
+    joiner.checkNullsInKey();
     joiner.verifyLookupUniqueness();
     return joiner.join();
   }
@@ -54,7 +55,6 @@ public class LookupJoin {
     textFoldingStrategies = ConstantList.make(TEXT_FOLDING, baseKeyStorages.length);
 
     Column[] lookupKeyColumns = keys.stream().map(Equals::right).toArray(Column[]::new);
-    checkNullsInKey(lookupKeyColumns);
     keyColumnNames = Arrays.stream(lookupKeyColumns).map(Column::getName).toList();
 
     assert lookupKeyColumns.length > 0;
@@ -63,9 +63,15 @@ public class LookupJoin {
     baseTableRowCount = baseKeyStorages[0].size();
   }
 
+  private void checkNullsInKey() {
+    UnorderedMultiValueKey nullKey = lookupIndex.findAnyNullKey();
+    if (nullKey != null) {
+      throw new NullValuesInKeyColumns(nullKey.getValues());
+    }
+  }
+
   private void verifyLookupUniqueness() {
     if (!lookupIndex.isUnique()) {
-
       // Find the duplicated key
       for (Map.Entry<UnorderedMultiValueKey, List<Integer>> group : lookupIndex.mapping().entrySet()) {
         int groupSize = group.getValue().size();
@@ -77,29 +83,6 @@ public class LookupJoin {
       }
 
       assert false : "isUnique returned false, but no duplicated key was found.";
-    }
-
-  }
-
-  private static void checkNullsInKey(Column[] lookupKeyColumns) {
-    for (Column c : lookupKeyColumns) {
-      boolean containsNulls = c.getStorage().countMissing() > 0;
-      if (containsNulls) {
-        Storage<?> s = c.getStorage();
-        int missingRow = -1;
-        for (int i = 0; i < s.size(); i++) {
-          if (s.isNa(i)) {
-            missingRow = i;
-            break;
-          }
-        }
-
-        assert missingRow != -1;
-        final int row = missingRow;
-        List<Object> exampleValues =
-            IntStream.range(0, lookupKeyColumns.length).mapToObj(i -> (Object) s.getItemBoxed(row)).toList();
-        throw new NullValuesInKeyColumns(exampleValues);
-      }
     }
   }
 
