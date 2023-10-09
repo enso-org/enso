@@ -258,7 +258,34 @@ export type FileSystemObject =
       target: Path
     }
 
-interface VisualizationContext {}
+/** A single component of a component group.
+ * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#librarycomponent) */
+export interface LibraryComponent {
+  /** The component name. */
+  name: string
+  /** The component shortcut. */
+  shortcut?: string
+}
+
+/** The component group provided by a library.
+ * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#librarycomponentgroup) */
+export interface LibraryComponentGroup {
+  /**
+   * The fully qualified library name. A string consisting of a namespace and
+   * a library name separated by the dot <namespace>.<library name>,
+   * i.e. `Standard.Base`.
+   */
+  library: string
+  /** The group name without the library name prefix.
+   *  E.g. given the `Standard.Base.Group 1` group reference,
+   * the `name` field contains `Group 1`.
+   */
+  name: string
+  color?: string
+  icon?: string
+  /** The list of components provided by this component group. */
+  exports: LibraryComponent[]
+}
 
 export interface VisualizationConfiguration {
   /** An execution context of the visualization. */
@@ -384,14 +411,13 @@ export namespace response {
     receivesUpdates: CapabilityRegistration
   }
 
-  export interface VisualizationUpdate {
-    context: VisualizationContext
-    data: Uint8Array
-  }
-
   export interface GetSuggestionsDatabase {
     entries: SuggestionsDatabaseEntry[]
     currentVersion: number
+  }
+
+  export interface GetComponentGroups {
+    componentGroups: LibraryComponentGroup[]
   }
 }
 
