@@ -29,7 +29,6 @@ import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table_Conversions
-import project.Data.Type.Storage
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
