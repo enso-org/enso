@@ -32,6 +32,7 @@ const conf = [
     rules: {
       camelcase: [1, { ignoreImports: true }],
       'no-inner-declarations': 0,
+      'vue/attribute-hyphenation': [2, 'never'],
       'vue/v-on-event-hyphenation': [2, 'never'],
       '@typescript-eslint/no-unused-vars': [
         1,

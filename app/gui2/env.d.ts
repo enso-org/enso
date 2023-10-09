@@ -13,5 +13,4 @@ declare module 'builtins' {
   export const VisualizationContainer: typeof import('@/components/VisualizationContainer.vue').default
   export const useVisualizationConfig: typeof import('@/providers/visualizationConfig').useVisualizationConfig
   export const defineKeybinds: typeof import('@/util/shortcuts').defineKeybinds
-  export const d3: typeof import('d3')
 }

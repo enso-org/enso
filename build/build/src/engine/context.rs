@@ -579,8 +579,9 @@ impl RunContext {
             }
         }
 
+        let graal_version = crate::engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
         for bundle in ret.bundles() {
-            bundle.create(&self.repo_root).await?;
+            bundle.create(&self.repo_root, &graal_version).await?;
         }
 
         Ok(ret)
