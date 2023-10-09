@@ -69,6 +69,7 @@ export default function ManageLabelsModal<
                     await backend.associateTag(item.id, newLabels, item.title)
                 } catch (error) {
                     toastAndLog(null, error)
+                    setLabels(labels)
                 }
             },
             [
@@ -142,11 +143,14 @@ export default function ManageLabelsModal<
                                 .map(label => (
                                     <div key={label.id} className="flex items-center h-8">
                                         <Label
+                                            active={labels.includes(label.value)}
                                             color={label.color}
                                             onClick={async () => {
                                                 await doToggleLabel(label.value)
                                             }}
-                                        />
+                                        >
+                                            {label.value}
+                                        </Label>
                                     </div>
                                 ))}
                         </div>

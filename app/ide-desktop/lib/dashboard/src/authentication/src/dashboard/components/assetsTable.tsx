@@ -170,7 +170,7 @@ export interface AssetsTableProps {
     query: string
     category: categorySwitcher.Category
     allLabels: Map<backendModule.LabelName, backendModule.Label>
-    currentLabels: backendModule.LabelName[]
+    currentLabels: backendModule.LabelName[] | null
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
     /** These events will be dispatched the next time the assets list is refreshed, rather than

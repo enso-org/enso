@@ -85,7 +85,7 @@ export default function Drive(props: DriveProps) {
             categorySwitcher.Category.home
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
-    const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[]>([])
+    const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
     const allLabels = React.useMemo(
         () => new Map(labels.map(label => [label.value, label])),
         [labels]
@@ -221,12 +221,13 @@ export default function Drive(props: DriveProps) {
                                                     : oldLabel
                                             )
                                         )
-                                        setCurrentLabels(oldLabels =>
-                                            oldLabels.map(oldLabel =>
-                                                oldLabel === placeholderLabel.value
-                                                    ? newLabel.value
-                                                    : oldLabel
-                                            )
+                                        setCurrentLabels(
+                                            oldLabels =>
+                                                oldLabels?.map(oldLabel =>
+                                                    oldLabel === placeholderLabel.value
+                                                        ? newLabel.value
+                                                        : oldLabel
+                                                ) ?? []
                                         )
                                     } catch (error) {
                                         toastAndLog(null, error)
@@ -235,11 +236,16 @@ export default function Drive(props: DriveProps) {
                                                 oldLabel => oldLabel.id !== placeholderLabel.id
                                             )
                                         )
-                                        setCurrentLabels(oldLabels =>
-                                            oldLabels.filter(
-                                                oldLabel => oldLabel !== placeholderLabel.value
-                                            )
-                                        )
+                                        setCurrentLabels(oldLabels => {
+                                            if (oldLabels == null) {
+                                                return null
+                                            } else {
+                                                const newLabels = oldLabels.filter(
+                                                    oldLabel => oldLabel !== placeholderLabel.value
+                                                )
+                                                return newLabels.length === 0 ? null : newLabels
+                                            }
+                                        })
                                     }
                                 })()
                             }}

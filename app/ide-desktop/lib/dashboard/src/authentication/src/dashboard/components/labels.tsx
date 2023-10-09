@@ -16,8 +16,8 @@ import NewLabelModal from './newLabelModal'
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
     labels: backendModule.Label[]
-    currentLabels: backendModule.LabelName[]
-    setCurrentLabels: React.Dispatch<React.SetStateAction<backendModule.LabelName[]>>
+    currentLabels: backendModule.LabelName[] | null
+    setCurrentLabels: React.Dispatch<React.SetStateAction<backendModule.LabelName[] | null>>
     doCreateLabel: (name: string) => void
 }
 
@@ -37,13 +37,18 @@ export default function Labels(props: LabelsProps) {
                     <Label
                         key={label.id}
                         color={label.color}
-                        active={currentLabels.includes(label.value)}
+                        active={currentLabels?.includes(label.value) ?? false}
                         onClick={() => {
-                            setCurrentLabels(oldLabels =>
-                                oldLabels.includes(label.value)
-                                    ? oldLabels.filter(oldLabel => oldLabel !== label.value)
-                                    : [...oldLabels, label.value]
-                            )
+                            setCurrentLabels(oldLabels => {
+                                if (oldLabels == null) {
+                                    return [label.value]
+                                } else {
+                                    const newLabels = oldLabels.includes(label.value)
+                                        ? oldLabels.filter(oldLabel => oldLabel !== label.value)
+                                        : [...oldLabels, label.value]
+                                    return newLabels.length === 0 ? null : newLabels
+                                }
+                            })
                         }}
                     >
                         {label.value}

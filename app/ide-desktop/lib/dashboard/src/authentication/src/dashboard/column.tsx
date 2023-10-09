@@ -280,6 +280,7 @@ function LabelsColumn(props: AssetColumnProps) {
         >
             {(asset.labels ?? []).map(label => (
                 <Label
+                    active
                     key={label}
                     color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
                     onClick={() => {
@@ -305,7 +306,9 @@ function LabelsColumn(props: AssetColumnProps) {
                             }
                         })
                     }}
-                />
+                >
+                    {label}
+                </Label>
             ))}
             {managesThisAsset && (
                 <button

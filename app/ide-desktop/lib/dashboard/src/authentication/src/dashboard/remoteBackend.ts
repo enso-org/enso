@@ -141,7 +141,7 @@ function getSecretPath(secretId: backendModule.SecretId) {
 }
 /** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
 function associateTagPath(assetId: backendModule.AssetId) {
-    return `asset/${assetId}/labels`
+    return `assets/${assetId}/labels`
 }
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
 function deleteTagPath(tagId: backendModule.TagId) {
