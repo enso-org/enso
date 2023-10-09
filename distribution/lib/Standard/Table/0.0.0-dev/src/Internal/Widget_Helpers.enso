@@ -8,10 +8,10 @@ from Standard.Base.System.File_Format import format_types
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Table.Table
-import project.Data.Table_Conversions
 import project.Data.Type.Value_Type.Auto
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
+from project.Extensions.Table_Conversions import all
 
 ## PRIVATE
    Make an aggregate column selector.

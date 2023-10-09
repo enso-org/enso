@@ -1,0 +1,88 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+
+import project.Data.Column.Column
+import project.Data.Expression.Expression_Error
+import project.Data.Set_Mode.Set_Mode
+import project.Data.Table.Table
+import project.Internal.Widget_Helpers
+from project.Errors import No_Such_Column, Existing_Column, Missing_Column
+
+@column Widget_Helpers.make_column_name_selector
+Table.derive_value : Text | Integer -> Column_Operation -> Text | Nothing -> Table_Ref
+Table.derive_value self column:(Text|Integer) operation:Column_Operation new_name:(Text|Nothing) =
+    derive_value (Table_Ref.from self) column operation new_name
+
+## PRIVATE
+   Implementation of Table calculation.
+   Shorthand for getting a column.
+   Performing an action and setting the result to a new column.
+derive_value : Table_Ref -> Text | Integer -> Column_Operation -> Text | Nothing -> Table_Ref
+derive_value table:Table_Ref column:(Text|Integer) operation:Column_Operation new_name:(Text|Nothing) =
+    column_object = table.at column
+    column_object.if_not_error <|
+        derived = case operation of
+            Column_Operation.Date_Add length period -> column_object.date_add (table.resolve length) period
+            Column_Operation.Between lower upper -> column_object.between (table.resolve lower) (table.resolve upper)
+        derived.if_not_error <| table.set derived new_name
+
+type Column_Operation
+    Date_Add length:(Column_Ref|Integer) period:Date_Period
+    Between lower upper
+
+## PRIVATE
+   Create a widget for operation
+create_operation_widget : Table_Ref -> Widget
+create_operation_widget table:Table_Ref display=Display.Always =
+    col_names = table.column_names.map (name -> Option name "Column_Ref.By_Name "+name.pretty)
+    builder = Vector.new_builder
+    builder.append (Option "date add" "Column_Operation.Date_Add" parameters=[Pair.new "length" col_names])
+    builder.append (Option "between" "Column_Operation.Between" parameters=[Pair.new "lower" col_names, Pair.new "upper" col_names])
+    Single_Choice builder.to_vector display=display
+
+## Reference to a column in a table.
+type Column_Ref
+    ## Reference to a column by name in a table.
+    By_Name name:Text
+
+    ## Reference to a column by index in a table.
+    By_Index index:Integer
+
+## PRIVATE
+   Private type class for defining a table against
+type Table_Ref
+    ## PRIVATE
+    Value underlying
+
+    ## PRIVATE
+       Get a column.
+       Column must implement all the expected calculations.
+    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
+    at self selector=0 = self.underlying.at selector
+
+    ## PRIVATE
+       Resolve a Column_Ref to a Column.
+    resolve : Any -> Any ! No_Such_Column | Index_Out_Of_Bounds
+    resolve self value = case value of
+        Column_Ref.By_Name name -> self.at name
+        Column_Ref.By_Index index -> self.at index
+        _ -> value
+
+    ## PRIVATE
+       Set a column.
+    set : Any -> Set_Mode -> Problem_Behavior -> Table_Ref ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+        new_underlying = self.underlying.set column set_mode=set_mode on_problems=on_problems
+        Table_Ref.from new_underlying
+
+    ## PRIVATE
+       Gets a list of column names
+    column_names : Vector Text
+    column_names self = self.underlying.column_names
+
+## PRIVATE
+Table_Ref.from (that:Table) = Table_Ref.Value that

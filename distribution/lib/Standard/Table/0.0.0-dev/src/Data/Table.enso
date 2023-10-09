@@ -28,7 +28,6 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
-import project.Data.Table_Conversions
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
@@ -48,6 +47,7 @@ import project.Internal.Widget_Helpers
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
+from project.Extensions.Table_Conversions import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
