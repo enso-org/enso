@@ -3,6 +3,7 @@ import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider } from '@/util/crdt'
 import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
 import { isSome, type Opt } from '@/util/opt'
+import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
@@ -10,7 +11,6 @@ import * as object from 'lib0/object'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
-import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import type {
@@ -134,6 +134,7 @@ type ExecutionContextNotification = {
   'executionFailed'(message: string): void
   'executionComplete'(): void
   'executionStatus'(diagnostics: Diagnostic[]): void
+  'visualizationsConfigured'(configs: Set<Uuid>): void
 }
 
 /**
@@ -266,6 +267,8 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
       if (errors.length > 0) {
         console.error('Failed to synchronize visualizations:', errors)
       }
+
+      this.emit('visualizationsConfigured', [new Set(this.visualizationConfigs.keys())])
 
       // State object was updated in-place in each successful promise.
       return state
@@ -469,38 +472,30 @@ export const useProjectStore = defineStore('project', () => {
 
   const executionContext = createExecutionContextForMain()
   const computedValueRegistry = new ComputedValueRegistry(executionContext)
-  const dataConnectionRef = computedAsync<DataServer | undefined>(() => dataConnection)
+  const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
 
   function useVisualizationData(
     configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
   ): ShallowRef<{} | undefined> {
     const id = random.uuidv4() as Uuid
-    const visualizationData = shallowRef<{}>()
 
-    watch(configuration, async (config, _, onCleanup) => {
-      executionContext.setVisualization(id, config)
-      onCleanup(() => {
-        executionContext.setVisualization(id, null)
-      })
-    })
+    watch(
+      configuration,
+      async (config, _, onCleanup) => {
+        executionContext.setVisualization(id, config)
+        onCleanup(() => {
+          executionContext.setVisualization(id, null)
+        })
+      },
+      { immediate: true },
+    )
 
-    watchEffect((onCleanup) => {
-      const connection = dataConnectionRef.value
-      const dataEvent = `${OutboundPayload.VISUALIZATION_UPDATE}:${id}`
-      if (connection == null) return
-      connection.on(dataEvent, onVisualizationUpdate)
-      onCleanup(() => {
-        connection.off(dataEvent, onVisualizationUpdate)
-      })
-    })
-
-    function onVisualizationUpdate(vizUpdate: VisualizationUpdate) {
-      const json = vizUpdate.dataString()
-      const newData = json != null ? JSON.parse(json) : undefined
-      visualizationData.value = newData
-    }
-
-    return visualizationData
+    return shallowRef(
+      computed(() => {
+        const json = visualizationDataRegistry.getRawData(id)
+        return json != null ? JSON.parse(json) : undefined
+      }),
+    )
   }
 
   function stopCapturingUndo() {

@@ -12,7 +12,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   newNode: ['N'],
 })
 
-export const nodeBindings = defineKeybinds('node-selection', {
+export const nodeSelectionBindings = defineKeybinds('node-selection', {
   deleteSelected: ['Delete'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape', 'PointerMain'],
@@ -22,4 +22,8 @@ export const nodeBindings = defineKeybinds('node-selection', {
   toggle: ['Shift+PointerMain'],
   invert: ['Mod+Shift+Alt+PointerMain'],
   toggleVisualization: ['Space'],
+})
+
+export const nodeEditBindings = defineKeybinds('node-edit', {
+  selectAll: ['Mod+A'],
 })

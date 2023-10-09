@@ -28,10 +28,10 @@ import {
 import type { WebsocketClient } from './websocket'
 import type { Uuid } from './yjsModel'
 
-export function uuidFromBits(leastSigBits: bigint, mostSigBits: bigint): string {
+export function uuidFromBits(leastSigBits: bigint, mostSigBits: bigint): Uuid {
   const bits = (mostSigBits << 64n) | leastSigBits
   const string = bits.toString(16).padStart(32, '0')
-  return string.replace(/(........)(....)(....)(....)(............)/, '$1-$2-$3-$4-$5')
+  return string.replace(/(........)(....)(....)(....)(............)/, '$1-$2-$3-$4-$5') as Uuid
 }
 
 export function uuidToBits(uuid: string): [leastSigBits: bigint, mostSigBits: bigint] {
@@ -51,8 +51,9 @@ const PAYLOAD_CONSTRUCTOR = {
 } satisfies Record<OutboundPayload, new () => Table>
 
 export type DataServerEvents = {
-  [K in keyof typeof PAYLOAD_CONSTRUCTOR as K | `${K}:${string}`]: (
-    arg: InstanceType<(typeof PAYLOAD_CONSTRUCTOR)[K]>,
+  [K in keyof typeof PAYLOAD_CONSTRUCTOR as `${K}`]: (
+    payload: InstanceType<(typeof PAYLOAD_CONSTRUCTOR)[K]>,
+    uuid: Uuid | null,
   ) => void
 }
 
@@ -84,18 +85,18 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       const payloadType = binaryMessage.payloadType()
       const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
       if (payload != null) {
-        this.emit(`${payloadType}`, [payload])
+        this.emit(`${payloadType}`, [payload, null])
         const id = binaryMessage.correlationId()
         if (id != null) {
           const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-          this.emit(`${payloadType}:${uuid}`, [payload])
+          this.emit(`${payloadType}`, [payload, uuid])
           const callback = this.resolveCallbacks.get(uuid)
           callback?.(payload)
         } else if (payload instanceof VisualizationUpdate) {
           const id = payload.visualizationContext()?.visualizationId()
           if (id != null) {
             const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-            this.emit(`${payloadType}:${uuid}`, [payload])
+            this.emit(`${payloadType}`, [payload, uuid])
           }
         }
       }

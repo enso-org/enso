@@ -24,6 +24,7 @@ export class ComputedValueRegistry {
   constructor(executionContext: ExecutionContext) {
     this.executionContext = executionContext
     this.expressionMap = reactive(new Map())
+
     executionContext.on('expressionUpdates', this._updateHandler)
   }
 
@@ -39,7 +40,6 @@ export class ComputedValueRegistry {
   }
 
   getExpressionInfo(exprId: ExpressionId): ExpressionInfo | undefined {
-    console.log('getExpressionInfo', exprId)
     return this.expressionMap.get(exprId)
   }
 

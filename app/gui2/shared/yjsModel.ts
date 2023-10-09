@@ -140,7 +140,7 @@ export class DistributedModule {
     return newId
   }
 
-  deleteNode(id: ExprId): void {
+  deleteExpression(id: ExprId): void {
     const rangeBuffer = this.doc.idMap.get(id)
     if (rangeBuffer == null) return
     const [relStart, relEnd] = decodeRange(rangeBuffer)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nodeBindings } from '@/bindings'
+import { nodeEditBindings, nodeSelectionBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeSpan from '@/components/NodeSpan.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -355,7 +355,7 @@ watch(
   },
 )
 
-const mouseHandler = nodeBindings.handler({
+const mouseHandler = nodeSelectionBindings.handler({
   replace() {
     emit('replaceSelection')
   },
@@ -370,6 +370,18 @@ const mouseHandler = nodeBindings.handler({
   },
   invert() {
     emit('update:selected', !props.selected)
+  },
+})
+
+const editableKeydownHandler = nodeEditBindings.handler({
+  selectAll() {
+    const element = editableRootNode.value
+    const selection = window.getSelection()
+    if (element == null || selection == null) return
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    selection.removeAllRanges()
+    selection.addRange(range)
   },
 })
 
@@ -447,6 +459,7 @@ const executionState = computed(() => {
         contenteditable
         spellcheck="false"
         @beforeinput="editContent"
+        @keydown="editableKeydownHandler"
         @pointerdown.stop
         @blur="projectStore.stopCapturingUndo()"
       >
@@ -467,27 +480,19 @@ const executionState = computed(() => {
   --node-height: 32px;
   --node-border-radius: calc(var(--node-height) * 0.5);
 
-  --node-color-primary: #357ab9;
+  --node-group-color: #357ab9;
 
-  &.executionState-Unknown {
-    --node-color-primary: #999;
-  }
+  --node-color-primary: color-mix(in oklab, var(--node-group-color) 100%, transparent 0%);
+  --node-color-port: color-mix(in oklab, var(--node-color-primary) 75%, white 15%);
+  --node-color-error: color-mix(in oklab, var(--node-group-color) 30%, rgba(255, 0, 0) 70%);
 
-  &.executionState-Error,
-  &.executionState-Panic {
-    /* --node-color-primary: ; */
-
-    .node {
-      outline: 8px solid rgba(255, 0, 0, 0.4);
-    }
-  }
-
+  &.executionState-Unknown,
   &.executionState-Pending {
-    --node-color-primary: #5394d1;
+    --node-color-primary: color-mix(in oklab, var(--node-group-color) 60%, #aaa 40%);
   }
 
   position: absolute;
-  border-radius: var(--radius-full);
+  border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
@@ -517,6 +522,7 @@ const executionState = computed(() => {
 .GraphNode .selection {
   position: absolute;
   inset: calc(0px - var(--selected-node-border-width));
+  --node-current-selection-width: 0px;
 
   &:before {
     content: '';
@@ -525,7 +531,7 @@ const executionState = computed(() => {
     border-radius: var(--node-border-radius);
     display: block;
     inset: var(--selected-node-border-width);
-    box-shadow: 0 0 0 0 var(--node-color-primary);
+    box-shadow: 0 0 0 var(--node-current-selection-width) var(--node-color-primary);
 
     transition:
       box-shadow 0.2s ease-in-out,
@@ -535,7 +541,7 @@ const executionState = computed(() => {
 
 .GraphNode:is(:hover, .selected) .selection:before,
 .GraphNode .selection:hover:before {
-  box-shadow: 0 0 0 var(--selected-node-border-width) var(--node-color-primary);
+  --node-current-selection-width: var(--selected-node-border-width);
 }
 
 .GraphNode .selection:hover:before {
@@ -568,7 +574,8 @@ const executionState = computed(() => {
 .editable {
   outline: none;
   height: 24px;
-  padding: 1px 0;
+  display: inline-flex;
+  align-items: center;
 }
 
 .container {
