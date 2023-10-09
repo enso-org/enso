@@ -291,7 +291,7 @@ function handleKeydown(e: KeyboardEvent) {
           </div>
         </div>
       </div>
-      <div class="panel docs" :class="{ hidden: !docsVisible }">
+      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }">
 		<DocumentationPanel />
 	  </div>
     </div>
@@ -340,6 +340,7 @@ function handleKeydown(e: KeyboardEvent) {
   width: 406px;
   clip-path: inset(0 0 0 0 round 20px);
   transition: clip-path 0.2s;
+  overflow-y: auto;
 }
 .docs.hidden {
   clip-path: inset(0 100% 0 0 round 20px);

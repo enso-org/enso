@@ -1,36 +1,64 @@
 <script setup lang="ts">
-  import { makeMethod } from '@/stores/suggestionDatabase/entry'
-  import { computed } from 'vue'
-  import { Doc } from '@/util/ffi'
+ import { makeMethod } from '@/stores/suggestionDatabase/entry'
+ import { computed } from 'vue'
+ import { Doc } from '@/util/ffi'
+ import { default as SvgIcon } from '@/components/SvgIcon.vue'
+ import { default as Synopsis } from '@/components/documentation/Synopsis.vue'
 
   const props = defineProps<{}>()
   const emit = defineEmits<{}>()
 
-  interface Sections {
+ interface Sections {
   tags: Doc.Section.Tag[],
   synopsis: Doc.Section[],
   examples: Doc.Section[],
-  }
+ }
+ 
+ interface FunctionDocs {
+   name: string,
+   arguments: SuggestionEntryArgument[],
+   sections: Sections,
+ }
+ 
+ interface TypeDocs {
+   name: string,
+   arguments: SuggestionEntryArgument[],
+   sections: Sections,
+   methods: FunctionDocs[],
+   constructors: FunctionDocs[],
+ }
+
+ interface ModuleDocs {
+   name: string,
+   sections: Sections,
+   types: TypeDocs[],
+   methods: FunctionDocs[],
+ }
   
   const entry = makeMethod('Standard.Base.Foo.foo')
   const documentation = computed(() => {
   const docs: Sections = {
-  tags: [{ tag: 'Unstable', body: '' }, { tag: 'Alias', body: 'bar' }],
-  synopsis: [
-  {Paragraph: { body: 'Some <code>arbitrary</code> documentation paragraph' }},
-  { Keyed: { key: 'Key 2', body: 'Some text'} },
-  { Marked: { mark: 'Important', header: 'Some header', body: 'Some important info' } },
-  { Marked: { mark: 'Info', header: 'Info', body: 'Some information' } },
-  { List: { items: [ 'Item 1', 'Item 2', 'Item 3' ] } },
-  { Arguments: { args: [
-  { name: 'Argument 1', description: 'Some argument description' },
-  { name: 'Argument 2', description: 'Some argument description' },
-  ] } },
-  ],
-  examples: [{Marked: {mark: 'Example', body: 'Example body' }}, {Marked: {mark: 'Example', body: 'Second example' }}]
-   }
-   return docs
- })
+	tags: [{ tag: 'Unstable', body: '' }, { tag: 'Alias', body: 'bar' }],
+	synopsis: [
+	  {Paragraph: { body: 'Some <code>arbitrary</code> documentation paragraph' }},
+	  {Paragraph: { body: 'More text' }},
+	  {Paragraph: { body: 'More text' }},
+	  {Paragraph: { body: 'More text' }},
+	  {Paragraph: { body: 'More text' }},
+	  {Paragraph: { body: 'More text' }},
+	  { Keyed: { key: 'Key 2', body: 'Some text'} },
+	  { Marked: { mark: 'Important', header: 'Some header', body: 'Some important info' } },
+	  { Marked: { mark: 'Info', header: 'Info', body: 'Some information' } },
+	  { List: { items: [ 'Item 1', 'Item 2', 'Item 3' ] } },
+	  { Arguments: { args: [
+		{ name: 'Argument 1', description: 'Some argument description' },
+		{ name: 'Argument 2', description: 'Some argument description' },
+	  ] } },
+	],
+	examples: [{Marked: {mark: 'Example', body: 'Example body' }}, {Marked: {mark: 'Example', body: 'Second example' }}]
+  }
+	return docs
+  })
 </script>
 
 <template>
@@ -43,29 +71,11 @@
 		</div>
 	  </div>
 	</div>
-	<div class="sectionContent">
-	  <div v-for="section in documentation.synopsis">
-		<p class="paragraph" v-if="'Paragraph' in section">
-		  <span v-html="section.Paragraph.body"></span>
-		</p>
-		<p class="paragraph" v-if="'Keyed' in section">
-		  {{ section.Keyed.key + ": " + section.Keyed.body }}
-		</p>
-		<div v-if="'Marked' in section" :class="[{backgroundInfo: section.Marked.mark == 'Info', backgroundImportant: section.Marked.mark == 'Important', }, 'markedContainer']">
-		  <div v-if="'header' in section.Marked" class="markedHeader">
-			{{ "Mark " + section.Marked.header }}
-		  </div>
-		  <p class="paragraph" v-html="section.Marked.body" />
-		</div>
-		<ul v-if="'List' in section">
-		  <li v-for="item in section.List.items" v-html="item"></li>
-		</ul>
-		<ul v-if="'Arguments' in section">
-		  <li v-for="arg in section.Arguments.args">
-			<span class="argument">{{ arg.name }}</span>:&nbsp
-			<span v-html="arg.description"></span>
-		  </li>
-		</ul>
+	<Synopsis :sections="documentation.synopsis" />
+	<div class="headerContainer sectionHeader examplesHeader">
+	  <SvgIcon name="doc_examples" />
+	  <div class="headerText">
+		Examples
 	  </div>
 	</div>
 	<div class="sectionContent">
@@ -78,7 +88,7 @@
 
 <style scoped>
  /* Common parts. */
-
+ 
  .DocumentationPanel {
    --enso-docs-type-name-color: #9640da;
    --enso-docs-module-name-color: #a239e2;
@@ -101,38 +111,9 @@
    padding-left: 8px;
    padding-right: 8px;
    padding-bottom: 4px;
+   white-space: normal;
  }
-
- code {
-   font-family: EnsoRegular;
- }
-
- ul {
-   margin: 0;
-   padding: 0;
-   list-style-type: none;
-   list-style-position: inside;
- }
-
- ul li:before {
-   content: "•";
-   font-size: 13px;
-   font-weight: 700;
-   margin-right: 3px;
- }
-
- ul li.type-item:before {
-   color: var(--enso-docs-type-name-color);
- }
-
- ul li.method-item:before {
-   color: var(--enso-docs-method-name-color);
- }
-
- .paragraph {
-   margin: 0;
- }
-
+ 
  .link {
    cursor: pointer;
  }
@@ -168,10 +149,7 @@
    font-weight: 600;
  }
 
- .sectionContent {
-   padding-left: 8px;
-   padding-right: 8px;
- }
+ 
 
  /* Headers. */
 
@@ -217,74 +195,6 @@
 
  .examplesHeader {
    color: var(--enso-docs-examples-header-color);
- }
-
- /* Marked sections, such as `Info` and `Important` sections. */
-
- .backgroundInfo {
-   background-color: var(--enso-docs-info-background-color);
- }
-
- .backgroundImportant {
-   background-color: var(--enso-docs-important-background-color);
- }
-
- .markedContainer {
-   border-radius: 0.5rem;
-   padding: 0.5rem;
-   margin: 0.5rem 0;
- }
-
- .markedHeader {
-   font-weight: 700;
-   font-size: 13px;
-   margin: 0;
-   display: flex;
- }
-
- div.markedIcon {
-   align-self: start;
- }
-
- div .markedIconImportant {
-   margin: 0 0 0 0;
- }
-
- div .markedIconInfo {
-   margin: 0 0.25em 0 0;
- }
-
- .markedIcon svg {
-   pointer-events: none;
-   width: 1em;
-   height: 1em;
-   margin: 0 0.05em 0 0.05em;
-   vertical-align: -0.1em;
-   fill: none;
- }
-
- /* Examples. */
-
- .exampleContainer {
-   background-color: var(--enso-docs-example-background-color);
-   border-radius: 0.25rem;
-   padding: 0.5rem;
-   margin-bottom: 0.5rem;
- }
-
- .example {
-   font-family: EnsoRegular;
-   white-space: pre;
-   overflow-x: auto;
-   margin: 0.05rem 0.1rem;
- }
-
- /* Code. The words emphasized with backticks. */
-
- .DocumentationPanel :deep(code) {
-   background-color: var(--enso-docs-code-background-color);
-   border-radius: 4px;
-   padding: 2px;
  }
 
  /* Tags */
