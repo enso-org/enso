@@ -344,8 +344,16 @@ final class SuggestionsHandler(
       }
 
     case Completion(path, pos, selfType, returnType, tags, isStatic) =>
-      val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
-      getModuleName(projectName, path)
+      val allSelfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
+      val isJavaClass = try {
+        val found = Class.forName(allSelfTypes.head)
+        logger.warn("Found java class: " + found)
+        true
+      } catch {
+        case _ : Throwable => false
+      }
+      val selfTypes = if (isJavaClass) List(allSelfTypes.head) else allSelfTypes
+      val res = getModuleName(projectName, path)
         .flatMap { either =>
           either.fold(
             Future.successful,
@@ -362,7 +370,43 @@ final class SuggestionsHandler(
                 .map(CompletionResult.tupled)
           )
         }
-        .pipeTo(sender())
+        val checkForFirstTimeJava = res.andThen(v => {
+          logger.warn("resolved to " + v)
+          if (v.isSuccess && v.get.asInstanceOf[CompletionResult].results.isEmpty && isJavaClass) {
+            logger.warn("  empty result isn't enough, recomputing")
+            val c = Class.forName(allSelfTypes.head)
+            val newSuggestions = new java.util.ArrayList[Suggestion]
+            val typ = new Suggestion.Type(None, "Java", c.getName(), Nil, "", None, None, None)
+            newSuggestions.add(typ)
+            val names = new java.util.HashSet[String]
+            c.getMethods().foreach(m => {
+              val isNewName = names.add(m.getName())
+              if (isNewName && (m.getModifiers & java.lang.reflect.Modifier.STATIC) == 0 && m.getDeclaringClass() != classOf[java.lang.Object]) {
+                var cnt = 0;
+                val args = m.getParameterTypes().map(p => {
+                  cnt = cnt + 1
+                  new Suggestion.Argument("arg" + cnt, p.getName(), false, false, None, None)
+                }).toIndexedSeq;
+                val method = new Suggestion.DefinedMethod(None, "Java", m.getName(), args, c.getName, m.getReturnType().getName(), false, None, Nil)
+                newSuggestions.add(method)
+              }
+            })
+            logger.warn("Computed new replacement: " + newSuggestions)
+            applyLoadedSuggestions(newSuggestions.toArray(new Array[Suggestion](0)).toVector).andThen(r =>
+              if (r.isFailure) {
+                logger.error("database update failed: " + r)
+              } else {
+                logger.warn("database updated with: " + r)
+                Future(r.get).pipeTo(sender())
+              }
+            )
+          } else {
+            logger.warn("Piping result: " + v)
+            v
+          }
+        })
+      checkForFirstTimeJava.pipeTo(sender())
+
       if (state.shouldStartBackgroundProcessing) {
         runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
         context.become(
