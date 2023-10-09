@@ -1,9 +1,3 @@
-import * as vue from 'vue'
-import { type DefineComponent } from 'vue'
-
-import * as vueUseCore from '@vueuse/core'
-import { defineStore } from 'pinia'
-
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { defineKeybinds } from '@/util/shortcuts'
@@ -21,33 +15,60 @@ import type {
   RegisterBuiltinModulesRequest,
 } from '@/workers/visualizationCompiler'
 import Compiler from '@/workers/visualizationCompiler?worker'
-import * as d3 from 'd3'
+import { defineStore } from 'pinia'
+import type { VisualizationConfiguration } from 'shared/languageServerTypes'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
+import * as vue from 'vue'
+import { type DefineComponent } from 'vue'
+
+/** A module containing the default visualization function. */
+const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'
+/** A name of the default visualization function. */
+const DEFAULT_VISUALIZATION_FUNCTION = 'default_preprocessor'
+/** A list of arguments passed to the default visualization function. */
+const DEFAULT_VISUALIZATION_ARGUMENTS: string[] = []
+
+export const DEFAULT_VISUALIZATION_CONFIGURATION = {
+  visualizationModule: DEFAULT_VISUALIZATION_MODULE,
+  expression: DEFAULT_VISUALIZATION_FUNCTION,
+  positionalArgumentsExpressions: DEFAULT_VISUALIZATION_ARGUMENTS,
+} satisfies Partial<VisualizationConfiguration>
+
+export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
+  module: { kind: 'Builtin' },
+  name: 'JSON',
+}
 
 const moduleCache: Record<string, any> = {
   vue,
-  '@vueuse/core': vueUseCore,
-  builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds, d3 },
+  get d3() {
+    return import('d3')
+  },
+  builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds },
 }
 // @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
 // else.
 window.__visualizationModules = moduleCache
 
 export type Visualization = DefineComponent<
-  { data: {} },
+  // Props
+  { data: { type: vue.PropType<unknown>; required: true } },
+  {},
+  unknown,
   {},
   {},
   {},
   {},
-  {},
-  {},
+  // Emits
   {
-    'update:preprocessor': (module: string, method: string, ...args: string[]) => void
+    'update:preprocessor'?: (module: string, method: string, ...args: string[]) => void
   }
 >
 type VisualizationModule = {
   default: Visualization
   name: string
-  inputType: string
+  inputType?: string
+  defaultPreprocessor?: readonly [module: string, method: string, ...args: string[]]
   scripts?: string[]
   styles?: string[]
 }
@@ -63,7 +84,6 @@ const builtinVisualizationImports: Record<string, () => Promise<VisualizationMod
 }
 
 const dynamicVisualizationPaths: Record<string, string> = {
-  Test: '/visualizations/TestVisualization.vue',
   Scatterplot: '/visualizations/ScatterplotVisualization.vue',
   'Geo Map': '/visualizations/GeoMapVisualization.vue',
 }
@@ -73,7 +93,13 @@ export const useVisualizationStore = defineStore('visualization', () => {
   const imports = { ...builtinVisualizationImports }
   const paths = { ...dynamicVisualizationPaths }
   let cache: Record<string, VisualizationModule> = {}
-  const types = [...Object.keys(imports), ...Object.keys(paths)]
+  const builtinTypes = [...Object.keys(imports), ...Object.keys(paths)]
+  const types = builtinTypes.map(
+    (name): VisualizationIdentifier => ({
+      module: { kind: 'Builtin' },
+      name,
+    }),
+  )
   let worker: Worker | undefined
   let workerMessageId = 0
   const workerCallbacks: Record<
@@ -220,7 +246,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
   }
 
   // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
-  async function get(type: string) {
+  async function get(meta: VisualizationIdentifier) {
+    if (meta.module.kind !== 'Builtin') {
+      console.warn('Custom visualization module support is not yet implemented:', meta.module)
+      return
+    }
+    const type = meta.name
     let module = cache[type]
     if (module == null) {
       module = await imports[type]?.()
@@ -237,121 +268,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
     register(module)
     await loadScripts(module)
     cache[type] = module
-    return module.default
+    return module
   }
 
   function clear() {
     cache = {}
   }
 
-  function sampleData(type: string) {
-    switch (type) {
-      case 'Warnings': {
-        return ['warning 1', "warning 2!!&<>;'\x22"]
-      }
-      case 'Image': {
-        return {
-          mediaType: 'image/svg+xml',
-          base64: `PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0\
-MCI+PGcgY2xpcC1wYXRoPSJ1cmwoI2EpIj48cGF0aCBkPSJNMjAuMDUgMEEyMCAyMCAwIDAgMCAwIDIwLjA1IDIwLjA2IDIwLjA\
-2IDAgMSAwIDIwLjA1IDBabTAgMzYuMDVjLTguOTMgMC0xNi4xLTcuMTctMTYuMS0xNi4xIDAtOC45NCA3LjE3LTE2LjEgMTYuMS\
-0xNi4xIDguOTQgMCAxNi4xIDcuMTYgMTYuMSAxNi4xYTE2LjE4IDE2LjE4IDAgMCAxLTE2LjEgMTYuMVoiLz48cGF0aCBkPSJNM\
-jcuMTIgMTcuNzdhNC42OCA0LjY4IDAgMCAxIDIuMzkgNS45MiAxMC4yMiAxMC4yMiAwIDAgMS05LjU2IDYuODZBMTAuMiAxMC4y\
-IDAgMCAxIDkuNzcgMjAuMzZzMS41NSAyLjA4IDQuNTcgMi4wOGMzLjAxIDAgNC4zNi0xLjE0IDUuNi0yLjA4IDEuMjUtLjkzIDI\
-uMDktMyA1LjItMyAuNzMgMCAxLjQ2LjIgMS45OC40WiIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9Ii\
-NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
-        }
-      }
-      case 'JSON':
-      case 'Scatterplot':
-      case 'Scatterplot 2': {
-        return {
-          axis: {
-            x: { label: 'x-axis label', scale: 'linear' },
-            y: { label: 'y-axis label', scale: 'logarithmic' },
-          },
-          focus: { x: 1.7, y: 2.1, zoom: 3.0 },
-          points: { labels: 'visible' },
-          data: [
-            { x: 0.1, y: 0.7, label: 'foo', color: 'FF0000', shape: 'circle', size: 0.2 },
-            { x: 0.4, y: 0.2, label: 'baz', color: '0000FF', shape: 'square', size: 0.3 },
-          ],
-        }
-      }
-      case 'Geo Map':
-      case 'Geo Map 2': {
-        return {
-          latitude: 37.8,
-          longitude: -122.45,
-          zoom: 15,
-          controller: true,
-          showingLabels: true, // Enables presenting labels when hovering over a point.
-          layers: [
-            {
-              type: 'Scatterplot_Layer',
-              data: [
-                {
-                  latitude: 37.8,
-                  longitude: -122.45,
-                  color: [255, 0, 0],
-                  radius: 100,
-                  label: 'an example label',
-                },
-              ],
-            },
-          ],
-        }
-      }
-      case 'Heatmap': {
-        return [
-          ['a', 'thing', 'c', 'd', 'a'],
-          [1, 2, 3, 2, 3],
-          [50, 25, 40, 20, 10],
-        ]
-      }
-      case 'Histogram': {
-        return {
-          axis: {
-            x: { label: 'x-axis label', scale: 'linear' },
-            y: { label: 'y-axis label', scale: 'logarithmic' },
-          },
-          focus: { x: 1.7, y: 2.1, zoom: 3.0 },
-          color: 'rgb(1.0,0.0,0.0)',
-          bins: 10,
-          data: {
-            values: [0.1, 0.2, 0.1, 0.15, 0.7],
-          },
-        }
-      }
-      case 'Table': {
-        return {
-          type: 'Matrix',
-          // eslint-disable-next-line camelcase
-          column_count: 5,
-          // eslint-disable-next-line camelcase
-          all_rows_count: 10,
-          json: Array.from({ length: 10 }, (_, i) =>
-            Array.from({ length: 5 }, (_, j) => `${i},${j}`),
-          ),
-        }
-      }
-      case 'SQL Query': {
-        return {
-          dialect: 'sql',
-          code: `SELECT * FROM \`foo\` WHERE \`a\` = ? AND b LIKE ?;`,
-          interpolations: [
-            // eslint-disable-next-line camelcase
-            { enso_type: 'Data.Numbers.Number', value: '123' },
-            // eslint-disable-next-line camelcase
-            { enso_type: 'Builtins.Main.Text', value: "a'bcd" },
-          ],
-        }
-      }
-      default: {
-        return {}
-      }
-    }
-  }
-
-  return { types, get, sampleData, clear }
+  return { types, get, clear }
 })
