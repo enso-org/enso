@@ -1,3 +1,6 @@
+[alias]
+build-cli = "build --profile buildscript --package enso-build-cli"
+
 [build]
 target-dir = "target/rust/"
 rustflags = ["--cfg", "tokio_unstable"]

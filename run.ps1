@@ -7,12 +7,9 @@
 # why it should not work on other platforms through PowerShell Core.
 $ErrorActionPreference = "Stop"
 $TargetDir = Join-Path $PSScriptRoot "target" "enso-build"
-$BuildScriptProfile = "buildscript"
-$BuildScriptBin = "enso-build-cli"
+$TargetExe = Join-Path $TargetDir "buildscript" "enso-build-cli"
 
-$TargetExe = Join-Path $TargetDir $BuildScriptProfile $BuildScriptBin
-
-$BuildArgs = "build", "--profile", $BuildScriptProfile, "--target-dir", $TargetDir, "--package", $BuildScriptBin
+$BuildArgs = "build-cli", "--target-dir", $TargetDir
 $BuildScriptProcess = Start-Process cargo -NoNewWindow -PassThru -Wait -WorkingDirectory $PSScriptRoot -ArgumentList $BuildArgs
 if ($BuildScriptProcess.ExitCode -ne 0) {
     Exit $BuildScriptProcess.ExitCode
