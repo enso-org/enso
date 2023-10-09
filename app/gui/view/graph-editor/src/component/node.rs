@@ -262,6 +262,7 @@ ensogl::define_endpoints_2! {
         /// and update the node with new expression tree using `set_expression`.
         on_expression_modified   (span_tree::Crumbs, ImString),
         comment                  (ImString),
+        visualization_enabled    (bool),
         context_switch           (bool),
         skip                     (bool),
         freeze                   (bool),
@@ -755,6 +756,7 @@ impl Node {
             is_enabled <- visualization.view_state.map(|state|{
                 matches!(state,visualization::ViewState::Enabled { has_error: false })
             });
+            out.visualization_enabled <+ is_enabled;
             action_bar.set_action_visibility_state <+ is_enabled;
             button_set_to_true <- action_bar.user_action_visibility.on_true();
             button_set_to_true_without_error <- button_set_to_true.gate_not(&is_error_set);

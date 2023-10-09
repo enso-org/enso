@@ -551,8 +551,8 @@ object DistributionPackage {
       if (!packageDir.exists()) {
         IO.createDirectory(packageDir)
       }
-      val archiveName = s"graalvm-${os.name}-${architecture.name}-" +
-        s"$graalVersion-$graalJavaVersion"
+      val archiveName =
+        s"graalvm-${os.name}-${architecture.name}-$graalVersion-$graalJavaVersion"
       packageDir / (archiveName + os.archiveExt)
     }
 
@@ -848,7 +848,11 @@ object DistributionPackage {
         if (launcher.exists()) {
           fixLauncher(launcher, os)
           copyEngine(os, arch, launcher / "enso" / "dist")
-          copyGraal(os, arch, launcher / "enso" / "runtime")
+          copyGraal(
+            os,
+            arch,
+            launcher / "enso" / "runtime" / s"graalvm-ce-java$graalJavaVersion-$graalVersion/"
+          )
 
           val archive = builtArchive("bundle", os, arch)
           makeArchive(launcher, "enso", archive)
@@ -866,7 +870,11 @@ object DistributionPackage {
           }
 
           copyEngine(os, arch, pm / "enso" / "dist")
-          copyGraal(os, arch, pm / "enso" / "runtime")
+          copyGraal(
+            os,
+            arch,
+            pm / "enso" / "runtime" / s"graalvm-ce-java$graalJavaVersion-$graalVersion/"
+          )
 
           IO.copyFile(
             file("distribution/enso.bundle.template"),

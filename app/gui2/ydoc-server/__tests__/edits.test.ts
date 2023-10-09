@@ -1,6 +1,5 @@
 import { fc, test } from '@fast-check/vitest'
 import { Position, TextEdit } from 'shared/languageServerTypes'
-import { inspect } from 'util'
 import { describe, expect } from 'vitest'
 import * as Y from 'yjs'
 import { applyDiffAsTextEdits, convertDeltaToTextEdits } from '../edits'
@@ -21,7 +20,7 @@ export function applyTextEdits(content: string, edits: TextEdit[]): string {
       return c.slice(0, startOffset) + edit.text + c.slice(endOffset)
     } catch (e) {
       throw new Error(
-        `Failed to apply edit ${inspect(edit)} to content:\n${inspect(c)}\n${String(e)}`,
+        `Failed to apply edit ${JSON.stringify(edit)} to content:\n${JSON.stringify(c)}\n${e}`,
       )
     }
   }, content)
