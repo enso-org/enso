@@ -155,4 +155,45 @@ spec =
             expected = Table.new [["aaa", [1, 2]], ["expanded last", ["Smith", Nothing]], ["expanded height", [Nothing, 1.9]], ["expanded foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] "expanded " . should_equal expected
 
+    Test.group "expand_to_rows" <|
+        Test.specify "Can expand single values"
+            values_to_expand = [3, 4]
+            table = Table.new [["aaa", [1, 2]], ["bbb", values_to_expand], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
+        Test.specify "Can expand Vectors"
+            values_to_expand = [[10, 11], [20, 21, 22], [30]]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expead], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 21, 22, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
+        Test.specify "Can expand Arrays"
+            values_to_expand = [[10, 11].to_array, [20, 21, 22].to_array, [3].to_array]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 21, 22, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
+        Test.specify "Can expand Lists"
+            values_to_expand = [[10, 11].to_list, [20, 21, 22].to_list, [3].to_list]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 21, 22, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
+        Test.specify "Can expand Ranges"
+            values_to_expand = [Range.new 10 12, Range.new 20 23 step=3, Range.new 30 31]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 24, 27, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
+        Test.specify "Can expand Date_Ranges"
+            range0 = (Date.new 2020 02 28).up_to (Date.new 2020 03 02)
+            range1 = (Date.new 2020 10 28).up_to (Date.new 2020 11 16) . with_step Date_Period.Week
+            range2 = (DAte.new 2023 07 03).up_to (Date.new 2023 10 03) . with_step Date_Period.Month
+            values_to_expand = [range0, range1, range2]
+            values_expanded = [Date.new 2020 02 29, Date.new 2020 03 01, Date.new 2020 10 28, Date.new 2020 10 28, Date.new 2020 11 7, Date.new 2020 11 14, Date.new 2023 07 03, Date.new 2023 08 03, Date.new 2023 09 03]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3, 3, 3]], ["bbb", values_expanded], ["ccc", [5, 5, 6, 6, 6, 7, 7, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
 main = Test_Suite.run_main spec
