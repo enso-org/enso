@@ -18,6 +18,7 @@ from Standard.Database.Internal.Upload_Table import default_key_columns
 import Standard.Database.Data.Column_Constraint.Column_Constraint
 
 import Standard.Test.Extensions
+import Standard.Test.Test_Environment
 from Standard.Test import Test, Test_Suite, Problems
 from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
@@ -215,6 +216,25 @@ spec make_new_connection prefix persistent_connector=True =
             run_with_and_without_output <|
                 r1 = connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer] primary_key=[0] temporary=True
                 r1.should_fail_with Illegal_Argument
+
+        Test.specify "should not issue a DELETE statement for the original table name in dry run mode, even if the table does not exist" <|
+            original_table_name = Name_Generator.random_name "no-delete-test"
+
+            log_file = enso_project.data / "transient" / "sql.log"
+            log_file.delete_if_exists
+            Test_Environment.unsafe_with_environment_override "ENSO_SQL_LOG_PATH" log_file.absolute.path <|
+                Context.Output.with_disabled <|
+                    t1 = connection.create_table original_table_name structure=[Column_Description.Value "X" Value_Type.Integer] temporary=True
+                    t1.column_names . should_equal ["X"]
+
+            logs = log_file.read Plain_Text . lines
+            deletes = logs.filter (_.contains "DROP")
+            wrapped_name = connection.dialect.wrap_identifier original_table_name
+            deletes.each line->
+                if line.contains wrapped_name then
+                    Test.fail "The log file contains a dangerous DELETE statement for the original table: "+line
+
+            log_file.delete_if_exists
 
     Test.group prefix+"Uploading an in-memory Table" <|
         in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
@@ -1204,7 +1224,7 @@ spec make_new_connection prefix persistent_connector=True =
             Test.specify "should return a temporary table with a sample of the data for select_into_database_table"+suffix <|
                 Context.Output.with_disabled <|
                     src1 = source_table_builder [["X", [1, 2, 3]]]
-                    name = (Name_Generator.random_name "table-foo")
+                    name = (Name_Generator.random_name "table-foo2")
                     r1 = src1.select_into_database_table connection name
                     Problems.expect_only_warning Dry_Run_Operation r1
                     r1.column_names . should_equal ["X"]
