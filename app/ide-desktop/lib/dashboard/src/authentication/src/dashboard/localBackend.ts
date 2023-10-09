@@ -44,7 +44,6 @@ export class LocalBackend extends backend.Backend {
     override rootDirectoryId(): backend.DirectoryId {
         return backend.DirectoryId('')
     }
-
     /** Return a list of assets in a directory.
      *
      * @throws An error if the JSON-RPC call fails. */
@@ -146,26 +145,24 @@ export class LocalBackend extends backend.Backend {
         if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
-            const engineVersion = project?.engineVersion
             if (project == null) {
                 throw new Error(
                     `Could not get details of project ${
                         title != null ? `'${title}'` : `with ID '${projectId}'`
                     }.`
                 )
-            } else if (engineVersion == null) {
-                throw new Error(`The project '${project.name}' does not have an engine version.`)
             } else {
+                const version =
+                    project.engineVersion == null
+                        ? null
+                        : {
+                              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
+                              value: project.engineVersion,
+                          }
                 return {
                     name: project.name,
-                    engineVersion: {
-                        lifecycle: backend.detectVersionLifecycle(engineVersion),
-                        value: engineVersion,
-                    },
-                    ideVersion: {
-                        lifecycle: backend.detectVersionLifecycle(engineVersion),
-                        value: engineVersion,
-                    },
+                    engineVersion: version,
+                    ideVersion: version,
                     jsonAddress: null,
                     binaryAddress: null,
                     organizationId: '',
@@ -255,22 +252,20 @@ export class LocalBackend extends backend.Backend {
             }
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
-            const engineVersion = project?.engineVersion
+            const version =
+                project?.engineVersion == null
+                    ? null
+                    : {
+                          lifecycle: backend.detectVersionLifecycle(project.engineVersion),
+                          value: project.engineVersion,
+                      }
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
-            } else if (engineVersion == null) {
-                throw new Error(`The project '${project.name}' does not have an engine version.`)
             } else {
                 return {
                     ami: null,
-                    engineVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
-                        value: engineVersion,
-                    },
-                    ideVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
-                        value: engineVersion,
-                    },
+                    engineVersion: version,
+                    ideVersion: version,
                     name: project.name,
                     organizationId: '',
                     projectId,
@@ -302,7 +297,7 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
-    /** Do nothing. This function should never need to be called. */
+    /** Return a list of engine versions. */
     override async listVersions(params: backend.ListVersionsRequestParams) {
         const engineVersions = await this.projectManager.listAvailableEngineVersions()
         const engineVersionToVersion = (
@@ -318,7 +313,7 @@ export class LocalBackend extends backend.Backend {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             version_type: params.versionType,
         })
-        return engineVersions.map(engineVersionToVersion)
+        return engineVersions.versions.map(engineVersionToVersion)
     }
 
     // === Endpoints that intentionally do not work on the Local Backend ===

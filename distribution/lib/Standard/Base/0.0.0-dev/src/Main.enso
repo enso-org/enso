@@ -181,7 +181,6 @@ from project.Data.Numbers export Float, Integer, Number
 from project.Data.Range.Extensions export all
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
 from project.Data.Text.Extensions export all
-from project.Data.Time.Conversions export all
 from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.Function export all
 from project.Meta.Enso_Project export enso_project

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { codeEditorBindings, graphBindings, nodeBindings } from '@/bindings'
+import { codeEditorBindings, graphBindings, nodeSelectionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
@@ -159,6 +159,7 @@ const graphBindingsHandler = graphBindings.handler({
     }
   },
   newNode() {
+    if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null) {
       graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
     }
@@ -174,7 +175,7 @@ const codeEditorHandler = codeEditorBindings.handler({
   },
 })
 
-const nodeSelectionHandler = nodeBindings.handler({
+const nodeSelectionHandler = nodeSelectionBindings.handler({
   deleteSelected() {
     graphStore.transact(() => {
       for (const node of selectedNodes.value) {
@@ -207,7 +208,7 @@ const nodeSelectionHandler = nodeBindings.handler({
   },
 })
 
-const mouseHandler = nodeBindings.handler({
+const mouseHandler = nodeSelectionBindings.handler({
   replace() {
     selectedNodes.value = new Set(intersectingNodes.value)
   },
@@ -371,13 +372,5 @@ svg {
   left: 0;
   width: 0;
   height: 0;
-}
-
-.circle {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 5px;
-  background-color: purple;
 }
 </style>

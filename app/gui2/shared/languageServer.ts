@@ -250,7 +250,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
     expressionId: ExpressionId,
     visualizationConfig: VisualizationConfiguration,
   ): Promise<void> {
-    return this.request('executionContext/interrupt', {
+    return this.request('executionContext/executeExpression', {
       visualizationId,
       expressionId,
       visualizationConfig,
@@ -297,6 +297,11 @@ export class LanguageServer extends ObservableV2<Notifications> {
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#searchgetsuggestionsdatabase) */
   getSuggestionsDatabase(): Promise<response.GetSuggestionsDatabase> {
     return this.request('search/getSuggestionsDatabase', {})
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#runtimegetcomponentgroups) */
+  getComponentGroups(): Promise<response.GetComponentGroups> {
+    return this.request('runtime/getComponentGroups', {})
   }
 
   dispose() {

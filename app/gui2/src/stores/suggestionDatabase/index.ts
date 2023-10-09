@@ -69,21 +69,22 @@ class Synchronizer {
         }
       })
     })
+    lsRpc.once('executionContext/executionComplete', async () => {
+      const groups = await lsRpc.getComponentGroups()
+      this.groups.value = groups.componentGroups.map(
+        (group): Group => ({
+          name: group.name,
+          ...(group.color ? { color: group.color } : {}),
+          project: group.library as QualifiedName,
+        }),
+      )
+    })
   }
 }
 
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = reactive(new SuggestionDb())
-  const standardBase = 'Standard.Base' as QualifiedName
-  const groups = ref<Group[]>([
-    { color: '#4D9A29', name: 'Input', project: standardBase },
-    { color: '#B37923', name: 'Web', project: standardBase },
-    { color: '#9735B9', name: 'Parse', project: standardBase },
-    { color: '#4D9A29', name: 'Select', project: standardBase },
-    { color: '#B37923', name: 'Join', project: standardBase },
-    { color: '#9735B9', name: 'Transform', project: standardBase },
-    { color: '#4D9A29', name: 'Output', project: standardBase },
-  ])
+  const groups = ref<Group[]>([])
 
   const synchronizer = new Synchronizer(entries, groups)
   return { entries, groups, _synchronizer: synchronizer }
