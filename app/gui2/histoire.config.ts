@@ -60,12 +60,6 @@ export default defineConfig({
           require.resolve('ag-grid-enterprise'),
         'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm': require.resolve('sql-formatter'),
         builtins: 'src/util/visualizationBuiltins.ts',
-        'builtins/VisualizationContainer.vue': fileURLToPath(
-          new URL('./src/components/VisualizationContainer.vue', import.meta.url),
-        ),
-        'builtins/useVisualizationConfig.ts': fileURLToPath(
-          new URL('./src/providers/useVisualizationConfig.ts', import.meta.url),
-        ),
         './icons/show_all.svg': 'src/assets/icons/show_all.svg',
         './icons/find.svg': 'src/assets/icons/find.svg',
         './icons/geo_map_distance.svg': 'src/assets/icons/geo_map_distance.svg',
@@ -77,8 +71,12 @@ export default defineConfig({
           'public/visualizations/ScatterplotVisualization.vue',
         '../public/visualizations/GeoMapVisualization.vue':
           'public/visualizations/GeoMapVisualization.vue',
-        '@/stores/project': 'stories/mockProjectStore.ts',
-        '@/stores/suggestionDatabase': 'stories/mockSuggestionDatabaseStore.ts',
+        '@/stores/project': fileURLToPath(
+          new URL('./stories/mockProjectStore.ts', import.meta.url),
+        ),
+        '@/stores/suggestionDatabase': fileURLToPath(
+          new URL('./stories/mockSuggestionDatabaseStore.ts', import.meta.url),
+        ),
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
