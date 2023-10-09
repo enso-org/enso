@@ -57,10 +57,6 @@ export const Color = newtype.newtypeConstructor<Color>()
 export type TagId = newtype.Newtype<string, 'TagId'>
 export const TagId = newtype.newtypeConstructor<TagId>()
 
-/** Unique identifier for an asset label. */
-export type TagAssetAssociationId = newtype.Newtype<string, 'TagAssetAssociationId'>
-export const TagAssetAssociationId = newtype.newtypeConstructor<TagAssetAssociationId>()
-
 /** A URL. */
 export type Address = newtype.Newtype<string, 'Address'>
 export const Address = newtype.newtypeConstructor<Address>()
@@ -767,7 +763,7 @@ export abstract class Backend {
         title: string | null
     ): Promise<void>
     /** Delete a label. */
-    abstract deleteTag(tagId: TagAssetAssociationId): Promise<void>
+    abstract deleteTag(tagId: TagId): Promise<void>
     /** Return a list of backend or IDE versions. */
     abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

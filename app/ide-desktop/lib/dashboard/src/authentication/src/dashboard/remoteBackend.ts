@@ -144,7 +144,7 @@ function associateTagPath(assetId: backendModule.AssetId) {
     return `asset/${assetId}/labels`
 }
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
-function deleteTagPath(tagId: backendModule.TagAssetAssociationId) {
+function deleteTagPath(tagId: backendModule.TagId) {
     return `tags/${tagId}`
 }
 
@@ -733,7 +733,7 @@ export class RemoteBackend extends backendModule.Backend {
     /** Delete a label.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    override async deleteTag(tagId: backendModule.TagAssetAssociationId): Promise<void> {
+    override async deleteTag(tagId: backendModule.TagId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not delete label with ID '${tagId}'.`)
