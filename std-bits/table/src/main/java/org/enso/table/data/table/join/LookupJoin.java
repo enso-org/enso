@@ -145,7 +145,7 @@ public class LookupJoin {
   private int findLookupRow(int baseRowIx) {
     UnorderedMultiValueKey key = makeTableRowKey(baseRowIx);
     List<Integer> lookupRowIndices = lookupIndex.get(key);
-    if (lookupRowIndices == null || lookupRowIndices.isEmpty()) {
+    if (lookupRowIndices == null) {
       if (allowUnmatchedRows) {
         return Index.NOT_FOUND;
       } else {
@@ -154,7 +154,7 @@ public class LookupJoin {
       }
     }
 
-
+    assert !lookupRowIndices.isEmpty() : "No Index group should be empty.";
     assert lookupRowIndices.size() == 1 : "This should have been checked in verifyLookupUniqueness()";
     return lookupRowIndices.get(0);
   }
