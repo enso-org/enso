@@ -237,12 +237,12 @@ class ApplicationSpec
       }
 
       withClue("show similar commands if available") {
-        runErrors("cmd1") should (include(
+        runErrors("cmd1").replace("\r\n", "\n") should (include(
           "`cmd1` is not a valid command."
         ) and include(
           """The most similar commands are
             |    cmd
-            |""".stripMargin
+            |""".replace("\r\n", "\n").stripMargin
         ))
       }
 
@@ -288,7 +288,7 @@ class ApplicationSpec
 
       val cmdOutput = captureOutput {
         assert(app.run(Seq("cmd", "--help")).isRight)
-      }
+      }.replace("\r\n", "\n")
       val cmdHelp =
         """Cmd.
           |Usage: app cmd sub1 [options] [--inner-flag]
@@ -300,7 +300,7 @@ class ApplicationSpec
           |    [--inner-flag]    Inner.
           |    [--toplevel-flag] Top.
           |    [-h | --help]     Print this help message.
-          |""".stripMargin
+          |""".replace("\r\n", "\n").stripMargin
       cmdOutput shouldEqual cmdHelp
 
       val topOutput = captureOutput {
