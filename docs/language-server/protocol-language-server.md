@@ -2508,7 +2508,7 @@ interface VCSStatusResult {
   lastSave: {
     commitId: string;
     message: string;
-  }
+  };
 }
 ```
 
@@ -2554,7 +2554,7 @@ the operation.
 ```typescript
 interface VCSRestoreParameters {
   root: Path;
-  commitId?: string
+  commitId?: string;
 }
 ```
 
@@ -2595,7 +2595,7 @@ Enso's version control system, the operation must fail.
 ```typescript
 interface VCSListParameters {
   root: Path;
-  limit?: number
+  limit?: number;
 }
 ```
 
@@ -2607,8 +2607,8 @@ interface VCSListResult {
     {
       commitId: string;
       message: string;
-    }
-  ]
+    },
+  ];
 }
 ```
 
@@ -2955,8 +2955,7 @@ project in situations where it does not have a project manager to connect to.
 #### Parameters
 
 ```typescript
-interface WorkspaceProjectInfoParameters {
-}
+interface WorkspaceProjectInfoParameters {}
 ```
 
 #### Result
@@ -2996,8 +2995,7 @@ health of the Language Server.
 #### Parameters
 
 ```typescript
-interface HeartbeatPingParameters {
-}
+interface HeartbeatPingParameters {}
 ```
 
 #### Result
@@ -3024,8 +3022,7 @@ module has been fully initialized.
 #### Parameters
 
 ```typescript
-interface HeartbeatInitParameters {
-}
+interface HeartbeatInitParameters {}
 ```
 
 #### Result
@@ -3408,7 +3405,7 @@ exists.
 
 ```typescript
 interface ExecutionContextCreateParameters {
-  contextId?: ContextId
+  contextId?: ContextId;
 }
 ```
 
@@ -3577,7 +3574,7 @@ interface ExecutionContextRecomputeParameters {
   /** The expressions that will be invalidated before the execution. */
   invalidatedExpressions?: "all" | ExpressionId[];
   /** The execution environment that will be used in the execution. */
-  executionEnvironment?: ExecutionEnvironment
+  executionEnvironment?: ExecutionEnvironment;
 }
 ```
 
@@ -4170,8 +4167,7 @@ notification.
 #### Parameters
 
 ```typescript
-interface SearchGetSuggestionsDatabaseParameters {
-}
+interface SearchGetSuggestionsDatabaseParameters {}
 ```
 
 #### Result
@@ -4205,8 +4201,7 @@ version.
 #### Parameters
 
 ```typescript
-interface SearchInvalidateSuggestionsDatabaseParameters {
-}
+interface SearchInvalidateSuggestionsDatabaseParameters {}
 ```
 
 #### Result
@@ -4233,8 +4228,7 @@ database.
 #### Parameters
 
 ```typescript
-interface SearchGetSuggestionsDatabaseVersionParameters {
-}
+interface SearchGetSuggestionsDatabaseVersionParameters {}
 ```
 
 #### Result
@@ -4362,8 +4356,7 @@ client about new output data by emitting `io/standardOutputAppended` messages.
 #### Parameters
 
 ```typescript
-interface IORedirectStandardOutputParameters {
-}
+interface IORedirectStandardOutputParameters {}
 ```
 
 #### Result
@@ -4388,8 +4381,7 @@ This message allows a client to suppress the redirection of the standard output.
 #### Parameters
 
 ```typescript
-interface IOSuppressStandardOutputParameters {
-}
+interface IOSuppressStandardOutputParameters {}
 ```
 
 #### Result
@@ -4434,8 +4426,7 @@ client about new output data by emitting `io/standardErrorAppended` messages.
 #### Parameters
 
 ```typescript
-interface IORedirectStandardErrorParameters {
-}
+interface IORedirectStandardErrorParameters {}
 ```
 
 #### Result
@@ -4460,8 +4451,7 @@ This message allows a client to suppress the redirection of the standard error.
 #### Parameters
 
 ```typescript
-interface IOSuppressStandardErrorParameters {
-}
+interface IOSuppressStandardErrorParameters {}
 ```
 
 #### Result
@@ -4614,16 +4604,15 @@ will be extended.
 #### Parameters
 
 ```typescript
-interface EditionsGetProjectSettingsParameters {
-}
+interface EditionsGetProjectSettingsParameters {}
 ```
 
 #### Result
 
 ```typescript
 interface EditionsGetProjectSettingsResult {
-    parentEdition?: string;
-    preferLocalLibraries: boolean;
+  parentEdition?: string;
+  preferLocalLibraries: boolean;
 }
 ```
 
@@ -4658,7 +4647,7 @@ interface EditionsSetProjectParentEditionParameters {
 
 ```typescript
 interface EditionsSetProjectParentEditionResult {
-    needsRestart?: boolean;
+  needsRestart?: boolean;
 }
 ```
 
@@ -4697,7 +4686,7 @@ interface EditionsSetProjectLocalLibrariesPreferenceParameters {
 
 ```typescript
 interface EditionsSetProjectLocalLibrariesPreferenceResult {
-    needsRestart?: boolean;
+  needsRestart?: boolean;
 }
 ```
 
@@ -4775,8 +4764,7 @@ Lists all local libraries available in the system.
 #### Parameters
 
 ```typescript
-interface LibraryListLocalParameters {
-}
+interface LibraryListLocalParameters {}
 ```
 
 #### Result
@@ -5068,8 +5056,7 @@ the response may be empty or not contain all available components.
 #### Parameters
 
 ```typescript
-interface RuntimeGetComponentGroupsParameters {
-}
+interface RuntimeGetComponentGroupsParameters {}
 ```
 
 #### Result
@@ -5409,7 +5396,8 @@ Signals that requested capability is not acquired.
 
 ### `SessionNotInitialisedError`
 
-Signals that the request cannot be proccessed, because the session is not initialized.
+Signals that the request cannot be proccessed, because the session is not
+initialized.
 
 ```typescript
 "error" : {
