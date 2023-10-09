@@ -1,29 +1,46 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useDocumentEvent } from '../util/events'
+import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
+import { onMounted, ref } from 'vue'
 
-const props = defineProps<{ types: string[] }>()
-const emit = defineEmits<{ hide: []; 'update:type': [type: string] }>()
+const props = defineProps<{
+  types: VisualizationIdentifier[]
+  modelValue: VisualizationIdentifier
+}>()
+const emit = defineEmits<{ hide: []; 'update:modelValue': [type: VisualizationIdentifier] }>()
 
 const rootNode = ref<HTMLElement>()
 
-useDocumentEvent('pointerdown', (event) => {
-  if (event.target instanceof Node && rootNode.value?.contains(event.target)) {
-    return
+function visIdLabel(id: VisualizationIdentifier) {
+  switch (id.module.kind) {
+    case 'Builtin':
+      return id.name
+    case 'Library':
+      return `${id.name} (from library ${id.module.name})`
+    case 'CurrentProject':
+      return `${id.name} (from project)`
   }
-  emit('hide')
+}
+
+function visIdKey(id: VisualizationIdentifier) {
+  const kindKey = id.module.kind === 'Library' ? `Library::${id.module.name}` : id.module.kind
+  return `${kindKey}::${id.name}`
+}
+
+onMounted(() => {
+  setTimeout(() => rootNode.value?.focus(), 0)
 })
 </script>
 
 <template>
-  <div ref="rootNode" class="VisualizationSelector">
+  <div ref="rootNode" :tabindex="-1" class="VisualizationSelector" @blur="emit('hide')">
     <div class="background"></div>
     <ul>
       <li
         v-for="type_ in props.types"
-        :key="type_"
-        @click="emit('update:type', type_)"
-        v-text="type_"
+        :key="visIdKey(type_)"
+        :class="{ selected: visIdentifierEquals(props.modelValue, type_) }"
+        @pointerdown.stop="emit('update:modelValue', type_)"
+        v-text="visIdLabel(type_)"
       ></li>
     </ul>
   </div>
@@ -66,6 +83,10 @@ li {
   padding: 0 8px;
   border-radius: 12px;
   white-space: nowrap;
+
+  &.selected {
+    background: var(--color-menu-entry-selected-bg);
+  }
 
   &:hover {
     background: var(--color-menu-entry-hover-bg);

@@ -1,14 +1,41 @@
 import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider } from '@/util/crdt'
-import type { Opt } from '@/util/opt'
+import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
+import { isSome, type Opt } from '@/util/opt'
+import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
+import * as array from 'lib0/array'
+import * as object from 'lib0/object'
+import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
+import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
-import type { ContentRoot, ContextId, MethodPointer } from 'shared/languageServerTypes'
-import { DistributedProject, type Uuid } from 'shared/yjsModel'
-import { computed, markRaw, ref, watchEffect } from 'vue'
+import type {
+  ContentRoot,
+  ContextId,
+  Diagnostic,
+  ExecutionEnvironment,
+  ExplicitCall,
+  ExpressionId,
+  ExpressionUpdate,
+  StackItem,
+  VisualizationConfiguration,
+} from 'shared/languageServerTypes'
+import { WebsocketClient } from 'shared/websocket'
+import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
+import {
+  computed,
+  markRaw,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+  type ShallowRef,
+  type WatchSource,
+} from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
@@ -31,17 +58,83 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
   throw new Error('Incomplete engine configuration')
 }
 
-async function initializeLsRpcConnection(urls: LsUrls): Promise<{
+async function initializeLsRpcConnection(
+  clientId: Uuid,
+  url: string,
+): Promise<{
   connection: LanguageServer
   contentRoots: ContentRoot[]
 }> {
-  const transport = new WebSocketTransport(urls.rpcUrl)
+  const transport = new WebSocketTransport(url)
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
-  const clientId = random.uuidv4() as Uuid
   const connection = new LanguageServer(client)
-  const contentRoots = (await connection.initProtocolConnection(clientId)).contentRoots
+
+  const initialization = await lsRpcWithRetries(() => connection.initProtocolConnection(clientId), {
+    onBeforeRetry: (error, _, delay) => {
+      console.warn(
+        `Failed to initialize language server connection, retrying after ${delay}ms...\n`,
+        error,
+      )
+    },
+  })
+  const contentRoots = initialization.contentRoots
   return { connection, contentRoots }
+}
+
+async function initializeDataConnection(clientId: Uuid, url: string) {
+  const client = new WebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
+  const connection = new DataServer(client)
+  await connection.initialize(clientId)
+  return connection
+}
+
+export type NodeVisualizationConfiguration = Omit<
+  VisualizationConfiguration,
+  'executionContextId'
+> & {
+  expressionId: ExprId
+}
+
+interface ExecutionContextState {
+  lsRpc: LanguageServer
+  created: boolean
+  visualizations: Map<Uuid, NodeVisualizationConfiguration>
+  stack: StackItem[]
+}
+
+function visualizationConfigEqual(
+  a: NodeVisualizationConfiguration,
+  b: NodeVisualizationConfiguration,
+): boolean {
+  return (
+    a === b ||
+    (a.visualizationModule === b.visualizationModule &&
+      (a.positionalArgumentsExpressions === b.positionalArgumentsExpressions ||
+        (Array.isArray(a.positionalArgumentsExpressions) &&
+          Array.isArray(b.positionalArgumentsExpressions) &&
+          array.equalFlat(a.positionalArgumentsExpressions, b.positionalArgumentsExpressions))) &&
+      (a.expression === b.expression ||
+        (typeof a.expression === 'object' &&
+          typeof b.expression === 'object' &&
+          object.equalFlat(a.expression, b.expression))))
+  )
+}
+
+type EntryPoint = Omit<ExplicitCall, 'type'>
+
+type ExecutionContextNotification = {
+  'expressionUpdates'(updates: ExpressionUpdate[]): void
+  'visualizationEvaluationFailed'(
+    visualizationId: Uuid,
+    expressionId: ExpressionId,
+    message: string,
+    diagnostic: Diagnostic | undefined,
+  ): void
+  'executionFailed'(message: string): void
+  'executionComplete'(): void
+  'executionStatus'(diagnostics: Diagnostic[]): void
+  'visualizationsConfigured'(configs: Set<Uuid>): void
 }
 
 /**
@@ -53,33 +146,245 @@ async function initializeLsRpcConnection(urls: LsUrls): Promise<{
  * It hides the asynchronous nature of the language server. Each call is scheduled and
  * run only when the previous call is done.
  */
-export class ExecutionContext {
-  state: Promise<{ lsRpc: LanguageServer; id: ContextId }>
+export class ExecutionContext extends ObservableV2<ExecutionContextNotification> {
+  id: ContextId = random.uuidv4() as ContextId
+  queue: AsyncQueue<ExecutionContextState>
+  taskRunning = false
+  visSyncScheduled = false
+  visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
+  abortCtl = new AbortController()
 
-  constructor(
-    lsRpc: Promise<LanguageServer>,
-    call: {
-      methodPointer: MethodPointer
-      thisArgumentExpression?: string
-      positionalArgumentsExpressions?: string[]
-    },
-  ) {
-    this.state = lsRpc.then(async (lsRpc) => {
-      const { contextId } = await lsRpc.createExecutionContext()
-      await lsRpc.pushExecutionContextItem(contextId, {
-        type: 'ExplicitCall',
-        positionalArgumentsExpressions: call.positionalArgumentsExpressions ?? [],
-        ...call,
+  constructor(lsRpc: Promise<LanguageServer>, entryPoint: EntryPoint) {
+    super()
+
+    this.abortCtl.signal.addEventListener('abort', () => {
+      this.queue.clear()
+    })
+
+    this.queue = new AsyncQueue(
+      lsRpc.then((lsRpc) => ({
+        lsRpc,
+        created: false,
+        visualizations: new Map(),
+        stack: [],
+      })),
+    )
+    this.registerHandlers()
+    this.create()
+    this.pushItem({ type: 'ExplicitCall', ...entryPoint })
+    this.recompute()
+  }
+
+  private withBackoff<T>(f: () => Promise<T>, message: string): Promise<T> {
+    return lsRpcWithRetries(f, {
+      onBeforeRetry: (error, _, delay) => {
+        if (this.abortCtl.signal.aborted) return false
+        console.warn(
+          `${message}: ${error.payload.cause.message}. Retrying after ${delay}ms...\n`,
+          error,
+        )
+      },
+    })
+  }
+
+  private syncVisualizations() {
+    if (this.visSyncScheduled) return
+    this.visSyncScheduled = true
+    this.queue.pushTask(async (state) => {
+      this.visSyncScheduled = false
+      if (!state.created) return state
+      const promises: Promise<void>[] = []
+
+      const attach = (id: Uuid, config: NodeVisualizationConfiguration) => {
+        return this.withBackoff(
+          () =>
+            state.lsRpc.attachVisualization(id, config.expressionId, {
+              executionContextId: this.id,
+              expression: config.expression,
+              visualizationModule: config.visualizationModule,
+              ...(config.positionalArgumentsExpressions
+                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+                : {}),
+            }),
+          'Failed to attach visualization',
+        ).then(() => {
+          state.visualizations.set(id, config)
+        })
+      }
+
+      const modify = (id: Uuid, config: NodeVisualizationConfiguration) => {
+        return this.withBackoff(
+          () =>
+            state.lsRpc.modifyVisualization(id, {
+              executionContextId: this.id,
+              expression: config.expression,
+              visualizationModule: config.visualizationModule,
+              ...(config.positionalArgumentsExpressions
+                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+                : {}),
+            }),
+          'Failed to modify visualization',
+        ).then(() => {
+          state.visualizations.set(id, config)
+        })
+      }
+
+      const detach = (id: Uuid, config: NodeVisualizationConfiguration) => {
+        return this.withBackoff(
+          () => state.lsRpc.detachVisualization(id, config.expressionId, this.id),
+          'Failed to detach visualization',
+        ).then(() => {
+          state.visualizations.delete(id)
+        })
+      }
+
+      // Attach new and update existing visualizations.
+      for (const [id, config] of this.visualizationConfigs) {
+        const previousConfig = state.visualizations.get(id)
+        if (previousConfig == null) {
+          promises.push(attach(id, config))
+        } else if (!visualizationConfigEqual(previousConfig, config)) {
+          if (previousConfig.expressionId === config.expressionId) {
+            promises.push(modify(id, config))
+          } else {
+            promises.push(detach(id, previousConfig).then(() => attach(id, config)))
+          }
+        }
+      }
+
+      // Detach removed visualizations.
+      for (const [id, config] of state.visualizations) {
+        if (this.visualizationConfigs.get(id) == undefined) {
+          promises.push(detach(id, config))
+        }
+      }
+      const settled = await Promise.allSettled(promises)
+
+      // Emit errors for failed requests.
+      const errors = settled
+        .map((result) => (result.status === 'rejected' ? result.reason : null))
+        .filter(isSome)
+      if (errors.length > 0) {
+        console.error('Failed to synchronize visualizations:', errors)
+      }
+
+      this.emit('visualizationsConfigured', [new Set(this.visualizationConfigs.keys())])
+
+      // State object was updated in-place in each successful promise.
+      return state
+    })
+  }
+
+  private pushItem(item: StackItem) {
+    this.queue.pushTask(async (state) => {
+      if (!state.created) return state
+      await this.withBackoff(
+        () => state.lsRpc.pushExecutionContextItem(this.id, item),
+        'Failed to push item to execution context stack',
+      )
+      state.stack.push(item)
+      return state
+    })
+  }
+
+  push(expressionId: ExpressionId) {
+    this.pushItem({ type: 'LocalCall', expressionId })
+  }
+
+  pop() {
+    this.queue.pushTask(async (state) => {
+      if (!state.created) return state
+      if (state.stack.length === 0) {
+        throw new Error('Cannot pop from empty execution context stack')
+      }
+      await this.withBackoff(
+        () => state.lsRpc.popExecutionContextItem(this.id),
+        'Failed to pop item from execution context stack',
+      )
+      state.stack.pop()
+      return state
+    })
+  }
+
+  async setVisualization(id: Uuid, configuration: Opt<NodeVisualizationConfiguration>) {
+    if (configuration == null) {
+      this.visualizationConfigs.delete(id)
+    } else {
+      this.visualizationConfigs.set(id, configuration)
+    }
+    this.syncVisualizations()
+  }
+
+  private create() {
+    this.queue.pushTask(async (state) => {
+      if (state.created) return state
+      return this.withBackoff(async () => {
+        const result = await state.lsRpc.createExecutionContext(this.id)
+        if (result.contextId !== this.id) {
+          throw new Error('Unexpected Context ID returned by the language server.')
+        }
+        return { ...state, created: true }
+      }, 'Failed to create execution context')
+    })
+    this.abortCtl.signal.addEventListener('abort', () => {
+      this.queue.pushTask(async (state) => {
+        if (!state.created) return state
+        await state.lsRpc.destroyExecutionContext(this.id)
+        return { ...state, created: false }
       })
-      return { lsRpc, id: contextId }
+    })
+  }
+
+  private registerHandlers() {
+    this.queue.pushTask(async (state) => {
+      const expressionUpdates = state.lsRpc.on('executionContext/expressionUpdates', (event) => {
+        if (event.contextId == this.id) this.emit('expressionUpdates', [event.updates])
+      })
+      const executionFailed = state.lsRpc.on('executionContext/executionFailed', (event) => {
+        if (event.contextId == this.id) this.emit('executionFailed', [event.message])
+      })
+      const executionComplete = state.lsRpc.on('executionContext/executionComplete', (event) => {
+        if (event.contextId == this.id) this.emit('executionComplete', [])
+      })
+      const executionStatus = state.lsRpc.on('executionContext/executionStatus', (event) => {
+        if (event.contextId == this.id) this.emit('executionStatus', [event.diagnostics])
+      })
+      const visualizationEvaluationFailed = state.lsRpc.on(
+        'executionContext/visualizationEvaluationFailed',
+        (event) => {
+          if (event.contextId == this.id)
+            this.emit('visualizationEvaluationFailed', [
+              event.visualizationId,
+              event.expressionId,
+              event.message,
+              event.diagnostic,
+            ])
+        },
+      )
+      this.abortCtl.signal.addEventListener('abort', () => {
+        state.lsRpc.off('executionContext/expressionUpdates', expressionUpdates)
+        state.lsRpc.off('executionContext/executionFailed', executionFailed)
+        state.lsRpc.off('executionContext/executionComplete', executionComplete)
+        state.lsRpc.off('executionContext/executionStatus', executionStatus)
+        state.lsRpc.off(
+          'executionContext/visualizationEvaluationFailed',
+          visualizationEvaluationFailed,
+        )
+      })
+      return state
+    })
+  }
+
+  recompute(expressionIds: 'all' | ExprId[] = 'all', executionEnvironment?: ExecutionEnvironment) {
+    this.queue.pushTask(async (state) => {
+      if (!state.created) return state
+      await state.lsRpc.recomputeExecutionContext(this.id, expressionIds, executionEnvironment)
+      return state
     })
   }
 
   destroy() {
-    this.state = this.state.then(({ lsRpc, id }) => {
-      lsRpc.destroyExecutionContext(id)
-      return { lsRpc, id }
-    })
+    this.abortCtl.abort()
   }
 }
 
@@ -98,12 +403,12 @@ export const useProjectStore = defineStore('project', () => {
   const projectName = config.value.startup?.project
   if (projectName == null) throw new Error('Missing project name.')
 
+  const clientId = random.uuidv4() as Uuid
   const lsUrls = resolveLsUrl(config.value)
-  const initializedConnection = initializeLsRpcConnection(lsUrls)
+  const initializedConnection = initializeLsRpcConnection(clientId, lsUrls.rpcUrl)
   const lsRpcConnection = initializedConnection.then(({ connection }) => connection)
   const contentRoots = initializedConnection.then(({ contentRoots }) => contentRoots)
-
-  const undoManager = new Y.UndoManager([], { doc })
+  const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl)
 
   const name = computed(() => config.value.startup?.project)
   const namespace = computed(() => config.value.engine?.namespace)
@@ -142,23 +447,14 @@ export const useProjectStore = defineStore('project', () => {
     if (guid == null) return null
     const moduleName = projectModel.findModuleByDocId(guid)
     if (moduleName == null) return null
-    return await projectModel.openModule(moduleName)
+    const mod = await projectModel.openModule(moduleName)
+    mod?.undoManager.addTrackedOrigin('local')
+    return mod
   })
 
-  watchEffect((onCleanup) => {
-    const mod = module.value
-    if (mod == null) return
-    const scope: typeof undoManager.scope = [mod.doc.contents, mod.doc.idMap]
-    undoManager.scope.push(...scope)
-    onCleanup(() => {
-      undoManager.scope = undoManager.scope.filter((s) => !scope.includes(s))
-    })
-  })
-
-  async function createExecutionContextForMain(): Promise<Opt<ExecutionContext>> {
+  function createExecutionContextForMain(): ExecutionContext {
     if (name.value == null) {
-      console.error('Cannot create execution context. Unknown project name.')
-      return
+      throw new Error('Cannot create execution context. Unknown project name.')
     }
     if (namespace.value == null) {
       console.warn(
@@ -167,16 +463,43 @@ export const useProjectStore = defineStore('project', () => {
     }
     const projectName = `${namespace.value ?? 'local'}.${name.value}`
     const mainModule = `${projectName}.Main`
-    const projectRoot = (await contentRoots).find((root) => root.type === 'Project')
-    if (projectRoot == null) {
-      console.error(
-        'Cannot create execution context. Protocol connection initialization did not return a project root.',
-      )
-      return
-    }
+    const entryPoint = { module: mainModule, definedOnType: mainModule, name: 'main' }
     return new ExecutionContext(lsRpcConnection, {
-      methodPointer: { module: mainModule, definedOnType: mainModule, name: 'main' },
+      methodPointer: entryPoint,
+      positionalArgumentsExpressions: [],
     })
+  }
+
+  const executionContext = createExecutionContextForMain()
+  const computedValueRegistry = new ComputedValueRegistry(executionContext)
+  const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
+
+  function useVisualizationData(
+    configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
+  ): ShallowRef<{} | undefined> {
+    const id = random.uuidv4() as Uuid
+
+    watch(
+      configuration,
+      async (config, _, onCleanup) => {
+        executionContext.setVisualization(id, config)
+        onCleanup(() => {
+          executionContext.setVisualization(id, null)
+        })
+      },
+      { immediate: true },
+    )
+
+    return shallowRef(
+      computed(() => {
+        const json = visualizationDataRegistry.getRawData(id)
+        return json != null ? JSON.parse(json) : undefined
+      }),
+    )
+  }
+
+  function stopCapturingUndo() {
+    module.value?.undoManager.stopCapturing()
   }
 
   return {
@@ -184,11 +507,14 @@ export const useProjectStore = defineStore('project', () => {
       observedFileName.value = name
     },
     name: projectName,
-    createExecutionContextForMain,
+    executionContext,
     module,
     contentRoots,
-    undoManager,
     awareness,
+    computedValueRegistry,
     lsRpcConnection: markRaw(lsRpcConnection),
+    dataConnection: markRaw(dataConnection),
+    useVisualizationData,
+    stopCapturingUndo,
   }
 })

@@ -11,10 +11,24 @@ import {
   type Ref,
   type WatchSource,
 } from 'vue'
+import type { Opt } from './opt'
 
-/** Whether an element currently has keyboard focus. */
+/** Whether any element currently has keyboard focus. */
 export function keyboardBusy() {
   return document.activeElement != document.body
+}
+
+/** Whether focused element is within given element's subtree. */
+export function focusIsIn(el: Element) {
+  return el.contains(document.activeElement)
+}
+
+/**
+ * Whether any element currently has keyboard focus, except for elements within given subtree.
+ * When `el` is `null` or `undefined`, the function behaves as `keyboardBusy()`.
+ */
+export function keyboardBusyExceptIn(el: Opt<Element>) {
+  return keyboardBusy() && (el == null || !focusIsIn(el))
 }
 
 /**

@@ -1,10 +1,15 @@
 <script lang="ts">
 import { defineKeybinds } from '@/util/shortcuts'
+
 export const name = 'Histogram'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
+export const defaultPreprocessor = [
+  'Standard.Visualization.Histogram',
+  'process_to_json_text',
+] as const
 
-const bindings = defineKeybinds('scatterplot-visualization', {
+const bindings = defineKeybinds('histogram-visualization', {
   zoomIn: ['Mod+Z'],
   showAll: ['Mod+A'],
 })
@@ -88,8 +93,8 @@ interface AxisConfiguration {
 }
 
 interface AxesConfiguration {
-  x: AxisConfiguration
-  y: AxisConfiguration
+  x: AxisConfiguration | undefined
+  y: AxisConfiguration | undefined
 }
 
 interface Bin {
@@ -100,8 +105,9 @@ interface Bin {
 </script>
 
 <script setup lang="ts">
+import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
+
 import * as d3 from 'd3'
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
@@ -130,9 +136,6 @@ const MID_BUTTON_CLICKED = 4
 const SCROLL_WHEEL = 0
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -155,7 +158,7 @@ const points = ref<number[]>([])
 const rawBins = ref<number[]>()
 const binCount = ref(DEFAULT_NUMBER_OF_BINS)
 const axis = ref(DEFAULT_AXES_CONFIGURATION)
-const rawFocus = ref<Focus>()
+const focus = ref<Focus>()
 const brushExtent = ref<d3.BrushSelection>()
 const zoomLevel = ref(1)
 const shouldAnimate = ref(false)
@@ -224,7 +227,7 @@ watchEffect(() => {
       axis.value = rawData.axis
     }
     if (rawData.focus != null) {
-      rawFocus.value = rawData.focus
+      focus.value = rawData.focus
     }
     if (rawData.bins != null) {
       binCount.value = Math.max(1, rawData.bins)
@@ -263,9 +266,9 @@ watchPostEffect(() => {
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
-const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x.label) / 2)
+const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x?.label) / 2)
 const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
-const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y.label) / 2)
+const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y?.label) / 2)
 
 let startX = 0
 let startY = 0
@@ -416,7 +419,7 @@ function zoomToSelected() {
   if (brushExtent.value == null) {
     return
   }
-  rawFocus.value = undefined
+  focus.value = undefined
   const xScale_ = xScale.value
   const startRaw = brushExtent.value[0]
   const endRaw = brushExtent.value[1]
@@ -468,7 +471,7 @@ const xExtents = computed<[min: number, max: number]>(() => {
 })
 
 watchEffect(() => {
-  const focus_ = rawFocus.value
+  const focus_ = focus.value
   if (focus_?.x != null && focus_.zoom != null) {
     let paddingX = extremesAndDeltas.value.dx / (2 * focus_.zoom)
     xDomain.value = [focus_.x - paddingX, focus_.x + paddingX]
@@ -495,14 +498,6 @@ function updateColorLegend(colorScale: d3.ScaleSequential<string>) {
     .attr('offset', (d) => d.offset)
     .attr('stop-color', (d) => d.color)
 }
-
-// =============
-// === Setup ===
-// =============
-
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
-})
 
 // ==============
 // === Update ===
@@ -566,7 +561,7 @@ watchPostEffect(() => {
 // ======================
 
 function showAll() {
-  rawFocus.value = undefined
+  focus.value = undefined
   zoomLevel.value = 1
   xDomain.value = originalXScale.value.domain()
   shouldAnimate.value = true
@@ -581,7 +576,7 @@ useEvent(document, 'scroll', endBrushing)
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
         <SvgIcon name="show_all" alt="Fit all" @click="showAll" />
@@ -616,20 +611,20 @@ useEvent(document, 'scroll', endBrushing)
           <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
           <g ref="yAxisNode" class="axis-y"></g>
           <text
-            v-if="axis.x.label"
+            v-if="axis.x?.label"
             class="label label-x"
             text-anchor="end"
             :x="xLabelLeft"
             :y="xLabelTop"
-            v-text="axis.x.label"
+            v-text="axis.x?.label"
           ></text>
           <text
-            v-if="axis.y.label"
+            v-if="axis.y?.label"
             class="label label-y"
             text-anchor="end"
             :x="yLabelLeft"
             :y="yLabelTop"
-            v-text="axis.y.label"
+            v-text="axis.y?.label"
           ></text>
           <g ref="plotNode" clip-path="url(#histogram-clip-path)"></g>
           <g ref="zoomNode" class="zoom">
