@@ -50,6 +50,7 @@ from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
+from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
 
 polyglot java import java.util.UUID
@@ -60,7 +61,6 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
-polyglot java import org.enso.table.data.table.join.LookupColumnDescription
 polyglot java import org.enso.table.data.table.join.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.error.TooManyColumnsException
@@ -1736,20 +1736,9 @@ type Table
     lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
-        java_descriptions = lookup_columns.map lookup_column-> case lookup_column of
-            Lookup_Column.Key_Column base_column _ ->
-                LookupColumnDescription.KeepOriginal.new base_column.java_column
-            Lookup_Column.Keep_Column base_column ->
-                LookupColumnDescription.KeepOriginal.new base_column.java_column
-            Lookup_Column.Replace_Column base_column lookup_column common_type ->
-                storage_type = Storage.from_value_type common_type Problem_Behavior.Ignore
-                LookupColumnDescription.MergeColumns.new base_column.java_column lookup_column.java_column storage_type
-            Lookup_Column.Add_Column lookup_column ->
-                LookupColumnDescription.AddNew.new lookup_column.java_column
-        is_key c = case c of
-            Lookup_Column.Key_Column _ _ -> True
-            _ -> False
-        keys = lookup_columns.filter is_key
+        java_descriptions = lookup_columns.map make_java_lookup_column_description
+
+        keys = lookup_columns.filter .is_key
         java_keys = keys.map key_column->
             Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
 

@@ -4,16 +4,32 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
 from project.Errors import Missing_Input_Columns, Unexpected_Extra_Columns, Floating_Point_Equality, No_Common_Type
 
+polyglot java import org.enso.table.data.table.join.LookupColumnDescription
+
 ## PRIVATE
 type Lookup_Settings
     ## PRIVATE
     Value (key_columns : Vector Text) (columns_to_update : Set Text) (columns_to_add : Vector Text)
 
+## PRIVATE
 type Lookup_Column
+    ## PRIVATE
     Key_Column base_column lookup_column
+
+    ## PRIVATE
     Keep_Column base_column
+
+    ## PRIVATE
     Replace_Column base_column lookup_column (common_type : Value_Type)
+
+    ## PRIVATE
     Add_Column lookup_column
+
+    ## PRIVATE
+    is_key : Boolean
+    is_key self = case self of
+        Lookup_Column.Key_Column _ _ -> True
+        _ -> False
 
 ## PRIVATE
    Checks if `key_columns` are present in both tables and returns settings
@@ -75,3 +91,15 @@ merge_columns base_column lookup_column allow_unmatched_rows =
            We do not need to reconcile types.
         False ->
             Lookup_Column.Add_Column lookup_column
+
+## PRIVATE
+make_java_lookup_column_description lookup_column = case lookup_column of
+    Lookup_Column.Key_Column base_column _ ->
+        LookupColumnDescription.KeepOriginal.new base_column.java_column
+    Lookup_Column.Keep_Column base_column ->
+        LookupColumnDescription.KeepOriginal.new base_column.java_column
+    Lookup_Column.Replace_Column base_column lookup_column common_type ->
+        storage_type = Storage.from_value_type common_type Problem_Behavior.Ignore
+        LookupColumnDescription.MergeColumns.new base_column.java_column lookup_column.java_column storage_type
+    Lookup_Column.Add_Column lookup_column ->
+        LookupColumnDescription.AddNew.new lookup_column.java_column
