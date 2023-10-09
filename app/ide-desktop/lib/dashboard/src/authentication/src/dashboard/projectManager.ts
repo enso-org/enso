@@ -104,6 +104,7 @@ export interface OpenProject {
     languageServerJsonAddress: IpWithSocket
     languageServerBinaryAddress: IpWithSocket
     projectName: ProjectName
+    projectNormalizedName: string
     projectNamespace: string
 }
 
