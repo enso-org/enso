@@ -250,7 +250,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
     expressionId: ExpressionId,
     visualizationConfig: VisualizationConfiguration,
   ): Promise<void> {
-    return this.request('executionContext/interrupt', {
+    return this.request('executionContext/executeExpression', {
       visualizationId,
       expressionId,
       visualizationConfig,

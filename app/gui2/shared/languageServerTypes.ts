@@ -96,6 +96,7 @@ export type ExpressionUpdatePayload = Value | DataflowError | Panic | Pending
  * Indicates that the expression was computed to a value.
  */
 export interface Value {
+  type: 'Value'
   /**
    * Information about attached warnings.
    */
@@ -111,6 +112,7 @@ export interface Value {
  * Indicates that the expression was computed to an error.
  */
 export interface DataflowError {
+  type: 'DataflowError'
   /**
    * The list of expressions leading to the root error.
    */
@@ -121,6 +123,7 @@ export interface DataflowError {
  * Indicates that the expression failed with the runtime exception.
  */
 export interface Panic {
+  type: 'Panic'
   /**
    * The error message.
    */
@@ -137,6 +140,7 @@ export interface Panic {
  * provides description and percentage (`0.0-1.0`) of completeness.
  */
 export interface Pending {
+  type: 'Pending'
   /** Optional message describing current operation. */
   message?: string
   /** Optional amount of already done work as a number between `0.0` to `1.0`. */

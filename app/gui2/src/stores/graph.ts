@@ -146,6 +146,7 @@ export const useGraphStore = defineStore('graph', () => {
   function nodeInserted(stmt: Statement, text: Y.Text, content: string, meta: Opt<NodeMetadata>) {
     const nodeId = stmt.expression.id
     const node: Node = {
+      outerExprId: stmt.id,
       content,
       binding: stmt.binding ?? '',
       rootSpan: stmt.expression,
@@ -172,6 +173,9 @@ export const useGraphStore = defineStore('graph', () => {
       identDefinitions.delete(node.binding)
       node.binding = stmt.binding ?? ''
       identDefinitions.set(node.binding, nodeId)
+    }
+    if (node.outerExprId !== stmt.id) {
+      node.outerExprId = stmt.id
     }
     if (node.rootSpan.id === stmt.expression.id) {
       patchSpan(node.rootSpan, stmt.expression)
@@ -270,7 +274,9 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function deleteNode(id: ExprId) {
-    proj.module?.deleteNode(id)
+    const node = nodes.get(id)
+    if (node == null) return
+    proj.module?.deleteExpression(node.outerExprId)
   }
 
   function setNodeContent(id: ExprId, content: string) {
@@ -359,6 +365,7 @@ function randomString() {
 }
 
 export interface Node {
+  outerExprId: ExprId
   content: string
   binding: string
   rootSpan: Span
