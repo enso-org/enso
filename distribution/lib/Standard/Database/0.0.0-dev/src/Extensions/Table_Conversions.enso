@@ -41,4 +41,6 @@ Table.expand_column self column fields=Nothing prefix=Nothing =
              headers = Examples.simple_table_json_headers
              Table.from_objects json headers
 Table.from_objects : Any -> Vector | Nothing -> Table ! Type_Error
+Table.from_objects value fields=Nothing =
+        _ = [value, fields]
         Error.throw (Unsupported_Database_Operation.Error "Table.from_objects is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")

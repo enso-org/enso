@@ -1,10 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
-
+from Standard.Table import Value_Type
 from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
+
+import Standard.Database.Data.Table.Table
+import Standard.Database.Extensions.Table_Conversions
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
@@ -550,13 +552,12 @@ spec setup =
 
     if setup.is_database then Test.group prefix+"Table.from_objects" <|
         Test.specify "should report unsupported" <|
-            t = table_builder [["X", [1, 2, 3]]]
-            t.from_objects . should_fail_with Unsupported_Database_Operation
+            Table.from_objects 12 . should_fail_with Unsupported_Database_Operation
 
     if setup.is_database then Test.group prefix+"Table.expand_column" <|
         Test.specify "should report unsupported" <|
-            t = table_builder [["X", [1, 2, 3]]]
-            t.expand_column . should_fail_with Unsupported_Database_Operation
+            table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" . should_fail_with Unsupported_Database_Operation
 
     if setup.is_database.not then Test.group prefix+"Table/Column auto value type" <|
         Test.specify "should allow to narrow down types of a Mixed column" <|
