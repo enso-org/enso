@@ -47,7 +47,7 @@ create_table_implementation connection table_name structure primary_key temporar
                            a previous dry run. `generate_dry_run_table_name`
                            will never return a name of a table that exists but
                            was created outside of a dry run.
-                        connection.drop_table table_name if_exists=True
+                        connection.drop_table effective_table_name if_exists=True
                     internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
                 if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
                     created_table = connection.base_connection.internal_allocate_dry_run_table created_table_name
