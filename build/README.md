@@ -9,11 +9,6 @@
   </a>
 </p>
 
-# [WIP] Enso CI Build Scripts
-
-The code under this directory is under ongoing intensive development. As such it
-has not been reviewed or cleaned up yet.
-
 ## General principles
 
 - Written in Rust.

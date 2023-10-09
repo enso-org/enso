@@ -144,6 +144,12 @@ pub enum Target {
     JavaGen(java_gen::Target),
     /// Check if the changelog has been updated. Requires CI environment.
     ChangelogCheck,
+    /// Modify the `Cargo.toml` of all WASM entry points to disable `wasm-opt`.
+    /// This is needed because `wasm-pack` does not support disabling `wasm-opt` using a
+    /// command-line flag.
+    DisableWasmOpt,
+    /// Remove all draft releases from GitHub.
+    RemoveDraftReleases,
 }
 
 /// Build, test and package Enso Engine.

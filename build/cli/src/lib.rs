@@ -3,6 +3,7 @@
 #![feature(once_cell)]
 #![feature(default_free_fn)]
 #![feature(future_join)]
+#![feature(associated_type_bounds)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -49,6 +50,7 @@ use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::Benchmarks;
 use enso_build::engine::Tests;
+use enso_build::paths::parent_cargo_toml;
 use enso_build::paths::TargetTriple;
 use enso_build::project;
 use enso_build::project::backend;
@@ -68,6 +70,7 @@ use enso_build::project::IsArtifact;
 use enso_build::project::IsTarget;
 use enso_build::project::IsWatchable;
 use enso_build::project::IsWatcher;
+use enso_build::repo::deduce_repository_path;
 use enso_build::source::BuildSource;
 use enso_build::source::BuildTargetJob;
 use enso_build::source::CiRunSource;
@@ -85,7 +88,9 @@ use ide_ci::cache::Cache;
 use ide_ci::define_env_var;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::github::setup_octocrab;
+use ide_ci::github::RepoRef;
 use ide_ci::global;
+use ide_ci::io::web::handle_error_response;
 use ide_ci::ok_ready_boxed;
 use ide_ci::programs::cargo;
 use ide_ci::programs::git;
@@ -105,6 +110,12 @@ fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> Stri
 define_env_var! {
     ENSO_BUILD_KIND, enso_build::version::Kind;
 }
+
+/// Path in the Cargo.toml file where the `wasm-opt` flag is stored.
+///
+/// This flag controls whether wasm-pack shall invoke wasm-opt on the generated wasm file.
+const WASM_OPT_PATH: [&str; 6] =
+    ["package", "metadata", "wasm-pack", "profile", "release", "wasm-opt"];
 
 /// The basic, common information available in this application.
 #[derive(Clone, Derivative)]
@@ -650,6 +661,54 @@ impl Processor {
     pub fn target<Target: Resolvable>(&self) -> Result<Target> {
         Target::prepare_target(self)
     }
+
+    /// Piece of code that will disable wasm-opt when added to Cargo.toml.
+    pub fn suffix_that_disables_wasm_opt(&self) -> String {
+        let without_last = WASM_OPT_PATH[..WASM_OPT_PATH.len() - 1].join(".");
+        let last = WASM_OPT_PATH.last().unwrap();
+        format!(
+            r#"
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[{without_last}]
+{last} = false"#
+        )
+    }
+
+    /// Check if the Rust source file under given path contains a WASM entry point.
+    pub fn contains_entry_point(&self, path: impl AsRef<Path>) -> Result<bool> {
+        Ok(ide_ci::fs::read_to_string(path)?.contains("#[entry_point"))
+    }
+
+    /// Retrieve item by repeatedly indexing.
+    pub fn traverse<'a>(
+        &'a self,
+        item: &'a toml::Value,
+        keys: impl IntoIterator<Item: AsRef<str>>,
+    ) -> Option<&toml::Value> {
+        keys.into_iter().try_fold(item, |item, key| item.get(key.as_ref()))
+    }
+
+    /// Check if the given (parsed) Cargo.toml has already disabled wasm-opt.
+    pub fn has_wasm_opt_disabled(&self, document: &toml::Value) -> bool {
+        let wasm_opt_entry = self.traverse(document, WASM_OPT_PATH);
+        wasm_opt_entry.and_then(toml::Value::as_bool).contains(&false)
+    }
+
+    /// Disable wasm-opt in the Cargo.toml file.
+    ///
+    /// Does nothing if wasm-opt is already disabled.
+    pub fn disable_wasm_opt_in_cargo_toml(&self, path: impl AsRef<Path>) -> Result {
+        assert!(path.as_ref().is_file());
+        assert_eq!(path.as_ref().file_name().unwrap(), "Cargo.toml");
+        let doc = toml::Value::from_str(&ide_ci::fs::read_to_string(&path)?)?;
+        if !self.has_wasm_opt_disabled(&doc) {
+            info!("Disabling wasm-opt in {}", path.as_ref().display());
+            ide_ci::fs::append(path, self.suffix_that_disables_wasm_opt())?;
+        } else {
+            info!("wasm-opt is already disabled in {}", path.as_ref().display());
+        }
+        Ok(())
+    }
 }
 
 pub trait Resolvable: IsTarget + IsTargetSource + Clone {
@@ -951,6 +1010,52 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
         Target::ChangelogCheck => {
             let ci_context = ide_ci::actions::context::Context::from_env()?;
             enso_build::changelog::check::check(ctx.repo_root.clone(), ci_context).await?;
+        }
+        Target::DisableWasmOpt => {
+            let root = deduce_repository_path()?;
+            let rs_source_glob =
+                PathBuf::from_iter([root.as_str(), "**", "*.rs"]).display().to_string();
+            info!("Searching for Rust source files in {}", rs_source_glob);
+            let rs_files = glob::glob(&rs_source_glob)?.try_collect_vec()?;
+            info!("Completed source discovery. Found {} files.", rs_files.len());
+
+            let entry_points: Vec<_> =
+                rs_files.into_iter().try_filter(|p| ctx.contains_entry_point(p))?;
+            info!("{} of them are entry points.", entry_points.len());
+
+            let cargo_tomls: BTreeSet<_> = entry_points.into_iter().try_map(parent_cargo_toml)?;
+            info!("They belong to {} crates.", cargo_tomls.len());
+
+            for cargo_toml in &cargo_tomls {
+                ctx.disable_wasm_opt_in_cargo_toml(cargo_toml)?;
+            }
+        }
+        Target::RemoveDraftReleases => {
+            const REPO: RepoRef = RepoRef { owner: "enso-org", name: "enso" };
+
+            info!("Removing draft releases from GitHub.");
+            let octo = setup_octocrab().await?;
+            if let Err(e) = octo.current().user().await {
+                bail!(
+                    "Failed to authenticate: {}.\nBeing authenticated is necessary to see draft releases.",
+                    e
+                );
+            }
+            let repo = REPO.handle(&octo);
+            info!("Fetching all releases.");
+            let releases = repo.all_releases().await?;
+            let draft_releases = releases.into_iter().filter(|r| r.draft).collect_vec();
+            info!("Found {} draft releases.", draft_releases.len());
+            for release in draft_releases {
+                let id = release.id;
+
+                let route = format!("{}repos/{repo}/releases/{id}", octo.base_url);
+                info!("Will delete {}: {route}.", release.name.unwrap_or_default());
+                let response = octo._delete(route, None::<&()>).await?;
+                handle_error_response(response).await?;
+            }
+
+            info!("Done.");
         }
     };
     info!("Completed main job.");
