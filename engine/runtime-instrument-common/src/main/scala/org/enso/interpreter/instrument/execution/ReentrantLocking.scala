@@ -12,19 +12,25 @@ import java.util.logging.Level
   */
 class ReentrantLocking(logger: TruffleLogger) extends Locking {
 
-  private val compilationLock = new ReentrantReadWriteLock(true)
-
+  /** Lowest level lock obtainable at any time. */
   private val pendingEditsLock = new ReentrantLock()
 
-  private val contextMapLock = new ReentrantLock()
-
-  private var contextLocks = Map.empty[UUID, ReentrantLock]
-
-  private val fileMapLock = new ReentrantLock()
-
+  /** Obtain anytime, except when holding pendingsEditLock. Guarded by fileMapLock. */
   private var fileLocks = Map.empty[File, ReentrantLock]
 
-  protected def getContextLock(contextId: UUID): Lock = {
+  /** Lower than contextLocks. Higher than anything else. */
+  private val compilationLock = new ReentrantReadWriteLock(true)
+
+  /** The highest lock. Always obtain first. Guarded by contextMapLock. */
+  private var contextLocks = Map.empty[UUID, ReentrantLock]
+
+  /** Guards contextLocks */
+  private val contextMapLock = new ReentrantLock()
+
+  /** Guards fileLocks */
+  private val fileMapLock = new ReentrantLock()
+
+  private def getContextLock(contextId: UUID): Lock = {
     contextMapLock.lock()
     try {
       if (contextLocks.contains(contextId)) {
@@ -49,7 +55,7 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     }
   }
 
-  protected def getFileLock(file: File): Lock = {
+  private def getFileLock(file: File): Lock = {
     fileMapLock.lock()
     try {
       if (fileLocks.contains(file)) {
@@ -76,6 +82,16 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
 
   /** @inheritdoc */
   override def acquireWriteCompilationLock(): Long = {
+    assertNotLocked(
+      compilationLock,
+      true,
+      "Cannot upgrade compilation read lock to write lock"
+    )
+    assertNotLocked(
+      pendingEditsLock,
+      s"Cannot acquire compilation write lock when having pending edits lock"
+    )
+    assertNoFileLock("Cannot acquire write compilation lock")
     logLockAcquisition(compilationLock.writeLock(), "write compilation")
   }
 
@@ -85,6 +101,16 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
 
   /** @inheritdoc */
   override def acquireReadCompilationLock(): Long = {
+    // CloseFileCmd does:
+    //   ctx.locking.acquireReadCompilationLock()
+    //   ctx.locking.acquireFileLock(request.path)
+    assertNoFileLock("Cannot acquire read compilation lock")
+    // CloseFileCmd also adds:
+    //   ctx.locking.acquirePendingEditsLock()
+    assertNotLocked(
+      pendingEditsLock,
+      s"Cannot acquire compilation read lock when having pending edits lock"
+    )
     logLockAcquisition(compilationLock.readLock(), "read compilation")
   }
 
@@ -103,6 +129,21 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
 
   /** @inheritdoc */
   override def acquireContextLock(contextId: UUID): Long = {
+    assertNotLocked(
+      compilationLock,
+      true,
+      s"Cannot acquire context ${contextId} lock when having compilation read lock"
+    )
+    assertNotLocked(
+      compilationLock,
+      false,
+      s"Cannot acquire context ${contextId} lock when having compilation write lock"
+    )
+    assertNoFileLock(s"Cannot acquire context ${contextId}")
+    assertNotLocked(
+      pendingEditsLock,
+      s"Cannot acquire context ${contextId} lock when having pending edits lock"
+    )
     logLockAcquisition(getContextLock(contextId), s"$contextId context")
   }
 
@@ -112,6 +153,12 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
 
   /** @inheritdoc */
   override def acquireFileLock(file: File): Long = {
+    // cannot have pendings lock as of EnsureCompiledJob.applyEdits
+    assertNotLocked(
+      pendingEditsLock,
+      s"Cannot acquire file ${file} lock when having pending edits lock"
+    )
+    assertNoContextLock(s"Cannot acquire file ${file}")
     logLockAcquisition(getFileLock(file), "file")
   }
 
@@ -126,4 +173,46 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     now2
   }
 
+  private def assertNotLocked(
+    lock: ReentrantReadWriteLock,
+    read: Boolean,
+    msg: String
+  ) = {
+    val locked =
+      if (read) lock.getReadHoldCount() > 0
+      else lock.isWriteLockedByCurrentThread()
+    if (locked) {
+      throw new IllegalStateException(msg)
+    }
+  }
+  private def assertNotLocked(lock: ReentrantLock, msg: String) = {
+    if (lock.isHeldByCurrentThread()) {
+      throw new IllegalStateException(msg)
+    }
+  }
+
+  private def assertNoFileLock(msg: String) = {
+    fileMapLock.lock()
+    try {
+      for (ctx <- fileLocks) {
+        assertNotLocked(ctx._2, msg + s" when having file ${ctx._1} lock")
+      }
+    } finally {
+      fileMapLock.unlock()
+    }
+  }
+
+  private def assertNoContextLock(msg: String) = {
+    contextMapLock.lock()
+    try {
+      for (ctx <- contextLocks) {
+        assertNotLocked(
+          ctx._2,
+          msg + s" lock when having context ${ctx._1} lock"
+        )
+      }
+    } finally {
+      contextMapLock.unlock()
+    }
+  }
 }
