@@ -34,7 +34,7 @@ polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import java.nio.file.Path
 polyglot java import org.enso.base.enso_cloud.HTTPBuilder
-polyglot java import org.enso.base.enso_cloud.HTTPBuilder.KeyValuePair
+polyglot java import org.enso.base.enso_cloud.EnsoKeyValuePair
 polyglot java import org.enso.base.Http_Utils
 
 type HTTP
@@ -112,8 +112,8 @@ type HTTP
                     boundary_header_list = if boundary.is_nothing then [] else [Header.multipart_form_data boundary]
                     all_headers = headers + boundary_header_list
                     mapped_headers = all_headers.map h-> case h.value of
-                        _ : Enso_Secret -> KeyValuePair.new h.name h.value.name h.value.id
-                        _ -> KeyValuePair.new h.name h.value ""
+                        _ : Enso_Secret -> EnsoKeyValuePair.ofSecret h.name h.value.id
+                        _ -> EnsoKeyValuePair.ofText h.name h.value
 
                     # Get uri and resolve query arguments
                     uri = case req.uri of
