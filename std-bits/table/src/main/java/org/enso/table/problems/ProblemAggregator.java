@@ -1,10 +1,9 @@
 package org.enso.table.problems;
 
-import org.graalvm.polyglot.Context;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.graalvm.polyglot.Context;
 
 public class ProblemAggregator {
   protected List<Problem> directlyReportedProblems = new ArrayList<>();

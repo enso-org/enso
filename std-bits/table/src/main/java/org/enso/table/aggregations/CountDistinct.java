@@ -40,13 +40,15 @@ public class CountDistinct extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
-    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     HashSet<UnorderedMultiValueKey> set = new HashSet<>();
     for (int row : indexes) {
       UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, row, textFoldingStrategy);
       if (key.hasFloatValues()) {
-        innerAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(this.getName(), row));
+        innerAggregator.reportColumnAggregatedProblem(
+            new FloatingPointGrouping(this.getName(), row));
       }
 
       if (!ignoreAllNull || !key.areAllNull()) {

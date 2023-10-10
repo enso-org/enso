@@ -1,13 +1,10 @@
 package org.enso.table.problems;
 
-import org.enso.table.data.table.problems.ColumnAggregatedProblem;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.table.data.table.problems.ColumnAggregatedProblem;
 
-/**
- * A ProblemAggregator that is capable of merging ColumnAggregatedProblems.
- */
+/** A ProblemAggregator that is capable of merging ColumnAggregatedProblems. */
 public class ColumnAggregatedProblemAggregator extends ProblemAggregator {
   public ColumnAggregatedProblemAggregator(ProblemAggregator parent) {
     super(parent);

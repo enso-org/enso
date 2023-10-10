@@ -35,7 +35,8 @@ public class StandardDeviation extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
-    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     Calculation current = null;
     for (int row : indexes) {

@@ -1,11 +1,8 @@
 package org.enso.table.data.column.operation.map;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.ArithmeticError;
 import org.enso.table.data.table.problems.ArithmeticOverflow;
-import org.enso.table.data.table.problems.ColumnAggregatedProblem;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.data.table.problems.IllegalArgumentError;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;

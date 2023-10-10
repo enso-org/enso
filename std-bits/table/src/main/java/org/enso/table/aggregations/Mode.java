@@ -22,7 +22,8 @@ public class Mode extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
-    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     Object current = null;
     int count = 0;
@@ -35,7 +36,8 @@ public class Mode extends Aggregator {
         if (lValue == null) {
           Double dValue = NumericConverter.tryConvertingToDouble(value);
           if (dValue != null) {
-            innerAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(this.getName(), row));
+            innerAggregator.reportColumnAggregatedProblem(
+                new FloatingPointGrouping(this.getName(), row));
             value = dValue;
           }
         } else {

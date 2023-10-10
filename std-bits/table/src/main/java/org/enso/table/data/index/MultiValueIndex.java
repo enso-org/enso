@@ -1,18 +1,5 @@
 package org.enso.table.data.index;
 
-import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
-import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.ColumnAggregatedProblemAggregator;
-import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.ConstantList;
-import org.graalvm.polyglot.Context;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -24,6 +11,17 @@ import java.util.TreeMap;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.aggregations.Aggregator;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.table.Column;
+import org.enso.table.data.table.Table;
+import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.ConstantList;
+import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final ProblemAggregator problemAggregator;
@@ -32,7 +30,10 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final boolean isUnique;
 
   public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
-      Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator,
+      Column[] keyColumns,
+      int tableSize,
+      int[] ordering,
+      Comparator<Object> objectComparator,
       ProblemAggregator problemAggregator) {
     TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
     final Storage<?>[] storage =
@@ -43,7 +44,9 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
-      Column[] keyColumns, int tableSize, List<TextFoldingStrategy> textFoldingStrategies,
+      Column[] keyColumns,
+      int tableSize,
+      List<TextFoldingStrategy> textFoldingStrategies,
       ProblemAggregator problemAggregator) {
     HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
     final Storage<?>[] storage =
@@ -54,7 +57,9 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
-      Column[] keyColumns, int tableSize, TextFoldingStrategy commonTextFoldingStrategy,
+      Column[] keyColumns,
+      int tableSize,
+      TextFoldingStrategy commonTextFoldingStrategy,
       ProblemAggregator problemAggregator) {
     List<TextFoldingStrategy> strategies =
         ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
@@ -65,7 +70,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       Column[] keyColumns,
       int tableSize,
       Map<KeyType, List<Integer>> initialLocs,
-      IntFunction<KeyType> keyFactory, ProblemAggregator problemAggregator) {
+      IntFunction<KeyType> keyFactory,
+      ProblemAggregator problemAggregator) {
     this.keyColumns = keyColumns;
     this.locs = initialLocs;
     this.problemAggregator = problemAggregator;
@@ -85,7 +91,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
           key.floatColumnPositions()
               .forEach(
                   columnIx ->
-                      groupingProblemAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
+                      groupingProblemAggregator.reportColumnAggregatedProblem(
+                          new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
         }
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
@@ -182,7 +189,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   }
 
   /**
-   * Finds a key of which at least one cell is null. Returns that key, or null if no such key is found.
+   * Finds a key of which at least one cell is null. Returns that key, or null if no such key is
+   * found.
    */
   public KeyType findAnyNullKey() {
     for (Column c : keyColumns) {

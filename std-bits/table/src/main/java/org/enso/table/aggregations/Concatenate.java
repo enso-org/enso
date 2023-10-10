@@ -1,7 +1,6 @@
 package org.enso.table.aggregations;
 
 import java.util.List;
-
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
@@ -31,7 +30,8 @@ public class Concatenate extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
-    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     StringBuilder current = null;
     for (int row : indexes) {
@@ -40,7 +40,8 @@ public class Concatenate extends Aggregator {
         String textValue = toQuotedString(value, quote, separator);
 
         if (!separator.equals("") && quote.equals("") && textValue.contains(separator)) {
-          innerAggregator.reportColumnAggregatedProblem(new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
+          innerAggregator.reportColumnAggregatedProblem(
+              new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
         }
 
         if (current == null) {
@@ -51,7 +52,8 @@ public class Concatenate extends Aggregator {
           current.append(textValue);
         }
       } else {
-        innerAggregator.reportColumnAggregatedProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
+        innerAggregator.reportColumnAggregatedProblem(
+            new InvalidAggregation(this.getName(), row, "Not a text value."));
         return null;
       }
 

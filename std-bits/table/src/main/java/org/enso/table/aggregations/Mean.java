@@ -1,5 +1,6 @@
 package org.enso.table.aggregations;
 
+import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -9,11 +10,7 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-import java.util.List;
-
-/**
- * Aggregate Column computing the mean value in a group.
- */
+/** Aggregate Column computing the mean value in a group. */
 public class Mean extends Aggregator {
   private static class Calculation {
     public long count;
@@ -34,7 +31,8 @@ public class Mean extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
-    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     Calculation current = null;
     for (int row : indexes) {

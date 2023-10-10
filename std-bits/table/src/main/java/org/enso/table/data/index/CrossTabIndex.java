@@ -12,7 +12,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.TooManyColumnsException;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
@@ -33,7 +32,8 @@ public class CrossTabIndex {
 
   private UnorderedMultiValueKey[][] grid;
 
-  public CrossTabIndex(Column[] xColumns, Column[] yColumns, int tableSize, ProblemAggregator problemAggregator) {
+  public CrossTabIndex(
+      Column[] xColumns, Column[] yColumns, int tableSize, ProblemAggregator problemAggregator) {
     this.problemAggregator = problemAggregator;
     this.xColumns = xColumns;
     this.yColumns = yColumns;
@@ -43,7 +43,10 @@ public class CrossTabIndex {
         Stream.concat(Arrays.stream(xColumns), Arrays.stream(yColumns)).toArray(Column[]::new);
     combinedIndex =
         MultiValueIndex.makeUnorderedIndex(
-            combinedColumns, tableSize, TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
+            combinedColumns,
+            tableSize,
+            TextFoldingStrategy.unicodeNormalizedFold,
+            problemAggregator);
 
     // Generate lists of combined keys and subkeys
     List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.keys());
@@ -109,8 +112,7 @@ public class CrossTabIndex {
     return yKeyNumberer.size();
   }
 
-  public Table makeCrossTabTable(
-      Aggregator[] aggregates, String[] aggregateNames) {
+  public Table makeCrossTabTable(Aggregator[] aggregates, String[] aggregateNames) {
     Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 

@@ -1,17 +1,14 @@
 package org.enso.table.aggregations;
 
+import java.util.Arrays;
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-import java.util.Arrays;
-import java.util.List;
-
-/**
- * Aggregate Column finding the first value in a group.
- */
+/** Aggregate Column finding the first value in a group. */
 public class First extends Aggregator {
   private final Storage<?> storage;
   private final Storage<?>[] orderByColumns;
@@ -22,7 +19,12 @@ public class First extends Aggregator {
     this(name, column, ignoreNothing, null, null);
   }
 
-  public First(String name, Column column, boolean ignoreNothing, Column[] orderByColumns, Long[] orderByDirections) {
+  public First(
+      String name,
+      Column column,
+      boolean ignoreNothing,
+      Column[] orderByColumns,
+      Long[] orderByDirections) {
     super(name, column.getStorage().getType());
     this.storage = column.getStorage();
     this.orderByColumns =

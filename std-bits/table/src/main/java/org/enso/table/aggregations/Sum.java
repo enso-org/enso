@@ -22,7 +22,8 @@ public class Sum extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
-    MapOperationProblemBuilder innerAggregator = new MapOperationProblemBuilder(problemAggregator, getName());
+    MapOperationProblemBuilder innerAggregator =
+        new MapOperationProblemBuilder(problemAggregator, getName());
     Context context = Context.getCurrent();
     Object current = null;
     for (int row : indexes) {
