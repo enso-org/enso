@@ -686,9 +686,7 @@ export class RemoteBackend extends backendModule.Backend {
     override async createTag(
         body: backendModule.CreateTagRequestBody
     ): Promise<backendModule.Label> {
-        const response = await this.post<backendModule.Label>(CREATE_TAG_PATH, {
-            value: body.value,
-        })
+        const response = await this.post<backendModule.Label>(CREATE_TAG_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not create label '${body.value}'.`)
         } else {

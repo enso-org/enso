@@ -134,6 +134,47 @@ export default function Drive(props: DriveProps) {
         })
     }, [/* should never change */ dispatchAssetListEvent])
 
+    const doCreateLabel = React.useCallback(
+        async (value: string, color: backendModule.LChColor) => {
+            const placeholderLabel: backendModule.Label = {
+                id: backendModule.TagId(uniqueString.uniqueString()),
+                value: backendModule.LabelName(value),
+                color: labelModule.DEFAULT_LABEL_COLOR,
+            }
+            setLabels(oldLabels => [...oldLabels, placeholderLabel])
+            try {
+                const newLabel = await backend.createTag({ value, color })
+                setLabels(oldLabels =>
+                    oldLabels.map(oldLabel =>
+                        oldLabel.id === placeholderLabel.id ? newLabel : oldLabel
+                    )
+                )
+                setCurrentLabels(
+                    oldLabels =>
+                        oldLabels?.map(oldLabel =>
+                            oldLabel === placeholderLabel.value ? newLabel.value : oldLabel
+                        ) ?? []
+                )
+            } catch (error) {
+                toastAndLog(null, error)
+                setLabels(oldLabels =>
+                    oldLabels.filter(oldLabel => oldLabel.id !== placeholderLabel.id)
+                )
+                setCurrentLabels(oldLabels => {
+                    if (oldLabels == null) {
+                        return null
+                    } else {
+                        const newLabels = oldLabels.filter(
+                            oldLabel => oldLabel !== placeholderLabel.value
+                        )
+                        return newLabels.length === 0 ? null : newLabels
+                    }
+                })
+            }
+        },
+        [backend, /* should never change */ toastAndLog]
+    )
+
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
@@ -204,51 +245,7 @@ export default function Drive(props: DriveProps) {
                             labels={labels}
                             currentLabels={currentLabels}
                             setCurrentLabels={setCurrentLabels}
-                            doCreateLabel={value => {
-                                const placeholderLabel: backendModule.Label = {
-                                    id: backendModule.TagId(uniqueString.uniqueString()),
-                                    value: backendModule.LabelName(value),
-                                    color: labelModule.DEFAULT_LABEL_COLOR,
-                                }
-                                setLabels(oldLabels => [...oldLabels, placeholderLabel])
-                                void (async () => {
-                                    try {
-                                        const newLabel = await backend.createTag({ value })
-                                        setLabels(oldLabels =>
-                                            oldLabels.map(oldLabel =>
-                                                oldLabel.id === placeholderLabel.id
-                                                    ? newLabel
-                                                    : oldLabel
-                                            )
-                                        )
-                                        setCurrentLabels(
-                                            oldLabels =>
-                                                oldLabels?.map(oldLabel =>
-                                                    oldLabel === placeholderLabel.value
-                                                        ? newLabel.value
-                                                        : oldLabel
-                                                ) ?? []
-                                        )
-                                    } catch (error) {
-                                        toastAndLog(null, error)
-                                        setLabels(oldLabels =>
-                                            oldLabels.filter(
-                                                oldLabel => oldLabel.id !== placeholderLabel.id
-                                            )
-                                        )
-                                        setCurrentLabels(oldLabels => {
-                                            if (oldLabels == null) {
-                                                return null
-                                            } else {
-                                                const newLabels = oldLabels.filter(
-                                                    oldLabel => oldLabel !== placeholderLabel.value
-                                                )
-                                                return newLabels.length === 0 ? null : newLabels
-                                            }
-                                        })
-                                    }
-                                })()
-                            }}
+                            doCreateLabel={doCreateLabel}
                         />
                     </div>
                 )}
@@ -266,6 +263,7 @@ export default function Drive(props: DriveProps) {
                     dispatchAssetListEvent={dispatchAssetListEvent}
                     doOpenIde={doOpenEditor}
                     doCloseIde={doCloseEditor}
+                    doCreateLabel={doCreateLabel}
                     loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                     isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
                     isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}

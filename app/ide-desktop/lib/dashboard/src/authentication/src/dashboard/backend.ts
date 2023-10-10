@@ -49,10 +49,6 @@ export type AssetId = IdType[keyof IdType]
 export type LabelName = newtype.Newtype<string, 'LabelName'>
 export const LabelName = newtype.newtypeConstructor<LabelName>()
 
-/** A CSS color. */
-export type Color = newtype.Newtype<string, 'Color'>
-export const Color = newtype.newtypeConstructor<Color>()
-
 /** Unique identifier for a label. */
 export type TagId = newtype.Newtype<string, 'TagId'>
 export const TagId = newtype.newtypeConstructor<TagId>()
@@ -247,7 +243,7 @@ export interface SecretInfo {
 export interface Label {
     id: TagId
     value: LabelName
-    color: Color
+    color: LChColor
 }
 
 /** Type of application that a {@link Version} applies to.
@@ -335,6 +331,47 @@ export enum FilterBy {
     active = 'Active',
     recent = 'Recent',
     trashed = 'Trashed',
+}
+
+/** A color in the LCh colorspace. */
+export interface LChColor {
+    readonly lightness: number
+    readonly chroma: number
+    readonly hue: number
+    readonly alpha?: number
+}
+
+/** A pre-selected list of colors to be used in color pickers. */
+export const COLORS: readonly LChColor[] = [
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    // Red
+    { lightness: 50, chroma: 66, hue: 7 },
+    // Orange
+    { lightness: 50, chroma: 66, hue: 34 },
+    // Yellow
+    { lightness: 50, chroma: 66, hue: 80 },
+    // Turquoise
+    { lightness: 50, chroma: 66, hue: 139 },
+    // Teal
+    { lightness: 50, chroma: 66, hue: 172 },
+    // Blue
+    { lightness: 50, chroma: 66, hue: 271 },
+    // Lavender
+    { lightness: 50, chroma: 66, hue: 295 },
+    // Pink
+    { lightness: 50, chroma: 66, hue: 332 },
+    // Light blue
+    { lightness: 50, chroma: 22, hue: 252 },
+    // Dark blue
+    { lightness: 22, chroma: 13, hue: 252 },
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+]
+
+/** Converts a {@link LChColor} to a CSS color string. */
+export function lChColorToCssColor(color: LChColor): string {
+    return 'alpha' in color
+        ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
+        : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
 }
 
 // =================
@@ -587,6 +624,7 @@ export interface CreateSecretRequestBody {
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
     value: string
+    color: LChColor
 }
 
 /** URL query string parameters for the "list directory" endpoint. */

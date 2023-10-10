@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import PlusIcon from 'enso-assets/plus.svg'
 
-import * as backendModule from '../backend'
+import * as backend from '../backend'
 import * as modalProvider from '../../providers/modal'
 
 import Label, * as labelModule from './label'
@@ -15,10 +15,10 @@ import NewLabelModal from './newLabelModal'
 
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
-    labels: backendModule.Label[]
-    currentLabels: backendModule.LabelName[] | null
-    setCurrentLabels: React.Dispatch<React.SetStateAction<backendModule.LabelName[] | null>>
-    doCreateLabel: (name: string) => void
+    labels: backend.Label[]
+    currentLabels: backend.LabelName[] | null
+    setCurrentLabels: React.Dispatch<React.SetStateAction<backend.LabelName[] | null>>
+    doCreateLabel: (name: string, color: backend.LChColor) => void
 }
 
 /** A list of selectable labels. */

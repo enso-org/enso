@@ -2,6 +2,7 @@
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
+import * as backend from '../backend'
 import * as errorModule from '../../error'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
@@ -15,7 +16,7 @@ import Modal from './modal'
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface NewLabelModalProps {
     eventTarget: HTMLElement
-    doCreate: (value: string) => void
+    doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */
@@ -26,12 +27,15 @@ export default function NewLabelModal(props: NewLabelModalProps) {
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
 
     const [value, setName] = React.useState('')
-    const canSubmit = Boolean(value)
+    const [color, setColor] = React.useState<backend.LChColor | null>(null)
+    const canSubmit = Boolean(value && color)
 
     const onSubmit = () => {
         unsetModal()
         try {
-            doCreate(value)
+            if (color != null) {
+                doCreate(value, color)
+            }
         } catch (error) {
             const message = errorModule.getMessageOrToString(error)
             toastify.toast.error(message)
@@ -73,11 +77,40 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                         <input
                             autoFocus
                             placeholder="Enter the name of the label"
-                            className="grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px"
+                            className={`grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px ${
+                                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                                color != null && color.lightness <= 50
+                                    ? 'text-tag-text placeholder-tag-text'
+                                    : 'text-primary'
+                            }`}
+                            style={
+                                color == null
+                                    ? {}
+                                    : {
+                                          backgroundColor: backend.lChColorToCssColor(color),
+                                      }
+                            }
                             onInput={event => {
                                 setName(event.currentTarget.value)
                             }}
                         />
+                    </div>
+                    <div className="flex">
+                        <div className="w-12 h-6 py-1">Color</div>
+                        <div className="grow flex items-center gap-1">
+                            {backend.COLORS.map((currentColor, i) => (
+                                <div
+                                    key={i}
+                                    className="cursor-pointer h-4 w-4 rounded-full"
+                                    style={{
+                                        backgroundColor: backend.lChColorToCssColor(currentColor),
+                                    }}
+                                    onClick={() => {
+                                        setColor(currentColor)
+                                    }}
+                                />
+                            ))}
+                        </div>
                     </div>
                     <div className="flex gap-2">
                         <button

@@ -149,6 +149,7 @@ export interface AssetsTableState {
         switchPage: boolean
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
+    doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -186,6 +187,7 @@ export interface AssetsTableProps {
         switchPage: boolean
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
+    doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
     isListingLocalDirectoryAndWillFail: boolean
@@ -208,6 +210,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         dispatchAssetEvent,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
+        doCreateLabel,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
         isListingLocalDirectoryAndWillFail,
@@ -860,6 +863,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
+            doCreateLabel,
         }),
         [
             selectedKeys.size,
@@ -868,10 +872,11 @@ export default function AssetsTable(props: AssetsTableProps) {
             sortColumn,
             sortDirection,
             assetEvents,
+            doToggleDirectoryExpansion,
             doOpenManually,
             doOpenIde,
             doCloseIde,
-            doToggleDirectoryExpansion,
+            doCreateLabel,
             /* should never change */ setSortColumn,
             /* should never change */ setSortDirection,
             /* should never change */ dispatchAssetEvent,

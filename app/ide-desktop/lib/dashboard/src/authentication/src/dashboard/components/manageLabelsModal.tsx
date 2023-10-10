@@ -5,6 +5,7 @@ import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as modalProvider from '../../providers/modal'
 import * as string from '../../string'
 
 import Label from './label'
@@ -20,8 +21,8 @@ export interface ManageLabelsModalProps<
 > {
     item: Asset
     setItem: React.Dispatch<React.SetStateAction<Asset>>
-    self: backendModule.UserPermission
     allLabels: Map<backendModule.LabelName, backendModule.Label>
+    doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
     /** If this is `null`, this modal will be centered. */
     eventTarget: HTMLElement | null
 }
@@ -32,21 +33,24 @@ export interface ManageLabelsModalProps<
 export default function ManageLabelsModal<
     Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
-    const { item, setItem, allLabels, eventTarget } = props
+    const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
+    const { unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
     const [labels, setLabels] = React.useState(item.labels ?? [])
     const [query, setQuery] = React.useState('')
+    const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
     const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const labelNames = React.useMemo(() => new Set(labels), [labels])
     const regex = React.useMemo(() => new RegExp(string.regexEscape(query), 'i'), [query])
-    const canCreateNewLabel = React.useMemo(
+    const canSelectColor = React.useMemo(
         () =>
             query !== '' &&
             Array.from(allLabels.keys()).filter(label => regex.test(label)).length === 0,
         [allLabels, query, regex]
     )
+    const canCreateNewLabel = canSelectColor && color != null
 
     React.useEffect(() => {
         setItem(oldItem => ({ ...oldItem, labels }))
@@ -117,13 +121,48 @@ export default function ManageLabelsModal<
                             <h2 className="text-sm font-bold">Labels</h2>
                             {/* Space reserved for other tabs. */}
                         </div>
-                        <form className="flex gap-1">
-                            <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
+                        <form
+                            className="flex gap-1"
+                            onSubmit={async event => {
+                                event.preventDefault()
+                                setLabels(oldLabels => [
+                                    ...oldLabels,
+                                    backendModule.LabelName(query),
+                                ])
+                                try {
+                                    if (color != null) {
+                                        await doCreateLabel(query, color)
+                                    }
+                                } catch (error) {
+                                    toastAndLog(null, error)
+                                    setLabels(oldLabels =>
+                                        oldLabels.filter(oldLabel => oldLabel !== query)
+                                    )
+                                }
+                                unsetModal()
+                            }}
+                        >
+                            <div
+                                className={`flex items-center grow rounded-full border border-black-a10 gap-2 px-1 ${
+                                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                                    canSelectColor && color != null && color.lightness <= 50
+                                        ? 'text-tag-text placeholder-tag-text'
+                                        : 'text-primary'
+                                }`}
+                                style={
+                                    !canSelectColor || color == null
+                                        ? {}
+                                        : {
+                                              backgroundColor:
+                                                  backendModule.lChColorToCssColor(color),
+                                          }
+                                }
+                            >
                                 <input
                                     autoFocus
                                     type="text"
                                     placeholder="Type labels to search"
-                                    className="grow bg-transparent leading-170 h-6 py-px"
+                                    className="grow bg-transparent leading-170 h-6 px-1 py-px"
                                     onChange={event => {
                                         setQuery(event.currentTarget.value)
                                     }}
@@ -137,6 +176,24 @@ export default function ManageLabelsModal<
                                 <div className="h-6 py-0.5">Create</div>
                             </button>
                         </form>
+                        {canSelectColor && (
+                            <div className="flex gap-1">
+                                <div className="grow flex items-center gap-1">
+                                    {backendModule.COLORS.map((currentColor, i) => (
+                                        <div
+                                            key={i}
+                                            className="cursor-pointer h-4 w-4 rounded-full"
+                                            style={{
+                                                backgroundColor: `lch(${currentColor.lightness}% ${currentColor.chroma} ${currentColor.hue})`,
+                                            }}
+                                            onClick={() => {
+                                                setColor(currentColor)
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="overflow-auto pl-1 pr-12 max-h-80">
                             {Array.from(allLabels.values())
                                 .filter(label => regex.test(label.value))

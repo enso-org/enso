@@ -7,7 +7,15 @@ import * as backend from '../backend'
 // === Constants ===
 // =================
 
-export const DEFAULT_LABEL_COLOR = backend.Color('rgba(255, 255, 255, 0.70)')
+// The default color for labels (Light blue).
+export const DEFAULT_LABEL_COLOR: backend.LChColor = {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    lightness: 100,
+    chroma: 0,
+    hue: 0,
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    alpha: 70,
+}
 
 // =============
 // === Label ===
@@ -17,7 +25,7 @@ export const DEFAULT_LABEL_COLOR = backend.Color('rgba(255, 255, 255, 0.70)')
 interface InternalLabelProps extends React.PropsWithChildren {
     /** When true, the button is not faded out even when not hovered. */
     active?: boolean
-    color: backend.Color
+    color: backend.LChColor
     className?: string
     onClick: React.MouseEventHandler<HTMLDivElement>
 }
@@ -29,8 +37,11 @@ export default function Label(props: InternalLabelProps) {
         <div
             className={`cursor-pointer flex items-center rounded-full gap-1.5 h-6 px-2.25 hover:opacity-100 ${className} ${
                 active ? '' : 'text-not-selected opacity-50'
+            } ${
+                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                color.lightness <= 50 ? 'text-tag-text placeholder-tag-text' : 'text-primary'
             }`}
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: backend.lChColorToCssColor(color) }}
             onClick={onClick}
         >
             {children}

@@ -242,7 +242,7 @@ function LabelsColumn(props: AssetColumnProps) {
     const {
         item: { item: asset },
         setItem,
-        state: { category, labels },
+        state: { category, labels, doCreateLabel },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -321,7 +321,7 @@ function LabelsColumn(props: AssetColumnProps) {
                                 item={asset}
                                 setItem={setAsset}
                                 allLabels={labels}
-                                self={self}
+                                doCreateLabel={doCreateLabel}
                                 eventTarget={event.currentTarget}
                             />
                         )
