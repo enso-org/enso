@@ -238,10 +238,14 @@ export function locateContextMenus(page: test.Locator | test.Page) {
 // =============
 
 /** Perform a successful login. */
-export async function login(page: test.Page) {
+export async function login(
+    page: test.Page,
+    email = 'email@example.com',
+    password = VALID_PASSWORD
+) {
     await page.goto('/')
-    await locateEmailInput(page).fill('email@example.com')
-    await locatePasswordInput(page).fill(VALID_PASSWORD)
+    await locateEmailInput(page).fill(email)
+    await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
 }
 
@@ -249,8 +253,13 @@ export async function login(page: test.Page) {
 // === mockDate ===
 // ================
 
+/** The number of milliseconds in a minute. */
+const MIN_MS = 60_000
+
 /** A placeholder date for visual regression testing. */
-const MOCK_DATE = Number(new Date('01/23/45 01:23:45 UTC'))
+const MOCK_DATE = Number(
+    Number(new Date('01/23/45 01:23:45 UTC')) + new Date().getTimezoneOffset() * MIN_MS
+)
 
 /** Replace `Date` with a version that returns a fixed time. */
 export async function mockDate(page: test.Page) {

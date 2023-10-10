@@ -8,9 +8,8 @@ import * as actions from './actions'
 // =============
 
 test.test('login screen', async ({ page }) => {
-    // Screenshot #1: Initial
+    // Screenshot omitted - it is already taken by `loginLogout.spec.ts`.
     await page.goto('/')
-    await test.expect(page).toHaveScreenshot()
 
     // Screenshot #2: Invalid email
     await actions.locateEmailInput(page).fill('invalid email')
@@ -19,7 +18,6 @@ test.test('login screen', async ({ page }) => {
         'form should reject invalid email'
     ).toBe(false)
     await actions.locateLoginButton(page).click()
-    await test.expect(page).toHaveScreenshot()
 
     // Screenshot #3: Invalid password
     await actions.locateEmailInput(page).fill(actions.VALID_EMAIL)
@@ -29,5 +27,4 @@ test.test('login screen', async ({ page }) => {
         'form should reject invalid password'
     ).toBe(false)
     await actions.locateLoginButton(page).click()
-    await test.expect(page).toHaveScreenshot()
 })

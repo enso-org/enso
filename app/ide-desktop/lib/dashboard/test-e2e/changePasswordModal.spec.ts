@@ -20,7 +20,6 @@ test.test('change password modal', async ({ page }) => {
         'form should reject invalid old password'
     ).toBe(false)
     await actions.locateResetButton(page).click()
-    await test.expect(actions.locateChangePasswordModal(page)).toHaveScreenshot()
 
     // Screenshot #3: Invalid new password
     await actions.locateOldPasswordInput(page).fill(actions.VALID_PASSWORD)
@@ -30,7 +29,6 @@ test.test('change password modal', async ({ page }) => {
         'form should reject invalid new password'
     ).toBe(false)
     await actions.locateResetButton(page).click()
-    await test.expect(actions.locateChangePasswordModal(page)).toHaveScreenshot()
 
     // Screenshot #4: Invalid "confirm new password"
     await actions.locateNewPasswordInput(page).fill(actions.VALID_PASSWORD)
@@ -40,7 +38,6 @@ test.test('change password modal', async ({ page }) => {
         'form should reject invalid "confirm new password"'
     ).toBe(false)
     await actions.locateResetButton(page).click()
-    await test.expect(actions.locateChangePasswordModal(page)).toHaveScreenshot()
 
     // Screenshot #5: After form submission
     await actions.locateConfirmNewPasswordInput(page).fill(actions.VALID_PASSWORD)

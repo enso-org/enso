@@ -33,10 +33,11 @@ test.test('sign up flow', async ({ page }) => {
 
     // Screenshot #3: Logged in, and account enabled
     const currentUser = api.currentUser
+    test.expect(currentUser).toBeDefined()
     if (currentUser != null) {
         currentUser.isEnabled = true
     }
-    await page.goto('/')
+    await actions.login(page, email)
     await test.expect(page).toHaveScreenshot()
 
     test.expect(api.currentUser?.email, 'new user has correct email').toBe(email)
