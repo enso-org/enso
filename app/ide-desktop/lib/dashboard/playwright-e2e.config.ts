@@ -34,6 +34,7 @@ export default test.defineConfig({
                 // Disable text subpixel antialiasing.
                 '--font-render-hinting=none',
                 '--disable-skia-runtime-opts',
+                '--disable-system-font-check',
                 '--disable-font-subpixel-positioning',
                 '--disable-lcd-text',
             ],
