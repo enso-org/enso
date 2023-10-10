@@ -347,7 +347,7 @@ final class SuggestionsHandler(
       val allSelfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
       val isJavaClass = try {
         val found = Class.forName(allSelfTypes.head)
-        logger.warn("Found java class: " + found)
+        logger.info("Found java class: " + found)
         true
       } catch {
         case _ : Throwable => false
@@ -372,10 +372,10 @@ final class SuggestionsHandler(
         }
         val replyTo = sender()
         val checkForFirstTimeJava = res.andThen(v => {
-          logger.warn("resolved to " + v)
+          logger.debug("resolved to {}", v)
           if (v.isSuccess && v.get.asInstanceOf[CompletionResult].results.isEmpty && isJavaClass) {
-            logger.warn("  empty result isn't enough, recomputing")
             val c = Class.forName(allSelfTypes.head)
+            logger.info("Empty result for {} Java class isn't enough, recomputing", c.getName())
             val newSuggestions = new java.util.ArrayList[Suggestion]
             val typ = new Suggestion.Type(None, "Java", c.getName(), Nil, "", None, None, None)
             newSuggestions.add(typ)
@@ -392,17 +392,26 @@ final class SuggestionsHandler(
                 newSuggestions.add(method)
               }
             })
-            logger.warn("Computed new replacement: " + newSuggestions)
-            applyLoadedSuggestions(newSuggestions.toArray(new Array[Suggestion](0)).toVector).andThen(r =>
-              if (r.isFailure) {
-                logger.error("database update failed: " + r)
-              } else {
-                logger.warn("database updated with: " + r)
-                Future(r.get).pipeTo(replyTo)
-              }
-            )
+            logger.debug("Computed new replacement: {}", newSuggestions)
+            applyLoadedSuggestions(newSuggestions.toArray(new Array[Suggestion](0)).toVector).onComplete {
+              case Success(notification) =>
+                logger.debug("database updated with: {}", notification)
+                logger.info("database updated with {} entries", notification.updates.size)
+                if (notification.updates.nonEmpty) {
+                  clients.foreach { clientId =>
+                    sessionRouter ! DeliverToJsonController(clientId, notification)
+                  }
+                }
+                // self ! SuggestionsHandler.SuggestionLoadingCompleted
+              case Failure(ex) =>
+                logger.error(
+                  "database update failed.",
+                  ex
+                )
+                // self ! SuggestionsHandler.SuggestionLoadingCompleted
+            }
           } else {
-            logger.warn("Piping result: " + v)
+            logger.debug("Piping result: " + v)
             v
           }
         })
