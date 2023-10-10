@@ -194,7 +194,7 @@ export class LocalBackend extends backend.Backend {
                 jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
                 binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
                 organizationId: '',
-                packageName: cachedProject.projectName,
+                packageName: cachedProject.projectNormalizedName,
                 projectId,
                 state: {
                     type: backend.ProjectState.opened,
