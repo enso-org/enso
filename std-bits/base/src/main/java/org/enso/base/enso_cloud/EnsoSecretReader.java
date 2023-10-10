@@ -8,9 +8,7 @@ import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
 
-/***
- * Internal class to read secrets from the Enso Cloud.
- */
+/** * Internal class to read secrets from the Enso Cloud. */
 class EnsoSecretReader {
   private static Map<String, String> secrets = new HashMap<>();
 
@@ -18,8 +16,8 @@ class EnsoSecretReader {
     secrets.clear();
   }
 
-  /***
-   * Reads a secret from the Enso Cloud.
+  /**
+   * * Reads a secret from the Enso Cloud.
    *
    * @param secretId the ID of the secret to read.
    * @return the secret value.
@@ -31,7 +29,12 @@ class EnsoSecretReader {
 
     var apiUri = AuthenticationProvider.getAPIRootURI() + "/secrets/" + secretId;
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
-    var request = HttpRequest.newBuilder().uri(URI.create(apiUri)).header("Authorization", "Bearer " + AuthenticationProvider.getToken()).GET().build();
+    var request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(apiUri))
+            .header("Authorization", "Bearer " + AuthenticationProvider.getToken())
+            .GET()
+            .build();
 
     HttpResponse<String> response;
 
