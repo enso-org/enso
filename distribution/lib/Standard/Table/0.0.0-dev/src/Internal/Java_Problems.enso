@@ -20,8 +20,6 @@ polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.problems.ProblemAggregator
-polyglot java import org.enso.table.problems.AggregatedProblems
-polyglot java import org.enso.table.problems.WithAggregatedProblems
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
 
@@ -70,17 +68,6 @@ translate_problem p = case p of
         Invalid_Format.Error p.column p.expectedEnsoValueType (Vector.from_polyglot_array p.cells)
     _ ->
         Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
-
-## PRIVATE
-   Convert Java aggregated problems to Enso Vector of equivalents.
-parse_aggregated_problems : AggregatedProblems -> (Any -> Any) -> Vector
-parse_aggregated_problems problems (problem_mapping = translate_problem) =
-    if problems.is_nothing then [] else
-        problems_array = problems.getProblems
-        parsed = Vector.from_polyglot_array problems_array . map problem_mapping
-
-        if problems.getCount == problems_array.length then parsed else
-            parsed + [Additional_Warnings.Error (problems.getCount - problems_array.length)]
 
 ## PRIVATE
 unpack_problem_summary problem_summary =
