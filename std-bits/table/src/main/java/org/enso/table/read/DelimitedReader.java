@@ -59,19 +59,18 @@ public class DelimitedReader {
   private final long skipRows;
   private final long rowLimit;
   private final int maxColumns;
-  private final List<Problem> warnings = new ArrayList<>();
   private final CsvParser parser;
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
   private String newlineSetting;
-  private final boolean warningsAsErrors;
   private final NoOpParseProblemAggregator noOpProblemAggregator = new NoOpParseProblemAggregator();
   private long invalidRowsCount = 0;
   private long targetTableIndex = 0;
   /** The line number of the start of the current row in the input file. */
   private long currentLine = 0;
   private StringBuilder[] builders = null;
+  private final DelimitedReaderProblemAggregator problemAggregator;
 
   /**
    * Creates a new reader.
@@ -99,6 +98,7 @@ public class DelimitedReader {
    * @param warningsAsErrors specifies if the first warning should be immediately raised as an error
    *     (used as a fast-path for the error-reporting mode to avoid computing a value that is going
    *     to be discarded anyway)
+   * @param problemAggregator the problem aggregator
    */
   public DelimitedReader(
       String delimiter,
@@ -113,7 +113,8 @@ public class DelimitedReader {
       boolean keepInvalidRows,
       String newline,
       String commentCharacter,
-      boolean warningsAsErrors) {
+      boolean warningsAsErrors,
+      ProblemAggregator problemAggregator) {
     if (delimiter.isEmpty()) {
       throw new IllegalArgumentException("Empty delimiters are not supported.");
     }
@@ -162,11 +163,11 @@ public class DelimitedReader {
     this.rowLimit = rowLimit;
     this.maxColumns = maxColumns;
     this.keepInvalidRows = keepInvalidRows;
-    this.warningsAsErrors = warningsAsErrors;
 
     this.valueParser = valueParser;
     this.cellTypeGuesser = cellTypeGuesser;
     this.newlineSetting = newline;
+    this.problemAggregator = new DelimitedReaderProblemAggregator(problemAggregator, warningsAsErrors, quoteCharacter, invalidRowsLimit);
     this.parser = setupCsvParser(commentCharacter);
   }
 
@@ -212,47 +213,7 @@ public class DelimitedReader {
   /** Parses a header cell, removing surrounding quotes (if applicable). */
   private String parseHeader(String cell) {
     if (cell == null) return null;
-    return QuoteHelper.stripQuotes(quoteCharacter, this::reportMismatchedQuote, cell);
-  }
-
-  private void reportMismatchedQuote(String cellText) {
-    throw new MismatchedQuote(cellText);
-  }
-
-  private void reportInvalidRow(long source_row, Long table_index, String[] row, long expected_length) {
-    // Mismatched quote error takes precedence over invalid row.
-    for (int i = 0; i < row.length; i++) {
-      String cell = row[i];
-      if (cell != null && QuoteHelper.hasMismatchedQuotes(quoteCharacter, cell)) {
-        reportMismatchedQuote(cell);
-      }
-    }
-
-    if (invalidRowsCount < invalidRowsLimit) {
-      reportProblem(new InvalidRow(source_row, table_index, row, expected_length));
-    }
-
-    invalidRowsCount++;
-  }
-
-  /** Returns a list of currently reported problems encountered when parsing the input. */
-  private AggregatedProblems getReportedProblems(List<Problem> nameProblems) {
-    AggregatedProblems result = new AggregatedProblems(nameProblems.size() + warnings.size() + 1);
-    result.addAll(nameProblems);
-    result.addAll(warnings);
-    if (invalidRowsCount > invalidRowsLimit) {
-      long additionalInvalidRows = invalidRowsCount - invalidRowsLimit;
-      result.add(new AdditionalInvalidRows(additionalInvalidRows));
-    }
-    return result;
-  }
-
-  private void reportProblem(Problem problem) {
-    if (warningsAsErrors) {
-      throw new ParsingFailedException(problem);
-    } else {
-      warnings.add(problem);
-    }
+    return QuoteHelper.stripQuotes(quoteCharacter, problemAggregator::reportMismatchedQuote, cell);
   }
 
   /**
@@ -295,7 +256,7 @@ public class DelimitedReader {
     assert canFitMoreRows();
 
     if (row.length != builders.length) {
-      reportInvalidRow(currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
+      problemAggregator.reportInvalidRow(currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
 
       if (keepInvalidRows) {
         for (int i = 0; i < builders.length && i < row.length; i++) {
@@ -473,7 +434,7 @@ public class DelimitedReader {
    * <p>
    * It should only be called once.
    */
-  public Table read(Reader input, ProblemAggregator problemAggregator) {
+  public Table read(Reader input) {
     markUsed();
     Context context = Context.getCurrent();
     try {
@@ -512,7 +473,7 @@ public class DelimitedReader {
       context.safepoint();
     }
 
-    AggregatedProblems.addToAggregator(getReportedProblems(headerProblems), problemAggregator);
+    problemAggregator.reportAll(headerProblems);
     return new Table(columns);
   }
 
