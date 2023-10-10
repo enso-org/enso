@@ -14,9 +14,7 @@ import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.NoOpParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
-import org.enso.table.problems.Problem;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.problems.WithProblems;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 
@@ -24,7 +22,6 @@ import java.io.Reader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
