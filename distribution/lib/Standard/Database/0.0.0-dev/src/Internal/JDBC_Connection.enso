@@ -91,8 +91,19 @@ type JDBC_Connection
 
        Runs the provided action with a prepared statement, adding contextual
        information to any thrown SQL errors.
-    with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Any
-    with_prepared_statement self query statement_setter action = self.synchronized <|
+
+       Arguments:
+       - query: The query to prepare. It may be either a raw SQL statement or a
+         `SQL_Statement`.
+       - statement_setter: A strategy for filling holes in the prepared
+         statement.
+       - action: The action to run with the prepared statement.
+       - skip_log: If `True`, the query will not be logged even with logging
+         enabled. This is used to avoid logging a query that is not really run
+         (e.g. `ensure_query_has_no_holes` which prepares a statement but does
+         not execute it).
+    with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Boolean -> Any
+    with_prepared_statement self query statement_setter action skip_log=False = self.synchronized <|
         prepare template values = self.with_connection java_connection->
             stmt = java_connection.prepareStatement template
             handle_illegal_state caught_panic =
@@ -108,6 +119,7 @@ type JDBC_Connection
 
         go template values =
             handle_sql_errors related_query=template <|
+                if skip_log.not then log_sql_if_enabled self template
                 Managed_Resource.bracket (prepare template values) .close action
 
         case query of
@@ -148,6 +160,7 @@ type JDBC_Connection
     raw_read_statement : Text -> Materialized_Table
     raw_read_statement self raw_sql =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
+            log_sql_if_enabled self stmt.toString
             rs = stmt.executeQuery
             make_fallback_fetcher _ =
                 Column_Fetcher_Module.fallback_fetcher
@@ -159,7 +172,7 @@ type JDBC_Connection
        Checks that the query has no holes, and if it does, throws an error.
     ensure_query_has_no_holes : Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes self raw_sql =
-        self.with_prepared_statement raw_sql Statement_Setter.null stmt->
+        self.with_prepared_statement raw_sql Statement_Setter.null skip_log=True stmt->
             ## We cannot run this check on every query, because in some
               backends (e.g. Postgres) running `getParameterMetaData`
               seems to trigger logic for figuring out types of the holes.
@@ -217,6 +230,7 @@ type JDBC_Connection
     batch_insert self insert_template statement_setter table batch_size row_limit=Nothing =
         In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
+                log_sql_if_enabled self insert_template
                 table_row_count = table.row_count
                 num_rows = case row_limit of
                     Nothing -> table_row_count
@@ -287,3 +301,18 @@ handle_sql_errors ~action related_query=Nothing =
 set_statement_values stmt statement_setter values =
     values.each_with_index ix-> value->
         statement_setter.fill_hole stmt (ix + 1) value
+
+## PRIVATE
+   A helper that logs performed SQL queries/statements to a file, if an
+   environment variable is set.
+log_sql_if_enabled : JDBC_Connection -> Text -> Nothing
+log_sql_if_enabled jdbc_connection ~query_text =
+    case Environment.get "ENSO_SQL_LOG_PATH" of
+        Nothing -> Nothing
+        path -> if path.is_empty then Nothing else
+            timestamp = Date_Time.now.format "yyyy-MM-dd HH:mm:ss zzzzz"
+            db_id = jdbc_connection.with_metadata .getDatabaseProductName
+            # E.g. 2023-10-09 11:27:08 +02:00 [SQLite] SELECT * FROM "test"
+            log_line = timestamp + " [" + db_id + "] " + query_text + '\n'
+            Context.Output.with_enabled <|
+                log_line.write path on_existing_file=Existing_File_Behavior.Append
