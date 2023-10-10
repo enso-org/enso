@@ -553,8 +553,7 @@ spec setup =
         Test.specify "should report unsupported" <|
             Database_Table.from_objects 12 . should_fail_with Unsupported_Database_Operation
 
-    # The in-memory functionality of `expand_column` is tested in  
-test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
+    # The in-memory functionality of `expand_column` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
     if setup.is_database then Test.group prefix+"Table.expand_column" <|
         Test.specify "should report unsupported" <|
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
