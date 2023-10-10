@@ -107,6 +107,10 @@ const CREATE_TAG_PATH = 'tags'
 const LIST_TAGS_PATH = 'tags'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
 const LIST_VERSIONS_PATH = 'versions'
+/** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
+function updateAssetPath(assetId: backendModule.AssetId) {
+    return `assets/${assetId}`
+}
 /** Relative HTTP path to the "delete asset" endpoint of the Cloud backend API. */
 function deleteAssetPath(assetId: backendModule.AssetId) {
     return `assets/${assetId}`
@@ -389,6 +393,24 @@ export class RemoteBackend extends backendModule.Backend {
             )
         } else {
             return await response.json()
+        }
+    }
+
+    /** Change the parent directory of an asset.
+     *
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async updateAsset(
+        assetId: backendModule.AssetId,
+        body: backendModule.UpdateAssetRequestBody,
+        title: string | null
+    ) {
+        const response = await this.patch(updateAssetPath(assetId), body)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Unable to delete ${title != null ? `'${title}'` : `asset with ID '${assetId}'`}.`
+            )
+        } else {
+            return
         }
     }
 
