@@ -9,7 +9,7 @@ import * as Y from 'yjs'
 
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
-import { ObservableV2 } from 'lib0/observable.js'
+import { ObservableV2 } from 'lib0/observable'
 import { WebSocket } from 'ws'
 import { LanguageServerSession } from './languageServerSession'
 
@@ -106,14 +106,18 @@ export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string
   const connection = new YjsConnection(ws, wsDoc)
 
   const doClose = () => connection.close()
-  lsSession.on('error', doClose)
-  connection.on('close', () => {
+  lsSession.once('error', doClose)
+  connection.once('close', async () => {
     lsSession.off('error', doClose)
-    lsSession.release()
+    try {
+      await lsSession.release()
+    } catch (err) {
+      console.error('Session release failed.\n', err)
+    }
   })
 }
 
-class YjsConnection extends ObservableV2<{ close: () => void }> {
+class YjsConnection extends ObservableV2<{ close(): void }> {
   ws: WebSocket
   wsDoc: WSSharedDoc
   constructor(ws: WebSocket, wsDoc: WSSharedDoc) {

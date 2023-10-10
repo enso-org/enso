@@ -16,6 +16,7 @@
 #![feature(once_cell)]
 #![feature(duration_constants)]
 #![feature(slice_take)]
+#![feature(future_join)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -66,6 +67,7 @@ pub mod repo;
 pub mod rust;
 pub mod source;
 pub mod version;
+pub mod web;
 
 /// Get version of Enso from the `build.sbt` file contents.
 pub fn get_enso_version(build_sbt_contents: &str) -> Result<Version> {
@@ -102,6 +104,11 @@ pub fn get_string_assignment_value(
 /// Get version of Enso from the `build.sbt` file contents.
 pub fn get_graal_version(build_sbt_contents: &str) -> Result<Version> {
     get_string_assignment_value(build_sbt_contents, "graalVersion")?.parse2()
+}
+
+/// Get version of GraalVM packages from the `build.sbt` file contents.
+pub fn get_graal_packages_version(build_sbt_contents: &str) -> Result<Version> {
+    get_string_assignment_value(build_sbt_contents, "graalMavenPackagesVersion")?.parse2()
 }
 
 #[cfg(test)]

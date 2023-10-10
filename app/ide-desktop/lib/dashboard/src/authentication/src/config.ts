@@ -29,7 +29,7 @@ export const ChatUrl = newtype.newtypeConstructor<ChatUrl>()
 export const CLOUD_DOMAIN = 'https://cloud.enso.org'
 
 /** The current environment that we're running in. */
-export const ENVIRONMENT: Environment = process.env.CLOUD_ENV ?? 'production'
+export const ENVIRONMENT: Environment = CLOUD_ENV ?? 'production'
 
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {

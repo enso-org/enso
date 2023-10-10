@@ -19,6 +19,8 @@ pub mod prelude {
 
 /// Generate the comment that is at the top of each generated workflow file.
 fn preamble(source: &str) -> String {
+    // To make output consistent across platforms.
+    let source = source.replace('\\', "/");
     format!(
         "# This file is auto-generated. Do not edit it manually!\n\
             # Edit the {source} module instead and run `cargo run --package {}`.",

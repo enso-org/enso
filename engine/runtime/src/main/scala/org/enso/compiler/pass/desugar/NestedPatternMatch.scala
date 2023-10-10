@@ -72,14 +72,14 @@ case object NestedPatternMatch extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     DocumentationComments,
     FunctionBinding,
     GenerateMethodBodies,
     LambdaShorthandToLambda
   )
-  override val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,

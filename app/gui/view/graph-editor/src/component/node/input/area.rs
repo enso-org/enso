@@ -579,8 +579,15 @@ impl Area {
         object.map_or(initial_position, |object| {
             let pos = object.global_position();
             let node_pos = self.model.display_object.global_position();
-            let size = object.computed_size();
-            pos.xy() - node_pos.xy() + size * 0.5
+            // There are some cases when the port position is not yet updated, but the port object
+            // itself exists. In this case, `pos` will contain a zero vector, and we want to use
+            // `initial_position` instead.
+            if pos == Vector3::default() {
+                initial_position
+            } else {
+                let size = object.computed_size();
+                pos.xy() - node_pos.xy() + size * 0.5
+            }
         })
     }
 

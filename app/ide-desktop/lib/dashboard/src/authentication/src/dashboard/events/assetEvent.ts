@@ -21,7 +21,7 @@ export enum AssetEventType {
     newProject = 'new-project',
     newFolder = 'new-folder',
     uploadFiles = 'upload-files',
-    newSecret = 'new-secret',
+    newDataConnector = 'new-data-connector',
     openProject = 'open-project',
     closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
@@ -41,7 +41,7 @@ interface AssetEvents {
     newProject: AssetNewProjectEvent
     newFolder: AssetNewFolderEvent
     uploadFiles: AssetUploadFilesEvent
-    newSecret: AssetNewSecretEvent
+    newDataConnector: AssetNewDataConnectorEvent
     openProject: AssetOpenProjectEvent
     closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
@@ -78,8 +78,9 @@ export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.upl
     files: Map<backendModule.AssetId, File>
 }
 
-/** A signal to create a secret. */
-export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
+/** A signal to create a data connector. */
+export interface AssetNewDataConnectorEvent
+    extends AssetBaseEvent<AssetEventType.newDataConnector> {
     placeholderId: backendModule.SecretId
     value: string
 }

@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Uninitialized_State, Type_Error
+from Standard.Base.Errors.Common import Uninitialized_State, Type_Error, Not_Found
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -436,5 +436,33 @@ spec =
             (.is_nothing) . is_a Function . should_equal True
             Meta.type_of (_.is_nothing) . should_equal Function
             Meta.type_of (.is_nothing) . should_equal Function
+
+    Test.group "Meta.Type.find"
+        Test.specify "find boolean and use it" <|
+            fqn = "Standard.Base.Data.Boolean.Boolean"
+            typ = Meta.Type.find fqn
+            typ . is_a Meta.Type . should_be_true
+            typ.name . should_equal "Boolean"
+            Meta.Type.find typ.qualified_name . should_equal typ
+
+        Test.specify "find boolean via associated type and use it" <|
+            fqn = "Standard.Base.Data.Boolean"
+            typ = Meta.Type.find fqn
+            typ . is_a Meta.Type . should_be_true
+            typ.name . should_equal "Boolean"
+            typ.qualified_name . should_equal fqn
+            Meta.Type.find typ.qualified_name . should_equal typ
+
+        Test.specify "unknown type" <|
+            Meta.Type.find "Unknown.Type" . should_fail_with Not_Found
+            Meta.Type.find "UnknownType" . should_fail_with Not_Found
+            Meta.Type.find "" . should_fail_with Not_Found
+
+        Test.specify "My ascribed type" <|
+            meta_type = Meta.meta My_Ascribed_Type
+            fqn =  meta_type . qualified_name
+            fqn.should_contain "Meta_Spec.My_Ascribed_Type"
+            typ = Meta.Type.find fqn
+            typ . should_equal meta_type
 
 main = Test_Suite.run_main spec

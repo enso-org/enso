@@ -82,6 +82,35 @@ type Unlimited_Naming_Properties
         Panic.throw (Illegal_State.Error "`Unlimited_Naming_Properties.raise_name_too_long_error` but `size_limit` is `Nothing`. This is a bug in the Table library.")
 
 ## PRIVATE
+   A `Naming_Properties` implementation which sets the length limit using the
+   Enso concept of string length - counted by grapheme clusters.
+
+   For limits of external applications,
+   `Encoding_Limited_Naming_Properties` may be preferred.
+type Enso_Length_Limited_Naming_Properties
+    ## PRIVATE
+    Instance (limit : Integer) (is_case_sensitive : Boolean = True)
+
+    ## PRIVATE
+    encoded_size : Text -> Integer
+    encoded_size self name = name.length
+
+    ## PRIVATE
+    truncate : Text -> Integer -> Text
+    truncate self name size = name.take size
+
+    ## PRIVATE
+    size_limit : Integer | Nothing
+    size_limit self = self.limit
+
+    ## PRIVATE
+    raise_name_too_long_error : Text -> Text -> Nothing ! Name_Too_Long
+    raise_name_too_long_error self entity_kind name =
+        length = self.encoded_size name
+        extra_message = " The length limit is "+self.size_limit.to_text+", but the name was "+length.to_text+" characters long."
+        Error.throw (Name_Too_Long.Error entity_kind name extra_message)
+
+## PRIVATE
    A helper method that recovers panics thrown by `Naming_Properties`.
    The `Naming_Properties` must throw panics and not dataflow errors to comply
    with the Java `NamingProperties` interface (handling dataflow errors would

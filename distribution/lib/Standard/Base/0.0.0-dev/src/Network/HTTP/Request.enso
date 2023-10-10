@@ -32,7 +32,7 @@ type Request
              import Standard.Base.Network.URI.URI
 
              example_new = Request.new Method.Post (URI.parse "http://example.com")
-    new : HTTP_Method -> (Text | URI) -> Vector -> Request_Body -> Request
+    new : HTTP_Method -> (Text | URI) -> Vector Header -> Request_Body -> Request
     new (method:HTTP_Method) (url:(Text | URI)) (headers:(Vector Header)=[]) (body:Request_Body=Request_Body.Empty) =
         Panic.recover Any (Request.Value method (Panic.rethrow (url.to_uri)) headers body)
 

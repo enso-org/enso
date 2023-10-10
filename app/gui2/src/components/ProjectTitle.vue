@@ -10,7 +10,7 @@ const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
     <span class="title" v-text="props.title"></span>
     <ExecutionModeSelector
       :modes="props.modes"
-      :model-value="props.mode"
+      :modelValue="props.mode"
       @execute="emit('execute')"
       @update:modelValue="emit('update:mode', $event)"
     />

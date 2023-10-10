@@ -6000,6 +6000,7 @@ name = "rust-ffi"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "enso-doc-parser",
  "enso-parser",
  "serde_json",
  "wasm-bindgen",

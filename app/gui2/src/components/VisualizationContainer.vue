@@ -72,20 +72,20 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       :class="{
         fullscreen: config.fullscreen,
         'circular-menu-visible': config.isCircularMenuVisible,
-        'below-node': belowNode,
-        'below-toolbar': belowToolbar,
+        'below-node': props.belowNode,
+        'below-toolbar': props.belowToolbar,
       }"
       :style="{
         '--color-visualization-bg': config.background,
       }"
     >
-      <div class="resizer-right" v-on="resizeRight.events"></div>
-      <div class="resizer-bottom" v-on="resizeBottom.events"></div>
-      <div class="resizer-bottom-right" v-on="resizeBottomRight.events"></div>
+      <div class="resizer-right" v-on="resizeRight.stop.events"></div>
+      <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>
+      <div class="resizer-bottom-right" v-on="resizeBottomRight.stop.events"></div>
       <div
         ref="contentNode"
         class="content scrollable"
-        :class="{ overflow }"
+        :class="{ overflow: props.overflow }"
         :style="{
           width: config.fullscreen
             ? undefined
@@ -105,27 +105,31 @@ const resizeBottomRight = usePointer((pos, _, type) => {
           }"
         >
           <div class="background"></div>
-          <button class="image-button active" @click="config.hide()">
+          <button class="image-button active" @pointerdown.stop="config.hide()">
             <SvgIcon class="icon" name="eye" />
           </button>
         </div>
         <div class="toolbar">
           <div class="background"></div>
-          <button class="image-button active" @click="config.fullscreen = !config.fullscreen">
+          <button
+            class="image-button active"
+            @pointerdown.stop="config.fullscreen = !config.fullscreen"
+          >
             <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
           </button>
           <div class="icon-container">
             <button
               class="image-button active"
-              @click.stop="isSelectorVisible = !isSelectorVisible"
+              @pointerdown.stop="isSelectorVisible = !isSelectorVisible"
             >
               <SvgIcon class="icon" name="compass" />
             </button>
             <VisualizationSelector
               v-if="isSelectorVisible"
               :types="config.types"
+              :modelValue="config.currentType"
               @hide="isSelectorVisible = false"
-              @update:type="
+              @update:modelValue="
                 (type) => {
                   isSelectorVisible = false
                   config.updateType(type)
@@ -145,12 +149,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 
 <style scoped>
 .VisualizationContainer {
+  color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
   min-width: 100%;
   width: min-content;
-  color: var(--color-text);
-  z-index: -1;
   border-radius: var(--radius-default);
 }
 
@@ -184,11 +187,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 .toolbars {
   transition-duration: 100ms;
   transition-property: padding-left;
-}
-
-.VisualizationContainer.fullscreen .toolbars,
-.VisualizationContainer:not(.circular-menu-visible) .toolbars {
-  padding-left: 4px;
 }
 
 .content {
@@ -298,6 +296,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .image-button {
+  cursor: none;
   background: none;
   padding: 0;
   border: none;
@@ -305,7 +304,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .image-button.active {
-  cursor: pointer;
   opacity: unset;
 }
 

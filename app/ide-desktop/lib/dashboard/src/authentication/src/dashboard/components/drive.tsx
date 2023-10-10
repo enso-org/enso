@@ -133,6 +133,19 @@ export default function Drive(props: DriveProps) {
         })
     }, [/* should never change */ dispatchAssetListEvent])
 
+    const doCreateDataConnector = React.useCallback(
+        (name: string, value: string) => {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.newDataConnector,
+                parentKey: null,
+                parentId: null,
+                name,
+                value,
+            })
+        },
+        [/* should never change */ dispatchAssetListEvent]
+    )
+
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
@@ -193,6 +206,7 @@ export default function Drive(props: DriveProps) {
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
+                    doCreateDataConnector={doCreateDataConnector}
                     dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>

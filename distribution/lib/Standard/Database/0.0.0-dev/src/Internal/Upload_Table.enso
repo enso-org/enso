@@ -297,7 +297,7 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table (source_table : In_Memory_Table | Database_Table) (target_table : Database_Table) update_action key_columns error_on_missing_columns on_problems =
+common_update_table (source_table : Database_Table | In_Memory_Table) (target_table : Database_Table) update_action key_columns error_on_missing_columns on_problems =
     check_target_table_for_update target_table <|
         connection = target_table.connection
         Panic.recover SQL_Error <| handle_upload_errors <|

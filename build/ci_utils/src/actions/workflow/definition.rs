@@ -54,7 +54,7 @@ pub fn setup_conda() -> Step {
 pub fn setup_wasm_pack_step() -> Step {
     Step {
         name: Some("Installing wasm-pack".into()),
-        uses: Some("jetli/wasm-pack-action@v0.3.0".into()),
+        uses: Some("jetli/wasm-pack-action@v0.4.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "version".into(),
             "v0.10.2".into(),

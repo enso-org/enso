@@ -104,6 +104,7 @@ export interface OpenProject {
     languageServerJsonAddress: IpWithSocket
     languageServerBinaryAddress: IpWithSocket
     projectName: ProjectName
+    projectNormalizedName: string
     projectNamespace: string
 }
 
@@ -111,6 +112,11 @@ export interface OpenProject {
 export interface EngineVersion {
     version: string
     markedAsBroken: boolean
+}
+
+/** The return value of the "list available engine versions" endpoint. */
+export interface VersionList {
+    versions: EngineVersion[]
 }
 
 // ================================
@@ -272,9 +278,14 @@ export class ProjectManager extends EventTarget {
         return this.sendRequest('project/delete', params)
     }
 
+    /** List installed engine versions. */
+    public listInstalledEngineVersions(): Promise<VersionList> {
+        return this.sendRequest<VersionList>('engine/list-installed', {})
+    }
+
     /** List available engine versions. */
-    public listAvailableEngineVersions(): Promise<[EngineVersion, ...EngineVersion[]]> {
-        return this.sendRequest<[EngineVersion, ...EngineVersion[]]>('engine/list-available', {})
+    public listAvailableEngineVersions(): Promise<VersionList> {
+        return this.sendRequest<VersionList>('engine/list-available', {})
     }
 
     /** Remove all handlers for a specified request ID. */
