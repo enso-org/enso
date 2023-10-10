@@ -251,7 +251,9 @@ spec make_new_connection prefix persistent_connector=True =
                 Problems.expect_only_warning Dry_Run_Operation t2
                 t2.name . should_equal tmp_name
                 t2.at "Y" . to_vector . should_equal []
-                t2.update_rows (Table.new [["Y", ['a']]]) . should_succeed
+
+                Context.Output.with_enabled <|
+                    Problems.assume_no_problems <| t2.update_rows (Table.new [["Y", ['a']]])
                 t2.at "Y" . to_vector . should_equal ['a']
 
                 t3 = connection.create_table base_table_name structure=[Column_Description.Value "Y" Value_Type.Char] temporary=True
