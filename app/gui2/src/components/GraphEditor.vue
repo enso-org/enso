@@ -1,17 +1,5 @@
 <script lang="ts">
-import { defineKeybinds } from '@/util/shortcuts'
-
-const graphBindings = defineKeybinds('graph-editor', {
-  undo: ['Mod+Z'],
-  redo: ['Mod+Y', 'Mod+Shift+Z'],
-  dragScene: ['PointerAux', 'Mod+PointerMain'],
-  openComponentBrowser: ['Enter'],
-  newNode: ['N'],
-})
-</script>
-
-<script setup lang="ts">
-import { nodeBindings } from '@/bindings/nodeSelection'
+import { codeEditorBindings, graphBindings, nodeSelectionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
@@ -19,14 +7,18 @@ import GraphNode from '@/components/GraphNode.vue'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useGraphStore } from '@/stores/graph'
-import { ExecutionContext, useProjectStore } from '@/stores/project'
+import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
-import { keyboardBusy, usePointer, useWindowEvent } from '@/util/events'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { colorFromString } from '@/util/colors'
+import { keyboardBusy, keyboardBusyExceptIn, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
+import * as set from 'lib0/set'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
-
+import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+</script>
+<script setup lang="ts">
 const EXECUTION_MODES = ['design', 'live']
 const SELECTION_BRUSH_MARGIN_PX = 6
 
@@ -35,24 +27,14 @@ const viewportNode = ref<HTMLElement>()
 const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
-const executionCtx = shallowRef<ExecutionContext>()
 const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
+const suggestionDb = useSuggestionDbStore()
 
 const nodeRects = reactive(new Map<ExprId, Rect>())
 const exprRects = reactive(new Map<ExprId, Rect>())
 const selectedNodes = ref(new Set<ExprId>())
 const latestSelectedNode = ref<ExprId>()
-
-onMounted(async () => {
-  const executionCtxPromise = projectStore.createExecutionContextForMain()
-  onUnmounted(async () => {
-    executionCtx.value = undefined
-    const ctx = await executionCtxPromise
-    if (ctx != null) ctx.destroy()
-  })
-  executionCtx.value = (await executionCtxPromise) ?? undefined
-})
 
 function updateNodeRect(id: ExprId, rect: Rect) {
   nodeRects.set(id, rect)
@@ -63,10 +45,7 @@ function updateExprRect(id: ExprId, rect: Rect) {
 }
 
 useWindowEvent('keydown', (event) => {
-  if (keyboardBusy()) {
-    return
-  }
-  graphBindingsHandler(event) || nodeSelectionHandler(event)
+  graphBindingsHandler(event) || nodeSelectionHandler(event) || codeEditorHandler(event)
 })
 
 onMounted(() => viewportNode.value?.focus())
@@ -81,13 +60,15 @@ function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
 
 function moveNode(id: ExprId, delta: Vec2) {
   const scaledDelta = delta.scale(1 / navigator.scale)
-  for (const id_ of selectedNodes.value.has(id) ? selectedNodes.value : [id]) {
-    const node = graphStore.nodes.get(id_)
-    if (node == null) {
-      continue
+  graphStore.transact(() => {
+    for (const id_ of selectedNodes.value.has(id) ? selectedNodes.value : [id]) {
+      const node = graphStore.nodes.get(id_)
+      if (node == null) {
+        continue
+      }
+      graphStore.setNodePosition(id_, node.position.add(scaledDelta))
     }
-    graphStore.setNodePosition(id_, node.position.add(scaledDelta))
-  }
+  })
 }
 
 const selectionAnchor = shallowRef<Vec2>()
@@ -165,34 +146,45 @@ function updateLatestSelectedNode(id: ExprId) {
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
-    projectStore.undoManager.undo()
+    projectStore.module?.undoManager.undo()
   },
   redo() {
-    projectStore.undoManager.redo()
+    projectStore.module?.undoManager.redo()
   },
   openComponentBrowser() {
-    if (keyboardBusy()) {
-      return false
-    }
+    if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
       componentBrowserPosition.value = navigator.sceneMousePos
       componentBrowserVisible.value = true
     }
   },
   newNode() {
+    if (keyboardBusy()) return false
     if (navigator.sceneMousePos != null) {
       graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
     }
   },
 })
 
-const nodeSelectionHandler = nodeBindings.handler({
+const codeEditorArea = ref<HTMLElement>()
+const showCodeEditor = ref(false)
+const codeEditorHandler = codeEditorBindings.handler({
+  toggle() {
+    if (keyboardBusyExceptIn(codeEditorArea.value)) return false
+    showCodeEditor.value = !showCodeEditor.value
+  },
+})
+
+const nodeSelectionHandler = nodeSelectionBindings.handler({
   deleteSelected() {
-    for (const node of selectedNodes.value) {
-      graphStore.deleteNode(node)
-    }
+    graphStore.transact(() => {
+      for (const node of selectedNodes.value) {
+        graphStore.deleteNode(node)
+      }
+    })
   },
   selectAll() {
+    if (keyboardBusy()) return
     for (const id of graphStore.nodes.keys()) {
       selectedNodes.value.add(id)
     }
@@ -200,10 +192,23 @@ const nodeSelectionHandler = nodeBindings.handler({
   deselectAll() {
     clearSelection()
     selectedNodes.value.clear()
+    graphStore.stopCapturingUndo()
+  },
+  toggleVisualization() {
+    if (keyboardBusy()) return false
+    graphStore.transact(() => {
+      const allHidden = set
+        .toArray(selectedNodes.value)
+        .every((id) => graphStore.nodes.get(id)?.vis?.visible !== true)
+
+      for (const nodeId of selectedNodes.value) {
+        graphStore.setNodeVisualizationVisible(nodeId, allHidden)
+      }
+    })
   },
 })
 
-const mouseHandler = nodeBindings.handler({
+const mouseHandler = nodeSelectionBindings.handler({
   replace() {
     selectedNodes.value = new Set(intersectingNodes.value)
   },
@@ -261,6 +266,16 @@ function clearSelection() {
     document.activeElement.blur()
   }
 }
+
+const groupColors = computed(() => {
+  const styles: { [key: string]: string } = {}
+  for (let group of suggestionDb.groups) {
+    const name = group.name.replace(/\s/g, '-')
+    let color = group.color ?? colorFromString(name)
+    styles[`--group-color-${name}`] = color
+  }
+  return styles
+})
 </script>
 
 <template>
@@ -269,6 +284,7 @@ function clearSelection() {
     class="viewport"
     v-on.="navigator.events"
     v-on..="selection.events"
+    :style="groupColors"
     @pointerdown="nodeSelectionHandler"
     @pointermove="selection.dragging && mouseHandler($event)"
   >
@@ -277,9 +293,9 @@ function clearSelection() {
         v-for="(edge, index) in graphStore.edges"
         :key="index"
         :edge="edge"
-        :node-rects="nodeRects"
-        :expr-rects="exprRects"
-        :expr-nodes="graphStore.exprNodes"
+        :nodeRects="nodeRects"
+        :exprRects="exprRects"
+        :exprNodes="graphStore.exprNodes"
       />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
@@ -288,7 +304,8 @@ function clearSelection() {
         :key="id"
         :node="node"
         :selected="selectedNodes.has(id)"
-        :is-latest-selected="id === latestSelectedNode"
+        :isLatestSelected="id === latestSelectedNode"
+        :fullscreenVis="false"
         @update:selected="setSelected(id, $event), $event && updateLatestSelectedNode(id)"
         @replaceSelection="
           selectedNodes.clear(), selectedNodes.add(id), updateLatestSelectedNode(id)
@@ -297,6 +314,8 @@ function clearSelection() {
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
         @updateContent="updateNodeContent(id, $event)"
+        @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
+        @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
         @movePosition="moveNode(id, $event)"
       />
     </div>
@@ -316,7 +335,13 @@ function clearSelection() {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="console.log('\'execute\' button clicked.')"
     />
-    <CodeEditor ref="codeEditor" />
+    <div ref="codeEditorArea">
+      <Suspense>
+        <Transition>
+          <CodeEditor v-if="showCodeEditor" />
+        </Transition>
+      </Suspense>
+    </div>
     <SelectionBrush
       v-if="scaledMousePos"
       :position="scaledMousePos"
@@ -332,6 +357,7 @@ function clearSelection() {
   contain: layout;
   overflow: clip;
   cursor: none;
+  --group-color-fallback: #006b8a;
 }
 
 svg {
@@ -346,13 +372,5 @@ svg {
   left: 0;
   width: 0;
   height: 0;
-}
-
-.circle {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 5px;
-  background-color: purple;
 }
 </style>

@@ -29,6 +29,9 @@ ide_ci::define_env_var! {
     /// Arguments to the engine runner.
     /// See: <https://github.com/diab0l/enso/blob/feature/test_with_clue/test/Meta_Test_Suite_Tests/README.md>
     ENSO_META_TEST_ARGS, String;
+
+    /// If Enso-specific assertions should be enabled.
+    ENSO_ENABLE_ASSERTIONS, String;
 }
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";

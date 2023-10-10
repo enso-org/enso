@@ -122,6 +122,12 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     public Object[] getArguments() {
       return arguments;
     }
+
+    @Override
+    @CompilerDirectives.TruffleBoundary
+    public String toString() {
+      return "FunctionCall[function=" + function + ", arguments: " + Arrays.toString(arguments) + "]";
+    }
   }
 
   /**

@@ -20,12 +20,19 @@ const conf = [
       parserOptions: {
         tsconfigRootDir: DIR_NAME,
         ecmaVersion: 'latest',
-        project: ['./tsconfig.app.json', './tsconfig.node.json', './tsconfig.vitest.json'],
+        project: [
+          './tsconfig.app.json',
+          './tsconfig.node.json',
+          './tsconfig.server.json',
+          './tsconfig.app.vitest.json',
+          './tsconfig.server.vitest.json',
+        ],
       },
     },
     rules: {
       camelcase: [1, { ignoreImports: true }],
       'no-inner-declarations': 0,
+      'vue/attribute-hyphenation': [2, 'never'],
       'vue/v-on-event-hyphenation': [2, 'never'],
       '@typescript-eslint/no-unused-vars': [
         1,

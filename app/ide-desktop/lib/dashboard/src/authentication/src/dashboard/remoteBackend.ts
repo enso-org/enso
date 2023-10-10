@@ -729,7 +729,7 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
-    /** Return list of backend or IDE versions.
+    /** Return a list of backend or IDE versions.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listVersions(

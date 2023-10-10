@@ -9,8 +9,12 @@
     "node.env.d.ts"
   ],
   "compilerOptions": {
+    "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
     "outDir": "../../node_modules/.cache/tsc",
     "types": ["node", "vitest/importMeta"]
   }

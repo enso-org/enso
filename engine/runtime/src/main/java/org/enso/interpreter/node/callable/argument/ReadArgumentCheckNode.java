@@ -188,6 +188,14 @@ public abstract class ReadArgumentCheckNode extends Node {
     @ExplodeLoop
     Object executeCheckOrConversion(VirtualFrame frame, Object value) {
       for (var n : checks) {
+        if (n instanceof TypeCheckNode typeCheck) {
+          var result = typeCheck.findAmongTypes(value);
+          if (result != null) {
+            return result;
+          }
+        }
+      }
+      for (var n : checks) {
         var result = n.executeCheckOrConversion(frame, value);
         if (result != null) {
           return result;
@@ -218,11 +226,11 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     @Specialization
-  Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
-    throw panicSentinel;
-  }
+    Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
+      throw panicSentinel;
+    }
 
-  @Specialization(rewriteOn = InvalidAssumptionException.class)
+    @Specialization(rewriteOn = InvalidAssumptionException.class)
     Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {
       var ret = findAmongTypes(v);
       if (ret != null) {

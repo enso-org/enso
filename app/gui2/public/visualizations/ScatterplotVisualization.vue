@@ -3,6 +3,13 @@ import { defineKeybinds } from 'builtins'
 
 export const name = 'Scatterplot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+const DEFAULT_LIMIT = 1024
+export const defaultPreprocessor = [
+  'Standard.Visualization.Scatter_Plot',
+  'process_to_json_text',
+  'Nothing',
+  DEFAULT_LIMIT.toString(),
+]
 
 const bindings = defineKeybinds('scatterplot-visualization', {
   zoomIn: ['Mod+Z'],
@@ -68,7 +75,7 @@ enum ScaleType {
 
 interface AxisConfiguration {
   label: string
-  scale: ScaleType
+  scale?: ScaleType
 }
 
 interface AxesConfiguration {
@@ -84,8 +91,10 @@ interface Color {
 </script>
 
 <script setup lang="ts">
-import { d3 } from 'builtins'
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
+
+import * as d3 from 'd3'
+
 import FindIcon from './icons/find.svg'
 import ShowAllIcon from './icons/show_all.svg'
 
@@ -106,12 +115,9 @@ const POINT_LABEL_PADDING_X_PX = 7
 const POINT_LABEL_PADDING_Y_PX = 2
 const ANIMATION_DURATION_MS = 400
 const VISIBLE_POINTS = 'visible'
-const DEFAULT_LIMIT = 1024
 const ACCENT_COLOR: Color = { red: 78, green: 165, blue: 253 }
 const SIZE_SCALE_MULTIPLER = 100
-const FILL_COLOR = `rgba(${ACCENT_COLOR.red * 255},${ACCENT_COLOR.green * 255},${
-  ACCENT_COLOR.blue * 255
-},0.8)`
+const FILL_COLOR = `rgba(${ACCENT_COLOR.red},${ACCENT_COLOR.green},${ACCENT_COLOR.blue},0.8)`
 
 const ZOOM_EXTENT = [0.5, 20] satisfies d3.BrushSelection
 const RIGHT_BUTTON = 2
@@ -201,18 +207,18 @@ const margin = computed(() => {
     return { top: 10, right: 10, bottom: 35, left: 55 }
   }
 })
-const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
-watchPostEffect(() => {
-  width.value = config.value.fullscreen
+const width = computed(() =>
+  config.value.fullscreen
     ? containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
-})
-const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
-watchPostEffect(() => {
-  height.value = config.value.fullscreen
+    : Math.max(config.value.width ?? 0, config.value.nodeSize.x),
+)
+
+const height = computed(() =>
+  config.value.fullscreen
     ? containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
-})
+    : config.value.height ?? (config.value.nodeSize.x * 3) / 4,
+)
+
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xTicks = computed(() => boxWidth.value / 40)
@@ -229,7 +235,7 @@ const yLabelLeft = computed(
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 
-function updatePreprocessor() {
+watchEffect(() => {
   emit(
     'update:preprocessor',
     'Standard.Visualization.Scatter_Plot',
@@ -237,9 +243,7 @@ function updatePreprocessor() {
     bounds.value == null ? 'Nothing' : '[' + bounds.value.join(',') + ']',
     limit.value.toString(),
   )
-}
-
-onMounted(updatePreprocessor)
+})
 
 watchEffect(() => (focus.value = data.value.focus))
 
@@ -409,7 +413,6 @@ function zoomToSelected() {
   const yMin = yScale_.invert(yMinRaw)
   const yMax = yScale_.invert(yMaxRaw)
   bounds.value = [xMin, yMin, xMax, yMax]
-  updatePreprocessor()
   xDomain.value = [xMin, xMax]
   yDomain.value = [yMin, yMax]
 }
@@ -435,7 +438,7 @@ function matchShape(d: Point) {
  * @param axis Axis information as received in the visualization update.
  * @returns D3 scale. */
 function axisD3Scale(axis: AxisConfiguration | undefined) {
-  return axis != null ? SCALE_TO_D3_SCALE[axis.scale]() : d3.scaleLinear()
+  return axis?.scale != null ? SCALE_TO_D3_SCALE[axis.scale]() : d3.scaleLinear()
 }
 
 watchEffect(() => {
@@ -522,7 +525,6 @@ function showAll() {
     extremesAndDeltas.value.yMin - extremesAndDeltas.value.paddingY,
     extremesAndDeltas.value.yMax + extremesAndDeltas.value.paddingY,
   ]
-  updatePreprocessor()
   endBrushing()
 }
 
@@ -539,7 +541,7 @@ useEvent(document, 'scroll', endBrushing)
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
         <img :src="ShowAllIcon" alt="Fit all" @pointerdown="showAll" />

@@ -32,6 +32,22 @@ spec =
     pending_has_url = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
+    Test.group "HTTP_Method parse" <|
+        Test.specify "should be able to parse a string value into a method" <|
+            "GET" . to HTTP_Method . should_equal (HTTP_Method.Get)
+            "POST" . to HTTP_Method . should_equal (HTTP_Method.Post)
+            "PUT" . to HTTP_Method . should_equal (HTTP_Method.Put)
+            "PATCH" . to HTTP_Method . should_equal (HTTP_Method.Patch)
+
+        Test.specify "should be case insensitive" <|
+            "get" . to HTTP_Method . should_equal (HTTP_Method.Get)
+            "pOst" . to HTTP_Method . should_equal (HTTP_Method.Post)
+            "puT" . to HTTP_Method . should_equal (HTTP_Method.Put)
+            "PATCH" . to HTTP_Method . should_equal (HTTP_Method.Patch)
+
+        Test.specify "should make a custom method" <|
+            "CUSTOM" . to HTTP_Method . should_equal (HTTP_Method.Custom "CUSTOM")
+
     Test.group "HTTP client" pending=pending_has_url <|
         Test.specify "should create HTTP client with timeout setting" <|
             http = HTTP.new (timeout = (Duration.new seconds=30))
@@ -72,15 +88,26 @@ spec =
                 }
             response . should_equal expected_response
 
+            uri_response = url_get.to_uri.fetch
+            uri_response . should_equal expected_response
+
         Test.specify "Can perform a HEAD" <|
             response = Data.fetch url_head method=HTTP_Method.Head
             response.code.code . should_equal 200
             response.decode_as_text . should_equal ''
 
+            uri_response = url_head.to_uri.fetch method=HTTP_Method.Head
+            uri_response.code.code . should_equal 200
+            uri_response.decode_as_text . should_equal ''
+
         Test.specify "Can perform an OPTIONS" <|
             response = Data.fetch url_options method=HTTP_Method.Options
             response.code.code . should_equal 200
             response.decode_as_text . should_equal ''
+
+            uri_response = url_head.to_uri.fetch method=HTTP_Method.Options
+            uri_response.code.code . should_equal 200
+            uri_response.decode_as_text . should_equal ''
 
         Test.specify "Can perform auto-parse" <|
             response = Data.fetch url_get
@@ -101,6 +128,10 @@ spec =
                   "args": {}
                 }
             response.decode_as_json . should_equal expected_response
+
+            uri_response = url_get.to_uri.fetch try_auto_parse_response=False
+            uri_response.code.code . should_equal 200
+            uri_response.decode_as_json . should_equal expected_response
 
         Test.specify "Can still perform request when output context is disabled" <|
             run_with_and_without_output <|
@@ -148,6 +179,9 @@ spec =
                   "args": {}
                 }
             response . should_equal expected_response
+
+            url_response = url_post.to_uri.post (Request_Body.Text "hello world")
+            url_response . should_equal expected_response
 
         Test.specify "Can perform a Request_Body.Json JSON POST" <|
             json = Json.parse '{"a": "asdf", "b": 123}'

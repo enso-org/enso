@@ -40,9 +40,7 @@ interface SubdocsEvent {
   removed: Set<Y.Doc>
 }
 
-/**
- * URL query parameters used in gateway server websocket connection.
- */
+/** URL query parameters used in gateway server websocket connection. */
 export type ProviderParams = {
   /** URL for the project's language server RPC connection. */
   ls: string

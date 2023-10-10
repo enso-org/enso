@@ -30,7 +30,8 @@
     "build-dashboard": "npm run build --workspace enso-dashboard",
     "test-dashboard": "npm run test --workspace enso-dashboard",
     "typecheck": "npx tsc -p lib/types/tsconfig.json",
-    "lint": "eslint ."
+    "lint-only": "eslint .",
+    "lint": "npm run --workspace=enso-gui2 compile-server && npm run lint-only"
   },
   "dependencies": {
     "esbuild-plugin-inline-image": "^0.0.9",
