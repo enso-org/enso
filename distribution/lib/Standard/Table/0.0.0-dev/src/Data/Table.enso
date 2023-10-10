@@ -1758,8 +1758,9 @@ type Table
                     Panic.catch NullValuesInKeyColumns handler=translate_null_values_exception <|
                         action
         handle_java_errors <|
-            java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows
-            Table.Value java_table
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
+                Table.Value java_table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
