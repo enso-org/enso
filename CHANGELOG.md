@@ -971,10 +971,12 @@
 - [Merge `Small_Integer` and `Big_Integer` types][7636]
 - [Inline type ascriptions][7796]
 - [Always persist `TRACE` level logs to a file][7825]
+- [Meta.instrument & Instrumentor API][7833]
 - [Downloadable VSCode extension][7861]
 - [New `project/status` route for reporting LS state][7801]
-- [Add Enso-specific assertions][7883])
+- [Add Enso-specific assertions][7883]
 - [Modules can be `private`][7840]
+- [Export of non-existing symbols results in error][7960]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1118,9 +1120,11 @@
 [7796]: https://github.com/enso-org/enso/pull/7796
 [7801]: https://github.com/enso-org/enso/pull/7801
 [7825]: https://github.com/enso-org/enso/pull/7825
+[7833]: https://github.com/enso-org/enso/pull/7833
 [7861]: https://github.com/enso-org/enso/pull/7861
 [7883]: https://github.com/enso-org/enso/pull/7883
 [7840]: https://github.com/enso-org/enso/pull/7840
+[7960]: https://github.com/enso-org/enso/pull/7960
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
