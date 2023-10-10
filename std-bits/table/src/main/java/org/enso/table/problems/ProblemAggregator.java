@@ -89,14 +89,16 @@ public class ProblemAggregator {
     parent.registerChild(this);
   }
 
-  /* This should only be used by top-level code, and any call to this method should be paired up with a summarize
-   * call that translates problems from Java to Enso.
+  /**
+   * This should only be used by top-level code, and any call to this method should be paired up
+   * with a summarize call that translates problems from Java to Enso.
    *
-   * It should only be called by `with_problem_aggregator`.
-   * It should never be called directly from Java.
+   * <p>It should only be called by `with_problem_aggregator`. It should never be called directly
+   * from Java.
    *
-   * @deprecated This method is actually not deprecated, it is just marked as such to avoid any usages from the Java
-   * code (they will generate warnings, whereas the only allowed Enso usage will not).
+   * @deprecated This method is actually not deprecated, it is just marked as such to avoid any
+   *     usages from the Java code (they will generate warnings, whereas the only allowed Enso usage
+   *     will not).
    */
   @Deprecated(forRemoval = false)
   public static ProblemAggregator makeTopLevelAggregator() {
