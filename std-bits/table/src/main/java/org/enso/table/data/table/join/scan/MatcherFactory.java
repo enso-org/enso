@@ -10,9 +10,7 @@ import org.enso.table.data.table.join.Equals;
 import org.enso.table.data.table.join.EqualsIgnoreCase;
 import org.enso.table.data.table.join.JoinCondition;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
-import org.enso.table.problems.ProblemAggregator;
 
 import java.util.List;
 import java.util.Locale;

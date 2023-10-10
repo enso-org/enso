@@ -2,7 +2,6 @@ package org.enso.table.data.table.join;
 
 import org.enso.base.arrays.IntArrayBuilder;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.problems.AggregatedProblems;
 
 import java.util.Arrays;
 import java.util.HashSet;

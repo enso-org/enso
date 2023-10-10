@@ -1,6 +1,5 @@
 package org.enso.table.aggregations;
 
-import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
@@ -8,6 +7,8 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
+
+import java.util.List;
 
 /**
  * Aggregate Column counting the number of (non-)empty entries in a group. If `isEmpty` is true,
