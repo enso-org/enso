@@ -11,15 +11,17 @@ import org.enso.table.data.table.join.EqualsIgnoreCase;
 import org.enso.table.data.table.join.JoinCondition;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class MatcherFactory {
-  public Matcher create(JoinCondition condition) {
+  public Matcher create(JoinCondition condition, ColumnAggregatedProblemAggregator problemAggregator) {
     return switch (condition) {
-      case Equals eq -> new EqualsMatcher(eq);
+      case Equals eq -> new EqualsMatcher(eq, problemAggregator);
       case EqualsIgnoreCase eq -> new EqualsIgnoreCaseMatcher(eq);
       case Between between -> new BetweenMatcher(between);
       default -> throw new UnsupportedOperationException(
@@ -27,8 +29,8 @@ public class MatcherFactory {
     };
   }
 
-  public Matcher create(List<JoinCondition> condition) {
-    List<Matcher> matchers = condition.stream().map(this::create).collect(Collectors.toList());
+  public Matcher create(List<JoinCondition> condition, ColumnAggregatedProblemAggregator problemAggregator) {
+    List<Matcher> matchers = condition.stream().map(m-> create(m, problemAggregator)).collect(Collectors.toList());
     return new CompoundMatcher(matchers);
   }
 
@@ -49,12 +51,6 @@ public class MatcherFactory {
 
       return true;
     }
-
-    @Override
-    public AggregatedProblems getProblems() {
-      return AggregatedProblems.merge(
-          matchers.stream().map(Matcher::getProblems).toArray(AggregatedProblems[]::new));
-    }
   }
 
   static final class EqualsMatcher implements Matcher {
@@ -62,15 +58,14 @@ public class MatcherFactory {
     private final Storage<?> rightStorage;
     private final String leftColumnName;
     private final String rightColumnName;
+    private final ColumnAggregatedProblemAggregator problemAggregator;
 
-    private final AggregatedProblems problems;
-
-    public EqualsMatcher(Equals eq) {
+    public EqualsMatcher(Equals eq, ColumnAggregatedProblemAggregator problemAggregator) {
       leftStorage = eq.left().getStorage();
       rightStorage = eq.right().getStorage();
       leftColumnName = eq.left().getName();
       rightColumnName = eq.right().getName();
-      problems = new AggregatedProblems();
+      this.problemAggregator = problemAggregator;
     }
 
     @Override
@@ -79,19 +74,14 @@ public class MatcherFactory {
       Object rightValue = rightStorage.getItemBoxed(right);
 
       if (NumericConverter.isFloatLike(leftValue)) {
-        problems.add(new FloatingPointGrouping(leftColumnName, left));
+        problemAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(leftColumnName, left));
       }
 
       if (NumericConverter.isFloatLike(rightValue)) {
-        problems.add(new FloatingPointGrouping(rightColumnName, right));
+        problemAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(rightColumnName, right));
       }
 
       return ObjectComparator.areEqual(leftValue, rightValue);
-    }
-
-    @Override
-    public AggregatedProblems getProblems() {
-      return problems;
     }
   }
 

@@ -67,7 +67,7 @@ public class LookupJoin {
 
     assert lookupKeyColumns.length > 0;
     // tableSize parameter is only needed if there are no key columns, but that is not possible
-    lookupIndex = MultiValueIndex.makeUnorderedIndex(lookupKeyColumns, 0, textFoldingStrategies);
+    lookupIndex = MultiValueIndex.makeUnorderedIndex(lookupKeyColumns, 0, textFoldingStrategies, problemAggregator);
     baseTableRowCount = baseKeyStorages[0].size();
   }
 

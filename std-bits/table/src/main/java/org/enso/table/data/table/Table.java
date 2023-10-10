@@ -165,16 +165,6 @@ public class Table {
   }
 
   /**
-   * Creates an index for this table by using values from the specified columns.
-   *
-   * @param columns set of columns to use as an Index
-   * @return a table indexed by the proper column
-   */
-  public MultiValueIndex<?> indexFromColumns(Column[] columns) {
-    return MultiValueIndex.makeUnorderedIndex(columns, this.rowCount(), TextFoldingStrategy.unicodeNormalizedFold);
-  }
-
-  /**
    * Build a cross-tab table on the given grouping and naming columns, aggregating
    * across the aggregate columns.
    *
@@ -189,9 +179,10 @@ public class Table {
           Column[] groupingColumns,
           Column nameColumn,
           Aggregator[] aggregates,
-          String[] aggregateNames, ProblemAggregator problemAggregator) {
-    CrossTabIndex index = new CrossTabIndex(new Column[] {nameColumn}, groupingColumns, this.rowCount());
-    return index.makeCrossTabTable(aggregates, aggregateNames, problemAggregator);
+          String[] aggregateNames,
+          ProblemAggregator problemAggregator) {
+    CrossTabIndex index = new CrossTabIndex(new Column[] {nameColumn}, groupingColumns, this.rowCount(), problemAggregator);
+    return index.makeCrossTabTable(aggregates, aggregateNames);
   }
 
     /**
@@ -201,9 +192,9 @@ public class Table {
      * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
      * @return a table indexed by the proper column
      */
-  public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
+  public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator, ProblemAggregator problemAggregator) {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
-    MultiValueIndex<?> index = MultiValueIndex.makeOrderedIndex(columns, this.rowCount(), directionInts, objectComparator);
+    MultiValueIndex<?> index = MultiValueIndex.makeOrderedIndex(columns, this.rowCount(), directionInts, objectComparator, problemAggregator);
     OrderMask mask = new OrderMask(index.makeOrderMap(this.rowCount()));
     return this.applyMask(mask);
   }
@@ -257,7 +248,7 @@ public class Table {
     }
 
     var strategy = new IndexJoin();
-    JoinResult joinResult = strategy.join(this, right, conditions);
+    JoinResult joinResult = strategy.join(this, right, conditions, problemAggregator);
 
     List<JoinResult> resultsToKeep = new ArrayList<>();
 
@@ -276,7 +267,7 @@ public class Table {
         context.safepoint();
       }
 
-      resultsToKeep.add(leftUnmatchedBuilder.build(AggregatedProblems.of()));
+      resultsToKeep.add(leftUnmatchedBuilder.build());
     }
 
     if (keepRightUnmatched) {
@@ -290,7 +281,7 @@ public class Table {
         context.safepoint();
       }
 
-      resultsToKeep.add(rightUnmatchedBuilder.build(AggregatedProblems.of()));
+      resultsToKeep.add(rightUnmatchedBuilder.build());
     }
 
     List<Column> newColumns = new ArrayList<>();
@@ -319,11 +310,6 @@ public class Table {
         Column newColumn = column.applyMask(rightMask).rename(newName);
         newColumns.add(newColumn);
       }
-    }
-
-    // TODO problemAggregator needs to be passed downwards, but we do the migration step by step
-    if (joinResult != null) {
-      AggregatedProblems.addToAggregator(joinResult.problems(), problemAggregator);
     }
 
     problemAggregator.reportAll(nameDeduplicator.getProblems());
@@ -356,7 +342,6 @@ public class Table {
       newColumns[leftColumnCount + i] = right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
     }
 
-    AggregatedProblems.addToAggregator(joinResult.problems(), problemAggregator);
     problemAggregator.reportAll(nameDeduplicator.getProblems());
     return new Table(newColumns);
   }

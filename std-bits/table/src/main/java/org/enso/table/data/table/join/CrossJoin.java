@@ -14,6 +14,6 @@ public class CrossJoin {
       }
     }
 
-    return resultBuilder.build(AggregatedProblems.of());
+    return resultBuilder.build();
   }
 }

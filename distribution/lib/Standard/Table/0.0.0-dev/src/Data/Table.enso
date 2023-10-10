@@ -781,7 +781,8 @@ type Table
                     Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                self.java_table.orderBy java_columns directions comparator
+                Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.orderBy java_columns directions comparator java_aggregator
             Table.Value java_table
 
     ## GROUP Standard.Base.Selections

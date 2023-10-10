@@ -8,6 +8,7 @@ import org.enso.table.data.table.problems.ArithmeticOverflow;
 import org.enso.table.data.table.problems.ColumnAggregatedProblem;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.data.table.problems.IllegalArgumentError;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -16,28 +17,15 @@ import org.enso.table.problems.ProblemAggregator;
  * <p>A single instance of this builder should not be re-used for different map operations. It may
  * only be used with a single operation.
  */
-public class MapOperationProblemBuilder extends ProblemAggregator {
+public class MapOperationProblemBuilder extends ColumnAggregatedProblemAggregator {
   private final String location;
   private long overflowCount = 0;
   private Object[] overflowExample = null;
   private StorageType overflowTargetType = null;
 
-  private final List<ColumnAggregatedProblem> aggregatedProblemList = new ArrayList<>();
-
   public MapOperationProblemBuilder(ProblemAggregator parent, String location) {
     super(parent);
     this.location = location;
-  }
-
-  protected void reportColumnAggregatedProblem(ColumnAggregatedProblem problem) {
-    for (ColumnAggregatedProblem p : aggregatedProblemList) {
-      if (p.merge(problem)) {
-        // The problem was merged with an existing one.
-        return;
-      }
-    }
-
-    aggregatedProblemList.add(problem);
   }
 
   public void reportFloatingPointEquality(int row) {
@@ -70,11 +58,6 @@ public class MapOperationProblemBuilder extends ProblemAggregator {
     if (overflowCount > 0) {
       summary.add(new ArithmeticOverflow(overflowTargetType, overflowCount, overflowExample));
     }
-
-    for (var p : aggregatedProblemList) {
-      summary.add(p);
-    }
-
     return summary;
   }
 }

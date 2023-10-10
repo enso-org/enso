@@ -20,6 +20,7 @@ import org.graalvm.polyglot.Context;
 public class CrossTabIndex {
   private static final int MAXIMUM_CROSS_TAB_COLUMN_COUNT = 10000;
 
+  private final ProblemAggregator problemAggregator;
   private Column[] xColumns;
 
   private Column[] yColumns;
@@ -32,7 +33,8 @@ public class CrossTabIndex {
 
   private UnorderedMultiValueKey[][] grid;
 
-  public CrossTabIndex(Column[] xColumns, Column[] yColumns, int tableSize) {
+  public CrossTabIndex(Column[] xColumns, Column[] yColumns, int tableSize, ProblemAggregator problemAggregator) {
+    this.problemAggregator = problemAggregator;
     this.xColumns = xColumns;
     this.yColumns = yColumns;
 
@@ -41,7 +43,7 @@ public class CrossTabIndex {
         Stream.concat(Arrays.stream(xColumns), Arrays.stream(yColumns)).toArray(Column[]::new);
     combinedIndex =
         MultiValueIndex.makeUnorderedIndex(
-            combinedColumns, tableSize, TextFoldingStrategy.unicodeNormalizedFold);
+            combinedColumns, tableSize, TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
 
     // Generate lists of combined keys and subkeys
     List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.keys());
@@ -108,7 +110,7 @@ public class CrossTabIndex {
   }
 
   public Table makeCrossTabTable(
-      Aggregator[] aggregates, String[] aggregateNames, ProblemAggregator problemAggregator) {
+      Aggregator[] aggregates, String[] aggregateNames) {
     Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
@@ -207,7 +209,6 @@ public class CrossTabIndex {
 
     // TODO this is not how we will be merging problems - instead the aggregator should be passed
     // downwards to each call; but we do all step by step
-    AggregatedProblems.addToAggregator(combinedIndex.getProblems(), problemAggregator);
     problemAggregator.reportAll(outputTableNameDeduplicator.getProblems());
     for (Aggregator aggregate : aggregates) {
       AggregatedProblems.addToAggregator(aggregate.getProblems(), problemAggregator);
