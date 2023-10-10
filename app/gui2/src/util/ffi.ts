@@ -540,48 +540,48 @@ if (import.meta.vitest) {
     const identInput = ' foo bar\n'
     const tree = parseEnso2(identInput)
     expect(debug(tree)).toMatchObject({
-      childrenCodeLength: 8,
-      whitespaceStart: 0,
-      whitespaceLength: 1,
+      childrenLengthInCodeParsed: 8,
+      whitespaceStartInCodeParsed: 0,
+      whitespaceLengthInCodeParsed: 1,
       statements: [
         {
           expression: {
             arg: {
-              childrenCodeLength: 3,
-              whitespaceStart: 4,
-              whitespaceLength: 1,
+              childrenLengthInCodeParsed: 3,
+              whitespaceStartInCodeParsed: 4,
+              whitespaceLengthInCodeParsed: 1,
               token: {
-                codeStart: 5,
-                codeLength: 3,
-                whitespaceLength: 0,
+                startInCodeBuffer: 5,
+                lengthInCodeBuffer: 3,
+                whitespaceLengthInCodeBuffer: 0,
               },
               type: 'Ident',
             },
             func: {
-              childrenCodeLength: 3,
-              whitespaceLength: 0,
+              childrenLengthInCodeParsed: 3,
+              whitespaceLengthInCodeParsed: 0,
               token: {
-                codeStart: 1,
-                codeLength: 3,
-                whitespaceLength: 0,
+                startInCodeBuffer: 1,
+                lengthInCodeBuffer: 3,
+                whitespaceLengthInCodeBuffer: 0,
               },
               type: 'Ident',
             },
-            childrenCodeLength: 7,
-            whitespaceLength: 0,
+            childrenLengthInCodeParsed: 7,
+            whitespaceLengthInCodeParsed: 0,
             type: 'App',
           },
           newline: {
-            codeLength: 0,
-            whitespaceLength: 0,
+            lengthInCodeBuffer: 0,
+            whitespaceLengthInCodeBuffer: 0,
           },
         },
         {
           expression: undefined,
           newline: {
-            codeStart: 8,
-            codeLength: 1,
-            whitespaceLength: 0,
+            startInCodeBuffer: 8,
+            lengthInCodeBuffer: 1,
+            whitespaceLengthInCodeBuffer: 0,
           },
         },
       ],

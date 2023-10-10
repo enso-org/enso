@@ -214,11 +214,13 @@ function validateSpans_(value: DynValue, state: { pos: number }) {
       break
     case 'object':
       const fields = new Map(value.getFields())
-      const whitespaceStart = fields.get('whitespaceStart')
-      const whitespaceLength = fields.get('whitespaceLength')
-      const codeStart = fields.get('codeStart')
-      const codeLength = fields.get('codeLength')
-      const childrenCodeLength = fields.get('childrenCodeLength')
+      const whitespaceStart =
+        fields.get('whitespaceStartInCodeParsed') ?? fields.get('whitespaceStartInCodeBuffer')
+      const whitespaceLength =
+        fields.get('whitespaceLengthInCodeParsed') ?? fields.get('whitespaceLengthInCodeBuffer')
+      const codeStart = fields.get('startInCodeBuffer')
+      const codeLength = fields.get('lengthInCodeBuffer')
+      const childrenCodeLength = fields.get('childrenLengthInCodeParsed')
       if (
         !(
           whitespaceLength?.type === 'primitive' &&

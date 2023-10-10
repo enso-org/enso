@@ -22,7 +22,7 @@ const RENAME = new Map([
   // - In `Tree`s:
   ['spanLeftOffsetCodeOffsetUtf16', 'whitespaceStartInCodeParsed'],
   ['spanLeftOffsetCodeUtf16', 'whitespaceLengthInCodeParsed'],
-  ['spanCodeLengthUtf16', 'childrenCodeLengthInCodeParsed'],
+  ['spanCodeLengthUtf16', 'childrenLengthInCodeParsed'],
   // - In `Tokens`s:
   ['leftOffsetCodeOffsetUtf16', 'whitespaceStartInCodeBuffer'],
   ['leftOffsetCodeUtf16', 'whitespaceLengthInCodeBuffer'],
