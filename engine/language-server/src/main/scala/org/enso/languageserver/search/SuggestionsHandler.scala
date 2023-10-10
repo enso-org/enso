@@ -370,6 +370,7 @@ final class SuggestionsHandler(
                 .map(CompletionResult.tupled)
           )
         }
+        val replyTo = sender()
         val checkForFirstTimeJava = res.andThen(v => {
           logger.warn("resolved to " + v)
           if (v.isSuccess && v.get.asInstanceOf[CompletionResult].results.isEmpty && isJavaClass) {
@@ -397,7 +398,7 @@ final class SuggestionsHandler(
                 logger.error("database update failed: " + r)
               } else {
                 logger.warn("database updated with: " + r)
-                Future(r.get).pipeTo(sender())
+                Future(r.get).pipeTo(replyTo)
               }
             )
           } else {
@@ -405,7 +406,7 @@ final class SuggestionsHandler(
             v
           }
         })
-      checkForFirstTimeJava.pipeTo(sender())
+      checkForFirstTimeJava.pipeTo(replyTo)
 
       if (state.shouldStartBackgroundProcessing) {
         runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
