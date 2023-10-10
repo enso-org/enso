@@ -144,6 +144,7 @@ export default function Editor(props: EditorProps) {
                                     },
                                     startup: {
                                         project: project.packageName,
+                                        displayedProjectName: project.name,
                                     },
                                     window: {
                                         topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
