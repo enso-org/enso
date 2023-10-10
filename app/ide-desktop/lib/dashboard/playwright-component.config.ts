@@ -39,7 +39,7 @@ export default componentTesting.defineConfig({
             define: {
                 // These are constants, and MUST be `CONSTANT_CASE`.
                 // eslint-disable-next-line @typescript-eslint/naming-convention
-                ['process.env.REDIRECT_OVERRIDE']: 'undefined',
+                ['REDIRECT_OVERRIDE']: 'undefined',
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 ['process.env.NODE_ENV']: JSON.stringify('production'),
             },
