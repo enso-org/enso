@@ -15,15 +15,19 @@ export function toCamel(ident: string): string {
 }
 
 const RENAME = new Map([
+  // TS reserved words.
   ['constructor', 'ident'],
   ['type', 'typeNode'],
-  ['spanLeftOffsetCodeOffsetUtf16', 'whitespaceStart'],
-  ['spanLeftOffsetCodeUtf16', 'whitespaceLength'],
-  ['leftOffsetCodeOffsetUtf16', 'whitespaceStart'],
-  ['leftOffsetCodeUtf16', 'whitespaceLength'],
-  ['spanCodeLengthUtf16', 'childrenCodeLength'],
-  ['codeUtf16', 'codeLength'],
-  ['codeOffsetUtf16', 'codeStart'],
+  // Rename source references to reflect our usage:
+  // - In `Tree`s:
+  ['spanLeftOffsetCodeOffsetUtf16', 'whitespaceStartInCodeParsed'],
+  ['spanLeftOffsetCodeUtf16', 'whitespaceLengthInCodeParsed'],
+  ['spanCodeLengthUtf16', 'childrenCodeLengthInCodeParsed'],
+  // - In `Tokens`s:
+  ['leftOffsetCodeOffsetUtf16', 'whitespaceStartInCodeBuffer'],
+  ['leftOffsetCodeUtf16', 'whitespaceLengthInCodeBuffer'],
+  ['codeUtf16', 'lengthInCodeBuffer'],
+  ['codeOffsetUtf16', 'startInCodeBuffer'],
 ])
 
 export function mapIdent(ident: string): string {
