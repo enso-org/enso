@@ -16,7 +16,7 @@ export default test.defineConfig({
         // `--use-angle` is required for background-blur to work.
         launchOptions: {
             ignoreDefaultArgs: ['--headless'],
-            args: ['--headless=new', '--use-angle=swiftshader'],
+            args: ['--headless=new', '--use-angle=swiftshader', '--disable-gpu'],
         },
     },
     webServer: {
