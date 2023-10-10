@@ -287,21 +287,22 @@ public class DelimitedReader {
     }
   }
 
-  private WithProblems<List<String>> headersFromRow(String[] row) {
+  private List<String> headersFromRow(String[] row) {
     List<String> preprocessedHeaders =
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
 
     NameDeduplicator deduplicator = new NameDeduplicator();
     List<String> names = deduplicator.makeUniqueList(preprocessedHeaders);
-    return new WithProblems<>(names, deduplicator.getProblems());
+    problemAggregator.reportAll(deduplicator.getProblems());
+    return names;
   }
 
-  private WithProblems<List<String>> generateDefaultHeaders(int columnCount) {
+  private List<String> generateDefaultHeaders(int columnCount) {
     List<String> headerNames = new ArrayList<>(columnCount);
     for (int i = 0; i < columnCount; ++i) {
       headerNames.add(COLUMN_NAME + " " + (i + 1));
     }
-    return new WithProblems<>(headerNames, Collections.emptyList());
+    return headerNames;
   }
 
   /**
@@ -322,8 +323,6 @@ public class DelimitedReader {
    *
    * If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found, this will be populated with automatically generated column names. */
   private String[] effectiveColumnNames;
-
-  private List<Problem> headerProblems;
 
   private int getColumnCount() {
     return effectiveColumnNames.length;
@@ -375,13 +374,12 @@ public class DelimitedReader {
 
     if (firstRow == null) {
       effectiveColumnNames = new String[0];
-      headerProblems = Collections.emptyList();
       return;
     }
 
     int expectedColumnCount = firstRow.cells.length;
     boolean wereHeadersDefined = false;
-    WithProblems<List<String>> headerNames;
+    List<String> headerNames;
 
     switch (headerBehavior) {
       case INFER -> {
@@ -418,8 +416,7 @@ public class DelimitedReader {
       default -> throw new IllegalStateException("Impossible branch.");
     }
 
-    headerProblems = headerNames.problems();
-    effectiveColumnNames = headerNames.value().toArray(new String[0]);
+    effectiveColumnNames = headerNames.toArray(new String[0]);
     if (wereHeadersDefined) {
       definedColumnNames = effectiveColumnNames;
     }
@@ -469,7 +466,6 @@ public class DelimitedReader {
       context.safepoint();
     }
 
-    problemAggregator.reportAll(headerProblems);
     return new Table(columns);
   }
 

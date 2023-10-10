@@ -209,8 +209,6 @@ public class CrossTabIndex {
       offset += aggregates.length;
     }
 
-    // TODO this is not how we will be merging problems - instead the aggregator should be passed
-    // downwards to each call; but we do all step by step
     problemAggregator.reportAll(outputTableNameDeduplicator.getProblems());
     return new Table(output);
   }
