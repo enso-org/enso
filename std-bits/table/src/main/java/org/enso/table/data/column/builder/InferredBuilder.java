@@ -155,7 +155,7 @@ public class InferredBuilder extends Builder {
   }
 
   private void retypeToMixed() {
-    ObjectBuilder objectBuilder = new MixedBuilder(currentSize);
+    ObjectBuilder objectBuilder = new MixedBuilder(Math.max(initialSize, currentSize));
     currentBuilder.retypeToMixed(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
     objectBuilder.setPreExistingProblems(currentBuilder.getProblems());
