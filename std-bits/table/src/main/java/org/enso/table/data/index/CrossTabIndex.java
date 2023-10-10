@@ -159,7 +159,7 @@ public class CrossTabIndex {
         }
 
         for (int i = 0; i < aggregates.length; i++) {
-          storage[offset + i].appendNoGrow(aggregates[i].aggregate(rowIds));
+          storage[offset + i].appendNoGrow(aggregates[i].aggregate(rowIds, problemAggregator));
         }
 
         offset += aggregates.length;

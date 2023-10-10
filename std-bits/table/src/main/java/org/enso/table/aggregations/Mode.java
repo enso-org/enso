@@ -14,16 +14,15 @@ import org.graalvm.polyglot.Context;
 /** Aggregate Column computing the most common value in a group (ignoring Nothing). */
 public class Mode extends Aggregator {
   private final Storage<?> storage;
-  private final ColumnAggregatedProblemAggregator problemAggregator;
 
-  public Mode(String name, Column column, ProblemAggregator problemAggregator) {
+  public Mode(String name, Column column) {
     super(name, column.getStorage().getType());
     this.storage = column.getStorage();
-    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     Object current = null;
     int count = 0;
@@ -36,7 +35,7 @@ public class Mode extends Aggregator {
         if (lValue == null) {
           Double dValue = NumericConverter.tryConvertingToDouble(value);
           if (dValue != null) {
-            problemAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(this.getName(), row));
+            innerAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(this.getName(), row));
             value = dValue;
           }
         } else {

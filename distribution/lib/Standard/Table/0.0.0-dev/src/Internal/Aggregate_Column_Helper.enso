@@ -27,7 +27,6 @@ polyglot java import org.enso.table.aggregations.Percentile as PercentileAggrega
 polyglot java import org.enso.table.aggregations.ShortestOrLongest as ShortestOrLongestAggregator
 polyglot java import org.enso.table.aggregations.StandardDeviation as StandardDeviationAggregator
 polyglot java import org.enso.table.aggregations.Sum as SumAggregator
-polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## Result type for aggregate_columns validation
    - key_columns: Vector of Columns from the table to group by
@@ -217,8 +216,8 @@ type Internal_Missing_Column_Error
 
 ## PRIVATE
    Creates a Java Aggregator for the Aggregate_Column
-java_aggregator : Text -> Aggregate_Column -> ProblemAggregator -> Aggregator
-java_aggregator name column java_problem_aggregator =
+java_aggregator : Text -> Aggregate_Column -> Aggregator
+java_aggregator name column =
     case column of
         Group_By c _ -> GroupByAggregator.new name c.java_column
         Count _ -> CountAggregator.new name

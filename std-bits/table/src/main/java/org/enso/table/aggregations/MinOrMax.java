@@ -19,7 +19,6 @@ public class MinOrMax extends Aggregator {
 
   private final Storage<?> storage;
   private final int minOrMax;
-  private final ColumnAggregatedProblemAggregator problemAggregator;
 
   /**
    * Constructs a MinOrMax Aggregator
@@ -28,15 +27,15 @@ public class MinOrMax extends Aggregator {
    * @param column input column
    * @param minOrMax <0 for minimum, >0 for maximum
    */
-  public MinOrMax(String name, Column column, int minOrMax, ProblemAggregator problemAggregator) {
+  public MinOrMax(String name, Column column, int minOrMax) {
     super(name, column.getStorage().getType());
     this.storage = column.getStorage();
     this.minOrMax = Integer.signum(minOrMax);
-    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     Object current = null;
     for (int row : indexes) {
@@ -48,7 +47,7 @@ public class MinOrMax extends Aggregator {
             current = value;
           }
         } catch (CompareException e) {
-          problemAggregator.reportColumnAggregatedProblem(
+          innerAggregator.reportColumnAggregatedProblem(
               new InvalidAggregation(
                   this.getName(),
                   row,

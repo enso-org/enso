@@ -17,17 +17,16 @@ import org.graalvm.polyglot.Context;
 public class Percentile extends Aggregator {
   private final Storage<?> storage;
   private final double percentile;
-  private final ColumnAggregatedProblemAggregator problemAggregator;
 
-  public Percentile(String name, Column column, double percentile, ProblemAggregator problemAggregator) {
+  public Percentile(String name, Column column, double percentile) {
     super(name, FloatType.FLOAT_64);
     this.storage = column.getStorage();
     this.percentile = percentile;
-    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     int count = 0;
     SortedMap<Double, Integer> currentMap = new TreeMap<>();
@@ -37,7 +36,7 @@ public class Percentile extends Aggregator {
         Double dValue = NumericConverter.tryConvertingToDouble(value);
 
         if (dValue == null) {
-          problemAggregator.reportColumnAggregatedProblem(
+          innerAggregator.reportColumnAggregatedProblem(
               new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
           return null;
         } else if (dValue.isNaN()) {
@@ -84,7 +83,7 @@ public class Percentile extends Aggregator {
       context.safepoint();
     }
 
-    problemAggregator.reportColumnAggregatedProblem(
+    innerAggregator.reportColumnAggregatedProblem(
         new InvalidAggregation(this.getName(), -1, "Failed calculating the percentile."));
     return null;
   }

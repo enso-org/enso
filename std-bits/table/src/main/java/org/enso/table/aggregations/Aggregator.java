@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 
 /** Interface used to define aggregate columns. */
 public abstract class Aggregator {
@@ -40,15 +41,5 @@ public abstract class Aggregator {
    * @param indexes - indexes to the rows in the source table to aggregate on
    * @return aggregated value
    */
-  public Object aggregate(int[] indexes) {
-    return this.aggregate(Arrays.stream(indexes).boxed().collect(Collectors.toList()));
-  }
-
-  /**
-   * Compute the value for a set of rows
-   *
-   * @param indexes - indexes to the rows in the source table to aggregate on
-   * @return aggregated value
-   */
-  public abstract Object aggregate(List<Integer> indexes);
+  public abstract Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator);
 }

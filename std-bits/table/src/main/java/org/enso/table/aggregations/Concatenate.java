@@ -17,10 +17,9 @@ public class Concatenate extends Aggregator {
   private final String prefix;
   private final String suffix;
   private final String quote;
-  private final ColumnAggregatedProblemAggregator problemAggregator;
 
   public Concatenate(
-      String name, Column column, String separator, String prefix, String suffix, String quote, ProblemAggregator problemAggregator) {
+      String name, Column column, String separator, String prefix, String suffix, String quote) {
     super(name, TextType.VARIABLE_LENGTH);
     this.storage = column.getStorage();
 
@@ -28,11 +27,11 @@ public class Concatenate extends Aggregator {
     this.prefix = prefix;
     this.suffix = suffix;
     this.quote = quote == null ? "" : quote;
-    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     StringBuilder current = null;
     for (int row : indexes) {
@@ -41,7 +40,7 @@ public class Concatenate extends Aggregator {
         String textValue = toQuotedString(value, quote, separator);
 
         if (!separator.equals("") && quote.equals("") && textValue.contains(separator)) {
-          problemAggregator.reportColumnAggregatedProblem(new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
+          innerAggregator.reportColumnAggregatedProblem(new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
         }
 
         if (current == null) {
@@ -52,7 +51,7 @@ public class Concatenate extends Aggregator {
           current.append(textValue);
         }
       } else {
-        problemAggregator.reportColumnAggregatedProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
+        innerAggregator.reportColumnAggregatedProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
         return null;
       }
 

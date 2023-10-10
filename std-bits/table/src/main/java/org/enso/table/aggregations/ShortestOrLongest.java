@@ -17,17 +17,16 @@ public class ShortestOrLongest extends Aggregator {
   public static final int LONGEST = 1;
   private final Storage<?> storage;
   private final int minOrMax;
-  private final ColumnAggregatedProblemAggregator problemAggregator;
 
-  public ShortestOrLongest(String name, Column column, int minOrMax, ProblemAggregator problemAggregator) {
+  public ShortestOrLongest(String name, Column column, int minOrMax) {
     super(name, TextType.VARIABLE_LENGTH);
     this.storage = column.getStorage();
     this.minOrMax = minOrMax;
-    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     long length = 0;
     Object current = null;
@@ -36,7 +35,7 @@ public class ShortestOrLongest extends Aggregator {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         if (!(value instanceof String asString)) {
-          problemAggregator.reportColumnAggregatedProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
+          innerAggregator.reportColumnAggregatedProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
           return null;
         }
 

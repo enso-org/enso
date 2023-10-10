@@ -26,17 +26,16 @@ public class StandardDeviation extends Aggregator {
 
   private final Storage<?> storage;
   private final boolean population;
-  private final ColumnAggregatedProblemAggregator problemAggregator;
 
-  public StandardDeviation(String name, Column column, boolean population, ProblemAggregator problemAggregator) {
+  public StandardDeviation(String name, Column column, boolean population) {
     super(name, FloatType.FLOAT_64);
     this.storage = column.getStorage();
     this.population = population;
-    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     Calculation current = null;
     for (int row : indexes) {
@@ -44,7 +43,7 @@ public class StandardDeviation extends Aggregator {
       if (value != null) {
         Double dValue = NumericConverter.tryConvertingToDouble(value);
         if (dValue == null) {
-          problemAggregator.reportColumnAggregatedProblem(
+          innerAggregator.reportColumnAggregatedProblem(
               new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
           return null;
         }

@@ -22,7 +22,6 @@ public class CountDistinct extends Aggregator {
   private final Storage<?>[] storage;
   private final List<TextFoldingStrategy> textFoldingStrategy;
   private final boolean ignoreAllNull;
-  private final ColumnAggregatedProblemAggregator problemAggregator;
 
   /**
    * Constructs a CountDistinct Aggregator
@@ -31,23 +30,23 @@ public class CountDistinct extends Aggregator {
    * @param columns input columns
    * @param ignoreAllNull if true ignore then all values are null
    */
-  public CountDistinct(String name, Column[] columns, boolean ignoreAllNull, ProblemAggregator problemAggregator) {
+  public CountDistinct(String name, Column[] columns, boolean ignoreAllNull) {
     super(name, IntegerType.INT_64);
     this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     this.ignoreAllNull = ignoreAllNull;
     textFoldingStrategy =
         ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, storage.length);
-    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     HashSet<UnorderedMultiValueKey> set = new HashSet<>();
     for (int row : indexes) {
       UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, row, textFoldingStrategy);
       if (key.hasFloatValues()) {
-        problemAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(this.getName(), row));
+        innerAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(this.getName(), row));
       }
 
       if (!ignoreAllNull || !key.areAllNull()) {

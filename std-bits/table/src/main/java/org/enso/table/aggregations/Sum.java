@@ -14,16 +14,15 @@ import org.graalvm.polyglot.Context;
 /** Aggregate Column computing the total value in a group. */
 public class Sum extends Aggregator {
   private final Storage<?> storage;
-  private final MapOperationProblemBuilder problemAggregator;
 
-  public Sum(String name, Column column, ProblemAggregator problemAggregator) {
+  public Sum(String name, Column column) {
     super(name, FloatType.FLOAT_64);
     this.storage = column.getStorage();
-    this.problemAggregator = new MapOperationProblemBuilder(problemAggregator, name);
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    MapOperationProblemBuilder innerAggregator = new MapOperationProblemBuilder(problemAggregator, getName());
     Context context = Context.getCurrent();
     Object current = null;
     for (int row : indexes) {
@@ -39,7 +38,7 @@ public class Sum extends Aggregator {
           try {
             current = Math.addExact(lCurrent, lValue);
           } catch (ArithmeticException exception) {
-            problemAggregator.reportOverflow(IntegerType.INT_64, "Sum");
+            innerAggregator.reportOverflow(IntegerType.INT_64, "Sum");
             return null;
           }
         } else {
@@ -48,7 +47,7 @@ public class Sum extends Aggregator {
           if (dCurrent != null && dValue != null) {
             current = dCurrent + dValue;
           } else {
-            problemAggregator.reportColumnAggregatedProblem(
+            innerAggregator.reportColumnAggregatedProblem(
                 new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
             return null;
           }
