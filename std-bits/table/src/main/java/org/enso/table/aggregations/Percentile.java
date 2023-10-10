@@ -9,17 +9,21 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing a percentile value in a group. */
 public class Percentile extends Aggregator {
   private final Storage<?> storage;
   private final double percentile;
+  private final ColumnAggregatedProblemAggregator problemAggregator;
 
-  public Percentile(String name, Column column, double percentile) {
+  public Percentile(String name, Column column, double percentile, ProblemAggregator problemAggregator) {
     super(name, FloatType.FLOAT_64);
     this.storage = column.getStorage();
     this.percentile = percentile;
+    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
@@ -33,7 +37,7 @@ public class Percentile extends Aggregator {
         Double dValue = NumericConverter.tryConvertingToDouble(value);
 
         if (dValue == null) {
-          this.addProblem(
+          problemAggregator.reportColumnAggregatedProblem(
               new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
           return null;
         } else if (dValue.isNaN()) {
@@ -80,7 +84,7 @@ public class Percentile extends Aggregator {
       context.safepoint();
     }
 
-    this.addProblem(
+    problemAggregator.reportColumnAggregatedProblem(
         new InvalidAggregation(this.getName(), -1, "Failed calculating the percentile."));
     return null;
   }

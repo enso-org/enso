@@ -693,9 +693,8 @@ type Table
             java_key_columns = validated.key_columns.map .java_column
             index = self.java_table.indexFromColumns java_key_columns
 
-            new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
-
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second java_problem_aggregator)
                 java_table = index.makeTable new_columns java_problem_aggregator
                 Table.Value java_table
 

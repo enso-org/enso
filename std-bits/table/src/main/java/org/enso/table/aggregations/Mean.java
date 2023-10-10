@@ -6,6 +6,8 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the mean value in a group. */
@@ -21,10 +23,12 @@ public class Mean extends Aggregator {
   }
 
   private final Storage<?> storage;
+  private final ColumnAggregatedProblemAggregator problemAggregator;
 
-  public Mean(String name, Column column) {
+  public Mean(String name, Column column, ProblemAggregator problemAggregator) {
     super(name, FloatType.FLOAT_64);
     this.storage = column.getStorage();
+    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
@@ -36,7 +40,7 @@ public class Mean extends Aggregator {
       if (value != null) {
         Double dValue = NumericConverter.tryConvertingToDouble(value);
         if (dValue == null) {
-          this.addProblem(
+          problemAggregator.reportColumnAggregatedProblem(
               new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
           return null;
         }

@@ -48,6 +48,14 @@ public class MapOperationProblemBuilder extends ColumnAggregatedProblemAggregato
     }
   }
 
+  public void reportOverflow(StorageType targetType, String op) {
+    overflowCount++;
+    if (overflowTargetType == null) {
+      overflowTargetType = targetType;
+      overflowExample = new Object[] {op};
+    }
+  }
+
   public void reportDivisionByZero(Integer row) {
     reportArithmeticError("Division by zero", row);
   }

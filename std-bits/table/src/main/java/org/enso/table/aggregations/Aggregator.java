@@ -4,19 +4,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.Problem;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 
 /** Interface used to define aggregate columns. */
 public abstract class Aggregator {
   private final String name;
   private final StorageType type;
-  private AggregatedProblems problems;
 
   protected Aggregator(String name, StorageType type) {
     this.name = name;
     this.type = type;
-    this.problems = null;
   }
 
   /**
@@ -37,10 +34,6 @@ public abstract class Aggregator {
     return type;
   }
 
-  public AggregatedProblems getProblems() {
-    return problems;
-  }
-
   /**
    * Compute the value for a set of rows
    *
@@ -58,11 +51,4 @@ public abstract class Aggregator {
    * @return aggregated value
    */
   public abstract Object aggregate(List<Integer> indexes);
-
-  protected void addProblem(Problem problem) {
-    if (problems == null) {
-      problems = new AggregatedProblems();
-    }
-    problems.add(problem);
-  }
 }

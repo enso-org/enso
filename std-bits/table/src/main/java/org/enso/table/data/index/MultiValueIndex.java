@@ -107,7 +107,6 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     return isUnique;
   }
 
-  // TODO we will move problemAggregator to the constructor later
   public Table makeTable(Aggregator[] columns) {
     Context context = Context.getCurrent();
     final int length = columns.length;
@@ -135,10 +134,6 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         }
       }
     }
-
-    IntStream.range(0, length)
-        .forEach(
-            i -> AggregatedProblems.addToAggregator(columns[i].getProblems(), problemAggregator));
 
     return new Table(
         IntStream.range(0, length)

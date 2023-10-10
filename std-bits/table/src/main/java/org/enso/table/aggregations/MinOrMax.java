@@ -6,6 +6,8 @@ import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -17,6 +19,7 @@ public class MinOrMax extends Aggregator {
 
   private final Storage<?> storage;
   private final int minOrMax;
+  private final ColumnAggregatedProblemAggregator problemAggregator;
 
   /**
    * Constructs a MinOrMax Aggregator
@@ -25,10 +28,11 @@ public class MinOrMax extends Aggregator {
    * @param column input column
    * @param minOrMax <0 for minimum, >0 for maximum
    */
-  public MinOrMax(String name, Column column, int minOrMax) {
+  public MinOrMax(String name, Column column, int minOrMax, ProblemAggregator problemAggregator) {
     super(name, column.getStorage().getType());
     this.storage = column.getStorage();
     this.minOrMax = Integer.signum(minOrMax);
+    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
@@ -44,7 +48,7 @@ public class MinOrMax extends Aggregator {
             current = value;
           }
         } catch (CompareException e) {
-          this.addProblem(
+          problemAggregator.reportColumnAggregatedProblem(
               new InvalidAggregation(
                   this.getName(),
                   row,

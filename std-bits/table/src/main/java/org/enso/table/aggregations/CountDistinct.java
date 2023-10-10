@@ -9,6 +9,8 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 import org.graalvm.polyglot.Context;
 
@@ -20,6 +22,7 @@ public class CountDistinct extends Aggregator {
   private final Storage<?>[] storage;
   private final List<TextFoldingStrategy> textFoldingStrategy;
   private final boolean ignoreAllNull;
+  private final ColumnAggregatedProblemAggregator problemAggregator;
 
   /**
    * Constructs a CountDistinct Aggregator
@@ -28,12 +31,13 @@ public class CountDistinct extends Aggregator {
    * @param columns input columns
    * @param ignoreAllNull if true ignore then all values are null
    */
-  public CountDistinct(String name, Column[] columns, boolean ignoreAllNull) {
+  public CountDistinct(String name, Column[] columns, boolean ignoreAllNull, ProblemAggregator problemAggregator) {
     super(name, IntegerType.INT_64);
     this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     this.ignoreAllNull = ignoreAllNull;
     textFoldingStrategy =
         ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, storage.length);
+    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   @Override
@@ -43,7 +47,7 @@ public class CountDistinct extends Aggregator {
     for (int row : indexes) {
       UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, row, textFoldingStrategy);
       if (key.hasFloatValues()) {
-        this.addProblem(new FloatingPointGrouping(this.getName(), row));
+        problemAggregator.reportColumnAggregatedProblem(new FloatingPointGrouping(this.getName(), row));
       }
 
       if (!ignoreAllNull || !key.areAllNull()) {
