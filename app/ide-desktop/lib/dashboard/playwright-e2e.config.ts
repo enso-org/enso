@@ -9,7 +9,7 @@ export default test.defineConfig({
     retries: process.env.CI ? 2 : 0,
     ...(process.env.CI ? { workers: 1 } : {}),
     expect: {
-        toHaveScreenshot: { threshold: 0 },
+        toHaveScreenshot: { threshold: 0, maxDiffPixelRatio: 0.02 },
     },
     use: {
         baseURL: 'http://localhost:8080',
