@@ -25,6 +25,7 @@ export enum AssetEventType {
     openProject = 'open-project',
     closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
+    move = 'move',
     deleteMultiple = 'delete-multiple',
     restoreMultiple = 'restore-multiple',
     downloadSelected = 'download-selected',
@@ -45,6 +46,7 @@ interface AssetEvents {
     openProject: AssetOpenProjectEvent
     closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
+    move: AssetMoveEvent
     deleteMultiple: AssetDeleteMultipleEvent
     restoreMultiple: AssetRestoreMultipleEvent
     downloadSelected: AssetDownloadSelectedEvent
@@ -100,6 +102,13 @@ export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.cl
 /** A signal to cancel automatically opening any project that is currently opening. */
 export interface AssetCancelOpeningAllProjectsEvent
     extends AssetBaseEvent<AssetEventType.cancelOpeningAllProjects> {}
+
+/** A signal to move an asset. */
+export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
+    newDirectoryKey: backendModule.AssetId
+    newDirectoryId: backendModule.DirectoryId
+    ids: Set<backendModule.AssetId>
+}
 
 /** A signal to delete multiple assets. */
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {

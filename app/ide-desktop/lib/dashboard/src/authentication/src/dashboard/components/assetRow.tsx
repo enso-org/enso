@@ -47,7 +47,7 @@ export default function AssetRow(props: AssetRowProps) {
         state,
         columns,
     } = props
-    const { assetEvents, dispatchAssetListEvent } = state
+    const { assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const { user } = authProvider.useNonPartialUserSession()
@@ -143,7 +143,7 @@ export default function AssetRow(props: AssetRowProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            // These events are handled in the specific NameColumn files.
+            // These events are handled in the specific `NameColumn` files.
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
@@ -151,6 +151,16 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
+                break
+            }
+            case assetEventModule.AssetEventType.move: {
+                if (event.ids.has(item.key)) {
+                    await backend.updateAsset(
+                        item.item.id,
+                        { parentDirectoryId: event.newDirectoryId },
+                        item.item.title
+                    )
+                }
                 break
             }
             case assetEventModule.AssetEventType.deleteMultiple: {
@@ -237,6 +247,26 @@ export default function AssetRow(props: AssetRowProps) {
                         setItem={setItem}
                         initialRowState={rowState}
                         setRowState={setRowState}
+                        onDragOver={event => {
+                            if (item.item.type === backendModule.AssetType.directory) {
+                                event.preventDefault()
+                            }
+                        }}
+                        onDrop={async event => {
+                            if (item.item.type === backendModule.AssetType.directory) {
+                                const payload = await assetsTable.tryFindAssetRowsDragPayload(
+                                    event.dataTransfer
+                                )
+                                if (payload != null) {
+                                    dispatchAssetEvent({
+                                        type: assetEventModule.AssetEventType.move,
+                                        newDirectoryKey: item.key,
+                                        newDirectoryId: item.item.id,
+                                        ids: new Set(payload.map(dragItem => dragItem.asset.id)),
+                                    })
+                                }
+                            }
+                        }}
                     />
                     {selected &&
                         allowContextMenu &&
