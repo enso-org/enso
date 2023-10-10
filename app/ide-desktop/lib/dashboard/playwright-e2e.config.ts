@@ -18,18 +18,24 @@ export default test.defineConfig({
     },
     use: {
         baseURL: 'http://localhost:8080',
-        // `--use-angle` is required for background-blur to work.
         launchOptions: {
             ignoreDefaultArgs: ['--headless'],
             args: [
+                // Much closer to headful Chromium than classic headless.
                 '--headless=new',
+                // Required for `backdrop-filter: blur` to work.
                 '--use-angle=swiftshader',
                 // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
                 // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
                 // MUST stay as CI does not have a GPU.
                 '--disable-gpu',
+                // Fully disable GPU process.
                 '--disable-software-rasterizer',
+                // Disable text subpixel antialiasing.
                 '--font-render-hinting=none',
+                '--disable-skia-runtime-opts',
+                '--disable-font-subpixel-positioning',
+                '--disable-lcd-text',
             ],
         },
     },

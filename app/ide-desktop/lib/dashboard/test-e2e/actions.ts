@@ -253,13 +253,8 @@ export async function login(
 // === mockDate ===
 // ================
 
-/** The number of milliseconds in a minute. */
-const MIN_MS = 60_000
-
 /** A placeholder date for visual regression testing. */
-const MOCK_DATE = Number(
-    Number(new Date('01/23/45 01:23:45 UTC')) + new Date().getTimezoneOffset() * MIN_MS
-)
+const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
 /** Replace `Date` with a version that returns a fixed time. */
 export async function mockDate(page: test.Page) {
