@@ -92,6 +92,10 @@ spec =
             expected = Table.from_rows ["first", "middle", "height", "weight"] [["Mary", Nothing, Nothing, Nothing], [Nothing, Nothing, 1.9, 70]]
             Table.from_objects non_uniform_json ["first", "middle", "height", "weight"] . should_equal expected
 
+        Test.specify "Generates a table from a non-uniform vector of JSON objects, with ignored and extra fields, taking only from one kind of value" <|
+            expected = Table.from_rows ["first"] [["Mary"], [Nothing]]
+            Table.from_objects non_uniform_json ["first"] . should_equal expected
+
     Test.group "from_objects with mixed vector of single and JSON objects" <|
         Test.specify "Generates a table from a mixed vector of single values and JSON objects" <|
             expected = Table.from_rows ["first", "last", "age", "Value"] [["Mary", "Smith", 23, Nothing], ["Joe", "Burton", 34, Nothing], [Nothing, Nothing, Nothing, 12]]
