@@ -236,6 +236,34 @@ spec make_new_connection prefix persistent_connector=True =
 
             log_file.delete_if_exists
 
+        Test.specify "should re-use the same temporary table name across dry runs but re-create it each time" <|
+            base_table_name = Name_Generator.random_name "multi-dry-create"
+
+            Context.Output.with_disabled <|
+                t1 = connection.create_table base_table_name structure=[Column_Description.Value "X" Value_Type.Integer] temporary=True
+                Problems.expect_only_warning Dry_Run_Operation t1
+
+                tmp_name = t1.name
+                tmp_name . should_not_equal base_table_name
+                connection.query base_table_name . should_fail_with Table_Not_Found
+
+                t2 = connection.create_table base_table_name structure=[Column_Description.Value "Y" Value_Type.Char] temporary=True
+                Problems.expect_only_warning Dry_Run_Operation t2
+                t2.name . should_equal tmp_name
+                t2.at "Y" . to_vector . should_equal []
+                t2.update_rows (Table.new [["Y", ['a']]]) . should_succeed
+                t2.at "Y" . to_vector . should_equal ['a']
+
+                t3 = connection.create_table base_table_name structure=[Column_Description.Value "Y" Value_Type.Char] temporary=True
+                Problems.expect_only_warning Dry_Run_Operation t3
+                t3.name . should_equal tmp_name
+                t3.at "Y" . to_vector . should_equal []
+                # Old reference may work because it has the same structure - but contents have been rewritten:
+                t2.at "Y" . to_vector . should_equal []
+
+                # The old dry run table will not work due to different structure:
+                t1.at "X" . to_vector . should_fail_with SQL_Error
+
     Test.group prefix+"Uploading an in-memory Table" <|
         in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
         Test.specify "should create a database table with the same contents as the source" <|
@@ -365,6 +393,32 @@ spec make_new_connection prefix persistent_connector=True =
             preexisting2 = connection.query name
             preexisting2.column_names . should_equal ["X"]
             preexisting2.at "X" . to_vector . should_equal [42]
+
+        Test.specify "should re-use the same temporary table name across dry runs but re-create it each time" <|
+            base_table_name = Name_Generator.random_name "multi-dry-select"
+
+            Context.Output.with_disabled <|
+                t1 = (Table.new [["X", [1, 2, 3]]]).select_into_database_table connection base_table_name temporary=True primary_key=[]
+                Problems.expect_only_warning Dry_Run_Operation t1
+
+                tmp_name = t1.name
+                tmp_name . should_not_equal base_table_name
+                connection.query base_table_name . should_fail_with Table_Not_Found
+
+                t1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+
+                t2 = (Table.new [["Y", [44]]]).select_into_database_table connection base_table_name temporary=False primary_key=[]
+                Problems.expect_only_warning Dry_Run_Operation t2
+                t2.name . should_equal tmp_name
+                t2.at "Y" . to_vector . should_equal [44]
+
+                t3 = (Table.new [["Y", [55]]]).select_into_database_table connection base_table_name temporary=True primary_key=[]
+                Problems.expect_only_warning Dry_Run_Operation t3
+                t3.name . should_equal tmp_name
+                t3.at "Y" . to_vector . should_equal [55]
+
+                # The old dry run table has been invalidated due to overwrite
+                t1.at "X" . to_vector . should_fail_with SQL_Error
 
     Test.group prefix+"Persisting a Database Table (query)" <|
         Test.specify "should be able to create a persistent copy of a DB table" <|
@@ -1349,3 +1403,6 @@ wait_until_temporary_table_is_deleted_after_closing_connection connection table_
                 Thread.sleep retry_interval_ms
                 @Tail_Call go (ix + 1)
     go 0
+
+
+## TODO TEST DRY RUN TWICE!
