@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
-import org.enso.interpreter.instrument.IdExecutionService.{
+import org.enso.interpreter.service.ExecutionService.{
   ExpressionCall,
   ExpressionValue,
   FunctionPointer

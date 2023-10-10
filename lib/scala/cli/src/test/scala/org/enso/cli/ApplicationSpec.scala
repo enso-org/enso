@@ -237,21 +237,25 @@ class ApplicationSpec
       }
 
       withClue("show similar commands if available") {
-        runErrors("cmd1") should (include(
+        runErrors("cmd1").replace("\r\n", "\n") should (include(
           "`cmd1` is not a valid command."
         ) and include(
           """The most similar commands are
             |    cmd
-            |""".stripMargin
+            |""".replace("\r\n", "\n").stripMargin
         ))
       }
 
       withClue("show available commands if no similar available") {
-        runErrors("very-strange-command-name") should (include(
+        runErrors("very-strange-command-name").replace(
+          "\r\n",
+          "\n"
+        ) should (include(
           "`very-strange-command-name` is not a valid command."
+            .replace("\r\n", "\n")
         ) and include("""Available commands:
                         |    cmd Cmd.
-                        |""".stripMargin))
+                        |""".replace("\r\n", "\n").stripMargin))
       }
 
       withClue("show command help if subcommand is missing") {
@@ -261,24 +265,27 @@ class ApplicationSpec
       }
 
       withClue("show similar subcommands if available") {
-        runErrors("cmd", "sub") should (include(
-          "is not a valid subcommand."
+        runErrors("cmd", "sub").replace("\r\n", "\n") should (include(
+          "is not a valid subcommand.".replace("\r\n", "\n")
         ) and include(
           """The most similar subcommands are
             |    sub1
             |    sub2
-            |""".stripMargin
+            |""".replace("\r\n", "\n").stripMargin
         ))
       }
 
       withClue("show available subcommands if no similar ones") {
-        runErrors("cmd", "very-strange-subcommand") should (include(
+        runErrors("cmd", "very-strange-subcommand").replace(
+          "\r\n",
+          "\n"
+        ) should (include(
           "is not a valid subcommand."
         ) and include(
           """Available subcommands are
             |    sub1
             |    sub2
-            |""".stripMargin
+            |""".replace("\r\n", "\n").stripMargin
         ))
       }
     }
@@ -288,7 +295,7 @@ class ApplicationSpec
 
       val cmdOutput = captureOutput {
         assert(app.run(Seq("cmd", "--help")).isRight)
-      }
+      }.replace("\r\n", "\n")
       val cmdHelp =
         """Cmd.
           |Usage: app cmd sub1 [options] [--inner-flag]
@@ -300,7 +307,7 @@ class ApplicationSpec
           |    [--inner-flag]    Inner.
           |    [--toplevel-flag] Top.
           |    [-h | --help]     Print this help message.
-          |""".stripMargin
+          |""".replace("\r\n", "\n").stripMargin
       cmdOutput shouldEqual cmdHelp
 
       val topOutput = captureOutput {
@@ -321,7 +328,7 @@ class ApplicationSpec
           |--help`.
           |""".stripMargin
 
-      topOutput shouldEqual topHelp
+      topOutput.replace("\r\n", "\n") shouldEqual topHelp.replace("\r\n", "\n")
     }
   }
 }
