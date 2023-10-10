@@ -1365,6 +1365,7 @@ type Table
              a `Floating_Point_Equality`.
            - If `add_new_columns` is `False` and the lookup table has columns
              that are not present in this table, an `Unexpected_Extra_Columns`.
+    @key_columns Widget_Helpers.make_column_name_vector_selector
     lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         _ = [lookup_table, key_columns, add_new_columns, allow_unmatched_rows, on_problems]
