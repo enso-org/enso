@@ -1,12 +1,11 @@
 package org.enso.table.read;
 
+import java.util.List;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
 import org.enso.table.problems.Problem;
 import org.enso.table.problems.ProblemAggregator;
-
-import java.util.List;
 
 public class DelimitedReaderProblemAggregator extends ProblemAggregator {
 
@@ -15,7 +14,11 @@ public class DelimitedReaderProblemAggregator extends ProblemAggregator {
   private long invalidRowsCount;
   private final long invalidRowsLimit;
 
-  public DelimitedReaderProblemAggregator(ProblemAggregator parent, boolean warningsAsErrors, char quoteCharacter, long invalidRowsLimit) {
+  public DelimitedReaderProblemAggregator(
+      ProblemAggregator parent,
+      boolean warningsAsErrors,
+      char quoteCharacter,
+      long invalidRowsLimit) {
     super(parent);
     this.warningsAsErrors = warningsAsErrors;
     this.quoteCharacter = quoteCharacter;
