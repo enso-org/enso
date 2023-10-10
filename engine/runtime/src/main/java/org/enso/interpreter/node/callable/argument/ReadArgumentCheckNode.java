@@ -51,6 +51,7 @@ import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.strings.TruffleString;
 
 public abstract class ReadArgumentCheckNode extends Node {
   private final String name;
