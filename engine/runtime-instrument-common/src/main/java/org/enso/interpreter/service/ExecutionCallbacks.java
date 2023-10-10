@@ -5,10 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import org.enso.interpreter.instrument.IdExecutionService;
-import org.enso.interpreter.instrument.IdExecutionService.ExpressionCall;
-import org.enso.interpreter.instrument.IdExecutionService.ExpressionValue;
-import org.enso.interpreter.instrument.IdExecutionService.FunctionCallInfo;
+import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
@@ -19,8 +16,12 @@ import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.type.Constants;
+import org.enso.interpreter.service.ExecutionService.ExpressionCall;
+import org.enso.interpreter.service.ExecutionService.ExpressionValue;
+import org.enso.interpreter.service.ExecutionService.FunctionCallInfo;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.TruffleObject;
 
 final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
@@ -115,9 +116,10 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public final Object onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result) {
-    calls.put(nodeId, FunctionCallInfo.fromFunctionCall(result));
-    functionCallCallback.accept(new ExpressionCall(nodeId, result));
+  public final Object onFunctionReturn(UUID nodeId, TruffleObject result) {
+    var fnCall = (FunctionCallInstrumentationNode.FunctionCall) result;
+    calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
+    functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
     // Return cached value after capturing the enterable function call in `functionCallCallback`
     Object cachedResult = cache.get(nodeId);
     if (cachedResult != null) {
