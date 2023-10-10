@@ -691,11 +691,10 @@ type Table
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns
-
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second java_problem_aggregator)
-                java_table = index.makeTable new_columns java_problem_aggregator
+                index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
+                java_table = index.makeTable new_columns
                 Table.Value java_table
 
     ## ALIAS sort
@@ -2172,8 +2171,8 @@ type Table
                 case matched_name.is_empty of
                     True ->
                         group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
-                        index = self.java_table.indexFromColumns java_key_columns
-                        new_java_table = index.makeTable (group_by + data_columns) java_problem_aggregator
+                        index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                        new_java_table = index.makeTable (group_by + data_columns)
                         Table.Value new_java_table
                     False ->
                         aggregate_names = validated_values.map c->
