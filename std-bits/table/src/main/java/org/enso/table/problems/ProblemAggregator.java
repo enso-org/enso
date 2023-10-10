@@ -5,6 +5,30 @@ import java.util.List;
 import java.util.Objects;
 import org.graalvm.polyglot.Context;
 
+/**
+ * The ProblemAggregator is the main way for reporting warnings from helper Java code to Enso.
+ *
+ * <p>The Enso user should always use the `Java_Problems.with_problem_aggregator` helper to get an
+ * instance of ProblemAggregator and pass it to any Java code that requires it.
+ *
+ * <p>Child instances of the aggregator can be constructed via various means. They can be used to
+ * detach various warnings in case a branch of the computation fails, or to add specialized logic
+ * for aggregating various kinds of problems, or to provide additional context information to be
+ * attached to the aggregated problems (e.g. {@link ColumnAggregatedProblemAggregator}).
+ *
+ * <p>We ensure that no problems are 'dropped' by requiring every method reporting problems to take
+ * an instance of the ProblemAggregator. The ProblemAggregators create a hierarchy of child
+ * aggregators that ensures all problems are passed upwards, up to the top-level aggregator created
+ * in `with_problem_aggregator`. Thus, no problems are discarded.
+ *
+ * <p>The only thing the user has to be careful about is the lifetime of the aggregators. Once we
+ * exit the `with_problem_aggregator` section, the aggregator is summarized and any reported
+ * problems are reported in Enso. After that, no new problems can be reported, because they would be
+ * lost. This is verified by the `checkNotFinished` method - if the user ever uses an aggregator
+ * after summarizing, such code will throw an exception. In general, the `with_problem_aggregator`
+ * section should encompass the whole chunk of operation that is being performed, to ensure that all
+ * processing that may report problems to the aggregator is finished before we exit the section.
+ */
 public class ProblemAggregator {
   protected List<Problem> directlyReportedProblems = new ArrayList<>();
   protected List<ProblemAggregator> children = new ArrayList<>();
