@@ -59,7 +59,7 @@ spec =
             expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23], ["Joe", "Burton", 34]]
             Table.from_objects uniform_json ["first", "last", "age"] . should_equal expected
 
-        Test.specify "Generates a table from a vector of JSON objects, with missing fields" <|
+        Test.specify "Generates a table from a vector of JSON objects, with a subset of fields" <|
             expected = Table.from_rows ["last", "age"] [["Smith", 23], ["Burton", 34]]
             Table.from_objects uniform_json ["last", "age"] . should_equal expected
 
