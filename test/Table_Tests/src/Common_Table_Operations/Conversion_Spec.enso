@@ -5,7 +5,7 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Value_Type
 from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
 
-import Standard.Database.Data.Table.Table
+import Standard.Database.Data.Table.Database_Table
 import Standard.Database.Extensions.Table_Conversions
 from Standard.Database.Errors import Unsupported_Database_Operation
 
@@ -551,8 +551,9 @@ spec setup =
 
     if setup.is_database then Test.group prefix+"Table.from_objects" <|
         Test.specify "should report unsupported" <|
-            Table.from_objects 12 . should_fail_with Unsupported_Database_Operation
+            Database_Table.from_objects 12 . should_fail_with Unsupported_Database_Operation
 
+    # The in-memory functionality of `expand_column` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
     if setup.is_database then Test.group prefix+"Table.expand_column" <|
         Test.specify "should report unsupported" <|
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
