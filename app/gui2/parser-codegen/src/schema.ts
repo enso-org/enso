@@ -1,6 +1,6 @@
 export type Schema = {
-    types: Types
-    serialization: Serialization
+  types: Types
+  serialization: Serialization
 }
 export type TypeId = string
 export type Types = {

@@ -1,35 +1,41 @@
 /** This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`. */
 
 export { type Result } from '@/util/result'
-import {Err, Error, Ok, type Result} from '@/util/result'
+import { Err, Error, Ok, type Result } from '@/util/result'
 
 export type Primitive = {
-  type: 'primitive',
+  type: 'primitive'
   value: boolean | number | bigint | string
 }
 export type DynValue = Primitive | DynSequence | DynResult | DynOption | DynObject
 export type DynResult = {
-  type: 'result',
-  value: Result<DynValue, DynValue>,
+  type: 'result'
+  value: Result<DynValue, DynValue>
 }
 export type DynSequence = {
-  type: 'sequence',
-  value: Iterable<DynValue>,
+  type: 'sequence'
+  value: Iterable<DynValue>
 }
 export type DynOption = {
-  type: 'option',
-  value: DynValue | undefined,
+  type: 'option'
+  value: DynValue | undefined
 }
 export type DynObject = {
-  type: 'object',
-  getFields: () => [string, DynValue][],
+  type: 'object'
+  getFields: () => [string, DynValue][]
 }
 export const Dyn = {
-  Primitive: (value: boolean | number | bigint | string): DynValue => ({ type: 'primitive', value: value }),
+  Primitive: (value: boolean | number | bigint | string): DynValue => ({
+    type: 'primitive',
+    value: value,
+  }),
   Result: (value: Result<DynValue, DynValue>): DynValue => ({ type: 'result', value: value }),
   Sequence: (value: Iterable<DynValue>): DynValue => ({ type: 'sequence', value: value }),
   Option: (value: DynValue | undefined): DynValue => ({ type: 'option', value: value }),
-  Object: (value: LazyObject): DynValue => ({ type: 'object', getFields: value.fields.bind(value) }),
+  Object: (value: LazyObject): DynValue => ({
+    type: 'object',
+    getFields: value.fields.bind(value),
+  }),
 } as const
 
 /** Base class for objects that lazily deserialize fields when accessed. */
@@ -96,7 +102,7 @@ export class Cursor {
   }
 
   readPointer(): Cursor {
-    const pointee = this.readU32();
+    const pointee = this.readU32()
     return new Cursor(this.blob.buffer, pointee)
   }
 
@@ -159,15 +165,11 @@ function debug_(value: DynValue): any {
     case 'sequence':
       return Array.from(value.value, debug_)
     case 'result':
-      if (value.value.ok)
-        return Ok(debug_(value.value.value))
-      else
-        return Err(debug_(value.value.error.payload))
+      if (value.value.ok) return Ok(debug_(value.value.value))
+      else return Err(debug_(value.value.error.payload))
     case 'option':
-      if (value.value != null)
-        return debug_(value.value)
-      else
-        return undefined
+      if (value.value != null) return debug_(value.value)
+      else return undefined
     case 'object':
       // FIXME: Include the `hide` reflect property in the schema, and apply it during code generation to avoid magic
       //  strings here.
@@ -181,7 +183,12 @@ function debug_(value: DynValue): any {
         'spanLeftOffsetCodeReprLen',
         'spanLeftOffsetVisible',
       ]
-      return Object.fromEntries(value.getFields().filter(([name, _]) => !hide.includes(name)).map(([name, value]) => [name, debug_(value)]))
+      return Object.fromEntries(
+        value
+          .getFields()
+          .filter(([name, _]) => !hide.includes(name))
+          .map(([name, value]) => [name, debug_(value)]),
+      )
     case 'primitive':
       return value.value
   }
@@ -196,18 +203,14 @@ export function validateSpans(obj: LazyObject, initialPos?: number): number {
 function validateSpans_(value: DynValue, state: { pos: number }) {
   switch (value.type) {
     case 'sequence':
-      for (const elem of value.value)
-        validateSpans_(elem, state)
+      for (const elem of value.value) validateSpans_(elem, state)
       break
     case 'result':
-      if (value.value.ok)
-        validateSpans_(value.value.value, state)
-      else
-        validateSpans_(value.value.error.payload, state)
+      if (value.value.ok) validateSpans_(value.value.value, state)
+      else validateSpans_(value.value.error.payload, state)
       break
     case 'option':
-      if (value.value != null)
-        validateSpans_(value.value, state)
+      if (value.value != null) validateSpans_(value.value, state)
       break
     case 'object':
       const fields = new Map(value.getFields())
@@ -216,16 +219,20 @@ function validateSpans_(value: DynValue, state: { pos: number }) {
       const codeStart = fields.get('codeStart')
       const codeLength = fields.get('codeLength')
       const childrenCodeLength = fields.get('childrenCodeLength')
-      if (!(whitespaceLength?.type === 'primitive' && whitespaceLength.value === 0
-          && codeLength?.type === 'primitive' && codeLength?.value === 0)) {
+      if (
+        !(
+          whitespaceLength?.type === 'primitive' &&
+          whitespaceLength.value === 0 &&
+          codeLength?.type === 'primitive' &&
+          codeLength?.value === 0
+        )
+      ) {
         if (whitespaceStart?.type === 'primitive' && whitespaceStart.value !== state.pos)
           throw new Error(`Span error (whitespace) in: ${JSON.stringify(debug_(value))}.`)
-        if (whitespaceLength?.type === 'primitive')
-          state.pos += whitespaceLength.value as number
+        if (whitespaceLength?.type === 'primitive') state.pos += whitespaceLength.value as number
         if (codeStart?.type === 'primitive' && codeStart.value !== state.pos)
           throw new Error('Span error (code).')
-        if (codeLength?.type === 'primitive')
-          state.pos += codeLength.value as number
+        if (codeLength?.type === 'primitive') state.pos += codeLength.value as number
       }
       let endPos: number | undefined
       if (childrenCodeLength?.type === 'primitive')
@@ -234,8 +241,7 @@ function validateSpans_(value: DynValue, state: { pos: number }) {
         const [_name, value] = entry
         validateSpans_(value, state)
       }
-      if (endPos != null && state.pos !== endPos)
-        throw new Error('Span error (children).')
+      if (endPos != null && state.pos !== endPos) throw new Error('Span error (children).')
       break
     case 'primitive':
       break

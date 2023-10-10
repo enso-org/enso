@@ -1,85 +1,87 @@
 import * as changeCase from 'change-case'
-import ts from "typescript";
+import ts from 'typescript'
 const { factory: tsf } = ts
-
 
 // === Identifier utilities ===
 
 export function toPascal(ident: string): string {
-    if (ident.includes('.')) throw new Error("toPascal cannot be applied to a namespaced name.")
-    return changeCase.pascalCase(ident)
+  if (ident.includes('.')) throw new Error('toPascal cannot be applied to a namespaced name.')
+  return changeCase.pascalCase(ident)
 }
 
 export function toCamel(ident: string): string {
-    if (ident.includes('.')) throw new Error("toCamel cannot be applied to a namespaced name.")
-    return changeCase.camelCase(ident)
+  if (ident.includes('.')) throw new Error('toCamel cannot be applied to a namespaced name.')
+  return changeCase.camelCase(ident)
 }
 
 const RENAME = new Map([
-    ['constructor', 'ident'],
-    ['type', 'typeNode'],
-    ['spanLeftOffsetCodeOffsetUtf16', 'whitespaceStart'],
-    ['spanLeftOffsetCodeUtf16', 'whitespaceLength'],
-    ['leftOffsetCodeOffsetUtf16', 'whitespaceStart'],
-    ['leftOffsetCodeUtf16', 'whitespaceLength'],
-    ['spanCodeLengthUtf16', 'childrenCodeLength'],
-    ['codeUtf16', 'codeLength'],
-    ['codeOffsetUtf16', 'codeStart'],
+  ['constructor', 'ident'],
+  ['type', 'typeNode'],
+  ['spanLeftOffsetCodeOffsetUtf16', 'whitespaceStart'],
+  ['spanLeftOffsetCodeUtf16', 'whitespaceLength'],
+  ['leftOffsetCodeOffsetUtf16', 'whitespaceStart'],
+  ['leftOffsetCodeUtf16', 'whitespaceLength'],
+  ['spanCodeLengthUtf16', 'childrenCodeLength'],
+  ['codeUtf16', 'codeLength'],
+  ['codeOffsetUtf16', 'codeStart'],
 ])
 
 export function mapIdent(ident: string): string {
-    return RENAME.get(ident) ?? ident
+  return RENAME.get(ident) ?? ident
 }
 
 export function namespacedName(name: string, namespace?: string): string {
-    if (namespace == null) {
-        return toPascal(name)
-    } else {
-        return toPascal(namespace) + '.' + toPascal(name)
-    }
+  if (namespace == null) {
+    return toPascal(name)
+  } else {
+    return toPascal(namespace) + '.' + toPascal(name)
+  }
 }
-
 
 // === AST utilities ===
 
 export const modifiers = {
-    export: tsf.createModifier(ts.SyntaxKind.ExportKeyword),
-    const: tsf.createModifier(ts.SyntaxKind.ConstKeyword),
-    readonly: tsf.createModifier(ts.SyntaxKind.ReadonlyKeyword),
-    abstract: tsf.createModifier(ts.SyntaxKind.AbstractKeyword),
-    static: tsf.createModifier(ts.SyntaxKind.StaticKeyword),
-    protected: tsf.createModifier(ts.SyntaxKind.ProtectedKeyword),
+  export: tsf.createModifier(ts.SyntaxKind.ExportKeyword),
+  const: tsf.createModifier(ts.SyntaxKind.ConstKeyword),
+  readonly: tsf.createModifier(ts.SyntaxKind.ReadonlyKeyword),
+  abstract: tsf.createModifier(ts.SyntaxKind.AbstractKeyword),
+  static: tsf.createModifier(ts.SyntaxKind.StaticKeyword),
+  protected: tsf.createModifier(ts.SyntaxKind.ProtectedKeyword),
 } as const
 
 export function assignmentStatement(left: ts.Expression, right: ts.Expression): ts.Statement {
-    return tsf.createExpressionStatement(
-        tsf.createBinaryExpression(left, ts.SyntaxKind.EqualsToken, right),
-    )
+  return tsf.createExpressionStatement(
+    tsf.createBinaryExpression(left, ts.SyntaxKind.EqualsToken, right),
+  )
 }
 
-export function forwardToSuper(ident: ts.Identifier, type: ts.TypeNode, modifiers?: ts.ModifierLike[]) {
-    return tsf.createConstructorDeclaration(
-        modifiers,
-        [tsf.createParameterDeclaration([], undefined, ident, undefined, type, undefined)],
-        tsf.createBlock([
-            tsf.createExpressionStatement(
-                tsf.createCallExpression(tsf.createIdentifier('super'), [], [ident]),
-            ),
-        ]),
-    )
+export function forwardToSuper(
+  ident: ts.Identifier,
+  type: ts.TypeNode,
+  modifiers?: ts.ModifierLike[],
+) {
+  return tsf.createConstructorDeclaration(
+    modifiers,
+    [tsf.createParameterDeclaration([], undefined, ident, undefined, type, undefined)],
+    tsf.createBlock([
+      tsf.createExpressionStatement(
+        tsf.createCallExpression(tsf.createIdentifier('super'), [], [ident]),
+      ),
+    ]),
+  )
 }
 
 export function casesOrThrow(cases: ts.CaseClause[], error: string): ts.CaseBlock {
-    return tsf.createCaseBlock([
-        ...cases,
-        tsf.createDefaultClause([
-            tsf.createThrowStatement(
-                tsf.createNewExpression(
-                    tsf.createIdentifier('Error'),
-                    [],
-                    [tsf.createStringLiteral(error)],
-                ),
-            ),
-        ]),
-    ])
+  return tsf.createCaseBlock([
+    ...cases,
+    tsf.createDefaultClause([
+      tsf.createThrowStatement(
+        tsf.createNewExpression(
+          tsf.createIdentifier('Error'),
+          [],
+          [tsf.createStringLiteral(error)],
+        ),
+      ),
+    ]),
+  ])
 }

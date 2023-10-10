@@ -1,6 +1,6 @@
 import type { NonEmptyArray } from '@/util/array'
 import type { Opt } from '@/util/opt'
-import {debug, validateSpans} from '@/util/parserSupport'
+import { debug, validateSpans } from '@/util/parserSupport'
 import init, { parse, parse_doc_to_json, parse_to_json } from '../../rust-ffi/pkg/rust_ffi'
 import * as Ast2 from '../generated/ast'
 
@@ -530,7 +530,7 @@ export namespace Doc {
       mark: Mark
       header?: string
       body: HtmlString
-    } 
+    }
   }
 }
 
@@ -583,7 +583,7 @@ if (import.meta.vitest) {
             codeLength: 1,
             whitespaceLength: 0,
           },
-        }
+        },
       ],
       type: 'BodyBlock',
     })
