@@ -253,7 +253,7 @@ spec make_new_connection prefix persistent_connector=True =
                 t2.at "Y" . to_vector . should_equal []
 
                 Context.Output.with_enabled <|
-                    Problems.assume_no_problems <| t2.update_rows (Table.new [["Y", ['a']]])
+                    Problems.assume_no_problems <| t2.remove_warnings.update_rows (Table.new [["Y", ['a']]])
                 t2.at "Y" . to_vector . should_equal ['a']
 
                 t3 = connection.create_table base_table_name structure=[Column_Description.Value "Y" Value_Type.Char] temporary=True
