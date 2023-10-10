@@ -1,7 +1,5 @@
 package org.enso.table.problems;
 
-import java.util.List;
-
 public class BlackholeProblemAggregator extends ProblemAggregator {
 
   /**
@@ -22,9 +20,6 @@ public class BlackholeProblemAggregator extends ProblemAggregator {
 
   @Override
   public void report(Problem problem) {}
-
-  @Override
-  public void reportAll(List<Problem> problems) {}
 
   @Override
   protected void registerChild(ProblemAggregator child) {}

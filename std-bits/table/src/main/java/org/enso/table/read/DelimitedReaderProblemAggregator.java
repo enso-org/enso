@@ -1,6 +1,5 @@
 package org.enso.table.read;
 
-import java.util.List;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
@@ -33,15 +32,6 @@ public class DelimitedReaderProblemAggregator extends ProblemAggregator {
     } else {
       super.report(problem);
     }
-  }
-
-  @Override
-  public void reportAll(List<Problem> problems) {
-    if (warningsAsErrors && !problems.isEmpty()) {
-      throw new ParsingFailedException(problems.get(0));
-    }
-
-    super.reportAll(problems);
   }
 
   void reportMismatchedQuote(String cellText) {
