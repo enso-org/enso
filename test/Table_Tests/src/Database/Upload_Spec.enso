@@ -289,23 +289,23 @@ spec make_new_connection prefix persistent_connector=True =
 
             run_with_and_without_output <|
                 r1 = t1.select_into_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["X"]
-                r1.should_fail_with Non_Unique_Primary_Key
+                r1.should_fail_with Non_Unique_Key
                 e1 = r1.catch
-                e1.clashing_primary_key . should_equal [1]
+                e1.clashing_example_key_values . should_equal [1]
                 e1.clashing_example_row_count . should_equal 2
-                e1.to_display_text . should_equal "The primary key [X] is not unique. The key [1] corresponds to 2 rows."
+                e1.to_display_text . should_equal "The key [X] is not unique, for example key [1] corresponds to 2 rows."
 
                 r2 = t1.select_into_database_table connection (Name_Generator.random_name "primary-key-6") temporary=True primary_key=["Y"]
-                r2.should_fail_with Non_Unique_Primary_Key
-                r2.catch . clashing_primary_key . should_equal ['b']
+                r2.should_fail_with Non_Unique_Key
+                r2.catch . clashing_example_key_values . should_equal ['b']
 
                 r3 = t1.select_into_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
                 r3.at "X" . to_vector . should_equal [1, 2, 1]
 
                 t2 = Table.new [["X", [1, 2, 1]], ["Y", ['a', 'b', 'a']]]
                 r4 = t2.select_into_database_table connection (Name_Generator.random_name "primary-key-7") temporary=True primary_key=["X", "Y"]
-                r4.should_fail_with Non_Unique_Primary_Key
-                r4.catch . clashing_primary_key . should_equal [1, 'a']
+                r4.should_fail_with Non_Unique_Key
+                r4.catch . clashing_example_key_values . should_equal [1, 'a']
 
             # Will not find clashes if they are not in the first 1000 rows, in Output disabled mode.
             vec = (0.up_to 1010).to_vector
@@ -317,7 +317,7 @@ spec make_new_connection prefix persistent_connector=True =
                 r5.row_count . should_equal 1000
             Context.Output.with_enabled <|
                 r5 = t3.select_into_database_table connection (Name_Generator.random_name "primary-key-8") temporary=True primary_key=["X"]
-                r5.should_fail_with Non_Unique_Primary_Key
+                r5.should_fail_with Non_Unique_Key
 
         Test.specify "should fail if the target table already exists" <|
             name = Name_Generator.random_name "table-already-exists"
@@ -416,9 +416,9 @@ spec make_new_connection prefix persistent_connector=True =
 
             run_with_and_without_output <|
                 r1 = db_table.select_into_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=["X"]
-                r1.should_fail_with Non_Unique_Primary_Key
+                r1.should_fail_with Non_Unique_Key
                 e1 = r1.catch
-                e1.clashing_primary_key . should_equal [1]
+                e1.clashing_example_key_values . should_equal [1]
                 e1.clashing_example_row_count . should_equal 2
 
             t2 = Table.new [["X", [1, 3, 1, 2, 3, 2, 2, 2, 0]], ["Y", ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']]]
@@ -427,10 +427,10 @@ spec make_new_connection prefix persistent_connector=True =
 
             run_with_and_without_output <|
                 r2 = db_table_2.select_into_database_table connection (Name_Generator.random_name "copied-table-2") temporary=True primary_key=["X"]
-                r2.should_fail_with Non_Unique_Primary_Key
+                r2.should_fail_with Non_Unique_Key
                 e2 = r2.catch
-                e2.clashing_primary_key.length . should_equal 1
-                x = e2.clashing_primary_key.first
+                e2.clashing_example_key_values.length . should_equal 1
+                x = e2.clashing_example_key_values.first
                 [1, 2, 3].should_contain x
                 counts = Map.from_vector [[1, 2], [2, 4], [3, 2]]
                 e2.clashing_example_row_count . should_equal (counts.at x)
@@ -446,7 +446,7 @@ spec make_new_connection prefix persistent_connector=True =
                 r5.row_count . should_equal 1000
             Context.Output.with_enabled <|
                 r5 = db_table_3.select_into_database_table connection (Name_Generator.random_name "primary-key-8") temporary=True primary_key=["X"]
-                r5.should_fail_with Non_Unique_Primary_Key
+                r5.should_fail_with Non_Unique_Key
 
         Test.specify "will not allow to upload tables across connections" <|
             t = Table.new [["X", [1, 2, 1]], ["Y", ['b', 'b', 'a']]]
@@ -662,10 +662,10 @@ spec make_new_connection prefix persistent_connector=True =
             run_with_and_without_output <|
                 # Relying on the default key based on primary key.
                 r1 = d1.update_rows src update_action=Update_Action.Insert
-                r1.should_fail_with Non_Unique_Primary_Key
+                r1.should_fail_with Non_Unique_Key
 
                 r2 = d2.update_rows src key_columns=["X"] update_action=Update_Action.Insert
-                r2.should_fail_with Non_Unique_Primary_Key
+                r2.should_fail_with Non_Unique_Key
 
         Test.specify "will fail if source table contains null keys, unless only Inserting" <|
             t1 = target_table_builder [["X", [0, 10, 100]], ["Y", ["a", "b", "c"]]] primary_key=[]
@@ -1043,7 +1043,7 @@ spec make_new_connection prefix persistent_connector=True =
             s2 = source_table_builder [["X", ["b", Nothing]], ["f", [10, 20]]]
             r1 = t2.delete_rows s2 key_columns=["X"]
             r1.should_fail_with Null_Values_In_Key_Columns
-            r1.catch.to_display_text . should_contain "NULL values in key columns"
+            r1.catch.to_display_text . should_contain "Nothing values in key columns"
             r1.catch.to_display_text . should_contain "[Nothing, 20]"
 
     Test.group prefix+"Deleting rows from a Database table (source=in-memory)" <|
