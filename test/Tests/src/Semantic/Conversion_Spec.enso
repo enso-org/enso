@@ -10,6 +10,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 polyglot java import java.lang.Object
+polyglot java import java.time.format.DateTimeFormatter
 
 type Foo
     Value foo
@@ -420,6 +421,38 @@ spec =
                 x.to_text . should_equal "{FOOL "+now.to_text+"}"
 
             do_duration now
+
+    Test.group "Polyglot Conversion" <|
+        f1 (x : DateTimeFormatter) = x.to_text
+        f2 (x : Text | DateTimeFormatter) = x.to_text
+        f3 (x : DateTimeFormatter | Text) = x.to_text
+        f4 (x) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
+
+        d = DateTimeFormatter.ISO_DATE
+
+        Test.specify "f1 d" <|
+            (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+
+        Test.specify "f1 42" <|
+            Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
+
+        Test.specify "f2 AAA" <|
+            (f2 "AAA").to_display_text . should_equal "AAA"
+
+        Test.specify "f2 d" <|
+            (f2 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+
+        Test.specify "f3 AAA" <|
+            (f3 "AAA").to_display_text . should_equal "AAA"
+
+        Test.specify "f3 d" <|
+            (f3 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+
+        Test.specify "f4 d" <|
+            (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix

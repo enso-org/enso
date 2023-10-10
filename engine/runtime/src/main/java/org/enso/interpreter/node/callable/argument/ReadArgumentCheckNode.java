@@ -14,6 +14,7 @@ import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
@@ -42,11 +43,15 @@ import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.strings.TruffleString;
 
 public abstract class ReadArgumentCheckNode extends Node {
   private final String name;
@@ -116,11 +121,20 @@ public abstract class ReadArgumentCheckNode extends Node {
     return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(n, expectedType);
   }
 
+  public static ReadArgumentCheckNode meta(Name argumentName, Object metaObject) {
+    var n = argumentName == null ? null : argumentName.name();
+    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(n, metaObject);
+  }
+
   public static boolean isWrappedThunk(Function fn) {
     if (fn.getSchema() == LazyCheckRootNode.SCHEMA) {
       return fn.getPreAppliedArguments()[0] instanceof Function wrappedFn && wrappedFn.isThunk();
     }
     return false;
+  }
+
+  private static boolean isAllFitValue(Object v) {
+    return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
   }
 
   private static ReadArgumentCheckNode[] toArray(List<ReadArgumentCheckNode> list) {
@@ -264,10 +278,6 @@ public abstract class ReadArgumentCheckNode extends Node {
       return doWithConversionUncachedBoundary(frame == null ? null : frame.materialize(), v, type);
     }
 
-    private static boolean isAllFitValue(Object v) {
-      return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
-    }
-
     @ExplodeLoop
     private Object findAmongTypes(Object v) {
       if (isAllFitValue(v)) {
@@ -375,6 +385,57 @@ public abstract class ReadArgumentCheckNode extends Node {
       }
       CompilerDirectives.transferToInterpreterAndInvalidate();
       expectedTypeMessage = expectedType.toString();
+      return expectedTypeMessage;
+    }
+  }
+
+  static abstract class MetaCheckNode extends ReadArgumentCheckNode {
+    private final Object expectedMeta;
+    @CompilerDirectives.CompilationFinal
+    private String expectedTypeMessage;
+
+    MetaCheckNode(String name, Object expectedMeta) {
+      super(name);
+      this.expectedMeta = expectedMeta;
+    }
+
+    @Specialization
+    Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
+      throw panicSentinel;
+    }
+
+    @Specialization()
+    Object verifyMetaObject(
+      VirtualFrame frame, Object v,
+      @CachedLibrary(limit="3") InteropLibrary iop,
+      @Cached EqualsNode equals
+    ) {
+      try {
+        if (isAllFitValue(v)) {
+          return v;
+        }
+        var vMeta = iop.getMetaObject(v);
+        if (equals.execute(vMeta, expectedMeta)) {
+          return v;
+        } else {
+          return null;
+        }
+      } catch (UnsupportedMessageException ex) {
+        return null;
+      }
+    }
+    @Override
+    String expectedTypeMessage() {
+      if (expectedTypeMessage != null) {
+        return expectedTypeMessage;
+      }
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      var iop = InteropLibrary.getUncached();
+      try {
+        expectedTypeMessage = iop.asString(iop.getMetaQualifiedName(expectedMeta));
+      } catch (UnsupportedMessageException ex) {
+        expectedTypeMessage = expectedMeta.toString();
+      }
       return expectedTypeMessage;
     }
   }
