@@ -84,7 +84,7 @@ export function implement(schema: Schema.Schema): string {
 function makeType(ref: Schema.TypeRef, schema: Schema.Schema): Type {
   const c = ref.class
   switch (c) {
-    case 'type':
+    case 'type': {
       const ty = schema.types[ref.id]
       const parent = ty.parent != null ? schema.types[ty.parent] : undefined
       const typeName = namespacedName(ty.name, parent?.name)
@@ -94,7 +94,8 @@ function makeType(ref: Schema.TypeRef, schema: Schema.Schema): Type {
       } else {
         return Type.Concrete(typeName, layout.size)
       }
-    case 'primitive':
+    }
+    case 'primitive': {
       const p = ref.type
       switch (p) {
         case 'bool':
@@ -111,19 +112,22 @@ function makeType(ref: Schema.TypeRef, schema: Schema.Schema): Type {
           return Type.Char
         case 'string':
           return Type.String
-        default:
+        default: {
           const _ = p satisfies never
           throw new Error("unreachable: PrimitiveType.type='" + p + "'")
+        }
       }
+    }
     case 'sequence':
       return Type.Sequence(makeType(ref.type, schema))
     case 'option':
       return Type.Option(makeType(ref.type, schema))
     case 'result':
       return Type.Result(makeType(ref.type0, schema), makeType(ref.type1, schema))
-    default:
+    default: {
       const _ = c satisfies never
       throw new Error("unreachable: TypeRef.class='" + c + "' in " + JSON.stringify(ref))
+    }
   }
 }
 

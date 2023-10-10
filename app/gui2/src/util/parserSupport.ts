@@ -170,7 +170,7 @@ function debug_(value: DynValue): any {
     case 'option':
       if (value.value != null) return debug_(value.value)
       else return undefined
-    case 'object':
+    case 'object': {
       // FIXME: Include the `hide` reflect property in the schema, and apply it during code generation to avoid magic
       //  strings here.
       const hide = [
@@ -189,6 +189,7 @@ function debug_(value: DynValue): any {
           .filter(([name, _]) => !hide.includes(name))
           .map(([name, value]) => [name, debug_(value)]),
       )
+    }
     case 'primitive':
       return value.value
   }
@@ -213,39 +214,42 @@ function validateSpans_(value: DynValue, state: { pos: number }) {
       if (value.value != null) validateSpans_(value.value, state)
       break
     case 'object':
-      const fields = new Map(value.getFields())
-      const whitespaceStart =
-        fields.get('whitespaceStartInCodeParsed') ?? fields.get('whitespaceStartInCodeBuffer')
-      const whitespaceLength =
-        fields.get('whitespaceLengthInCodeParsed') ?? fields.get('whitespaceLengthInCodeBuffer')
-      const codeStart = fields.get('startInCodeBuffer')
-      const codeLength = fields.get('lengthInCodeBuffer')
-      const childrenCodeLength = fields.get('childrenLengthInCodeParsed')
-      if (
-        !(
-          whitespaceLength?.type === 'primitive' &&
-          whitespaceLength.value === 0 &&
-          codeLength?.type === 'primitive' &&
-          codeLength?.value === 0
-        )
-      ) {
-        if (whitespaceStart?.type === 'primitive' && whitespaceStart.value !== state.pos)
-          throw new Error(`Span error (whitespace) in: ${JSON.stringify(debug_(value))}.`)
-        if (whitespaceLength?.type === 'primitive') state.pos += whitespaceLength.value as number
-        if (codeStart?.type === 'primitive' && codeStart.value !== state.pos)
-          throw new Error('Span error (code).')
-        if (codeLength?.type === 'primitive') state.pos += codeLength.value as number
-      }
-      let endPos: number | undefined
-      if (childrenCodeLength?.type === 'primitive')
-        endPos = state.pos + (childrenCodeLength.value as number)
-      for (const entry of fields) {
-        const [_name, value] = entry
-        validateSpans_(value, state)
-      }
-      if (endPos != null && state.pos !== endPos) throw new Error('Span error (children).')
-      break
+      return validateObjectSpans(value, state)
     case 'primitive':
       break
   }
+}
+
+function validateObjectSpans(value: DynObject, state: { pos: number }) {
+  const fields = new Map(value.getFields())
+  const whitespaceStart =
+    fields.get('whitespaceStartInCodeParsed') ?? fields.get('whitespaceStartInCodeBuffer')
+  const whitespaceLength =
+    fields.get('whitespaceLengthInCodeParsed') ?? fields.get('whitespaceLengthInCodeBuffer')
+  const codeStart = fields.get('startInCodeBuffer')
+  const codeLength = fields.get('lengthInCodeBuffer')
+  const childrenCodeLength = fields.get('childrenLengthInCodeParsed')
+  if (
+    !(
+      whitespaceLength?.type === 'primitive' &&
+      whitespaceLength.value === 0 &&
+      codeLength?.type === 'primitive' &&
+      codeLength?.value === 0
+    )
+  ) {
+    if (whitespaceStart?.type === 'primitive' && whitespaceStart.value !== state.pos)
+      throw new Error(`Span error (whitespace) in: ${JSON.stringify(debug_(value))}.`)
+    if (whitespaceLength?.type === 'primitive') state.pos += whitespaceLength.value as number
+    if (codeStart?.type === 'primitive' && codeStart.value !== state.pos)
+      throw new Error('Span error (code).')
+    if (codeLength?.type === 'primitive') state.pos += codeLength.value as number
+  }
+  let endPos: number | undefined
+  if (childrenCodeLength?.type === 'primitive')
+    endPos = state.pos + (childrenCodeLength.value as number)
+  for (const entry of fields) {
+    const [_name, value] = entry
+    validateSpans_(value, state)
+  }
+  if (endPos != null && state.pos !== endPos) throw new Error('Span error (children).')
 }
