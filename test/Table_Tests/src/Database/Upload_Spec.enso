@@ -18,6 +18,7 @@ from Standard.Database.Internal.Upload_Table import default_key_columns
 import Standard.Database.Data.Column_Constraint.Column_Constraint
 
 import Standard.Test.Extensions
+import Standard.Test.Test_Environment
 from Standard.Test import Test, Test_Suite, Problems
 from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
@@ -80,15 +81,23 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should fail if the table already exists" <|
             name = Name_Generator.random_name "table-already-exists 1"
             structure = [Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char]
-            connection.create_table name structure=structure temporary=True
+            preexisting = connection.create_table name structure=structure temporary=True
+            preexisting.update_rows (Table.new [["X", [42]], ["Y", ["a"]]]) . should_succeed
 
             run_with_and_without_output <|
                 r1 = connection.create_table name structure=structure temporary=True
                 r1.should_fail_with Table_Already_Exists
 
+            preexisting2 = connection.query name
+            preexisting2.column_names . should_equal ["X", "Y"]
+            preexisting2.at "X" . to_vector . should_equal [42]
+            preexisting2.at "Y" . to_vector . should_equal ["a"]
+
         Test.specify "should not fail if the table exists, if `allow_existing=True`, even if the structure does not match" <|
             name = Name_Generator.random_name "table-already-exists 2"
-            connection.create_table name structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char] temporary=True
+            preexisting = connection.create_table name structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char] temporary=True
+            preexisting.update_rows (Table.new [["X", [42]], ["Y", ["a"]]]) . should_succeed
+
             run_with_and_without_output <|
                 r1 = connection.create_table name structure=[Column_Description.Value "Z" Value_Type.Float] temporary=True allow_existing=True
                 ## Even in dry-run mode, if the table already exists - it is
@@ -96,6 +105,9 @@ spec make_new_connection prefix persistent_connector=True =
                    there is no need to create one.
                 r1.name . should_equal name
                 r1.column_names . should_equal ["X", "Y"]
+                # The preexisting data is preserved.
+                r1.at "X" . to_vector . should_equal [42]
+                r1.at "Y" . to_vector . should_equal ["a"]
 
         Test.specify "should fail if an unsupported type is specified" <|
             run_with_and_without_output <|
@@ -204,6 +216,55 @@ spec make_new_connection prefix persistent_connector=True =
             run_with_and_without_output <|
                 r1 = connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer] primary_key=[0] temporary=True
                 r1.should_fail_with Illegal_Argument
+
+        Test.specify "should not issue a DELETE statement for the original table name in dry run mode, even if the table does not exist" <|
+            original_table_name = Name_Generator.random_name "no-delete-test"
+
+            log_file = enso_project.data / "transient" / "sql.log"
+            log_file.delete_if_exists
+            Test_Environment.unsafe_with_environment_override "ENSO_SQL_LOG_PATH" log_file.absolute.path <|
+                Context.Output.with_disabled <|
+                    t1 = connection.create_table original_table_name structure=[Column_Description.Value "X" Value_Type.Integer] temporary=True
+                    t1.column_names . should_equal ["X"]
+
+            logs = log_file.read Plain_Text . lines
+            deletes = logs.filter (_.contains "DROP")
+            wrapped_name = connection.dialect.wrap_identifier original_table_name
+            deletes.each line->
+                if line.contains wrapped_name then
+                    Test.fail "The log file contains a dangerous DELETE statement for the original table: "+line
+
+            log_file.delete_if_exists
+
+        Test.specify "should re-use the same temporary table name across dry runs but re-create it each time" <|
+            base_table_name = Name_Generator.random_name "multi-dry-create"
+
+            Context.Output.with_disabled <|
+                t1 = connection.create_table base_table_name structure=[Column_Description.Value "X" Value_Type.Integer] temporary=True
+                Problems.expect_only_warning Dry_Run_Operation t1
+
+                tmp_name = t1.name
+                tmp_name . should_not_equal base_table_name
+                connection.query base_table_name . should_fail_with Table_Not_Found
+
+                t2 = connection.create_table base_table_name structure=[Column_Description.Value "Y" Value_Type.Char] temporary=True
+                Problems.expect_only_warning Dry_Run_Operation t2
+                t2.name . should_equal tmp_name
+                t2.at "Y" . to_vector . should_equal []
+
+                Context.Output.with_enabled <|
+                    Problems.assume_no_problems <| t2.remove_warnings.update_rows (Table.new [["Y", ['a']]])
+                t2.at "Y" . to_vector . should_equal ['a']
+
+                t3 = connection.create_table base_table_name structure=[Column_Description.Value "Y" Value_Type.Char] temporary=True
+                Problems.expect_only_warning Dry_Run_Operation t3
+                t3.name . should_equal tmp_name
+                t3.at "Y" . to_vector . should_equal []
+                # Old reference may work because it has the same structure - but contents have been rewritten:
+                t2.at "Y" . to_vector . should_equal []
+
+                # The old dry run table will not work due to different structure:
+                t1.at "X" . to_vector . should_fail_with SQL_Error
 
     Test.group prefix+"Uploading an in-memory Table" <|
         in_memory_table = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
@@ -321,7 +382,8 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should fail if the target table already exists" <|
             name = Name_Generator.random_name "table-already-exists"
-            db_table = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
+            preexisting = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
+            preexisting.update_rows (Table.new [["X", [42]]]) . should_succeed
             t = Table.new [["Y", ['a', 'b']]]
             run_with_and_without_output <|
                 r1 = t.select_into_database_table connection name temporary=True
@@ -329,8 +391,36 @@ spec make_new_connection prefix persistent_connector=True =
                 r2 = t.select_into_database_table connection name temporary=False
                 r2.should_fail_with Table_Already_Exists
 
-            db_table.column_names . should_equal ["X"]
-            db_table.at "X" . to_vector . should_equal []
+            # Ensure that the table was not modified.
+            preexisting2 = connection.query name
+            preexisting2.column_names . should_equal ["X"]
+            preexisting2.at "X" . to_vector . should_equal [42]
+
+        Test.specify "should re-use the same temporary table name across dry runs but re-create it each time" <|
+            base_table_name = Name_Generator.random_name "multi-dry-select"
+
+            Context.Output.with_disabled <|
+                t1 = (Table.new [["X", [1, 2, 3]]]).select_into_database_table connection base_table_name temporary=True primary_key=[]
+                Problems.expect_only_warning Dry_Run_Operation t1
+
+                tmp_name = t1.name
+                tmp_name . should_not_equal base_table_name
+                connection.query base_table_name . should_fail_with Table_Not_Found
+
+                t1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+
+                t2 = (Table.new [["Y", [44]]]).select_into_database_table connection base_table_name temporary=False primary_key=[]
+                Problems.expect_only_warning Dry_Run_Operation t2
+                t2.name . should_equal tmp_name
+                t2.at "Y" . to_vector . should_equal [44]
+
+                t3 = (Table.new [["Y", [55]]]).select_into_database_table connection base_table_name temporary=True primary_key=[]
+                Problems.expect_only_warning Dry_Run_Operation t3
+                t3.name . should_equal tmp_name
+                t3.at "Y" . to_vector . should_equal [55]
+
+                # The old dry run table has been invalidated due to overwrite
+                t1.at "X" . to_vector . should_fail_with SQL_Error
 
     Test.group prefix+"Persisting a Database Table (query)" <|
         Test.specify "should be able to create a persistent copy of a DB table" <|
@@ -460,7 +550,8 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should fail if the target table already exists" <|
             name = Name_Generator.random_name "table-already-exists"
-            db_table = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
+            preexisting = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
+            preexisting.update_rows (Table.new [["X", [42]]]) . should_succeed
             t = Table.new [["Y", ['a', 'b']]]
             db_table_2 = t.select_into_database_table connection (Name_Generator.random_name "source-table") temporary=True
 
@@ -470,8 +561,9 @@ spec make_new_connection prefix persistent_connector=True =
                 r2 = db_table_2.select_into_database_table connection name temporary=False
                 r2.should_fail_with Table_Already_Exists
 
-            db_table.column_names . should_equal ["X"]
-            db_table.at "X" . to_vector . should_equal []
+            preexisting2 = connection.query name
+            preexisting2.column_names . should_equal ["X"]
+            preexisting2.at "X" . to_vector . should_equal [42]
 
     test_table_append source_table_builder target_table_builder =
         Test.specify "should be able to append new rows to a table" <|
@@ -1188,7 +1280,7 @@ spec make_new_connection prefix persistent_connector=True =
             Test.specify "should return a temporary table with a sample of the data for select_into_database_table"+suffix <|
                 Context.Output.with_disabled <|
                     src1 = source_table_builder [["X", [1, 2, 3]]]
-                    name = (Name_Generator.random_name "table-foo")
+                    name = (Name_Generator.random_name "table-foo2")
                     r1 = src1.select_into_database_table connection name
                     Problems.expect_only_warning Dry_Run_Operation r1
                     r1.column_names . should_equal ["X"]
@@ -1313,3 +1405,6 @@ wait_until_temporary_table_is_deleted_after_closing_connection connection table_
                 Thread.sleep retry_interval_ms
                 @Tail_Call go (ix + 1)
     go 0
+
+
+## TODO TEST DRY RUN TWICE!
