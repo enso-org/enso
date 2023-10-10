@@ -288,9 +288,8 @@ public class DelimitedReader {
     List<String> preprocessedHeaders =
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
 
-    NameDeduplicator deduplicator = new NameDeduplicator();
+    NameDeduplicator deduplicator = NameDeduplicator.createDefault(problemAggregator);
     List<String> names = deduplicator.makeUniqueList(preprocessedHeaders);
-    problemAggregator.reportAll(deduplicator.getProblems());
     return names;
   }
 

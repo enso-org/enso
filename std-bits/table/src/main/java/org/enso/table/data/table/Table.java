@@ -264,7 +264,7 @@ public class Table {
                     boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns,
                     List<String> rightColumnsToDrop, String right_prefix, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    NameDeduplicator nameDeduplicator = new NameDeduplicator();
+    NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
     if (!keepLeftUnmatched && !keepMatched && !keepRightUnmatched) {
       throw new IllegalArgumentException("At least one of keepLeftUnmatched, keepMatched or keepRightUnmatched must " +
           "be true.");
@@ -339,7 +339,6 @@ public class Table {
       }
     }
 
-    problemAggregator.reportAll(nameDeduplicator.getProblems());
     return new Table(newColumns.toArray(new Column[0]));
   }
 
@@ -347,7 +346,7 @@ public class Table {
    * Performs a cross-join of this table with the right table.
    */
   public Table crossJoin(Table right, String rightPrefix, ProblemAggregator problemAggregator) {
-    NameDeduplicator nameDeduplicator = new NameDeduplicator();
+    NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     List<String> leftColumnNames = Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toList());
     List<String> rightColumNames = Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toList());
@@ -370,7 +369,6 @@ public class Table {
       newColumns[leftColumnCount + i] = right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
     }
 
-    problemAggregator.reportAll(nameDeduplicator.getProblems());
     return new Table(newColumns);
   }
 
@@ -378,7 +376,7 @@ public class Table {
    * Zips rows of this table with rows of the right table.
    */
   public Table zip(Table right, boolean keepUnmatched, String rightPrefix, ProblemAggregator problemAggregator) {
-    NameDeduplicator nameDeduplicator = new NameDeduplicator();
+    NameDeduplicator nameDeduplicator = NameDeduplicator.createDefault(problemAggregator);
 
     int leftRowCount = this.rowCount();
     int rightRowCount = right.rowCount();
@@ -400,7 +398,6 @@ public class Table {
       newColumns[leftColumnCount + i] = right.columns[i].resize(resultRowCount).rename(newRightColumnNames.get(i));
     }
 
-    problemAggregator.reportAll(nameDeduplicator.getProblems());
     return new Table(newColumns);
   }
 

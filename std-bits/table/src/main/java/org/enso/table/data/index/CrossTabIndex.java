@@ -114,7 +114,8 @@ public class CrossTabIndex {
 
   public Table makeCrossTabTable(Aggregator[] aggregates, String[] aggregateNames) {
     Context context = Context.getCurrent();
-    NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
+    NameDeduplicator outputTableNameDeduplicator =
+        NameDeduplicator.createDefault(problemAggregator);
 
     final int columnCount = yColumns.length + xKeysCount() * aggregates.length;
     if (columnCount > MAXIMUM_CROSS_TAB_COLUMN_COUNT) {
@@ -209,7 +210,6 @@ public class CrossTabIndex {
       offset += aggregates.length;
     }
 
-    problemAggregator.reportAll(outputTableNameDeduplicator.getProblems());
     return new Table(output);
   }
 }

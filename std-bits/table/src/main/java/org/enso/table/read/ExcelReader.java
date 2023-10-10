@@ -348,7 +348,8 @@ public class ExcelReader {
             sheet.get(startRow),
             startRow < endRow ? sheet.get(startRow + 1) : null,
             startCol,
-            endCol);
+            endCol,
+            problemAggregator);
     startRow += excelHeaders.getRowsUsed();
 
     // Set up Storage
@@ -399,7 +400,6 @@ public class ExcelReader {
       throw new EmptySheetException();
     }
 
-    problemAggregator.reportAll(excelHeaders.getProblems());
     return new Table(columns);
   }
 
