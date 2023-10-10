@@ -19,28 +19,3 @@ Table.expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Tabl
 Table.expand_column self column fields=Nothing prefix=Nothing =
         _ = [column, fields, prefix]
         Error.throw (Unsupported_Database_Operation.Error "Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
-
-## GROUP Standard.Base.Constants
-   Converts an object or a Vector of object into a Table, by looking up the
-   requested fields from each item.
-
-   Arguments:
-   - value: The object or Vector of objects to convert to a table.
-     If a Vector or Array, then each item is added as a row.
-     Otherwise, treated as a single row.
-   - fields: a Vector of Text representing the names of fields to look up.
-     If `Nothing` then all fields found are added.
-
-   > Example Converts a set of objects into a table using the provided headers.
-
-         from Standard.Table import Table
-         import Standard.Examples
-
-         example_to_table =
-             json = Examples.simple_table_json
-             headers = Examples.simple_table_json_headers
-             Table.from_objects json headers
-Table.from_objects : Any -> Vector | Nothing -> Table ! Type_Error
-Table.from_objects value fields=Nothing =
-        _ = [value, fields]
-        Error.throw (Unsupported_Database_Operation.Error "Table.from_objects is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
