@@ -1,6 +1,6 @@
 import * as changeCase from 'change-case'
 import ts from 'typescript'
-const { factory: tsf } = ts
+const tsf = ts.factory
 
 // === Identifier utilities ===
 

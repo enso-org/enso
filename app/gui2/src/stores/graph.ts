@@ -1,6 +1,6 @@
 import { assert, assertNever } from '@/util/assert'
+import { Ast, parseEnso } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
-import { parseEnso, type Ast } from '@/util/ffi'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
 import * as map from 'lib0/map'

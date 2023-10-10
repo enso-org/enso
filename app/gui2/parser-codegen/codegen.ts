@@ -27,7 +27,7 @@ import {
   toCamel,
   toPascal,
 } from './util.js'
-const { factory: tsf } = ts
+const tsf = ts.factory
 
 // === Public API ===
 
@@ -59,8 +59,8 @@ export function implement(schema: Schema.Schema): string {
   )
   for (const id in schema.types) {
     const ty = schema.types[id]
-    if (ty.parent == null) {
-      const discriminants = schema.serialization[id].discriminants
+    if (ty?.parent == null) {
+      const discriminants = schema.serialization[id]?.discriminants
       if (discriminants == null) {
         emit(makeConcreteType(id, schema))
       } else {
@@ -86,9 +86,11 @@ function makeType(ref: Schema.TypeRef, schema: Schema.Schema): Type {
   switch (c) {
     case 'type': {
       const ty = schema.types[ref.id]
+      if (!ty) throw new Error(`Invalid type ref: ${ref.id}`)
       const parent = ty.parent != null ? schema.types[ty.parent] : undefined
       const typeName = namespacedName(ty.name, parent?.name)
       const layout = schema.serialization[ref.id]
+      if (!layout) throw new Error(`Invalid serialization ref: ${ref.id}`)
       if (layout.discriminants != null) {
         return Type.Abstract(typeName)
       } else {
@@ -114,7 +116,7 @@ function makeType(ref: Schema.TypeRef, schema: Schema.Schema): Type {
           return Type.String
         default: {
           const _ = p satisfies never
-          throw new Error("unreachable: PrimitiveType.type='" + p + "'")
+          throw new Error(`unreachable: PrimitiveType.type='${p}'`)
         }
       }
     }
@@ -126,7 +128,7 @@ function makeType(ref: Schema.TypeRef, schema: Schema.Schema): Type {
       return Type.Result(makeType(ref.type0, schema), makeType(ref.type1, schema))
     default: {
       const _ = c satisfies never
-      throw new Error("unreachable: TypeRef.class='" + c + "' in " + JSON.stringify(ref))
+      throw new Error(`unreachable: TypeRef.class='${c}' in ${JSON.stringify(ref)}`)
     }
   }
 }
@@ -155,7 +157,7 @@ function makeGetter(field: Field): ts.GetAccessorDeclaration {
 }
 
 function makeConcreteType(id: string, schema: Schema.Schema): ts.ClassDeclaration {
-  const ident = tsf.createIdentifier(toPascal(schema.types[id].name))
+  const ident = tsf.createIdentifier(toPascal(schema.types[id]!.name))
   const paramIdent = tsf.createIdentifier('cursor')
   const cursorParam = tsf.createParameterDeclaration(
     [],
@@ -233,9 +235,14 @@ function makeDebugFunction(fields: Field[], typeName?: string): ts.MethodDeclara
 }
 
 function makeGetters(id: string, schema: Schema.Schema, typeName?: string): ts.ClassElement[] {
-  const fields = schema.serialization[id].fields.map(([name, offset]: [string, number]) =>
-    makeField(name, schema.types[id].fields[name], offset, schema),
-  )
+  const serialization = schema.serialization[id]
+  const type = schema.types[id]
+  if (serialization == null || type == null) throw new Error(`Invalid type id: ${id}`)
+  const fields = serialization.fields.map(([name, offset]: [string, number]) => {
+    const field = type.fields[name]
+    if (field == null) throw new Error(`Invalid field name '${name}' for type '${type.name}'`)
+    return makeField(name, field, offset, schema)
+  })
   return [...fields.map(makeGetter), makeDebugFunction(fields, typeName)]
 }
 
@@ -269,10 +276,11 @@ type ChildType = {
 function makeChildType(
   base: ts.Identifier,
   id: string,
-  discrim: string,
+  discriminant: string,
   schema: Schema.Schema,
 ): ChildType {
-  const ty: Schema.Type = schema.types[id]
+  const ty = schema.types[id]
+  if (ty == null) throw new Error(`Invalid type id: ${id}`)
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
   const cursorIdent = tsf.createIdentifier('cursor')
@@ -284,7 +292,7 @@ function makeChildType(
     support.Cursor,
     undefined,
   )
-  const discrimInt = tsf.createNumericLiteral(parseInt(discrim, 10))
+  const discriminantInt = tsf.createNumericLiteral(parseInt(discriminant, 10))
   return {
     definition: tsf.createClassDeclaration(
       [modifiers.export],
@@ -341,8 +349,8 @@ function makeChildType(
       ],
     ),
     reference: tsf.createTypeReferenceNode(name),
-    enumMember: tsf.createEnumMember(toPascal(schema.types[id].name), discrimInt),
-    case: tsf.createCaseClause(discrimInt, [
+    enumMember: tsf.createEnumMember(toPascal(ty.name), discriminantInt),
+    case: tsf.createCaseClause(discriminantInt, [
       tsf.createReturnStatement(tsf.createNewExpression(ident, [], [seekCursor(cursorIdent, 4)])),
     ]),
   }
@@ -358,7 +366,7 @@ function makeAbstractType(
   discriminants: Schema.DiscriminantMap,
   schema: Schema.Schema,
 ): AbstractType {
-  const ty = schema.types[id]
+  const ty = schema.types[id]!
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
   const baseIdent = tsf.createIdentifier('AbstractBase')

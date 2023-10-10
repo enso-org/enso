@@ -107,23 +107,23 @@ export class Cursor {
   }
 
   readU8(): number {
-    return this.blob.getUint8(0)!
+    return this.blob.getUint8(0)
   }
 
   readU32(): number {
-    return this.blob.getUint32(0, true)!
+    return this.blob.getUint32(0, true)
   }
 
   readI32(): number {
-    return this.blob.getInt32(0, true)!
+    return this.blob.getInt32(0, true)
   }
 
   readU64(): bigint {
-    return this.blob.getBigUint64(0, true)!
+    return this.blob.getBigUint64(0, true)
   }
 
   readI64(): bigint {
-    return this.blob.getBigInt64(0, true)!
+    return this.blob.getBigInt64(0, true)
   }
 
   readBool(): boolean {
