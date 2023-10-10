@@ -1,6 +1,10 @@
 <script lang="ts">
 export const name = 'SQL Query'
 export const inputType = 'Standard.Database.Data.Table.Table | Standard.Database.Data.Column.Column'
+export const defaultPreprocessor = [
+  'Standard.Visualization.SQL.Visualization',
+  'prepare_visualization',
+] as const
 
 /**
  * A visualization that pretty-prints generated SQL code and displays type hints related to
@@ -32,7 +36,7 @@ declare const sqlFormatter: typeof import('sql-formatter')
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 
 // @ts-expect-error
 // eslint-disable-next-line no-redeclare
@@ -42,9 +46,6 @@ import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from './builtins.ts'
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const theme: Theme = DEFAULT_THEME
 
@@ -71,10 +72,6 @@ const formatted = computed(() => {
 const TEXT_TYPE = 'Builtins.Main.Text'
 /** Specifies opacity of interpolation background color. */
 const INTERPOLATION_BACKGROUND_OPACITY = 0.2
-
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.SQL.Visualization', 'prepare_visualization')
-})
 
 // === Handling Colors ===
 
@@ -130,7 +127,7 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <div class="sql-visualization scrollable">
       <pre v-if="data.error" class="sql" v-text="data.error"></pre>
       <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->
@@ -142,32 +139,32 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 <style scoped>
 @import url('https://fonts.cdnfonts.com/css/dejavu-sans-mono');
 
-.sql-visualization {
+.SQLVisualization {
   padding: 4px;
 }
 </style>
 
 <style>
-.sql-visualization .sql {
+.SQLVisualization .sql {
   font-family: 'DejaVu Sans Mono', monospace;
   font-size: 12px;
   margin-left: 7px;
   margin-top: 5px;
 }
 
-.sql-visualization .interpolation {
+.SQLVisualization .interpolation {
   border-radius: 6px;
   padding: 1px 2px 1px 2px;
   display: inline;
 }
 
-.sql-visualization .mismatch-parent {
+.SQLVisualization .mismatch-parent {
   position: relative;
   display: inline-flex;
   justify-content: center;
 }
 
-.sql-visualization .mismatch-mouse-area {
+.SQLVisualization .mismatch-mouse-area {
   display: inline;
   position: absolute;
   width: 150%;
@@ -176,15 +173,15 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
   z-index: 0;
 }
 
-.sql-visualization .mismatch {
+.SQLVisualization .mismatch {
   z-index: 1;
 }
 
-.sql-visualization .modulepath {
+.SQLVisualization .modulepath {
   color: rgba(150, 150, 150, 0.9);
 }
 
-.sql-visualization .tooltip {
+.SQLVisualization .tooltip {
   font-family: DejaVuSansMonoBook, sans-serif;
   font-size: 12px;
   opacity: 0;

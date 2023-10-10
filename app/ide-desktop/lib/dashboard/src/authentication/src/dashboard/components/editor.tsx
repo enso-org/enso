@@ -103,6 +103,12 @@ export default function Editor(props: EditorProps) {
                     let assetsRoot: string
                     switch (backendType) {
                         case backendModule.BackendType.remote: {
+                            if (project.ideVersion == null) {
+                                toastAndLog('Could not get the IDE version of the project')
+                                // This is too deeply nested to easily return from
+                                // eslint-disable-next-line no-restricted-syntax
+                                return
+                            }
                             assetsRoot = `${IDE_CDN_BASE_URL}/${project.ideVersion.value}/`
                             break
                         }
@@ -138,6 +144,7 @@ export default function Editor(props: EditorProps) {
                                     },
                                     startup: {
                                         project: project.packageName,
+                                        displayedProjectName: project.name,
                                     },
                                     window: {
                                         topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,

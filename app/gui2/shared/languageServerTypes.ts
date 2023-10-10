@@ -1,4 +1,10 @@
+import type {
+  SuggestionsDatabaseEntry,
+  SuggestionsDatabaseUpdate,
+} from './languageServerTypes/suggestions'
 import type { ExprId, Uuid } from './yjsModel'
+
+export type { Uuid }
 
 /** Version checksum of a text file - Sha3_224 */
 declare const brandChecksum: unique symbol
@@ -90,6 +96,7 @@ export type ExpressionUpdatePayload = Value | DataflowError | Panic | Pending
  * Indicates that the expression was computed to a value.
  */
 export interface Value {
+  type: 'Value'
   /**
    * Information about attached warnings.
    */
@@ -105,6 +112,7 @@ export interface Value {
  * Indicates that the expression was computed to an error.
  */
 export interface DataflowError {
+  type: 'DataflowError'
   /**
    * The list of expressions leading to the root error.
    */
@@ -115,6 +123,7 @@ export interface DataflowError {
  * Indicates that the expression failed with the runtime exception.
  */
 export interface Panic {
+  type: 'Panic'
   /**
    * The error message.
    */
@@ -131,6 +140,7 @@ export interface Panic {
  * provides description and percentage (`0.0-1.0`) of completeness.
  */
 export interface Pending {
+  type: 'Pending'
   /** Optional message describing current operation. */
   message?: string
   /** Optional amount of already done work as a number between `0.0` to `1.0`. */
@@ -248,11 +258,38 @@ export type FileSystemObject =
       target: Path
     }
 
-interface VisualizationContext {}
+/** A single component of a component group.
+ * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#librarycomponent) */
+export interface LibraryComponent {
+  /** The component name. */
+  name: string
+  /** The component shortcut. */
+  shortcut?: string
+}
+
+/** The component group provided by a library.
+ * [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#librarycomponentgroup) */
+export interface LibraryComponentGroup {
+  /**
+   * The fully qualified library name. A string consisting of a namespace and
+   * a library name separated by the dot <namespace>.<library name>,
+   * i.e. `Standard.Base`.
+   */
+  library: string
+  /** The group name without the library name prefix.
+   *  E.g. given the `Standard.Base.Group 1` group reference,
+   * the `name` field contains `Group 1`.
+   */
+  name: string
+  color?: string
+  icon?: string
+  /** The list of components provided by this component group. */
+  exports: LibraryComponent[]
+}
 
 export interface VisualizationConfiguration {
   /** An execution context of the visualization. */
-  executionContextId: Uuid
+  executionContextId: ContextId
   /** A qualified name of the module to be used to evaluate the arguments for the visualization
    * expression. */
   visualizationModule: string
@@ -288,7 +325,10 @@ export type Notifications = {
     message: string
     diagnostic?: Diagnostic
   }) => void
-  'search/suggestionsDatabaseUpdate': (param: {}) => void
+  'search/suggestionsDatabaseUpdates': (param: {
+    updates: SuggestionsDatabaseUpdate[]
+    currentVersion: number
+  }) => void
   'file/event': (param: { path: Path; kind: FileEventKind }) => void
   'file/rootAdded': (param: {}) => void
   'file/rootRemoved': (param: {}) => void
@@ -302,7 +342,7 @@ export type StackItem = ExplicitCall | LocalCall
 export interface ExplicitCall {
   type: 'ExplicitCall'
   methodPointer: MethodPointer
-  thisArgumentExpression?: string
+  thisArgumentExpression?: string | undefined
   positionalArgumentsExpressions: string[]
 }
 
@@ -371,9 +411,13 @@ export namespace response {
     receivesUpdates: CapabilityRegistration
   }
 
-  export interface VisualizationUpdate {
-    context: VisualizationContext
-    data: Uint8Array
+  export interface GetSuggestionsDatabase {
+    entries: SuggestionsDatabaseEntry[]
+    currentVersion: number
+  }
+
+  export interface GetComponentGroups {
+    componentGroups: LibraryComponentGroup[]
   }
 }
 

@@ -76,6 +76,12 @@ pub mod secret {
     pub const ARTEFACT_S3_SECRET_ACCESS_KEY: &str = "ARTEFACT_S3_SECRET_ACCESS_KEY";
 
 
+    // === AWS S3 Standard Library Tests ===
+    pub const ENSO_LIB_S3_AWS_ACCESS_KEY_ID: &str = "ENSO_LIB_S3_AWS_ACCESS_KEY_ID";
+    pub const ENSO_LIB_S3_AWS_REGION: &str = "ENSO_LIB_S3_AWS_REGION";
+    pub const ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: &str = "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY";
+
+
     // === AWS ECR deployment (runtime release to cloud) ===
     pub const ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY: &str = "ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY";
     pub const ECR_PUSH_RUNTIME_ACCESS_KEY_ID: &str = "ECR_PUSH_RUNTIME_ACCESS_KEY_ID";
@@ -231,9 +237,12 @@ pub struct PublishRelease;
 impl JobArchetype for PublishRelease {
     fn job(&self, os: OS) -> Job {
         let mut ret = plain_job(&os, "Publish release", "release publish");
-        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID");
-        ret.expose_secret_as(secret::ARTEFACT_S3_SECRET_ACCESS_KEY, "AWS_SECRET_ACCESS_KEY");
-        ret.env("AWS_REGION", "us-west-1");
+        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
+        ret.expose_secret_as(
+            secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
+            crate::aws::env::AWS_SECRET_ACCESS_KEY,
+        );
+        ret.env(crate::aws::env::AWS_REGION, "us-west-1");
         ret
     }
 }
@@ -436,6 +445,7 @@ pub fn gui() -> Result<Workflow> {
     workflow.add(PRIMARY_OS, job::Lint);
     workflow.add(PRIMARY_OS, job::WasmTest);
     workflow.add(PRIMARY_OS, job::NativeTest);
+    workflow.add(PRIMARY_OS, job::NewGuiTest);
 
     // FIXME: Integration tests are currently always failing.
     //        The should be reinstated when fixed.
@@ -452,10 +462,14 @@ pub fn gui() -> Result<Workflow> {
             let _wasm_job = workflow.add(os, job::BuildWasm);
         }
         let project_manager_job = workflow.add(os, job::BuildBackend);
-        workflow.add_customized(os, job::PackageIde, |job| {
+        workflow.add_customized(os, job::PackageOldIde, |job| {
             job.needs.insert(wasm_job_linux.clone());
-            job.needs.insert(project_manager_job);
+            job.needs.insert(project_manager_job.clone());
         });
+        workflow.add_customized(os, job::PackageNewIde, |job| {
+            job.needs.insert(project_manager_job.clone());
+        });
+        workflow.add(os, job::NewGuiBuild);
     }
     Ok(workflow)
 }

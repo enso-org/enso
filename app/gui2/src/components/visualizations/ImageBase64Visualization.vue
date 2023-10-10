@@ -23,7 +23,7 @@ const src = computed(
 </script>
 
 <template>
-  <VisualizationContainer :below-node="true">
+  <VisualizationContainer :belowNode="true">
     <div class="ImageVisualization">
       <img :src="src" />
     </div>

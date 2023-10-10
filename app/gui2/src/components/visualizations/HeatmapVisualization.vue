@@ -1,6 +1,10 @@
 <script lang="ts">
 export const name = 'Heatmap'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+export const defaultPreprocessor = [
+  'Standard.Visualization.Table.Visualization',
+  'prepare_visualization',
+] as const
 
 type Data = HeatmapData | HeatmapArrayData | HeatmapJSONData | HeatmapUpdate
 
@@ -33,25 +37,17 @@ interface Bucket {
   variable: number
   value: number
 }
-
-// eslint-disable-next-line no-redeclare
-declare var d3: typeof import('d3')
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watchPostEffect } from 'vue'
+import { computed, ref, watchPostEffect } from 'vue'
 
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
+import * as d3 from 'd3'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -106,10 +102,6 @@ watchPostEffect(() => {
 })
 const boxWidth = computed(() => Math.max(0, width.value - MARGIN.left - MARGIN.right))
 const boxHeight = computed(() => Math.max(0, height.value - MARGIN.top - MARGIN.bottom))
-
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.Table.Visualization', 'prepare_visualization')
-})
 
 const buckets = computed(() => {
   const newData = data.value
@@ -219,7 +211,7 @@ watchPostEffect(() => {
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <div ref="containerNode" class="HeatmapVisualization">
       <svg :width="width" :height="height">
         <g :transform="`translate(${MARGIN.left},${MARGIN.top})`">

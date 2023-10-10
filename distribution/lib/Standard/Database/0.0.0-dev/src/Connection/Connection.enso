@@ -422,7 +422,8 @@ type Connection
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self =
         column_naming_properties = self.entity_naming_properties.for_column_names
-        Column_Naming_Helper.Value column_naming_properties
+        generated_column_naming_properties = self.entity_naming_properties.for_generated_column_names
+        Column_Naming_Helper.Value column_naming_properties generated_column_naming_properties
 
     ## PRIVATE
        Creates a Table reference that refers to a table with the given name.

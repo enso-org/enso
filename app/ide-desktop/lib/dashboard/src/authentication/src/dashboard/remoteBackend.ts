@@ -740,7 +740,7 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
-    /** Return list of backend or IDE versions.
+    /** Return a list of backend or IDE versions.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listVersions(
@@ -776,7 +776,7 @@ export class RemoteBackend extends backendModule.Backend {
                 })
             )[0]?.number
             if (version == null) {
-                throw new Error(`No default ${versionType} version found.`)
+                return this.throw(`No default ${versionType} version found.`)
             } else {
                 const info: DefaultVersionInfo = {
                     version,

@@ -1,0 +1,13 @@
+{
+  "extends": "@tsconfig/node18/tsconfig.json",
+  "include": ["ydoc-server/**/*", "shared/**/*"],
+  "exclude": ["ydoc-server/**/__tests__/*", "shared/**/__tests__/*"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "composite": true,
+    "outDir": "../../node_modules/.cache/tsc",
+    "types": ["node", "vitest/importMeta"]
+  }
+}

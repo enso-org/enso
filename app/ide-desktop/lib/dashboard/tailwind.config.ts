@@ -108,6 +108,7 @@ export const theme = {
             '10lh': '10lh',
         },
         minWidth: {
+            '31.5': '7.875rem',
             '33.25': '8.3125rem',
             '40': '10rem',
             '61.25': '15.3125rem',
@@ -119,6 +120,7 @@ export const theme = {
         },
         zIndex: {
             '1': '1',
+            '3': '3',
         },
         backdropBlur: {
             xs: '2px',

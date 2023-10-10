@@ -91,7 +91,7 @@ import GeoMapDistanceIcon from './icons/geo_map_distance.svg'
 import GeoMapPinIcon from './icons/geo_map_pin.svg'
 import Path2Icon from './icons/path2.svg'
 
-import VisualizationContainer from 'builtins/VisualizationContainer.vue'
+import { VisualizationContainer } from 'builtins'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
