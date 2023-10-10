@@ -36,7 +36,7 @@
 </template>
 
 <style scoped>
-/* Marked sections, such as `Info` and `Important` sections. */
+ /* Marked sections, such as `Info` and `Important` sections. */
 
  .backgroundInfo {
    background-color: var(--enso-docs-info-background-color);
@@ -80,25 +80,9 @@
    fill: none;
  }
 
- /* Examples. */
-
- .exampleContainer {
-   background-color: var(--enso-docs-example-background-color);
-   border-radius: 0.25rem;
-   padding: 0.5rem;
-   margin-bottom: 0.5rem;
- }
-
- .example {
-   font-family: EnsoRegular;
-   white-space: pre;
-   overflow-x: auto;
-   margin: 0.05rem 0.1rem;
- }
-
  /* Code. The words emphasized with backticks. */
 
- .DocumentationPanel :deep(code) {
+ :deep(code) {
    background-color: var(--enso-docs-code-background-color);
    border-radius: 4px;
    padding: 2px;
@@ -123,14 +107,11 @@
    margin-right: 3px;
  }
 
- ul li.type-item:before {
-   color: var(--enso-docs-type-name-color);
- }
-
- ul li.method-item:before {
-   color: var(--enso-docs-method-name-color);
- }
  .paragraph {
    margin: 0;
+ }
+
+ .argument {
+   font-weight: 600;
  }
 </style>

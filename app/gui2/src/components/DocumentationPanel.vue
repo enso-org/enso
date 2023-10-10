@@ -1,26 +1,30 @@
 <script setup lang="ts">
  import { makeMethod } from '@/stores/suggestionDatabase/entry'
- import { computed } from 'vue'
+ import { computed, ref } from 'vue'
  import { Doc } from '@/util/ffi'
+ import type {
+   SuggestionEntryArgument,
+ } from 'shared/languageServerTypes/suggestions'
  import { default as SvgIcon } from '@/components/SvgIcon.vue'
  import { default as Synopsis } from '@/components/documentation/Synopsis.vue'
+ import { default as Functions } from '@/components/documentation/Functions.vue'
 
-  const props = defineProps<{}>()
-  const emit = defineEmits<{}>()
+ const props = defineProps<{}>()
+ const emit = defineEmits<{}>()
 
- interface Sections {
+ export interface Sections {
   tags: Doc.Section.Tag[],
   synopsis: Doc.Section[],
   examples: Doc.Section[],
  }
  
- interface FunctionDocs {
+ export interface FunctionDocs {
    name: string,
    arguments: SuggestionEntryArgument[],
    sections: Sections,
  }
  
- interface TypeDocs {
+ export interface TypeDocs {
    name: string,
    arguments: SuggestionEntryArgument[],
    sections: Sections,
@@ -28,25 +32,49 @@
    constructors: FunctionDocs[],
  }
 
- interface ModuleDocs {
+ export interface ModuleDocs {
    name: string,
    sections: Sections,
    types: TypeDocs[],
    methods: FunctionDocs[],
  }
   
-  const entry = makeMethod('Standard.Base.Foo.foo')
-  const documentation = computed(() => {
+ const entry = makeMethod('Standard.Base.Foo.foo')
+ const mockFunctions = ref([
+   {
+	 name: 'Method',
+	 arguments: [],
+	 sections: { tags: [], synopsis: [], examples: [] },
+   },
+   {
+	 name: 'Method2',
+	 arguments: [
+	   { name: 'a', type: 'Any', isSuspended: false, hasDefault: false }
+	 ],
+	 sections: { tags: [], synopsis: [ { Paragraph: { body: 'Some annotation.' } }], examples: [] },
+   },
+   {
+	 name: 'Method3',
+	 arguments: [
+	   { name: 'a', type: 'Any', isSuspended: false, hasDefault: false },
+	   { name: 'b', type: 'Int', isSuspended: false, hasDefault: true, defaultValue: '10' }
+	 ],
+	 sections: { tags: [], synopsis: [ { List: { items: [ 'Test' ] } } ], examples: [] },
+   },
+   {
+	 name: 'Method4',
+	 arguments: [],
+	 sections: { tags: [], synopsis: [ { List: { items: [ 'Test' ] } }], examples: [] },
+   },
+ ])
+ const documentation = computed(() => {
   const docs: Sections = {
 	tags: [{ tag: 'Unstable', body: '' }, { tag: 'Alias', body: 'bar' }],
 	synopsis: [
 	  {Paragraph: { body: 'Some <code>arbitrary</code> documentation paragraph' }},
 	  {Paragraph: { body: 'More text' }},
 	  {Paragraph: { body: 'More text' }},
-	  {Paragraph: { body: 'More text' }},
-	  {Paragraph: { body: 'More text' }},
-	  {Paragraph: { body: 'More text' }},
-	  { Keyed: { key: 'Key 2', body: 'Some text'} },
+	  { Keyed: { key: 'Key 1', body: 'Some text'} },
 	  { Marked: { mark: 'Important', header: 'Some header', body: 'Some important info' } },
 	  { Marked: { mark: 'Info', header: 'Info', body: 'Some information' } },
 	  { List: { items: [ 'Item 1', 'Item 2', 'Item 3' ] } },
@@ -71,6 +99,7 @@
 		</div>
 	  </div>
 	</div>
+	<Functions :functions="mockFunctions" />
 	<Synopsis :sections="documentation.synopsis" />
 	<div class="headerContainer sectionHeader examplesHeader">
 	  <SvgIcon name="doc_examples" />
@@ -113,43 +142,11 @@
    padding-bottom: 4px;
    white-space: normal;
  }
- 
- .link {
-   cursor: pointer;
- }
-
- .link:hover {
-   text-decoration: underline;
- }
-
- .method {
-   color: var(--enso-docs-method-name-color);
-   font-weight: 600;
- }
-
- .constructor {
-   color: var(--enso-docs-type-name-color);
-   font-weight: 600;
- }
 
  .type {
    color: var(--enso-docs-type-name-color);
    font-weight: 600;
  }
-
- .entryName {
-   opacity: 0.85;
- }
-
- .arguments {
-   opacity: 0.34;
- }
-
- .argument {
-   font-weight: 600;
- }
-
- 
 
  /* Headers. */
 
@@ -215,6 +212,22 @@
    padding: 1px 5px;
    margin-bottom: 1px;
    margin-right: 2px;
+ }
+
+ /* Examples. */
+
+ .exampleContainer {
+   background-color: var(--enso-docs-example-background-color);
+   border-radius: 0.25rem;
+   padding: 0.5rem;
+   margin-bottom: 0.5rem;
+ }
+
+ .example {
+   font-family: EnsoRegular;
+   white-space: pre;
+   overflow-x: auto;
+   margin: 0.05rem 0.1rem;
  }
 
 </style>

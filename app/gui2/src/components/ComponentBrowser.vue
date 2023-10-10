@@ -291,7 +291,7 @@ function handleKeydown(e: KeyboardEvent) {
           </div>
         </div>
       </div>
-      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }">
+      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop>
 		<DocumentationPanel />
 	  </div>
     </div>
