@@ -1,5 +1,7 @@
 package org.enso.table.problems;
 
+import org.graalvm.polyglot.Context;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -58,10 +60,12 @@ public class ProblemAggregator {
     isFinished = true;
     List<Problem> problems = new ArrayList<>(directlyReportedProblems);
     long count = directlyReportedProblems.size();
+    Context context = Context.getCurrent();
     for (ProblemAggregator child : children) {
       ProblemSummary childSummary = child.summarize();
       problems.addAll(childSummary.problems);
       count += childSummary.allProblemsCount;
+      context.safepoint();
     }
 
     return new ProblemSummary(problems, count);
