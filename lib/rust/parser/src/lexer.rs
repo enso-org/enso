@@ -1477,7 +1477,7 @@ mod tests {
     use super::test::*;
     use super::*;
 
-    fn empty() -> Code {
+    fn empty<'a>() -> Code<'a> {
         Code::empty_without_offset()
     }
 
@@ -1492,7 +1492,10 @@ mod tests {
     }
 
     fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
-        assert_eq!(run(input).unwrap(), expected);
+        let result: Vec<_> =
+            run(input).unwrap().into_iter().map(|token| token.without_offsets()).collect();
+        let expected: Vec<_> = expected.into_iter().map(|token| token.without_offsets()).collect();
+        assert_eq!(result, expected);
     }
 
     fn lexer_case_idents<'s>(idents: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
@@ -1668,7 +1671,7 @@ mod tests {
             // 2.2. Last possible sequence of a certain length.
             /* 2.2.1. 1 byte  (U-0000007F): */  ""
             /* 2.2.2. 2 bytes (U-000007FF): */  "߿"
-            /* 2.2.3. 3 bytes (U-0000FFFF): */  " "
+            /* 2.2.3. 3 bytes (U-0000FFFF): */  "￿"
             /* 2.2.4. 4 bytes (U-001FFFFF): */  "����"
             /* 2.2.5. 5 bytes (U-03FFFFFF): */  "�����"
             /* 2.2.6. 6 bytes (U-7FFFFFFF): */  "������"

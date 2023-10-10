@@ -99,6 +99,10 @@ impl<'s> Offset<'s> {
     pub fn position_after(&self) -> Self {
         Self { visible: default(), code: self.code.position_before() }
     }
+
+    pub fn without_offset(&self) -> Self {
+        Self { visible: self.visible, code: self.code.without_offset() }
+    }
 }
 
 impl<'s> AsRef<Offset<'s>> for Offset<'s> {
@@ -150,7 +154,7 @@ pub struct Span<'s> {
 
 impl<'s> Span<'s> {
     /// Constructor.
-    pub fn new() -> Self {
+    pub fn empty_without_offset() -> Self {
         Self {
             left_offset: Code::empty_without_offset().into(),
             code_length: default(),
@@ -289,7 +293,7 @@ impl<'s> FirstChildTrim<'s> for Span<'s> {
 #[macro_export]
 macro_rules! span_builder {
     ($($arg:ident),* $(,)?) => {
-        $crate::source::span::Span::new() $(.add(&mut $arg))*
+        $crate::source::span::Span::empty_without_offset() $(.add(&mut $arg))*
     };
 }
 

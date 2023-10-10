@@ -51,7 +51,7 @@ impl<'s> Default for Tree<'s> {
     fn default() -> Self {
         Self {
             variant: Box::new(Variant::Ident(Ident { token: Default::default() })),
-            span:    Span::new(),
+            span:    Span::empty_without_offset(),
         }
     }
 }

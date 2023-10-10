@@ -170,6 +170,16 @@ impl<'s, T> Token<'s, T> {
     }
 }
 
+impl<'s, V: Clone> Token<'s, V> {
+    pub fn without_offsets(&self) -> Self {
+        Self {
+            left_offset: self.left_offset.without_offset(),
+            code: self.code.without_offset(),
+            variant: self.variant.clone(),
+        }
+    }
+}
+
 impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
     fn eq(&self, other: &Token<'s, T>) -> bool {
         <Token<'s, T> as PartialEq<Token<'s, T>>>::eq(*self, other)

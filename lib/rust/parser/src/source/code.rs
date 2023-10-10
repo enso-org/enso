@@ -116,6 +116,14 @@ impl<'s> Code<'s> {
     pub fn is_empty(&self) -> bool {
         self.repr.is_empty()
     }
+
+    pub fn without_offset(&self) -> Self {
+        Self {
+            repr: self.repr.clone(),
+            offset_utf16: default(),
+            utf16: self.utf16,
+        }
+    }
 }
 
 impl<'s> Display for Code<'s> {
@@ -158,10 +166,9 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
         match (self.is_empty(), other.is_empty()) {
             (false, true) => (),
             (true, true) => {
-                // The span builder works by starting with `Span::new()` (producing a span with no
-                // location in the document), and appending to the right side. In order to ensure
-                // every span has a location: When the LHS is empty, take the location from the RHS
-                // even if the RHS is also empty.
+                // The span builder works by starting with `Span::empty_without_offset()`, and
+                // appending to the right side. In order to ensure every span has an offset: When
+                // the LHS is empty, take the location from the RHS even if the RHS is also empty.
                 self.offset_utf16 = other.offset_utf16;
             }
             (true, false) => {
