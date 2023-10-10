@@ -44,8 +44,10 @@ impl<'s> Code<'s> {
         Self::from_str_at_offset(repr, 0)
     }
 
+    /// Return a copy of this value, and set this value to a 0-length value following the returned
+    /// value.
     #[inline(always)]
-    pub fn take(&mut self) -> Self {
+    pub fn take_as_prefix(&mut self) -> Self {
         let end = self.offset_utf16 + self.utf16;
         Self {
             repr:         mem::take(&mut self.repr),
@@ -54,10 +56,12 @@ impl<'s> Code<'s> {
         }
     }
 
+    /// Return a 0-length `Code` located immediately before the start of this `Code`.
     pub fn position_before(&self) -> Self {
         Self { repr: default(), offset_utf16: self.offset_utf16, utf16: default() }
     }
 
+    /// Return a 0-length `Code` located immediately after the end of this `Code`.
     pub fn position_after(&self) -> Self {
         Self {
             repr:         default(),
@@ -66,6 +70,7 @@ impl<'s> Code<'s> {
         }
     }
 
+    /// Return the length in UTF-16 code units.
     pub fn len_utf16(&self) -> u32 {
         self.utf16
     }
@@ -117,12 +122,10 @@ impl<'s> Code<'s> {
         self.repr.is_empty()
     }
 
+    /// Return this value with its start position removed (set to 0). This can be used to compare
+    /// values ignoring offsets.
     pub fn without_offset(&self) -> Self {
-        Self {
-            repr: self.repr.clone(),
-            offset_utf16: default(),
-            utf16: self.utf16,
-        }
+        Self { repr: self.repr.clone(), offset_utf16: default(), utf16: self.utf16 }
     }
 }
 

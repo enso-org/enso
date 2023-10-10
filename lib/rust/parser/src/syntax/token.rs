@@ -171,11 +171,13 @@ impl<'s, T> Token<'s, T> {
 }
 
 impl<'s, V: Clone> Token<'s, V> {
+    /// Return this value with all source references stripped of positions. This supports comparing
+    /// tokens irrespective of their locations in the source.
     pub fn without_offsets(&self) -> Self {
         Self {
             left_offset: self.left_offset.without_offset(),
-            code: self.code.without_offset(),
-            variant: self.variant.clone(),
+            code:        self.code.without_offset(),
+            variant:     self.variant.clone(),
         }
     }
 }
@@ -189,7 +191,7 @@ impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
 impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = self.left_offset.take();
+        let left_offset = self.left_offset.take_as_prefix();
         let code_length = self.code.length();
         Span { left_offset, code_length }
     }

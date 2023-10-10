@@ -344,7 +344,7 @@ pub fn parse_argument_application<'s>(
     match &mut expression.variant {
         box Variant::App(App { func, arg }) => {
             let arg = parse_argument_definition(arg.clone());
-            func.span.left_offset += expression.span.left_offset.take();
+            func.span.left_offset += expression.span.left_offset.take_as_prefix();
             *expression = func.clone();
             Some(arg)
         }
@@ -358,7 +358,7 @@ pub fn parse_argument_application<'s>(
             let close2 = default();
             let type_ = default();
             let default = Some(ArgumentDefault { equals, expression: arg.clone() });
-            func.span.left_offset += expression.span.left_offset.take();
+            func.span.left_offset += expression.span.left_offset.take_as_prefix();
             *expression = func.clone();
             Some(ArgumentDefinition {
                 open,
@@ -373,7 +373,7 @@ pub fn parse_argument_application<'s>(
         }
         box Variant::DefaultApp(DefaultApp { func, default: default_ }) => {
             let pattern = Tree::ident(default_.clone());
-            func.span.left_offset += expression.span.left_offset.take();
+            func.span.left_offset += expression.span.left_offset.take_as_prefix();
             *expression = func.clone();
             Some(ArgumentDefinition {
                 open: default(),

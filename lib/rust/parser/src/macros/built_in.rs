@@ -437,7 +437,8 @@ fn case_body<'s>(
             _ => initial_case.push(item),
         }
     }
-    if let Some(first) = initial_case.first() {
+    if let Some(_first) = initial_case.first() {
+        // FIXME: Create 0-length span at offset preceding `_first`.
         let newline =
             syntax::token::newline(Code::empty_without_offset(), Code::empty_without_offset());
         case_builder.push(syntax::item::Line { newline, items: initial_case });

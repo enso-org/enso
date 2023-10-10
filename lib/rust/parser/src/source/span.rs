@@ -87,19 +87,25 @@ impl<'s> Offset<'s> {
         !self.is_empty()
     }
 
+    /// Return a copy of this value, and set this value to a 0-length offset following the returned
+    /// value.
     #[inline(always)]
-    pub fn take(&mut self) -> Self {
-        Self { visible: mem::take(&mut self.visible), code: self.code.take() }
+    pub fn take_as_prefix(&mut self) -> Self {
+        Self { visible: mem::take(&mut self.visible), code: self.code.take_as_prefix() }
     }
 
+    /// Return a 0-length `Span` representing the position before the start of this `Span`.
     pub fn position_before(&self) -> Self {
         Self { visible: default(), code: self.code.position_before() }
     }
 
+    /// Return a 0-length `Span` representing the position after the end of this `Span`.
     pub fn position_after(&self) -> Self {
         Self { visible: default(), code: self.code.position_before() }
     }
 
+    /// Return this value with its start position removed (set to 0). This can be used to compare
+    /// spans ignoring offsets.
     pub fn without_offset(&self) -> Self {
         Self { visible: self.visible, code: self.code.without_offset() }
     }
@@ -155,10 +161,7 @@ pub struct Span<'s> {
 impl<'s> Span<'s> {
     /// Constructor.
     pub fn empty_without_offset() -> Self {
-        Self {
-            left_offset: Code::empty_without_offset().into(),
-            code_length: default(),
-        }
+        Self { left_offset: Code::empty_without_offset().into(), code_length: default() }
     }
 
     /// Check whether the span is empty.
@@ -276,7 +279,7 @@ pub trait FirstChildTrim<'s> {
 impl<'s> FirstChildTrim<'s> for Span<'s> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = self.left_offset.take();
+        let left_offset = self.left_offset.take_as_prefix();
         let code_length = self.code_length;
         Span { left_offset, code_length }
     }

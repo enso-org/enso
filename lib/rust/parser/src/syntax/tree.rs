@@ -764,7 +764,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func
         }
         (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
-            let func_left_offset = func.span.left_offset.take();
+            let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.arguments.first_mut() {
                 first.newline.left_offset += arg_left_offset;
@@ -773,7 +773,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OperatorBlockApplication(block)) if block.lhs.is_none() => {
-            let func_left_offset = func.span.left_offset.take();
+            let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.expressions.first_mut() {
                 first.newline.left_offset += arg_left_offset;
@@ -903,7 +903,7 @@ pub fn apply_operator<'s>(
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
                 if let Some(first) = block.arguments.first_mut() {
-                    first.newline.left_offset += rhs_.span.left_offset.take();
+                    first.newline.left_offset += rhs_.span.left_offset.take_as_prefix();
                 }
                 let ArgumentBlockApplication { lhs: _, arguments } = block;
                 let arguments = mem::take(arguments);
