@@ -9,6 +9,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -26,7 +29,8 @@ public class HTTPBuilder {
     return resolvedKey + URLEncoder.encode(resolvedValue, StandardCharsets.UTF_8);
   }
 
-  public static Properties resolve(EnsoKeyValuePair[] properties) {
+  public static Connection getJDBCConnection(String url, EnsoKeyValuePair[] properties)
+    throws SQLException {
     var javaProperties = new Properties();
     for (EnsoKeyValuePair(
         String key, String value, String secretId
@@ -36,7 +40,8 @@ public class HTTPBuilder {
           : value;
       javaProperties.setProperty(key, resolvedValue);
     }
-    return javaProperties;
+
+    return DriverManager.getConnection(url, javaProperties);
   }
 
   //** Makes a request with secrets in the query string or headers. **//
@@ -67,9 +72,21 @@ public class HTTPBuilder {
       }
     }
 
+    // If used a secret then only allow HTTPS
+
     // Build and Send the request.
     var httpRequest = builder.build();
     var bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
     return client.send(httpRequest, bodyHandler);
+  }
+
+  public static Object resolveEnsoConnection()
+  {
+    // Resolve the JSON of an ENSO to what it should be
+    // - web and database as above
+    // - S3 ==> S3 has a credential
+    // Function<Credential, Object> => Object
+    // Type for a secret... e.g. web, s3, database, insecure
+    return null;
   }
 }

@@ -47,7 +47,6 @@ public class JDBCProxy {
       DriverManager.registerDriver(driver);
     }
 
-    var javaProperties = HTTPBuilder.resolve(properties);
-    return DriverManager.getConnection(url, javaProperties);
+    return HTTPBuilder.getJDBCConnection(url, properties);
   }
 }
