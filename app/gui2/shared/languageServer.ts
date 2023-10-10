@@ -299,6 +299,11 @@ export class LanguageServer extends ObservableV2<Notifications> {
     return this.request('search/getSuggestionsDatabase', {})
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#runtimegetcomponentgroups) */
+  getComponentGroups(): Promise<response.GetComponentGroups> {
+    return this.request('runtime/getComponentGroups', {})
+  }
+
   dispose() {
     this.client.close()
   }

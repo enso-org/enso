@@ -6,7 +6,8 @@ useMode(modeOklch)
 useMode(modeRgb)
 
 // Check if the browser supports `oklch` colorspace. If it does not, we fallback to good-old sRGB.
-const supportsOklch: boolean = 'supports' in CSS && CSS.supports('color: oklch(0 0 0)')
+const supportsOklch: boolean =
+  typeof CSS !== 'undefined' && 'supports' in CSS && CSS.supports('color: oklch(0 0 0)')
 
 /* Generate a sRGB color value from the provided string. */
 export function colorFromString(s: string) {
