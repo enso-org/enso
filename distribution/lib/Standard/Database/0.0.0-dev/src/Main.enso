@@ -10,7 +10,6 @@ import project.Connection.SSL_Mode.SSL_Mode
 import project.Data.Column_Description.Column_Description
 import project.Data.SQL_Query.SQL_Query
 import project.Data.Update_Action.Update_Action
-import project.Extensions.Table_Conversions
 import project.Extensions.Upload_Database_Table
 import project.Extensions.Upload_In_Memory_Table
 from project.Connection.Postgres_Details.Postgres_Details import Postgres
@@ -28,7 +27,6 @@ export project.Connection.SSL_Mode.SSL_Mode
 export project.Data.Column_Description.Column_Description
 export project.Data.SQL_Query.SQL_Query
 export project.Data.Update_Action.Update_Action
-export project.Extensions.Table_Conversions
 export project.Extensions.Upload_Database_Table
 export project.Extensions.Upload_In_Memory_Table
 from project.Connection.Postgres_Details.Postgres_Details export Postgres
