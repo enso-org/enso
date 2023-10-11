@@ -12,9 +12,7 @@ import java.util.logging.Level
 class CloseFileCmd(request: Api.CloseFileNotification)
     extends SynchronousCommand(None) {
 
-  override def executeSynchronously(implicit
-    ctx: RuntimeContext
-  ): Unit = {
+  override def executeSynchronously(implicit ctx: RuntimeContext): Unit = {
     val logger                    = ctx.executionService.getLogger
     val readLockTimestamp         = ctx.locking.acquireReadCompilationLock()
     val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)

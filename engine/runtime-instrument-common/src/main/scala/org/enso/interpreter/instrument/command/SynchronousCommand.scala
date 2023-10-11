@@ -6,7 +6,7 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import java.util.logging.Level
-import scala.concurrent.{ExecutionContext}
+import scala.concurrent.ExecutionContext
 
 /** `SynchronousCommand`, despite its name,. will still execute asynchronously along with other commands except that
   * the order of execution preserves the order of command's submission (for `SynchronousCommand` kind).
@@ -15,9 +15,8 @@ import scala.concurrent.{ExecutionContext}
   * executed synchronously due to the possibility of deadlocks.
   * Plain context locks do not necessarily guarantee the right order of such commands.
   */
-abstract class SynchronousCommand(
-  maybeRequestId: Option[RequestId]
-) extends Command(maybeRequestId) {
+abstract class SynchronousCommand(maybeRequestId: Option[RequestId])
+    extends Command(maybeRequestId) {
 
   override type Result[T] = T
 
