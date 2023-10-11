@@ -25,6 +25,9 @@ import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+import { useSuggestionDbStore } from '../stores/suggestionDatabase'
+import type { QualifiedName } from '../util/qualifiedName'
+import { Filtering } from './ComponentBrowser/filtering'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 
@@ -414,12 +417,35 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
+const suggestionDbStore = useSuggestionDbStore()
+
 const expressionInfo = computed(() =>
   projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.id),
 )
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
+const suggestionEntry = computed(() => {
+  const method = expressionInfo.value?.methodCall?.methodPointer
+  if (method == null) return undefined
+  const filtering = new Filtering({
+    pattern: method.name,
+    qualifiedNamePattern: method.module,
+    selfType: method.definedOnType as QualifiedName,
+    showLocal: true,
+    showUnstable: true,
+  })
+  if (filtering == null) return undefined
+  for (const entry of suggestionDbStore.entries.values()) {
+    if (filtering.filter(entry)) {
+      return entry
+    }
+  }
+  return undefined
+})
 const icon = computed(() => {
+  if (suggestionEntry.value?.iconName) {
+    return suggestionEntry.value.iconName
+  }
   const methodName = expressionInfo.value?.methodCall?.methodPointer.name
   if (methodName != null) {
     return methodNameToIcon(methodName)
@@ -428,6 +454,13 @@ const icon = computed(() => {
   } else {
     return 'in_out'
   }
+})
+const color = computed(() => {
+  const colorFromGroup =
+    suggestionEntry.value?.groupIndex != null
+      ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
+      : undefined
+  return colorFromGroup ?? colorFromString(expressionInfo.value?.typename ?? 'Unknown')
 })
 
 watchEffect(() => {
@@ -441,7 +474,7 @@ watchEffect(() => {
     class="GraphNode"
     :style="{
       transform,
-      '--node-color-primary': colorFromString(expressionInfo?.typename ?? 'Unknown'),
+      '--node-group-color': color,
     }"
     :class="{
       dragging: dragPointer.dragging,
