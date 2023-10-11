@@ -11,46 +11,124 @@ import project.Data.Set_Mode.Set_Mode
 import project.Data.Table.Table
 import project.Internal.Widget_Helpers
 from project.Errors import No_Such_Column, Existing_Column, Missing_Column
+from project.Internal.Filter_Condition_Helpers import make_filter_column
 
-@column Widget_Helpers.make_column_name_selector
-Table.derive_value : Text | Integer -> Column_Operation -> Text | Nothing -> Table_Ref
-Table.derive_value self column:(Text|Integer) operation:Column_Operation new_name:(Text|Nothing) =
-    derive_value (Table_Ref.from self) column operation new_name
+## PRIVATE
+set_helper : Table_Ref -> Any -> Text -> Text -> Set_Mode -> Problem_Behavior -> Table_Ref
+set_helper table:Table_Ref column input_name:Text new_name:Text set_mode:Set_Mode on_problems:Problem_Behavior =
+    target_name = if new_name != "" then new_name else
+        if set_mode == Set_Mode.Add then column.name else input_name
+    table.set column target_name set_mode on_problems
+
+## PRIVATE
+iif_column : Table_Ref -> Text | Integer -> Filter_Condition -> Any -> Any -> Text -> Set_Mode -> Problem_Behavior -> Table_Ref
+iif_column table:Table_Ref column:(Text|Integer) condition:Filter_Condition true_value false_value new_name:Text set_mode:Set_Mode on_problems:Problem_Behavior =
+    column_object = table.at column
+    condition_column =  make_filter_column column_object (resolve_condition table condition) on_problems
+    result = condition_column.iif (table.resolve true_value) (table.resolve false_value)
+    set_helper table result column_object.name new_name set_mode on_problems
 
 ## PRIVATE
    Implementation of Table calculation.
    Shorthand for getting a column.
    Performing an action and setting the result to a new column.
-derive_value : Table_Ref -> Text | Integer -> Column_Operation -> Text | Nothing -> Table_Ref
-derive_value table:Table_Ref column:(Text|Integer) operation:Column_Operation new_name:(Text|Nothing) =
+derive_column : Table_Ref -> Text | Integer -> Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table_Ref
+derive_column table:Table_Ref column:(Text|Integer) operation:Column_Operation new_name:Text set_mode:Set_Mode on_problems:Problem_Behavior =
     column_object = table.at column
-    column_object.if_not_error <|
-        derived = case operation of
-            Column_Operation.Date_Add length period -> column_object.date_add (table.resolve length) period
-            Column_Operation.Between lower upper -> column_object.between (table.resolve lower) (table.resolve upper)
-        derived.if_not_error <| table.set derived new_name
+    derived = case operation of
+        Column_Operation.Add other -> column_object + (table.resolve other)
+        Column_Operation.Subtract other -> column_object - (table.resolve other)
+        Column_Operation.Multiply other -> column_object * (table.resolve other)
+        Column_Operation.Divide other -> column_object / (table.resolve other)
+        Column_Operation.Round precision use_bankers -> column_object.round precision use_bankers
+        Column_Operation.Ceil -> column_object.ceil
+        Column_Operation.Floor -> column_object.floor
+        Column_Operation.Truncate -> column_object.truncate
+        Column_Operation.Date_Add length period -> column_object.date_add (table.resolve length) period
+        Column_Operation.Date_Part period -> column_object.date_part period
+        Column_Operation.Date_Diff end period -> column_object.date_diff (table.resolve end) period
+        Column_Operation.Not -> column_object.not
+        Column_Operation.And other -> column_object && (table.resolve other)
+        Column_Operation.Or other -> column_object || (table.resolve other)
+    set_helper table derived column_object.name new_name set_mode on_problems
 
+## Defines a column operation generally acting on each row producing a new
+   column.
 type Column_Operation
-    Date_Add length:(Column_Ref|Integer) period:Date_Period
-    Between lower upper
+    ## Add a fixed value or another column to a column.
+    Add other:(Column_Ref|Any)
+
+    ## Subtract a fixed value or another column to a column.
+    Subtract other:(Column_Ref|Any)
+
+    ## Multiply a fixed value or another column to a column.
+    Multiply other:(Column_Ref|Any)
+
+    ## Divide a fixed value or another column to a column.
+    Divide other:(Column_Ref|Any)
+
+    ## Rounds values in the column to the specified precision.
+    Round precision:Integer=0 use_bankers:Boolean=False
+
+    ## Rounds values in the column up to the nearest integer.
+    Ceil
+
+    ## Rounds values in the column down to the nearest integer.
+    Floor
+
+    ## Truncates the fractional part of values in the column.
+       If a Date_Time, returns the Date.
+    Truncate
+
+    ## Adds a period to a date/time column.
+    Date_Add length:(Column_Ref|Integer) period:(Date_Period|Time_Period)=Date_Period.Day
+
+    ## Returns part of a date/time column.
+    Date_Part period:(Date_Period|Time_Period)
+
+    ## Returns the difference between two date/time columns.
+    Date_Diff end:(Column_Ref|Date_Time|Date|Time_Of_Day) period:(Date_Period|Time_Period)=Date_Period.Day
+
+    ## Negate a boolean column.
+    Not
+
+    ## Boolean AND on two boolean columns.
+    And other:(Column_Ref|Boolean)
+
+    ## Boolean OR on two boolean columns.
+    Or other:(Column_Ref|Boolean)
 
 ## PRIVATE
    Create a widget for operation
 create_operation_widget : Table_Ref -> Widget
 create_operation_widget table:Table_Ref display=Display.Always =
-    col_names = table.column_names.map (name -> Option name "Column_Ref.By_Name "+name.pretty)
+    col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
+    col_names display=Display.Always = Single_Choice values=col_names_options display=display
     builder = Vector.new_builder
-    builder.append (Option "date add" "Column_Operation.Date_Add" parameters=[Pair.new "length" col_names])
-    builder.append (Option "between" "Column_Operation.Between" parameters=[Pair.new "lower" col_names, Pair.new "upper" col_names])
+    fqn = Meta.get_qualified_type_name Column_Operation
+    builder.append (Option "add" fqn+".Add" [["other", col_names]])
+    builder.append (Option "subtract" fqn+".Subtract" [["other", col_names]])
+    builder.append (Option "multiply" fqn+".Multiply" [["other", col_names]])
+    builder.append (Option "divide" fqn+".Divide" [["other", col_names]])
+    builder.append (Option "round" fqn+".Round")
+    builder.append (Option "ceil" fqn+".Ceil")
+    builder.append (Option "floor" fqn+".Floor")
+    builder.append (Option "truncate" fqn+".Truncate")
+    builder.append (Option "date add" fqn+".Date_Add" [["length", col_names]])
+    builder.append (Option "date part" fqn+".Date_Part")
+    builder.append (Option "date diff" fqn+".Date_Diff" [["end", col_names]])
+    builder.append (Option "not" fqn+".Not")
+    builder.append (Option "and" fqn+".And" [["other", col_names]])
+    builder.append (Option "or" fqn+".Or" [["other", col_names]])
     Single_Choice builder.to_vector display=display
 
 ## Reference to a column in a table.
 type Column_Ref
     ## Reference to a column by name in a table.
-    By_Name name:Text
+    Name name:Text
 
     ## Reference to a column by index in a table.
-    By_Index index:Integer
+    Index index:Integer
 
 ## PRIVATE
    Private type class for defining a table against
@@ -68,15 +146,35 @@ type Table_Ref
        Resolve a Column_Ref to a Column.
     resolve : Any -> Any ! No_Such_Column | Index_Out_Of_Bounds
     resolve self value = case value of
-        Column_Ref.By_Name name -> self.at name
-        Column_Ref.By_Index index -> self.at index
+        Column_Ref.Name name -> self.at name
+        Column_Ref.Index index -> self.at index
         _ -> value
+
+    ## PRIVATE
+    resolve_condition : Filter_Condition -> Filter_Condition
+    resolve_condition self condition = case condition of
+        Filter_Condition.Equal value -> Filter_Condition.Equal (self.resolve value)
+        Filter_Condition.Not_Equal value -> Filter_Condition.Not_Equal (self.resolve value)
+        Filter_Condition.Less value -> Filter_Condition.Less (self.resolve value)
+        Filter_Condition.Equal_Or_Less value -> Filter_Condition.Equal_Or_Less (self.resolve value)
+        Filter_Condition.Greater value -> Filter_Condition.Greater (self.resolve value)
+        Filter_Condition.Equal_Or_Greater value -> Filter_Condition.Equal_Or_Greater (self.resolve value)
+        Filter_Condition.Between lower upper -> Filter_Condition.Between (self.resolve lower) (self.resolve upper)
+        Filter_Condition.Starts_With prefix case_sensitivity -> Filter_Condition.Starts_With (self.resolve prefix) case_sensitivity
+        Filter_Condition.Ends_With prefix case_sensitivity -> Filter_Condition.Ends_With (self.resolve prefix) case_sensitivity
+        Filter_Condition.Contains prefix case_sensitivity -> Filter_Condition.Contains (self.resolve prefix) case_sensitivity
+        Filter_Condition.Not_Contains prefix case_sensitivity -> Filter_Condition.Not_Contains (self.resolve prefix) case_sensitivity
+        Filter_Condition.Like pattern -> Filter_Condition.Like (self.resolve pattern)
+        Filter_Condition.Not_Like pattern -> Filter_Condition.Not_Like (self.resolve pattern)
+        Filter_Condition.Is_In values -> Filter_Condition.Is_In (values.map self.resolve)
+        Filter_Condition.Not_In values -> Filter_Condition.Is_In (values.map self.resolve)
+        _ -> condition
 
     ## PRIVATE
        Set a column.
     set : Any -> Set_Mode -> Problem_Behavior -> Table_Ref ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
-        new_underlying = self.underlying.set column set_mode=set_mode on_problems=on_problems
+    set self column new_name set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+        new_underlying = self.underlying.set column new_name set_mode=set_mode on_problems=on_problems
         Table_Ref.from new_underlying
 
     ## PRIVATE

@@ -20,10 +20,11 @@ import project.Excel.Excel_Format.Excel_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 import project.Excel.Excel_Workbook.Excel_Workbook
+import project.Extensions.Table_Calculations.Column_Operation
+import project.Extensions.Table_Calculations.Column_Ref
 from project.Delimited.Delimited_Format.Delimited_Format import Delimited
 from project.Excel.Excel_Format.Excel_Format import Excel
 from project.Excel.Excel_Section.Excel_Section import Cell_Range, Range_Names, Sheet_Names, Worksheet
-from project.Extensions.Table_Calculations import all
 from project.Extensions.Table_Conversions import all
 
 export project.Data.Aggregate_Column.Aggregate_Column
@@ -46,8 +47,9 @@ export project.Excel.Excel_Format.Excel_Format
 export project.Excel.Excel_Range.Excel_Range
 export project.Excel.Excel_Section.Excel_Section
 export project.Excel.Excel_Workbook.Excel_Workbook
+export project.Extensions.Table_Calculations.Column_Operation
+export project.Extensions.Table_Calculations.Column_Ref
 from project.Delimited.Delimited_Format.Delimited_Format export Delimited
 from project.Excel.Excel_Format.Excel_Format export Excel
 from project.Excel.Excel_Section.Excel_Section export Cell_Range, Range_Names, Sheet_Names, Worksheet
-from project.Extensions.Table_Calculations export all
 from project.Extensions.Table_Conversions import all
