@@ -1,7 +1,7 @@
 import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { parse } from '@/util/ffi'
-import { LazyObject, debug, validateSpans } from '@/util/parserSupport'
+import { LazyObject, validateSpans } from '@/util/parserSupport'
 import { assert } from '../assert'
 
 export { Ast }

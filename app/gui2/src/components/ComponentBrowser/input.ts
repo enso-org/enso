@@ -1,6 +1,5 @@
 import { Ast, astContainingChar, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
-import { GeneralOprApp, operandsOfLeftAssocOprChain } from '@/util/ast/opr'
-import { debug } from '@/util/parserSupport'
+import { GeneralOprApp } from '@/util/ast/opr'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { Filter } from './filtering'
