@@ -582,6 +582,7 @@
 - [Implemented `Table.auto_value_types` for in-memory tables.][7908]
 - [Implemented Text.substring to easily select part of a Text field][7913]
 - [Implemented basic XML support][7947]
+- [Implemented `Table.lookup_and_replace` for the in-memory backend.][7979]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -828,6 +829,7 @@
 [7908]: https://github.com/enso-org/enso/pull/7908
 [7913]: https://github.com/enso-org/enso/pull/7913
 [7947]: https://github.com/enso-org/enso/pull/7947
+[7979]: https://github.com/enso-org/enso/pull/7979
 
 #### Enso Compiler
 
@@ -971,6 +973,7 @@
 - [Merge `Small_Integer` and `Big_Integer` types][7636]
 - [Inline type ascriptions][7796]
 - [Always persist `TRACE` level logs to a file][7825]
+- [Meta.instrument & Instrumentor API][7833]
 - [Downloadable VSCode extension][7861]
 - [New `project/status` route for reporting LS state][7801]
 - [Add Enso-specific assertions][7883]
@@ -1119,6 +1122,7 @@
 [7796]: https://github.com/enso-org/enso/pull/7796
 [7801]: https://github.com/enso-org/enso/pull/7801
 [7825]: https://github.com/enso-org/enso/pull/7825
+[7833]: https://github.com/enso-org/enso/pull/7833
 [7861]: https://github.com/enso-org/enso/pull/7861
 [7883]: https://github.com/enso-org/enso/pull/7883
 [7840]: https://github.com/enso-org/enso/pull/7840

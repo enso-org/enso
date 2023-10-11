@@ -10,8 +10,6 @@ spec =
     document = XML_Document.from_file test_file
     root = document . root_element
 
-    fix_windows_newlines s = s.replace '\r\n' '\n'
-
     Test.group "Read XML" <|
         Test.specify "Can read from a file" <|
             root.name . should_equal "class"
@@ -145,14 +143,14 @@ spec =
 
     Test.group "inner / outer xml" <|
         Test.specify "Can get the inner xml" <|
-            fix_windows_newlines (root.at "/class/teacher[1]" . at 0 . inner_xml) . should_equal '\n        <firstname>Mary</firstname>\n        <lastname>Smith</lastname>\n        <bio>\n            Blah blah\n        </bio>\n    '
-            fix_windows_newlines (root.at "/class/teacher[1]/bio" . at 0 . inner_xml) . should_equal '\n            Blah blah\n        '
-            fix_windows_newlines (root.at "/class/teacher[2]/bio" . at 0 . inner_xml) . should_equal '\n            This that\n        '
-            fix_windows_newlines (root.at "/class/teacher[2]" . at 0 . inner_xml) . should_equal '\n        <firstname>Bob</firstname>\n        <lastname>Jones</lastname>\n        <bio>\n            This that\n        </bio>\n    '
+            (root.at "/class/teacher[1]" . at 0 . inner_xml) . should_equal '\n        <firstname>Mary</firstname>\n        <lastname>Smith</lastname>\n        <bio>\n            Blah blah\n        </bio>\n    '
+            (root.at "/class/teacher[1]/bio" . at 0 . inner_xml) . should_equal '\n            Blah blah\n        '
+            (root.at "/class/teacher[2]/bio" . at 0 . inner_xml) . should_equal '\n            This that\n        '
+            (root.at "/class/teacher[2]" . at 0 . inner_xml) . should_equal '\n        <firstname>Bob</firstname>\n        <lastname>Jones</lastname>\n        <bio>\n            This that\n        </bio>\n    '
 
         Test.specify "Can get the outer xml" <|
-            fix_windows_newlines (root.at "/class/teacher[1]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            Blah blah\n        </bio>'
-            fix_windows_newlines (root.at "/class/teacher[2]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            This that\n        </bio>'
+            (root.at "/class/teacher[1]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            Blah blah\n        </bio>'
+            (root.at "/class/teacher[2]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            This that\n        </bio>'
 
     Test.group "get_elements_by_tag_name" <|
         Test.specify "Can get elements by tag name" <|

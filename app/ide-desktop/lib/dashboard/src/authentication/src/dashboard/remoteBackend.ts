@@ -3,11 +3,14 @@
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
+import * as detect from 'enso-common/src/detect'
+
 import * as backendModule from './backend'
 import * as config from '../config'
 import * as errorModule from '../error'
-import * as http from '../http'
-import * as loggerProvider from '../providers/logger'
+import type * as http from '../http'
+import type * as loggerProvider from '../providers/logger'
+import * as remoteBackendPaths from './remoteBackendPaths'
 
 // =================
 // === Constants ===
@@ -70,116 +73,41 @@ export async function waitUntilProjectIsReady(
 }
 
 // =============
-// === Paths ===
-// =============
-
-/** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
-const LIST_USERS_PATH = 'users'
-/** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
-const CREATE_USER_PATH = 'users'
-/** Relative HTTP path to the "invite user" endpoint of the Cloud backend API. */
-const INVITE_USER_PATH = 'users/invite'
-/** Relative HTTP path to the "create permission" endpoint of the Cloud backend API. */
-const CREATE_PERMISSION_PATH = 'permissions'
-/** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
-const USERS_ME_PATH = 'users/me'
-/** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
-const LIST_DIRECTORY_PATH = 'directories'
-/** Relative HTTP path to the "create directory" endpoint of the Cloud backend API. */
-const CREATE_DIRECTORY_PATH = 'directories'
-/** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
-const UNDO_DELETE_ASSET_PATH = 'assets'
-/** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
-const LIST_PROJECTS_PATH = 'projects'
-/** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
-const CREATE_PROJECT_PATH = 'projects'
-/** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
-const LIST_FILES_PATH = 'files'
-/** Relative HTTP path to the "upload file" endpoint of the Cloud backend API. */
-const UPLOAD_FILE_PATH = 'files'
-/** Relative HTTP path to the "create secret" endpoint of the Cloud backend API. */
-const CREATE_SECRET_PATH = 'secrets'
-/** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
-const LIST_SECRETS_PATH = 'secrets'
-/** Relative HTTP path to the "create tag" endpoint of the Cloud backend API. */
-const CREATE_TAG_PATH = 'tags'
-/** Relative HTTP path to the "list tags" endpoint of the Cloud backend API. */
-const LIST_TAGS_PATH = 'tags'
-/** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
-const LIST_VERSIONS_PATH = 'versions'
-/** Relative HTTP path to the "delete asset" endpoint of the Cloud backend API. */
-function deleteAssetPath(assetId: backendModule.AssetId) {
-    return `assets/${assetId}`
-}
-/** Relative HTTP path to the "update directory" endpoint of the Cloud backend API. */
-function updateDirectoryPath(directoryId: backendModule.DirectoryId) {
-    return `directories/${directoryId}`
-}
-/** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
-function closeProjectPath(projectId: backendModule.ProjectId) {
-    return `projects/${projectId}/close`
-}
-/** Relative HTTP path to the "get project details" endpoint of the Cloud backend API. */
-function getProjectDetailsPath(projectId: backendModule.ProjectId) {
-    return `projects/${projectId}`
-}
-/** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
-function openProjectPath(projectId: backendModule.ProjectId) {
-    return `projects/${projectId}/open`
-}
-/** Relative HTTP path to the "project update" endpoint of the Cloud backend API. */
-function projectUpdatePath(projectId: backendModule.ProjectId) {
-    return `projects/${projectId}`
-}
-/** Relative HTTP path to the "check resources" endpoint of the Cloud backend API. */
-function checkResourcesPath(projectId: backendModule.ProjectId) {
-    return `projects/${projectId}/resources`
-}
-/** Relative HTTP path to the "get project" endpoint of the Cloud backend API. */
-function getSecretPath(secretId: backendModule.SecretId) {
-    return `secrets/${secretId}`
-}
-/** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
-function deleteTagPath(tagId: backendModule.TagId) {
-    return `secrets/${tagId}`
-}
-
-// =============
 // === Types ===
 // =============
 
 /** HTTP response body for the "list users" endpoint. */
-interface ListUsersResponseBody {
+export interface ListUsersResponseBody {
     users: backendModule.SimpleUser[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
-interface ListDirectoryResponseBody {
+export interface ListDirectoryResponseBody {
     assets: backendModule.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
-interface ListProjectsResponseBody {
+export interface ListProjectsResponseBody {
     projects: backendModule.ListedProjectRaw[]
 }
 
 /** HTTP response body for the "list files" endpoint. */
-interface ListFilesResponseBody {
+export interface ListFilesResponseBody {
     files: backendModule.File[]
 }
 
 /** HTTP response body for the "list secrets" endpoint. */
-interface ListSecretsResponseBody {
+export interface ListSecretsResponseBody {
     secrets: backendModule.SecretInfo[]
 }
 
 /** HTTP response body for the "list tag" endpoint. */
-interface ListTagsResponseBody {
+export interface ListTagsResponseBody {
     tags: backendModule.Tag[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
-interface ListVersionsResponseBody {
+export interface ListVersionsResponseBody {
     versions: [backendModule.Version, ...backendModule.Version[]]
 }
 
@@ -211,7 +139,7 @@ export class RemoteBackend extends backendModule.Backend {
         if (!this.client.defaultHeaders.has('Authorization')) {
             return this.throw('Authorization header not set.')
         } else {
-            if (IS_DEV_MODE) {
+            if (detect.IS_DEV_MODE) {
                 // @ts-expect-error This exists only for debugging purposes. It does not have types
                 // because it MUST NOT be used in this codebase.
                 window.remoteBackend = this
@@ -242,7 +170,7 @@ export class RemoteBackend extends backendModule.Backend {
 
     /** Return a list of all users in the same organization. */
     override async listUsers(): Promise<backendModule.SimpleUser[]> {
-        const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)
+        const response = await this.get<ListUsersResponseBody>(remoteBackendPaths.LIST_USERS_PATH)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not list users in the organization.`)
         } else {
@@ -254,7 +182,10 @@ export class RemoteBackend extends backendModule.Backend {
     override async createUser(
         body: backendModule.CreateUserRequestBody
     ): Promise<backendModule.UserOrOrganization> {
-        const response = await this.post<backendModule.UserOrOrganization>(CREATE_USER_PATH, body)
+        const response = await this.post<backendModule.UserOrOrganization>(
+            remoteBackendPaths.CREATE_USER_PATH,
+            body
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw('Could not create user.')
         } else {
@@ -264,7 +195,7 @@ export class RemoteBackend extends backendModule.Backend {
 
     /** Invite a new user to the organization by email. */
     override async inviteUser(body: backendModule.InviteUserRequestBody): Promise<void> {
-        const response = await this.post(INVITE_USER_PATH, body)
+        const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not invite user '${body.userEmail}'.`)
         } else {
@@ -277,7 +208,7 @@ export class RemoteBackend extends backendModule.Backend {
         body: backendModule.CreatePermissionRequestBody
     ): Promise<void> {
         const response = await this.post<backendModule.UserOrOrganization>(
-            CREATE_PERMISSION_PATH,
+            remoteBackendPaths.CREATE_PERMISSION_PATH,
             body
         )
         if (!responseIsSuccessful(response)) {
@@ -291,7 +222,9 @@ export class RemoteBackend extends backendModule.Backend {
      *
      * @returns `null` if a non-successful status code (not 200-299) was received. */
     override async usersMe(): Promise<backendModule.UserOrOrganization | null> {
-        const response = await this.get<backendModule.UserOrOrganization>(USERS_ME_PATH)
+        const response = await this.get<backendModule.UserOrOrganization>(
+            remoteBackendPaths.USERS_ME_PATH
+        )
         if (!responseIsSuccessful(response)) {
             return null
         } else {
@@ -307,7 +240,7 @@ export class RemoteBackend extends backendModule.Backend {
         title: string | null
     ): Promise<backendModule.AnyAsset[]> {
         const response = await this.get<ListDirectoryResponseBody>(
-            LIST_DIRECTORY_PATH +
+            remoteBackendPaths.LIST_DIRECTORY_PATH +
                 '?' +
                 new URLSearchParams({
                     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -359,7 +292,7 @@ export class RemoteBackend extends backendModule.Backend {
         body: backendModule.CreateDirectoryRequestBody
     ): Promise<backendModule.CreatedDirectory> {
         const response = await this.post<backendModule.CreatedDirectory>(
-            CREATE_DIRECTORY_PATH,
+            remoteBackendPaths.CREATE_DIRECTORY_PATH,
             body
         )
         if (!responseIsSuccessful(response)) {
@@ -378,7 +311,7 @@ export class RemoteBackend extends backendModule.Backend {
         title: string | null
     ) {
         const response = await this.put<backendModule.UpdatedDirectory>(
-            updateDirectoryPath(directoryId),
+            remoteBackendPaths.updateDirectoryPath(directoryId),
             body
         )
         if (!responseIsSuccessful(response)) {
@@ -396,7 +329,7 @@ export class RemoteBackend extends backendModule.Backend {
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async deleteAsset(assetId: backendModule.AssetId, title: string | null) {
-        const response = await this.delete(deleteAssetPath(assetId))
+        const response = await this.delete(remoteBackendPaths.deleteAssetPath(assetId))
         if (!responseIsSuccessful(response)) {
             return this.throw(
                 `Unable to delete ${title != null ? `'${title}'` : `asset with ID '${assetId}'`}.`
@@ -413,7 +346,7 @@ export class RemoteBackend extends backendModule.Backend {
         assetId: backendModule.AssetId,
         title: string | null
     ): Promise<void> {
-        const response = await this.patch(UNDO_DELETE_ASSET_PATH, { assetId })
+        const response = await this.patch(remoteBackendPaths.UNDO_DELETE_ASSET_PATH, { assetId })
         if (!responseIsSuccessful(response)) {
             return this.throw(
                 `Unable to restore ${
@@ -429,7 +362,9 @@ export class RemoteBackend extends backendModule.Backend {
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listProjects(): Promise<backendModule.ListedProject[]> {
-        const response = await this.get<ListProjectsResponseBody>(LIST_PROJECTS_PATH)
+        const response = await this.get<ListProjectsResponseBody>(
+            remoteBackendPaths.LIST_PROJECTS_PATH
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw('Could not list projects.')
         } else {
@@ -453,7 +388,10 @@ export class RemoteBackend extends backendModule.Backend {
     override async createProject(
         body: backendModule.CreateProjectRequestBody
     ): Promise<backendModule.CreatedProject> {
-        const response = await this.post<backendModule.CreatedProject>(CREATE_PROJECT_PATH, body)
+        const response = await this.post<backendModule.CreatedProject>(
+            remoteBackendPaths.CREATE_PROJECT_PATH,
+            body
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not create project with name '${body.projectName}'.`)
         } else {
@@ -468,7 +406,7 @@ export class RemoteBackend extends backendModule.Backend {
         projectId: backendModule.ProjectId,
         title: string | null
     ): Promise<void> {
-        const response = await this.post(closeProjectPath(projectId), {})
+        const response = await this.post(remoteBackendPaths.closeProjectPath(projectId), {})
         if (!responseIsSuccessful(response)) {
             return this.throw(
                 `Could not close project ${
@@ -487,7 +425,9 @@ export class RemoteBackend extends backendModule.Backend {
         projectId: backendModule.ProjectId,
         title: string | null
     ): Promise<backendModule.Project> {
-        const response = await this.get<backendModule.ProjectRaw>(getProjectDetailsPath(projectId))
+        const response = await this.get<backendModule.ProjectRaw>(
+            remoteBackendPaths.getProjectDetailsPath(projectId)
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw(
                 `Could not get details of project ${
@@ -523,7 +463,7 @@ export class RemoteBackend extends backendModule.Backend {
         title: string | null
     ): Promise<void> {
         const response = await this.post(
-            openProjectPath(projectId),
+            remoteBackendPaths.openProjectPath(projectId),
             body ?? DEFAULT_OPEN_PROJECT_BODY
         )
         if (!responseIsSuccessful(response)) {
@@ -544,7 +484,7 @@ export class RemoteBackend extends backendModule.Backend {
         title: string | null
     ): Promise<backendModule.UpdatedProject> {
         const response = await this.put<backendModule.UpdatedProject>(
-            projectUpdatePath(projectId),
+            remoteBackendPaths.projectUpdatePath(projectId),
             body
         )
         if (!responseIsSuccessful(response)) {
@@ -565,7 +505,9 @@ export class RemoteBackend extends backendModule.Backend {
         projectId: backendModule.ProjectId,
         title: string | null
     ): Promise<backendModule.ResourceUsage> {
-        const response = await this.get<backendModule.ResourceUsage>(checkResourcesPath(projectId))
+        const response = await this.get<backendModule.ResourceUsage>(
+            remoteBackendPaths.checkResourcesPath(projectId)
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw(
                 `Could not get resource usage for project ${
@@ -581,7 +523,7 @@ export class RemoteBackend extends backendModule.Backend {
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listFiles(): Promise<backendModule.File[]> {
-        const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
+        const response = await this.get<ListFilesResponseBody>(remoteBackendPaths.LIST_FILES_PATH)
         if (!responseIsSuccessful(response)) {
             return this.throw('Could not list files.')
         } else {
@@ -597,7 +539,7 @@ export class RemoteBackend extends backendModule.Backend {
         body: Blob
     ): Promise<backendModule.FileInfo> {
         const response = await this.postBinary<backendModule.FileInfo>(
-            UPLOAD_FILE_PATH +
+            remoteBackendPaths.UPLOAD_FILE_PATH +
                 '?' +
                 new URLSearchParams({
                     /* eslint-disable @typescript-eslint/naming-convention */
@@ -638,7 +580,10 @@ export class RemoteBackend extends backendModule.Backend {
     override async createSecret(
         body: backendModule.CreateSecretRequestBody
     ): Promise<backendModule.SecretAndInfo> {
-        const response = await this.post<backendModule.SecretAndInfo>(CREATE_SECRET_PATH, body)
+        const response = await this.post<backendModule.SecretAndInfo>(
+            remoteBackendPaths.CREATE_SECRET_PATH,
+            body
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not create secret with name '${body.secretName}'.`)
         } else {
@@ -653,7 +598,9 @@ export class RemoteBackend extends backendModule.Backend {
         secretId: backendModule.SecretId,
         title: string | null
     ): Promise<backendModule.Secret> {
-        const response = await this.get<backendModule.Secret>(getSecretPath(secretId))
+        const response = await this.get<backendModule.Secret>(
+            remoteBackendPaths.getSecretPath(secretId)
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw(
                 `Could not get secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
@@ -667,7 +614,9 @@ export class RemoteBackend extends backendModule.Backend {
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async listSecrets(): Promise<backendModule.SecretInfo[]> {
-        const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
+        const response = await this.get<ListSecretsResponseBody>(
+            remoteBackendPaths.LIST_SECRETS_PATH
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw('Could not list secrets.')
         } else {
@@ -681,14 +630,17 @@ export class RemoteBackend extends backendModule.Backend {
     override async createTag(
         body: backendModule.CreateTagRequestBody
     ): Promise<backendModule.TagInfo> {
-        const response = await this.post<backendModule.TagInfo>(CREATE_TAG_PATH, {
-            /* eslint-disable @typescript-eslint/naming-convention */
-            tag_name: body.name,
-            tag_value: body.value,
-            object_type: body.objectType,
-            object_id: body.objectId,
-            /* eslint-enable @typescript-eslint/naming-convention */
-        })
+        const response = await this.post<backendModule.TagInfo>(
+            remoteBackendPaths.CREATE_TAG_PATH,
+            {
+                /* eslint-disable @typescript-eslint/naming-convention */
+                tag_name: body.name,
+                tag_value: body.value,
+                object_type: body.objectType,
+                object_id: body.objectId,
+                /* eslint-enable @typescript-eslint/naming-convention */
+            }
+        )
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not create create tag with name '${body.name}'.`)
         } else {
@@ -703,7 +655,7 @@ export class RemoteBackend extends backendModule.Backend {
         params: backendModule.ListTagsRequestParams
     ): Promise<backendModule.Tag[]> {
         const response = await this.get<ListTagsResponseBody>(
-            LIST_TAGS_PATH +
+            remoteBackendPaths.LIST_TAGS_PATH +
                 '?' +
                 new URLSearchParams({
                     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -721,7 +673,7 @@ export class RemoteBackend extends backendModule.Backend {
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async deleteTag(tagId: backendModule.TagId): Promise<void> {
-        const response = await this.delete(deleteTagPath(tagId))
+        const response = await this.delete(remoteBackendPaths.deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
             return this.throw(`Could not delete tag with ID '${tagId}'.`)
         } else {
@@ -736,7 +688,7 @@ export class RemoteBackend extends backendModule.Backend {
         params: backendModule.ListVersionsRequestParams
     ): Promise<backendModule.Version[]> {
         const response = await this.get<ListVersionsResponseBody>(
-            LIST_VERSIONS_PATH +
+            remoteBackendPaths.LIST_VERSIONS_PATH +
                 '?' +
                 new URLSearchParams({
                     // eslint-disable-next-line @typescript-eslint/naming-convention

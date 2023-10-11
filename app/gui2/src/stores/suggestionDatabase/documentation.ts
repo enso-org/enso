@@ -1,6 +1,6 @@
 import type { Group } from '@/stores/suggestionDatabase'
 import { findIndexOpt } from '@/util/array'
-import { parseDocs, type Doc } from '@/util/ffi'
+import { parseDocs, type Doc } from '@/util/docParser'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'

@@ -3,7 +3,7 @@
 import * as fs from 'node:fs'
 import * as http from 'node:http'
 import * as path from 'node:path'
-import * as stream from 'node:stream'
+import type * as stream from 'node:stream'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'

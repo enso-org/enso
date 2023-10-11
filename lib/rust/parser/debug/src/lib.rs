@@ -123,6 +123,7 @@ fn strip_hidden_fields(tree: Value) -> Value {
         ":spanLeftOffsetCodeReprBegin",
         ":spanLeftOffsetCodeReprLen",
         ":spanLeftOffsetCodeUtf16",
+        ":spanLeftOffsetCodeOffsetUtf16",
         ":spanCodeLengthUtf8",
         ":spanCodeLengthUtf16",
     ];
