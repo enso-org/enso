@@ -1,7 +1,8 @@
 import { useProjectStore } from '@/stores/project'
+import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import { assert, assertNever } from '@/util/assert'
+import { Ast, parseEnso } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
-import { parseEnso, type Ast } from '@/util/ffi'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
 import * as map from 'lib0/map'
@@ -19,7 +20,6 @@ import {
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
-import { DEFAULT_VISUALIZATION_IDENTIFIER } from './visualization'
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()

@@ -2,7 +2,7 @@
 
 declare const PROJECT_MANAGER_URL: string
 declare const HISTOIRE: boolean | undefined
-declare const RUNNING_VTEST: boolean
+declare const RUNNING_VITEST: boolean
 
 declare module 'builtins' {
   export const VisualizationContainer: typeof import('@/components/VisualizationContainer.vue').default

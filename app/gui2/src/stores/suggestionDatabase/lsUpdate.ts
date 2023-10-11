@@ -5,13 +5,13 @@ import {
 } from '@/stores/suggestionDatabase/documentation'
 import {
   SuggestionKind,
-  type Doc,
   type SuggestionEntry,
   type SuggestionEntryArgument,
   type SuggestionEntryScope,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
+import type { Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
 import {

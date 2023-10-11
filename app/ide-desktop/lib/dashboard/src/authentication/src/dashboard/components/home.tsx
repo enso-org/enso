@@ -1,7 +1,7 @@
 /** @file Home screen. */
 import * as React from 'react'
 
-import * as spinner from './spinner'
+import type * as spinner from './spinner'
 import Samples from './samples'
 import WhatsNew from './whatsNew'
 

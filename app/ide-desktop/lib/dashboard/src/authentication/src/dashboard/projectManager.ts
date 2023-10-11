@@ -1,7 +1,7 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
-import * as dateTime from './dateTime'
+import type * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 
 import GLOBAL_CONFIG from '../../../../../../../gui/config.yaml' assert { type: 'yaml' }

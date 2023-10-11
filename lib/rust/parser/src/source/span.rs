@@ -28,12 +28,12 @@ pub mod traits {
 #[allow(missing_docs)]
 #[reflect(transparent)]
 pub struct VisibleOffset {
-    pub width_in_spaces: usize,
+    pub width_in_spaces: u32,
 }
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub const fn VisibleOffset(width_in_spaces: usize) -> VisibleOffset {
+pub const fn VisibleOffset(width_in_spaces: u32) -> VisibleOffset {
     VisibleOffset { width_in_spaces }
 }
 
@@ -70,8 +70,7 @@ pub struct Offset<'s> {
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Offset<'s>(visible: VisibleOffset, code: impl Into<Code<'s>>) -> Offset<'s> {
-    let code = code.into();
+pub fn Offset(visible: VisibleOffset, code: Code) -> Offset {
     Offset { visible, code }
 }
 
@@ -87,6 +86,29 @@ impl<'s> Offset<'s> {
     pub fn exists(&self) -> bool {
         !self.is_empty()
     }
+
+    /// Return a copy of this value, and set this value to a 0-length offset following the returned
+    /// value.
+    #[inline(always)]
+    pub fn take_as_prefix(&mut self) -> Self {
+        Self { visible: mem::take(&mut self.visible), code: self.code.take_as_prefix() }
+    }
+
+    /// Return a 0-length `Span` representing the position before the start of this `Span`.
+    pub fn position_before(&self) -> Self {
+        Self { visible: default(), code: self.code.position_before() }
+    }
+
+    /// Return a 0-length `Span` representing the position after the end of this `Span`.
+    pub fn position_after(&self) -> Self {
+        Self { visible: default(), code: self.code.position_before() }
+    }
+
+    /// Return this value with its start position removed (set to 0). This can be used to compare
+    /// spans ignoring offsets.
+    pub fn without_offset(&self) -> Self {
+        Self { visible: self.visible, code: self.code.without_offset() }
+    }
 }
 
 impl<'s> AsRef<Offset<'s>> for Offset<'s> {
@@ -95,10 +117,10 @@ impl<'s> AsRef<Offset<'s>> for Offset<'s> {
     }
 }
 
-impl<'s> From<&'s str> for Offset<'s> {
+impl<'s> From<Code<'s>> for Offset<'s> {
     #[inline(always)]
-    fn from(code: &'s str) -> Self {
-        Offset(code.into(), code)
+    fn from(code: Code<'s>) -> Self {
+        Offset((*code.repr).into(), code)
     }
 }
 
@@ -117,7 +139,6 @@ impl<'s> AddAssign<&Offset<'s>> for Offset<'s> {
 }
 
 
-
 // ============
 // === Span ===
 // ============
@@ -127,7 +148,7 @@ impl<'s> AddAssign<&Offset<'s>> for Offset<'s> {
 /// element. This is done in order to not duplicate the data. For example, some AST nodes contain a
 /// lot of tokens. They need to remember their span, but they do not need to remember their code,
 /// because it is already stored in the tokens.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Span<'s> {
     #[reflect(hide, flatten)]
@@ -139,8 +160,8 @@ pub struct Span<'s> {
 
 impl<'s> Span<'s> {
     /// Constructor.
-    pub fn new() -> Self {
-        default()
+    pub fn empty_without_offset() -> Self {
+        Self { left_offset: Code::empty_without_offset().into(), code_length: default() }
     }
 
     /// Check whether the span is empty.
@@ -258,7 +279,7 @@ pub trait FirstChildTrim<'s> {
 impl<'s> FirstChildTrim<'s> for Span<'s> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = mem::take(&mut self.left_offset);
+        let left_offset = self.left_offset.take_as_prefix();
         let code_length = self.code_length;
         Span { left_offset, code_length }
     }
@@ -275,7 +296,7 @@ impl<'s> FirstChildTrim<'s> for Span<'s> {
 #[macro_export]
 macro_rules! span_builder {
     ($($arg:ident),* $(,)?) => {
-        $crate::source::span::Span::new() $(.add(&mut $arg))*
+        $crate::source::span::Span::empty_without_offset() $(.add(&mut $arg))*
     };
 }
 

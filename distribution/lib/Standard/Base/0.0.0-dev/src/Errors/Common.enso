@@ -73,7 +73,7 @@ type Type_Error
                         0 -> ""
                         1 -> ". Try to apply " + (missing_args.at 0) + " argument"
                         _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
-               _ -> tpe.to_display_text
+               _ -> tpe.to_text
 
         "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+type_of_actual+"."
 
