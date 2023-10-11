@@ -8,6 +8,7 @@ import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Internal.Java_Exports
 
 ## PRIVATE
+expand_column : Table -> (Text | Integer) -> ((Vector Text) | Nothing) -> (Text | Nothing) -> Table
 expand_column table column fields prefix =
     column_object = table.at column
     expanded = create_table_from_objects column_object.to_vector fields
@@ -29,6 +30,7 @@ expand_column table column fields prefix =
     Table.new output_builder.to_vector
 
 ## PRIVATE
+create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table
 create_table_from_objects value:Convertible_To_Rows fields = if fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
     len = value.length
 

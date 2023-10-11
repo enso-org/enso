@@ -43,7 +43,7 @@ Vector.to_table self fields=Nothing =
              json = Examples.simple_table_json
              headers = Examples.simple_table_json_headers
              Table.from_objects json headers
-Table.from_objects : Any -> Vector | Nothing -> Table ! Type_Error
+Table.from_objects : Any -> Vector | Nothing -> Table
 Table.from_objects value (fields : Vector | Nothing = Nothing) =
     Expand_Objects_Helpers.create_table_from_objects value fields
 
