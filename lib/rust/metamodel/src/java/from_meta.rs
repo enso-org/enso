@@ -9,9 +9,9 @@
 //!   this stage, although [`Dynamic`] methods are used so that if any classes are modified before
 //!   the model is rendered to syntax, the generated methods will reflect the changes.
 
-use crate::java::*;
-
 use crate::meta;
+
+use crate::java::*;
 
 
 

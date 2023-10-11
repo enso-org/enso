@@ -29,7 +29,7 @@ export default defineConfig({
     IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV !== 'production'),
     CLOUD_ENV:
       process.env.ENSO_CLOUD_ENV != null ? JSON.stringify(process.env.ENSO_CLOUD_ENV) : 'undefined',
-    RUNNING_VTEST: false,
+    RUNNING_VITEST: false,
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in by aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,

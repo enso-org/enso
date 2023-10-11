@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
+    "enso-gui2": "^0.1.0",
     "lint": "^0.8.19",
     "run": "^1.4.0",
     "tslib": "^2.6.2"
