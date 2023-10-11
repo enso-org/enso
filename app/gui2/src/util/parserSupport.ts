@@ -2,6 +2,7 @@
 
 export { type Result } from '@/util/result'
 import { Err, Error, Ok, type Result } from '@/util/result'
+import { bail } from './assert'
 
 export type Primitive = {
   type: 'primitive'
@@ -24,6 +25,7 @@ export type DynObject = {
   type: 'object'
   getFields: () => [string, DynValue][]
 }
+
 export const Dyn = {
   Primitive: (value: boolean | number | bigint | string): DynValue => ({
     type: 'primitive',
@@ -40,10 +42,10 @@ export const Dyn = {
 
 /** Base class for objects that lazily deserialize fields when accessed. */
 export abstract class LazyObject {
-  protected readonly lazyObjectData: Cursor
+  protected readonly _v: DataView
 
-  protected constructor(data: Cursor) {
-    this.lazyObjectData = data
+  protected constructor(view: DataView) {
+    this._v = view
   }
 
   fields(): [string, DynValue][] {
@@ -51,109 +53,102 @@ export abstract class LazyObject {
   }
 }
 
-export const builtin = {
-  Array: Array,
-} as const
+type Reader<T> = (view: DataView, address: number) => T
 
-export class Cursor {
-  private readonly blob: DataView
+function makeDataView(buffer: ArrayBuffer, address: number) {
+  return new DataView(buffer, address)
+}
 
-  constructor(buffer: ArrayBuffer, address: number) {
-    this.blob = new DataView(buffer, address)
+export function readU8(view: DataView, address: number) {
+  return view.getUint8(address)
+}
+
+export function readU32(view: DataView, address: number) {
+  return view.getUint32(address, true)
+}
+
+export function readI32(view: DataView, address: number) {
+  return view.getInt32(address, true)
+}
+
+export function readU64(view: DataView, address: number) {
+  return view.getBigUint64(address, true)
+}
+
+export function readI64(view: DataView, address: number) {
+  return view.getBigInt64(address, true)
+}
+
+export function readBool(view: DataView, address: number) {
+  return readU8(view, address) !== 0
+}
+
+export function readOffset(view: DataView, offset: number) {
+  return makeDataView(view.buffer, view.byteOffset + offset)
+}
+
+export function readPointer(view: DataView, address: number): DataView {
+  return makeDataView(view.buffer, readU32(view, address))
+}
+
+const textDecoder = new TextDecoder()
+
+export function readOption<T>(
+  view: DataView,
+  address: number,
+  readElement: Reader<T>,
+): T | undefined {
+  const discriminant = readU8(view, address)
+  switch (discriminant) {
+    case 0:
+      return undefined
+    case 1:
+      return readElement(readPointer(view, address + 1), 0)
+    default:
+      throw new Error(`Invalid Option discriminant: 0x${discriminant.toString(16)}.`)
   }
+}
 
-  *readSequence<T>(readElement: (cursor: Cursor) => T, elementSize: number): Iterable<T> {
-    const data = this.readPointer()
-    let count = data.readU32()
-    let offset = 4
-    while (count > 0) {
-      yield readElement(data.seek(offset))
-      count--
-      offset += elementSize
-    }
+export function readResult<Ok, Err>(
+  view: DataView,
+  address: number,
+  readOk: Reader<Ok>,
+  readErr: Reader<Err>,
+): Result<Ok, Err> {
+  const data = readPointer(view, address)
+  const discriminant = readU32(data, 0)
+  switch (discriminant) {
+    case 0:
+      return Ok(readOk(data, 4))
+    case 1:
+      return Err(readErr(data, 4))
+    default:
+      throw new Error(`Invalid Result discriminant: 0x${discriminant.toString(16)}.`)
   }
+}
+export function* readSequence<T>(view: DataView, address: number, size: number, reader: Reader<T>) {
+  const data = readPointer(view, address)
+  let count = readU32(data, 0)
+  let offset = 4
+  while (count > 0) {
+    yield reader(data, offset)
+    count--
+    offset += size
+  }
+}
 
-  readOption<T>(readElement: (cursor: Cursor) => T): T | undefined {
-    const discriminant = this.readU8()
-    switch (discriminant) {
-      case 0:
-        return undefined
-      case 1:
-        return readElement(this.seek(1).readPointer())
-      default:
-        throw new Error(`Invalid Option discriminant: 0x${discriminant.toString(16)}.`)
-    }
-  }
+export function readString(view: DataView, address: number): string {
+  const data = readPointer(view, address)
+  const len = readU32(data, 0)
+  const bytes = new Uint8Array(data.buffer, data.byteOffset + 4, len)
+  return textDecoder.decode(bytes)
+}
 
-  readResult<Ok, Err>(
-    readOk: (cursor: Cursor) => Ok,
-    readErr: (cursor: Cursor) => Err,
-  ): Result<Ok, Err> {
-    const data = this.readPointer()
-    const discriminant = data.readU32()
-    switch (discriminant) {
-      case 0:
-        return Ok(readOk(data.seek(4)))
-      case 1:
-        return Err(readErr(data.seek(4)))
-      default:
-        throw new Error(`Invalid Result discriminant: 0x${discriminant.toString(16)}.`)
-    }
-  }
-
-  readPointer(): Cursor {
-    const pointee = this.readU32()
-    return new Cursor(this.blob.buffer, pointee)
-  }
-
-  readU8(): number {
-    return this.blob.getUint8(0)
-  }
-
-  readU32(): number {
-    return this.blob.getUint32(0, true)
-  }
-
-  readI32(): number {
-    return this.blob.getInt32(0, true)
-  }
-
-  readU64(): bigint {
-    return this.blob.getBigUint64(0, true)
-  }
-
-  readI64(): bigint {
-    return this.blob.getBigInt64(0, true)
-  }
-
-  readBool(): boolean {
-    const value = this.readU8()
-    switch (value) {
-      case 0:
-        return false
-      case 1:
-        return true
-      default:
-        throw new Error(
-          `Invalid boolean: 0x${value.toString(16)} @ 0x${this.blob.byteOffset.toString(16)}.`,
-        )
-    }
-  }
-
-  readString(): string {
-    const data = this.readPointer()
-    const len = data.readU32()
-    const bytes = data.blob.buffer.slice(data.blob.byteOffset + 4, data.blob.byteOffset + 4 + len)
-    return new TextDecoder().decode(bytes)
-  }
-
-  seek(offset: number): Cursor {
-    return new Cursor(this.blob.buffer, this.blob.byteOffset + offset)
-  }
-
-  address(): number {
-    return this.blob.byteOffset
-  }
+export function readEnum<T>(readers: Reader<T>[], view: DataView, address: number): T {
+  const data = readPointer(view, address)
+  const discriminant = readU32(data, 0)
+  const reader = readers[discriminant] ?? bail(`Invalid enum discriminant: ${discriminant}`)
+  return reader(data, 4)
 }
 
 export function debug(obj: LazyObject): any {
