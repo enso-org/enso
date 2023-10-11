@@ -185,9 +185,11 @@ spec =
             r.should_fail_with Illegal_Argument
             r.catch.to_display_text . should_contain "keys are duplicated when converted to text"
 
-        Test.specify "will ??? when there are no fields" <|
+        Test.specify "will error when all objects have no fields" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", [Map.from_vector [], Map.from_vector []]], ["ccc", [5, 6]]]
-            table.expand_column "bbb" . print
+            r = table.expand_column "bbb"
+            r.should_fail_with Illegal_Argument
+            r.catch.message.should_contain "all input objects had no fields"
 
         Test.specify "will error when fields=[]" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
