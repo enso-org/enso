@@ -185,6 +185,14 @@ spec =
             r.should_fail_with Illegal_Argument
             r.catch.to_display_text . should_contain "keys are duplicated when converted to text"
 
+        Test.specify "will ??? when there are no fields" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [Map.from_vector [], Map.from_vector []]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" . print
+
+        Test.specify "will ??? when fields=[]" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
+            table.expand_column "bbb" fields=[] . print
+
         Test.specify "Can expand with a prefix" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["expanded last", ["Smith", Nothing]], ["expanded height", [Nothing, 1.9]], ["expanded foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
