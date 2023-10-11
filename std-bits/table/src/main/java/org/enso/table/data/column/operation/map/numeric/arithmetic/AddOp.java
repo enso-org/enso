@@ -12,7 +12,8 @@ public class AddOp<T extends Number, I extends Storage<? super T>>
   }
 
   @Override
-  public double doDouble(double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
+  public double doDouble(
+      double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
     return a + b;
   }
 

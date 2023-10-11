@@ -33,7 +33,8 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param problemAggregator the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public Storage<?> runUnaryMap(String n, S storage, MapOperationProblemAggregator problemAggregator) {
+  public Storage<?> runUnaryMap(
+      String n, S storage, MapOperationProblemAggregator problemAggregator) {
     if (!isSupportedUnary(n)) {
       throw new IllegalStateException(
           "Requested vectorized unary operation " + n + ", but no such operation is known.");
@@ -90,7 +91,11 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @return the result of running the operation
    */
   public Storage<?> runTernaryMap(
-      String n, S storage, Object arg0, Object arg1, MapOperationProblemAggregator problemAggregator) {
+      String n,
+      S storage,
+      Object arg0,
+      Object arg1,
+      MapOperationProblemAggregator problemAggregator) {
     if (!isSupportedTernary(n)) {
       throw new IllegalStateException(
           "Requested vectorized ternary operation " + n + ", but no such operation is known.");

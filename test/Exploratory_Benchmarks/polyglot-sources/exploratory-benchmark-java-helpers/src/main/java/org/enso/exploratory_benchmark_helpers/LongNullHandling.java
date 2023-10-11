@@ -89,7 +89,8 @@ public class LongNullHandling {
         if (storage.isNa(i) || arg.isNa(i)) {
           missing.set(i);
         } else {
-          long x = doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator, nullityReporter);
+          long x =
+              doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator, nullityReporter);
           if (nullityReporter.wasLastNull) {
             missing.set(i);
             nullityReporter.wasLastNull = false;
