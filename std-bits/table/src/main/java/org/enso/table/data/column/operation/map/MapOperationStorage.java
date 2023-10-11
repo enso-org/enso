@@ -30,7 +30,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    *
    * @param n the operation name
    * @param storage the storage to run operation on
-   * @param problemAggregator the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public Storage<?> runUnaryMap(
@@ -58,7 +58,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param n the operation name
    * @param storage the storage to run operation on
    * @param arg the argument to pass to the operation
-   * @param problemAggregator the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public Storage<?> runBinaryMap(
@@ -87,7 +87,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param storage the storage to run operation on
    * @param arg0 the first argument to pass to the operation
    * @param arg1 the second argument to pass to the operation
-   * @param problemAggregator the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public Storage<?> runTernaryMap(
@@ -109,7 +109,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param n the operation name
    * @param storage the storage to run operation on
    * @param arg the storage containing operation arguments
-   * @param problemAggregator the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public Storage<?> runZip(

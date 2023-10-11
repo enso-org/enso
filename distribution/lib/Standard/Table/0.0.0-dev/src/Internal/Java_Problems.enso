@@ -90,8 +90,8 @@ with_problem_aggregator on_problems f =
     on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
 
 ## PRIVATE
-with_map_operation_problem_builder : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemAggregator -> Any) -> Any
-with_map_operation_problem_builder (location : Text | Nothing) on_problems f =
+with_map_operation_problem_aggregator : (Text | Nothing) -> Problem_Behavior -> (MapOperationProblemAggregator -> Any) -> Any
+with_map_operation_problem_aggregator (location : Text | Nothing) on_problems f =
     with_problem_aggregator on_problems java_aggregator->
         problem_builder = MapOperationProblemAggregator.new java_aggregator location
         f problem_builder

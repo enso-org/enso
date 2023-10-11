@@ -24,7 +24,7 @@ public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
    *
    * @param storage the storage to run operation on
    * @param arg the argument passed to the operation
-   * @param problemAggregator the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public abstract Storage<?> runBinaryMap(
@@ -35,7 +35,7 @@ public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
    *
    * @param storage the storage to run operation on
    * @param arg the storage providing second arguments to the operation
-   * @param problemAggregator the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public abstract Storage<?> runZip(

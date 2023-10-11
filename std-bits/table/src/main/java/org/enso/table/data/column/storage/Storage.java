@@ -263,7 +263,7 @@ public abstract class Storage<T> {
    * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
-   * @param problemAggregator the problem builder to use for the vectorized implementation
+   * @param problemAggregator the problem aggregator to use for the vectorized implementation
    * @param fallback the fallback Enso function to run if vectorized implementation is not
    *     available; it should never raise dataflow errors.
    * @param skipNa whether rows containing missing values should be passed to the fallback function.
@@ -291,7 +291,7 @@ public abstract class Storage<T> {
    * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
-   * @param problemAggregator the problem builder to use for the vectorized implementation
+   * @param problemAggregator the problem aggregator to use for the vectorized implementation
    * @param fallback the fallback Enso function to run if vectorized implementation is not
    *     available; it should never raise dataflow errors.
    * @param argument the argument to pass to each run of the function
@@ -321,7 +321,7 @@ public abstract class Storage<T> {
    * <p>Does not take a fallback function.
    *
    * @param name the name of the vectorized operation
-   * @param problemAggregator the problem builder to use for the vectorized implementation
+   * @param problemAggregator the problem aggregator to use for the vectorized implementation
    * @param argument0 the first argument to pass to each run of the function
    * @param argument1 the second argument to pass to each run of the function
    * @param skipNulls specifies whether null values on the input should result in a null result
@@ -349,7 +349,7 @@ public abstract class Storage<T> {
    * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
-   * @param problemAggregator the problem builder to use for the vectorized implementation
+   * @param problemAggregator the problem aggregator to use for the vectorized implementation
    * @param fallback the fallback Enso function to run if vectorized implementation is not
    *     available; it should never raise dataflow errors.
    * @param other the other storage to zip with this one

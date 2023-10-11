@@ -2236,7 +2236,7 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
         naming_helper.function_name name all_operands
     common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
     common_type.if_not_error <|
-        Java_Problems.with_map_operation_problem_builder effective_new_name Problem_Behavior.Report_Warning problem_builder->
+        Java_Problems.with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
             storage_type = resolve_storage_type common_type
             folded = effective_operands.fold column.java_column.getStorage current-> operand->
                 case operand of
@@ -2266,7 +2266,7 @@ run_vectorized_binary_op : Column -> Text -> Any -> Text|Nothing -> (Any -> Any 
 run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
     effective_new_name = new_name.if_nothing <|
         naming_helper.binary_operation_name name column operand
-    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         storage_type = resolve_storage_type expected_result_type
         case operand of
             Column.Value col2 ->
@@ -2300,7 +2300,7 @@ run_vectorized_ternary_op : Column -> Text -> Any -> Any -> Text|Nothing -> Valu
 run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expected_result_type=Nothing skip_nulls=True =
     effective_new_name = new_name.if_nothing <|
         naming_helper.function_name name [column, operand0, operand1]
-    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         storage_type = resolve_storage_type expected_result_type
         s1 = column.java_column.getStorage
         rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
@@ -2325,7 +2325,7 @@ run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expecte
 run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         new_storage = case operand of
             other_column : Column ->
                 Polyglot_Helpers.handle_polyglot_dataflow_errors <|
@@ -2351,7 +2351,7 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
 run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             s.unaryMap function skip_nulls storage_type problem_builder
         Column.Value (Java_Column.new new_name new_storage)
@@ -2366,10 +2366,10 @@ run_unary_op column function new_name skip_nulls=True expected_result_type=Nothi
    - operand: The operand to apply to the function after `column`.
    - fallback_fn: A function used if the vectorized operation isn't available.
      It takes a `MapOperationProblemAggregator` as its first argument.
-     It should never raise dataflow errors and use the problem builder to report
-     problems. If fatal problems are expected, the fallback should be raising a
-     panic and the user-facing code should ensure such panic is caught and
-     converted to a dataflow error.
+     It should never raise dataflow errors and use the aggregator builder to
+     report problems. If fatal problems are expected, the fallback should be
+     raising a panic and the user-facing code should ensure such panic is caught
+     and converted to a dataflow error.
    - expected_result_type: The expected result type of the operation.
    - new_name: The name of the column created as the result of this operation.
    - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
@@ -2377,7 +2377,7 @@ run_unary_op column function new_name skip_nulls=True expected_result_type=Nothi
      `False`, the null values are passed as any other value and can have custom
      handling logic.
 run_vectorized_binary_op_with_fallback_problem_handling column name operand fallback_fn new_name expected_result_type=Nothing skip_nulls=True =
-    Java_Problems.with_map_operation_problem_builder new_name Problem_Behavior.Report_Warning problem_builder->
+    Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning problem_builder->
         applied_fn = case fallback_fn of
             Nothing -> Nothing
             _ -> fallback_fn problem_builder
@@ -2412,7 +2412,7 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
      handling logic.
 run_vectorized_unary_op : Column -> Text -> Text -> (Any -> Any) -> Value_Type -> Any -> Column
 run_vectorized_unary_op column name new_name fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
-    Java_Problems.with_map_operation_problem_builder column.name Problem_Behavior.Report_Warning problem_builder->
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         s = column.java_column.getStorage
         storage_type = resolve_storage_type expected_result_type
         rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
