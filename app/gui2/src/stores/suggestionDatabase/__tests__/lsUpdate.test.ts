@@ -4,7 +4,7 @@ import { unwrap } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { expect, test } from 'vitest'
 import { SuggestionDb, type Group } from '..'
-import { SuggestionKind, type SuggestionEntry } from '../entry'
+import { SuggestionKind, entryQn, type SuggestionEntry } from '../entry'
 import { applyUpdates } from '../lsUpdate'
 
 test('Adding suggestion database entries', () => {
@@ -12,6 +12,18 @@ test('Adding suggestion database entries', () => {
   const db = new SuggestionDb()
   applyUpdates(db, test.addUpdatesForExpected(), test.groups)
   test.check(db)
+})
+
+test('Entry qualified names', () => {
+  const test = new Fixture()
+  const db = test.createDbWithExpected()
+  expect(entryQn(db.get(1))).toStrictEqual('Standard.Base')
+  expect(entryQn(db.get(2))).toStrictEqual('Standard.Base.Type')
+  expect(entryQn(db.get(3))).toStrictEqual('Standard.Base.Con')
+  expect(entryQn(db.get(4))).toStrictEqual('Standard.Base.method')
+  expect(entryQn(db.get(5))).toStrictEqual('Standard.Base.static_method')
+  expect(entryQn(db.get(6))).toStrictEqual('Standard.Base.function')
+  expect(entryQn(db.get(7))).toStrictEqual('Standard.Base.local')
 })
 
 test("Modifying suggestion entries' fields", () => {

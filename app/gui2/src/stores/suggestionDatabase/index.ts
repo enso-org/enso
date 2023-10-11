@@ -4,11 +4,31 @@ import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import { reactive, ref, type Ref } from 'vue'
 import { useProjectStore } from '../project'
-import { type SuggestionEntry, type SuggestionId } from './entry'
+import { type SuggestionEntry, type SuggestionId, entryQn } from './entry'
 import { applyUpdates, entryFromLs } from './lsUpdate'
 
-export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
-export const SuggestionDb = Map<SuggestionId, SuggestionEntry>
+export class SuggestionDb {
+  entries: Map<SuggestionId, SuggestionEntry>
+  nameToId: Map<QualifiedName, SuggestionId>
+  constructor() {
+	this.entries = new Map()
+	this.nameToId = new Map()
+  }
+  set(id: SuggestionId, entry: SuggestionEntry) {
+	this.entries.set(id, entry)
+	this.nameToId.set(entryQn(entry), id)
+  }
+  get(id: SuggestionId): SuggestionEntry | undefined {
+	return this.entries.get(id)
+  }
+  delete(id: SuggestionId) {
+	const entry = this.get(id)
+	if (entry) {
+	  this.nameToId.delete(entryQn(entry))
+	}
+	this.entries.delete(id)
+  }
+}
 
 export interface Group {
   color?: string
@@ -49,7 +69,7 @@ class Synchronizer {
         entry.error.log()
         console.error(`Skipping entry ${lsEntry.id}, the suggestion database will be incomplete!`)
       } else {
-        entries.set(lsEntry.id, entry.value)
+		entries.set(lsEntry.id, entry.value)
       }
     }
     return { currentVersion: initialDb.currentVersion }

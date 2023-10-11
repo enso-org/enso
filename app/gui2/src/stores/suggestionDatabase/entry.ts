@@ -38,6 +38,7 @@ export enum SuggestionKind {
 }
 
 export interface SuggestionEntry {
+  parent: ComputedRef<SuggestionId | null>
   kind: SuggestionKind
   /// A module where the suggested object is defined.
   definedIn: QualifiedName
@@ -63,6 +64,14 @@ export interface SuggestionEntry {
   iconName?: string
   /// An index of a group from group list in suggestionDb store this entry belongs to.
   groupIndex?: number
+}
+
+export function entryQn(entry: SuggestionEntry): QualifiedName {
+  if (entry.kind == SuggestionKind.Module) {
+	return entry.definedIn
+  } else {
+	return [entry.definedIn, entry.name].join('.')
+  }
 }
 
 function makeSimpleEntry(
