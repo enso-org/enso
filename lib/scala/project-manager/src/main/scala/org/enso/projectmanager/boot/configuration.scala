@@ -83,8 +83,14 @@ object configuration {
     * @param interface an interface to listen to
     * @param minPort min port for the LS
     * @param maxPort max port for the LS
+    * @param enableSecure true, if secure connections should be enabled, false otherwise
     */
-  case class NetworkConfig(interface: String, minPort: Int, maxPort: Int)
+  case class NetworkConfig(
+    interface: String,
+    minPort: Int,
+    maxPort: Int,
+    enableSecure: Boolean
+  )
 
   /** A configuration object for bootloader properties.
     *

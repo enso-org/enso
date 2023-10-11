@@ -127,8 +127,13 @@ class Runner(
         options.dataPort.toString,
         "--log-level",
         logLevel.name
-      ) ++
-        Option.unless(logMasking)("--no-log-masking")
+      ) ++ options.secureRpcPort
+        .map(port => Seq("--secure-rpc-port", port.toString))
+        .getOrElse(Seq.empty) ++
+        options.secureDataPort
+          .map(port => Seq("--secure-data-port", port.toString))
+          .getOrElse(Seq.empty) ++
+        Option.unless(logMasking)(Seq("--no-log-masking")).getOrElse(Seq.empty)
       RunSettings(
         version,
         arguments ++ additionalArguments,
