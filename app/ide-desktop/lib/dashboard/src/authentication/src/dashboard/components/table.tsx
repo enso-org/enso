@@ -312,7 +312,15 @@ export default function Table<T, State = never, RowState = never, Key extends st
                         }
                     }}
                     draggable={draggableRows}
-                    onDragStart={onRowDragStart}
+                    onDragStart={event => {
+                        if (onRowDragStart != null) {
+                            if (!selectedKeys.has(key)) {
+                                setPreviouslySelectedKey(key)
+                                setSelectedKeys(new Set([key]))
+                            }
+                            onRowDragStart(event)
+                        }
+                    }}
                     onDrag={onRowDrag}
                     onDragEnd={onRowDragEnd}
                 />

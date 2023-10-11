@@ -47,7 +47,7 @@ export default function AssetRow(props: AssetRowProps) {
         state,
         columns,
     } = props
-    const { assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+    const { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, doCut, doPaste } = state
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -85,11 +85,12 @@ export default function AssetRow(props: AssetRowProps) {
                     item: asset,
                 })
                 await backend.updateAsset(
-                    item.item.id,
+                    asset.id,
                     { parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization) },
-                    item.item.title
+                    asset.title
                 )
-            } catch {
+            } catch (error) {
+                toastAndLog(`Could not move '${asset.title}'`, error)
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.move,
@@ -107,8 +108,7 @@ export default function AssetRow(props: AssetRowProps) {
             item.directoryId,
             item.directoryKey,
             item.key,
-            item.item.id,
-            item.item.title,
+            /* should never change */ toastAndLog,
             /* should never change */ dispatchAssetListEvent,
         ]
     )
@@ -277,6 +277,8 @@ export default function AssetRow(props: AssetRowProps) {
                                                 ? event.target
                                                 : event.currentTarget
                                         }
+                                        doCut={doCut}
+                                        doPaste={doPaste}
                                         doDelete={doDelete}
                                     />
                                 )
@@ -330,6 +332,8 @@ export default function AssetRow(props: AssetRowProps) {
                                 }}
                                 event={{ pageX: 0, pageY: 0 }}
                                 eventTarget={null}
+                                doCut={doCut}
+                                doPaste={doPaste}
                                 doDelete={doDelete}
                             />
                         )}

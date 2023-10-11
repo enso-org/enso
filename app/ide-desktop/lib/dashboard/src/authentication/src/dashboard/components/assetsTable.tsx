@@ -169,6 +169,7 @@ const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.Fil
 export interface AssetsTableState {
     numberOfSelectedItems: number
     category: categorySwitcher.Category
+    hasCopyData: boolean
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
@@ -189,6 +190,11 @@ export interface AssetsTableState {
         switchPage: boolean
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
+    doCut: () => void
+    doPaste: (
+        newParentKey: backendModule.AssetId | null,
+        newParentId: backendModule.DirectoryId | null
+    ) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
@@ -263,6 +269,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
+    const [copyData, setCopyData] = React.useState<Set<backendModule.AssetId> | null>(null)
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
@@ -978,11 +985,39 @@ export default function AssetsTable(props: AssetsTableProps) {
         [projectStartupInfo, rawDoCloseIde, /* should never change */ dispatchAssetEvent]
     )
 
+    const doCut = React.useCallback(() => {
+        setSelectedKeys(oldSelectedKeys => {
+            queueMicrotask(() => {
+                setCopyData(oldSelectedKeys)
+            })
+            return new Set()
+        })
+    }, [])
+
+    const doPaste = React.useCallback(
+        (
+            newParentKey: backendModule.AssetId | null,
+            newParentId: backendModule.DirectoryId | null
+        ) => {
+            if (copyData != null) {
+                setCopyData(null)
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.move,
+                    ids: copyData,
+                    newParentKey,
+                    newParentId,
+                })
+            }
+        },
+        [copyData, /* should never change */ dispatchAssetEvent]
+    )
+
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
             numberOfSelectedItems: selectedKeys.size,
             category,
+            hasCopyData: copyData != null,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -994,17 +1029,22 @@ export default function AssetsTable(props: AssetsTableProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
+            doCut,
+            doPaste,
         }),
         [
             selectedKeys.size,
             category,
+            copyData,
             sortColumn,
             sortDirection,
             assetEvents,
+            doToggleDirectoryExpansion,
             doOpenManually,
             doOpenIde,
             doCloseIde,
-            doToggleDirectoryExpansion,
+            doCut,
+            doPaste,
             /* should never change */ setSortColumn,
             /* should never change */ setSortDirection,
             /* should never change */ dispatchAssetEvent,
@@ -1176,9 +1216,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         </ContextMenu>
                                     )}
                                     <GlobalContextMenu
+                                        hasCopyData={copyData != null}
                                         directoryKey={null}
                                         directoryId={null}
                                         dispatchAssetListEvent={dispatchAssetListEvent}
+                                        doPaste={doPaste}
                                     />
                                 </ContextMenus>
                             )
@@ -1186,44 +1228,49 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }}
                     draggableRows
                     onRowDragStart={event => {
-                        const nodes = assetTreeNode
-                            .assetTreePreorderTraversal(assetTree)
-                            .filter(node => selectedKeys.has(node.key))
-                        const data: AssetRowsDragPayload = nodes.map(node => ({
-                            key: node.key,
-                            asset: node.item,
-                        }))
-                        event.dataTransfer.setData(
-                            ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE,
-                            JSON.stringify(data)
-                        )
-                        const blankElement = document.createElement('div')
-                        blankElement.style.height = blankElement.style.width = '0'
-                        document.body.appendChild(blankElement)
-                        event.dataTransfer.setDragImage(blankElement, 0, 0)
-                        blankElement.remove()
-                        setModal(
-                            <DragModal
-                                event={event}
-                                className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
-                            >
-                                {nodes.map(node => (
-                                    <AssetNameColumn
-                                        key={node.key}
-                                        keyProp={node.key}
-                                        item={node}
-                                        state={state}
-                                        // Default states.
-                                        selected={false}
-                                        rowState={INITIAL_ROW_STATE}
-                                        // The drag placeholder cannot be interacted with.
-                                        setSelected={() => {}}
-                                        setItem={() => {}}
-                                        setRowState={() => {}}
-                                    />
-                                ))}
-                            </DragModal>
-                        )
+                        setSelectedKeys(oldSelectedKeys => {
+                            const nodes = assetTreeNode
+                                .assetTreePreorderTraversal(assetTree)
+                                .filter(node => oldSelectedKeys.has(node.key))
+                            const data: AssetRowsDragPayload = nodes.map(node => ({
+                                key: node.key,
+                                asset: node.item,
+                            }))
+                            event.dataTransfer.setData(
+                                ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE,
+                                JSON.stringify(data)
+                            )
+                            const blankElement = document.createElement('div')
+                            blankElement.style.height = blankElement.style.width = '0'
+                            document.body.appendChild(blankElement)
+                            event.dataTransfer.setDragImage(blankElement, 0, 0)
+                            blankElement.remove()
+                            queueMicrotask(() => {
+                                setModal(
+                                    <DragModal
+                                        event={event}
+                                        className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
+                                    >
+                                        {nodes.map(node => (
+                                            <AssetNameColumn
+                                                key={node.key}
+                                                keyProp={node.key}
+                                                item={node}
+                                                state={state}
+                                                // Default states.
+                                                selected={false}
+                                                rowState={INITIAL_ROW_STATE}
+                                                // The drag placeholder cannot be interacted with.
+                                                setSelected={() => {}}
+                                                setItem={() => {}}
+                                                setRowState={() => {}}
+                                            />
+                                        ))}
+                                    </DragModal>
+                                )
+                            })
+                            return oldSelectedKeys
+                        })
                     }}
                 />
             </div>

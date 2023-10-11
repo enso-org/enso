@@ -14,6 +14,7 @@ import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
 import OpenIcon from 'enso-assets/open.svg'
+import PasteIcon from 'enso-assets/paste.svg'
 import PenIcon from 'enso-assets/pen.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import Play2Icon from 'enso-assets/play2.svg'
@@ -70,6 +71,7 @@ export enum KeyboardAction {
     duplicate = 'duplicate',
     copy = 'copy',
     cut = 'cut',
+    paste = 'paste',
     download = 'download',
     uploadFiles = 'upload-files',
     uploadProjects = 'upload-projects',
@@ -175,6 +177,7 @@ function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<K
         [KeyboardAction.duplicate]: make(KeyboardAction.duplicate),
         [KeyboardAction.copy]: make(KeyboardAction.copy),
         [KeyboardAction.cut]: make(KeyboardAction.cut),
+        [KeyboardAction.paste]: make(KeyboardAction.paste),
         [KeyboardAction.download]: make(KeyboardAction.download),
         [KeyboardAction.uploadFiles]: make(KeyboardAction.uploadFiles),
         [KeyboardAction.uploadProjects]: make(KeyboardAction.uploadProjects),
@@ -461,6 +464,7 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
     [KeyboardAction.copy]: [keybind(KeyboardAction.copy, [CTRL], 'C')],
     [KeyboardAction.cut]: [keybind(KeyboardAction.cut, [CTRL], 'X')],
+    [KeyboardAction.paste]: [keybind(KeyboardAction.paste, [CTRL], 'V')],
     [KeyboardAction.download]: [keybind(KeyboardAction.download, [CTRL, 'Shift'], 'S')],
     [KeyboardAction.uploadFiles]: [keybind(KeyboardAction.uploadFiles, [CTRL], 'U')],
     [KeyboardAction.uploadProjects]: [keybind(KeyboardAction.uploadProjects, [CTRL], 'U')],
@@ -503,6 +507,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
     [KeyboardAction.copy]: { name: 'Copy', icon: CopyIcon },
     [KeyboardAction.cut]: { name: 'Cut', icon: ScissorsIcon },
+    [KeyboardAction.paste]: { name: 'Paste', icon: PasteIcon },
     [KeyboardAction.download]: { name: 'Download', icon: DataDownloadIcon },
     [KeyboardAction.uploadFiles]: { name: 'Upload Files', icon: DataUploadIcon },
     [KeyboardAction.uploadProjects]: { name: 'Upload Projects', icon: DataUploadIcon },
