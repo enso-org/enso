@@ -141,6 +141,10 @@ export interface AssetsTableState {
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    topLevelAssets: Readonly<React.MutableRefObject<assetTreeNode.AssetTreeNode[]>>
+    nodeMap: Readonly<
+        React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>
+    >
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
@@ -228,20 +232,17 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [sortColumn, setSortColumn] = React.useState<columnModule.SortableColumn | null>(null)
     const [sortDirection, setSortDirection] = React.useState<sorting.SortDirection | null>(null)
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<backendModule.AssetId>())
-    const scrollContainerRef = React.useRef<HTMLDivElement>(null)
-    const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const [, setQueuedAssetEvents] = React.useState<assetEventModule.AssetEvent[]>([])
     const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+    const headerRowRef = React.useRef<HTMLTableRowElement>(null)
+    const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode[]>([])
+    const nodeMapRef = React.useRef<
+        ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>
+    >(new Map<backendModule.AssetId, assetTreeNode.AssetTreeNode>())
     const rootDirectoryId = React.useMemo(
         () => backend.rootDirectoryId(organization),
         [backend, organization]
-    )
-    const nodeMap = React.useMemo(
-        () =>
-            new Map(
-                assetTreeNode.assetTreePreorderTraversal(assetTree).map(asset => [asset.key, asset])
-            ),
-        [assetTree]
     )
     const filter = React.useMemo(() => {
         if (query === '') {
@@ -301,6 +302,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             setIsLoading(false)
         }
     }, [loadingProjectManagerDidFail, backend.type])
+
+    React.useEffect(() => {
+        assetTreeRef.current = assetTree
+        nodeMapRef.current = new Map(
+            assetTreeNode.assetTreePreorderTraversal(assetTree).map(asset => [asset.key, asset])
+        )
+    }, [assetTree])
 
     React.useEffect(() => {
         if (isLoading) {
@@ -502,7 +510,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
     const doToggleDirectoryExpansion = React.useCallback(
         (directoryId: backendModule.DirectoryId, key: backendModule.AssetId, title?: string) => {
-            const directory = nodeMap.get(key)
+            const directory = nodeMapRef.current.get(key)
             if (directory?.children != null) {
                 const abortController = directoryListAbortControllersRef.current.get(directoryId)
                 if (abortController != null) {
@@ -606,21 +614,22 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [category, nodeMap, backend]
+        [category, nodeMapRef, backend]
     )
 
     const getNewProjectName = React.useCallback(
         (templateId: string | null, parentKey: backendModule.DirectoryId | null) => {
             const prefix = `${templateId ?? 'New_Project'}_`
             const projectNameTemplate = new RegExp(`^${prefix}(?<projectIndex>\\d+)$`)
-            const siblings = parentKey == null ? assetTree : nodeMap.get(parentKey)?.children ?? []
+            const siblings =
+                parentKey == null ? assetTree : nodeMapRef.current.get(parentKey)?.children ?? []
             const projectIndices = siblings
                 .filter(node => backendModule.assetIsProject(node.item))
                 .map(node => projectNameTemplate.exec(node.item.title)?.groups?.projectIndex)
                 .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
             return `${prefix}${Math.max(0, ...projectIndices) + 1}`
         },
-        [assetTree, nodeMap]
+        [assetTree, nodeMapRef]
     )
 
     hooks.useEventHandler(assetListEvents, event => {
@@ -629,7 +638,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const siblings =
                     event.parentKey == null
                         ? assetTree
-                        : nodeMap.get(event.parentKey)?.children ?? []
+                        : nodeMapRef.current.get(event.parentKey)?.children ?? []
                 const directoryIndices = siblings
                     .filter(node => backendModule.assetIsDirectory(node.item))
                     .map(node => DIRECTORY_NAME_REGEX.exec(node.item.title))
@@ -650,7 +659,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    nodeMap.get(event.parentKey)?.children == null
+                    nodeMapRef.current.get(event.parentKey)?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
@@ -701,7 +710,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    nodeMap.get(event.parentKey)?.children == null
+                    nodeMapRef.current.get(event.parentKey)?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
@@ -767,7 +776,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    nodeMap.get(event.parentKey)?.children == null
+                    nodeMapRef.current.get(event.parentKey)?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
@@ -829,7 +838,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 if (
                     event.parentId != null &&
                     event.parentKey != null &&
-                    nodeMap.get(event.parentKey)?.children == null
+                    nodeMapRef.current.get(event.parentKey)?.children == null
                 ) {
                     doToggleDirectoryExpansion(event.parentId, event.parentKey)
                 }
@@ -884,7 +893,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case assetListEventModule.AssetListEventType.closeFolder: {
-                if (nodeMap.get(event.key)?.children != null) {
+                if (nodeMapRef.current.get(event.key)?.children != null) {
                     doToggleDirectoryExpansion(event.id, event.key)
                 }
                 break
@@ -928,6 +937,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
+            topLevelAssets: assetTreeRef,
+            nodeMap: nodeMapRef,
             doToggleDirectoryExpansion,
             doOpenManually,
             doOpenIde,
@@ -1015,7 +1026,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                             backend.type === backendModule.BackendType.local ||
                             (organization != null &&
                                 Array.from(innerSelectedKeys, key => {
-                                    const userPermissions = nodeMap.get(key)?.item.permissions
+                                    const userPermissions =
+                                        nodeMapRef.current.get(key)?.item.permissions
                                     const selfPermission = userPermissions?.find(
                                         permission =>
                                             permission.user.user_email === organization.email
