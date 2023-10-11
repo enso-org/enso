@@ -422,7 +422,7 @@ spec =
 
             do_duration now
 
-    Test.group "Polyglot Conversion" <|
+    Test.group "Polyglot Argument" <|
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Text | DateTimeFormatter) = case x of
             _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
@@ -459,6 +459,51 @@ spec =
 
         Test.specify "f4 d" <|
             (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
+
+    Test.group "Polyglot Conversion" <|
+        f1 (x : DateTimeFormatter) = x.to_text
+        f2 (x : Hello | DateTimeFormatter) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+        f3 (x : DateTimeFormatter | Hello) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+        f4 (x) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+
+        d = DateTimeFormatter.ISO_DATE
+
+        Test.specify "f1 d" <|
+            (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+
+        Test.specify "f1 42" <|
+            Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
+
+        Test.specify "f2 foo AAA" <|
+            (f2 <| Foo.Value "AAA").to_display_text . should_equal "HELLO: (Say 'AAA ')"
+
+        Test.specify "f2 hello AAA" <|
+            (f2 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        Test.specify "f2 d" <|
+            (f2 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        Test.specify "f3 bar AAA" <|
+            (f3 <| Bar.Value "AAA").to_display_text . should_equal "HELLO: (Say 'aaa!')"
+
+        Test.specify "f3 hello AAA" <|
+            (f3 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        Test.specify "f3 d" <|
+            (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        Test.specify "f4 d" <|
+            (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
+
 
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
