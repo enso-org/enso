@@ -148,11 +148,10 @@ spec =
             expected = Table.new [["aaa", [1, 2]], ["bbb last", ["Smith", Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] . should_equal expected
 
-        Test.specify "Error if there are vectors/arrays within a column" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3], [4, 5, 6]]]]
-            table2 = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3].to_array, [4, 5, 6].to_array]]]
-            table.expand_column "bbb" . should_fail_with Illegal_Argument
-            table2.expand_column "bbb" . should_fail_with Illegal_Argument
+        Test.specify "accept vectors/arrays within a column" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3], [4, 5, 6].to_array]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb Value", [[1, 2, 3], [4, 5, 6].to_array]]]
+            table.expand_column "bbb" . should_equal expected
 
         Test.specify "Can expand with a prefix" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
