@@ -1,13 +1,15 @@
 import { Tree, type MultipleOperatorError, type Token } from '@/generated/ast'
-import { parseEnso, parseEnsoLine, readAstSpan, readTokenSpan } from '@/util/ast'
+import { parseEnsoLine, readAstSpan, readTokenSpan } from '@/util/ast'
 import type { Result } from '@/util/result'
 import { assert } from '../assert'
-import { debug } from '../parserSupport'
 
+/** An operand of one of the applications inside `GenralOprApp` */
 export type GeneralOperand =
   | Operand
+  // A part of `GeneralOprApp`, consisting of lhs and first `statements` of applications.
   | { type: 'partOfGeneralOprApp'; oprApp: GeneralOprApp; statements: number }
 
+/** A structure unifying API of OprApp and OperatorBlockApplication */
 export class GeneralOprApp {
   lhs: Tree | null
   apps: {
@@ -31,11 +33,13 @@ export class GeneralOprApp {
     }
   }
 
+  /** Last operator */
   lastOpr(): Result<Token.Operator, MultipleOperatorError> | null {
     return this.apps[this.apps.length - 1]?.opr ?? null
   }
 
-  *readSpansOfCompnents(code: string): Generator<string | null> {
+  /** Returns representation of all operands interleaved with appropriate operators */
+  *componentsReprs(code: string): Generator<string | null> {
     yield this.lhs != null ? readAstSpan(this.lhs, code) : null
     for (const app of this.apps) {
       yield app.opr.ok ? readTokenSpan(app.opr.value, code) : null
@@ -43,11 +47,16 @@ export class GeneralOprApp {
     }
   }
 
+  /** Read operands of an operator chain. Operator is assumed to be left-associative.
+   *
+   * Works like `operandsOfLeftAssocOprChain` defined in this module, see its docs for details.
+   */
   *operandsOfLeftAssocOprChain(
     code: string,
     expectedOpr?: string,
   ): Generator<GeneralOperand | null> {
-    // TODO[ao] explain this code
+    // If this represents an OperatorBlockApplication, there may be many different operators. Our chain
+    // ends with the first not matching starting from the end.
     let matchingOprs
     for (matchingOprs = 0; matchingOprs < this.apps.length; matchingOprs++) {
       const app = this.apps[this.apps.length - matchingOprs - 1]!
@@ -57,9 +66,11 @@ export class GeneralOprApp {
       expectedOpr = oprCode
     }
     if (matchingOprs === this.apps.length) {
+      // If all operatros matched, the lhs may be a continuation of this chain.
       if (this.lhs != null) yield* operandsOfLeftAssocOprChain(this.lhs, code, expectedOpr)
       else yield null
     } else {
+      // Not all operators matched; the first operand will be a part of this GeneralOprApp.
       yield {
         type: 'partOfGeneralOprApp',
         oprApp: this,
@@ -67,17 +78,33 @@ export class GeneralOprApp {
       }
     }
     for (let i = this.apps.length - matchingOprs; i < this.apps.length; ++i) {
-      const app = this.apps[i]!
-      if (app.expr != null) yield { type: 'ast', ast: app.expr }
+      const app = this.apps[i]
+      if (app?.expr != null) yield { type: 'ast', ast: app.expr }
       else yield null
     }
   }
 }
 
+/** An operand of some operator application chain.
+ *
+ * There is a special case, where operand is a part of OperatorBlockApplication which is not
+ * representable by any AST structure.
+ */
 export type Operand =
   | { type: 'ast'; ast: Tree }
   | { type: 'partOfOprBlockApp'; ast: Tree.OperatorBlockApplication; statements: number }
 
+/** Read operands of an operator chain. Operator is assumed to be left-associative.
+ *
+ * It flattens applications of same operator, e.g. for `2 + 3 + 4` will return `2`, `3`, and `4`,
+ * but `2 - 3 + 4` will return `2 - 3` as first operand, and then `4`. If the ast is not
+ * an operator application (of this specific operator if provided), `this` will be returned as
+ *  a single operand.
+ *
+ * @param ast the subtree which we assume is an operator application chain.
+ * @param code the code from which the entire AST was generated.
+ * @param expectedOpr if specified, the chain will be of specific operator.
+ */
 export function* operandsOfLeftAssocOprChain(
   ast: Tree,
   code: string,
@@ -128,9 +155,8 @@ if (import.meta.vitest) {
       ast = ast.ast
     }
     assert(ast.type === Tree.Type.OprApp || ast.type === Tree.Type.OperatorBlockApplication)
-    // console.log(debug(ast))
     const opr = new GeneralOprApp(ast)
-    expect(Array.from(opr.readSpansOfCompnents(code))).toStrictEqual(result)
+    expect(Array.from(opr.componentsReprs(code))).toStrictEqual(result)
   })
 
   test.each([

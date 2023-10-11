@@ -11,6 +11,10 @@ export function parseEnso(code: string): Ast.Tree {
   return Ast.deserializeTree(blob.buffer)
 }
 
+/** Read a single line of code
+ *
+ * Is meant to be a helper for tests. If the code is multilined, an exception is raised.
+ */
 export function parseEnsoLine(code: string): Ast.Tree {
   const block = parseEnso(code)
   assert(block.type === Tree.Type.BodyBlock)
@@ -22,8 +26,12 @@ export function parseEnsoLine(code: string): Ast.Tree {
   return firstLine.value.expression
 }
 
-// TODO[ao] documentation here
-
+/**
+ * Read span of code reprsented by given AST node.
+ *
+ * The AST is assumed to be generated from `code` and not modified sice then.
+ * Otherwise an unspecified fragment of `code` may be returned.
+ */
 export function readAstSpan(node: Tree, code: string): string {
   const leftOffsetbegin = node.whitespaceStartInCodeParsed
   const leftOffsetEnd = leftOffsetbegin + node.whitespaceLengthInCodeParsed
@@ -31,12 +39,22 @@ export function readAstSpan(node: Tree, code: string): string {
   return code.substring(leftOffsetEnd, end)
 }
 
+/**
+ * Read span of code reprsented by given Token.
+ *
+ * The Token is assumed to be a part of AST generated from `code`.
+ */
 export function readTokenSpan(token: Token, code: string): string {
   const begin = token.startInCodeBuffer
   const end = begin + token.lengthInCodeBuffer
   return code.substring(begin, end)
 }
 
+/**
+ * Read direct AST children.
+ */
+// TODO[ao] This is a very hacky way of implementing this. The better solution would be to generate
+// such a function from parser types schema. See parser-codegen package.
 export function* childrenAstNodes(obj: unknown): Generator<Tree> {
   function* astNodeOrChildren(obj: unknown) {
     if (obj instanceof Tree.AbstractBase) {
@@ -66,6 +84,7 @@ export function* childrenAstNodes(obj: unknown): Generator<Tree> {
   }
 }
 
+/** Returns all AST nodes from `root` tree containing given char, starting from the most nested. */
 export function* astContainingChar(charIndex: number, root: Tree): Generator<Tree> {
   for (const child of childrenAstNodes(root)) {
     const begin = child.whitespaceStartInCodeParsed + child.whitespaceLengthInCodeParsed

@@ -5,42 +5,39 @@ import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { Filter } from './filtering'
 
-function asQualifiedName(accessorChain: GeneralOprApp, code: string): QualifiedName | null {
-  const operandsAsIdents = Array.from(
-    accessorChain.operandsOfLeftAssocOprChain(code, '.'),
-    (operand) =>
-      operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
-  ).slice(0, -1)
-  if (operandsAsIdents.some((optIdent) => optIdent == null)) return null
-  const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
-  const rawQn = segments.join('.')
-  const qn = tryQualifiedName(rawQn)
-  if (qn.ok) return qn.value
-  else {
-    console.error(
-      `AST identifiers in dot chain does not represent valid qualified name: '${rawQn}'`,
-    )
-    return null
-  }
-}
-
-type EditingContext =
+/** Input's editing context.
+ *
+ * It suggests what part of the input should be altered when accepting suggestion.
+ *
+ * Some variants has `accessOpr` field which contains a `.` application where the
+ * right operand is edited. It may be a qualified name or self argument for
+ * a suggestion.
+ */
+export type EditingContext =
+  // Suggestion should be inserted at given position.
   | {
       type: 'insert'
       position: number
-      accessorChain?: GeneralOprApp
+      accessOpr?: GeneralOprApp
     }
+  // Suggestion should replace given identifier.
   | {
       type: 'changeIdentifier'
       identifier: Ast.Tree.Ident
-      accessorChain?: GeneralOprApp
+      accessOpr?: GeneralOprApp
     }
+  // Suggestion should replace given literal.
   | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
 
+/** Component Browser Input Data */
 export class Input {
+  /** The current input's text (code). */
   readonly code: Ref<string>
+  /** The current selection (or cursor position if start is equal to end). */
   readonly selection: Ref<{ start: number; end: number }>
+  /** The editing context deduced from code and selection */
   readonly context: ComputedRef<EditingContext>
+  /** The filter deduced from code and selection. */
   readonly filter: ComputedRef<Filter>
 
   constructor() {
@@ -61,7 +58,7 @@ export class Input {
           return {
             type: 'changeIdentifier',
             identifier: leaf.value,
-            ...Input.readAccessorChain(editedAst.next(), input, leaf.value),
+            ...Input.readAccessOpr(editedAst.next(), input, leaf.value),
           }
         case Ast.Tree.Type.TextLiteral:
         case Ast.Tree.Type.Number:
@@ -70,7 +67,7 @@ export class Input {
           return {
             type: 'insert',
             position: cursorPosition,
-            ...Input.readAccessorChain(leaf, input),
+            ...Input.readAccessOpr(leaf, input),
           }
       }
     })
@@ -80,10 +77,10 @@ export class Input {
       const ctx = this.context.value
       if (
         (ctx.type == 'changeIdentifier' || ctx.type == 'insert') &&
-        ctx.accessorChain != null &&
-        ctx.accessorChain.lhs != null
+        ctx.accessOpr != null &&
+        ctx.accessOpr.lhs != null
       ) {
-        const qn = asQualifiedName(ctx.accessorChain, code)
+        const qn = Input.asQualifiedName(ctx.accessOpr, code)
         if (qn != null) return { qualifiedNamePattern: qn }
       }
       return {}
@@ -105,7 +102,7 @@ export class Input {
     })
   }
 
-  private static readAccessorChain(
+  private static readAccessOpr(
     leafParent: IteratorResult<Ast.Tree>,
     code: string,
     editedAst?: Ast.Tree,
@@ -130,6 +127,27 @@ export class Input {
       default:
         return {}
     }
+  }
+
+  /**
+   * Try to get a Qualified Name part from given accessor chain.
+   * @param accessorChain The accessorChain. It's not validated, i.e. the user must ensure
+   *   it's GeneralOprApp with `.` as leading operator.
+   * @param code The code from which `accessorChain` was generated.
+   * @returns If all segments except the last one are identifiers, returns QualifiedName with
+   *   those. Otherwise returns null.
+   */
+  private static asQualifiedName(accessorChain: GeneralOprApp, code: string): QualifiedName | null {
+    const operandsAsIdents = Array.from(
+      accessorChain.operandsOfLeftAssocOprChain(code, '.'),
+      (operand) =>
+        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+    ).slice(0, -1)
+    if (operandsAsIdents.some((optIdent) => optIdent == null)) return null
+    const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
+    const rawQn = segments.join('.')
+    const qn = tryQualifiedName(rawQn)
+    return qn.ok ? qn.value : null
   }
 }
 
@@ -181,16 +199,16 @@ if (import.meta.vitest) {
         case 'insert':
           expect(context.position).toStrictEqual(expContext.position)
           expect(
-            context.accessorChain != null
-              ? Array.from(context.accessorChain.readSpansOfCompnents(code))
+            context.accessOpr != null
+              ? Array.from(context.accessOpr.componentsReprs(code))
               : undefined,
           ).toStrictEqual(expContext.accessorChain)
           break
         case 'changeIdentifier':
           expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
           expect(
-            context.accessorChain != null
-              ? Array.from(context.accessorChain.readSpansOfCompnents(code))
+            context.accessOpr != null
+              ? Array.from(context.accessOpr.componentsReprs(code))
               : undefined,
           ).toStrictEqual(expContext.accessorChain)
           break

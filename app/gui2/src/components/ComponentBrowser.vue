@@ -48,7 +48,6 @@ const input = new Input()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
-  console.log('NEW FILTERING', input.filter.value)
   return new Filtering({
     ...input.filter.value,
     ...filterFlags.value,

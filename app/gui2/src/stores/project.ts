@@ -78,7 +78,6 @@ async function initializeLsRpcConnection(
       )
     },
   })
-  await new Promise((resolve) => setTimeout(resolve, 10000))
   const contentRoots = initialization.contentRoots
   return { connection, contentRoots }
 }
