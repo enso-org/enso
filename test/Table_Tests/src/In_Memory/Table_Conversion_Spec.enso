@@ -200,4 +200,11 @@ spec =
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3, 3, 3]], ["bbb", values_expanded], ["ccc", [5, 5, 6, 6, 6, 7, 7, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
+        Test.specify "Can expand mixed columns" <|
+            values_to_expand = [[10, 11], 22.up_to 26, (Date.new 2020 02 28).up_to (Date.new 2020 03 01)]
+            values_expanded = [10, 11, 22, 23, 24, 25, Date.new 2020 02 28, Date.new 2020 02 29]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 1, 2, 2, 2, 2, 3, 3]], ["bbb", values_expanded], ["ccc", [5, 5, 6, 6, 6, 6, 7, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
 main = Test_Suite.run_main spec
