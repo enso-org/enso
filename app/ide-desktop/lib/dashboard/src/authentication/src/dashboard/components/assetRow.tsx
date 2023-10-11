@@ -84,6 +84,11 @@ export default function AssetRow(props: AssetRowProps) {
                     key: item.key,
                     item: asset,
                 })
+                setItem(oldItem => ({
+                    ...oldItem,
+                    directoryKey: newParentKey,
+                    directoryId: newParentId,
+                }))
                 await backend.updateAsset(
                     asset.id,
                     { parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization) },
@@ -91,6 +96,11 @@ export default function AssetRow(props: AssetRowProps) {
                 )
             } catch (error) {
                 toastAndLog(`Could not move '${asset.title}'`, error)
+                setItem(oldItem => ({
+                    ...oldItem,
+                    directoryKey: item.directoryKey,
+                    directoryId: item.directoryId,
+                }))
                 // Move the asset back to its original position.
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.move,
