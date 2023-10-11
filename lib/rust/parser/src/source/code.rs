@@ -75,6 +75,11 @@ impl<'s> Code<'s> {
         self.utf16
     }
 
+    /// Return the start and end of the UTF-16 source code for this element.
+    pub fn range_utf16(&self) -> Range<u32> {
+        self.offset_utf16..(self.offset_utf16 + self.utf16)
+    }
+
     /// Split the UTF-8 code at the given byte offset.
     pub fn split_at(&self, offset: usize) -> (Self, Self) {
         let (left, right) = self.repr.split_at(offset);
@@ -219,6 +224,12 @@ impl Length {
     #[inline(always)]
     pub fn utf8_bytes(&self) -> usize {
         self.utf8
+    }
+
+    /// Return the length in UTF-16 code units.
+    #[inline(always)]
+    pub fn utf16_len(&self) -> u32 {
+        self.utf16
     }
 }
 

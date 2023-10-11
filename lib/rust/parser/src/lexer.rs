@@ -1492,10 +1492,26 @@ mod tests {
     }
 
     fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
-        let result: Vec<_> =
-            run(input).unwrap().into_iter().map(|token| token.without_offsets()).collect();
+        let result: Vec<_> = run(input).unwrap();
+        let mut sum_span = None;
+        fn concat<T: PartialEq + Debug + Copy>(a: &Option<Range<T>>, b: &Range<T>) -> Range<T> {
+            match a {
+                Some(a) => {
+                    assert_eq!(a.end, b.start);
+                    a.start..b.end
+                }
+                None => b.clone(),
+            }
+        }
+        for token in &result {
+            sum_span = Some(concat(&sum_span, &token.left_offset.code.range_utf16()));
+            sum_span = Some(concat(&sum_span, &token.code.range_utf16()));
+        }
+        assert_eq!(sum_span.unwrap_or_default(), 0..(input.encode_utf16().count() as u32));
+        let result_without_offsets: Vec<_> =
+            result.into_iter().map(|token| token.without_offsets()).collect();
         let expected: Vec<_> = expected.into_iter().map(|token| token.without_offsets()).collect();
-        assert_eq!(result, expected);
+        assert_eq!(result_without_offsets, expected);
     }
 
     fn lexer_case_idents<'s>(idents: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
@@ -1517,23 +1533,21 @@ mod tests {
     #[test]
     fn test_case_block() {
         let newline = newline_(empty(), test_code("\n"));
-        test_lexer_many(vec![
-            ("\n", vec![newline_(empty(), test_code("\n"))]),
-            ("\n  foo\n  bar", vec![
-                block_start_(empty(), empty()),
-                newline.clone(),
-                ident_("  ", "foo"),
-                newline.clone(),
-                ident_("  ", "bar"),
-                block_end_(empty(), empty()),
-            ]),
-            ("foo\n    +", vec![
-                ident_("", "foo"),
-                block_start_(empty(), empty()),
-                newline,
-                operator_("    ", "+"),
-                block_end_(empty(), empty()),
-            ]),
+        test_lexer("\n", vec![newline_(empty(), test_code("\n"))]);
+        test_lexer("\n  foo\n  bar", vec![
+            block_start_(empty(), empty()),
+            newline.clone(),
+            ident_("  ", "foo"),
+            newline.clone(),
+            ident_("  ", "bar"),
+            block_end_(empty(), empty()),
+        ]);
+        test_lexer("foo\n    +", vec![
+            ident_("", "foo"),
+            block_start_(empty(), empty()),
+            newline,
+            operator_("    ", "+"),
+            block_end_(empty(), empty()),
         ]);
     }
 
@@ -1594,12 +1608,10 @@ mod tests {
 
     #[test]
     fn test_case_idents() {
-        test_lexer_many(vec![
-            ("", vec![]),
-            ("_", vec![wildcard_("", "_")]),
-            ("_'", vec![wildcard_("", "_'")]),
-            ("_''", vec![wildcard_("", "_''")]),
-        ]);
+        test_lexer("", vec![]);
+        test_lexer("_", vec![wildcard_("", "_")]);
+        test_lexer("_'", vec![wildcard_("", "_'")]);
+        test_lexer("_''", vec![wildcard_("", "_''")]);
         test_lexer_many(lexer_case_idents(&[
             "a",
             "a'",

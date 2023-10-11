@@ -710,24 +710,21 @@ fn unary_operator_at_end_of_expression() {
 
 #[test]
 fn unspaced_operator_sequence() {
-    let cases = [
-        // Add a negated value.
-        ("x = y+-z", block![
-            (Assignment (Ident x) "=" (OprApp (Ident y) (Ok "+") (UnaryOprApp "-" (Ident z))))]),
-        // Create an operator section that adds a negated value to its input.
-        ("x = +-z", block![
-            (Assignment (Ident x) "=" (OprSectionBoundary 1
-                (OprApp () (Ok "+") (UnaryOprApp "-" (Ident z)))))]),
-        // Create an operator section that adds its input, negated, to a value.
-        ("x = y+-", block![
-            (Assignment (Ident x) "=" (OprSectionBoundary 1
-                (OprApp (Ident y) (Ok "+") (UnaryOprApp "-" ()))))]),
-        // Assign a negative number to x.
-        ("x=-1", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Number () "1" ())))]),
-        // Assign a negated value to x.
-        ("x=-y", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Ident y)))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    // Add a negated value.
+    test!("x = y+-z",
+        (Assignment (Ident x) "=" (OprApp (Ident y) (Ok "+") (UnaryOprApp "-" (Ident z)))));
+    // Create an operator section that adds a negated value to its input.
+    test!("x = +-z",
+        (Assignment (Ident x) "=" (OprSectionBoundary 1
+            (OprApp () (Ok "+") (UnaryOprApp "-" (Ident z))))));
+    // Create an operator section that adds its input, negated, to a value.
+    test!("x = y+-",
+        (Assignment (Ident x) "=" (OprSectionBoundary 1
+            (OprApp (Ident y) (Ok "+") (UnaryOprApp "-" ())))));
+    // Assign a negative number to x.
+    test!("x=-1", (Assignment (Ident x) "=" (UnaryOprApp "-" (Number () "1" ()))));
+    // Assign a negated value to x.
+    test!("x=-y", (Assignment (Ident x) "=" (UnaryOprApp "-" (Ident y))));
 }
 
 #[test]
@@ -891,7 +888,7 @@ fn metadata_raw() {
 fn metadata_parsing() {
     let code = metadata::ORDERS_WITH_METADATA;
     let (meta, code) = enso_parser::metadata::parse(code).unwrap();
-    let _ast = enso_parser::Parser::new().run(code);
+    let _ast = parse(code);
     let _meta: enso_parser::metadata::Metadata = meta.unwrap();
 }
 
@@ -1247,34 +1244,50 @@ fn tuple_literals() {
 
 // === Numeric literals ===
 
-#[test]
-fn numbers() {
-    test!("1 . 0", (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())));
-    test!("1 .0",
-        (App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ())))));
-    test!("1. 0",
-        (OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ()))));
-    test!("0b10101010", (Number "0b" "10101010" ()));
-    test!("0o122137", (Number "0o" "122137" ()));
-    test!("0xAE2F14", (Number "0x" "AE2F14" ()));
-    test!("pi = 3.14", (Assignment (Ident pi) "=" (Number () "3" ("." "14"))));
-    test!("0.0.x", (OprApp (Number () "0" ("." "0")) (Ok ".") (Ident x)));
-}
+#[cfg(test)]
+mod numbers {
+    use super::*;
 
-#[test]
-// This syntax cannot be used until we remove old-nondecimal number support, which is
-// needed for compatibility until the old parser is fully replaced.
-#[ignore]
-fn new_delimited_numbers() {
-    test!("100_000", (Number () "100_000" ()));
-    test!("10_000.99", (Number () "10_000" ("." "99")));
-}
+    #[test]
+    fn with_decimal() {
+        test!("1 . 0", (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())));
+        test!("1 .0",
+            (App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ())))));
+        test!("1. 0",
+            (OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ()))));
+        test!("pi = 3.14", (Assignment (Ident pi) "=" (Number () "3" ("." "14"))));
+        test!("0.0.x", (OprApp (Number () "0" ("." "0")) (Ok ".") (Ident x)));
+    }
 
-#[test]
-fn old_nondecimal_numbers() {
-    test!("2_01101101", (Number "2_" "01101101" ()));
-    test!("-2_01101101", (UnaryOprApp "-" (Number "2_" "01101101" ())));
-    test!("16_17ffffffffffffffa", (Number "16_" "17ffffffffffffffa" ()));
+    #[test]
+    fn with_base() {
+        test!("0b10101010", (Number "0b" "10101010" ()));
+        test!("0o122137", (Number "0o" "122137" ()));
+        test!("0xAE2F14", (Number "0x" "AE2F14" ()));
+    }
+
+    #[test]
+    fn base_only() {
+        test!("0x", (Number "0x" () ()));
+        test!("0b", (Number "0b" () ()));
+        test!("0o", (Number "0o" () ()));
+    }
+
+    #[test]
+    // This syntax cannot be used until we remove old-nondecimal number support, which is
+    // needed for compatibility until the old parser is fully replaced.
+    #[ignore]
+    fn new_delimited() {
+        test!("100_000", (Number () "100_000" ()));
+        test!("10_000.99", (Number () "10_000" ("." "99")));
+    }
+
+    #[test]
+    fn old_nondecimal() {
+        test!("2_01101101", (Number "2_" "01101101" ()));
+        test!("-2_01101101", (UnaryOprApp "-" (Number "2_" "01101101" ())));
+        test!("16_17ffffffffffffffa", (Number "16_" "17ffffffffffffffa" ()));
+    }
 }
 
 
@@ -1538,10 +1551,46 @@ fn expect_tree_representing_code(code: &str, ast: &enso_parser::syntax::Tree) {
 ///   example, a `token::Number` may be represented like: `sexp![10]`, and a `token::Ident` may look
 ///   like `sexp![foo]`.
 fn test(code: &str, expect: lexpr::Value) {
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = parse(code);
     let ast_s_expr = to_s_expr(&ast, code);
     assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", &ast);
     expect_tree_representing_code(code, &ast);
+}
+
+fn parse(code: &str) -> enso_parser::syntax::tree::Tree {
+    let ast = enso_parser::Parser::new().run(code);
+    let expected_span = 0..(code.encode_utf16().count() as u32);
+    validate_spans(&ast, expected_span);
+    ast
+}
+
+fn validate_spans(tree: &enso_parser::syntax::tree::Tree, expected_span: std::ops::Range<u32>) {
+    let mut sum_span = None;
+    fn concat<T: PartialEq + std::fmt::Debug + Copy>(
+        a: &Option<std::ops::Range<T>>,
+        b: &std::ops::Range<T>,
+    ) -> std::ops::Range<T> {
+        match a {
+            Some(a) => {
+                assert_eq!(a.end, b.start);
+                a.start..b.end
+            }
+            None => b.clone(),
+        }
+    }
+    tree.visit_items(|item| match item {
+        enso_parser::syntax::item::Ref::Token(token) => {
+            sum_span = Some(concat(&sum_span, &token.left_offset.code.range_utf16()));
+            sum_span = Some(concat(&sum_span, &token.code.range_utf16()));
+        }
+        enso_parser::syntax::item::Ref::Tree(tree) => {
+            let children_span = tree.span.range_utf16();
+            validate_spans(tree, children_span.clone());
+            sum_span = Some(concat(&sum_span, &tree.span.left_offset.code.range_utf16()));
+            sum_span = Some(concat(&sum_span, &children_span));
+        }
+    });
+    assert_eq!(sum_span.unwrap(), expected_span);
 }
 
 
@@ -1555,7 +1604,7 @@ struct Errors {
 
 impl Errors {
     fn collect(code: &str) -> Self {
-        let ast = enso_parser::Parser::new().run(code);
+        let ast = parse(code);
         expect_tree_representing_code(code, &ast);
         let errors = core::cell::Cell::new(Errors::default());
         ast.map(|tree| match &*tree.variant {
