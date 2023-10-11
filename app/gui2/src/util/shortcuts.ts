@@ -92,7 +92,7 @@ const allKeys = [
   'PageUp',
   'PageDown',
   'Insert',
-  ' ',
+  'Space',
   'A',
   'B',
   'C',
@@ -177,10 +177,11 @@ const allKeys = [
 type Key = (typeof allKeys)[number]
 type LowercaseKey = Lowercase<Key>
 type KeybindSegment = Modifier | Pointer | Key
-const normalizedKeyboardSegmentLookup = Object.fromEntries<KeybindSegment | undefined>(
+const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
   [...allModifiers, ...allPointers, ...allKeys].map((entry) => [entry.toLowerCase(), entry]),
 )
 normalizedKeyboardSegmentLookup[''] = '+'
+normalizedKeyboardSegmentLookup['space'] = ' '
 normalizedKeyboardSegmentLookup['osdelete'] = isMacLike ? 'Delete' : 'Backspace'
 type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
@@ -234,7 +235,7 @@ export function defineKeybinds<
   BindingName extends keyof T = keyof T,
 >(namespace: string, bindings: Keybinds<T>) {
   if (definedNamespaces.has(namespace)) {
-    console.error(`The keybind namespace '${namespace}' has already been defined.`)
+    console.warn(`The keybind namespace '${namespace}' has already been defined.`)
   } else {
     definedNamespaces.add(namespace)
   }
@@ -263,7 +264,9 @@ export function defineKeybinds<
   }
 
   function handler<Event_ extends KeyboardEvent | MouseEvent | PointerEvent>(
-    handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: Event_) => void>>,
+    handlers: Partial<
+      Record<BindingName | typeof DefaultHandler, (event: Event_) => boolean | void>
+    >,
   ): (event: Event_) => boolean {
     return (event) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
@@ -283,7 +286,9 @@ export function defineKeybinds<
       if (handle == null) {
         return false
       }
-      handle(event)
+      if (handle(event) === false) {
+        return false
+      }
       event.stopImmediatePropagation()
       event.preventDefault()
       return true
@@ -317,13 +322,6 @@ function decomposeKeybindString(string: string): ModifierStringDecomposition {
 
 function parseKeybindString(string: string): Keybind | Mousebind {
   const decomposed = decomposeKeybindString(string)
-  const normalized =
-    decomposed.modifiers.length === 0
-      ? decomposed.key
-      : `${decomposed.modifiers.join('+')}+${decomposed.key}`
-  if (normalized !== string) {
-    console.warn(`Modifier string '${string}' should be '${normalized}'`)
-  }
   if (isPointer(decomposed.key)) {
     return {
       type: 'mousebind',
@@ -359,6 +357,10 @@ interface Mousebind {
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
   test.each([
+    { keybind: 'A', expected: { modifiers: [], key: 'A' } },
+    { keybind: 'b', expected: { modifiers: [], key: 'B' } },
+    { keybind: 'Space', expected: { modifiers: [], key: ' ' } },
+    { keybind: 'Mod+Space', expected: { modifiers: ['Mod'], key: ' ' } },
     // `+`
     { keybind: 'Mod++', expected: { modifiers: ['Mod'], key: '+' } },
     // `+` and capitalization

@@ -1,5 +1,5 @@
 import { assert } from '@/util/assert'
-import type { Doc } from '@/util/ffi'
+import type { Doc } from '@/util/docParser'
 import {
   isIdentifier,
   isQualifiedName,
@@ -13,7 +13,6 @@ import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
 } from 'shared/languageServerTypes/suggestions'
-export type { Doc } from '@/util/ffi'
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,

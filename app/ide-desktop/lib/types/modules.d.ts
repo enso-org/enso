@@ -150,20 +150,20 @@ declare module 'eslint-plugin-react-hooks' {
 }
 
 declare module 'esbuild-plugin-time' {
-    import * as esbuild from 'esbuild'
+    import type * as esbuild from 'esbuild'
 
     export default function (name?: string): esbuild.Plugin
 }
 
 declare module 'tailwindcss/nesting/index.js' {
-    import * as nested from 'postcss-nested'
+    import type * as nested from 'postcss-nested'
 
     const DEFAULT: nested.Nested
     export default DEFAULT
 }
 
 declare module 'create-servers' {
-    import * as http from 'node:http'
+    import type * as http from 'node:http'
 
     /** Configuration options for `create-servers`. */
     interface CreateServersOptions {

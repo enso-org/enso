@@ -21,7 +21,7 @@ import * as modalProvider from '../../providers/modal'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as pageSwitcher from './pageSwitcher'
-import * as spinner from './spinner'
+import type * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import Drive from './drive'
 import Editor from './editor'
@@ -422,7 +422,6 @@ export default function Dashboard(props: DashboardProps) {
                     isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
                     isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
                 />
-                <TheModal />
                 <Editor
                     hidden={page !== pageSwitcher.Page.editor}
                     supportsLocalBackend={supportsLocalBackend}

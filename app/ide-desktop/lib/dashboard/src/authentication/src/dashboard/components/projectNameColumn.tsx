@@ -19,7 +19,7 @@ import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as validation from '../validation'
 
-import * as column from '../column'
+import type * as column from '../column'
 import EditableSpan from './editableSpan'
 import ProjectIcon from './projectIcon'
 import SvgMask from '../../authentication/components/svgMask'
@@ -46,6 +46,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
+            topLevelAssets,
+            nodeMap,
             doOpenManually,
             doOpenIde,
             doCloseIde,
@@ -289,6 +291,20 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             )}
             <EditableSpan
                 editable={rowState.isEditingName}
+                checkSubmittable={newTitle =>
+                    (item.directoryKey != null
+                        ? nodeMap.current.get(item.directoryKey)?.children ?? []
+                        : topLevelAssets.current
+                    ).every(
+                        child =>
+                            // All siblings,
+                            child.key === item.key ||
+                            // that are not directories,
+                            backendModule.assetIsDirectory(child.item) ||
+                            // must have a different name.
+                            child.item.title !== newTitle
+                    )
+                }
                 onSubmit={async newTitle => {
                     setRowState(oldRowState => ({
                         ...oldRowState,

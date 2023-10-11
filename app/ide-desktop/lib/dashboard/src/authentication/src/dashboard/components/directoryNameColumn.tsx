@@ -9,7 +9,7 @@ import * as assetListEventModule from '../events/assetListEvent'
 import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as column from '../column'
+import type * as column from '../column'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
@@ -40,6 +40,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             numberOfSelectedItems,
             assetEvents,
             dispatchAssetListEvent,
+            topLevelAssets,
+            nodeMap,
             doToggleDirectoryExpansion,
         },
         rowState,
@@ -183,6 +185,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             )}
             <EditableSpan
                 editable={rowState.isEditingName}
+                checkSubmittable={newTitle =>
+                    (item.directoryKey != null
+                        ? nodeMap.current.get(item.directoryKey)?.children ?? []
+                        : topLevelAssets.current
+                    ).every(
+                        child =>
+                            // All siblings,
+                            child.key === item.key ||
+                            // that are directories,
+                            !backendModule.assetIsDirectory(child.item) ||
+                            // must have a different name.
+                            child.item.title !== newTitle
+                    )
+                }
                 onSubmit={async newTitle => {
                     setRowState(oldRowState => ({
                         ...oldRowState,

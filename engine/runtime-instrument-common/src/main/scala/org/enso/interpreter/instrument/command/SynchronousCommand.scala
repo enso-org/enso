@@ -24,13 +24,19 @@ abstract class SynchronousCommand(maybeRequestId: Option[RequestId])
     } catch {
       case _: InterruptedException | _: ThreadInterruptedException =>
         Interrupted
-      case ex: Throwable =>
-        logger.log(
-          Level.SEVERE,
-          s"An error occurred during execution of $this command",
-          ex
-        )
+      case ex: Throwable => {
+        val msg = s"An error occurred during execution of $this command"
+        try {
+          logger.log(Level.SEVERE, msg, ex)
+        } catch {
+          case ise: IllegalStateException =>
+            // Thread using TruffleLogger has to have a current context or the TruffleLogger has to be bound to an engine
+            ex.printStackTrace()
+            ise.initCause(ex)
+            throw ise
+        }
         Done
+      }
     } finally {
       logger.log(Level.FINE, s"Command $this finished.")
     }

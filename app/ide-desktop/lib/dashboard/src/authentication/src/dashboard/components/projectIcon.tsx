@@ -360,7 +360,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         doOpenManually(item.id)
                     }}
                 >
-                    <SvgMask className={ICON_CLASSES} src={PlayIcon} />
+                    <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -383,6 +383,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <Spinner size={ICON_SIZE_PX} state={spinnerState} />
                     </div>
                     <SvgMask
+                        alt="Stop execution"
                         src={StopIcon}
                         className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
                     />
@@ -409,6 +410,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             <Spinner size={24} state={spinnerState} />
                         </div>
                         <SvgMask
+                            alt="Stop execution"
                             src={StopIcon}
                             className={`${ICON_CLASSES} ${
                                 isRunningInBackground ? 'text-green' : ''
@@ -424,7 +426,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
                                 openIde(true)
                             }}
                         >
-                            <SvgMask src={ArrowUpIcon} className={ICON_CLASSES} />
+                            <SvgMask
+                                alt="Open in editor"
+                                src={ArrowUpIcon}
+                                className={ICON_CLASSES}
+                            />
                         </button>
                     )}
                 </div>

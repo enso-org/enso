@@ -3,24 +3,12 @@ import * as React from 'react'
 import * as router from 'react-router'
 import * as toastify from 'react-toastify'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as app from './components/app'
 import * as auth from './authentication/providers/auth'
 import * as errorModule from './error'
 import * as loggerProvider from './providers/logger'
-
-// ==================
-// === useRefresh ===
-// ==================
-
-/** An alias to make the purpose of the returned empty object clearer. */
-export interface RefreshState {}
-
-/** A hook that contains no state, and is used only to tell React when to re-render. */
-export function useRefresh() {
-    // Uses an empty object literal because every distinct literal
-    // is a new reference and therefore is not equal to any other object literal.
-    return React.useReducer((): RefreshState => ({}), {})
-}
 
 // ======================
 // === useToastAndLog ===
@@ -167,7 +155,7 @@ export function useEventHandler<T extends KnownEvent>(
 ) {
     let hasEffectRun = false
     React.useLayoutEffect(() => {
-        if (IS_DEV_MODE) {
+        if (detect.IS_DEV_MODE) {
             if (hasEffectRun) {
                 // This is the second time this event is being run in React Strict Mode.
                 // Event handlers are not supposed to be idempotent, so it is a mistake to execute it

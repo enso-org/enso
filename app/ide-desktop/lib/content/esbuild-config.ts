@@ -13,7 +13,7 @@ import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 import * as url from 'node:url'
 
-import * as esbuild from 'esbuild'
+import type * as esbuild from 'esbuild'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
 import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
@@ -159,7 +159,7 @@ export function bundlerOptions(args: Arguments) {
             BUILD_INFO: JSON.stringify(BUILD_INFO),
             /** Whether the application is being run locally. This enables a service worker that
              * properly serves `/index.html` to client-side routes like `/login`. */
-            IS_DEV_MODE: JSON.stringify(devMode),
+            'process.env.NODE_ENV': JSON.stringify(devMode ? 'development' : 'production'),
             /** Overrides the redirect URL for OAuth logins in the production environment.
              * This is needed for logins to work correctly under `./run gui watch`. */
             REDIRECT_OVERRIDE: 'undefined',

@@ -1,6 +1,8 @@
 /** @file Entry point into the cloud dashboard. */
 import * as authentication from 'enso-authentication'
 
+import * as detect from 'enso-common/src/detect'
+
 // =================
 // === Constants ===
 // =================
@@ -17,7 +19,7 @@ const SERVICE_WORKER_PATH = './serviceWorker.js'
 // === Live reload ===
 // ===================
 
-if (IS_DEV_MODE) {
+if (detect.IS_DEV_MODE) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         // This acts like `location.reload`, but it preserves the query-string.
         // The `toString()` is to bypass a lint without using a comment.

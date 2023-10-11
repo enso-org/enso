@@ -77,12 +77,8 @@
 
 #![recursion_limit = "256"]
 // === Features ===
-#![allow(incomplete_features)]
 #![feature(let_chains)]
-#![feature(allocator_api)]
-#![feature(exact_size_is_empty)]
 #![feature(test)]
-#![feature(specialization)]
 #![feature(if_let_guard)]
 #![feature(box_patterns)]
 #![feature(option_get_or_insert_default)]
@@ -107,17 +103,18 @@
 use crate::prelude::*;
 
 
+
 // ==============
 // === Export ===
 // ==============
 
+pub mod format;
 pub mod lexer;
 pub mod macros;
 pub mod metadata;
 pub mod serialization;
 pub mod source;
 pub mod syntax;
-
 
 
 /// Popular utilities, imported by most modules of this crate.
@@ -128,10 +125,6 @@ pub mod prelude {
     pub use enso_reflect::Reflect;
     pub use enso_types::traits::*;
     pub use enso_types::unit2::Bytes;
-
-    /// Wraps return value for functions whose implementations don't handle all cases yet. When the
-    /// parser is complete, this type will be eliminated.
-    pub type WipResult<T> = Result<T, String>;
 
     /// Return type for functions that will only fail in case of a bug in the implementation.
     #[derive(Debug, Default)]
@@ -208,7 +201,7 @@ impl Default for Parser {
 /// interpreted as a variable assignment or method definition.
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    let mut left_offset = source::span::Offset::default();
+    let mut left_offset = tree.span.left_offset.position_before();
     if let Tree { variant: box Variant::Annotated(annotated), .. } = &mut tree {
         annotated.expression = annotated.expression.take().map(expression_to_statement);
         return tree;
@@ -351,7 +344,7 @@ pub fn parse_argument_application<'s>(
     match &mut expression.variant {
         box Variant::App(App { func, arg }) => {
             let arg = parse_argument_definition(arg.clone());
-            func.span.left_offset += mem::take(&mut expression.span.left_offset);
+            func.span.left_offset += expression.span.left_offset.take_as_prefix();
             *expression = func.clone();
             Some(arg)
         }
@@ -365,7 +358,7 @@ pub fn parse_argument_application<'s>(
             let close2 = default();
             let type_ = default();
             let default = Some(ArgumentDefault { equals, expression: arg.clone() });
-            func.span.left_offset += mem::take(&mut expression.span.left_offset);
+            func.span.left_offset += expression.span.left_offset.take_as_prefix();
             *expression = func.clone();
             Some(ArgumentDefinition {
                 open,
@@ -380,7 +373,7 @@ pub fn parse_argument_application<'s>(
         }
         box Variant::DefaultApp(DefaultApp { func, default: default_ }) => {
             let pattern = Tree::ident(default_.clone());
-            func.span.left_offset += mem::take(&mut expression.span.left_offset);
+            func.span.left_offset += expression.span.left_offset.take_as_prefix();
             *expression = func.clone();
             Some(ArgumentDefinition {
                 open: default(),
@@ -485,6 +478,7 @@ mod benches {
     }
 
     #[bench]
+    #[cfg(not(target_arch = "wasm32"))]
     fn bench_blocks(bencher: &mut Bencher) {
         use rand::prelude::*;
         use rand_chacha::ChaCha8Rng;
@@ -526,6 +520,7 @@ mod benches {
     }
 
     #[bench]
+    #[cfg(not(target_arch = "wasm32"))]
     fn bench_expressions(bencher: &mut Bencher) {
         use rand::prelude::*;
         use rand_chacha::ChaCha8Rng;

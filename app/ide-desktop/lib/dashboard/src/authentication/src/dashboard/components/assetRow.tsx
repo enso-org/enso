@@ -5,7 +5,7 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
-import * as assetTreeNode from '../assetTreeNode'
+import type * as assetTreeNode from '../assetTreeNode'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -17,9 +17,10 @@ import * as modalProvider from '../../providers/modal'
 import * as presenceModule from '../presence'
 
 import * as assetsTable from './assetsTable'
+import type * as tableRow from './tableRow'
 import StatelessSpinner, * as statelessSpinner from './statelessSpinner'
-import TableRow, * as tableRow from './tableRow'
 import AssetContextMenu from './assetContextMenu'
+import TableRow from './tableRow'
 
 // ================
 // === AssetRow ===

@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 
+use crate::get_graal_packages_version;
 use crate::get_graal_version;
 use crate::paths::generated;
 
@@ -26,6 +27,7 @@ pub mod env;
 pub mod package;
 pub mod sbt;
 
+use crate::engine::bundle::GraalVmVersion;
 pub use context::RunContext;
 
 
@@ -308,5 +310,15 @@ pub async fn deduce_graal(
         graal_version: get_graal_version(&build_sbt_content)?,
         os: TARGET_OS,
         arch: TARGET_ARCH,
+    })
+}
+
+pub async fn deduce_graal_bundle(
+    build_sbt: &generated::RepoRootBuildSbt,
+) -> Result<GraalVmVersion> {
+    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    Ok(GraalVmVersion {
+        graal:    get_graal_version(&build_sbt_content)?,
+        packages: get_graal_packages_version(&build_sbt_content)?,
     })
 }

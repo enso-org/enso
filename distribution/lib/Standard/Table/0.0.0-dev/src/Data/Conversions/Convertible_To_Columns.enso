@@ -1,0 +1,29 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+## PRIVATE
+   A special type describing how to convert an object into a set of table
+   columns.
+type Convertible_To_Columns
+    ## PRIVATE
+       Arguments:
+       - field_names: Set of column names (Vector Text).
+       - getter: Get the value for a field name.
+    Value (field_names : Vector Text) (getter : Text->Any)
+
+## PRIVATE
+Convertible_To_Columns.from (that:JS_Object) =
+    Convertible_To_Columns.Value that.field_names that.get
+
+## PRIVATE
+Convertible_To_Columns.from (that:Map) =
+    pairs = that.keys.map k-> [k.to_text, k]
+    field_map = pairs.if_not_error <|
+        Map.from_vector pairs error_on_duplicates=True . catch Illegal_Argument _->
+            Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_display_text+" to a set of columns, because its keys are duplicated when converted to text.")
+    Convertible_To_Columns.Value field_map.keys (k-> that.get (field_map.get k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Any) =
+    name = "Value"
+    Convertible_To_Columns.Value [name] (k-> if k == name then that else Nothing)

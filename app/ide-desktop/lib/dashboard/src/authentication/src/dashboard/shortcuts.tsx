@@ -1,5 +1,5 @@
 /** @file A registry for keyboard and mouse shortcuts. */
-import * as React from 'react'
+import type * as React from 'react'
 
 import AddConnectorIcon from 'enso-assets/add_connector.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'

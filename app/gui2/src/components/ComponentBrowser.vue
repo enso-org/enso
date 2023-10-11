@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { default as SvgIcon } from '@/components/SvgIcon.vue'
-import { default as ToggleIcon } from '@/components/ToggleIcon.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useApproach } from '@/util/animation'
 import { useResizeObserver } from '@/util/events'
@@ -105,9 +105,17 @@ function componentStyle(index: number) {
   return { transform: `translateY(${componentPos(index)}px)` }
 }
 
+/**
+ * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
+ */
 function componentColor(component: Component): string {
-  // TODO[ao]: A set of default color should be specified in css, see #7785.
-  return suggestionDbStore.groups[component.group ?? -1]?.color ?? '#006b8a'
+  const group = suggestionDbStore.groups[component.group ?? -1]
+  if (group) {
+    const name = group.name.replace(/\s/g, '-')
+    return `var(--group-color-${name})`
+  } else {
+    return 'var(--group-color-fallback)'
+  }
 }
 
 // === Highlight ===
