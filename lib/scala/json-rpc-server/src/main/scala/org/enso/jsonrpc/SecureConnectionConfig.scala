@@ -164,7 +164,7 @@ object SecureConnectionConfig {
   )(trustSelfSignedCertificates: Boolean)
       extends SecureConnectionConfig(trustSelfSignedCertificates) {
 
-    private val beginPrivateHeader         = "-----BEGIN PRIVATE KEY-----\n"
+    private val beginPrivateHeader         = "-----BEGIN PRIVATE KEY-----"
     private val endPrivateSuffix           = "-----END PRIVATE KEY-----"
     private val targetKeyStore             = "PKCS12"
     private val publicPrivateAlg           = "RSA"
@@ -182,9 +182,9 @@ object SecureConnectionConfig {
         if (prefixIdx == -1) privateKey else privateKey.substring(prefixIdx)
 
       val privateKeyPEM = privateKeyWithDroppedAttributes
+        .replaceAll("\\R", "")
         .replace(beginPrivateHeader, "")
         .replace(endPrivateSuffix, "")
-        .replaceAll(System.lineSeparator(), "")
       val privateKeyDER = Base64.getDecoder().decode(privateKeyPEM);
 
       val spec            = new PKCS8EncodedKeySpec(privateKeyDER);
