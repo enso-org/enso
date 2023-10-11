@@ -141,6 +141,10 @@ export interface AssetsTableState {
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
+    topLevelAssets: Readonly<React.MutableRefObject<assetTreeNode.AssetTreeNode[]>>
+    nodeMap: Readonly<
+        React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>>
+    >
     doToggleDirectoryExpansion: (
         directoryId: backendModule.DirectoryId,
         key: backendModule.AssetId,
@@ -232,6 +236,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
+    const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode[]>([])
     const nodeMapRef = React.useRef<
         ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>
     >(new Map<backendModule.AssetId, assetTreeNode.AssetTreeNode>())
@@ -299,6 +304,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [loadingProjectManagerDidFail, backend.type])
 
     React.useEffect(() => {
+        assetTreeRef.current = assetTree
         nodeMapRef.current = new Map(
             assetTreeNode.assetTreePreorderTraversal(assetTree).map(asset => [asset.key, asset])
         )
@@ -931,6 +937,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
+            topLevelAssets: assetTreeRef,
+            nodeMap: nodeMapRef,
             doToggleDirectoryExpansion,
             doOpenManually,
             doOpenIde,
