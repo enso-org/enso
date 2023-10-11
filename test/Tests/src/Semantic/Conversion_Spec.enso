@@ -474,6 +474,10 @@ spec =
             _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
             _ : Hello -> "HELLO: "+x.to_text
             _ -> "OTHER"
+        f5 (x:Hello) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
 
         d = DateTimeFormatter.ISO_DATE
 
@@ -509,6 +513,15 @@ spec =
 
         Test.specify "f4 AAA" <|
             (f4 'AAA').to_display_text . should_equal "OTHER"
+
+        Test.specify "f5 AAA" <|
+            (f5 'AAA').to_display_text . should_equal "HELLO: (Say 'Any fallback:AAA?')"
+
+        Test.specify "f5 hello AAA" <|
+            (f5 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        Test.specify "f5 d" <|
+            (f5 d).to_display_text . should_contain "HELLO: (Say 'Any fallback:ParseCaseSensitive(false)(Value"
 
 Hello.from (that:Any) suffix="?" = Hello.Say <| ("Any fallback:"+that.to_text) + suffix
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
