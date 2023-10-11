@@ -51,7 +51,6 @@ import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.strings.TruffleString;
 
 public abstract class ReadArgumentCheckNode extends Node {
   private final String name;
@@ -82,6 +81,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     return result;
   }
 
+  abstract Object findDirectMatch(VirtualFrame frame, Object value);
   abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
   abstract String expectedTypeMessage();
 
@@ -166,6 +166,11 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     @Override
+    Object findDirectMatch(VirtualFrame frame, Object value) {
+      return null;
+    }
+
+    @Override
     @ExplodeLoop
     Object executeCheckOrConversion(VirtualFrame frame, Object value) {
       var values = new Object[checks.length];
@@ -200,14 +205,22 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Override
     @ExplodeLoop
-    Object executeCheckOrConversion(VirtualFrame frame, Object value) {
+    final Object findDirectMatch(VirtualFrame frame, Object value) {
       for (var n : checks) {
-        if (n instanceof TypeCheckNode typeCheck) {
-          var result = typeCheck.findAmongTypes(value);
-          if (result != null) {
-            return result;
-          }
+        var result = n.findDirectMatch(frame, value);
+        if (result != null) {
+          return result;
         }
+      }
+      return null;
+    }
+
+    @Override
+    @ExplodeLoop
+    Object executeCheckOrConversion(VirtualFrame frame, Object value) {
+      var direct = findDirectMatch(frame, value);
+      if (direct != null) {
+        return direct;
       }
       for (var n : checks) {
         var result = n.executeCheckOrConversion(frame, value);
@@ -246,7 +259,7 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Specialization(rewriteOn = InvalidAssumptionException.class)
     Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {
-      var ret = findAmongTypes(v);
+      var ret = findDirectMatch(frame, v);
       if (ret != null) {
         return ret;
       } else {
@@ -279,7 +292,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     @ExplodeLoop
-    private Object findAmongTypes(Object v) {
+    final Object findDirectMatch(VirtualFrame frame, Object v) {
       if (isAllFitValue(v)) {
         return v;
       }
@@ -361,7 +374,7 @@ public abstract class ReadArgumentCheckNode extends Node {
             VirtualFrame frame, Object v, ApplicationNode convertNode
     ) throws PanicException {
       if (convertNode == null) {
-        var ret = findAmongTypes(v);
+        var ret = findDirectMatch(frame, v);
         if (ret != null) {
           return ret;
         }
@@ -397,6 +410,11 @@ public abstract class ReadArgumentCheckNode extends Node {
     MetaCheckNode(String name, Object expectedMeta) {
       super(name);
       this.expectedMeta = expectedMeta;
+    }
+
+    @Override
+    Object findDirectMatch(VirtualFrame frame, Object value) {
+      return executeCheckOrConversion(frame, value);
     }
 
     @Specialization

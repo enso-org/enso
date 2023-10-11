@@ -498,13 +498,19 @@ spec =
         Test.specify "f3 hello AAA" <|
             (f3 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
 
+        Test.specify "f3 AAA" <|
+            (f3 'AAA').to_display_text . should_equal "HELLO: (Say 'Any fallback:AAA?')"
+
         Test.specify "f3 d" <|
             (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
 
         Test.specify "f4 d" <|
             (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
 
+        Test.specify "f4 AAA" <|
+            (f4 'AAA').to_display_text . should_equal "OTHER"
 
+Hello.from (that:Any) suffix="?" = Hello.Say <| ("Any fallback:"+that.to_text) + suffix
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
 
