@@ -28,7 +28,7 @@ public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
    * @return the result of running the operation
    */
   public abstract Storage<?> runBinaryMap(
-      I storage, Object arg, MapOperationProblemBuilder problemBuilder);
+      I storage, Object arg, MapOperationProblemAggregator problemBuilder);
 
   /**
    * Run the operation in zip mode - combining corresponding rows of two storages.
@@ -39,7 +39,7 @@ public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
    * @return the result of running the operation
    */
   public abstract Storage<?> runZip(
-      I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder);
+      I storage, Storage<?> arg, MapOperationProblemAggregator problemBuilder);
 
   /** @return the name of this operation */
   public String getName() {

@@ -9,7 +9,7 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;
 import org.enso.table.data.column.operation.cast.StorageConverter;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -124,14 +124,14 @@ public abstract class Storage<T> {
 
   /** Runs a vectorized unary operation. */
   public abstract Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemBuilder problemBuilder);
+      String name, MapOperationProblemAggregator problemBuilder);
 
   /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
   public abstract boolean isBinaryOpVectorized(String name);
 
   /** Runs a vectorized operation on this storage, taking one scalar argument. */
   public abstract Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemBuilder);
 
   /* Specifies if the given ternary operation has a vectorized implementation available for this storage.*/
   public boolean isTernaryOpVectorized(String name) {
@@ -140,7 +140,10 @@ public abstract class Storage<T> {
 
   /** Runs a vectorized operation on this storage, taking two scalar arguments. */
   public Storage<?> runVectorizedTernaryMap(
-      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+      String name,
+      Object argument0,
+      Object argument1,
+      MapOperationProblemAggregator problemBuilder) {
     throw new IllegalArgumentException("Unsupported ternary operation: " + name);
   }
 
@@ -149,7 +152,7 @@ public abstract class Storage<T> {
    * processing row-by-row.
    */
   public abstract Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder);
 
   /**
    * Runs a unary function on each non-null element in this storage.
@@ -270,7 +273,7 @@ public abstract class Storage<T> {
    */
   public final Storage<?> vectorizedOrFallbackUnaryMap(
       String name,
-      MapOperationProblemBuilder problemBuilder,
+      MapOperationProblemAggregator problemBuilder,
       Function<Object, Value> fallback,
       boolean skipNa,
       StorageType expectedResultType) {
@@ -299,7 +302,7 @@ public abstract class Storage<T> {
    */
   public final Storage<?> vectorizedOrFallbackBinaryMap(
       String name,
-      MapOperationProblemBuilder problemBuilder,
+      MapOperationProblemAggregator problemBuilder,
       BiFunction<Object, Object, Object> fallback,
       Object argument,
       boolean skipNulls,
@@ -328,7 +331,7 @@ public abstract class Storage<T> {
    */
   public final Storage<?> vectorizedTernaryMap(
       String name,
-      MapOperationProblemBuilder problemBuilder,
+      MapOperationProblemAggregator problemBuilder,
       Object argument0,
       Object argument1,
       boolean skipNulls,
@@ -357,7 +360,7 @@ public abstract class Storage<T> {
    */
   public final Storage<?> vectorizedOrFallbackZip(
       String name,
-      MapOperationProblemBuilder problemBuilder,
+      MapOperationProblemAggregator problemBuilder,
       BiFunction<Object, Object, Object> fallback,
       Storage<?> other,
       boolean skipNulls,

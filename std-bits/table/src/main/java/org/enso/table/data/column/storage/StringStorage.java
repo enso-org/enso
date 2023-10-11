@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
@@ -68,7 +68,7 @@ public final class StringStorage extends SpecializedStorage<String> {
           public BoolStorage runBinaryMap(
               SpecializedStorage<String> storage,
               Object arg,
-              MapOperationProblemBuilder problemBuilder) {
+              MapOperationProblemAggregator problemBuilder) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             Context context = Context.getCurrent();
@@ -88,7 +88,7 @@ public final class StringStorage extends SpecializedStorage<String> {
           public BoolStorage runZip(
               SpecializedStorage<String> storage,
               Storage<?> arg,
-              MapOperationProblemBuilder problemBuilder) {
+              MapOperationProblemAggregator problemBuilder) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             Context context = Context.getCurrent();
@@ -109,7 +109,7 @@ public final class StringStorage extends SpecializedStorage<String> {
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
           protected BoolStorage runUnaryMap(SpecializedStorage<String> storage,
-                                            MapOperationProblemBuilder problemBuilder) {
+                                            MapOperationProblemAggregator problemBuilder) {
             BitSet r = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size; i++) {

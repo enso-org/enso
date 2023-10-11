@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
@@ -81,7 +81,8 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runVectorizedUnaryMap(
+      String name, MapOperationProblemAggregator problemBuilder) {
     return ops.runUnaryMap(name, this, problemBuilder);
   }
 
@@ -92,13 +93,13 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+      String name, Object argument, MapOperationProblemAggregator problemBuilder) {
     return ops.runBinaryMap(name, this, argument, problemBuilder);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }
 

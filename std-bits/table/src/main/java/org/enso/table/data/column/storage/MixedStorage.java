@@ -1,7 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -224,7 +224,8 @@ public final class MixedStorage extends ObjectStorage {
   }
 
   @Override
-  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runVectorizedUnaryMap(
+      String name, MapOperationProblemAggregator problemBuilder) {
     if (resolveUnaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
       return getInferredStorage().runVectorizedUnaryMap(name, problemBuilder);
     } else {
@@ -240,7 +241,7 @@ public final class MixedStorage extends ObjectStorage {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+      String name, Object argument, MapOperationProblemAggregator problemBuilder) {
     if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
       return getInferredStorage().runVectorizedBinaryMap(name, argument, problemBuilder);
     } else {
@@ -256,7 +257,10 @@ public final class MixedStorage extends ObjectStorage {
 
   @Override
   public Storage<?> runVectorizedTernaryMap(
-      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+      String name,
+      Object argument0,
+      Object argument1,
+      MapOperationProblemAggregator problemBuilder) {
     if (resolveTernaryOp(name)
         == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
       return getInferredStorage()
@@ -269,7 +273,7 @@ public final class MixedStorage extends ObjectStorage {
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder) {
     if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
       return getInferredStorage().runVectorizedZip(name, argument, problemBuilder);
     } else {

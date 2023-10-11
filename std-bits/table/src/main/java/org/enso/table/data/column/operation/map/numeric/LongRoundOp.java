@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import org.enso.polyglot.common_utils.Core_Math_Utils;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -26,7 +26,7 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
     }
 
     @Override
-    public Storage<Long> runTernaryMap(AbstractLongStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemBuilder problemBuilder) {
+    public Storage<Long> runTernaryMap(AbstractLongStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemAggregator problemBuilder) {
         if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
             throw new UnexpectedTypeException("a long.");
         }

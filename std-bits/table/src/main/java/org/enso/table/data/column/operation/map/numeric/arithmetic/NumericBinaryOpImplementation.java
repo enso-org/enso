@@ -2,7 +2,7 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.Storage;
@@ -32,7 +32,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   }
 
   @Override
-  public Storage<? extends Number> runBinaryMap(I storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<? extends Number> runBinaryMap(I storage, Object arg, MapOperationProblemAggregator problemBuilder) {
     if (arg == null) {
       return allNullStorageOfSameType(storage);
     } else {
@@ -70,7 +70,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   }
 
   @Override
-  public Storage<? extends Number> runZip(I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<? extends Number> runZip(I storage, Storage<?> arg, MapOperationProblemAggregator problemBuilder) {
     return switch (storage) {
       case DoubleStorage lhs -> runDoubleZip(lhs, fromAnyStorage(arg), problemBuilder);
 
@@ -106,7 +106,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   }
 
   protected DoubleStorage runDoubleZip(DoubleArrayAdapter a, DoubleArrayAdapter b,
-                                       MapOperationProblemBuilder problemBuilder) {
+                                       MapOperationProblemAggregator problemBuilder) {
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
@@ -139,7 +139,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     };
   }
 
-  protected DoubleStorage runDoubleMap(DoubleArrayAdapter a, Double b, MapOperationProblemBuilder problemBuilder) {
+  protected DoubleStorage runDoubleMap(DoubleArrayAdapter a, Double b, MapOperationProblemAggregator problemBuilder) {
     if (b == null) {
       return DoubleStorage.makeEmpty(a.size());
     }
@@ -164,7 +164,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   }
 
   protected LongStorage runLongZip(AbstractLongStorage a, AbstractLongStorage b,
-                                   MapOperationProblemBuilder problemBuilder) {
+                                   MapOperationProblemAggregator problemBuilder) {
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
@@ -192,7 +192,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     return new LongStorage(out, n, newMissing, INTEGER_RESULT_TYPE);
   }
 
-  protected LongStorage runLongMap(AbstractLongStorage a, Long b, MapOperationProblemBuilder problemBuilder) {
+  protected LongStorage runLongMap(AbstractLongStorage a, Long b, MapOperationProblemAggregator problemBuilder) {
     if (b == null) {
       return LongStorage.makeEmpty(a.size(), INTEGER_RESULT_TYPE);
     }
@@ -221,7 +221,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   }
 
   protected BigIntegerStorage runBigIntegerZip(BigIntegerArrayAdapter a, BigIntegerArrayAdapter b,
-                                               MapOperationProblemBuilder problemBuilder) {
+                                               MapOperationProblemAggregator problemBuilder) {
     Context context = Context.getCurrent();
     int n = a.size();
     int m = Math.min(a.size(), b.size());
@@ -248,7 +248,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   }
 
   protected BigIntegerStorage runBigIntegerMap(BigIntegerArrayAdapter a, BigInteger b,
-                                               MapOperationProblemBuilder problemBuilder) {
+                                               MapOperationProblemAggregator problemBuilder) {
     Context context = Context.getCurrent();
     int n = a.size();
     BigInteger[] out = new BigInteger[n];

@@ -1,6 +1,6 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -41,7 +41,7 @@ public sealed class ObjectStorage extends SpecializedStorage<Object> permits Mix
     ops.add(
         new UnaryMapOperation<>(Maps.IS_NOTHING) {
           @Override
-          protected BoolStorage runUnaryMap(S storage, MapOperationProblemBuilder problemBuilder) {
+          protected BoolStorage runUnaryMap(S storage, MapOperationProblemAggregator problemBuilder) {
             Context context = Context.getCurrent();
             BitSet r = new BitSet();
             for (int i = 0; i < storage.size; i++) {

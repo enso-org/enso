@@ -2,7 +2,7 @@ package org.enso.table.aggregations;
 
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -22,8 +22,8 @@ public class Sum extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
-    MapOperationProblemBuilder innerAggregator =
-        new MapOperationProblemBuilder(problemAggregator, getName());
+    MapOperationProblemAggregator innerAggregator =
+        new MapOperationProblemAggregator(problemAggregator, getName());
     Context context = Context.getCurrent();
     Object current = null;
     for (int row : indexes) {

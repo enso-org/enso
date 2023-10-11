@@ -29,7 +29,7 @@ public abstract class TernaryMapOperation<T, I extends Storage<? super T>> {
    * @return the result of running the operation
    */
   public abstract Storage<?> runTernaryMap(
-      I storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder);
+      I storage, Object arg0, Object arg1, MapOperationProblemAggregator problemBuilder);
 
   /** @return the name of this operation */
   public String getName() {

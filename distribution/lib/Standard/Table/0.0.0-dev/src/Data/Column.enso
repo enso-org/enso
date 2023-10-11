@@ -2365,7 +2365,7 @@ run_unary_op column function new_name skip_nulls=True expected_result_type=Nothi
    - name: The name of the vectorized operation.
    - operand: The operand to apply to the function after `column`.
    - fallback_fn: A function used if the vectorized operation isn't available.
-     It takes a `MapOperationProblemBuilder` as its first argument.
+     It takes a `MapOperationProblemAggregator` as its first argument.
      It should never raise dataflow errors and use the problem builder to report
      problems. If fatal problems are expected, the fallback should be raising a
      panic and the user-facing code should ensure such panic is caught and

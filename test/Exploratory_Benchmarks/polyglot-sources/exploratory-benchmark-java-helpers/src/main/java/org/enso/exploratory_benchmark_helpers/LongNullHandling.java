@@ -1,7 +1,7 @@
 package org.enso.exploratory_benchmark_helpers;
 
 import java.util.BitSet;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.BlackholeProblemAggregator;
@@ -10,17 +10,17 @@ import org.enso.table.problems.ProblemAggregator;
 public class LongNullHandling {
   public interface Operation {
     LongStorage run(
-        LongStorage storage, LongStorage arg, MapOperationProblemBuilder problemBuilder);
+        LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemBuilder);
   }
 
   public abstract static class NoNulls implements Operation {
 
     protected abstract long doLong(
-        long a, long b, int ix, MapOperationProblemBuilder problemBuilder);
+        long a, long b, int ix, MapOperationProblemAggregator problemBuilder);
 
     @Override
     public LongStorage run(
-        LongStorage storage, LongStorage arg, MapOperationProblemBuilder problemBuilder) {
+        LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemBuilder) {
       int n = storage.size();
       long[] newVals = new long[n];
       BitSet missing = new BitSet();
@@ -38,11 +38,11 @@ public class LongNullHandling {
   public abstract static class BoxingNulls implements Operation {
 
     protected abstract Long doLong(
-        long a, long b, int ix, MapOperationProblemBuilder problemBuilder);
+        long a, long b, int ix, MapOperationProblemAggregator problemBuilder);
 
     @Override
     public LongStorage run(
-        LongStorage storage, LongStorage arg, MapOperationProblemBuilder problemBuilder) {
+        LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemBuilder) {
       int n = storage.size();
       long[] newVals = new long[n];
       BitSet missing = new BitSet();
@@ -75,12 +75,12 @@ public class LongNullHandling {
         long a,
         long b,
         int ix,
-        MapOperationProblemBuilder problemBuilder,
+        MapOperationProblemAggregator problemBuilder,
         NullityReporter nullityReporter);
 
     @Override
     public LongStorage run(
-        LongStorage storage, LongStorage arg, MapOperationProblemBuilder problemBuilder) {
+        LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemBuilder) {
       int n = storage.size();
       long[] newVals = new long[n];
       BitSet missing = new BitSet();
@@ -109,12 +109,13 @@ public class LongNullHandling {
       BlackholeProblemAggregator.INSTANCE;
 
   public static LongStorage runNoNulls(LongStorage arg1, LongStorage arg2) {
-    MapOperationProblemBuilder problemBuilder =
-        new MapOperationProblemBuilder(parentAggregatorForBenchmarks, null);
+    MapOperationProblemAggregator problemBuilder =
+        new MapOperationProblemAggregator(parentAggregatorForBenchmarks, null);
     NoNulls operation =
         new NoNulls() {
           @Override
-          protected long doLong(long a, long b, int ix, MapOperationProblemBuilder problemBuilder) {
+          protected long doLong(
+              long a, long b, int ix, MapOperationProblemAggregator problemBuilder) {
             if (b == 0) {
               problemBuilder.reportDivisionByZero(ix);
               return 0;
@@ -128,12 +129,13 @@ public class LongNullHandling {
   }
 
   public static LongStorage runBoxingNulls(LongStorage arg1, LongStorage arg2) {
-    MapOperationProblemBuilder problemBuilder =
-        new MapOperationProblemBuilder(parentAggregatorForBenchmarks, null);
+    MapOperationProblemAggregator problemBuilder =
+        new MapOperationProblemAggregator(parentAggregatorForBenchmarks, null);
     BoxingNulls operation =
         new BoxingNulls() {
           @Override
-          protected Long doLong(long a, long b, int ix, MapOperationProblemBuilder problemBuilder) {
+          protected Long doLong(
+              long a, long b, int ix, MapOperationProblemAggregator problemBuilder) {
             if (b == 0) {
               problemBuilder.reportDivisionByZero(ix);
               return null;
@@ -147,8 +149,8 @@ public class LongNullHandling {
   }
 
   public static LongStorage runReportingNulls(LongStorage arg1, LongStorage arg2) {
-    MapOperationProblemBuilder problemBuilder =
-        new MapOperationProblemBuilder(parentAggregatorForBenchmarks, null);
+    MapOperationProblemAggregator problemBuilder =
+        new MapOperationProblemAggregator(parentAggregatorForBenchmarks, null);
     ReportingNulls operation =
         new ReportingNulls() {
           @Override
@@ -156,7 +158,7 @@ public class LongNullHandling {
               long a,
               long b,
               int ix,
-              MapOperationProblemBuilder problemBuilder,
+              MapOperationProblemAggregator problemBuilder,
               NullityReporter nullityReporter) {
             if (b == 0) {
               problemBuilder.reportDivisionByZero(ix);

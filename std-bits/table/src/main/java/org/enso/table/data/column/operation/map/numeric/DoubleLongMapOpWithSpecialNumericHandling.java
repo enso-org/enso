@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import java.util.BitSet;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -17,7 +17,8 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
   protected abstract long doOperation(double a);
 
   @Override
-  public LongStorage runUnaryMap(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
+  public LongStorage runUnaryMap(
+      DoubleStorage storage, MapOperationProblemAggregator problemBuilder) {
     Context context = Context.getCurrent();
     long[] out = new long[storage.size()];
     BitSet isMissing = new BitSet();

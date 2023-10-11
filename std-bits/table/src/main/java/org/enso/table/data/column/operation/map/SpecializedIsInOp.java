@@ -43,7 +43,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
   }
 
   @Override
-  public Storage<?> runBinaryMap(S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runBinaryMap(S storage, Object arg, MapOperationProblemAggregator problemBuilder) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -68,7 +68,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
   }
 
   @Override
-  public Storage<?> runZip(S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runZip(S storage, Storage<?> arg, MapOperationProblemAggregator problemBuilder) {
     return runMap(storage, arg.toList());
   }
 

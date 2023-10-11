@@ -11,16 +11,16 @@ import org.enso.table.problems.ProblemAggregator;
 /**
  * This class is used to aggregate problems occurring during map operations performed on a storage.
  *
- * <p>A single instance of this builder should not be re-used for different map operations. It may
- * only be used with a single operation.
+ * <p>A single instance of this aggregator should not be re-used for different map operations. It
+ * may only be used with a single operation.
  */
-public class MapOperationProblemBuilder extends ColumnAggregatedProblemAggregator {
+public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggregator {
   private final String location;
   private long overflowCount = 0;
   private Object[] overflowExample = null;
   private StorageType overflowTargetType = null;
 
-  public MapOperationProblemBuilder(ProblemAggregator parent, String location) {
+  public MapOperationProblemAggregator(ProblemAggregator parent, String location) {
     super(parent);
     this.location = location;
   }

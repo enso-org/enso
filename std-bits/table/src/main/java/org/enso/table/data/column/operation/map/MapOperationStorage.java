@@ -33,7 +33,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public Storage<?> runUnaryMap(String n, S storage, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runUnaryMap(String n, S storage, MapOperationProblemAggregator problemBuilder) {
     if (!isSupportedUnary(n)) {
       throw new IllegalStateException(
           "Requested vectorized unary operation " + n + ", but no such operation is known.");
@@ -61,7 +61,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @return the result of running the operation
    */
   public Storage<?> runBinaryMap(
-      String n, S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+      String n, S storage, Object arg, MapOperationProblemAggregator problemBuilder) {
     if (!isSupportedBinary(n)) {
       throw new IllegalStateException(
           "Requested vectorized binary operation " + n + ", but no such operation is known.");
@@ -90,7 +90,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @return the result of running the operation
    */
   public Storage<?> runTernaryMap(
-      String n, S storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder) {
+      String n, S storage, Object arg0, Object arg1, MapOperationProblemAggregator problemBuilder) {
     if (!isSupportedTernary(n)) {
       throw new IllegalStateException(
           "Requested vectorized ternary operation " + n + ", but no such operation is known.");
@@ -108,7 +108,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @return the result of running the operation
    */
   public Storage<?> runZip(
-      String n, S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+      String n, S storage, Storage<?> arg, MapOperationProblemAggregator problemBuilder) {
     if (!isSupportedBinary(n)) {
       throw new IllegalStateException(
           "Requested vectorized binary operation " + n + ", but no such operation is known.");

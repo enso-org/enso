@@ -3,7 +3,7 @@ package org.enso.table.data.column.operation.map.numeric.comparisons;
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -38,7 +38,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   @Override
-  public BoolStorage runBinaryMap(I storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(I storage, Object arg, MapOperationProblemAggregator problemBuilder) {
     if (arg == null) {
       return BoolStorage.makeEmpty(storage.size());
     } else if (arg instanceof BigInteger bigInteger) {
@@ -85,7 +85,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     }
   }
 
-  protected BoolStorage runLongMap(AbstractLongStorage lhs, long rhs, MapOperationProblemBuilder problemBuilder) {
+  protected BoolStorage runLongMap(AbstractLongStorage lhs, long rhs, MapOperationProblemAggregator problemBuilder) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
     BitSet missing = BitSets.makeDuplicate(lhs.getIsMissing());
@@ -105,7 +105,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     return new BoolStorage(comparisonResults, missing, n, false);
   }
 
-  protected BoolStorage runDoubleMap(DoubleArrayAdapter lhs, double rhs, MapOperationProblemBuilder problemBuilder) {
+  protected BoolStorage runDoubleMap(DoubleArrayAdapter lhs, double rhs, MapOperationProblemAggregator problemBuilder) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
     BitSet missing = new BitSet();
@@ -128,7 +128,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected BoolStorage runBigIntegerMap(BigIntegerArrayAdapter lhs, BigInteger rhs,
-                                         MapOperationProblemBuilder problemBuilder) {
+                                         MapOperationProblemAggregator problemBuilder) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
     BitSet missing = new BitSet();
@@ -151,7 +151,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   @Override
-  public BoolStorage runZip(I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runZip(I storage, Storage<?> arg, MapOperationProblemAggregator problemBuilder) {
     return switch (storage) {
       case DoubleStorage lhs -> {
         if (arg.getType() instanceof AnyObjectType) {
@@ -194,7 +194,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected BoolStorage runLongZip(AbstractLongStorage lhs, AbstractLongStorage rhs,
-                                   MapOperationProblemBuilder problemBuilder) {
+                                   MapOperationProblemAggregator problemBuilder) {
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
@@ -223,7 +223,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected BoolStorage runDoubleZip(DoubleArrayAdapter lhs, DoubleArrayAdapter rhs,
-                                     MapOperationProblemBuilder problemBuilder) {
+                                     MapOperationProblemAggregator problemBuilder) {
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
@@ -252,7 +252,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected BoolStorage runBigIntegerZip(BigIntegerArrayAdapter lhs, BigIntegerArrayAdapter rhs,
-                                         MapOperationProblemBuilder problemBuilder) {
+                                         MapOperationProblemAggregator problemBuilder) {
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
@@ -280,7 +280,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     return new BoolStorage(comparisonResults, missing, n, false);
   }
 
-  protected BoolStorage runMixedZip(Storage<?> lhs, Storage<?> rhs, MapOperationProblemBuilder problemBuilder) {
+  protected BoolStorage runMixedZip(Storage<?> lhs, Storage<?> rhs, MapOperationProblemAggregator problemBuilder) {
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
