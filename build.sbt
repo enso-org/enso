@@ -1008,11 +1008,7 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
       // fixing incremental compilation setup
       Seq(
         "-processor",
-        "org.netbeans.modules.openide.util.ServiceProviderProcessor",
-        "--add-exports",
-        "jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
-        "--add-exports",
-        "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+        "org.netbeans.modules.openide.util.ServiceProviderProcessor"
       )
     ),
     libraryDependencies ++= Seq(
