@@ -30,7 +30,7 @@ const NAME = 'enso'
  * `yargs` is a modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*'
+    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss`
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
@@ -245,6 +245,10 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
+        // Playwright build cache.
+        ignores: ['**/.cache/**'],
+    },
+    {
         settings: {
             react: {
                 version: '18.2',
@@ -314,7 +318,7 @@ export default [
             'react-hooks/exhaustive-deps': 'error',
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
-            '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
+            '@typescript-eslint/consistent-type-imports': 'error',
             '@typescript-eslint/member-ordering': 'error',
             // Method syntax is not type-safe.
             // See: https://typescript-eslint.io/rules/method-signature-style
@@ -388,7 +392,7 @@ export default [
             '@typescript-eslint/no-magic-numbers': [
                 'error',
                 {
-                    ignore: [-1, 0, 1, 2],
+                    ignore: [-1, 0, 1, 2, 3, 4, 5],
                     ignoreArrayIndexes: true,
                     ignoreEnums: true,
                     detectObjects: true,
@@ -399,46 +403,46 @@ export default [
             // Important to warn on accidental duplicated `interface`s e.g. when writing API wrappers.
             '@typescript-eslint/no-redeclare': ['error', { ignoreDeclarationMerge: false }],
             'no-shadow': 'off',
-            '@typescript-eslint/no-shadow': 'warn',
+            '@typescript-eslint/no-shadow': 'error',
             'no-unused-expressions': 'off',
             '@typescript-eslint/no-unused-expressions': 'error',
             'jsdoc/require-param-type': 'off',
-            'jsdoc/check-access': 'warn',
-            'jsdoc/check-alignment': 'warn',
-            'jsdoc/check-indentation': 'warn',
-            'jsdoc/check-line-alignment': 'warn',
-            'jsdoc/check-param-names': 'warn',
-            'jsdoc/check-property-names': 'warn',
-            'jsdoc/check-syntax': 'warn',
-            'jsdoc/check-tag-names': 'warn',
-            'jsdoc/check-types': 'warn',
-            'jsdoc/check-values': 'warn',
-            'jsdoc/empty-tags': 'warn',
-            'jsdoc/implements-on-classes': 'warn',
-            'jsdoc/no-bad-blocks': 'warn',
-            'jsdoc/no-defaults': 'warn',
-            'jsdoc/no-multi-asterisks': 'warn',
-            'jsdoc/no-types': 'warn',
-            'jsdoc/no-undefined-types': 'warn',
-            'jsdoc/require-asterisk-prefix': 'warn',
-            'jsdoc/require-description': 'warn',
+            'jsdoc/check-access': 'error',
+            'jsdoc/check-alignment': 'error',
+            'jsdoc/check-indentation': 'error',
+            'jsdoc/check-line-alignment': 'error',
+            'jsdoc/check-param-names': 'error',
+            'jsdoc/check-property-names': 'error',
+            'jsdoc/check-syntax': 'error',
+            'jsdoc/check-tag-names': 'error',
+            'jsdoc/check-types': 'error',
+            'jsdoc/check-values': 'error',
+            'jsdoc/empty-tags': 'error',
+            'jsdoc/implements-on-classes': 'error',
+            'jsdoc/no-bad-blocks': 'error',
+            'jsdoc/no-defaults': 'error',
+            'jsdoc/no-multi-asterisks': 'error',
+            'jsdoc/no-types': 'error',
+            'jsdoc/no-undefined-types': 'error',
+            'jsdoc/require-asterisk-prefix': 'error',
+            'jsdoc/require-description': 'error',
             // This rule does not handle `# Heading`s and "etc.", "e.g.", "vs." etc.
-            // 'jsdoc/require-description-complete-sentence': 'warn',
-            'jsdoc/require-file-overview': 'warn',
-            'jsdoc/require-hyphen-before-param-description': 'warn',
-            'jsdoc/require-param-description': 'warn',
-            'jsdoc/require-param-name': 'warn',
-            'jsdoc/require-property': 'warn',
-            'jsdoc/require-property-description': 'warn',
-            'jsdoc/require-property-name': 'warn',
-            'jsdoc/require-property-type': 'warn',
-            'jsdoc/require-returns-check': 'warn',
-            'jsdoc/require-returns-description': 'warn',
-            'jsdoc/require-throws': 'warn',
-            'jsdoc/require-yields': 'warn',
-            'jsdoc/require-yields-check': 'warn',
-            'jsdoc/tag-lines': 'warn',
-            'jsdoc/valid-types': 'warn',
+            // 'jsdoc/require-description-complete-sentence': 'error',
+            'jsdoc/require-file-overview': 'error',
+            'jsdoc/require-hyphen-before-param-description': 'error',
+            'jsdoc/require-param-description': 'error',
+            'jsdoc/require-param-name': 'error',
+            'jsdoc/require-property': 'error',
+            'jsdoc/require-property-description': 'error',
+            'jsdoc/require-property-name': 'error',
+            'jsdoc/require-property-type': 'error',
+            'jsdoc/require-returns-check': 'error',
+            'jsdoc/require-returns-description': 'error',
+            'jsdoc/require-throws': 'error',
+            'jsdoc/require-yields': 'error',
+            'jsdoc/require-yields-check': 'error',
+            'jsdoc/tag-lines': 'error',
+            'jsdoc/valid-types': 'error',
         },
     },
     {
@@ -478,6 +482,12 @@ export default [
             'lib/dashboard/src/**/*.tsx',
             'lib/dashboard/src/**/*.mtsx',
             'lib/dashboard/src/**/*.ctsx',
+            'lib/dashboard/mock/**/*.ts',
+            'lib/dashboard/mock/**/*.mts',
+            'lib/dashboard/mock/**/*.cts',
+            'lib/dashboard/mock/**/*.tsx',
+            'lib/dashboard/mock/**/*.mtsx',
+            'lib/dashboard/mock/**/*.ctsx',
         ],
         rules: {
             'no-restricted-properties': [
@@ -509,6 +519,69 @@ export default [
                 {
                     property: '$d$',
                     message: 'Avoid leaving debugging statements when committing code',
+                },
+            ],
+        },
+    },
+    {
+        files: [
+            'lib/dashboard/test*/**/*.ts',
+            'lib/dashboard/test*/**/*.mts',
+            'lib/dashboard/test*/**/*.cts',
+            'lib/dashboard/test*/**/*.tsx',
+            'lib/dashboard/test*/**/*.mtsx',
+            'lib/dashboard/test*/**/*.ctsx',
+        ],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'console',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugState',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugEffect',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugMemo',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'hooks',
+                    property: 'useDebugCallback',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    property: '$d$',
+                    message: 'Avoid leaving debugging statements when committing code',
+                },
+                {
+                    object: 'page',
+                    property: 'type',
+                    message: 'Prefer `locator.type` instead',
+                },
+                {
+                    object: 'page',
+                    property: 'click',
+                    message: 'Prefer `locator.click` instead',
+                },
+                {
+                    object: 'page',
+                    property: 'fill',
+                    message: 'Prefer `locator.fill` instead',
+                },
+                {
+                    object: 'page',
+                    property: 'locator',
+                    message: 'Prefer `page.getBy*` instead',
                 },
             ],
         },

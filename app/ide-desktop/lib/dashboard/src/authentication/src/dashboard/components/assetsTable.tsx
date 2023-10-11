@@ -12,7 +12,7 @@ import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as permissions from '../permissions'
-import * as presenceModule from '../presence'
+import type * as presenceModule from '../presence'
 import * as shortcuts from '../shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
@@ -51,7 +51,7 @@ const ASSET_TYPE_NAME_PLURAL = 'items'
 const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** The default placeholder row. */
 const PLACEHOLDER = (
-    <span className="opacity-75 px-1.5">
+    <span className="opacity-75">
         You have no projects yet. Go ahead and create one using the button above, or open a template
         from the home screen.
     </span>

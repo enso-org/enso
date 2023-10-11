@@ -1,7 +1,7 @@
 /** @file Events related to changes in the asset list. */
-import * as backend from '../backend'
+import type * as backend from '../backend'
 
-import * as spinner from '../components/spinner'
+import type * as spinner from '../components/spinner'
 
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax

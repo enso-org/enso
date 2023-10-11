@@ -19,7 +19,7 @@ import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as validation from '../validation'
 
-import * as column from '../column'
+import type * as column from '../column'
 import EditableSpan from './editableSpan'
 import ProjectIcon from './projectIcon'
 import SvgMask from '../../authentication/components/svgMask'
