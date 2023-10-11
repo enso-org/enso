@@ -19,7 +19,7 @@ Convertible_To_Columns.from (that:JS_Object) =
 Convertible_To_Columns.from (that:Map) =
     pairs = that.keys.map k-> [k.to_text, k]
     field_map = pairs.if_not_error <|
-        Map.from_vector pairs error_on_duplicates=True . catch Illegal_Argument err->
+        Map.from_vector pairs error_on_duplicates=True . catch Illegal_Argument _->
             Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_display_text+" to a set of columns, because its keys are duplicated when converted to text.")
     Convertible_To_Columns.Value field_map.keys (k-> that.get (field_map.get k))
 

@@ -10,6 +10,11 @@ import Standard.Test.Extensions
 
 from project.Util import all
 
+type My_Mod_Type
+    Value x
+
+    to_text self = "x%10="+(self.x%10).to_text
+
 spec =
     single_values = [Nothing, 12, 13.4, True, "hello", Date.new 2023 10 6, Time_Of_Day.new 3 4 5 200, Date_Time.new 2023 11 7 2 3 4]
     uniform_json = Json.parse <| '''
@@ -157,6 +162,20 @@ spec =
             table = Table.new [["a", [1, 2]], ["b", [Map.from_vector [[1, "x"], [2, "y"]] , Map.from_vector [[2, "z"], [3, "w"]]]]]
             expected = Table.new [["a", [1, 2]], ["b 1", ["x", Nothing]], ["b 2", ["y", "z"]], ["b 3", [Nothing, "w"]]]
             table.expand_column "b" . should_equal expected
+
+        Test.specify "will fail if text representation of keys is not unique" <|
+            k1 = My_Mod_Type.Value 12
+            k2 = My_Mod_Type.Value 32
+            m = Map.from_vector [[k1, "a"], [k2, "b"]]
+            m.at k1 . should_equal "a"
+            m.at k2 . should_equal "b"
+            k1.to_text . should_equal "x%10=2"
+            k2.to_text . should_equal "x%10=2"
+
+            table = Table.new [["a", [1, 2]], ["b", [Map.from_vector [[k1, "x"], [k2, "y"]] , Map.from_vector []]]]
+            r = table.expand_column "b"
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "keys are duplicated when converted to text"
 
         Test.specify "Can expand with a prefix" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
