@@ -424,8 +424,14 @@ spec =
 
     Test.group "Polyglot Conversion" <|
         f1 (x : DateTimeFormatter) = x.to_text
-        f2 (x : Text | DateTimeFormatter) = x.to_text
-        f3 (x : DateTimeFormatter | Text) = x.to_text
+        f2 (x : Text | DateTimeFormatter) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
+        f3 (x : DateTimeFormatter | Text) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
         f4 (x) = case x of
             _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
             _ : Text -> "TEXT: "+x
@@ -440,16 +446,16 @@ spec =
             Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
 
         Test.specify "f2 AAA" <|
-            (f2 "AAA").to_display_text . should_equal "AAA"
+            (f2 "AAA").to_display_text . should_equal "TEXT: AAA"
 
         Test.specify "f2 d" <|
-            (f2 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+            (f2 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
 
         Test.specify "f3 AAA" <|
-            (f3 "AAA").to_display_text . should_equal "AAA"
+            (f3 "AAA").to_display_text . should_equal "TEXT: AAA"
 
         Test.specify "f3 d" <|
-            (f3 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+            (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
 
         Test.specify "f4 d" <|
             (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
