@@ -61,7 +61,7 @@ const data = ref<any>({
     title="Geo Map"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
-    auto-props-disabled
+    autoPropsDisabled
   >
     <div style="height: 250px">
       <GeoMapVisualization v-if="ready" :data="data" />

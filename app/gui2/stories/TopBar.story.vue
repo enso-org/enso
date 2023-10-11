@@ -11,7 +11,7 @@ const breadcrumbs = ref(['main', 'ad_analytics'])
 </script>
 
 <template>
-  <Story title="Top Bar" group="graph" :layout="{ type: 'grid', width: 500 }" auto-props-disabled>
+  <Story title="Top Bar" group="graph" :layout="{ type: 'grid', width: 500 }" autoPropsDisabled>
     <div style="height: 48px">
       <TopBar
         :title="title"

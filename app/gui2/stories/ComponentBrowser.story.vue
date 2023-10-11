@@ -15,13 +15,13 @@ const position = new Vec2(-329.5, 0)
     title="Component Browser"
     group="graph"
     :layout="{ type: 'single', iframe: false }"
-    :setup-app="
+    :setupApp="
       () => {
         useSuggestionDbStore()
       }
     "
-    responsive-disabled
-    auto-props-disabled
+    responsiveDisabled
+    autoPropsDisabled
   >
     <NavigatorWrapper style="height: 100%">
       <template #default="{ navigator }">

@@ -25,7 +25,7 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
 </script>
 
 <template>
-  <Story title="Widgets" group="graph" :layout="{ type: 'grid', width: 200 }" auto-props-disabled>
+  <Story title="Widgets" group="graph" :layout="{ type: 'grid', width: 200 }" autoPropsDisabled>
     <Variant title="placeholder">
       <PlaceholderWidget />
     </Variant>

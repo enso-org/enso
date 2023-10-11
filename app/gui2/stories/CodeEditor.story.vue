@@ -34,11 +34,11 @@ main = collect_benches . run_main`)
     title="Code Editor"
     group="graph"
     :layout="{ type: 'single', iframe: false }"
-    responsive-disabled
-    auto-props-disabled
+    responsiveDisabled
+    autoPropsDisabled
   >
     <MockProjectStoreWrapper v-model="text">
-      <CodeEditor class="standalone" show-immediately />
+      <Suspense><CodeEditor class="standalone" /></Suspense>
     </MockProjectStoreWrapper>
 
     <template #controls><HstCode v-model="text" title="code" /></template>

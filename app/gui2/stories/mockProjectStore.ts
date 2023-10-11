@@ -1,27 +1,32 @@
+import type { ExecutionContext, useProjectStore as originalUseProjectStore } from '@/stores/project'
+import { ComputedValueRegistry } from '@/util/computedValueRegistry'
+import { ObservableV2 } from 'lib0/observable'
 import { defineStore } from 'pinia'
+import { DistributedModule } from 'shared/yjsModel'
+import { markRaw, ref } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 
-import type { useProjectStore as originalUseProjectStore } from '@/stores/project'
-import { DistributedModule } from 'shared/yjsModel'
-import { markRaw } from 'vue'
-
 export const useProjectStore = defineStore('project', () => {
   const doc = new Y.Doc()
+  const mockExecutionContext = new ObservableV2() as ExecutionContext
   const result: Omit<
     ReturnType<typeof originalUseProjectStore>,
     `$${string}` | `_customProperties`
   > = {
     setObservedFileName() {},
-    async createExecutionContextForMain() {
-      return undefined
-    },
     name: 'Mock Project',
     awareness: markRaw(new Awareness(doc)),
-    undoManager: markRaw(new Y.UndoManager([], { doc })),
     module: markRaw(new DistributedModule(doc)),
     contentRoots: Promise.resolve([]),
     lsRpcConnection: null as any,
+    dataConnection: null as any,
+    executionContext: mockExecutionContext,
+    computedValueRegistry: new ComputedValueRegistry(mockExecutionContext),
+    stopCapturingUndo() {},
+    useVisualizationData() {
+      return ref({})
+    },
   }
   return result
 })

@@ -12,6 +12,7 @@ import {
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
+import type { Icon } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
 import {
   qnJoin,
@@ -38,7 +39,7 @@ interface UnfinishedEntry {
   reexportedIn?: QualifiedName
   documentation?: Doc.Section[]
   scope?: SuggestionEntryScope
-  iconName?: string
+  iconName?: Icon
   groupIndex?: number | undefined
 }
 

@@ -21,7 +21,7 @@ const data = ref<any>({
     title="Histogram"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
-    auto-props-disabled
+    autoPropsDisabled
   >
     <div style="height: 322px">
       <HistogramVisualization :data="data" />

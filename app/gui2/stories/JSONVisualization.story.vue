@@ -22,7 +22,7 @@ const data = ref<any>({
     title="JSON"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
-    auto-props-disabled
+    autoPropsDisabled
   >
     <div style="height: 322px">
       <JSONVisualization :data="data" />

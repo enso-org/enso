@@ -14,7 +14,7 @@ const isVisualizationVisible = ref(false)
     title="Circular Menu"
     group="graph"
     :layout="{ type: 'grid', width: 200 }"
-    auto-props-disabled
+    autoPropsDisabled
   >
     <div style="height: 76px">
       <div style="position: absolute; left: 32px">

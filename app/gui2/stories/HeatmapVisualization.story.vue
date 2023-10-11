@@ -15,7 +15,7 @@ const data = ref<any>([
     title="Heatmap"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
-    auto-props-disabled
+    autoPropsDisabled
   >
     <div style="height: 322px">
       <HeatmapVisualization :data="data" />

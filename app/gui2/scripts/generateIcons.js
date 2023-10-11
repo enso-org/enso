@@ -4,8 +4,9 @@ console.info('Reading icons from "./src/assets/icons.svg"...')
 const icons = await fs.readFile('./src/assets/icons.svg', { encoding: 'utf-8' })
 const iconNames = icons.match(/(?<=^ {4}<g id=")[^"]+/gm) ?? []
 
+// All generated files MUST follow Prettier formatting.
 console.info('Writing icon names to "./src/util/iconList.json"...')
-await fs.writeFile('./src/util/iconList.json', JSON.stringify(iconNames))
+await fs.writeFile('./src/util/iconList.json', JSON.stringify(iconNames, undefined, 2) + '\n')
 console.info('Writing icon name type to "./src/util/iconName.ts"...')
 await fs.writeFile(
   './src/util/iconName.ts',

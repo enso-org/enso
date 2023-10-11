@@ -15,7 +15,7 @@ const icon = ref<Icon>('enso_logo')
 </script>
 
 <template>
-  <Story title="SVG Icon" group="misc" :layout="{ type: 'grid', width: 100 }" auto-props-disabled>
+  <Story title="SVG Icon" group="misc" :layout="{ type: 'grid', width: 100 }" autoPropsDisabled>
     <Variant title="icon">
       <SvgIcon :name="name" @click="logEvent('click', [])" />
 

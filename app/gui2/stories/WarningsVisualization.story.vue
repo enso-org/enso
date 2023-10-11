@@ -11,7 +11,7 @@ const data = ref<any>(['warning 1', "warning 2!!&<>;'\x22"])
     title="Warnings"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
-    auto-props-disabled
+    autoPropsDisabled
   >
     <div style="height: 322px">
       <WarningsVisualization :data="data" />

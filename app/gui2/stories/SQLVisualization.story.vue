@@ -20,7 +20,7 @@ const data = ref<any>({
     title="SQL Query"
     group="visualizations"
     :layout="{ type: 'grid', width: 400 }"
-    auto-props-disabled
+    autoPropsDisabled
   >
     <div style="height: 322px">
       <SQLVisualization :data="data" />

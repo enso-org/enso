@@ -8,8 +8,8 @@ import SelectionBrushWrapper from './SelectionBrushWrapper.vue'
     title="Selection Brush"
     group="graph"
     :layout="{ type: 'single', iframe: false }"
-    responsive-disabled
-    auto-props-disabled
+    responsiveDisabled
+    autoPropsDisabled
   >
     <SelectionBrushWrapper>
       <template #default="{ scaledMousePos, scaledSelectionAnchor, navigator }">

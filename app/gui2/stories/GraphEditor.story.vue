@@ -35,16 +35,16 @@ main = collect_benches . run_main`)
     title="Editor"
     group="graph"
     :layout="{ type: 'single', iframe: false }"
-    :setup-app="
+    :setupApp="
       () => {
         useSuggestionDbStore()
       }
     "
-    responsive-disabled
-    auto-props-disabled
+    responsiveDisabled
+    autoPropsDisabled
   >
     <MockProjectStoreWrapper v-model="text">
-      <GraphEditor />
+      <Suspense><GraphEditor /></Suspense>
     </MockProjectStoreWrapper>
 
     <template #controls><HstCode v-model="text" title="code" /></template>

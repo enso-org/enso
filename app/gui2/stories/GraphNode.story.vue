@@ -18,6 +18,7 @@ const nodeX = ref(0)
 const nodeY = ref(0)
 const selected = ref(false)
 const isLatestSelected = ref(false)
+const fullscreenVis = ref(false)
 
 const position = computed(() => new Vec2(nodeX.value, nodeY.value))
 
@@ -31,18 +32,21 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
 </script>
 
 <template>
-  <Story title="Node" group="graph" :layout="{ type: 'grid', width: 300 }" auto-props-disabled>
+  <Story title="Node" group="graph" :layout="{ type: 'grid', width: 300 }" autoPropsDisabled>
     <div style="height: 72px; padding: 20px; padding-left: 50px">
       <GraphNode
         :node="{
+          outerExprId: '' as any,
           binding: nodeBinding,
           content: nodeContent,
           position,
           rootSpan: { id: '' as any, kind: 0, length: nodeContent.length, children: [] },
           docRange: [dummyPosition, dummyPosition],
+          vis: undefined,
         }"
         :selected="selected"
-        :is-latest-selected="isLatestSelected"
+        :isLatestSelected="isLatestSelected"
+        :fullscreenVis="fullscreenVis"
         @movePosition="
           (nodeX += $event.x),
             (nodeY += $event.y),
@@ -62,6 +66,7 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
       <HstNumber v-model="nodeY" title="node.position.y" />
       <HstCheckbox v-model="selected" title="selected" />
       <HstCheckbox v-model="isLatestSelected" title="isLatestSelected" />
+      <HstCheckbox v-model="fullscreenVis" title="fullscreenVis" />
     </template>
   </Story>
 </template>

@@ -12,7 +12,7 @@ const iconListAsIcons = iconList as Icon[]
     title="All SVG Icons"
     group="misc"
     :layout="{ type: 'grid', width: 100 }"
-    auto-props-disabled
+    autoPropsDisabled
   >
     <Variant v-for="icon in iconListAsIcons" :key="icon" :title="icon">
       <SvgIcon :name="icon" />
