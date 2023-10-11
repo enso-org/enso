@@ -31,7 +31,7 @@ expand_column table column fields prefix =
 
 ## PRIVATE
 create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table
-create_table_from_objects value:Convertible_To_Rows fields = if fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
+create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothing) = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
     len = value.length
 
     preset_fields = fields.is_nothing.not
