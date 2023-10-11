@@ -14,7 +14,6 @@ import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
@@ -45,7 +44,6 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
@@ -417,28 +415,17 @@ public abstract class ReadArgumentCheckNode extends Node {
       return executeCheckOrConversion(frame, value);
     }
 
-    @Specialization
-    Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
-      throw panicSentinel;
-    }
-
     @Specialization()
     Object verifyMetaObject(
       VirtualFrame frame, Object v,
-      @CachedLibrary(limit="3") InteropLibrary iop,
-      @Cached EqualsNode equals
+      @Cached IsValueOfTypeNode isA
     ) {
-      try {
-        if (isAllFitValue(v)) {
-          return v;
-        }
-        var vMeta = iop.getMetaObject(v);
-        if (equals.execute(vMeta, expectedMeta)) {
-          return v;
-        } else {
-          return null;
-        }
-      } catch (UnsupportedMessageException ex) {
+      if (isAllFitValue(v)) {
+        return v;
+      }
+      if (isA.execute(expectedMeta, v)) {
+        return v;
+      } else {
         return null;
       }
     }

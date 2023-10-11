@@ -11,6 +11,9 @@ import Standard.Test.Extensions
 
 polyglot java import java.lang.Object
 polyglot java import java.time.format.DateTimeFormatter
+polyglot java import java.time.chrono.ChronoPeriod
+polyglot java import java.time.temporal.TemporalAmount
+polyglot java import java.time.Period as JPeriod
 
 type Foo
     Value foo
@@ -459,6 +462,22 @@ spec =
 
         Test.specify "f4 d" <|
             (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
+
+    Test.group "Polyglot Argument with Inheritance" <|
+        f1 (x : JPeriod) = x.to_text
+        f2 (x : ChronoPeriod) = x.negated.to_text
+        f3 (x : TemporalAmount) = x.getUnits.to_text
+
+        quarter = JPeriod.ofMonths 3
+
+        Test.specify "f1 quarter" <|
+            (f1 quarter) . should_equal "P3M"
+
+        Test.specify "f2 quarter" <|
+            (f2 quarter) . should_equal "P-3M"
+
+        Test.specify "f3 quarter" <|
+            (f3 quarter) . should_equal "[Years, Months, Days]"
 
     Test.group "Polyglot Conversion" <|
         f1 (x : DateTimeFormatter) = x.to_text
