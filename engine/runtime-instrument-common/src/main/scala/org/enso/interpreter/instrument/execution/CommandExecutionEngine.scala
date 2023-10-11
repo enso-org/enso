@@ -1,10 +1,15 @@
 package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
-import org.enso.interpreter.instrument.command.Command
+import org.enso.interpreter.instrument.command.{
+  AsynchronousCommand,
+  Command,
+  SynchronousCommand
+}
 import org.enso.text.Sha3_224VersionCalculator
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import java.util.concurrent.{BlockingQueue, Callable, LinkedBlockingQueue}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 /** This component schedules the execution of commands. It keep a queue of
   * pending commands and activates command execution in FIFO order.
@@ -42,6 +47,18 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
         .newCachedThreadPool("command-pool", false)
     }
 
+  private val sequentialExecutionService =
+    interpreterContext.executionService.getContext.newFixedThreadPool(
+      1,
+      "sequential-command-pool",
+      false
+    )
+  private val sequentialExecutionContext =
+    ExecutionContext.fromExecutor(sequentialExecutionService)
+
+  private val blockingQueue: BlockingQueue[SynchronousCommand] =
+    new LinkedBlockingQueue[SynchronousCommand]()
+
   implicit private val commandExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(commandExecutor)
 
@@ -59,8 +76,23 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
     )
 
   /** @inheritdoc */
-  def invoke(cmd: Command): cmd.Result[Completion] = {
-    cmd.execute(runtimeContext, commandExecutionContext)
+  def invoke(cmd: Command): Future[Completion] = {
+    cmd match {
+      case c: SynchronousCommand =>
+        blockingQueue.add(c)
+        val javaFuture =
+          sequentialExecutionService.submit(new Callable[Completion] {
+            override def call(): Completion = {
+              val orderedCommand = blockingQueue.take()
+              orderedCommand.execute(runtimeContext, sequentialExecutionContext)
+            }
+          })
+        Future {
+          javaFuture.get()
+        }
+      case c: AsynchronousCommand =>
+        c.execute(runtimeContext, commandExecutionContext)
+    }
   }
 
   /** @inheritdoc */

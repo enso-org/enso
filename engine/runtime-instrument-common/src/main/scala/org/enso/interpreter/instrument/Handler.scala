@@ -84,6 +84,7 @@ final class Handler {
 
   private case class HandlersContext(
     executionService: ExecutionService,
+    sequentialExecutionService: ExecutionService,
     truffleContext: TruffleContext,
     commandProcessor: CommandProcessor
   )
@@ -108,7 +109,12 @@ final class Handler {
         truffleContext
       )
     val commandProcessor = new CommandExecutionEngine(interpreterCtx)
-    ctx = HandlersContext(executionService, truffleContext, commandProcessor)
+    ctx = HandlersContext(
+      executionService,
+      executionService,
+      truffleContext,
+      commandProcessor
+    )
     executionService.initializeLanguageServerConnection(endpoint)
     endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
   }
