@@ -1,17 +1,19 @@
 import { Vec2 } from '@/util/vec2'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { inject, provide, type InjectionKey, type Ref } from 'vue'
 
 export interface VisualizationConfig {
   /** Possible visualization types that can be switched to. */
   background?: string
-  readonly types: string[]
+  readonly types: VisualizationIdentifier[]
+  readonly currentType: VisualizationIdentifier
   readonly isCircularMenuVisible: boolean
   readonly nodeSize: Vec2
   width: number | null
   height: number | null
   fullscreen: boolean
   hide: () => void
-  updateType: (type: string) => void
+  updateType: (type: VisualizationIdentifier) => void
 }
 
 export function defaultVisualizationConfig(): VisualizationConfig {
@@ -22,7 +24,24 @@ export function defaultVisualizationConfig(): VisualizationConfig {
     hide() {},
     isCircularMenuVisible: false,
     nodeSize: new Vec2(200, 150),
-    types: ['Example', 'Types', 'Here'],
+    currentType: {
+      module: { kind: 'Builtin' },
+      name: 'Current Type',
+    },
+    types: [
+      {
+        module: { kind: 'Builtin' },
+        name: 'Example',
+      },
+      {
+        module: { kind: 'Builtin' },
+        name: 'Types',
+      },
+      {
+        module: { kind: 'Builtin' },
+        name: 'Here',
+      },
+    ],
     updateType() {},
   }
 }

@@ -2,6 +2,11 @@
 export const name = 'Table'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
+export const defaultPreprocessor = [
+  'Standard.Visualization.Table.Visualization',
+  'prepare_visualization',
+  '1000',
+] as const
 
 type Data = Error | Matrix | ObjectMatrix | LegacyMatrix | LegacyObjectMatrix | UnknownTable
 
@@ -408,8 +413,8 @@ watch(
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
-    <div ref="rootNode" class="TableVisualization" @wheel.stop>
+  <VisualizationContainer :belowToolbar="true" :overflow="true">
+    <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
         <button :disabled="isFirstPage" @click="goToFirstPage">«</button>
         <button :disabled="isFirstPage" @click="goToPreviousPage">&lsaquo;</button>

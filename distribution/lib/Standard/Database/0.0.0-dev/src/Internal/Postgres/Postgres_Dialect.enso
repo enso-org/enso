@@ -82,6 +82,14 @@ type Postgres_Dialect
                 Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
+       Wraps and possibly escapes the identifier so that it can be used in a
+       generated query regardless of what characters it contains.
+       The quotes used will depend on the dialect.
+    wrap_identifier : Text -> Text
+    wrap_identifier self identifier =
+        self.internal_generator_dialect.wrap_identifier_raw identifier
+
+    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering

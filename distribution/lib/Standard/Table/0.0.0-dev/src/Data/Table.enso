@@ -37,6 +37,8 @@ import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
+import project.Internal.Lookup_Helpers
+import project.Internal.Lookup_Helpers.Lookup_Column
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Split_Tokenize
@@ -47,6 +49,7 @@ from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
+from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
 
 polyglot java import java.util.UUID
@@ -57,8 +60,12 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
+polyglot java import org.enso.table.data.table.join.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.error.TooManyColumnsException
+polyglot java import org.enso.table.error.NullValuesInKeyColumns
+polyglot java import org.enso.table.error.UnmatchedRow
+polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.operations.OrderBuilder
 
 ## Represents a column-oriented table data structure.
@@ -1672,6 +1679,91 @@ type Table
                 new_java_table = self.java_table.crossJoin right.java_table right_prefix
                 renaming_problems = new_java_table.getProblems |> Java_Problems.parse_aggregated_problems
                 on_problems.attach_problems_before renaming_problems (Table.Value new_java_table)
+
+    ## Replaces values in this table by values from a lookup table.
+       New values are looked up in the lookup table based on the `key_columns`.
+       Columns found in the lookup table values are replaced by values from the
+       lookup. Columns not found are left unchanged.
+       This operation is similar to `Table.update_rows`, but just returns a new
+       `Table` instance, instead of updating the table in-place (which is only
+       possible for Database tables).
+
+       Arguments:
+       - lookup_table: The table to use for looking up values.
+       - key_columns: Specifies the columns to use for correlating rows between
+         the two tables. Must identify values uniquely within `lookup_table`.
+       - add_new_columns: Specifies if new columns from the lookup table should
+         be added to the result. If `False`, an `Unexpected_Extra_Columns`
+         problem is reported.
+       - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
+         If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
+         If `True`, the unmatched rows are left unchanged. Any new columns will
+         be filled with `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
+
+       ? Error Conditions
+
+         - If this table or the lookup table is lacking any of the columns
+           specified in `key_columns`, a `Missing_Input_Columns` error is raised.
+         - If an empty vector is provided for `key_columns`, a
+           `No_Input_Columns_Selected` error is raised.
+         - If the lookup table contains multiple rows with the same values in
+           the `key_columns`, an `Non_Unique_Key` error is raised.
+         - If a column that is being updated from the lookup table has a type
+           that is not compatible with the type of the corresponding column in
+           this table, a `No_Common_Type` error is raised.
+         - If a key column contains `Nothing` values, either in the lookup table,
+           a `Null_Values_In_Key_Columns` error is raised.
+         - If `allow_unmatched_rows` is `False` and there are rows in this table
+           that do not have a matching row in the lookup table, an
+           `Unmatched_Rows_In_Lookup` error is raised.
+         - The following problems may be reported according to the `on_problems`
+           setting:
+           - If any of the `key_columns` is a floating-point type,
+             a `Floating_Point_Equality`.
+           - If `add_new_columns` is `False` and the lookup table has columns
+             that are not present in this table, an `Unexpected_Extra_Columns`.
+    @key_columns Widget_Helpers.make_column_name_vector_selector
+    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+
+        java_descriptions = lookup_columns.map make_java_lookup_column_description
+
+        keys = lookup_columns.filter .is_key
+        java_keys = keys.map key_column->
+            Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
+
+        handle_java_errors ~action =
+            translate_null_values_exception caught_panic =
+                exception = caught_panic.payload
+                example_values = Vector.from_polyglot_array exception.exampleValues
+                Error.throw (Null_Values_In_Key_Columns.Error example_values)
+            translate_unmatched_row_exception caught_panic =
+                exception = caught_panic.payload
+                example_key_values = Vector.from_polyglot_array exception.exampleKeyValues
+                Error.throw (Unmatched_Rows_In_Lookup.Error example_key_values)
+            translate_non_unique_lookup_key_exception caught_panic =
+                exception = caught_panic.payload
+                key_column_names = Vector.from_polyglot_array exception.keyColumns
+                example_values = Vector.from_polyglot_array exception.exampleValues
+                example_count = exception.exampleCount
+                Error.throw (Non_Unique_Key.Error key_column_names example_values example_count)
+            Panic.catch NonUniqueLookupKey handler=translate_non_unique_lookup_key_exception <|
+                Panic.catch UnmatchedRow handler=translate_unmatched_row_exception <|
+                    Panic.catch NullValuesInKeyColumns handler=translate_null_values_exception <|
+                        action
+        handle_java_errors <|
+            java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows
+            Table.Value java_table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations

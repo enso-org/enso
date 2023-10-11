@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { default as SvgIcon } from '@/components/SvgIcon.vue'
-import { default as ToggleIcon } from '@/components/ToggleIcon.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useApproach } from '@/util/animation'
 import { useResizeObserver } from '@/util/events'

@@ -184,7 +184,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
 - [Runtime Operations](#runtime-operations)
-  - [`runtime/getComponentGroups`](#runtime-getcomponentgroups)
+  - [`runtime/getComponentGroups`](#runtimegetcomponentgroups)
 - [Errors](#errors-75)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
@@ -272,8 +272,8 @@ type StackItem = ExplicitCall | LocalCall;
 
 interface ExplicitCall {
   methodPointer: MethodPointer;
-  thisArgumentExpression?: String;
-  positionalArgumentsExpressions: String[];
+  thisArgumentExpression?: string;
+  positionalArgumentsExpressions: string[];
 }
 
 interface LocalCall {
@@ -302,13 +302,13 @@ Points to a method definition.
 ```typescript
 interface MethodPointer {
   /** The fully qualified module name. */
-  module: String;
+  module: string;
 
   /** The type on which the method is defined. */
-  definedOnType: String;
+  definedOnType: string;
 
   /** The method name. */
-  name: String;
+  name: string;
 }
 ```
 
@@ -325,8 +325,8 @@ Where:
 
 ```typescript
 interface ExecutionTime {
-  /** The time elapsed during the expression's evaluation, in nanoseconds */
-  nanoTime: Number;
+  /** The time elapsed during the expression's evaluation, in nanoseconds. */
+  nanoTime: number;
 }
 ```
 
@@ -344,34 +344,17 @@ An update about the computed expression.
 
 ```typescript
 interface ExpressionUpdate {
-  /**
-   * The id of updated expression.
-   */
+  /** The id of updated expression. */
   expressionId: ExpressionId;
-
-  /**
-   * The updated type of the expression.
-   */
-  type?: String;
-
-  /**
-   * The updated method call info.
-   */
+  /** The updated type of the expression. */
+  type?: string;
+  /** The updated method call info. */
   methodCall?: MethodCall;
-
-  /**
-   * Profiling information about the expression.
-   */
+  /** Profiling information about the expression. */
   profilingInfo: ProfilingInfo[];
-
-  /**
-   * Wether or not the expression's value came from the cache.
-   */
-  fromCache: bool;
-
-  /**
-   * An extra information about the computed value.
-   */
+  /** Whether the expression's value came from the cache. */
+  fromCache: boolean;
+  /** An extra information about the computed value. */
   payload: ExpressionUpdatePayload;
 }
 ```
@@ -383,92 +366,54 @@ An information about the computed value.
 ```typescript
 type ExpressionUpdatePayload = Value | DatafalowError | Panic | Pending;
 
-/**
- * Indicates that the expression was computed to a value.
- */
+/** Indicates that the expression was computed to a value. */
 interface Value {
-  /**
-   * Information about attached warnings.
-   */
+  /** Information about attached warnings. */
   warnings?: Warnings;
-
-  /**
-   * The schema of returned function value.
-   */
+  /** The schema of returned function value. */
   functionSchema?: FunctionSchema;
 }
 
-/**
- * Indicates that the expression was computed to an error.
- */
+/** Indicates that the expression was computed to an error. */
 interface DataflowError {
-  /**
-   * The list of expressions leading to the root error.
-   */
+  /** The list of expressions leading to the root error. */
   trace: ExpressionId[];
 }
 
-/**
- * Indicates that the expression failed with the runtime exception.
- */
+/** Indicates that the expression failed with the runtime exception. */
 interface Panic {
-  /**
-   * The error message.
-   */
-  message: String;
-
-  /**
-   * The stack trace.
-   */
+  /** The error message. */
+  message: string;
+  /** The stack trace. */
   trace: ExpressionId[];
 }
 
-/**
- * Indicates the expression is currently being computed. Optionally it
- * provides description and percentage (`0.0-1.0`) of completeness.
- */
+/** Indicates the expression is currently being computed. Optionally it
+ * provides a description and fraction of completion (`0.0-1.0`). */
 interface Pending {
-  /**
-   * Optional message describing current operation.
+  /** Optional message describing current operation. */
+  message?: string;
+  /** Optional amount of already done work as a number between `0.0` to `1.0`.
    */
-  message?: String;
-
-  /**
-   * Optional amount of already done work as a number between `0.0` to `1.0`.
-   */
-  progress?: Number;
+  progress?: number;
 }
 
-/**
- * Information about warnings associated with the value.
- */
+/** Information about warnings associated with the value. */
 interface Warnings {
-  /**
-   * The number of attached warnings.
-   */
+  /** The number of attached warnings. */
   count: number;
-
-  /**
-   * If the value has a single warning attached, this field contains textual
+  /** If the value has a single warning attached, this field contains textual
    * representation of the attached warning. In general, warning values should
-   * be obtained by attaching an appropriate visualization to a value.
-   */
+   * be obtained by attaching an appropriate visualization to a value. */
   value?: string;
 }
 
-/**
- * Contains a method pointer with information on the partially applied argument
- * positions.
- */
+/** Contains a method pointer with information on the partially applied argument
+ * positions. */
 interface FunctionSchema {
-  /**
-   * The method pointer of this function.
-   */
+  /** The method pointer of this function. */
   methodPointer: MethodPointer;
-
-  /**
-   * Indexes of arguments that have not been applied to this function.
-   */
+  /** Indexes of arguments that have not been applied to this function. */
   notAppliedArguments: number[];
 }
 ```
@@ -481,15 +426,11 @@ A configuration object for properties of the visualization.
 interface VisualizationConfiguration {
   /** An execution context of the visualization. */
   executionContextId: UUID;
-
-  /**
-   * A qualified name of the module to be used to evaluate the arguments for the visualization expression.
-   */
-  visualizationModule: String;
-
+  /** The qualified name of the module to be used to evaluate the arguments for
+   * the visualization expression. */
+  visualizationModule: string;
   /** An expression that creates a visualization. */
-  expression: String | MethodPointer;
-
+  expression: string | MethodPointer;
   /** A list of arguments to pass to the visualization expression. */
   positionalArgumentsExpressions?: string[];
 }
@@ -509,9 +450,9 @@ interface SuggestionEntryArgument {
   /** The argument type. String 'Any' is used to specify generic types. */
   type: string;
   /** Indicates whether the argument is lazy. */
-  isSuspended: bool;
+  isSuspended: boolean;
   /** Indicates whether the argument has default value. */
-  hasDefault: bool;
+  hasDefault: boolean;
   /** Optional default value. */
   defaultValue?: string;
   /** Optional list of possible values that this argument takes. */
@@ -720,14 +661,9 @@ The entry in the suggestions database.
 
 ```typescript
 interface SuggestionsDatabaseEntry {
-  /**
-   * The suggestion entry id.
-   */
+  /** The suggestion entry id. */
   id: SuggestionId;
-
-  /**
-   * The suggestion entry.
-   */
+  /** The suggestion entry. */
   suggestion: SuggestionEntry;
 }
 ```
@@ -739,7 +675,7 @@ The modifying action on a record field.
 #### Format
 
 ```typescript
-type FieldAction = Remove | Set;
+type FieldAction = "Remove" | "Set";
 ```
 
 ### `FieldUpdate`
@@ -750,14 +686,9 @@ An object representing a modification of a field in a record.
 
 ```typescript
 interface FieldUpdate<T> {
-  /**
-   * The modifying action.
-   */
+  /** The modifying action. */
   tag: FieldAction;
-
-  /**
-   * The updated value.
-   */
+  /** The updated value. */
   value?: T;
 }
 ```
@@ -769,57 +700,36 @@ An operation applied to the suggestion argument.
 #### Format
 
 ```typescript
-type SuggestionArgumentUpdate = Add | Remove | Modify;
+type SuggestionArgumentUpdate =
+  | SuggestionArgumentAdd
+  | SuggestionArgumentRemove
+  | SuggestionArgumentModify;
 
-interface Add {
-  /**
-   * The position of the argument.
-   */
+interface SuggestionArgumentAdd {
+  /** The position of the argument. */
   index: int;
-
-  /**
-   * The argument to add.
-   */
+  /** The argument to add. */
   argument: SuggestionEntryArgument;
 }
 
-interface Remove {
-  /**
-   * The position of the argument.
-   */
+interface SuggestionArgumentRemove {
+  /** The position of the argument. */
   index: int;
 }
 
-interface Modify {
-  /**
-   * The position of the argument.
-   */
+interface SuggestionArgumentModify {
+  /** The position of the argument. */
   index: int;
-
-  /**
-   * The name to update.
-   */
-  name?: FieldUpdate<String>;
-
-  /**
-   * The argument type to update.
-   */
-  reprType?: FieldUpdate<String>;
-
-  /**
-   * The isSuspended flag to update.
-   */
-  isSuspended?: FieldUpdate<Boolean>;
-
-  /**
-   * The hasDefault flag to update.
-   */
-  hasDefault?: FieldUpdate<Boolean>;
-
-  /**
-   * The default value to update.
-   */
-  defaultValue?: FieldUpdate<String>;
+  /** The new name. */
+  name?: FieldUpdate<string>;
+  /** The new argument type. */
+  reprType?: FieldUpdate<string>;
+  /** The new `isSuspended` flag. */
+  isSuspended?: FieldUpdate<boolean>;
+  /** The new `hasDefault` flag. */
+  hasDefault?: FieldUpdate<boolean>;
+  /** The new default value. */
+  defaultValue?: FieldUpdate<string>;
 }
 ```
 
@@ -830,75 +740,43 @@ The update of the suggestions database.
 #### Format
 
 ```typescript
-/**
- * The kind of the suggestions database update.
- */
-type SuggestionsDatabaseUpdate = Add | Remove | Modify;
+/** The kind of the suggestions database update. */
+type SuggestionsDatabaseUpdate =
+  | SuggestionsDatabaseUpdateAdd
+  | SuggestionsDatabaseUpdateRemove
+  | SuggestionsDatabaseUpdateModify;
 
-interface Add {
-  /**
-   * Suggestion entry id.
-   */
+interface SuggestionsDatabaseUpdateAdd {
+  /** Suggestion entry id. */
   id: SuggestionId;
-
-  /**
-   * Suggestion entry.
-   */
+  /** Suggestion entry. */
   suggestion: SuggestionEntry;
 }
 
-interface Remove {
-  /**
-   * Suggestion entry id.
-   */
+interface SuggestionsDatabaseUpdateRemove {
+  /** Suggestion entry id. */
   id: SuggestionId;
 }
 
-interface Modify {
-  /**
-   * Suggestion entry id.
-   */
+interface SuggestionsDatabaseUpdateModify {
+  /** Suggestion entry id. */
   id: SuggestionId;
-
-  /**
-   * The external id to update.
-   */
+  /** The new external id. */
   externalId?: FieldUpdate<UUID>;
-
-  /**
-   * The list of argument updates.
-   */
+  /** The list of argument updates. */
   arguments?: SuggestionArgumentUpdate[];
-
-  /**
-   * The module name to update.
-   */
-  module?: FieldUpdate<String>;
-
-  /**
-   * The self type to update.
-   */
-  selfType?: FieldUpdate<String>;
-
-  /**
-   * The return type to update.
-   */
-  returnType?: FieldUpdate<String>;
-
-  /**
-   * The documentation string to update.
-   */
-  documentation?: FieldUpdate<String>;
-
-  /**
-   * The scope to update.
-   */
+  /** The new module name. */
+  module?: FieldUpdate<string>;
+  /** The new self type. */
+  selfType?: FieldUpdate<string>;
+  /** The new return type. */
+  returnType?: FieldUpdate<string>;
+  /** The new documentation string. */
+  documentation?: FieldUpdate<string>;
+  /** The new scope. */
   scope?: FieldUpdate<SuggestionEntryScope>;
-
-  /**
-   * The reexport field to update.
-   */
-  reexport?: FieldUpdate<String>;
+  /** The new reexport field. */
+  reexport?: FieldUpdate<string>;
 }
 ```
 
@@ -909,36 +787,27 @@ The update of the suggestions order database.
 #### Format
 
 ```typescript
-/**
- * The kind of the suggestions order database update.
- */
-type SuggestionsOrderDatabaseUpdate = AddOrder | RemoveOrder | ModifyOrder;
+/** The kind of the suggestions order database update. */
+type SuggestionsOrderDatabaseUpdate =
+  | SuggestionsOrderDatabaseUpdateAdd
+  | SuggestionsOrderDatabaseUpdateRemove
+  | SuggestionsOrderDatabaseUpdateModify;
 
-interface AddOrder {
+interface SuggestionsOrderDatabaseUpdateAdd {
   entry: SuggestionOrderDatabaseEntry;
 }
 
-interface RemoveOrder {
-  /**
-   * The unique identifier of a suggestion.
-   */
+interface SuggestionsOrderDatabaseUpdateRemove {
+  /** The unique identifier of a suggestion. */
   suggestionId: SuggestionId;
 }
 
-interface ModifyOrder {
-  /**
-   * The unique identifier of a suggestion.
-   */
+interface SuggestionsOrderDatabaseUpdateModify {
+  /** The unique identifier of a suggestion. */
   suggestionId: SuggestionId;
-
-  /**
-   * The previous suggestion id to update.
-   */
+  /** The previous suggestion id to update. */
   prevId?: FieldUpdate<SuggestionId>;
-
-  /**
-   * The next suggestion id to update.
-   */
+  /** The next suggestion id to update. */
   nextId?: FieldUpdate<SuggestionId>;
 }
 ```
@@ -950,27 +819,20 @@ The info about module re-export.
 #### Format
 
 ```typescript
-type Export = Qualified | Unqualified;
+type Export = ExportQualified | ExportUnqualified;
 
-interface Qualified {
-  /**
-   * The module that re-exports the given module.
-   */
-  module: String;
-
-  /**
-   * The new name of the given module if it was renamed in the export clause.
+interface ExportQualified {
+  /** The module that re-exports the given module. */
+  module: string;
+  /** The new name of the given module if it was renamed in the export clause.
    *
-   * I.e. `X` in `export A.B as X`.
-   */
-  alias?: String;
+   * e.g. `X` in `export A.B as X`. */
+  alias?: string;
 }
 
-interface Unqualified {
-  /**
-   * The module name that re-exports the given module.
-   */
-  module: String;
+interface ExportUnqualified {
+  /** The module name that re-exports the given module. */
+  module: string;
 }
 ```
 
@@ -982,8 +844,9 @@ A representation of a file on disk.
 
 ```typescript
 interface File {
-  name: String; // Includes the file extension
-  type: String;
+  /** Includes the file extension. */
+  name: string;
+  type: string;
 }
 ```
 
@@ -1001,9 +864,9 @@ directory, but the contents are unknown because we've reached the maximum depth.
 ```typescript
 interface DirectoryTree {
   path: Path;
-  name: String;
-  files: [FileSystemObject];
-  directories: [DirectoryTree];
+  name: string;
+  files: FileSystemObject[];
+  directories: DirectoryTree[];
 }
 ```
 
@@ -1015,15 +878,13 @@ may be expanded in future.
 #### Format
 
 ```typescript
-/**
- * A representation of the attributes of a file.
+/** A representation of the attributes of a file.
  *
  * @param creationTime creation time
  * @param lastAccessTime last access time
  * @param lastModifiedTime last modified time
  * @param kind type of [[FileSystemObject]], can be: `Directory`, `File`, `Other`
- * @param byteSize size in bytes
- */
+ * @param byteSize size in bytes */
 interface FileAttributes {
   creationTime: UTCDateTime;
   lastAccessTime: UTCDateTime;
@@ -1040,7 +901,7 @@ Time in UTC time zone represented as ISO-8601 string
 #### Format
 
 ```typescript
-type UTCDateTime = String;
+type UTCDateTime = string;
 ```
 
 ### `FileEventKind`
@@ -1050,7 +911,7 @@ The kind of event being described for a watched file.
 #### Format
 
 ```typescript
-type FileEventKind = Added | Removed | Modified;
+type FileEventKind = "Added" | "Removed" | "Modified";
 ```
 
 ### `Position`
@@ -1061,24 +922,19 @@ A representation of a position in a text file.
 
 ```typescript
 interface Position {
-  /**
-   * Line position in a document (zero-based).
-   */
+  /** Line position in a document (zero-based). */
   line: number;
-
-  /**
-   * Character offset on a line in a document (zero-based). Assuming that the
+  /** Character offset on a line in a document (zero-based). Assuming that the
    * line is represented as a string, the `character` value represents the gap
    * between the `character` and `character + 1`.
    *
    * If the character value is greater than the line length it defaults back to
-   * the line length.
-   */
+   * the line length. */
   character: number;
 }
 ```
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 struct Position {
@@ -1095,7 +951,7 @@ A representation of a range of text in a text file.
 
 For example, given the function.
 
-```
+```rust
 0|inc x =
 1|    x + 1
   ^^^^^^^^^
@@ -1124,14 +980,9 @@ The range of `1` is
 
 ```typescript
 interface Range {
-  /**
-   * The range's start position (inclusive).
-   */
+  /** The range's start position (inclusive). */
   start: Position;
-
-  /**
-   * The range's end position (exclusive).
-   */
+  /** The range's end position (exclusive). */
   end: Position;
 }
 ```
@@ -1146,7 +997,6 @@ A representation of a change to a text file at a given position.
 interface TextEdit {
   /** The range of text in a text file. */
   range: Range;
-
   /** The change to a text file. */
   text: string;
 }
@@ -1159,7 +1009,7 @@ The type of diagnostic message.
 #### Format
 
 ```typescript
-type DiagnosticType = Error | Warning;
+type DiagnosticType = "Error" | "Warning";
 ```
 
 ### `StackTraceElement`
@@ -1171,19 +1021,11 @@ and `location` fields will be empty.
 
 ```typescript
 interface StackTraceElement {
-  /**
-   * The function name containing the stack trace element.
-   */
-  functionName: String;
-
-  /**
-   * The location of the file.
-   */
+  /** The function name containing the stack trace element. */
+  functionName: string;
+  /** The location of the file. */
   path?: Path;
-
-  /**
-   * The location of the element in a file.
-   */
+  /** The location of the element in the file. */
   location?: Range;
 }
 ```
@@ -1211,34 +1053,17 @@ non-empty location (as the head of the stack will point to the builtin element).
 
 ```typescript
 interface Diagnostic {
-  /**
-   * The type of diagnostic message.
-   */
+  /** The type of diagnostic message. */
   kind: DiagnosticType;
-
-  /**
-   * The diagnostic message.
-   */
-  message: String;
-
-  /**
-   * The location of a file containing the diagnostic.
-   */
+  /** The diagnostic message. */
+  message: string;
+  /** The location of the file containing the diagnostic. */
   path?: Path;
-
-  /**
-   * The location of the diagnostic object in a file.
-   */
+  /** The location of the diagnostic object in the file. */
   location?: Range;
-
-  /**
-   * The id of related expression.
-   */
+  /** The id of the related expression. */
   expressionId?: ExpressionId;
-
-  /**
-   * The stack trace.
-   */
+  /** The stack trace. */
   stack: StackTraceElement[];
 }
 ```
@@ -1251,14 +1076,14 @@ structure on the binary connection please see [`EnsoDigest`](#ensodigest)
 #### Format
 
 ```typescript
-type SHA3-224 = String;
+type SHA3_224 = string;
 ```
 
 ### `FileEdit`
 
 A representation of a batch of edits to a file, versioned.
 
-`SHA3-224` represents hash of the file contents. `oldVersion` is the version
+`SHA3_224` represents hash of the file contents. `oldVersion` is the version
 you're applying your update on, `newVersion` is what you compute as the hash
 after applying the changes. In other words,
 
@@ -1282,9 +1107,9 @@ applyEdits buffer (first : rest) = applyEdits (applyTextEdit buffer first) rest
 ```typescript
 interface FileEdit {
   path: Path;
-  edits: [TextEdit];
-  oldVersion: SHA3-224;
-  newVersion: SHA3-224;
+  edits: TextEdit[];
+  oldVersion: SHA3_224;
+  newVersion: SHA3_224;
 }
 ```
 
@@ -1299,7 +1124,7 @@ interface FileContents<T> {
   contents: T;
 }
 
-class TextFileContents extends FileContents<String> {}
+class TextFileContents extends FileContents<string> {}
 ```
 
 ### `FileSystemObject`
@@ -1318,7 +1143,7 @@ type FileSystemObject = Directory | SymlinkLoop | File | Other;
  * @param path a path to the directory
  */
 interface Directory {
-  name: String;
+  name: string;
   path: Path;
 }
 
@@ -1331,7 +1156,7 @@ interface Directory {
  * target is a subpath of the symlink
  */
 interface SymlinkLoop {
-  name: String;
+  name: string;
   path: Path;
   target: Path;
 }
@@ -1343,7 +1168,7 @@ interface SymlinkLoop {
  * @param path a path to the file
  */
 interface File {
-  name: String;
+  name: string;
   path: Path;
 }
 
@@ -1352,7 +1177,7 @@ interface File {
  * Example is a broken symbolic link.
  */
 interface Other {
-  name: String;
+  name: string;
   path: Path;
 }
 ```
@@ -1372,7 +1197,7 @@ undo/redo.
 A counterpart to [SHA3-224](#sha3-224) for the binary connection, this is a
 standard message digest encoded using FlatBuffers.
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table EnsoDigest {
@@ -1389,16 +1214,14 @@ Notes:
 
 A representation of a segment of a file for use in the binary protocol.
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table FileSegment {
   // The file to access.
   path : Path (required);
-
   // The byte offset in the file to read from.
   byteOffset : ulong;
-
   // The number of bytes to read.
   length : ulong;
 }
@@ -1420,51 +1243,42 @@ type ContentRoot = Project | FileSystemRoot | Home | Library | Custom;
 ```typescript
 /** This content root points to the project home. */
 interface Project {
-  // A unique identifier for the content root.
+  /** A unique identifier for the content root. */
   id: UUID;
 }
 
-/**
- * This content root points to the system root (`/`) on unix systems, or to a
+/** This content root points to the system root (`/`) on unix systems, or to a
  * drive root on Windows. In Windows' case, there may be multiple `Root` entries
- * corresponding to the various drives.
- */
+ * corresponding to the various drives. */
 interface FileSystemRoot {
-  // A unique identifier for the content root.
+  /** A unique identifier for the content root. */
   id: UUID;
-
-  // The absolute filesystem path of the content root.
-  path: String;
+  /** The absolute filesystem path of the content root. */
+  path: string;
 }
 
 /** The user's home directory. */
 interface Home {
-  // A unique identifier for the content root.
+  /** A unique identifier for the content root. */
   id: UUID;
 }
 
 /** An Enso library location. */
 interface Library {
-  // A unique identifier for the content root.
+  /** A unique identifier for the content root. */
   id: UUID;
-
-  // The namespace of the library.
-  namespace: String;
-
-  // The name of the library.
-  name: String;
-
-  /**
-   * The version of the library.
-   *
-   * It is either a semver version of the library or the string "local".
-   */
-  version: String;
+  /** The namespace of the library. */
+  namespace: string;
+  /** The name of the library. */
+  name: string;
+  /** The version of the library.
+   * It is either a semver version or the string "local". */
+  version: string;
 }
 
 /** A content root that has been added by the IDE (unused for now). */
 interface Custom {
-  // A unique identifier for the content root.
+  /** A unique identifier for the content root. */
   id: UUID;
 }
 ```
@@ -1475,10 +1289,10 @@ Represents a library available in a resolved edition.
 
 ```typescript
 interface LibraryEntry {
-  namespace: String;
-  name: String;
+  namespace: string;
+  name: string;
   version: LibraryVersion;
-  isCached: Boolean;
+  isCached: boolean;
 }
 ```
 
@@ -1490,17 +1304,16 @@ Represents a library version, as returned in `LibraryEntry`.
 type LibraryVersion = LocalLibraryVersion | PublishedLibraryVersion;
 
 /** A library version that references a version of the library published in some
- * repository.
- */
+ * repository. */
 interface PublishedLibraryVersion {
-  // A semver-compliant version of the library.
-  version: String;
-
-  // URL to the repository that this library will be downloaded from.
-  repositoryUrl: String;
+  /** A semver-compliant version of the library. */
+  version: string;
+  /** A URL to the repository from which this library will be downloaded. */
+  repositoryUrl: string;
 }
 
-// A library version that references a locally editable version of the library.
+/** A library version that references a locally editable version of the library.
+ */
 interface LocalLibraryVersion {}
 ```
 
@@ -1513,8 +1326,8 @@ must be defined.
 
 ```typescript
 interface Contact {
-  name?: String;
-  email?: String;
+  name?: string;
+  email?: string;
 }
 ```
 
@@ -1528,12 +1341,13 @@ edition associated with the currently open project.
 ```typescript
 type EditionReference = NamedEdition | CurrentProjectEdition;
 
-// The edition associated with the current project, with all of its overrides.
+/** The edition associated with the current project, with all of its overrides.
+ */
 interface CurrentProjectEdition {}
 
-// An edition stored under a given name.
+/** An edition stored under a given name. */
 interface NamedEdition {
-  editionName: String;
+  editionName: string;
 }
 ```
 
@@ -1558,24 +1372,17 @@ The component group provided by a library.
 
 ```typescript
 interface LibraryComponentGroup {
-  /**
-   * The fully qualified library name. A string consisting of a namespace and
-   * a library name separated by the dot <namespace>.<library name>,
-   * i.e. `Standard.Base`.
-   */
+  /** The fully qualified library name. A string consisting of a namespace and
+   * a library name separated by a dot `<namespace>.<library name>`,
+   * e.g. `Standard.Base`. */
   library: string;
-
   /** The group name without the library name prefix.
-   *  E.g. given the `Standard.Base.Group 1` group reference,
-   * the `name` field contains `Group 1`.
-   */
+   *  e.g. given the `Standard.Base.Group 1` group reference,
+   * the `name` field contains `Group 1`. */
   name: string;
-
   color?: string;
-
   icon?: string;
-
-  /** The list of components provided by this component group. */
+  /** A list of components provided by this component group. */
   exports: LibraryComponent[];
 }
 ```
@@ -1588,7 +1395,6 @@ A single component of a component group.
 interface LibraryComponent {
   /** The component name. */
   name: string;
-
   /** The component shortcut. */
   shortcut?: string;
 }
@@ -1601,8 +1407,8 @@ need a set of messages to control this process.
 
 ### `session/initProtocolConnection`
 
-This message initialises the connection used to send the textual protocol
-messages. This initialisation is important such that the client identifier can
+This message initializes the connection used to send the textual protocol
+messages. This initialization is important such that the client identifier can
 be correlated between the textual and data connections.
 
 - **Type:** Request
@@ -1613,7 +1419,7 @@ be correlated between the textual and data connections.
 #### Parameters
 
 ```typescript
-{
+interface SessionInitProtocolConnectionParameters {
   clientId: UUID;
 }
 ```
@@ -1621,22 +1427,22 @@ be correlated between the textual and data connections.
 #### Result
 
 ```typescript
-{
-  contentRoots: [ContentRoot];
+interface SessionInitProtocolConnectionResult {
+  contentRoots: ContentRoot[];
 }
 ```
 
 #### Errors
 
-- [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror) to signal
-  that session is already initialised.
+- [`SessionAlreadyInitialisedError`](#sessionalreadyinitializederror) to signal
+  that the session is already initialized.
 - [`ResourcesInitializationError`](#resourcesinitializationerror) to signal
   about the error during the initialization of Language Server resources.
 
 ### `session/initBinaryConnection`
 
-This message initialises the data connection used for transferring binary data
-between engine and clients. This initialisation is important such that the
+This message initializes the data connection used for transferring binary data
+between engine and clients. This initialization is important such that the
 client identifier can be correlated between the data and textual connections.
 
 - **Type:** Request
@@ -1646,15 +1452,13 @@ client identifier can be correlated between the data and textual connections.
 
 #### Parameters
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
-//A command initializing a data session.
+// A command initializing a data session.
 table InitSessionCommand {
-
-  //A unique identifier of a client initializing the session.
+  // A unique identifier of a client initializing the session.
   identifier: EnsoUUID (required);
-
 }
 
 root_type InitSessionCommand;
@@ -1662,16 +1466,16 @@ root_type InitSessionCommand;
 
 #### Result
 
-```
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
-//Indicates an operation has succeeded.
+// Indicates an operation has succeeded.
 table Success {}
 ```
 
 #### Errors
 
-N/A
+None
 
 ## Capability Management
 
@@ -1692,8 +1496,8 @@ client.
 #### Parameters
 
 ```typescript
-{
-  method: String;
+interface CapabilityAcquireParameters {
+  method: string;
   registerOptions?: any;
 }
 ```
@@ -1704,7 +1508,7 @@ in the section on [capabilities](#capabilities) below.
 #### Result
 
 ```typescript
-null;
+type CapabilityAcquireResult = null;
 ```
 
 #### Errors
@@ -1724,7 +1528,7 @@ capability.
 #### Parameters
 
 ```typescript
-{
+interface CapabilityReleaseParameters {
   registration: CapabilityRegistration;
 }
 ```
@@ -1732,7 +1536,7 @@ capability.
 #### Result
 
 ```typescript
-null;
+type CapabilityReleaseResult = null;
 ```
 
 #### Errors
@@ -1749,17 +1553,13 @@ action on its part.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
+interface CapabilityGrantedNotification {
   registration: CapabilityRegistration;
 }
 ```
-
-#### Errors
-
-TBC
 
 ### `capability/forceReleased`
 
@@ -1771,10 +1571,10 @@ capability set.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
+interface CapabilityForceReleasedNotification {
   registration: CapabilityRegistration;
 }
 ```
@@ -1915,7 +1715,7 @@ must fail.
 #### Parameters
 
 ```typescript
-{
+interface FileWriteParameters {
   path: Path;
   contents: FileContents<T>;
 }
@@ -1924,7 +1724,7 @@ must fail.
 #### Result
 
 ```typescript
-null;
+type FileWriteResult = null;
 ```
 
 #### Errors
@@ -1952,7 +1752,7 @@ return the contents from the in-memory buffer rather than the file on disk.
 #### Parameters
 
 ```typescript
-{
+interface FileReadParameters {
   path: Path;
 }
 ```
@@ -1960,7 +1760,7 @@ return the contents from the in-memory buffer rather than the file on disk.
 #### Result
 
 ```typescript
-{
+interface FileReadResult {
   contents: FileContents<T>;
 }
 ```
@@ -1991,28 +1791,25 @@ must fail.
 
 #### Parameters
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
-//A command writing binary contents to a file.
+// A command writing binary contents to a file.
 table WriteFileCommand {
-
-  //A path to a file.
+  // A path to a file.
   path: Path;
-
-  //Binary contents.
+  // Binary contents.
   contents: [ubyte];
-
 }
 
 ```
 
 #### Result
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
-//Indicates an operation has succeeded.
+// Indicates an operation has succeeded.
 table Success {}
 ```
 
@@ -2040,29 +1837,25 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 #### Parameters
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
-//A command reading binary contents from a file.
+// A command reading binary contents from a file.
 table ReadFileCommand {
-
-  //A path to a file.
+  // A path to a file.
   path: Path;
-
 }
 ```
 
 #### Result
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
-//A reply for a ReadFileCommand.
+// A reply for a ReadFileCommand.
 table FileContentsReply {
-
-  //Binary contents.
+  // Binary contents.
   contents: [ubyte];
-
 }
 ```
 
@@ -2101,32 +1894,29 @@ This method will create a file if no file is present at `path`.
 
 #### Parameters
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table WriteBytesCommand {
   // The file to write to.
-  path : Path (required);
-
+  path: Path (required);
   // The byte offset in the file to write from.
-  byteOffset : ulong;
-
+  byteOffset: ulong;
   // Whether existing content should be overwritten.
-  overwriteExisting : bool;
-
+  overwriteExisting: bool;
   // The file contents.
-  bytes : [ubyte] (required);
+  bytes: [ubyte] (required);
 }
 ```
 
 #### Result
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table WriteBytesReply {
   // The checksum of the written bytes.
-  checksum : EnsoDigest (required);
+  checksum: EnsoDigest (required);
 }
 ```
 
@@ -2158,26 +1948,25 @@ guarantee that the response will contain `segment.length` bytes (e.g. if
 
 #### Parameters
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table ReadBytesCommand {
   // The segment in a file to read bytes from.
-  segment : FileSegment (required);
+  segment: FileSegment (required);
 }
 ```
 
 #### Result
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table ReadBytesReply {
   // The checksum of the bytes in this response.
-  checksum : EnsoDigest (required);
-
+  checksum: EnsoDigest (required);
   // The requested file contents.
-  bytes : [ubyte] (required);
+  bytes: [ubyte] (required);
 }
 ```
 
@@ -2206,15 +1995,15 @@ This will fail if the specified object already exists.
 #### Parameters
 
 ```typescript
-{
+interface FileCreateParameters {
   object: FileSystemObject;
 }
 ```
 
-#### Response
+#### Result
 
 ```typescript
-null;
+type FileCreateResult = null;
 ```
 
 #### Errors
@@ -2238,15 +2027,15 @@ This request asks the file manager to delete the specified file system object.
 #### Parameters
 
 ```typescript
-{
+interface FileCreateParameters {
   path: Path;
 }
 ```
 
 #### Result
 
-```
-null
+```typescript
+type FileDeleteResult = null;
 ```
 
 #### Errors
@@ -2271,7 +2060,7 @@ another location.
 #### Parameters
 
 ```typescript
-{
+interface FileCopyParameters {
   from: Path;
   to: Path;
 }
@@ -2280,7 +2069,7 @@ another location.
 #### Result
 
 ```typescript
-null;
+type FileCopyResult = null;
 ```
 
 #### Errors
@@ -2307,7 +2096,7 @@ inform the client that the currently edited file has been moved.
 #### Parameters
 
 ```typescript
-{
+interface FileMoveParameters {
   from: Path;
   to: Path;
 }
@@ -2316,7 +2105,7 @@ inform the client that the currently edited file has been moved.
 #### Result
 
 ```typescript
-null;
+type FileMoveResult = null;
 ```
 
 #### Errors
@@ -2341,7 +2130,7 @@ at the specified path.
 #### Parameters
 
 ```typescript
-{
+interface FileExistsParameters {
   path: Path;
 }
 ```
@@ -2349,8 +2138,8 @@ at the specified path.
 #### Result
 
 ```typescript
-{
-  exists: Boolean;
+interface FileExistsResult {
+  exists: boolean;
 }
 ```
 
@@ -2372,16 +2161,16 @@ directory tree starting at a given path.
 #### Parameters
 
 ```typescript
-{
+interface FileTreeParameters {
   path: Path;
-  depth?: Number;
+  depth?: number;
 }
 ```
 
 #### Result
 
 ```typescript
-{
+interface FileTreeResult {
   tree: DirectoryTree;
 }
 ```
@@ -2409,7 +2198,7 @@ directory.
 #### Parameters
 
 ```typescript
-{
+interface FileListParameters {
   path: Path;
 }
 ```
@@ -2417,8 +2206,8 @@ directory.
 #### Result
 
 ```typescript
-{
-  paths: [FileSystemObject];
+interface FileListResult {
+  paths: FileSystemObject[];
 }
 ```
 
@@ -2444,7 +2233,7 @@ This request should work for all kinds of filesystem object.
 #### Parameters
 
 ```typescript
-{
+interface FileInfoParameters {
   path: Path;
 }
 ```
@@ -2452,7 +2241,7 @@ This request should work for all kinds of filesystem object.
 #### Result
 
 ```typescript
-{
+interface FileInfoResult {
   attributes: FileAttributes;
 }
 ```
@@ -2479,7 +2268,7 @@ It calculates the checksum of the entire file.
 
 ```typescript
 interface ChecksumRequest {
-  // The path to the file to get the checksum for.
+  /** The path to the file to get the checksum for. */
   path: Path;
 }
 ```
@@ -2488,8 +2277,8 @@ interface ChecksumRequest {
 
 ```typescript
 interface ChecksumResponse {
-  // The checksum of the file at `path`.
-  checksum : SHA3-224;
+  /** The checksum of the file at `path`. */
+  checksum: SHA3_224;
 }
 ```
 
@@ -2510,7 +2299,7 @@ range.
 
 #### Parameters
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table ChecksumBytesCommand {
@@ -2521,7 +2310,7 @@ table ChecksumBytesCommand {
 
 #### Result
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table ChecksumBytesReply {
@@ -2552,18 +2341,14 @@ stays in synchronisation with reality.
 Events should be sent from server to client for every event observed under one
 of the (possibly multiple) content roots.
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
+interface FileEventNotification {
   path: Path;
   kind: FileEventKind;
 }
 ```
-
-#### Errors
-
-None
 
 ### `file/rootAdded`
 
@@ -2582,17 +2367,13 @@ ensures that no content root is missed.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
+interface FileRootAddedNotification {
   root: ContentRoot;
 }
 ```
-
-#### Errors
-
-TBC
 
 ### `file/rootRemoved`
 
@@ -2607,14 +2388,11 @@ removal of the content root in order to inform them of the removal of the root.
 #### Parameters
 
 ```typescript
-{
-  id: UUID; // The content root ID
+interface FileRootRemovedNotification {
+  /** The ID of the content root. */
+  id: UUID;
 }
 ```
-
-#### Errors
-
-TBC
 
 ## Version Control System Operations
 
@@ -2635,7 +2413,7 @@ location. If VCS has already been initialized once, the operation will fail.
 #### Parameters
 
 ```typescript
-{
+interface VCSInitParameters {
   root: Path;
 }
 ```
@@ -2643,7 +2421,7 @@ location. If VCS has already been initialized once, the operation will fail.
 #### Result
 
 ```typescript
-null;
+type VCSInitResult = null;
 ```
 
 #### Errors
@@ -2672,18 +2450,18 @@ request has an optional `name` parameter that will prefix the timestamp.
 #### Parameters
 
 ```typescript
-{
+interface VCSSaveParameters {
   root: Path;
-  name?: String;
+  name?: string;
 }
 ```
 
 #### Result
 
 ```typescript
-{
-  commitId: String;
-  message: String;
+interface VCSSaveResult {
+  commitId: string;
+  message: string;
 }
 ```
 
@@ -2716,7 +2494,7 @@ project includes:
 #### Parameters
 
 ```typescript
-{
+interface VCSStatusParameters {
   root: Path;
 }
 ```
@@ -2724,13 +2502,13 @@ project includes:
 #### Result
 
 ```typescript
-{
-  dirty: Boolean;
-  changed: [Path];
+interface VCSStatusResult {
+  dirty: boolean;
+  changed: Path[];
   lastSave: {
-    commitId: String;
-    message: String;
-  }
+    commitId: string;
+    message: string;
+  };
 }
 ```
 
@@ -2774,9 +2552,17 @@ the operation.
 #### Parameters
 
 ```typescript
-{
+interface VCSRestoreParameters {
   root: Path;
-  commitId?: String
+  commitId?: string;
+}
+```
+
+#### Result
+
+```typescript
+interface VCSRestoreResult {
+  changed: Path[];
 }
 ```
 
@@ -2789,14 +2575,6 @@ the operation.
   Enso's version control
 - [`SaveNotFound`](#savenotfounderror) to signat that the requested save could
   not be identified in the project's version control
-
-#### Result
-
-```typescript
-{
-  changed: [Path];
-}
-```
 
 ### `vcs/list`
 
@@ -2815,22 +2593,22 @@ Enso's version control system, the operation must fail.
 #### Parameters
 
 ```typescript
-{
+interface VCSListParameters {
   root: Path;
-  limit?: Number
+  limit?: number;
 }
 ```
 
 #### Result
 
 ```typescript
-{
+interface VCSListResult {
   saves: [
     {
-      commitId: String;
-      message: String;
-    }
-  ]
+      commitId: string;
+      message: string;
+    },
+  ];
 }
 ```
 
@@ -2862,7 +2640,7 @@ client that sent the `text/openFile` message.
 #### Parameters
 
 ```typescript
-{
+interface TextOpenFileParameters {
   path: Path;
 }
 ```
@@ -2870,10 +2648,10 @@ client that sent the `text/openFile` message.
 #### Result
 
 ```typescript
-{
+interface TextOpenFileResult {
   writeCapability?: CapabilityRegistration;
-  content: String;
-  currentVersion: SHA3-224;
+  content: string;
+  currentVersion: SHA3_224;
 }
 ```
 
@@ -2908,7 +2686,7 @@ require the file to exist.
 #### Parameters
 
 ```typescript
-{
+interface TextOpenBufferParameters {
   path: Path;
 }
 ```
@@ -2916,10 +2694,10 @@ require the file to exist.
 #### Result
 
 ```typescript
-{
+interface TextOpenBufferResult {
   writeCapability?: CapabilityRegistration;
-  content: String;
-  currentVersion: SHA3-224;
+  content: string;
+  currentVersion: SHA3_224;
 }
 ```
 
@@ -2946,7 +2724,7 @@ Any pending changes to files will be saved before closing the file.
 #### Parameters
 
 ```typescript
-{
+interface TextCloseFileParameters {
   path: Path;
 }
 ```
@@ -2954,7 +2732,7 @@ Any pending changes to files will be saved before closing the file.
 #### Result
 
 ```typescript
-null;
+type TextOpenFileResult = null;
 ```
 
 #### Errors
@@ -2979,7 +2757,7 @@ obsolete.
 #### Parameters
 
 ```typescript
-{
+interface TextSaveParameters {
   path: Path;
   currentVersion: SHA3 - 224;
 }
@@ -2988,7 +2766,7 @@ obsolete.
 #### Result
 
 ```typescript
-null;
+type TextSaveResult = null;
 ```
 
 #### Errors
@@ -3023,13 +2801,12 @@ that some edits are applied and others are not.
 #### Parameters
 
 ```typescript
-{
+interface TextApplyEditParameters {
   /** The file edit. */
   edit: FileEdit;
-
-  /** The flag indicating whether we should re-execute the program after
-    * applying the edit. Default value is `true`, to re-execute the program.
-    */
+  /** A flag indicating whether we should re-execute the program after applying
+   * the edit. Default value is `true`, indicating the program should be
+   * re-executed. */
   execute?: boolean;
 }
 ```
@@ -3037,7 +2814,7 @@ that some edits are applied and others are not.
 #### Result
 
 ```typescript
-null;
+type TextApplyEditResult = null;
 ```
 
 #### Errors
@@ -3071,28 +2848,24 @@ edit the resources for which edits are sent.
 #### Parameters
 
 ```typescript
-interface TextApplyExpressionValue {
+interface TextApplyExpressionValueParameters {
   /** The expression id to update. */
   expressionId: ExpressionId;
-
-  /** The path to a file. */
+  /** The path to the file. */
   path: Path;
-
   /** The file edit containing the new expression value. */
   edit: TextEdit;
-
-  /** The current version of a buffer. */
-  oldVersion: SHA3-224;
-
-  /** The version of a buffer after applying the edit. */
-  newVersion: SHA3-224;
+  /** The current version of the buffer. */
+  oldVersion: SHA3_224;
+  /** The version of the buffer after applying the edit. */
+  newVersion: SHA3_224;
 }
 ```
 
 #### Result
 
 ```typescript
-null;
+type TextApplyExpressionValueResult = null;
 ```
 
 #### Errors
@@ -3118,18 +2891,12 @@ changes made to files that they have open.
 
 This notification must _only_ be sent for files that the client has open.
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
-  edits: [FileEdit];
+interface TextDidChangeNotification {
+  edits: FileEdit[];
 }
-```
-
-#### Errors
-
-```typescript
-null;
 ```
 
 ### `text/autoSave`
@@ -3144,18 +2911,12 @@ successful auto-save action.
 
 This notification must _only_ be sent for files that the client has open.
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
+interface TextAutoSaveNotification {
   path: Path;
 }
-```
-
-#### Errors
-
-```typescript
-null;
 ```
 
 ### `text/fileModifiedOnDisk`
@@ -3168,18 +2929,12 @@ the file was modified on disk by an external editor.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
+interface TextFileModifiedOnDiskNotification {
   path: Path;
 }
-```
-
-#### Errors
-
-```typescript
-null;
 ```
 
 ## Workspace Operations
@@ -3200,22 +2955,19 @@ project in situations where it does not have a project manager to connect to.
 #### Parameters
 
 ```typescript
-{
-}
+interface WorkspaceProjectInfoParameters {}
 ```
 
 #### Result
 
 ```typescript
-{
-  // The name of the project.
-  projectName: String;
-
-  // The engine version on which the project is running.
-  engineVersion: String;
-
-  // The version of graal on which the project is running.
-  graalVersion: String;
+interface WorkspaceProjectInfoResult {
+  /** The name of the project. */
+  projectName: string;
+  /** The engine version on which the project is running. */
+  engineVersion: string;
+  /** The version of graal on which the project is running. */
+  graalVersion: string;
 }
 ```
 
@@ -3243,13 +2995,13 @@ health of the Language Server.
 #### Parameters
 
 ```typescript
-null;
+interface HeartbeatPingParameters {}
 ```
 
 #### Result
 
 ```typescript
-null;
+type HeartbeatPingResult = null;
 ```
 
 #### Errors
@@ -3270,13 +3022,13 @@ module has been fully initialized.
 #### Parameters
 
 ```typescript
-null;
+interface HeartbeatInitParameters {}
 ```
 
 #### Result
 
 ```typescript
-null;
+type HeartbeatInitResult = null;
 ```
 
 #### Errors
@@ -3301,17 +3053,17 @@ name in an interpreter runtime.
 #### Parameters
 
 ```typescript
-{
-  namespace: String;
-  oldName: String;
-  newName: String;
+interface RefactoringRenameProjectParameters {
+  namespace: string;
+  oldName: string;
+  newName: string;
 }
 ```
 
 #### Result
 
 ```typescript
-null;
+type RefactoringRenameProjectResult = null;
 ```
 
 #### Errors
@@ -3335,7 +3087,7 @@ Refactorins supports only limited cases listed below.
 
 ##### Local definition
 
-```text
+```rust
 main =
     operator1 = 42
     ^^^^^^^^^
@@ -3346,7 +3098,7 @@ assignment.
 
 ##### Module method
 
-```text
+```rust
 function1 x = x
 ^^^^^^^^^
 
@@ -3359,12 +3111,12 @@ Expression id in the request should point to the symbol defining the function.
 Current limitations of the method renaming are:
 
 - Methods defined on types are not supported, i.e.
-  ```text
+  ```rust
   Main.function1 x = x
   ```
 - Method calls where the self type is not specified will not be renamed, i.e.
 
-  ```text
+  ```rust
   function1 x = x
 
   main =
@@ -3374,22 +3126,14 @@ Current limitations of the method renaming are:
 #### Parameters
 
 ```typescript
-{
-  /**
-   * The qualified module name.
-   */
+interface RefactoringRenameSymbolParameters {
+  /** The qualified module name. */
   module: string;
-
-  /**
-   * The symbol to rename.
-   */
+  /** The symbol to rename. */
   expressionId: ExpressionId;
-
-  /**
-   * The new name of the symbol. If the provided name is not a valid Enso
+  /** The new name of the symbol. If the provided name is not a valid Enso
    * identifier (contains unsupported symbols, spaces, etc.), it will be normalized.
-   * The final name will be returned in the response.
-   */
+   * The final name will be returned in the response. */
   newName: string;
 }
 ```
@@ -3397,7 +3141,7 @@ Current limitations of the method renaming are:
 #### Result
 
 ```typescript
-{
+interface RefactoringRenameSymbolResult {
   newName: string;
 }
 ```
@@ -3423,30 +3167,18 @@ the new project name.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
-  /**
-   * Old normalized name of the project.
-   */
+interface RefactoringProjectRenamedNotification {
+  /** Old normalized name of the project. */
   oldNormalizedName: string;
-
-  /**
-   * New normalized name of the prject.
-   */
+  /** New normalized name of the prject. */
   newNormalizedName: string;
-
-  /**
-   * New display name of the project.
-   */
+  /** New display name of the project. */
   newName: string;
 }
 ```
-
-#### Errors
-
-None
 
 ## Execution Management Operations
 
@@ -3672,15 +3404,15 @@ exists.
 #### Parameters
 
 ```typescript
-{
-  contextId?: ContextId
+interface ExecutionContextCreateParameters {
+  contextId?: ContextId;
 }
 ```
 
 #### Result
 
 ```typescript
-{
+interface ExecutionContextCreateResult {
   contextId: ContextId;
   canModify: CapabilityRegistration;
   receivesUpdates: CapabilityRegistration;
@@ -3704,7 +3436,7 @@ resources.
 #### Parameters
 
 ```typescript
-{
+interface ExecutionContextDestroyParameters {
   contextId: ContextId;
 }
 ```
@@ -3712,7 +3444,7 @@ resources.
 #### Result
 
 ```typescript
-null;
+type ExecutionContextDestroyResult = null;
 ```
 
 #### Errors
@@ -3737,7 +3469,7 @@ and [`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
 #### Parameters
 
 ```typescript
-{
+interface ExecutionContextForkParameters {
   contextId: ContextId;
 }
 ```
@@ -3745,7 +3477,7 @@ and [`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
 #### Result
 
 ```typescript
-{
+interface ExecutionContextForkResult {
   contextId: ContextId;
   canModify: CapabilityRegistration;
   receivesUpdates: CapabilityRegistration;
@@ -3771,7 +3503,7 @@ executing. If the function reappears, execution should resume as normal.
 #### Parameters
 
 ```typescript
-{
+interface ExecutionContextPushParameters {
   contextId: ContextId;
   stackItem: StackItem;
 }
@@ -3780,7 +3512,7 @@ executing. If the function reappears, execution should resume as normal.
 #### Result
 
 ```typescript
-null;
+type ExecutionContextPushResult = null;
 ```
 
 #### Errors
@@ -3805,7 +3537,7 @@ corresponding to the client clicking out of the current breadcrumb.
 #### Parameters
 
 ```typescript
-{
+interface ExecutionContextPopParameters {
   contextId: ContextId;
 }
 ```
@@ -3813,7 +3545,7 @@ corresponding to the client clicking out of the current breadcrumb.
 #### Result
 
 ```typescript
-null;
+type ExecutionContextPopResult = null;
 ```
 
 #### Errors
@@ -3836,22 +3568,20 @@ May include a list of expressions for which caches should be invalidated.
 #### Parameters
 
 ```typescript
-{
+interface ExecutionContextRecomputeParameters {
   /** The execution context identifier. */
   contextId: ContextId;
-
   /** The expressions that will be invalidated before the execution. */
-  invalidatedExpressions?: "all" | [ExpressionId]
-
+  invalidatedExpressions?: "all" | ExpressionId[];
   /** The execution environment that will be used in the execution. */
-  executionEnvironment?: ExecutionEnvironment
+  executionEnvironment?: ExecutionEnvironment;
 }
 ```
 
 #### Result
 
 ```typescript
-null;
+type ExecutionContextRecomputeResult = null;
 ```
 
 #### Errors
@@ -3874,7 +3604,7 @@ provided execution context.
 #### Parameters
 
 ```typescript
-{
+interface ExecutionContextInterruptParameters {
   contextId: ContextId;
 }
 ```
@@ -3882,7 +3612,7 @@ provided execution context.
 #### Result
 
 ```typescript
-null;
+type ExecutionContextInterruptResult = null;
 ```
 
 #### Errors
@@ -3904,7 +3634,7 @@ clears the caches, and schedules execution of the context.
 #### Parameters
 
 ```typescript
-{
+interface ExecutionContextSetExecutionEnvironmentParameters {
   contextId: ContextId;
   executionEnvironment: ExecutionEnvironment;
 }
@@ -3913,7 +3643,7 @@ clears the caches, and schedules execution of the context.
 #### Result
 
 ```typescript
-null;
+type ExecutionContextSetExecutionEnvironmentResult = null;
 ```
 
 #### Errors
@@ -3929,7 +3659,7 @@ in runtime.
 #### Deprecated
 
 The request is deprecated in favor of
-[`runtime/getComponentGroups`](#runtime-getcomponentgroups).
+[`runtime/getComponentGroups`](#runtimegetcomponentgroups).
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -3939,7 +3669,7 @@ The request is deprecated in favor of
 #### Parameters
 
 ```typescript
-{
+interface ExecutionContextGetComponentGroupsParameters {
   contextId: ContextId;
 }
 ```
@@ -3947,7 +3677,7 @@ The request is deprecated in favor of
 #### Result
 
 ```typescript
-{
+interface ExecutionContextGetComponentGroupsResult {
   componentGroups: LibraryComponentGroup[];
 }
 ```
@@ -3969,18 +3699,14 @@ in future versions.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
+interface ExecutionContextExpressionUpdatesNotification {
   contextId: ContextId;
-  updates: [ExpressionUpdate];
+  updates: ExpressionUpdate[];
 }
 ```
-
-#### Errors
-
-None
 
 ### `executionContext/executionFailed`
 
@@ -4005,25 +3731,16 @@ respectively.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
-  /**
-   * The identifier of the execution context.
-   */
+interface ExecutionContextExecutionFailedNotification {
+  /** The identifier of the execution context. */
   contextId: ContextId;
-
-  /**
-   * The details of the failed execution.
-   */
+  /** The details of the failed execution. */
   result: ExecutionResult;
 }
 ```
-
-#### Errors
-
-None
 
 ### `executionContext/executionComplete`
 
@@ -4040,18 +3757,14 @@ respectively.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
+interface ExecutionContextExecutionFailedNotification {
   /** The identifier of the execution context. */
   contextId: ContextId;
 }
 ```
-
-#### Errors
-
-None
 
 ### `executionContext/executionStatus`
 
@@ -4062,25 +3775,16 @@ Sent from the server to the client to inform about a status of execution.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
-  /**
-   * The identifier of the execution context.
-   */
+interface ExecutionContextExecutionStatusNotification {
+  /** The identifier of the execution context. */
   contextId: ContextId;
-
-  /**
-   * The list of encountered problems.
-   */
+  /** The list of encountered problems. */
   diagnostics: Diagnostic[];
 }
 ```
-
-#### Errors
-
-None
 
 ### `executionContext/executeExpression`
 
@@ -4098,7 +3802,7 @@ executed only once.
 #### Parameters
 
 ```typescript
-interface ExecuteExpressionRequest {
+interface ExecutionContextExecuteExpressionParameters {
   visualizationId: UUID;
   expressionId: UUID;
   visualizationConfig: VisualizationConfiguration;
@@ -4108,7 +3812,7 @@ interface ExecuteExpressionRequest {
 #### Result
 
 ```typescript
-null;
+type ExecutionContextExecuteExpressionResult = null;
 ```
 
 #### Errors
@@ -4136,7 +3840,7 @@ preprocessed by some arbitrary Enso code, to a given node in the program.
 #### Parameters
 
 ```typescript
-interface AttachVisualizationRequest {
+interface ExecutionContextAttachVisualizationParameters {
   visualizationId: UUID;
   expressionId: UUID;
   visualizationConfig: VisualizationConfiguration;
@@ -4146,7 +3850,7 @@ interface AttachVisualizationRequest {
 #### Result
 
 ```typescript
-null;
+type ExecutionContextAttachVisualizationResult = null;
 ```
 
 #### Errors
@@ -4173,7 +3877,7 @@ This message allows a client to detach a visualization from the executing code.
 #### Parameters
 
 ```typescript
-interface DetachVisualizationRequest {
+interface ExecutionContextDetachVisualizationParameters {
   executionContextId: UUID;
   visualizationId: UUID;
   expressionId: UUID;
@@ -4183,7 +3887,7 @@ interface DetachVisualizationRequest {
 #### Result
 
 ```typescript
-null;
+type ExecutionContextDetachVisualizationResult = null;
 ```
 
 #### Errors
@@ -4211,7 +3915,7 @@ applied. In case of an error response, the visualization state does not change.
 #### Parameters
 
 ```typescript
-interface ModifyVisualizationRequest {
+interface ExecutionContextModifyVisualizationParameters {
   visualizationId: UUID;
   visualizationConfig: VisualizationConfiguration;
 }
@@ -4220,7 +3924,7 @@ interface ModifyVisualizationRequest {
 #### Result
 
 ```typescript
-null;
+type ExecutionContextModifyVisualizationResult = null;
 ```
 
 #### Errors
@@ -4253,32 +3957,25 @@ transport is concerned, it is just a binary blob.
 
 #### Parameters
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
-//A visualization context identifying a concrete visualization.
+// A visualization context identifying a concrete visualization.
 table VisualizationContext {
-
-  //A visualization identifier.
+  // A visualization identifier.
   visualizationId: EnsoUUID (required);
-
-  //A context identifier.
+  // A context identifier.
   contextId: EnsoUUID (required);
-
-  //An expression identifier.
+  // An expression identifier.
   expressionId: EnsoUUID (required);
-
 }
 
-//An event signaling visualization update.
+// An event signaling visualization update.
 table VisualizationUpdate {
-
-  //A visualization context identifying a concrete visualization.
+  // A visualization context identifying a concrete visualization.
   visualizationContext: VisualizationContext (required);
-
-  //A visualization data.
+  // A visualization data.
   data: [ubyte] (required);
-
 }
 
 root_type VisualizationUpdate;
@@ -4286,7 +3983,7 @@ root_type VisualizationUpdate;
 
 #### Errors
 
-N/A
+None
 
 ### `executionContext/visualizationEvaluationFailed`
 
@@ -4298,40 +3995,22 @@ has failed.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-interface VisualizationEvaluationFailed {
-  /**
-   * An execution context identifier.
-   */
+interface ExecutionContextVisualizationEvaluationFailedNotification {
+  /** An execution context identifier. */
   contextId: ContextId;
-
-  /**
-   * A visualization identifier.
-   */
+  /** A visualization identifier. */
   visualizationId: UUID;
-
-  /**
-   * An identifier of a visualised expression.
-   */
+  /** An identifier of a visualised expression. */
   expressionId: UUID;
-
-  /**
-   * An error message.
-   */
+  /** An error message. */
   message: string;
-
-  /**
-   * Detailed information about the error.
-   */
+  /** Detailed information about the error. */
   diagnostic?: Diagnostic;
 }
 ```
-
-#### Errors
-
-N/A
 
 ## Search Operations
 
@@ -4488,16 +4167,16 @@ notification.
 #### Parameters
 
 ```typescript
-null;
+interface SearchGetSuggestionsDatabaseParameters {}
 ```
 
 #### Result
 
 ```typescript
-{
-  // The list of suggestions database entries
-  entries: [SuggestionsDatabaseEntry];
-  // The version of received suggestions database
+interface SearchGetSuggestionsDatabaseResult {
+  /** The list of suggestions database entries. */
+  entries: SuggestionsDatabaseEntry[];
+  /** The version of the received suggestions database. */
   currentVersion: number;
 }
 ```
@@ -4522,13 +4201,13 @@ version.
 #### Parameters
 
 ```typescript
-null;
+interface SearchInvalidateSuggestionsDatabaseParameters {}
 ```
 
 #### Result
 
 ```typescript
-null;
+type SearchInvalidateSuggestionsDatabase = null;
 ```
 
 #### Errors
@@ -4549,14 +4228,14 @@ database.
 #### Parameters
 
 ```typescript
-null;
+interface SearchGetSuggestionsDatabaseVersionParameters {}
 ```
 
 #### Result
 
 ```typescript
-{
-  // The version of the suggestions database
+interface SearchGetSuggestionsDatabaseVersionResult {
+  /** The version of the suggestions database. */
   currentVersion: number;
 }
 ```
@@ -4578,18 +4257,14 @@ database.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
-  updates: [SuggestionsDatabaseUpdate];
+interface SearchSuggestionsDatabaseUpdateNotification {
+  updates: SuggestionsDatabaseUpdate[];
   currentVersion: number;
 }
 ```
-
-#### Errors
-
-None
 
 ### `search/suggestionsOrderDatabaseUpdate`
 
@@ -4601,17 +4276,13 @@ order database.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
-  updates: [SuggestionsOrderDatabaseUpdate];
+interface SearchSuggestionsOrderDatabaseUpdateNotification {
+  updates: SuggestionsOrderDatabaseUpdate[];
 }
 ```
-
-#### Errors
-
-None
 
 ### `search/completion`
 
@@ -4625,19 +4296,19 @@ Sent from client to the server to receive the autocomplete suggestion.
 #### Parameters
 
 ```typescript
-{
-  // The edited file
+interface SearchCompletionParameters {
+  /** The edited file. */
   file: Path;
-  // The cursor position
+  /** The cursor position. */
   position: Position;
-  // Filter by methods with the provided self type
+  /** Filter by methods with the provided self type. */
   selfType?: string;
-  // Filter by the return type
+  /** Filter by the return type. */
   returnType?: string;
-  // Filter by the suggestion types
-  tags?: [SuggestionEntryType];
-  // Filter by `static` attribute of method suggestions
-  isStatic?: Boolean;
+  /** Filter by the suggestion types. */
+  tags?: SuggestionEntryType[];
+  /** Filter by `static` attribute of method suggestions. */
+  isStatic?: boolean;
 }
 ```
 
@@ -4647,8 +4318,8 @@ The identifiers in `results` are guaranteed to be ordered by the specificity of
 the type match.
 
 ```typescript
-{
-  results: [SuggestionId];
+interface SearchCompletionResult {
+  results: SuggestionId[];
   currentVersion: number;
 }
 ```
@@ -4661,11 +4332,6 @@ the type match.
   root directory
 - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
   cannot be extracted from the provided file path parameter
-
-#### Errors
-
-- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
-  suggestions database
 - [`SuggestionNotFoundError`](#suggestionnotfounderror) the requested suggestion
   was not found in the suggestions database
 
@@ -4690,18 +4356,18 @@ client about new output data by emitting `io/standardOutputAppended` messages.
 #### Parameters
 
 ```typescript
-null;
+interface IORedirectStandardOutputParameters {}
 ```
 
 #### Result
 
 ```typescript
-null;
+type IORedirectStandardOutput = null;
 ```
 
 #### Errors
 
-N/A
+None
 
 ### `io/suppressStandardOutput`
 
@@ -4715,18 +4381,18 @@ This message allows a client to suppress the redirection of the standard output.
 #### Parameters
 
 ```typescript
-null;
+interface IOSuppressStandardOutputParameters {}
 ```
 
 #### Result
 
 ```typescript
-null;
+type IOSuppressStandardOutputResult = null;
 ```
 
 #### Errors
 
-N/A
+None
 
 ### `io/standardOutputAppended`
 
@@ -4738,11 +4404,11 @@ for the standard output.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
-  output: String;
+interface IOStandardOutputAppendedNotification {
+  output: string;
 }
 ```
 
@@ -4760,18 +4426,18 @@ client about new output data by emitting `io/standardErrorAppended` messages.
 #### Parameters
 
 ```typescript
-null;
+interface IORedirectStandardErrorParameters {}
 ```
 
 #### Result
 
 ```typescript
-null;
+type IORedirectStandardError = null;
 ```
 
 #### Errors
 
-N/A
+None
 
 ### `io/suppressStandardError`
 
@@ -4785,18 +4451,18 @@ This message allows a client to suppress the redirection of the standard error.
 #### Parameters
 
 ```typescript
-null;
+interface IOSuppressStandardErrorParameters {}
 ```
 
 #### Result
 
 ```typescript
-null;
+type IOSuppressStandardErrorResult = null;
 ```
 
 #### Errors
 
-N/A
+None
 
 ### `io/standardErrorAppended`
 
@@ -4808,11 +4474,11 @@ for the standard error.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-{
-  output: String;
+interface IOStandardErrorAppendedNotification {
+  output: string;
 }
 ```
 
@@ -4828,21 +4494,21 @@ This message allows a client to feed the standard input of Enso programs.
 #### Parameters
 
 ```typescript
-{
-  input: String;
-  isLineTerminated: Boolean;
+interface IOFeedStandardInputParameters {
+  input: string;
+  isLineTerminated: boolean;
 }
 ```
 
 #### Result
 
 ```typescript
-null;
+type IOFeedStandardInputResult = null;
 ```
 
 #### Errors
 
-N/A
+None
 
 ### `io/waitingForStandardInput`
 
@@ -4855,10 +4521,10 @@ standard input.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-#### Parameters
+#### Notification
 
 ```typescript
-null;
+type IOWaitingForStandardInputNotification = null;
 ```
 
 ## Library-Related Operations
@@ -4883,16 +4549,16 @@ the repositories and include them in the result as well.
 #### Parameters
 
 ```typescript
-{
-  update: Boolean;
+interface EditionsListAvailableParameters {
+  update: boolean;
 }
 ```
 
 #### Result
 
 ```typescript
-{
-  editionNames: [String];
+interface EditionsListAvailableResult {
+  editionNames: string[];
 }
 ```
 
@@ -4906,7 +4572,7 @@ Resolves settings implied by the edition.
 #### Parameters
 
 ```typescript
-{
+interface EditionsResolveParameters {
   edition: EditionReference;
 }
 ```
@@ -4914,8 +4580,8 @@ Resolves settings implied by the edition.
 #### Result
 
 ```typescript
-{
-  engineVersion: String;
+interface EditionsResolveResult {
+  engineVersion: string;
 }
 ```
 
@@ -4938,15 +4604,15 @@ will be extended.
 #### Parameters
 
 ```typescript
-null;
+interface EditionsGetProjectSettingsParameters {}
 ```
 
 #### Result
 
 ```typescript
-{
-    parentEdition?: String;
-    preferLocalLibraries: Boolean;
+interface EditionsGetProjectSettingsResult {
+  parentEdition?: string;
+  preferLocalLibraries: boolean;
 }
 ```
 
@@ -4972,16 +4638,16 @@ always set to `true`.
 #### Parameters
 
 ```typescript
-{
-  newEditionName: String;
+interface EditionsSetProjectParentEditionParameters {
+  newEditionName: string;
 }
 ```
 
 #### Result
 
 ```typescript
-{
-    needsRestart?: Boolean;
+interface EditionsSetProjectParentEditionResult {
+  needsRestart?: boolean;
 }
 ```
 
@@ -5011,16 +4677,16 @@ always set to `true`.
 #### Parameters
 
 ```typescript
-{
-  preferLocalLibraries: Boolean;
+interface EditionsSetProjectLocalLibrariesPreferenceParameters {
+  preferLocalLibraries: boolean;
 }
 ```
 
 #### Result
 
 ```typescript
-{
-    needsRestart?: Boolean;
+interface EditionsSetProjectLocalLibrariesPreferenceResult {
+  needsRestart?: boolean;
 }
 ```
 
@@ -5044,7 +4710,7 @@ To get local libraries that are not directly referenced in the edition, use
 #### Parameters
 
 ```typescript
-{
+interface EditionsListDefinedLibrariesParameters {
   edition: EditionReference;
 }
 ```
@@ -5052,8 +4718,8 @@ To get local libraries that are not directly referenced in the edition, use
 #### Result
 
 ```typescript
-{
-  availableLibraries: [LibraryEntry];
+interface EditionsListDefinedLibrariesResult {
+  availableLibraries: LibraryEntry[];
 }
 ```
 
@@ -5071,7 +4737,7 @@ Lists all the component groups defined in an edition.
 #### Parameters
 
 ```typescript
-{
+interface EditionsListDefinedComponentsParameters {
   edition: EditionReference;
 }
 ```
@@ -5079,7 +4745,7 @@ Lists all the component groups defined in an edition.
 #### Result
 
 ```typescript
-{
+interface EditionsListDefinedComponentsResult {
   availableComponents: LibraryComponentGroup[];
 }
 ```
@@ -5098,14 +4764,14 @@ Lists all local libraries available in the system.
 #### Parameters
 
 ```typescript
-null;
+interface LibraryListLocalParameters {}
 ```
 
 #### Result
 
 ```typescript
-{
-  localLibraries: [LibraryEntry];
+interface LibraryListLocalResult {
+  localLibraries: LibraryEntry[];
 }
 ```
 
@@ -5134,19 +4800,19 @@ added, the library will be loaded and its content root will be sent in a
 #### Parameters
 
 ```typescript
-{
-  namespace: String;
-  name: String;
-  authors: [Contact];
-  maintainers: [Contact];
-  license: String;
+interface LibraryCreateParameters {
+  namespace: string;
+  name: string;
+  authors: Contact[];
+  maintainers: Contact[];
+  license: string;
 }
 ```
 
 #### Result
 
 ```typescript
-null;
+type LibraryCreateResult = null;
 ```
 
 #### Errors
@@ -5173,9 +4839,9 @@ All returned fields are optional, as they may be missing.
 #### Parameters
 
 ```typescript
-{
-  namespace: String;
-  name: String;
+interface LibraryGetMetadataParameters {
+  namespace: string;
+  name: string;
   version: LibraryVersion;
 }
 ```
@@ -5183,9 +4849,9 @@ All returned fields are optional, as they may be missing.
 #### Results
 
 ```typescript
-{
-  description?: String;
-  tagLine?: String;
+interface LibraryGetMetadataResult {
+  description?: string;
+  tagLine?: string;
 }
 ```
 
@@ -5208,18 +4874,18 @@ will be removed from the metadata (if it was present before).
 #### Parameters
 
 ```typescript
-{
-  namespace: String;
-  name: String;
-  description?: String;
-  tagLine?: String;
+interface LibrarySetMetadataParameters {
+  namespace: string;
+  name: string;
+  description?: string;
+  tagLine?: string;
 }
 ```
 
 #### Results
 
 ```typescript
-null;
+type LibrarySetMetadataResult = null;
 ```
 
 #### Errors
@@ -5245,9 +4911,9 @@ All returned fields are optional, as they may be missing.
 #### Parameters
 
 ```typescript
-{
-  namespace: String;
-  name: String;
+interface LibraryGetPackageParameters {
+  namespace: string;
+  name: string;
   version: LibraryVersion;
 }
 ```
@@ -5255,8 +4921,8 @@ All returned fields are optional, as they may be missing.
 #### Results
 
 ```typescript
-{
-  license?: String;
+interface LibraryGetPackageResult {
+  license?: string;
   componentGroups?: LibraryComponentGroups;
 }
 ```
@@ -5291,20 +4957,19 @@ operation will still proceed, but that metadata will be missing.
 #### Parameters
 
 ```typescript
-{
-  namespace: String;
-  name: String;
-  authToken: String;
-  uploadUrl: String;
-
-  bumpVersionAfterPublish?: Boolean;
+interface LibraryPublishParameters {
+  namespace: string;
+  name: string;
+  authToken: string;
+  uploadUrl: string;
+  bumpVersionAfterPublish?: boolean;
 }
 ```
 
 #### Result
 
 ```typescript
-null;
+type LibraryPublishResult = null;
 ```
 
 #### Errors
@@ -5342,16 +5007,16 @@ installed.
 #### Parameters
 
 ```typescript
-{
-  namespace: String;
-  name: String;
+interface LibraryPreinstallParameters {
+  namespace: string;
+  name: string;
 }
 ```
 
 #### Result
 
 ```typescript
-null;
+type LibraryPreinstallResult = null;
 ```
 
 #### Errors
@@ -5391,13 +5056,13 @@ the response may be empty or not contain all available components.
 #### Parameters
 
 ```typescript
-null;
+interface RuntimeGetComponentGroupsParameters {}
 ```
 
 #### Result
 
 ```typescript
-{
+interface RuntimeGetComponentGroupsResult {
   componentGroups: LibraryComponentGroup[];
 }
 ```
@@ -5419,16 +5084,14 @@ field which can store additional error-specific payload.
 An error container for the binary connection that contains a code, message and
 payload.
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table Error {
   // A unique error code identifying error type.
   code: int;
-
   // An error message.
   message: string (required);
-
   // Additional payloads for the error.
   data : ErrorPayload;
 }
@@ -5462,7 +5125,7 @@ This error signals generic file system errors.
 ```typescript
 "error" : {
   "code" : 1000,
-  "message" : String
+  "message" : string
 }
 ```
 
@@ -5569,7 +5232,7 @@ Signals that the project configuration cannot be decoded.
 }
 ```
 
-```idl
+```csharp
 namespace org.enso.languageserver.protocol.binary;
 
 table ReadOutOfBoundsError {
@@ -5733,7 +5396,8 @@ Signals that requested capability is not acquired.
 
 ### `SessionNotInitialisedError`
 
-Signals that requested cannot be proccessed, beacuse session is not initialised.
+Signals that the request cannot be proccessed, because the session is not
+initialized.
 
 ```typescript
 "error" : {
@@ -5744,7 +5408,7 @@ Signals that requested cannot be proccessed, beacuse session is not initialised.
 
 ### `SessionAlreadyInitialisedError`
 
-Signals that session is already initialised.
+Signals that the session is already initialized.
 
 ```typescript
 "error" : {
@@ -5755,7 +5419,7 @@ Signals that session is already initialised.
 
 ### `ResourcesInitializationError`
 
-Signals about the failure in the Language Server initialization process.
+Signals about an error in the Language Server initialization process.
 
 ```typescript
 "error" : {
@@ -5777,7 +5441,7 @@ Signals about an error accessing the suggestions database.
 
 ### `ProjectNotFoundError`
 
-Signals that the project not found in the root directory.
+Signals that the project could not be found in the root directory.
 
 ```typescript
 "error" : {
@@ -5788,7 +5452,7 @@ Signals that the project not found in the root directory.
 
 ### `ModuleNameNotResolvedError`
 
-Signals that the module name can not be resolved for the given file.
+Signals that the module name could not be resolved for the given file.
 
 ```typescript
 "error" : {
@@ -5799,7 +5463,7 @@ Signals that the module name can not be resolved for the given file.
 
 ### `SuggestionNotFoundError`
 
-Signals that the requested suggestion was not found.
+Signals that the requested suggestion could not be found.
 
 ```typescript
 "error" : {

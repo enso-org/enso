@@ -125,8 +125,9 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             <VisualizationSelector
               v-if="isSelectorVisible"
               :types="config.types"
+              :modelValue="config.currentType"
               @hide="isSelectorVisible = false"
-              @update:type="
+              @update:modelValue="
                 (type) => {
                   isSelectorVisible = false
                   config.updateType(type)
@@ -145,12 +146,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 
 <style scoped>
 .VisualizationContainer {
+  color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
   min-width: 100%;
   width: min-content;
-  color: var(--color-text);
-  z-index: -1;
   border-radius: var(--radius-default);
 }
 
@@ -184,11 +184,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 .toolbars {
   transition-duration: 100ms;
   transition-property: padding-left;
-}
-
-.VisualizationContainer.fullscreen .toolbars,
-.VisualizationContainer:not(.circular-menu-visible) .toolbars {
-  padding-left: 4px;
 }
 
 .content {
