@@ -107,7 +107,7 @@ export class Input {
     code: string,
     editedAst?: Ast.Tree,
   ): {
-    accessorChain?: GeneralOprApp
+    accessOpr?: GeneralOprApp
   } {
     if (leafParent.done) return {}
     switch (leafParent.value.type) {
@@ -122,7 +122,7 @@ export class Input {
           opr.value.startInCodeBuffer > editedAst.whitespaceStartInCodeParsed
         )
           return {}
-        else return { accessorChain: generalized }
+        else return { accessOpr: generalized }
       }
       default:
         return {}
