@@ -191,6 +191,10 @@ impl<'s> Span<'s> {
         let end = start + self.code_length.utf16_len();
         start..end
     }
+
+    pub fn length_including_whitespace(&self) -> code::Length {
+        self.left_offset.code.length() + self.code_length
+    }
 }
 
 impl<'s> AsRef<Span<'s>> for Span<'s> {

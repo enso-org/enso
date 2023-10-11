@@ -214,12 +214,13 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         documented.expression = documented.expression.take().map(expression_to_statement);
         return tree;
     }
-    if let Tree { variant: box Variant::TypeAnnotated(annotated), span } = tree {
-        let colon = annotated.operator;
-        let type_ = annotated.type_;
-        let variable = annotated.expression;
-        let mut tree = Tree::type_signature(variable, colon, type_);
-        tree.span.left_offset += span.left_offset;
+    if let Tree { variant: box Variant::TypeAnnotated(annotated), .. } = tree {
+        let TypeAnnotated { expression, operator, type_ } = annotated;
+        tree.variant = Box::new(Variant::TypeSignature(TypeSignature {
+            variable: expression,
+            operator,
+            type_,
+        }));
         return tree;
     }
     let tree_ = &mut tree;

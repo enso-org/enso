@@ -135,19 +135,15 @@ impl<'s, T> Token<'s, T> {
     /// position, which does not include the [`left_offset`]. It means that `split_at(Bytes(0))`
     /// will split the token into left offset only and a left-trimmed token.
     #[inline(always)]
-    pub fn split_at(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>, T) {
+    pub fn split_at(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>) {
         let left_lexeme_offset = self.left_offset;
-        let right_lexeme_offset = self.code.position_after();
+        let right_lexeme_offset = Code::empty(
+            self.code.position_before().range_utf16().end
+                + code::Length::ascii(offset.unchecked_raw()).utf16_len(),
+        );
         let (left_code, right_code) = self.code.split_at(offset.unchecked_raw());
         let left = Token(left_lexeme_offset, left_code, ());
         let right = Token(right_lexeme_offset, right_code, ());
-        (left, right, self.variant)
-    }
-
-    /// A version of [`split_at`] that discards the associated variant.
-    #[inline(always)]
-    pub fn split_at_(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>) {
-        let (left, right, _) = self.split_at(offset);
         (left, right)
     }
 

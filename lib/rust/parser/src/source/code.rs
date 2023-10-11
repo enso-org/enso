@@ -231,6 +231,13 @@ impl Length {
     pub fn utf16_len(&self) -> u32 {
         self.utf16
     }
+
+    pub fn ascii(bytes: usize) -> Self {
+        Self {
+            utf8: bytes,
+            utf16: u32::try_from(bytes).unwrap(),
+        }
+    }
 }
 
 impl Add for Length {
