@@ -89,6 +89,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
+            case assetEventModule.AssetEventType.move:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:

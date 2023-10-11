@@ -53,6 +53,7 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element | null
     scrollContainerRef?: React.RefObject<HTMLDivElement>
     headerRowRef?: React.RefObject<HTMLTableRowElement>
+    footer?: React.ReactNode
     items: T[]
     filter?: ((item: T) => boolean) | null
     state?: State
@@ -94,6 +95,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
         rowComponent: RowComponent = TableRow,
         scrollContainerRef,
         headerRowRef,
+        footer,
         items,
         filter,
         getKey,
@@ -320,7 +322,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     return (
         <div
-            className="grow"
+            className="grow flex flex-col"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
@@ -338,6 +340,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     )}
                 </tbody>
             </table>
+            {footer}
         </div>
     )
 }

@@ -48,8 +48,9 @@ export default function AssetRow(props: AssetRowProps) {
         columns,
     } = props
     const { assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+    const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-    const { setModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { user } = authProvider.useNonPartialUserSession()
     const toastAndLog = hooks.useToastAndLog()
     const [item, setItem] = React.useState(rawItem)
@@ -67,6 +68,50 @@ export default function AssetRow(props: AssetRowProps) {
         // parent.
         rawItem.item = asset
     }, [asset, rawItem])
+
+    const doMove = React.useCallback(
+        async (
+            newParentKey: backendModule.AssetId | null,
+            newParentId: backendModule.DirectoryId | null
+        ) => {
+            // The asset is effectivly being deleted from the current position, and created at the new
+            // position, from the viewpoint of the asset list.
+            try {
+                dispatchAssetListEvent({
+                    type: assetListEventModule.AssetListEventType.move,
+                    newParentKey,
+                    newParentId,
+                    key: item.key,
+                    item: asset,
+                })
+                await backend.updateAsset(
+                    item.item.id,
+                    { parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization) },
+                    item.item.title
+                )
+            } catch {
+                // Move the asset back to its original position.
+                dispatchAssetListEvent({
+                    type: assetListEventModule.AssetListEventType.move,
+                    newParentKey: item.directoryKey,
+                    newParentId: item.directoryId,
+                    key: item.key,
+                    item: asset,
+                })
+            }
+        },
+        [
+            backend,
+            organization,
+            asset,
+            item.directoryId,
+            item.directoryKey,
+            item.key,
+            item.item.id,
+            item.item.title,
+            /* should never change */ dispatchAssetListEvent,
+        ]
+    )
 
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
@@ -155,11 +200,7 @@ export default function AssetRow(props: AssetRowProps) {
             }
             case assetEventModule.AssetEventType.move: {
                 if (event.ids.has(item.key)) {
-                    await backend.updateAsset(
-                        item.item.id,
-                        { parentDirectoryId: event.newDirectoryId },
-                        item.item.title
-                    )
+                    await doMove(event.newParentKey, event.newParentId)
                 }
                 break
             }
@@ -258,10 +299,13 @@ export default function AssetRow(props: AssetRowProps) {
                                     event.dataTransfer
                                 )
                                 if (payload != null) {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    unsetModal()
                                     dispatchAssetEvent({
                                         type: assetEventModule.AssetEventType.move,
-                                        newDirectoryKey: item.key,
-                                        newDirectoryId: item.item.id,
+                                        newParentKey: item.key,
+                                        newParentId: item.item.id,
                                         ids: new Set(payload.map(dragItem => dragItem.asset.id)),
                                     })
                                 }

@@ -105,8 +105,8 @@ export interface AssetCancelOpeningAllProjectsEvent
 
 /** A signal to move an asset. */
 export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
-    newDirectoryKey: backendModule.AssetId
-    newDirectoryId: backendModule.DirectoryId
+    newParentKey: backendModule.AssetId | null
+    newParentId: backendModule.DirectoryId | null
     ids: Set<backendModule.AssetId>
 }
 

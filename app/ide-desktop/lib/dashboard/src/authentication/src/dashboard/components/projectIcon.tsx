@@ -240,6 +240,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.newDataConnector:
+            case assetEventModule.AssetEventType.move:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.restoreMultiple:
             case assetEventModule.AssetEventType.downloadSelected:

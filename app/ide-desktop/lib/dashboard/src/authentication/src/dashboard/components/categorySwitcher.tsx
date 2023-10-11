@@ -165,6 +165,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                             (category !== Category.trash && currentCategory === Category.trash)
                         ) {
                             event.preventDefault()
+                            event.stopPropagation()
                             unsetModal()
                             const payload = await assetsTable.tryFindAssetRowsDragPayload(
                                 event.dataTransfer

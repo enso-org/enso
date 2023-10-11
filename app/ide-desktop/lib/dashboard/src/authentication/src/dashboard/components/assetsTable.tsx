@@ -905,6 +905,33 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 break
             }
+            case assetListEventModule.AssetListEventType.move: {
+                setAssetTree(oldAssetTree => {
+                    const withNodeDeleted = assetTreeNode.assetTreeFilter(
+                        oldAssetTree,
+                        item => item.key !== event.key
+                    )
+                    return event.newParentKey == null
+                        ? insertChildrenIntoAssetTreeNodeArray(
+                              withNodeDeleted,
+                              [event.item],
+                              event.newParentKey,
+                              event.newParentId,
+                              0
+                          )
+                        : assetTreeNode.assetTreeMap(withNodeDeleted, item =>
+                              item.key !== event.newParentKey || item.children == null
+                                  ? item
+                                  : insertAssetTreeNodeChildren(
+                                        item,
+                                        [event.item],
+                                        event.newParentKey,
+                                        event.newParentId
+                                    )
+                          )
+                })
+                break
+            }
             case assetListEventModule.AssetListEventType.delete: {
                 setAssetTree(oldAssetTree =>
                     assetTreeNode.assetTreeFilter(oldAssetTree, item => item.key !== event.key)
@@ -1020,6 +1047,30 @@ export default function AssetsTable(props: AssetsTableProps) {
                 >
                     scrollContainerRef={scrollContainerRef}
                     headerRowRef={headerRowRef}
+                    footer={
+                        <div
+                            className="grow"
+                            onDragOver={event => {
+                                event.preventDefault()
+                            }}
+                            onDrop={async event => {
+                                const payload = await tryFindAssetRowsDragPayload(
+                                    event.dataTransfer
+                                )
+                                if (payload != null) {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    unsetModal()
+                                    dispatchAssetEvent({
+                                        type: assetEventModule.AssetEventType.move,
+                                        newParentKey: null,
+                                        newParentId: null,
+                                        ids: new Set(payload.map(dragItem => dragItem.asset.id)),
+                                    })
+                                }
+                            }}
+                        />
+                    }
                     rowComponent={AssetRow}
                     items={displayItems}
                     filter={filter}
