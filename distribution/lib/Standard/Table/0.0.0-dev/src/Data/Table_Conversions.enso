@@ -74,15 +74,7 @@ Table.expand_column self column fields=Nothing prefix=Nothing =
      Expand a column of integer `Vectors` to a column of `Integer`
 
      table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
-     result = table.expand_to_rows "bbb" .
-     # => +---+----+
-          |aaa|bbb |
-          +---+----+
-          | 1 | 30 |
-          | 1 | 31 |
-          | 2 | 40 |
-          | 2 | 41 |
-          +---+----+
+     # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
 @column Widget_Helpers.make_column_name_selector
 Table.expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
 Table.expand_to_rows self column at_least_one_row=False =
