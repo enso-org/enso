@@ -1,0 +1,192 @@
+from Standard.Base import all
+from Standard.Test import all
+
+fib n = if n <= 1 then 1 else
+    a = fib n-1
+    b = fib n-2
+    a+b
+
+fib2 n =
+    acc at n1 n2 = if at > n then n1 else
+        @Tail_Call acc at+1 n2 n1+n2
+
+    acc 1 1 1
+
+spec =
+    Test.group "Instrument fibonacci" <|
+        Test.specify "collect and filter on return updates" <|
+            b = Vector.new_builder
+
+            collect uuid:Text result =
+                a_plus_b_uuid = "00000000-aaaa-bbbb-0000-000000000000" # UUID for a+b
+                if uuid == a_plus_b_uuid then
+                    b.append result
+                Nothing
+
+            instrumenter = Meta.meta .fib . instrument . on_return collect . activate
+
+            instrumenter . with _->
+                result = fib 10
+
+                v = b.to_vector
+
+                v.length . should_equal 1
+                v.at 0 . should_equal 89
+                result . should_equal 89
+
+            instrumenter.finalize
+            # no op:
+            instrumenter.finalize
+
+            result = fib 10
+            result . should_equal 89
+
+            # no more instrumenting after finalize
+            b.to_vector.length . should_equal 1
+
+        Test.specify "replay with caches and specify different result" <|
+            replay uuid:Text = case uuid of
+                "00000000-ffff-bbbb-0000-000000000000" -> 42
+                _ -> Nothing
+
+            instrumenter = Meta.meta .fib . instrument . on_enter replay . activate
+
+            instrumenter . with _->
+                result = fib 10
+                result . should_equal 42
+
+            instrumenter.finalize
+
+            result = fib 10
+            result . should_equal 89
+
+    Test.group "Instrument @Tail_Call fibonacci" <|
+        Test.specify "check fib & fib2 are the same" <|
+            r1 = -10.up_to 10 . map fib
+            r2 = -10.up_to 10 . map fib2
+            r1 . should_equal r2
+
+        Test.specify "call and collect on return updates" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+            b = Vector.new_builder
+
+            call_fn uuid:Text fn:Function (args : Vector Any) =
+                fn.to_text . should_contain "Integer.+"
+                uuid . should_equal n1_plus_n2
+                b.append args
+                Nothing
+
+            collect uuid:Text result =
+                uuid . should_equal n1_plus_n2
+                v = b.last:Vector
+                n1 = v.at 0
+                n2 = v.at 1
+
+                # arguments collected at `call_fn` were really added together
+                result . should_equal n1+n2
+                Nothing
+
+            instrumenter = Meta.meta .fib2 . instrument . on_return collect . on_call call_fn . activate
+
+            instrumenter . with _->
+                result = fib2 10
+
+                v = b.to_vector
+                v . should_equal [[1, 1], [1, 2], [2, 3], [3, 5], [5, 8], [8, 13], [13, 21], [21, 34], [34, 55], [55, 89]]
+                result . should_equal 89
+
+            instrumenter.finalize
+
+            result = fib2 10
+            result . should_equal 89
+
+            # no more instrumenting after finalize
+            b.to_vector.length . should_equal 10
+
+        Test.specify "* instead of + on return updates" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            call_fn uuid:Text fn:Function (args : Vector Any) =
+                fn.to_text . should_contain "Integer.+"
+                uuid . should_equal n1_plus_n2
+                n1 = args.at 0
+                n2 = args.at 1
+                if n2 == 1 then Nothing else
+                    n1 * n2
+
+            result1 = fib2 10
+            result1 . should_equal 89
+
+            instrumenter = Meta.meta .fib2 . instrument . on_call call_fn . activate
+
+            instrumenter . with _->
+                result2 = fib2 10
+                result2 . should_equal 17179869184
+
+            instrumenter.finalize
+
+            # behaves normally again
+            result3 = fib2 10
+            result3 . should_equal 89
+
+        Test.specify "Caching in on_enter prevents on_call" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            ninety uuid:Text =
+                uuid . should_equal n1_plus_n2
+                90
+
+            call_fn _:Text fn:Function _:Any =
+                Test.fail "Don't call me: "+fn.to_text
+
+            result1 = fib2 10
+            result1 . should_equal 89
+
+            instrumenter = Meta.meta .fib2 . instrument . on_enter ninety . on_call call_fn . activate
+
+            instrumenter . with _->
+                result2 = fib2 10
+                result2 . should_equal 90
+
+            instrumenter.finalize
+
+            # behaves normally again
+            result3 = fib2 10
+            result3 . should_equal 89
+
+
+        Test.specify "GC disables Instrumentor" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            enable_instrumentor value:Integer =
+                return_cached_value uuid:Text =
+                    uuid . should_equal n1_plus_n2
+                    value
+
+                Meta.meta .fib2 . instrument . on_enter return_cached_value . activate
+
+                # make sure the managed resource is forgotten in this frame
+                Nothing
+
+            enable_instrumentor 42
+
+            repeat_gc count =
+                result = fib2 10
+                if result == 89 then result else
+                    if count <= 0 then result else
+                        if count % 100 == 0 then IO.println "Trying to GC instrumentor (still "+count.to_text+" to go), but result still remains "+result.to_text
+                        Runtime.gc
+                        @Tail_Call repeat_gc count-1
+
+            # instrumentor is gone and `fib2 10` is again `89`
+            repeat_gc 999 . should_equal 89
+
+            result3 = fib2 10
+            result3 . should_equal 89
+
+main = Test_Suite.run_main spec
+
+
+
+#### METADATA ####
+[[{"index":{"value":127},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":69},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":214},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"]]

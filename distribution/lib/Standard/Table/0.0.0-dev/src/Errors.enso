@@ -720,3 +720,56 @@ type Clashing_Column_Name
     to_display_text : Text
     to_display_text self =
         "The column name [" + self.provided_name.to_display_text + "] is clashing with the column name [" + self.clashing_name.to_display_text + "] - they cannot be distinguished because the backend is not case sensitive, so only one of these can exist within a single table. If you wanted to replace the column, use the exact (case sensitive) name of the column to replace."
+
+type Unexpected_Extra_Columns
+    ## PRIVATE
+    Warning (columns : Vector Text)
+
+    ## PRIVATE
+       Pretty print the unexpected extra columns warning.
+    to_display_text : Text
+    to_display_text self =
+        "The following unexpected columns were ignored: " + self.columns.to_display_text + "."
+
+type Unmatched_Rows_In_Lookup
+    ## PRIVATE
+    Error example_key_values:Vector
+
+    ## PRIVATE
+       Pretty print the unmatched rows in lookup error.
+    to_display_text : Text
+    to_display_text self =
+        "The lookup operation failed to find a corresponding row in the lookup table for the key "+self.example_key_values.to_display_text+"."
+
+type Non_Unique_Key
+    ## PRIVATE
+       Indicates that the columns selected for the primary key do not uniquely
+       identify rows in the table.
+
+       Arguments:
+       - key_column_names: Names of columns comprising the key that is not
+         unique.
+       - clashing_example_key_values: The values of an example key that
+         corresponds to more than one row.
+       - clashing_example_row_count: The number of rows that correspond to the
+         example key.
+    Error (key_column_names : Vector Text) (clashing_example_key_values : Vector Any) (clashing_example_row_count : Integer)
+
+    ## PRIVATE
+       Pretty print the non-unique primary key error.
+    to_display_text : Text
+    to_display_text self =
+        "The key " + self.key_column_names.to_display_text + " is not unique, for example key "+self.clashing_example_key_values.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."
+
+type Null_Values_In_Key_Columns
+    ## PRIVATE
+       Indicates that the source table contained NULL values in key columns.
+       Rows containing NULL values as part of their key will not be correctly
+       correlated with target rows due to how NULL equality works in SQL.
+    Error (example_row : Vector Any) (add_sql_suffix:Boolean=False)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        suffix = if self.add_sql_suffix.not then "" else " The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
+        "The operation encountered input rows that contained Nothing values in key columns (for example, the row " + self.example_row.to_display_text + ")."+suffix

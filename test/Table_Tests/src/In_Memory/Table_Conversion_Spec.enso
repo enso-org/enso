@@ -1,0 +1,162 @@
+from Standard.Base import all
+
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Table.Data.Table_Conversions
+from Standard.Table import Table, Column
+
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
+from project.Util import all
+
+spec =
+    single_values = [Nothing, 12, 13.4, True, "hello", Date.new 2023 10 6, Time_Of_Day.new 3 4 5 200, Date_Time.new 2023 11 7 2 3 4]
+    uniform_json = Json.parse <| '''
+        [
+            { "first": "Mary", "last": "Smith", "age": 23 },
+            { "first": "Joe", "last": "Burton", "age": 34 }
+        ]
+    non_uniform_json = Json.parse <| '''
+        [
+            { "first": "Mary", "last": "Smith", "age": 23 },
+            { "height": 1.9, "weight": 70 }
+        ]
+
+    Test.group "from_objects with single values" <|
+        Test.specify "Can create a table from a single value" <|
+            single_values.map v->
+                expected = Table.from_rows ["Value"] [[v]]
+                Table.from_objects v . should_equal expected
+
+        Test.specify "Can create a table from a vector of single values" <|
+            expected = Table.new [["Value", single_values]]
+            Table.from_objects single_values . should_equal expected
+
+        Test.specify "A single value with a field list results in columns of Nothing" <|
+            expected = Table.new [["aaa", [Nothing]], ["bbb", [Nothing]]]
+            Table.from_objects 1 ['aaa', 'bbb'] . should_equal expected
+
+        Test.specify "A single value with the field list [Value] results in a column with the value" <|
+            expected = Table.new [["Value", [1]], ["bbb", [Nothing]]]
+            Table.from_objects 1 ["Value", "bbb"] . should_equal expected
+
+        Test.specify "A vector of single values with a field list results in a column of Nothing" <|
+            expected = Table.new [["aaa", [Nothing, Nothing]], ["bbb", [Nothing, Nothing]]]
+            Table.from_objects [1, 2] ['aaa', 'bbb'] . should_equal expected
+
+    Test.group "from_objects with JSON (single values)" <|
+        Test.specify "Generates a single-row table from a JSON object" <|
+            expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23]]
+            Table.from_objects (uniform_json.at 0) . should_equal expected
+
+    Test.group "from_objects with uniform JSON vector" <|
+        Test.specify "Generates a table from a vector of JSON objects" <|
+            expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23], ["Joe", "Burton", 34]]
+            Table.from_objects uniform_json . should_equal expected
+
+        Test.specify "Generates a table from a vector of JSON objects, with exact fields" <|
+            expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23], ["Joe", "Burton", 34]]
+            Table.from_objects uniform_json ["first", "last", "age"] . should_equal expected
+
+        Test.specify "Generates a table from a vector of JSON objects, with a subset of fields" <|
+            expected = Table.from_rows ["last", "age"] [["Smith", 23], ["Burton", 34]]
+            Table.from_objects uniform_json ["last", "age"] . should_equal expected
+
+        Test.specify "Generates a table from a vector of JSON objects, with extra fields" <|
+            expected = Table.from_rows ["first", "middle", "last", "age"] [["Mary", Nothing, "Smith", 23], ["Joe", Nothing, "Burton", 34]]
+            Table.from_objects uniform_json ["first", "middle", "last", "age"] . should_equal expected
+
+        Test.specify "Generates a table from a vector of JSON objects, with ignored and extra fields" <|
+            expected = Table.from_rows ["first", "middle", "age"] [["Mary", Nothing, 23], ["Joe", Nothing, 34]]
+            Table.from_objects uniform_json ["first", "middle", "age"] . should_equal expected
+
+    Test.group "from_objects with non-uniform JSON vector" <|
+        Test.specify "Generates a table from a non-uniform vector of JSON objects" <|
+            expected = Table.from_rows ["first", "last", "age", "height", "weight"] [["Mary", "Smith", 23, Nothing, Nothing], [Nothing, Nothing, Nothing, 1.9, 70]]
+            Table.from_objects non_uniform_json . should_equal expected
+
+        Test.specify "Generates a table from a non-uniform vector of JSON objects, with exact fields" <|
+            expected = Table.from_rows ["first", "last", "age", "height", "weight"] [["Mary", "Smith", 23, Nothing, Nothing], [Nothing, Nothing, Nothing, 1.9, 70]]
+            Table.from_objects non_uniform_json ["first", "last", "age", "height", "weight"] . should_equal expected
+
+        Test.specify "Generates a table from a non-uniform vector of JSON objects, with ignored fields" <|
+            expected = Table.from_rows ["last", "weight"] [["Smith", Nothing], [Nothing, 70]]
+            Table.from_objects non_uniform_json ["last", "weight"] . should_equal expected
+
+        Test.specify "Generates a table from a non-uniform vector of JSON objects, with extra fields" <|
+            expected = Table.from_rows ["first", "middle", "last", "age", "height", "weight"] [["Mary", Nothing, "Smith", 23, Nothing, Nothing], [Nothing, Nothing, Nothing, Nothing, 1.9, 70]]
+            Table.from_objects non_uniform_json ["first", "middle", "last", "age", "height", "weight"] . should_equal expected
+
+        Test.specify "Generates a table from a non-uniform vector of JSON objects, with ignored and extra fields" <|
+            expected = Table.from_rows ["first", "middle", "height", "weight"] [["Mary", Nothing, Nothing, Nothing], [Nothing, Nothing, 1.9, 70]]
+            Table.from_objects non_uniform_json ["first", "middle", "height", "weight"] . should_equal expected
+
+        Test.specify "Generates a table from a non-uniform vector of JSON objects, with ignored and extra fields, taking only from one kind of value" <|
+            expected = Table.from_rows ["first"] [["Mary"], [Nothing]]
+            Table.from_objects non_uniform_json ["first"] . should_equal expected
+
+    Test.group "from_objects with mixed vector of single and JSON objects" <|
+        Test.specify "Generates a table from a mixed vector of single values and JSON objects" <|
+            expected = Table.from_rows ["first", "last", "age", "Value"] [["Mary", "Smith", 23, Nothing], ["Joe", "Burton", 34, Nothing], [Nothing, Nothing, Nothing, 12]]
+            Table.from_objects uniform_json+[12] . should_equal expected
+
+        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with exact fields" <|
+            expected = Table.from_rows ["first", "last", "age", "Value"] [["Mary", "Smith", 23, Nothing], ["Joe", "Burton", 34, Nothing], [Nothing, Nothing, Nothing, 12]]
+            Table.from_objects uniform_json+[12] ["first", "last", "age", "Value"] . should_equal expected
+
+        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored fields" <|
+            expected = Table.from_rows ["last", "age", "Value"] [["Smith", 23, Nothing], ["Burton", 34, Nothing], [Nothing, Nothing, 12]]
+            Table.from_objects uniform_json+[12] ["last", "age", "Value"] . should_equal expected
+
+        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with extra fields" <|
+            expected = Table.from_rows ["first", "last", "age", "blah", "Value"] [["Mary", "Smith", 23, Nothing, Nothing], ["Joe", "Burton", 34, Nothing, Nothing], [Nothing, Nothing, Nothing, Nothing, 12]]
+            Table.from_objects uniform_json+[12] ["first", "last", "age", "blah", "Value"] . should_equal expected
+
+        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored and extra fields" <|
+            expected = Table.from_rows ["first", "last", "blah", "Value"] [["Mary", "Smith", Nothing, Nothing], ["Joe", "Burton", Nothing, Nothing], [Nothing, Nothing, Nothing, 12]]
+            Table.from_objects uniform_json+[12] ["first", "last", "blah", "Value"] . should_equal expected
+
+    Test.group "from_objects with Array" <|
+        Test.specify "Generates a table from a mixed vector of single values and JSON objects, with ignored and extra fields" <|
+            expected = Table.from_rows ["first", "last", "blah", "Value"] [["Mary", "Smith", Nothing, Nothing], ["Joe", "Burton", Nothing, Nothing], [Nothing, Nothing, Nothing, 12]]
+            Table.from_objects (uniform_json+[12]).to_array ["first", "last", "blah", "Value"] . should_equal expected
+
+    Test.group "expand_column" <|
+        Test.specify "Expands a column of single values" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb Value", [3, 4]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" . should_equal expected
+
+        Test.specify "Expands a uniform column of JSON objects" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb first", ["Mary", "Joe"]], ["bbb last", ["Smith", "Burton"]], ["bbb age", [23, 34]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" . should_equal expected
+
+        Test.specify "Expands a uniform column of JSON objects, with extra and ignored fields" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb age", [23, 34]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" ["age", "foo"] . should_equal expected
+
+        Test.specify "Expands a non-uniform column of JSON objects" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb first", ["Mary", Nothing]], ["bbb last", ["Smith", Nothing]], ["bbb age", [23, Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb weight", [Nothing, 70]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" . should_equal expected
+
+        Test.specify "Expands a non-uniform column of JSON objects with extra and ignored fields" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb last", ["Smith", Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" ["last", "height", "foo"] . should_equal expected
+
+        Test.specify "Error if there are vectors/arrays within a column" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3], [4, 5, 6]]]]
+            table2 = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3].to_array, [4, 5, 6].to_array]]]
+            table.expand_column "bbb" . should_fail_with Illegal_Argument
+            table2.expand_column "bbb" . should_fail_with Illegal_Argument
+
+        Test.specify "Can expand with a prefix" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["expanded last", ["Smith", Nothing]], ["expanded height", [Nothing, 1.9]], ["expanded foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" ["last", "height", "foo"] "expanded " . should_equal expected
+
+main = Test_Suite.run_main spec

@@ -50,6 +50,7 @@ import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
@@ -319,7 +320,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         connection
       } else null
     })
-  if (RuntimeOptions.isEspressoEnabled()) {
+  if (
+    Engine
+      .newBuilder()
+      .allowExperimentalOptions(true)
+      .build
+      .getLanguages()
+      .containsKey("java")
+  ) {
     builder
       .option("java.ExposeNativeJavaVM", "true")
       .option("java.Polyglot", "true")

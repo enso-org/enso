@@ -3,8 +3,6 @@ package org.enso.interpreter.instrument.command
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{ExecuteJob, UpsertVisualizationJob}
 import org.enso.polyglot.runtime.Runtime.Api
-
-import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that attaches a visualization to an expression.
@@ -15,38 +13,12 @@ import scala.concurrent.{ExecutionContext, Future}
 class AttachVisualizationCmd(
   maybeRequestId: Option[Api.RequestId],
   request: Api.AttachVisualization
-) extends AsynchronousCommand(maybeRequestId) {
+) extends ContextCmd(
+      request.visualizationConfig.executionContextId,
+      maybeRequestId
+    ) {
 
-  /** @inheritdoc */
-  override def executeAsynchronously(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
-    val logger        = ctx.executionService.getLogger
-    val contextId     = request.visualizationConfig.executionContextId
-    val lockTimestamp = ctx.locking.acquireContextLock(contextId)
-    try {
-      if (doesContextExist) {
-        attachVisualization()
-      } else {
-        replyWithContextNotExistError()
-      }
-    } finally {
-      ctx.locking.releaseContextLock(contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [AttachVisualizationCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
-      )
-    }
-  }
-
-  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
-    ctx.contextManager.contains(
-      request.visualizationConfig.executionContextId
-    )
-  }
-
-  private def attachVisualization()(implicit
+  override protected def executeCmd()(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
@@ -66,17 +38,6 @@ class AttachVisualizationCmd(
     maybeFutureExecutable.flatMap {
       case None             => Future.successful(())
       case Some(executable) => ctx.jobProcessor.run(ExecuteJob(executable))
-    }
-  }
-
-  private def replyWithContextNotExistError()(implicit
-    ctx: RuntimeContext,
-    ec: ExecutionContext
-  ): Future[Unit] = {
-    Future {
-      reply(
-        Api.ContextNotExistError(request.visualizationConfig.executionContextId)
-      )
     }
   }
 

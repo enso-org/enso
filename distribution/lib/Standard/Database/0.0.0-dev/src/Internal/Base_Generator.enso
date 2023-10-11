@@ -25,11 +25,16 @@ type Internal_Dialect
          builders for the arguments, and optionally an additional metadata
          argument, and should return a builder yielding code for the whole
          operation.
-       - wrap_identifier: A function that converts an arbitrary supported
+       - wrap_identifier_raw: A function that converts an arbitrary supported
          identifier name in such a way that it can be used in the query; that
          usually consists of wrapping the name in quotes and escaping any quotes
          within it.
-    Value (operation_map:(Map Text (Vector (Builder->Builder)))) (wrap_identifier:(Text->Builder))
+    Value (operation_map:(Map Text (Vector (Builder->Builder)))) (wrap_identifier_raw:(Text->Text))
+
+    ## PRIVATE
+    wrap_identifier : Text -> Builder
+    wrap_identifier self identifier:Text =
+        Builder.code (self.wrap_identifier_raw identifier)
 
     ## PRIVATE
 
@@ -40,7 +45,7 @@ type Internal_Dialect
     extend_with : Vector Any -> Internal_Dialect
     extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect.Value new_map self.wrap_identifier
+        Internal_Dialect.Value new_map self.wrap_identifier_raw
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
@@ -160,10 +165,10 @@ make_constant sql_code =
 
    This is the simplest way of escaping identifiers that should work across most
    dialects.
-wrap_in_quotes : Text -> Builder
+wrap_in_quotes : Text -> Text
 wrap_in_quotes identifier =
     escaped = identifier.replace '"' '""'
-    Builder.code '"'+escaped+'"'
+    '"'+escaped+'"'
 
 ## PRIVATE
 

@@ -1,6 +1,8 @@
 package org.enso.interpreter.instrument;
 
 
+import org.enso.polyglot.debugger.IdExecutionService;
+
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
@@ -25,6 +27,7 @@ import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
@@ -35,6 +38,8 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+
+import com.oracle.truffle.api.interop.TruffleObject;
 
 /** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
@@ -232,7 +237,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    * Attach a new event node factory to observe identified nodes within given
    * function.
    *
-   * @param module module that contains the code
+   * @param mod module that contains the code
    * @param entryCallTarget the call target being observed.
    * @param callbacks the precomputed expression values.
    * @param timer the execution timer.
@@ -240,11 +245,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    */
   @Override
   public EventBinding<ExecutionEventNodeFactory> bind(
-    Module module,
+    TruffleObject mod,
     CallTarget entryCallTarget,
     Callbacks callbacks,
-    Timer timer
+    Object timer
   ) {
+    var module = (Module)mod;
     var builder = SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
             .tagIs(IdentifiedTag.class)
@@ -257,7 +263,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
     }
     var filter = builder.build();
-    var factory = new IdEventNodeFactory(entryCallTarget, callbacks, timer);
+    var factory = new IdEventNodeFactory(entryCallTarget, callbacks, (Timer) timer);
     return env.getInstrumenter().attachExecutionEventFactory(filter, factory);
   }
 }

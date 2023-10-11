@@ -418,6 +418,147 @@ class ImportExportTest
     }
   }
 
+  "Exporting non-existing symbols" should {
+    "fail when exporting from current module" in {
+      val mainIr =
+        s"""
+           |
+           |from $namespace.$packageName.Main.Main_Type import Main_Constructor
+           |from $namespace.$packageName.Main.Main_Type export Main_Constructor, Non_Existing_Ctor
+           |
+           |type Main_Type
+           |  Main_Constructor
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "Non_Existing_Ctor"
+    }
+
+    "fail when exporting from other module" in {
+      """
+        |# Empty
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |from $namespace.$packageName.A_Module export baz
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      val bindingsMap = mainIr.unwrapBindingMap
+      bindingsMap shouldNot be(null)
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "baz"
+    }
+
+    "fail when exporting from type with `from`" in {
+      """
+        |type A_Type
+        |  A_Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from $namespace.$packageName.A_Module.A_Type export Non_Existing_Ctor
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "Non_Existing_Ctor"
+    }
+
+    "fail when exporting from type" in {
+      """
+        |type A_Type
+        |  A_Constructor
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |export $namespace.$packageName.A_Module.A_Type.FOO
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "FOO"
+    }
+
+    "fail when exporting from module with `from`" in {
+      """
+        |foo = 42
+        |bar = 23
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module
+           |from $namespace.$packageName.A_Module export foo, bar, baz
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      mainIr.exports.size shouldEqual 1
+      mainIr.exports.head.isInstanceOf[errors.ImportExport] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.exports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "baz"
+    }
+  }
+
   "Import resolution from another library honor Main" should {
     "resolve Api from Main" in {
       val mainIr = """
@@ -434,14 +575,14 @@ class ImportExportTest
       val in = mainIr.imports.head
         .asInstanceOf[Import.Module]
 
-      in.name.name.toString() should include("Test.Logical_Export.Main")
-      in.onlyNames.get.map(_.name.toString()) shouldEqual List("Api")
+      in.name.name should include("Test.Logical_Export.Main")
+      in.onlyNames.get.map(_.name) shouldEqual List("Api")
 
       val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
       errors.size shouldEqual 0
     }
 
-    "don't expose Impl from Main" in {
+    "not expose Impl from Main" in {
       val mainIr = """
                      |from Test.Logical_Export import Impl
                      |
@@ -450,12 +591,17 @@ class ImportExportTest
         .createModule(packageQualifiedName.createChild("Main"))
         .getIr
 
+      mainIr.imports.size shouldEqual 1
+      mainIr.imports.head.isInstanceOf[errors.ImportExport] shouldBe true
       mainIr.imports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .message should include(
-        "The symbol Impl (module or type) does not exist in module Test.Logical_Export.Main."
-      )
+        .isInstanceOf[errors.ImportExport.SymbolDoesNotExist] shouldBe true
+      mainIr.imports.head
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
+        .symbolName shouldEqual "Impl"
     }
   }
 

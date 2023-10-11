@@ -26,6 +26,7 @@ use double_representation::node::NodeAst;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
+use engine_protocol::language_server::ExecutionEnvironment;
 use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
@@ -965,6 +966,24 @@ impl Handle {
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
             graph.edit_node(id, expression)?;
+            Ok(graph.source)
+        })
+    }
+
+    /// Sets the previewed node expression. Similar to `set_expression_ast`, but also adds an
+    /// execution context switch to the expression to disable the output context of the node.
+    /// This way the execution of the previewed node will not produce unwanted side effects.
+    #[profile(Debug)]
+    pub fn set_preview_expression_ast(
+        &self,
+        id: ast::Id,
+        expression: Ast,
+        execution_enviroment: ExecutionEnvironment,
+    ) -> FallibleResult {
+        info!("Setting previewed node {id} expression to `{}`", expression.repr());
+        self.update_definition_ast(|definition| {
+            let mut graph = GraphInfo::from_definition(definition);
+            graph.edit_preview_node(id, expression, execution_enviroment)?;
             Ok(graph.source)
         })
     }

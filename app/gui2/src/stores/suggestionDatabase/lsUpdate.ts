@@ -1,13 +1,13 @@
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
-  type Doc,
   type SuggestionEntry,
   type SuggestionEntryArgument,
   type SuggestionEntryScope,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
+import type { Doc } from '@/util/docParser'
 import { type Opt } from '@/util/opt'
 import {
   qnJoin,

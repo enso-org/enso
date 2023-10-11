@@ -46,6 +46,7 @@ use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
 use derivative::Derivative;
+use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::Benchmarks;
@@ -854,11 +855,11 @@ impl WatchResolvable for Gui {
 }
 
 #[tracing::instrument(err, skip(config))]
-pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result {
+pub async fn main_internal(config: Option<Config>) -> Result {
     trace!("Starting the build process.");
     let config = config.unwrap_or_else(|| {
         warn!("No config provided, using default config.");
-        enso_build::config::Config::default()
+        Config::default()
     });
 
     trace!("Creating the build context.");
@@ -1063,7 +1064,7 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
     Ok(())
 }
 
-pub fn lib_main(config: Option<enso_build::config::Config>) -> Result {
+pub fn lib_main(config: Option<Config>) -> Result {
     trace!("Starting the tokio runtime.");
     let rt = tokio::runtime::Runtime::new()?;
     trace!("Entering main.");

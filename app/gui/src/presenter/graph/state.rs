@@ -8,6 +8,7 @@ use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewConnection;
 use crate::presenter::graph::ViewNodeId;
 
+use double_representation::context_switch::ContextSwitch;
 use double_representation::context_switch::ContextSwitchExpression;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::SuggestionId;
@@ -26,19 +27,57 @@ use ide_view::graph_editor::EdgeEndpoint;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Node {
-    pub view_id:        Option<ViewNodeId>,
-    pub position:       Vector2,
-    pub expression:     node_view::Expression,
-    pub is_skipped:     bool,
-    pub is_frozen:      bool,
+    pub view_id: Option<ViewNodeId>,
+    pub position: Vector2,
+    pub expression: node_view::Expression,
+    pub is_skipped: bool,
+    pub is_frozen: bool,
     pub context_switch: Option<ContextSwitchExpression>,
-    pub error:          Option<node_view::Error>,
-    pub is_pending:     bool,
-    pub visualization:  Option<visualization_view::Path>,
-
+    pub error: Option<node_view::Error>,
+    pub is_pending: bool,
+    pub visualization: Option<visualization_view::Path>,
     /// Indicate whether this node view is updated automatically by changes from the controller
-    /// or view, or will be explicitly updated..
+    /// or view, or will be explicitly updated.
     disable_expression_auto_update: bool,
+}
+
+
+// === Prepare view updates from the node state ===
+
+#[allow(missing_docs)]
+impl Node {
+    pub fn position_update(&self) -> Option<(ViewNodeId, Vector2)> {
+        Some((self.view_id?, self.position))
+    }
+
+    pub fn expression_update(&self) -> Option<(ViewNodeId, node_view::Expression)> {
+        Some((self.view_id?, self.expression.clone()))
+    }
+
+    pub fn skip_update(&self) -> Option<(ViewNodeId, bool)> {
+        Some((self.view_id?, self.is_skipped))
+    }
+
+    pub fn freeze_update(&self) -> Option<(ViewNodeId, bool)> {
+        Some((self.view_id?, self.is_frozen))
+    }
+
+    pub fn output_context_update(&self) -> Option<(ViewNodeId, Option<bool>)> {
+        let switch = self.context_switch.as_ref().map(|expr| expr.switch == ContextSwitch::Enable);
+        Some((self.view_id?, switch))
+    }
+
+    pub fn error_update(&self) -> Option<(ViewNodeId, Option<node_view::Error>)> {
+        Some((self.view_id?, self.error.clone()))
+    }
+
+    pub fn pending_update(&self) -> Option<(ViewNodeId, bool)> {
+        Some((self.view_id?, self.is_pending))
+    }
+
+    pub fn visualization_update(&self) -> Option<(ViewNodeId, Option<visualization_view::Path>)> {
+        Some((self.view_id?, self.visualization.clone()))
+    }
 }
 
 /// The set of node states.
@@ -117,16 +156,23 @@ impl Nodes {
         view_id: ViewNodeId,
         ast_id: AstNodeId,
     ) -> &mut Node {
-        let mut displayed =
-            Self::get_mut_or_create_static(&mut self.nodes, &mut self.nodes_without_view, ast_id);
-        if let Some(old_view) = displayed.view_id {
-            self.ast_node_by_view_id.remove(&old_view);
+        let mut displayed = self.nodes.entry(ast_id).or_default();
+        let old_ast_to_remove = if let Some(old_view) = displayed.view_id {
+            self.ast_node_by_view_id.remove(&old_view)
         } else {
             self.nodes_without_view.remove_item(&ast_id);
-        }
+            None
+        };
         displayed.view_id = Some(view_id);
         self.ast_node_by_view_id.insert(view_id, ast_id);
-        displayed
+        // That is quite unfortunate, but we have to temporarily drop the acquired borrow over
+        // `nodes` to remove the old ast. It is needed to ensure we never have two displayed nodes
+        // updated from a single ast node.
+        if let Some(old_ast) = old_ast_to_remove {
+            self.nodes.remove(&old_ast);
+        }
+        // Unwrap is safe here, because we just inserted the node to the map.
+        self.nodes.get_mut(&ast_id).unwrap()
     }
 
     /// Update the state retaining given set of nodes. Returns the list of removed nodes' views.
@@ -234,6 +280,11 @@ pub struct State {
 }
 
 impl State {
+    /// Get the node state by the AST ID.
+    pub fn get_node(&self, node: AstNodeId) -> Option<Node> {
+        self.nodes.borrow().get(node).cloned()
+    }
+
     /// Get node's view id by the AST ID.
     pub fn view_id_of_ast_node(&self, node: AstNodeId) -> Option<ViewNodeId> {
         self.nodes.borrow().get(node).and_then(|n| n.view_id)

@@ -9,7 +9,7 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 
 const conf = [
   {
-    ignores: ['rust-ffi/pkg', 'dist'],
+    ignores: ['rust-ffi/pkg', 'dist', 'src/generated'],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),
   eslintJs.configs.recommended,
@@ -26,12 +26,14 @@ const conf = [
           './tsconfig.server.json',
           './tsconfig.app.vitest.json',
           './tsconfig.server.vitest.json',
+          './parser-codegen/tsconfig.json',
         ],
       },
     },
     rules: {
       camelcase: [1, { ignoreImports: true }],
       'no-inner-declarations': 0,
+      'vue/attribute-hyphenation': [2, 'never'],
       'vue/v-on-event-hyphenation': [2, 'never'],
       '@typescript-eslint/no-unused-vars': [
         1,

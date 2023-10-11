@@ -39,6 +39,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     return (
         <Modal centered className="bg-dim">
             <div
+                data-testid="confirm-delete-modal"
                 ref={element => {
                     element?.focus()
                 }}
