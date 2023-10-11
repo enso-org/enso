@@ -11,7 +11,6 @@ import project.Errors.Invalid_JSON_Format
 import project.Errors.No_Such_Column
 import project.Internal.Fan_Out
 import project.Internal.Parse_To_Table
-import project.Internal.Split_Tokenize
 import project.Internal.Widget_Helpers
 from project.Internal.Java_Exports import make_inferred_builder
 
@@ -46,7 +45,11 @@ Table.expand_column self column fields=Nothing prefix=Nothing =
     Table.new output_builder.to_vector
 
 ## GROUP Standard.Base.Conversions
-   Expand aggregate values in a column to individual rows.
+   Expand aggregate values in a column to separate rows.
+
+   For each value in the specified column, if it is an aggregate (`Vector`,
+   `Range`, etc.), expand it to multiple rows, duplicating the values in the
+   other columns.
 
    Arguments:
    - column: The column to expand.
@@ -54,16 +57,13 @@ Table.expand_column self column fields=Nothing prefix=Nothing =
      true, a single row is output with `Nothing` for the aggregates column; if
      false, no row is output at all.
 
-   For each value in the specified column, if it is an aggregate (`Vector`,
-   `Range`, etc.), expand it to multiple rows, duplicating the values in the
-   other columns.
-
    The following aggregate values are supported:
    - `Array`
    - `Vector`
    - `List`
    - `Range`
    - `Date_Range`
+   - `Pair
 
    Any other values are treated as non-aggregate values, and their rows are kept
    unchanged.
@@ -86,6 +86,7 @@ Table.expand_to_rows self column at_least_one_row=False =
 ## PRIVATE
 type Expand_To_Rows_Iterator
     ## PRIVATE
+       Arguments:
        - length: The number of rows in the table.
        - getter: Get the value for a specified row.
     Value length:Integer getter:Function
