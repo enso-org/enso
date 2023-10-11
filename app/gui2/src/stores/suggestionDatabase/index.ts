@@ -2,31 +2,56 @@ import { AsyncQueue, rpcWithRetries } from '@/util/net'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { reactive, ref, type Ref } from 'vue'
+import { reactive, ref, watch, type Ref, watchEffect } from 'vue'
 import { useProjectStore } from '../project'
 import { type SuggestionEntry, type SuggestionId, entryQn } from './entry'
 import { applyUpdates, entryFromLs } from './lsUpdate'
+import * as map from 'lib0/map'
 
 export class SuggestionDb {
   entries: Map<SuggestionId, SuggestionEntry>
   nameToId: Map<QualifiedName, SuggestionId>
+  children: Map<SuggestionId, Set<SuggestionId>>
   constructor() {
-	this.entries = new Map()
-	this.nameToId = new Map()
+    this.entries = reactive(new Map())
+    this.nameToId = reactive(new Map())
+    watch(this.entries, (entries) => {
+      const id = magic()
+      const close = watch(() => this.getParent(id), (newParent, _, onCleanup) => {
+        const parentId = newParent
+        const children = this.children.get(parentId) ?? new Set()
+        const setOfChildren = map.setIfUndefined(this.children, parentId, () => new Set())
+        setOfChildren.add(id)
+        onCleanup(() => {
+          setOfChildren.delete(id)
+        })
+      })
+    })
+  }
+  getParent(id: SuggestionId): SuggestionId | undefined {
+    const entry = this.get(id)
+    if (!entry) {
+      return undefined
+    }
+    const parent = entry.parent
+    if (!parent) {
+      return undefined
+    }
+    return this.nameToId.get(parent)
   }
   set(id: SuggestionId, entry: SuggestionEntry) {
-	this.entries.set(id, entry)
-	this.nameToId.set(entryQn(entry), id)
+    this.entries.set(id, entry)
+    this.nameToId.set(entryQn(entry), id)
   }
   get(id: SuggestionId): SuggestionEntry | undefined {
-	return this.entries.get(id)
+    return this.entries.get(id)
   }
   delete(id: SuggestionId) {
-	const entry = this.get(id)
-	if (entry) {
-	  this.nameToId.delete(entryQn(entry))
-	}
-	this.entries.delete(id)
+    const entry = this.get(id)
+    if (entry) {
+      this.nameToId.delete(entryQn(entry))
+    }
+    this.entries.delete(id)
   }
 }
 
@@ -69,7 +94,7 @@ class Synchronizer {
         entry.error.log()
         console.error(`Skipping entry ${lsEntry.id}, the suggestion database will be incomplete!`)
       } else {
-		entries.set(lsEntry.id, entry.value)
+        entries.set(lsEntry.id, entry.value)
       }
     }
     return { currentVersion: initialDb.currentVersion }
@@ -103,7 +128,7 @@ class Synchronizer {
 }
 
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
-  const entries = reactive(new SuggestionDb())
+  const entries = new SuggestionDb()
   const groups = ref<Group[]>([])
 
   const synchronizer = new Synchronizer(entries, groups)

@@ -19,6 +19,7 @@ export type {
   SuggestionEntryScope,
   SuggestionId,
 } from 'shared/languageServerTypes/suggestions'
+import { computed } from 'vue'
 
 /** An alias type for typename (for entry fields like `returnType`).
  *
@@ -38,7 +39,7 @@ export enum SuggestionKind {
 }
 
 export interface SuggestionEntry {
-  parent: ComputedRef<SuggestionId | null>
+  children: Set<SuggestionId>
   kind: SuggestionKind
   /// A module where the suggested object is defined.
   definedIn: QualifiedName
@@ -68,9 +69,9 @@ export interface SuggestionEntry {
 
 export function entryQn(entry: SuggestionEntry): QualifiedName {
   if (entry.kind == SuggestionKind.Module) {
-	return entry.definedIn
+    return entry.definedIn
   } else {
-	return [entry.definedIn, entry.name].join('.')
+    return [entry.definedIn, entry.name].join('.')
   }
 }
 
@@ -81,6 +82,7 @@ function makeSimpleEntry(
   returnType: QualifiedName,
 ): SuggestionEntry {
   return {
+    parent: computed(() => { 0 }),
     kind,
     definedIn,
     name,

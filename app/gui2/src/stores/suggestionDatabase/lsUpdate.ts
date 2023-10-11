@@ -20,6 +20,7 @@ import {
 import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { documentationData, type DocumentationData } from './documentation'
+import { computed, type ComputedRef } from 'vue'
 
 interface UnfinishedEntry {
   kind: SuggestionKind
@@ -115,6 +116,13 @@ function setLsDocumentation(
   if (data.iconName == null) delete entry.iconName
 }
 
+function parent(kind, selfType: Ref<Typename>): ComputedRef<SuggestionId | undefined> {
+  return computed(() => {
+    if (kind == SuggestionKind.Module) {
+      return
+    })
+}
+
 export function entryFromLs(
   lsEntry: lsTypes.SuggestionEntry,
   groups: Group[],
@@ -137,6 +145,7 @@ export function entryFromLs(
         }
         case 'module': {
           const entry = {
+            parent: parent(),
             kind: SuggestionKind.Module,
             name: 'MODULE' as Identifier,
             arguments: [],
@@ -158,6 +167,7 @@ export function entryFromLs(
           setLsDocumentation(entry, lsEntry.documentation, groups)
           assert(entry.returnType !== '') // Should be overwriten
           return Ok({
+            parent: computed(() => { return 0 }),
             arguments: lsEntry.params,
             ...entry,
           })
