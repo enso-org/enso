@@ -91,8 +91,7 @@ make_column_ref_by_name_selector table display=Display.Always =
    Make a filter condition selector.
 make_filter_condition_selector : Table -> Display -> Widget
 make_filter_condition_selector table display=Display.Always =
-    col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
-    col_names display=Display.Always = Single_Choice values=col_names_options display=display
+    col_names = make_column_ref_by_name_selector table
     builder = Vector.new_builder
     fqn = Meta.get_qualified_type_name Filter_Condition
     builder.append (Option "Equals" fqn+".Equal" [["to", col_names]])

@@ -13,114 +13,107 @@ import project.Internal.Widget_Helpers
 from project.Errors import No_Such_Column, Existing_Column, Missing_Column
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
-## PRIVATE
-set_helper : Table_Ref -> Any -> Text -> Text -> Set_Mode -> Problem_Behavior -> Table_Ref
-set_helper table:Table_Ref column input_name:Text new_name:Text set_mode:Set_Mode on_problems:Problem_Behavior =
-    target_name = if new_name != "" then new_name else
-        if set_mode == Set_Mode.Add then column.name else input_name
-    table.set column target_name set_mode on_problems
-
-## PRIVATE
-iif_column : Table_Ref -> Text | Integer -> Filter_Condition -> Any -> Any -> Text -> Set_Mode -> Problem_Behavior -> Table_Ref
-iif_column table:Table_Ref column:(Text|Integer) condition:Filter_Condition true_value false_value new_name:Text set_mode:Set_Mode on_problems:Problem_Behavior =
-    column_object = table.at column
-    condition_column =  make_filter_column column_object (resolve_condition table condition) on_problems
-    result = condition_column.iif (table.resolve true_value) (table.resolve false_value)
-    set_helper table result column_object.name new_name set_mode on_problems
-
-## PRIVATE
-   Implementation of Table calculation.
-   Shorthand for getting a column.
-   Performing an action and setting the result to a new column.
-derive_column : Table_Ref -> Text | Integer -> Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table_Ref
-derive_column table:Table_Ref column:(Text|Integer) operation:Column_Operation new_name:Text set_mode:Set_Mode on_problems:Problem_Behavior =
-    column_object = table.at column
-    derived = case operation of
-        Column_Operation.Add other -> column_object + (table.resolve other)
-        Column_Operation.Subtract other -> column_object - (table.resolve other)
-        Column_Operation.Multiply other -> column_object * (table.resolve other)
-        Column_Operation.Divide other -> column_object / (table.resolve other)
-        Column_Operation.Round precision use_bankers -> column_object.round precision use_bankers
-        Column_Operation.Ceil -> column_object.ceil
-        Column_Operation.Floor -> column_object.floor
-        Column_Operation.Truncate -> column_object.truncate
-        Column_Operation.Date_Add length period -> column_object.date_add (table.resolve length) period
-        Column_Operation.Date_Part period -> column_object.date_part period
-        Column_Operation.Date_Diff end period -> column_object.date_diff (table.resolve end) period
-        Column_Operation.Not -> column_object.not
-        Column_Operation.And other -> column_object && (table.resolve other)
-        Column_Operation.Or other -> column_object || (table.resolve other)
-    set_helper table derived column_object.name new_name set_mode on_problems
-
 ## Defines a column operation generally acting on each row producing a new
    column.
 type Column_Operation
     ## Add a fixed value or another column to a column.
-    Add other:(Column_Ref|Any)
+    Add input:(Text|Integer) other:(Column_Ref|Any)
 
     ## Subtract a fixed value or another column to a column.
-    Subtract other:(Column_Ref|Any)
+    Subtract input:(Text|Integer) other:(Column_Ref|Any)
 
     ## Multiply a fixed value or another column to a column.
-    Multiply other:(Column_Ref|Any)
+    Multiply input:(Text|Integer) other:(Column_Ref|Any)
 
     ## Divide a fixed value or another column to a column.
-    Divide other:(Column_Ref|Any)
+    Divide input:(Text|Integer) other:(Column_Ref|Any)
 
     ## Rounds values in the column to the specified precision.
-    Round precision:Integer=0 use_bankers:Boolean=False
+    Round input:(Text|Integer) precision:Integer=0 use_bankers:Boolean=False
 
     ## Rounds values in the column up to the nearest integer.
-    Ceil
+    Ceil input:(Text|Integer)
 
     ## Rounds values in the column down to the nearest integer.
-    Floor
+    Floor input:(Text|Integer)
 
     ## Truncates the fractional part of values in the column.
        If a Date_Time, returns the Date.
-    Truncate
+    Truncate input:(Text|Integer)
 
     ## Adds a period to a date/time column.
-    Date_Add length:(Column_Ref|Integer) period:(Date_Period|Time_Period)=Date_Period.Day
+    Date_Add input:(Text|Integer) length:(Column_Ref|Integer) period:(Date_Period|Time_Period)=Date_Period.Day
 
     ## Returns part of a date/time column.
-    Date_Part period:(Date_Period|Time_Period)
+    Date_Part input:(Text|Integer) period:(Date_Period|Time_Period)
 
     ## Returns the difference between two date/time columns.
-    Date_Diff end:(Column_Ref|Date_Time|Date|Time_Of_Day) period:(Date_Period|Time_Period)=Date_Period.Day
+    Date_Diff input:(Text|Integer) end:(Column_Ref|Date_Time|Date|Time_Of_Day) period:(Date_Period|Time_Period)=Date_Period.Day
 
     ## Negate a boolean column.
-    Not
+    Not input:(Text|Integer)
 
     ## Boolean AND on two boolean columns.
-    And other:(Column_Ref|Boolean)
+    And input:(Text|Integer) other:(Column_Ref|Boolean)
 
     ## Boolean OR on two boolean columns.
-    Or other:(Column_Ref|Boolean)
+    Or input:(Text|Integer) other:(Column_Ref|Boolean)
 
-## PRIVATE
-   Create a widget for operation
-create_operation_widget : Table_Ref -> Widget
-create_operation_widget table:Table_Ref display=Display.Always =
-    col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
-    col_names display=Display.Always = Single_Choice values=col_names_options display=display
-    builder = Vector.new_builder
-    fqn = Meta.get_qualified_type_name Column_Operation
-    builder.append (Option "add" fqn+".Add" [["other", col_names]])
-    builder.append (Option "subtract" fqn+".Subtract" [["other", col_names]])
-    builder.append (Option "multiply" fqn+".Multiply" [["other", col_names]])
-    builder.append (Option "divide" fqn+".Divide" [["other", col_names]])
-    builder.append (Option "round" fqn+".Round")
-    builder.append (Option "ceil" fqn+".Ceil")
-    builder.append (Option "floor" fqn+".Floor")
-    builder.append (Option "truncate" fqn+".Truncate")
-    builder.append (Option "date add" fqn+".Date_Add" [["length", col_names]])
-    builder.append (Option "date part" fqn+".Date_Part")
-    builder.append (Option "date diff" fqn+".Date_Diff" [["end", col_names]])
-    builder.append (Option "not" fqn+".Not")
-    builder.append (Option "and" fqn+".And" [["other", col_names]])
-    builder.append (Option "or" fqn+".Or" [["other", col_names]])
-    Single_Choice builder.to_vector display=display
+    ## If input meets a condition return true value other false value.
+    If input:(Text|Integer) condition:Filter_Condition true_value:Any false_value:Any
+
+    ## PRIVATE
+       Implementation of Table calculation.
+       Shorthand for getting a column.
+       Performing an action and setting the result to a new column.
+    evaluate : Table_Ref -> Boolean -> Problem_Behavior -> Any
+    evaluate self table:Table_Ref use_input_name:Boolean on_problems:Problem_Behavior =
+        input_column = table.at self.input
+        derived = case self of
+            Column_Operation.Add _ other -> input_column + (table.resolve other)
+            Column_Operation.Subtract _ other -> input_column - (table.resolve other)
+            Column_Operation.Multiply _ other -> input_column * (table.resolve other)
+            Column_Operation.Divide _ other -> input_column / (table.resolve other)
+            Column_Operation.Round _ precision use_bankers -> input_column.round precision use_bankers
+            Column_Operation.Ceil _ -> input_column.ceil
+            Column_Operation.Floor _ -> input_column.floor
+            Column_Operation.Truncate _ -> input_column.truncate
+            Column_Operation.Date_Add _ length period -> input_column.date_add (table.resolve length) period
+            Column_Operation.Date_Part _ period -> input_column.date_part period
+            Column_Operation.Date_Diff _ end period -> input_column.date_diff (table.resolve end) period
+            Column_Operation.Not _ -> input_column.not
+            Column_Operation.And _ other -> input_column && (table.resolve other)
+            Column_Operation.Or _ other -> input_column || (table.resolve other)
+            Column_Operation.If _ condition true_value false_value ->
+                condition_column =  make_filter_column input_column (table.resolve_condition condition) on_problems
+                condition_column.iif (table.resolve true_value) (table.resolve false_value)
+        if use_input_name then derived.rename input_column.name else derived
+
+    ## PRIVATE
+       Create a widget for operation
+    default_widget : Table_Ref -> Widget
+    default_widget table:Table_Ref display=Display.Always =
+        col_names = Widget_Helpers.make_column_name_selector table
+        col_refs = Widget_Helpers.make_column_ref_by_name_selector table
+        filter_cond = Widget_Helpers.make_filter_condition_selector table
+        builder = Vector.new_builder
+        fqn = Meta.get_qualified_type_name Column_Operation
+        builder.append (Option "add" fqn+".Add" [["input", col_names], ["other", col_refs]])
+        builder.append (Option "subtract" fqn+".Subtract" [["input", col_names], ["other", col_refs]])
+        builder.append (Option "multiply" fqn+".Multiply" [["input", col_names], ["other", col_refs]])
+        builder.append (Option "divide" fqn+".Divide" [["input", col_names], ["other", col_refs]])
+        builder.append (Option "round" fqn+".Round" [["input", col_names]])
+        builder.append (Option "ceil" fqn+".Ceil" [["input", col_names]])
+        builder.append (Option "floor" fqn+".Floor" [["input", col_names]])
+        builder.append (Option "truncate" fqn+".Truncate" [["input", col_names]])
+        builder.append (Option "date add" fqn+".Date_Add" [["input", col_names], ["length", col_refs]])
+        builder.append (Option "date part" fqn+".Date_Part" [["input", col_names]])
+        builder.append (Option "date diff" fqn+".Date_Diff" [["input", col_names], ["end", col_refs]])
+        builder.append (Option "not" fqn+".Not" [["input", col_names]])
+        builder.append (Option "and" fqn+".And" [["input", col_names], ["other", col_refs]])
+        builder.append (Option "or" fqn+".Or" [["input", col_names], ["other", col_refs]])
+        builder.append (Option "if" fqn+".If" [["input", col_names], ["condition", filter_cond], ["true_value", col_refs], ["false_value", col_refs]])
+        Single_Choice builder.to_vector display=display
 
 ## Reference to a column in a table.
 type Column_Ref
