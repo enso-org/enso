@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
 
-import * as backendModule from '../backend'
+import type * as backendModule from '../backend'
 import * as shortcuts from '../shortcuts'
 
 import PageSwitcher, * as pageSwitcher from './pageSwitcher'

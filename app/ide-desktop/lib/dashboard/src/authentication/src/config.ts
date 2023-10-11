@@ -29,7 +29,7 @@ export const ChatUrl = newtype.newtypeConstructor<ChatUrl>()
 export const CLOUD_DOMAIN = 'https://cloud.enso.org'
 
 /** The current environment that we're running in. */
-export const ENVIRONMENT: Environment = CLOUD_ENV ?? 'production'
+export const ENVIRONMENT: Environment = typeof CLOUD_ENV !== 'undefined' ? CLOUD_ENV : 'production'
 
 /** All possible URLs used as the OAuth redirects when running the cloud app. */
 const CLOUD_REDIRECTS = {
@@ -38,7 +38,9 @@ const CLOUD_REDIRECTS = {
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
     development: auth.OAuthRedirect('http://localhost:8080'),
-    production: auth.OAuthRedirect(REDIRECT_OVERRIDE ?? CLOUD_DOMAIN),
+    production: auth.OAuthRedirect(
+        typeof REDIRECT_OVERRIDE !== 'undefined' ? REDIRECT_OVERRIDE : CLOUD_DOMAIN
+    ),
 }
 
 /** All possible API URLs, sorted by environment. */
@@ -102,7 +104,3 @@ export interface Config {
 /** Possible values for the environment/user we're running for and whose infrastructure we're
  * testing against. */
 export type Environment = 'npekin' | 'pbuchu' | 'production'
-
-// ===========
-// === API ===
-// ===========

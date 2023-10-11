@@ -6,6 +6,7 @@
     "playwright.config.*",
     "eslint.config.js",
     "e2e/**/*",
+    "parser-codegen/**/*",
     "node.env.d.ts"
   ],
   "compilerOptions": {

@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as modalProvider from '../../providers/modal'
 
-import * as tableColumn from './tableColumn'
+import type * as tableColumn from './tableColumn'
 
 // =============================
 // === Partial `Props` types ===

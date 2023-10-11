@@ -1,7 +1,7 @@
 /** @file Esbuild config file. */
 import * as path from 'node:path'
 
-import * as esbuild from 'esbuild'
+import type * as esbuild from 'esbuild'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import * as paths from './paths'
