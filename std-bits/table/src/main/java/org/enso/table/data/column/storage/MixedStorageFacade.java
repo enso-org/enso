@@ -63,8 +63,8 @@ public class MixedStorageFacade extends Storage<Object> {
 
   @Override
   public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemBuilder) {
-    return underlyingStorage.runVectorizedUnaryMap(name, problemBuilder);
+      String name, MapOperationProblemAggregator problemAggregator) {
+    return underlyingStorage.runVectorizedUnaryMap(name, problemAggregator);
   }
 
   @Override
@@ -74,14 +74,14 @@ public class MixedStorageFacade extends Storage<Object> {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemBuilder) {
-    return underlyingStorage.runVectorizedBinaryMap(name, argument, problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return underlyingStorage.runVectorizedBinaryMap(name, argument, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder) {
-    return underlyingStorage.runVectorizedZip(name, argument, problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return underlyingStorage.runVectorizedZip(name, argument, problemAggregator);
   }
 
   @Override

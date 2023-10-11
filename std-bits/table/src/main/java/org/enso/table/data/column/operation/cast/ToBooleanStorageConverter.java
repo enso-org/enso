@@ -7,11 +7,12 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.graalvm.polyglot.Context;
 
 public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
-  public Storage<Boolean> cast(Storage<?> storage, CastProblemAggregator problemBuilder) {
+  @Override
+  public Storage<Boolean> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof BoolStorage boolStorage) {
       return boolStorage;
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Boolean.");
     }

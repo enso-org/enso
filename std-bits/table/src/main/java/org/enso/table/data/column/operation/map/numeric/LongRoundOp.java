@@ -26,7 +26,7 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
     }
 
     @Override
-    public Storage<Long> runTernaryMap(AbstractLongStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemAggregator problemBuilder) {
+    public Storage<Long> runTernaryMap(AbstractLongStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemAggregator problemAggregator) {
         if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
             throw new UnexpectedTypeException("a long.");
         }
@@ -58,7 +58,7 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
                                     + ROUND_MAX_LONG
                                     + " (inclusive), but was "
                                     + item;
-                    problemBuilder.reportIllegalArgumentError(msg, i);
+                    problemAggregator.reportIllegalArgumentError(msg, i);
                     isMissing.set(i);
                 }
 

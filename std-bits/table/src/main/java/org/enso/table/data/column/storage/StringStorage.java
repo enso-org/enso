@@ -68,7 +68,7 @@ public final class StringStorage extends SpecializedStorage<String> {
           public BoolStorage runBinaryMap(
               SpecializedStorage<String> storage,
               Object arg,
-              MapOperationProblemAggregator problemBuilder) {
+              MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             Context context = Context.getCurrent();
@@ -88,7 +88,7 @@ public final class StringStorage extends SpecializedStorage<String> {
           public BoolStorage runZip(
               SpecializedStorage<String> storage,
               Storage<?> arg,
-              MapOperationProblemAggregator problemBuilder) {
+              MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             Context context = Context.getCurrent();
@@ -109,7 +109,7 @@ public final class StringStorage extends SpecializedStorage<String> {
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
           protected BoolStorage runUnaryMap(SpecializedStorage<String> storage,
-                                            MapOperationProblemAggregator problemBuilder) {
+                                            MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size; i++) {

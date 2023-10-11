@@ -23,7 +23,7 @@ public abstract class StringBooleanOp extends BinaryMapOperation<String, Special
   }
 
   @Override
-  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemAggregator problemBuilder) {
+  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -61,7 +61,7 @@ public abstract class StringBooleanOp extends BinaryMapOperation<String, Special
   }
 
   @Override
-  public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg, MapOperationProblemAggregator problemBuilder) {
+  public BoolStorage runZip(SpecializedStorage<String> storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     if (arg instanceof StringStorage v) {
       BitSet newVals = new BitSet();

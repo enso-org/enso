@@ -22,6 +22,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     }
   }
 
+  @Override
   public Storage<Double> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof DoubleStorage doubleStorage) {
       return doubleStorage;

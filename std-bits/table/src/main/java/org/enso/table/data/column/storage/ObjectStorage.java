@@ -41,7 +41,7 @@ public sealed class ObjectStorage extends SpecializedStorage<Object> permits Mix
     ops.add(
         new UnaryMapOperation<>(Maps.IS_NOTHING) {
           @Override
-          protected BoolStorage runUnaryMap(S storage, MapOperationProblemAggregator problemBuilder) {
+          protected BoolStorage runUnaryMap(S storage, MapOperationProblemAggregator problemAggregator) {
             Context context = Context.getCurrent();
             BitSet r = new BitSet();
             for (int i = 0; i < storage.size; i++) {

@@ -124,14 +124,14 @@ public abstract class Storage<T> {
 
   /** Runs a vectorized unary operation. */
   public abstract Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemBuilder);
+      String name, MapOperationProblemAggregator problemAggregator);
 
   /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
   public abstract boolean isBinaryOpVectorized(String name);
 
   /** Runs a vectorized operation on this storage, taking one scalar argument. */
   public abstract Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemAggregator);
 
   /* Specifies if the given ternary operation has a vectorized implementation available for this storage.*/
   public boolean isTernaryOpVectorized(String name) {
@@ -143,7 +143,7 @@ public abstract class Storage<T> {
       String name,
       Object argument0,
       Object argument1,
-      MapOperationProblemAggregator problemBuilder) {
+      MapOperationProblemAggregator problemAggregator) {
     throw new IllegalArgumentException("Unsupported ternary operation: " + name);
   }
 
@@ -152,7 +152,7 @@ public abstract class Storage<T> {
    * processing row-by-row.
    */
   public abstract Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator);
 
   /**
    * Runs a unary function on each non-null element in this storage.
@@ -263,7 +263,7 @@ public abstract class Storage<T> {
    * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
-   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param problemAggregator the problem builder to use for the vectorized implementation
    * @param fallback the fallback Enso function to run if vectorized implementation is not
    *     available; it should never raise dataflow errors.
    * @param skipNa whether rows containing missing values should be passed to the fallback function.
@@ -273,15 +273,15 @@ public abstract class Storage<T> {
    */
   public final Storage<?> vectorizedOrFallbackUnaryMap(
       String name,
-      MapOperationProblemAggregator problemBuilder,
+      MapOperationProblemAggregator problemAggregator,
       Function<Object, Value> fallback,
       boolean skipNa,
       StorageType expectedResultType) {
     if (isUnaryOpVectorized(name)) {
-      return runVectorizedUnaryMap(name, problemBuilder);
+      return runVectorizedUnaryMap(name, problemAggregator);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return unaryMap(fallback, skipNa, expectedResultType, problemBuilder);
+      return unaryMap(fallback, skipNa, expectedResultType, problemAggregator);
     }
   }
 
@@ -291,7 +291,7 @@ public abstract class Storage<T> {
    * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
-   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param problemAggregator the problem builder to use for the vectorized implementation
    * @param fallback the fallback Enso function to run if vectorized implementation is not
    *     available; it should never raise dataflow errors.
    * @param argument the argument to pass to each run of the function
@@ -302,16 +302,16 @@ public abstract class Storage<T> {
    */
   public final Storage<?> vectorizedOrFallbackBinaryMap(
       String name,
-      MapOperationProblemAggregator problemBuilder,
+      MapOperationProblemAggregator problemAggregator,
       BiFunction<Object, Object, Object> fallback,
       Object argument,
       boolean skipNulls,
       StorageType expectedResultType) {
     if (isBinaryOpVectorized(name)) {
-      return runVectorizedBinaryMap(name, argument, problemBuilder);
+      return runVectorizedBinaryMap(name, argument, problemAggregator);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return binaryMap(fallback, argument, skipNulls, expectedResultType, problemBuilder);
+      return binaryMap(fallback, argument, skipNulls, expectedResultType, problemAggregator);
     }
   }
 
@@ -321,7 +321,7 @@ public abstract class Storage<T> {
    * <p>Does not take a fallback function.
    *
    * @param name the name of the vectorized operation
-   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param problemAggregator the problem builder to use for the vectorized implementation
    * @param argument0 the first argument to pass to each run of the function
    * @param argument1 the second argument to pass to each run of the function
    * @param skipNulls specifies whether null values on the input should result in a null result
@@ -331,13 +331,13 @@ public abstract class Storage<T> {
    */
   public final Storage<?> vectorizedTernaryMap(
       String name,
-      MapOperationProblemAggregator problemBuilder,
+      MapOperationProblemAggregator problemAggregator,
       Object argument0,
       Object argument1,
       boolean skipNulls,
       StorageType expectedResultType) {
     if (isTernaryOpVectorized(name)) {
-      return runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
+      return runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
     } else {
       throw new IllegalArgumentException("Unsupported ternary operation: " + name);
     }
@@ -349,7 +349,7 @@ public abstract class Storage<T> {
    * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
-   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param problemAggregator the problem builder to use for the vectorized implementation
    * @param fallback the fallback Enso function to run if vectorized implementation is not
    *     available; it should never raise dataflow errors.
    * @param other the other storage to zip with this one
@@ -360,16 +360,16 @@ public abstract class Storage<T> {
    */
   public final Storage<?> vectorizedOrFallbackZip(
       String name,
-      MapOperationProblemAggregator problemBuilder,
+      MapOperationProblemAggregator problemAggregator,
       BiFunction<Object, Object, Object> fallback,
       Storage<?> other,
       boolean skipNulls,
       StorageType expectedResultType) {
     if (isBinaryOpVectorized(name)) {
-      return runVectorizedZip(name, other, problemBuilder);
+      return runVectorizedZip(name, other, problemAggregator);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return zip(fallback, other, skipNulls, expectedResultType, problemBuilder);
+      return zip(fallback, other, skipNulls, expectedResultType, problemAggregator);
     }
   }
 

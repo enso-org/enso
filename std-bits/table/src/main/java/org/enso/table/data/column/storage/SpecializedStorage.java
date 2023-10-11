@@ -82,8 +82,8 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemBuilder) {
-    return ops.runUnaryMap(name, this, problemBuilder);
+      String name, MapOperationProblemAggregator problemAggregator) {
+    return ops.runUnaryMap(name, this, problemAggregator);
   }
 
   @Override
@@ -93,14 +93,14 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemBuilder) {
-    return ops.runBinaryMap(name, this, argument, problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runBinaryMap(name, this, argument, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder) {
-    return ops.runZip(name, this, argument, problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runZip(name, this, argument, problemAggregator);
   }
 
   @Override

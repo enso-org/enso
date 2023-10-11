@@ -225,12 +225,12 @@ public final class MixedStorage extends ObjectStorage {
 
   @Override
   public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemBuilder) {
+      String name, MapOperationProblemAggregator problemAggregator) {
     if (resolveUnaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedUnaryMap(name, problemBuilder);
+      return getInferredStorage().runVectorizedUnaryMap(name, problemAggregator);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedUnaryMap(name, problemBuilder);
+      return super.runVectorizedUnaryMap(name, problemAggregator);
     }
   }
 
@@ -241,12 +241,12 @@ public final class MixedStorage extends ObjectStorage {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemBuilder) {
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
     if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedBinaryMap(name, argument, problemBuilder);
+      return getInferredStorage().runVectorizedBinaryMap(name, argument, problemAggregator);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedBinaryMap(name, argument, problemBuilder);
+      return super.runVectorizedBinaryMap(name, argument, problemAggregator);
     }
   }
 
@@ -260,25 +260,25 @@ public final class MixedStorage extends ObjectStorage {
       String name,
       Object argument0,
       Object argument1,
-      MapOperationProblemAggregator problemBuilder) {
+      MapOperationProblemAggregator problemAggregator) {
     if (resolveTernaryOp(name)
         == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
       return getInferredStorage()
-          .runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
+          .runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
+      return super.runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
     }
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder) {
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
     if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedZip(name, argument, problemBuilder);
+      return getInferredStorage().runVectorizedZip(name, argument, problemAggregator);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedZip(name, argument, problemBuilder);
+      return super.runVectorizedZip(name, argument, problemAggregator);
     }
   }
 

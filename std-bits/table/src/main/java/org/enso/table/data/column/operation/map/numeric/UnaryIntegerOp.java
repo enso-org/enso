@@ -20,7 +20,7 @@ public abstract class UnaryIntegerOp<T, I extends Storage<T>> extends UnaryMapOp
   protected abstract long doOperation(T value);
 
   @Override
-  protected Storage<?> runUnaryMap(I storage, MapOperationProblemAggregator problemBuilder) {
+  protected Storage<?> runUnaryMap(I storage, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     long[] newVals = new long[storage.size()];

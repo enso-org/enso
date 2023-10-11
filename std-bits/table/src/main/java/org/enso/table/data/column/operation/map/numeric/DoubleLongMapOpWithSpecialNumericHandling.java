@@ -18,7 +18,7 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
 
   @Override
   public LongStorage runUnaryMap(
-      DoubleStorage storage, MapOperationProblemAggregator problemBuilder) {
+      DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     long[] out = new long[storage.size()];
     BitSet isMissing = new BitSet();
@@ -31,7 +31,7 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
           out[i] = doOperation(item);
         } else {
           String msg = "Value is " + item;
-          problemBuilder.reportArithmeticError(msg, i);
+          problemAggregator.reportArithmeticError(msg, i);
           isMissing.set(i);
         }
       } else {

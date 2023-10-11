@@ -11,19 +11,20 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
 public class ToDateStorageConverter implements StorageConverter<LocalDate> {
-  public Storage<LocalDate> cast(Storage<?> storage, CastProblemAggregator problemBuilder) {
+  @Override
+  public Storage<LocalDate> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof DateStorage dateStorage) {
       return dateStorage;
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return convertDateTimeStorage(dateTimeStorage, problemBuilder);
+      return convertDateTimeStorage(dateTimeStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Date.");
     }
   }
 
-  public Storage<LocalDate> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemBuilder) {
+  public Storage<LocalDate> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     DateBuilder builder = new DateBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -33,7 +34,7 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
         case LocalDate d -> builder.append(d);
         case ZonedDateTime d -> builder.append(convertDateTime(d));
         default -> {
-          problemBuilder.reportConversionFailure(o);
+          problemAggregator.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       }

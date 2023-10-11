@@ -12,23 +12,23 @@ public class MulOp<T extends Number, I extends Storage<? super T>>
   }
 
   @Override
-  public double doDouble(double a, double b, int ix, MapOperationProblemAggregator problemBuilder) {
+  public double doDouble(double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
     return a * b;
   }
 
   @Override
-  public Long doLong(long a, long b, int ix, MapOperationProblemAggregator problemBuilder) {
+  public Long doLong(long a, long b, int ix, MapOperationProblemAggregator problemAggregator) {
     try {
       return Math.multiplyExact(a, b);
     } catch (ArithmeticException e) {
-      problemBuilder.reportOverflow(IntegerType.INT_64, a, "*", b);
+      problemAggregator.reportOverflow(IntegerType.INT_64, a, "*", b);
       return null;
     }
   }
 
   @Override
   public BigInteger doBigInteger(
-      BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemBuilder) {
+      BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemAggregator) {
     return a.multiply(b);
   }
 }

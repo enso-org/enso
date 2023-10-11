@@ -20,7 +20,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   @Override
-  public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemBuilder) {
+  public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -51,7 +51,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   @Override
-  public Storage<?> runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemBuilder) {
+  public Storage<?> runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     // We could try BitSets for BoolStorage, but it is unclear if they will improve performance due
     // to need for additional allocations. It does not seem worth optimizing this rare usecase
     // currently.

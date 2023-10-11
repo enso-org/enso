@@ -71,19 +71,19 @@ public class ExplodingStorage extends Storage<Long> {
 
   @Override
   public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemBuilder) {
+      String name, MapOperationProblemAggregator problemAggregator) {
     return null;
   }
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemBuilder) {
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
     return null;
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder) {
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
     return null;
   }
 

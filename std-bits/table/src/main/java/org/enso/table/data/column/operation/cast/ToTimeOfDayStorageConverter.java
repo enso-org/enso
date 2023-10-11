@@ -11,6 +11,7 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 
 public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> {
+  @Override
   public Storage<LocalTime> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
       return timeOfDayStorage;

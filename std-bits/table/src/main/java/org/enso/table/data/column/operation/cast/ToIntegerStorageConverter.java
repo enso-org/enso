@@ -24,21 +24,22 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     this.targetType = targetType;
   }
 
-  public Storage<Long> cast(Storage<?> storage, CastProblemAggregator problemBuilder) {
+  @Override
+  public Storage<Long> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof AbstractLongStorage longStorage) {
       if (longStorage.getType().equals(targetType)) {
         return longStorage;
       } else {
-        return convertLongStorage(longStorage, problemBuilder);
+        return convertLongStorage(longStorage, problemAggregator);
       }
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      return convertDoubleStorage(doubleStorage, problemBuilder);
+      return convertDoubleStorage(doubleStorage, problemAggregator);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return convertBoolStorage(boolStorage, problemBuilder);
+      return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-      return convertBigIntegerStorage(bigIntegerStorage, problemBuilder);
+      return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Integer.");
     }

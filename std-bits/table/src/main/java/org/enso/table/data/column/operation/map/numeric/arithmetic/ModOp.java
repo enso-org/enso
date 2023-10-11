@@ -11,18 +11,18 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
   }
 
   @Override
-  public double doDouble(double a, double b, int ix, MapOperationProblemAggregator problemBuilder) {
+  public double doDouble(double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0.0) {
-      problemBuilder.reportDivisionByZero(ix);
+      problemAggregator.reportDivisionByZero(ix);
     }
 
     return a % b;
   }
 
   @Override
-  public Long doLong(long a, long b, int ix, MapOperationProblemAggregator problemBuilder) {
+  public Long doLong(long a, long b, int ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0) {
-      problemBuilder.reportDivisionByZero(ix);
+      problemAggregator.reportDivisionByZero(ix);
       return null;
     }
 
@@ -31,9 +31,9 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public BigInteger doBigInteger(
-      BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemBuilder) {
+      BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemAggregator) {
     if (b.equals(BigInteger.ZERO)) {
-      problemBuilder.reportDivisionByZero(ix);
+      problemAggregator.reportDivisionByZero(ix);
       return null;
     }
 

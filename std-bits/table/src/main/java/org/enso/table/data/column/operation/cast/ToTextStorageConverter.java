@@ -27,45 +27,46 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     targetType = textType;
   }
 
-  public Storage<String> cast(Storage<?> storage, CastProblemAggregator problemBuilder) {
+  @Override
+  public Storage<String> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof StringStorage stringStorage) {
       if (canAvoidCopying(stringStorage)) {
         return retypeStringStorage(stringStorage);
       } else {
-        return adaptStringStorage(stringStorage, problemBuilder);
+        return adaptStringStorage(stringStorage, problemAggregator);
       }
     }
     if (storage instanceof AbstractLongStorage longStorage) {
-      return castLongStorage(longStorage, problemBuilder);
+      return castLongStorage(longStorage, problemAggregator);
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      return castDoubleStorage(doubleStorage, problemBuilder);
+      return castDoubleStorage(doubleStorage, problemAggregator);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return castBoolStorage(boolStorage, problemBuilder);
+      return castBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
-      return castDateTimeStorage(timeOfDayStorage, this::convertTime, problemBuilder);
+      return castDateTimeStorage(timeOfDayStorage, this::convertTime, problemAggregator);
     } else if (storage instanceof DateStorage dateStorage) {
-      return castDateTimeStorage(dateStorage, this::convertDate, problemBuilder);
+      return castDateTimeStorage(dateStorage, this::convertDate, problemAggregator);
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return castDateTimeStorage(dateTimeStorage, this::convertDateTime, problemBuilder);
+      return castDateTimeStorage(dateTimeStorage, this::convertDateTime, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Text.");
     }
   }
 
-  public Storage<String> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemBuilder) {
+  public Storage<String> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(mixedStorage.size(), targetType);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       switch (o) {
         case null -> builder.appendNulls(1);
-        case LocalTime d -> builder.append(adapt(convertTime(d), problemBuilder));
-        case LocalDate d -> builder.append(adapt(convertDate(d), problemBuilder));
-        case ZonedDateTime d -> builder.append(adapt(convertDateTime(d), problemBuilder));
-        case Boolean b -> builder.append(adapt(convertBoolean(b), problemBuilder));
-        default -> builder.append(adapt(o.toString(), problemBuilder));
+        case LocalTime d -> builder.append(adapt(convertTime(d), problemAggregator));
+        case LocalDate d -> builder.append(adapt(convertDate(d), problemAggregator));
+        case ZonedDateTime d -> builder.append(adapt(convertDateTime(d), problemAggregator));
+        case Boolean b -> builder.append(adapt(convertBoolean(b), problemAggregator));
+        default -> builder.append(adapt(o.toString(), problemAggregator));
       }
 
       context.safepoint();

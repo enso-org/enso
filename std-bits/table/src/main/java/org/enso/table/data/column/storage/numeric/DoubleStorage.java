@@ -92,8 +92,8 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
   @Override
   public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemBuilder) {
-    return ops.runUnaryMap(name, this, problemBuilder);
+      String name, MapOperationProblemAggregator problemAggregator) {
+    return ops.runUnaryMap(name, this, problemAggregator);
   }
 
   /** @inheritDoc */
@@ -125,8 +125,8 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemAggregator problemBuilder) {
-    return ops.runBinaryMap(name, this, argument, problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runBinaryMap(name, this, argument, problemAggregator);
   }
 
   @Override
@@ -139,14 +139,14 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
       String name,
       Object argument0,
       Object argument1,
-      MapOperationProblemAggregator problemBuilder) {
-    return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
+      MapOperationProblemAggregator problemAggregator) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemAggregator problemBuilder) {
-    return ops.runZip(name, this, argument, problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runZip(name, this, argument, problemAggregator);
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
@@ -319,7 +319,7 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
             new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
               public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemBuilder) {
+                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
@@ -327,7 +327,7 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
             new UnaryMapOperation<>(Maps.IS_NAN) {
               @Override
               public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemBuilder) {
+                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
                 BitSet nans = new BitSet();
                 Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {
@@ -344,7 +344,7 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
             new UnaryMapOperation<>(Maps.IS_INFINITE) {
               @Override
               public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemBuilder) {
+                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
                 BitSet infintes = new BitSet();
                 Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {

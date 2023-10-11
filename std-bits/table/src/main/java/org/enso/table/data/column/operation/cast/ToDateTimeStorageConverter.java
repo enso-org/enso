@@ -12,19 +12,20 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
-  public Storage<ZonedDateTime> cast(Storage<?> storage, CastProblemAggregator problemBuilder) {
+  @Override
+  public Storage<ZonedDateTime> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof DateTimeStorage dateTimeStorage) {
       return dateTimeStorage;
     } else if (storage instanceof DateStorage dateStorage) {
-      return convertDateStorage(dateStorage, problemBuilder);
+      return convertDateStorage(dateStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Date_Time.");
     }
   }
 
-  public Storage<ZonedDateTime> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemBuilder) {
+  public Storage<ZonedDateTime> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
@@ -34,7 +35,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
         case ZonedDateTime d -> builder.append(d);
         case LocalDate d -> builder.append(convertDate(d));
         default -> {
-          problemBuilder.reportConversionFailure(o);
+          problemAggregator.reportConversionFailure(o);
           builder.appendNulls(1);
         }
       }
