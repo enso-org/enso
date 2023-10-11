@@ -284,9 +284,9 @@ type Table
          Select completely blank columns from a table.
 
              table.select_blank_columns
-    select_blank_columns : Boolean -> Boolean -> Table
-    select_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
-        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank
+    select_blank_columns : Blank_Selector -> Boolean -> Table
+    select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) treat_nans_as_blank=False =
+        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             self.updated_columns new_columns
 
@@ -310,9 +310,9 @@ type Table
          Remove completely blank columns from a table.
 
              table.remove_blank_columns
-    remove_blank_columns : Boolean -> Boolean -> Table
-    remove_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
-        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank invert_selection=True
+    remove_blank_columns : Blank_Selector -> Boolean -> Table
+    remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) treat_nans_as_blank=False =
+        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             self.updated_columns new_columns
 

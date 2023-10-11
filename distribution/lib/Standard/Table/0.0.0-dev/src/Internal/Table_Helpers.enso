@@ -222,7 +222,9 @@ type Table_Column_Helper
         just_indicators = table_with_blank_indicators.select_columns (blanks.map .name) on_problems=Problem_Behavior.Report_Error
 
         # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
-        col_aggregate = if when_any then Aggregate_Column.Maximum _ else Aggregate_Column.Minimum _
+        col_aggregate = case when of
+            Blank_Selector.Any_Cell_Blank -> Aggregate_Column.Maximum _
+            Blank_Selector.All_Cells_Blank -> Aggregate_Column.Minimum _
         aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
 
         aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error

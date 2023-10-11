@@ -52,6 +52,8 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Widget_Helpers
+
+from project.Data.Blank_Selector import Blank_Selector
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
@@ -426,8 +428,8 @@ type Table
 
              table.select_blank_columns
     select_blank_columns : Boolean -> Boolean -> Table ! No_Output_Columns
-    select_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
-        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank
+    select_blank_columns self (when : Boolean = False) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
 
@@ -2010,9 +2012,9 @@ type Table
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    filter_blank_rows : Boolean -> Boolean -> Table
-    filter_blank_rows self when_any=False treat_nans_as_blank=False =
-        Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
+    filter_blank_rows : Blank_Selector -> Boolean -> Table
+    filter_blank_rows self when=Any_Cell_Blank treat_nans_as_blank=False =
+        Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
     ## ALIAS count
        GROUP Standard.Base.Metadata
