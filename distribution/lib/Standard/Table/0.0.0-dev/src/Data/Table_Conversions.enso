@@ -76,6 +76,8 @@ Table.expand_column self column fields=Nothing prefix=Nothing =
      table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
      result = table.expand_to_rows "bbb" .
      # => +---+----+
+          |aaa|bbb |
+          +---+----+
           | 1 | 30 |
           | 1 | 31 |
           | 2 | 40 |

@@ -5,7 +5,7 @@ import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
 
-from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
+from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.mask.OrderMask
