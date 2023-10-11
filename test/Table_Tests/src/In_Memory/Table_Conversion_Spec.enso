@@ -189,9 +189,11 @@ spec =
             table = Table.new [["aaa", [1, 2]], ["bbb", [Map.from_vector [], Map.from_vector []]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . print
 
-        Test.specify "will ??? when fields=[]" <|
+        Test.specify "will error when fields=[]" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
-            table.expand_column "bbb" fields=[] . print
+            r = table.expand_column "bbb" fields=[]
+            r.should_fail_with Illegal_Argument
+            r.catch.message . should_equal "The fields parameter cannot be empty."
 
         Test.specify "Can expand with a prefix" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
