@@ -178,7 +178,7 @@ Language server can expose HTTPS endpoints when configured appropriately:
    - `NETWORK_ENABLE_HTTPS=true`
 2. User should provide appropriate secure configuration. Currently supported are
    PKCS12 bundle with password and certificate with private key. Depending on
-   the configuration present, either choice will be present.
+   the configuration present, either choice will be sufficient.
 
 If a project-manager is started with `ENSO_HTTPS_PUBLIC_CERTIFICATE` and
 `ENSO_HTTPS_PRIVATE_KEY` env variables, SSL context will be created from a
