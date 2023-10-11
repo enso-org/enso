@@ -5,7 +5,7 @@ import { inject, provide, type InjectionKey, type Ref } from 'vue'
 export interface VisualizationConfig {
   /** Possible visualization types that can be switched to. */
   background?: string
-  readonly types: VisualizationIdentifier[]
+  readonly types: readonly VisualizationIdentifier[]
   readonly currentType: VisualizationIdentifier
   readonly isCircularMenuVisible: boolean
   readonly nodeSize: Vec2

@@ -1,3 +1,6 @@
+import * as vue from 'vue'
+import { reactive, ref, type DefineComponent, type PropType } from 'vue'
+
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { defineKeybinds } from '@/util/shortcuts'
@@ -18,8 +21,6 @@ import Compiler from '@/workers/visualizationCompiler?worker'
 import { defineStore } from 'pinia'
 import type { VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import * as vue from 'vue'
-import { type DefineComponent } from 'vue'
 
 /** A module containing the default visualization function. */
 const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'
@@ -52,7 +53,7 @@ window.__visualizationModules = moduleCache
 
 export type Visualization = DefineComponent<
   // Props
-  { data: { type: vue.PropType<unknown>; required: true } },
+  { data: { type: PropType<unknown>; required: true } },
   {},
   unknown,
   {},
@@ -89,23 +90,73 @@ const dynamicVisualizationPaths: Record<string, string> = {
 }
 
 export const useVisualizationStore = defineStore('visualization', () => {
-  // TODO [sb]: Figure out how to list visualizations defined by a project.
   const imports = { ...builtinVisualizationImports }
   const paths = { ...dynamicVisualizationPaths }
   let cache: Record<string, VisualizationModule> = {}
-  const builtinTypes = [...Object.keys(imports), ...Object.keys(paths)]
-  const types = builtinTypes.map(
-    (name): VisualizationIdentifier => ({
-      module: { kind: 'Builtin' },
-      name,
-    }),
-  )
   let worker: Worker | undefined
   let workerMessageId = 0
   const workerCallbacks: Record<
     string,
     { resolve: (result: VisualizationModule) => void; reject: () => void }
   > = {}
+  const allVisualizations = [
+    ...Object.keys(imports),
+    ...Object.keys(paths),
+  ].map<VisualizationIdentifier>((name) => ({
+    module: { kind: 'Builtin' },
+    name,
+  }))
+  const visualizationsForType = reactive(new Map<string, readonly VisualizationIdentifier[]>())
+  const visualizationsForAny = ref<readonly VisualizationIdentifier[]>([])
+
+  Promise.all([
+    ...Object.values(builtinVisualizationImports).map((importer) => importer()),
+    ...Object.values(dynamicVisualizationPaths).map(compile),
+  ])
+    .then((modules) =>
+      Object.fromEntries(
+        modules.map((module) => [
+          module.name,
+          new Set(
+            module.inputType == null
+              ? ['Any']
+              : module.inputType.split('|').map((type) => type.trim()),
+          ),
+        ]),
+      ),
+    )
+    .then((moduleInputTypes) => {
+      const types = Object.values(moduleInputTypes).flatMap((set) => Array.from(set))
+      for (const type of types) {
+        if (visualizationsForType.has(type)) {
+          continue
+        }
+        const matchingTypes = Object.entries(moduleInputTypes).flatMap<VisualizationIdentifier>(
+          ([name, inputTypes]) =>
+            inputTypes.has(type) || inputTypes.has('Any')
+              ? [
+                  {
+                    module: { kind: 'Builtin' },
+                    name,
+                  },
+                ]
+              : [],
+        )
+        if (type === 'Any') {
+          visualizationsForAny.value = matchingTypes
+        }
+        visualizationsForType.set(type, matchingTypes)
+      }
+    })
+
+  function types(type: string | undefined) {
+    const ret =
+      type === undefined
+        ? allVisualizations
+        : visualizationsForType.get(type) ?? visualizationsForAny.value
+    console.log(type, ret, allVisualizations, visualizationsForType, visualizationsForAny)
+    return ret
+  }
 
   function register(module: VisualizationModule) {
     console.log(`registering visualization: name=${module.name}, inputType=${module.inputType}`)
