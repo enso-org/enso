@@ -31,8 +31,8 @@ const scaledSelectionAnchor = computed(() => selectionAnchor.value?.scale(naviga
     v-on..="selection.events"
   >
     <slot
-      :scaled-mouse-pos="scaledMousePos"
-      :scaled-selection-anchor="scaledSelectionAnchor"
+      :scaledMousePos="scaledMousePos"
+      :scaledSelectionAnchor="scaledSelectionAnchor"
       :navigator="navigator"
     ></slot>
   </div>
