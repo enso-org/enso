@@ -1,11 +1,11 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import project.Data.Table.Table
+import project.Data.Column.Column
 import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
+import project.Internal.Java_Exports
 
 ## PRIVATE
 expand_column table column fields prefix =
@@ -32,22 +32,46 @@ expand_column table column fields prefix =
 create_table_from_objects value:Convertible_To_Rows fields =
     len = value.length
 
-    ## For every record, get the values into a Map.
-    column_map = 0.up_to len . fold Map.empty current-> idx->
-        v = ((value.getter idx):Convertible_To_Columns)
-        field_names = fields.if_nothing (v.field_names)
-        field_names.fold current c->f->
-            data = c.get f (Vector.new_builder len)
-            data.length.up_to idx . each _-> data.append Nothing
-            data.append (v.getter f)
-            c.insert f data
+    preset_fields = fields.is_nothing.not
+    initial_map = if preset_fields.not then Map.empty else
+        Map.from_vector (fields.map field_name-> [field_name, Java_Exports.make_inferred_builder len]) error_on_duplicates=False
 
-    used_fields = fields.if_nothing column_map.keys
+    # This is used to ensure that field names in the resulting table are in the order they were encountered.
+    discovered_field_names = Vector.new_builder
 
-    ## Convert Builders to Vectors and fill as needed.
-    used_values = used_fields.map f->
-        data = column_map.get f (Vector.new_builder len)
-        data.length.up_to len . each _-> data.append Nothing
-        data.to_vector
+    builder_map = case preset_fields of
+        # Just get the queried keys from each object.
+        True ->
+            0.up_to len . each idx->
+                v = (value.getter idx).to Convertible_To_Columns
+                initial_map.each_with_key field_name-> builder->
+                    builder.append (v.getter field_name)
 
-    Table.new (used_fields.zip used_values)
+            initial_map
+
+        # In this mode we are discovering the key set as we go.
+        False ->
+            0.up_to len . fold initial_map current_map-> idx->
+                v = (value.getter idx).to Convertible_To_Columns
+                v.field_names.fold current_map inner_current_map-> f->
+                    existing_builder = inner_current_map.get f Nothing
+                    builder = existing_builder.if_nothing <|
+                        discovered_field_names.append f
+                        Java_Exports.make_inferred_builder len
+                    builder.fillUpToSize idx
+                    builder.append (v.getter f)
+                    new_map = if existing_builder.is_nothing.not then inner_current_map else
+                        inner_current_map.insert f builder
+                    new_map
+
+    # Seal all builders and create columns
+    column_map = builder_map.map_with_key name-> builder->
+        builder.fillUpToSize len
+        Column.from_storage name builder.seal
+
+    column_map.if_not_error <|
+        # Create a vector of columns, preserving the original order if it was specified.
+        columns = case preset_fields of
+            True  -> fields.distinct.map column_map.get
+            False -> discovered_field_names.to_vector.map column_map.get
+        Table.new columns

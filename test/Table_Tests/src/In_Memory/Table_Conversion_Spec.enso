@@ -55,6 +55,10 @@ spec =
             expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23]]
             Table.from_objects (uniform_json.at 0) . should_equal expected
 
+        Test.specify "works fine even if requested fields are duplicated" <|
+            expected = Table.from_rows ["first", "last"] [["Mary", "Smith"]]
+            Table.from_objects (uniform_json.at 0) ["first", "last", "first", "first"] . should_equal expected
+
     Test.group "from_objects with uniform JSON vector" <|
         Test.specify "Generates a table from a vector of JSON objects" <|
             expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23], ["Joe", "Burton", 34]]
