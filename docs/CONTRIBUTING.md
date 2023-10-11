@@ -763,8 +763,10 @@ Below are options used by the Language Server:
   value is 8080.
 - `--data-port <port>`: Data port for visualization protocol. Default value
   is 8081.
-- `--secure-rpc-port <port>`: (optional) Secure RPC port for processing all incoming connections.
-- `--secure-data-port <port>`: (optional) Secure data port for visualization protocol.
+- `--secure-rpc-port <port>`: (optional) Secure RPC port for processing all
+  incoming connections.
+- `--secure-data-port <port>`: (optional) Secure data port for visualization
+  protocol.
 
 To run the Language Server on 127.0.0.1:8080 type:
 
