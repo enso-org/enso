@@ -379,7 +379,7 @@ function makeAbstractType(
     ident,
     tsf.createModuleBlock([
       makeClass(
-        [modifiers.abstract],
+        [modifiers.export, modifiers.abstract],
         baseIdent,
         [forwardToSuper(cursorIdent, support.Cursor, [modifiers.protected])],
         id,

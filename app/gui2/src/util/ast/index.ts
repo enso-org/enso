@@ -1,20 +1,39 @@
+import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
-import { LazyObject } from '@/util/parserSupport'
+import { parse } from '@/util/ffi'
+import { LazyObject, debug, validateSpans } from '@/util/parserSupport'
 import { assert } from '../assert'
-import { parseEnso2, parseEnsoLine } from '../ffi'
+
+export { Ast }
+
+export function parseEnso(code: string): Ast.Tree {
+  const blob = parse(code)
+  return Ast.deserializeTree(blob.buffer)
+}
+
+export function parseEnsoLine(code: string): Ast.Tree {
+  const block = parseEnso(code)
+  assert(block.type === Tree.Type.BodyBlock)
+  const statemets = block.statements[Symbol.iterator]()
+  const firstLine = statemets.next()
+  assert(!firstLine.done)
+  assert(!!statemets.next().done)
+  assert(firstLine.value.expression != null)
+  return firstLine.value.expression
+}
 
 // TODO[ao] documentation here
 
 export function readAstSpan(node: Tree, code: string): string {
-  const leftOffsetbegin = node.whitespaceStart
-  const leftOffsetEnd = leftOffsetbegin + node.whitespaceLength
-  const end = leftOffsetEnd + node.childrenCodeLength
+  const leftOffsetbegin = node.whitespaceStartInCodeParsed
+  const leftOffsetEnd = leftOffsetbegin + node.whitespaceLengthInCodeParsed
+  const end = leftOffsetEnd + node.childrenLengthInCodeParsed
   return code.substring(leftOffsetEnd, end)
 }
 
 export function readTokenSpan(token: Token, code: string): string {
-  const begin = token.codeStart
-  const end = begin + token.codeLength
+  const begin = token.startInCodeBuffer
+  const end = begin + token.lengthInCodeBuffer
   return code.substring(begin, end)
 }
 
@@ -49,12 +68,9 @@ export function* childrenAstNodes(obj: unknown): Generator<Tree> {
 
 export function* astContainingChar(charIndex: number, root: Tree): Generator<Tree> {
   for (const child of childrenAstNodes(root)) {
-    console.log(`checking ${child.type}`)
-    const begin = child.whitespaceStart + child.whitespaceLength
-    const end = begin + child.childrenCodeLength
-    console.log(begin, end, charIndex)
+    const begin = child.whitespaceStartInCodeParsed + child.whitespaceLengthInCodeParsed
+    const end = begin + child.childrenLengthInCodeParsed
     if (charIndex >= begin && charIndex < end) {
-      console.log('entering')
       yield* astContainingChar(charIndex, child)
     }
   }
@@ -64,27 +80,39 @@ export function* astContainingChar(charIndex: number, root: Tree): Generator<Tre
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
+  test.each([
+    ' foo bar\n',
+    'Data.read\n2 + 2',
+    'Data.read File\n2 + 3',
+    'Data.read "File"\n2 + 3',
+    'foo bar=baz',
+    '2\n + 3\n + 4',
+  ])("AST spans of '%s' are valid", (input) => {
+    const tree = parseEnso(input)
+    const endPos = validateSpans(tree)
+    expect(endPos).toStrictEqual(input.length)
+  })
+
   test("Reading AST node's code", () => {
     const code = 'Data.read File\n2 + 3'
-    const ast = parseEnso2(code)
+    const ast = parseEnso(code)
     expect(readAstSpan(ast, code)).toStrictEqual(code)
     assert(ast.type === Tree.Type.BodyBlock)
     const lines = Array.from(ast.statements)
 
     assert(lines[0]?.expression != null)
-    console.log(lines[0].expression.childrenCodeLength)
     expect(readAstSpan(lines[0].expression, code)).toStrictEqual('Data.read File')
     assert(lines[0].expression.type === Tree.Type.App)
     expect(readAstSpan(lines[0].expression.func, code)).toStrictEqual('Data.read')
     expect(readAstSpan(lines[0].expression.arg, code)).toStrictEqual('File')
 
     assert(lines[1]?.expression != null)
-    // expect(readAstSpan(lines[1].expression, code)).toStrictEqual('2 + 3')
+    expect(readAstSpan(lines[1].expression, code)).toStrictEqual('2 + 3')
     assert(lines[1].expression.type === Tree.Type.OprApp)
     assert(lines[1].expression.lhs != null)
     assert(lines[1].expression.rhs != null)
     assert(lines[1].expression.opr.ok)
-    // expect(readAstSpan(lines[1].expression.lhs, code)).toStrictEqual('2')
+    expect(readAstSpan(lines[1].expression.lhs, code)).toStrictEqual('2')
     expect(readTokenSpan(lines[1].expression.opr.value, code)).toStrictEqual('+')
     expect(readAstSpan(lines[1].expression.rhs, code)).toStrictEqual('3')
   })
@@ -124,7 +152,7 @@ if (import.meta.vitest) {
       'Data.read file=foo',
       [
         { type: Tree.Type.OprApp, repr: 'Data.read' },
-        { type: Tree.Type.Ident, repr: 'Dat' },
+        { type: Tree.Type.Ident, repr: 'foo' },
       ],
     ],
   ])("Reading children of '%s'", (code, expected) => {
@@ -176,8 +204,17 @@ if (import.meta.vitest) {
         { type: Tree.Type.BodyBlock, repr: 'Data.read foo' },
       ],
     ],
+    [
+      'Data.',
+      4,
+      [
+        { type: Tree.Type.OprApp, repr: 'Data.' },
+        { type: Tree.Type.OprSectionBoundary, repr: 'Data.' },
+        { type: Tree.Type.BodyBlock, repr: 'Data.' },
+      ],
+    ],
   ])("Reading AST from code '%s' and position %i", (code, position, expected) => {
-    const ast = parseEnso2(code)
+    const ast = parseEnso(code)
     const astAtPosition = Array.from(astContainingChar(position, ast))
     const resultWithExpected = astAtPosition.map((ast, i) => {
       return { ast, expected: expected[i] }

@@ -1,8 +1,8 @@
 import { Tree, type MultipleOperatorError, type Token } from '@/generated/ast'
-import { readAstSpan, readTokenSpan } from '@/util/ast'
+import { parseEnso, parseEnsoLine, readAstSpan, readTokenSpan } from '@/util/ast'
 import type { Result } from '@/util/result'
 import { assert } from '../assert'
-import { parseEnso2, parseEnsoLine } from '../ffi'
+import { debug } from '../parserSupport'
 
 export type GeneralOperand =
   | Operand
@@ -113,15 +113,24 @@ if (import.meta.vitest) {
     { code: '2 + 3', result: ['2', '+', '3'] },
     { code: '2 + 4 + 5', result: ['2 + 4', '+', '5'] },
     { code: '2\n + 3\n + 4', result: ['2', '+', '3', '+', '4'] },
-    { code: '2 + 3\n + 4\n * 5', result: ['2 + 3', '+', '4', '*', '5'] },
+    { code: '2\n - 4\n * 5', result: ['2', '-', '4', '*', '5'] },
+    { code: 'foo . bar\n . baz', result: ['foo . bar', '.', 'baz'] },
+    // See https://github.com/orgs/enso-org/discussions/8021
+    // { code: '2 + 3\n + 4', result: ['2 + 3', '+', '4'] },
+    { code: '+ 2', result: [null, '+', '2'] },
+    { code: '2 +', result: ['2', '+', null] },
+    { code: '.foo', result: [null, '.', 'foo'] },
+    { code: 'foo.', result: ['foo', '.', null] },
   ])('Generalized infix from $code', ({ code, result }) => {
-    const ast = parseEnso2(code)
-    assert(ast.type === Tree.Type.BodyBlock)
-    const oprAst = Array.from(ast.statements)[0]?.expression
-    assert(oprAst != null)
-    assert(oprAst.type === Tree.Type.OprApp || oprAst.type === Tree.Type.OperatorBlockApplication)
-    const opr = new GeneralOprApp(oprAst)
-    expect(opr.readSpansOfCompnents(code)).toStrictEqual(result)
+    let ast = parseEnsoLine(code)
+    assert(ast != null)
+    if (ast.type == Tree.Type.OprSectionBoundary) {
+      ast = ast.ast
+    }
+    assert(ast.type === Tree.Type.OprApp || ast.type === Tree.Type.OperatorBlockApplication)
+    // console.log(debug(ast))
+    const opr = new GeneralOprApp(ast)
+    expect(Array.from(opr.readSpansOfCompnents(code))).toStrictEqual(result)
   })
 
   test.each([
@@ -155,14 +164,15 @@ if (import.meta.vitest) {
         { type: 'ast', repr: '4' },
       ],
     },
-    {
-      code: '2 + 3\n + 4',
-      result: [
-        { type: 'ast', repr: '2' },
-        { type: 'ast', repr: '3' },
-        { type: 'ast', repr: '4' },
-      ],
-    },
+    // See https://github.com/orgs/enso-org/discussions/8021
+    // {
+    //   code: '2 + 3\n + 4',
+    //   result: [
+    //     { type: 'ast', repr: '2' },
+    //     { type: 'ast', repr: '3' },
+    //     { type: 'ast', repr: '4' },
+    //   ],
+    // },
     {
       code: '2\n * 3\n + 4',
       result: [
@@ -177,13 +187,14 @@ if (import.meta.vitest) {
         { type: 'ast', repr: '5' },
       ],
     },
-    {
-      code: '2 * 3\n + 4',
-      result: [
-        { type: 'ast', repr: '2 * 3' },
-        { type: 'ast', repr: '4' },
-      ],
-    },
+    // https://github.com/orgs/enso-org/discussions/8021
+    // {
+    //   code: '2 * 3\n + 4',
+    //   result: [
+    //     { type: 'ast', repr: '2 * 3' },
+    //     { type: 'ast', repr: '4' },
+    //   ],
+    // },
     {
       code: 'foo bar',
       result: [{ type: 'ast', repr: 'foo bar' }],
@@ -193,25 +204,36 @@ if (import.meta.vitest) {
       opr: '+',
       result: [{ type: 'ast', repr: '2 * 3' }],
     },
-  ])('Getting left-associative operator operands in $code', ({ code, opr, result }) => {
-    const ast = parseEnsoLine(code)
-    const actual = operandsOfLeftAssocOprChain(ast, code, opr)
-    const actualWithExpected = Array.from(actual, (operand, i) => {
-      return { actual: operand, expected: result[i] }
-    })
-    for (const { actual, expected } of actualWithExpected) {
-      if (expected === null) {
-        expect(actual).toBeNull()
-      } else {
-        expect(actual?.type).toStrictEqual(expected?.type)
-        if (actual?.type === 'ast') {
-          expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
+  ])(
+    'Getting left-associative operator operands in $code',
+    ({
+      code,
+      opr,
+      result,
+    }: {
+      code: string
+      opr?: string
+      result: { type: string; repr: string; statemets?: number }[]
+    }) => {
+      const ast = parseEnsoLine(code)
+      const actual = operandsOfLeftAssocOprChain(ast, code, opr)
+      const actualWithExpected = Array.from(actual, (operand, i) => {
+        return { actual: operand, expected: result[i] }
+      })
+      for (const { actual, expected } of actualWithExpected) {
+        if (expected === null) {
+          expect(actual).toBeNull()
         } else {
-          assert(actual?.type == 'partOfOprBlockApp')
-          expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
-          expect(actual.statements).toStrictEqual(expected?.statemets)
+          expect(actual?.type).toStrictEqual(expected?.type)
+          if (actual?.type === 'ast') {
+            expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
+          } else {
+            assert(actual?.type == 'partOfOprBlockApp')
+            expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
+            expect(actual.statements).toStrictEqual(expected?.statemets)
+          }
         }
       }
-    }
-  })
+    },
+  )
 }

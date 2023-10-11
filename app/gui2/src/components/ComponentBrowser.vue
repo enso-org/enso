@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { default as CBInput } from '@/components/ComponentBrowser/CBInput.vue'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { Input } from '@/components/ComponentBrowser/input'
@@ -49,6 +48,7 @@ const input = new Input()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
+  console.log('NEW FILTERING', input.filter.value)
   return new Filtering({
     ...input.filter.value,
     ...filterFlags.value,
@@ -58,18 +58,23 @@ const currentFiltering = computed(() => {
 watch(currentFiltering, selectLastAfterRefresh)
 
 function readInputFieldSelection() {
-  console.log('New cursor position from input field')
   if (inputField.value != null) {
-    input.cursorPosition.value = inputField.value.selectionStart ?? 0
+    input.selection.value = {
+      start: inputField.value.selectionStart ?? 0,
+      end: inputField.value.selectionEnd ?? 0,
+    }
   }
 }
 
-watch(input.cursorPosition, (newPos) => {
-  console.log('New cursor position', newPos)
-  if (inputField.value != null) {
-    console.log('Setting selection range')
-    inputField.value.setSelectionRange(newPos, newPos)
-  }
+watch(input.selection, (newPos) => {
+  if (inputField.value == null) return
+  // Do nothing if boundaries didn't change. We don't want to affect selection dir.
+  if (
+    inputField.value.selectionStart == newPos.start &&
+    inputField.value.selectionEnd == newPos.end
+  )
+    return
+  inputField.value.setSelectionRange(newPos.start, newPos.end)
 })
 
 function handleDefocus(e: FocusEvent) {
@@ -307,7 +312,7 @@ function handleKeydown(e: KeyboardEvent) {
       <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
     <div class="CBInput">
-      <input ref="inputField" v-model="input.code.value" @select="readInputFieldSelection" />
+      <input ref="inputField" v-model="input.code.value" @keyup="readInputFieldSelection" />
     </div>
   </div>
 </template>

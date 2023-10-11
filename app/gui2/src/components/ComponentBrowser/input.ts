@@ -1,7 +1,6 @@
-import * as Ast from '@/generated/ast'
-import { astContainingChar, readAstSpan, readTokenSpan } from '@/util/ast'
+import { Ast, astContainingChar, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp, operandsOfLeftAssocOprChain } from '@/util/ast/opr'
-import { parseEnso2, parseEnsoLine } from '@/util/ffi'
+import { debug } from '@/util/parserSupport'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { Filter } from './filtering'
@@ -10,8 +9,8 @@ function asQualifiedName(accessorChain: GeneralOprApp, code: string): QualifiedN
   const operandsAsIdents = Array.from(
     accessorChain.operandsOfLeftAssocOprChain(code, '.'),
     (operand) =>
-      operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand : null,
-  )
+      operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+  ).slice(0, -1)
   if (operandsAsIdents.some((optIdent) => optIdent == null)) return null
   const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
   const rawQn = segments.join('.')
@@ -40,20 +39,20 @@ type EditingContext =
 
 export class Input {
   readonly code: Ref<string>
-  readonly cursorPosition: Ref<number>
+  readonly selection: Ref<{ start: number; end: number }>
   readonly context: ComputedRef<EditingContext>
   readonly filter: ComputedRef<Filter>
 
   constructor() {
     this.code = ref('')
-    this.cursorPosition = ref(0)
+    this.selection = ref({ start: 0, end: 0 })
 
     this.context = computed(() => {
       const input = this.code.value
-      const cursorPosition = this.cursorPosition.value
+      const cursorPosition = this.selection.value.start
       if (cursorPosition === 0) return { type: 'insert', position: 0 }
       const editedPart = cursorPosition - 1
-      const inputAst = parseEnso2(input)
+      const inputAst = parseEnso(input)
       const editedAst = astContainingChar(editedPart, inputAst)
       const leaf = editedAst.next()
       if (leaf.done) return { type: 'insert', position: cursorPosition }
@@ -62,7 +61,7 @@ export class Input {
           return {
             type: 'changeIdentifier',
             identifier: leaf.value,
-            ...Input.readAccessorChain(editedAst.next(), input),
+            ...Input.readAccessorChain(editedAst.next(), input, leaf.value),
           }
         case Ast.Tree.Type.TextLiteral:
         case Ast.Tree.Type.Number:
@@ -71,7 +70,7 @@ export class Input {
           return {
             type: 'insert',
             position: cursorPosition,
-            ...Input.readAccessorChain(editedAst.next(), input),
+            ...Input.readAccessorChain(leaf, input),
           }
       }
     })
@@ -84,7 +83,7 @@ export class Input {
         ctx.accessorChain != null &&
         ctx.accessorChain.lhs != null
       ) {
-        const qn = asQualifiedName(ctx.accessorChain.lhs, code)
+        const qn = asQualifiedName(ctx.accessorChain, code)
         if (qn != null) return { qualifiedNamePattern: qn }
       }
       return {}
@@ -95,7 +94,10 @@ export class Input {
       const ctx = this.context.value
       const filter = { ...qualifiedNameFilter.value }
       if (ctx.type === 'changeIdentifier') {
-        filter.pattern = readAstSpan(ctx.identifier, code)
+        const start =
+          ctx.identifier.whitespaceStartInCodeParsed + ctx.identifier.whitespaceLengthInCodeParsed
+        const end = this.selection.value.end
+        filter.pattern = code.substring(start, end)
       } else if (ctx.type === 'changeLiteral') {
         filter.pattern = readAstSpan(ctx.literal, code)
       }
@@ -106,6 +108,7 @@ export class Input {
   private static readAccessorChain(
     leafParent: IteratorResult<Ast.Tree>,
     code: string,
+    editedAst?: Ast.Tree,
   ): {
     accessorChain?: GeneralOprApp
   } {
@@ -115,9 +118,14 @@ export class Input {
       case Ast.Tree.Type.OperatorBlockApplication: {
         const generalized = new GeneralOprApp(leafParent.value)
         const opr = generalized.lastOpr()
-        if (opr && opr.ok && readTokenSpan(opr.value, code) === '.')
-          return { accessorChain: generalized }
-        else return {}
+        if (opr == null || !opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
+        // The filtering should be affected only when we edit right part of '.' application.
+        else if (
+          editedAst != null &&
+          opr.value.startInCodeBuffer > editedAst.whitespaceStartInCodeParsed
+        )
+          return {}
+        else return { accessorChain: generalized }
       }
       default:
         return {}
@@ -164,8 +172,8 @@ if (import.meta.vitest) {
       expFiltering: { pattern?: string; qualifiedNamePattern?: string },
     ) => {
       const input = new Input()
-      input.code.value = ''
-      input.cursorPosition.value = cursorPosition
+      input.code.value = code
+      input.selection.value = { start: cursorPosition, end: cursorPosition }
       const context = input.context.value
       const filter = input.filter.value
       expect(context.type).toStrictEqual(expContext.type)
@@ -174,7 +182,7 @@ if (import.meta.vitest) {
           expect(context.position).toStrictEqual(expContext.position)
           expect(
             context.accessorChain != null
-              ? context.accessorChain.readSpansOfCompnents(code)
+              ? Array.from(context.accessorChain.readSpansOfCompnents(code))
               : undefined,
           ).toStrictEqual(expContext.accessorChain)
           break
@@ -182,7 +190,7 @@ if (import.meta.vitest) {
           expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
           expect(
             context.accessorChain != null
-              ? context.accessorChain.readSpansOfCompnents(code)
+              ? Array.from(context.accessorChain.readSpansOfCompnents(code))
               : undefined,
           ).toStrictEqual(expContext.accessorChain)
           break
