@@ -5,8 +5,10 @@ import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.util.{Success, Try}
 
 /** Implements the [[LockManager]] interface by using a
   * [[RuntimeServerConnectionEndpoint]] and delegating the locking requests to a
@@ -46,9 +48,9 @@ class ConnectedLockManager extends LockManager {
       )
     )
     response match {
-      case Api.LockAcquired(lockId) =>
+      case Success(Api.LockAcquired(lockId)) =>
         WrappedConnectedLock(lockId)
-      case Api.LockAcquireFailed(errorMessage) =>
+      case Success(Api.LockAcquireFailed(errorMessage)) =>
         throw new LockOperationFailed(errorMessage)
       case unexpected =>
         throw new LockOperationFailed(s"Unexpected response [$unexpected].")
@@ -68,11 +70,11 @@ class ConnectedLockManager extends LockManager {
       )
     )
     response match {
-      case Api.LockAcquired(lockId) =>
+      case Success(Api.LockAcquired(lockId)) =>
         Some(WrappedConnectedLock(lockId))
-      case Api.CannotAcquireImmediately() =>
+      case Success(Api.CannotAcquireImmediately()) =>
         None
-      case Api.LockAcquireFailed(errorMessage) =>
+      case Success(Api.LockAcquireFailed(errorMessage)) =>
         throw new LockOperationFailed(errorMessage)
       case unexpected =>
         throw new LockOperationFailed(s"Unexpected response [$unexpected].")
@@ -81,17 +83,17 @@ class ConnectedLockManager extends LockManager {
 
   private def sendRequestAndWaitForResponse(
     request: Runtime.ApiRequest
-  ): Runtime.ApiResponse = {
+  ): Try[Runtime.ApiResponse] = {
     val future = getEndpoint.sendRequest(request)
-    Await.result(future, Duration.Inf)
+    Try(Await.result(future, Duration(3, TimeUnit.SECONDS)))
   }
 
   private case class WrappedConnectedLock(lockId: UUID) extends Lock {
     override def release(): Unit = sendRequestAndWaitForResponse(
       Runtime.Api.ReleaseLockRequest(lockId)
     ) match {
-      case Api.LockReleased() =>
-      case Api.LockReleaseFailed(errorMessage) =>
+      case Success(Api.LockReleased()) =>
+      case Success(Api.LockReleaseFailed(errorMessage)) =>
         throw new LockOperationFailed(errorMessage)
       case unexpected =>
         throw new LockOperationFailed(s"Unexpected response [$unexpected].")
