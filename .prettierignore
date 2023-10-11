@@ -28,6 +28,8 @@ test/**/data
 # Generated files
 app/ide-desktop/lib/client/electron-builder-config.json
 app/ide-desktop/lib/content-config/src/config.json
+app/ide-desktop/lib/dashboard/playwright-report/
+app/ide-desktop/lib/dashboard/playwright/.cache/
 app/gui/view/documentation/assets/stylesheet.css
 app/gui2/rust-ffi/pkg
 Cargo.lock

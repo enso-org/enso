@@ -6,7 +6,8 @@ import * as reactDOM from 'react-dom/client'
 
 import * as detect from 'enso-common/src/detect'
 
-import App, * as app from './components/app'
+import type * as app from './components/app'
+import App from './components/app'
 
 // =================
 // === Constants ===
@@ -39,7 +40,7 @@ function run(props: app.AppProps) {
         // via the browser.
         const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
         reactDOM.createRoot(root).render(
-            IS_DEV_MODE ? (
+            detect.IS_DEV_MODE ? (
                 <React.StrictMode>
                     <App {...props} />
                 </React.StrictMode>

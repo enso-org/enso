@@ -1,27 +1,27 @@
 //! Representation of datatype definitions in the Java typesystem.
 
+mod from_meta;
+#[cfg(feature = "graphviz")]
+mod graphviz;
+mod implementation;
+
+use crate::data_structures::VecMap;
+use derive_more::Index;
+use derive_more::IndexMut;
+use std::collections::BTreeMap;
+
+
 
 // ==============
 // === Export ===
 // ==============
 
 pub mod bincode;
-
-
-
-mod from_meta;
-#[cfg(feature = "graphviz")]
-mod graphviz;
-mod implementation;
 pub mod syntax;
 pub mod transform;
 
-use crate::data_structures::VecMap;
-use derive_more::Index;
-use derive_more::IndexMut;
 pub use from_meta::from_meta;
 pub use implementation::implement as to_syntax;
-use std::collections::BTreeMap;
 
 
 
@@ -46,8 +46,6 @@ pub const STRING: &str = "String";
 pub type FieldId = crate::data_structures::Id<Field>;
 /// Identifies a Java class within a `TypeGraph`.
 pub type ClassId = crate::data_structures::vecmap::Key<Class>;
-/// Identifier for a class whose value hasn't been set yet.
-pub type UnboundClassId = crate::data_structures::vecmap::UnboundKey<Class>;
 
 
 
