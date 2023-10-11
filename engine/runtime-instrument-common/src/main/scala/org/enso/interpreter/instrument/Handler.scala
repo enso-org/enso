@@ -136,6 +136,10 @@ final class Handler {
       if (ctx != null) {
         val cmd = CommandFactory.createCommand(request)
         ctx.commandProcessor.invoke(cmd)
+      } else {
+        throw new IllegalStateException(
+          "received a request to handle with interpreter context not being initialized"
+        )
       }
   }
 }
