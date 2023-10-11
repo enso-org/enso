@@ -13,7 +13,7 @@ split_to_columns : Table -> Text | Integer -> Text -> Integer | Nothing -> Probl
 split_to_columns table input_column_id delimiter="," column_count=Nothing on_problems=Report_Error =
     column = table.at input_column_id
     Value_Type.expect_text column <|
-        fan_out_to_columns table input_column_id (handle_nothing (_.split delimiter)) column_count on_problems
+        fan_out_to_columns table input_column_id (handle_nothing (_.split delimiter)) column_count on_problems=on_problems
 
 ## PRIVATE
    Splits a column of text into a set of new rows.
@@ -32,7 +32,7 @@ tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Int
 tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems =
     column = table.at input_column_id
     Value_Type.expect_text column
-        fan_out_to_columns table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems
+        fan_out_to_columns table input_column_id (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems=on_problems
 
 ## PRIVATE
    Tokenizes a column of text into a set of new rows using a regular

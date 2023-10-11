@@ -6,7 +6,7 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
 
 from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
-from project.Internal.Java_Exports import make_string_builder, make_inferred_builder
+from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.mask.OrderMask
 
@@ -20,11 +20,11 @@ polyglot java import org.enso.table.data.mask.OrderMask
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> Problem_Behavior -> Table | Nothing
-fan_out_to_columns table input_column_id function column_count=Nothing on_problems=Report_Error =
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
+fan_out_to_columns table input_column_id function column_count=Nothing column_builder=make_string_builder on_problems=Report_Error =
     input_column = table.get input_column_id
     problem_builder = Problem_Builder.new
-    new_columns_unrenamed = map_columns_to_multiple input_column function column_count problem_builder
+    new_columns_unrenamed = map_columns_to_multiple input_column function column_count column_builder=column_builder problem_builder=problem_builder
     new_columns = rename_new_columns table input_column.name new_columns_unrenamed problem_builder
     new_table = replace_column_with_columns table input_column new_columns
     problem_builder.attach_problems_after on_problems new_table
@@ -43,14 +43,14 @@ fan_out_to_columns table input_column_id function column_count=Nothing on_proble
    - at_least_one_row: When true, if the function returns an empty list, a
      single row is output with `Nothing` for the transformed column. If false,
     the row is not output at all.
-fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Boolean -> Problem_Behavior -> Table
-fan_out_to_rows table input_column_id function at_least_one_row=False on_problems=Report_Error =
+fan_out_to_rows : Table -> Text | Integer -> (Any -> Vector Any) -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
+fan_out_to_rows table input_column_id function at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
     ## Treat this as a special case of fan_out_to_rows_and_columns, with one
        column. Wrap the provided function to convert each value to a singleton
        `Vector`.
     wrapped_function x = function x . map y-> [y]
     column_names = [input_column_id]
-    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names at_least_one_row=at_least_one_row on_problems=on_problems
+    fan_out_to_rows_and_columns table input_column_id wrapped_function column_names at_least_one_row=at_least_one_row column_builder=column_builder on_problems=on_problems
 
 ## PRIVATE
    Transform a column by applying the given function to the values in the
@@ -92,8 +92,8 @@ fan_out_to_rows table input_column_id function at_least_one_row=False on_problem
      to a `Vector` of `Vector` of values.
    - column_names: The names for the generated columns.
    - on_problems: Specifies the behavior when a problem occurs.
-fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> Problem_Behavior -> Table
-fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False on_problems=Report_Error =
+fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> (Integer -> Any) -> Problem_Behavior -> Table
+fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False column_builder=make_string_builder on_problems=Report_Error =
     problem_builder = Problem_Builder.new
     unique = table.column_naming_helper.create_unique_name_strategy
 
@@ -106,7 +106,7 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
     # Guess that most of the time, we'll get at least one value for each input.
     initial_size = input_column.length
     # Accumulates the outputs of the function.
-    output_column_builders = Vector.new num_output_columns _-> make_inferred_builder initial_size
+    output_column_builders = Vector.new num_output_columns _-> column_builder initial_size
     # Accumulates repeated position indices for the order mask.
     order_mask_positions = Vector.new_builder initial_size
 
@@ -172,8 +172,8 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
      If the data exceeds the `column_count`, a `Column_Count_Exceeded` error
      will follow the `on_problems` behavior.
    - on_problems: Specifies the behavior when a problem occurs.
-map_columns_to_multiple : Column -> (Any -> Vector Any) -> Integer | Nothing -> Problem_Builder -> Vector Column
-map_columns_to_multiple input_column function column_count problem_builder =
+map_columns_to_multiple : Column -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Builder -> Vector Column
+map_columns_to_multiple input_column function column_count column_builder=make_string_builder problem_builder =
     num_rows = input_column.length
     input_storage = input_column.java_column.getStorage
 
@@ -189,7 +189,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
                 if output_values.length > builders.length then
                     num_builders_needed = output_values.length - builders.length
                     repeat_each num_builders_needed <|
-                        builder = make_string_builder num_rows
+                        builder = column_builder num_rows
 
                         # Pad the new builder with nulls
                         num_nulls_needed = i
@@ -205,7 +205,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
             builders.to_vector
 
         _ : Integer ->
-            builders = Vector.new column_count (_-> make_string_builder num_rows)
+            builders = Vector.new column_count (_-> column_builder num_rows)
 
             output_lengths = 0.up_to num_rows . map i->
                 input_value = input_storage.getItemBoxed i
