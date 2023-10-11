@@ -114,7 +114,7 @@ Expand_To_Rows_Iterator.from that:List = Expand_To_Rows_Iterator.Value that.leng
 Expand_To_Rows_Iterator.from that:Range = Expand_To_Rows_Iterator.Value that.length that.get
 
 ## PRIVATE
-#Expand_To_Rows_Iterator.from that:Pair = Expand_To_Rows_Iterator.Value that.length that.get
+Expand_To_Rows_Iterator.from that:Pair = Expand_To_Rows_Iterator.Value that.length that.get
 
 ## PRIVATE
 Expand_To_Rows_Iterator.from that:Date_Range = Expand_To_Rows_Iterator.Value that.length that.get

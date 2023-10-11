@@ -184,6 +184,12 @@ spec =
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3]], ["bbb", [10, 11, 20, 21, 22, 30]], ["ccc", [5, 5, 6, 6, 6, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
 
+        Test.specify "Can expand Pairs" <|
+            values_to_expand = [Pair.new 10 20, Pair.new "a" [30], Pair.new 40 50]
+            table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
+            expected = Table.new [["aaa", [1, 1, 2, 2, 3, 3]], ["bbb", [10, 20, "a", [30], 40, 50]], ["ccc", [5, 5, 6, 6, 7, 7]]]
+            table.expand_to_rows "bbb" . should_equal expected
+
         Test.specify "Can expand Ranges" <|
             values_to_expand = [Range.new 10 12, Range.new 20 27 step=3, Range.new 30 31]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
