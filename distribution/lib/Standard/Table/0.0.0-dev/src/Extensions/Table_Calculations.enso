@@ -87,9 +87,7 @@ type Column_Operation
        It creates a new column instance which can be added to the table.
     evaluate : Table_Ref -> Boolean -> Problem_Behavior -> Any
     evaluate self table:Table_Ref use_input_name:Boolean on_problems:Problem_Behavior =
-        input_column = case self.input of
-            ref : Column_Ref -> table.resolve ref
-            constant -> table.make_constant_column constant
+        input_column = table.resolve_as_column self.input
         derived = case self of
             Column_Operation.Add _ rhs      -> input_column + (table.resolve rhs)
             Column_Operation.Subtract _ rhs -> input_column - (table.resolve rhs)
@@ -98,11 +96,11 @@ type Column_Operation
             Column_Operation.Mod _ rhs      -> input_column % (table.resolve rhs)
             Column_Operation.Power _ rhs    -> input_column ** (table.resolve rhs)
 
-            Column_Operation.Round input precision use_bankers ->
+            Column_Operation.Round _ precision use_bankers ->
                 input_column.round precision use_bankers
-            Column_Operation.Ceil input     -> input_column.ceil
-            Column_Operation.Floor input    -> input_column.floor
-            Column_Operation.Truncate input -> input_column.truncate
+            Column_Operation.Ceil _     -> input_column.ceil
+            Column_Operation.Floor _    -> input_column.floor
+            Column_Operation.Truncate _ -> input_column.truncate
 
             Column_Operation.Min _ rhs -> input_column.min (table.resolve rhs)
             Column_Operation.Max _ rhs -> input_column.max (table.resolve rhs)
@@ -177,12 +175,21 @@ type Table_Ref
     at self selector=0 = self.underlying.at selector
 
     ## PRIVATE
-       Resolve a Column_Ref to a Column.
+       Resolve a Column_Ref to a Column, keeping any other values as-is.
     resolve : Any -> Any ! No_Such_Column | Index_Out_Of_Bounds
     resolve self value = case value of
         Column_Ref.Name name -> self.at name
         Column_Ref.Index index -> self.at index
         _ -> value
+
+    ## PRIVATE
+       Resolve a Column_Ref to a Column, converting any other values into
+       a constant column.
+    resolve_as_column : Any -> Any ! No_Such_Column | Index_Out_Of_Bounds
+    resolve_as_column self value = case value of
+        Column_Ref.Name name -> self.at name
+        Column_Ref.Index index -> self.at index
+        _ -> self.underlying.make_constant_column value
 
     ## PRIVATE
     resolve_condition : Filter_Condition -> Filter_Condition
