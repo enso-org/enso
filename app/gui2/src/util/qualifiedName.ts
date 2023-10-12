@@ -35,7 +35,7 @@ export function tryQualifiedName(str: string): Result<QualifiedName> {
 }
 
 /** Split the qualified name to parent and last segment (name). */
-export function qnSplit(name: QualifiedName): [Opt<QualifiedName>, Identifier] {
+export function qnSplit(name: QualifiedName): [QualifiedName | null, Identifier] {
   const separator = name.lastIndexOf('.')
   const parent = separator > 0 ? (name.substring(0, separator) as QualifiedName) : null
   const lastSegment = name.substring(separator + 1) as Identifier
@@ -49,7 +49,7 @@ export function qnLastSegment(name: QualifiedName): Identifier {
 }
 
 /** Get the parent qualified name (without last segment) */
-export function qnParent(name: QualifiedName): Opt<QualifiedName> {
+export function qnParent(name: QualifiedName): QualifiedName | null {
   const separator = name.lastIndexOf('.')
   return separator > 1 ? (name.substring(0, separator) as QualifiedName) : null
 }

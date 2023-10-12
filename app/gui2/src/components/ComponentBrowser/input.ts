@@ -1,6 +1,21 @@
-import { Ast, astContainingChar, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
+import {
+  SuggestionKind,
+  makeCon,
+  makeLocal,
+  makeMethod,
+  makeModuleMethod,
+  makeStaticMethod,
+  type SuggestionEntry,
+} from '@/stores/suggestionDatabase/entry'
+import { Ast, astContainingChar, astSpan, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
-import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import {
+  qnLastSegment,
+  qnParent,
+  qnSplit,
+  tryQualifiedName,
+  type QualifiedName,
+} from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { Filter } from './filtering'
 
@@ -130,15 +145,15 @@ export class Input {
 
   /**
    * Try to get a Qualified Name part from given accessor chain.
-   * @param accessorChain The accessorChain. It's not validated, i.e. the user must ensure
+   * @param accessOpr The accessor chain. It's not validated, i.e. the user must ensure
    *   it's GeneralOprApp with `.` as leading operator.
    * @param code The code from which `accessorChain` was generated.
    * @returns If all segments except the last one are identifiers, returns QualifiedName with
    *   those. Otherwise returns null.
    */
-  private static asQualifiedName(accessorChain: GeneralOprApp, code: string): QualifiedName | null {
+  private static asQualifiedName(accessOpr: GeneralOprApp, code: string): QualifiedName | null {
     const operandsAsIdents = Array.from(
-      accessorChain.operandsOfLeftAssocOprChain(code, '.'),
+      accessOpr.operandsOfLeftAssocOprChain(code, '.'),
       (operand) =>
         operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
     ).slice(0, -1)
@@ -148,74 +163,89 @@ export class Input {
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
   }
-}
 
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
+  private static qnIdentifiers(accessOpr: GeneralOprApp, code: string): Ast.Tree.Ident[] {
+    const operandsAsIdents = Array.from(
+      accessOpr.operandsOfLeftAssocOprChain(code, '.'),
+      (operand) =>
+        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+    ).slice(0, -1)
+    if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
+    else return operandsAsIdents as Ast.Tree.Ident[]
+  }
 
-  test.each([
-    ['', 0, { type: 'insert', position: 0 }, {}],
-    [
-      'Data.',
-      5,
-      { type: 'insert', position: 5, accessorChain: ['Data', '.', null] },
-      { qualifiedNamePattern: 'Data' },
-    ],
-    ['Data.', 4, { type: 'changeIdentifier', identifier: 'Data' }, { pattern: 'Data' }],
-    [
-      'Data.read',
-      5,
-      { type: 'insert', position: 5, accessorChain: ['Data', '.', 'read'] },
-      { qualifiedNamePattern: 'Data' },
-    ],
-    [
-      'Data.read',
-      7,
-      { type: 'changeIdentifier', identifier: 'read', accessorChain: ['Data', '.', 'read'] },
-      { pattern: 're', qualifiedNamePattern: 'Data' },
-    ],
-  ])(
-    "Input context and filtering, when content is '%s' and cursor at %i",
-    (
-      code,
-      cursorPosition,
-      expContext: {
-        type: string
-        position?: number
-        accessorChain?: (string | null)[]
-        identifier?: string
-        literal?: string
+  applySuggestion(entry: SuggestionEntry) {
+    const oldCode = this.code.value
+    const changes = Array.from(this.inputChangesAfterApplying(entry)).reverse()
+    const newCodeUpToLastChange = changes.reduce(
+      (builder, change) => {
+        const oldCodeFragment = oldCode.substring(builder.oldCodeIndex, change.start)
+        return {
+          code: builder.code + oldCodeFragment + change.str,
+          oldCodeIndex: change.end,
+        }
       },
-      expFiltering: { pattern?: string; qualifiedNamePattern?: string },
-    ) => {
-      const input = new Input()
-      input.code.value = code
-      input.selection.value = { start: cursorPosition, end: cursorPosition }
-      const context = input.context.value
-      const filter = input.filter.value
-      expect(context.type).toStrictEqual(expContext.type)
-      switch (context.type) {
-        case 'insert':
-          expect(context.position).toStrictEqual(expContext.position)
-          expect(
-            context.accessOpr != null
-              ? Array.from(context.accessOpr.componentsReprs(code))
-              : undefined,
-          ).toStrictEqual(expContext.accessorChain)
-          break
-        case 'changeIdentifier':
-          expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
-          expect(
-            context.accessOpr != null
-              ? Array.from(context.accessOpr.componentsReprs(code))
-              : undefined,
-          ).toStrictEqual(expContext.accessorChain)
-          break
-        case 'changeLiteral':
-          expect(readAstSpan(context.literal, code)).toStrictEqual(expContext.literal)
+      { code: '', oldCodeIndex: 0 },
+    )
+    const newCursorPos = newCodeUpToLastChange.code.length
+    this.code.value =
+      newCodeUpToLastChange.code + oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
+    this.selection.value = { start: newCursorPos, end: newCursorPos }
+  }
+
+  private *inputChangesAfterApplying(
+    entry: SuggestionEntry,
+  ): Generator<{ start: number; end: number; str: string }> {
+    const ctx = this.context.value
+    const str = this.codeToBeInserted(entry)
+    switch (ctx.type) {
+      case 'insert': {
+        yield { start: ctx.position, end: ctx.position, str }
+        break
       }
-      expect(filter.pattern).toStrictEqual(expFiltering.pattern)
-      expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
-    },
-  )
+      case 'changeIdentifier': {
+        yield { ...astSpan(ctx.identifier), str }
+        break
+      }
+      case 'changeLiteral': {
+        yield { ...astSpan(ctx.literal), str }
+        break
+      }
+    }
+    yield* this.qnChangesAfterApplying(entry)
+  }
+
+  private codeToBeInserted(entry: SuggestionEntry): string {
+    // Always return single name if accessOpr is already present.
+    if (this.context.value.type !== 'changeLiteral' && this.context.value.accessOpr != null)
+      return entry.name
+    // Otherwise they may be cases we want to add type/module name, or self argument placeholder.
+    if (entry.selfType != null) return `_.${entry.name}`
+    if (entry.memberOf != null) {
+      const parentName = qnLastSegment(entry.memberOf)
+      return `${parentName}.${entry.name}`
+    }
+    return entry.name
+  }
+
+  private *qnChangesAfterApplying(
+    entry: SuggestionEntry,
+  ): Generator<{ start: number; end: number; str: string }> {
+    if (entry.selfType != null) return []
+    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return []
+    if (this.context.value.type === 'changeLiteral') return []
+    if (this.context.value.accessOpr == null) return []
+    const writtenQn = Input.qnIdentifiers(this.context.value.accessOpr, this.code.value).reverse()
+
+    let containingQn =
+      entry.kind === SuggestionKind.Module
+        ? qnParent(entry.definedIn)
+        : entry.memberOf ?? entry.definedIn
+    for (const ident of writtenQn) {
+      if (containingQn == null) break
+      const [parent, segment] = qnSplit(containingQn)
+      yield { ...astSpan(ident), str: segment }
+      containingQn = parent
+    }
+  }
 }
