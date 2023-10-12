@@ -123,23 +123,26 @@ final class Handler {
     *
     * @param request the message to handle.
     */
-  def onMessage(request: Api.Request): Unit = request match {
-    case Api.Request(requestId, Api.ShutDownRuntimeServer()) =>
-      if (ctx != null) {
-        ctx.commandProcessor.stop()
-      }
-      endpoint.sendToClient(
-        Api.Response(requestId, Api.RuntimeServerShutDown())
-      )
-
-    case request: Api.Request =>
-      if (ctx != null) {
-        val cmd = CommandFactory.createCommand(request)
-        ctx.commandProcessor.invoke(cmd)
-      } else {
-        throw new IllegalStateException(
-          "received a request to handle with interpreter context not being initialized"
+  def onMessage(request: Api.Request): Unit = {
+    val localCtx = ctx
+    request match {
+      case Api.Request(requestId, Api.ShutDownRuntimeServer()) =>
+        if (localCtx != null) {
+          localCtx.commandProcessor.stop()
+        }
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.RuntimeServerShutDown())
         )
-      }
+
+      case request: Api.Request =>
+        if (localCtx != null) {
+          val cmd = CommandFactory.createCommand(request)
+          localCtx.commandProcessor.invoke(cmd)
+        } else {
+          throw new IllegalStateException(
+            "received a request to handle with interpreter context not being initialized"
+          )
+        }
+    }
   }
 }
