@@ -1284,7 +1284,8 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Standard.Base.Selections
        Creates a new Table with the specified range of rows from the input
        Table.
 

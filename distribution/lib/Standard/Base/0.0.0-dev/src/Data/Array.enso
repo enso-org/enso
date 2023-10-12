@@ -144,7 +144,8 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Vector.sort self order on by on_incomparable
 
-    ## GROUP Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Selections
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 

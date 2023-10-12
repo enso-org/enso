@@ -781,7 +781,8 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = @Builtin_Method "Vector.slice"
 
-    ## GROUP Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Selections
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 

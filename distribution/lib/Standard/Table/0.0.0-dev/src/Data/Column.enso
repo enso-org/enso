@@ -2106,7 +2106,8 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Standard.Base.Selections
        Creates a new Column with the specified range of rows from the input
        Column.
 

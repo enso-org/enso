@@ -1087,7 +1087,8 @@ type Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Standard.Base.Selections
        Creates a new Column with the specified range of rows from the input
        Column.
 
