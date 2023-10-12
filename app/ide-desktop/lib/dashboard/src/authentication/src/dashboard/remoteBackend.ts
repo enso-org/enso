@@ -682,10 +682,13 @@ export class RemoteBackend extends backendModule.Backend {
     /** Delete a label.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    override async deleteTag(tagId: backendModule.TagId): Promise<void> {
+    override async deleteTag(
+        tagId: backendModule.TagId,
+        value: backendModule.LabelName
+    ): Promise<void> {
         const response = await this.delete(remoteBackendPaths.deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not delete label with ID '${tagId}'.`)
+            return this.throw(`Could not delete label '${value}'.`)
         } else {
             return
         }

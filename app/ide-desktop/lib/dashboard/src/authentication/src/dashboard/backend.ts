@@ -806,7 +806,7 @@ export abstract class Backend {
         title: string | null
     ): Promise<void>
     /** Delete a label. */
-    abstract deleteTag(tagId: TagId): Promise<void>
+    abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
     /** Return a list of backend or IDE versions. */
     abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

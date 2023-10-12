@@ -14,7 +14,6 @@ import * as localStorageProvider from '../../providers/localStorage'
 import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
-import * as labelModule from './label'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
 import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
@@ -86,6 +85,9 @@ export default function Drive(props: DriveProps) {
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
+    const [deletedLabelNames, setDeletedLabelNames] = React.useState(
+        new Set<backendModule.LabelName>()
+    )
     const allLabels = React.useMemo(
         () => new Map(labels.map(label => [label.value, label])),
         [labels]
@@ -155,7 +157,7 @@ export default function Drive(props: DriveProps) {
             const placeholderLabel: backendModule.Label = {
                 id: backendModule.TagId(uniqueString.uniqueString()),
                 value: backendModule.LabelName(value),
-                color: labelModule.DEFAULT_LABEL_COLOR,
+                color,
             }
             setLabels(oldLabels => [...oldLabels, placeholderLabel])
             try {
@@ -187,6 +189,22 @@ export default function Drive(props: DriveProps) {
                     }
                 })
             }
+        },
+        [backend, /* should never change */ toastAndLog]
+    )
+
+    const doDeleteLabel = React.useCallback(
+        async (id: backendModule.TagId, value: backendModule.LabelName) => {
+            setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
+            try {
+                await backend.deleteTag(id, value)
+                setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
+            } catch (error) {
+                toastAndLog(null, error)
+            }
+            setDeletedLabelNames(
+                oldNames => new Set([...oldNames].filter(oldValue => oldValue !== value))
+            )
         },
         [backend, /* should never change */ toastAndLog]
     )
@@ -277,6 +295,8 @@ export default function Drive(props: DriveProps) {
                             currentLabels={currentLabels}
                             setCurrentLabels={setCurrentLabels}
                             doCreateLabel={doCreateLabel}
+                            doDeleteLabel={doDeleteLabel}
+                            deletedLabelNames={deletedLabelNames}
                         />
                     </div>
                 )}

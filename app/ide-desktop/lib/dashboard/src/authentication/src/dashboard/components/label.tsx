@@ -35,7 +35,7 @@ export default function Label(props: InternalLabelProps) {
     const { active = false, color, className = 'text-tag-text', onClick, children } = props
     return (
         <div
-            className={`cursor-pointer flex items-center rounded-full gap-1.5 h-6 px-2.25 hover:opacity-100 ${className} ${
+            className={`cursor-pointer flex items-center rounded-full gap-1.5 h-6 px-2.25 group-hover:opacity-100 ${className} ${
                 active ? '' : 'text-not-selected opacity-50'
             } ${
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
