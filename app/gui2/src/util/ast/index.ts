@@ -8,7 +8,7 @@ export { Ast }
 
 export function parseEnso(code: string): Ast.Tree {
   const blob = parse(code)
-  return Ast.deserializeTree(blob.buffer)
+  return Ast.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
 }
 
 /** Read a single line of code

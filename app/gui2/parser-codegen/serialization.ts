@@ -1,43 +1,69 @@
 /** Generates code lazily deserializing from an application-specific binary format. */
 
 import ts from 'typescript'
-import { casesOrThrow, modifiers } from './util.js'
+import { makeArrow } from './util'
 
 const { factory: tsf } = ts
 
 // === Definitions ===
 
 const noneType = tsf.createTypeReferenceNode('undefined')
-const cursorFieldIdent = tsf.createIdentifier('lazyObjectData')
+const viewFieldIdent = tsf.createIdentifier('_v')
+const variantReadersIdent = tsf.createIdentifier('VARIANT_READERS')
 const POINTER_SIZE: number = 4
 // Symbols exported by the `parserSupport` module.
 export const supportImports = {
   LazyObject: false,
-  Cursor: false,
   Result: true,
   DynValue: true,
   Dyn: false,
+  readU8: false,
+  readU32: false,
+  readI32: false,
+  readU64: false,
+  readI64: false,
+  readBool: false,
+  readOffset: false,
+  readPointer: false,
+  readOption: false,
+  readResult: false,
+  readEnum: false,
+  readSequence: false,
+  readString: false,
 } as const
 export const support = {
   LazyObject: tsf.createIdentifier('LazyObject'),
-  Cursor: tsf.createTypeReferenceNode(tsf.createIdentifier('Cursor')),
+  DataView: tsf.createTypeReferenceNode(tsf.createIdentifier('DataView')),
   Result: (t0: ts.TypeNode, t1: ts.TypeNode) =>
     tsf.createTypeReferenceNode(tsf.createIdentifier('Result'), [t0, t1]),
   DynValue: 'DynValue',
   Dyn: tsf.createIdentifier('Dyn'),
+  readU8: tsf.createIdentifier('readU8'),
+  readU32: tsf.createIdentifier('readU32'),
+  readI32: tsf.createIdentifier('readI32'),
+  readU64: tsf.createIdentifier('readU64'),
+  readI64: tsf.createIdentifier('readI64'),
+  readBool: tsf.createIdentifier('readBool'),
+  readOffset: tsf.createIdentifier('readOffset'),
+  readPointer: tsf.createIdentifier('readPointer'),
+  readOption: tsf.createIdentifier('readOption'),
+  readResult: tsf.createIdentifier('readResult'),
+  readEnum: tsf.createIdentifier('readEnum'),
+  readSequence: tsf.createIdentifier('readSequence'),
+  readString: tsf.createIdentifier('readString'),
 } as const
 
-const cursorMethods = {
-  readString: primitiveReader('readString'),
-  readBool: primitiveReader('readBool'),
-  readU32: primitiveReader('readU32'),
-  readI32: primitiveReader('readI32'),
-  readU64: primitiveReader('readU64'),
-  readI64: primitiveReader('readI64'),
-  readPointer: primitiveReader('readPointer'),
-  readSequence: readerTransformerSized('readSequence'),
-  readOption: readerTransformer('readOption'),
-  readResult: readerTransformerTwoTyped('readResult'),
+const baseReaders = {
+  readString: primitiveReader(support.readString),
+  readBool: primitiveReader(support.readBool),
+  readU32: primitiveReader(support.readU32),
+  readI32: primitiveReader(support.readI32),
+  readU64: primitiveReader(support.readU64),
+  readI64: primitiveReader(support.readI64),
+  readPointer: primitiveReader(support.readPointer),
+  readOffset: primitiveReader(support.readOffset),
+  readOption: readerTransformer(support.readOption),
+  readResult: readerTransformerTwoTyped(support.readResult),
 } as const
 const dynBuilders = {
   Primitive: dynReader('Primitive'),
@@ -47,20 +73,20 @@ const dynBuilders = {
   Object: dynReader('Object'),
 } as const
 
-type ExpressionTransformer = (expression: ts.Expression) => ts.Expression
+type ReadApplicator = (cursor: ts.Expression, offset: AccessOffset) => ts.Expression
 
 // === Public API ===
 
 export class Type {
   readonly type: ts.TypeNode
-  readonly reader: ExpressionTransformer
-  readonly dynReader: ExpressionTransformer
+  readonly reader: ReadApplicator
+  readonly dynReader: ReadApplicator
   readonly size: number
 
   private constructor(
     type: ts.TypeNode,
-    reader: ExpressionTransformer,
-    dynReader: ExpressionTransformer,
+    reader: ReadApplicator,
+    dynReader: ReadApplicator,
     size: number,
   ) {
     this.type = type
@@ -70,7 +96,7 @@ export class Type {
   }
 
   static Abstract(name: string): Type {
-    const valueReader = abstractTypeReader(name)
+    const valueReader = callRead(name)
     return new Type(
       tsf.createTypeReferenceNode(name),
       valueReader,
@@ -80,7 +106,7 @@ export class Type {
   }
 
   static Concrete(name: string, size: number): Type {
-    const valueReader = concreteTypeReader(name)
+    const valueReader = callRead(name)
     return new Type(
       tsf.createTypeReferenceNode(name),
       valueReader,
@@ -92,8 +118,8 @@ export class Type {
   static Sequence(element: Type): Type {
     return new Type(
       tsf.createTypeReferenceNode('Iterable', [element.type]),
-      cursorMethods.readSequence(element.reader, element.size),
-      dynBuilders.Sequence(cursorMethods.readSequence(element.dynReader, element.size)),
+      createSequenceReader(element.size, element.reader),
+      dynBuilders.Sequence(createSequenceReader(element.size, element.dynReader)),
       POINTER_SIZE,
     )
   }
@@ -101,8 +127,8 @@ export class Type {
   static Option(element: Type): Type {
     return new Type(
       tsf.createUnionTypeNode([element.type, noneType]),
-      cursorMethods.readOption(element.reader),
-      dynBuilders.Option(cursorMethods.readOption(element.dynReader)),
+      baseReaders.readOption(element.reader),
+      dynBuilders.Option(baseReaders.readOption(element.dynReader)),
       POINTER_SIZE + 1,
     )
   }
@@ -110,102 +136,102 @@ export class Type {
   static Result(ok: Type, err: Type): Type {
     return new Type(
       support.Result(ok.type, err.type),
-      cursorMethods.readResult(ok.reader, err.reader),
-      dynBuilders.Result(cursorMethods.readResult(ok.dynReader, err.dynReader)),
+      baseReaders.readResult(ok.reader, err.reader),
+      dynBuilders.Result(baseReaders.readResult(ok.dynReader, err.dynReader)),
       POINTER_SIZE,
     )
   }
 
   static Boolean: Type = new Type(
     tsf.createTypeReferenceNode('boolean'),
-    cursorMethods.readBool,
-    dynBuilders.Primitive(cursorMethods.readBool),
+    baseReaders.readBool,
+    dynBuilders.Primitive(baseReaders.readBool),
     1,
   )
   static UInt32: Type = new Type(
     tsf.createTypeReferenceNode('number'),
-    cursorMethods.readU32,
-    dynBuilders.Primitive(cursorMethods.readU32),
+    baseReaders.readU32,
+    dynBuilders.Primitive(baseReaders.readU32),
     4,
   )
   static Int32: Type = new Type(
     tsf.createTypeReferenceNode('number'),
-    cursorMethods.readI32,
-    dynBuilders.Primitive(cursorMethods.readI32),
+    baseReaders.readI32,
+    dynBuilders.Primitive(baseReaders.readI32),
     4,
   )
   static UInt64: Type = new Type(
     tsf.createTypeReferenceNode('bigint'),
-    cursorMethods.readU64,
-    dynBuilders.Primitive(cursorMethods.readU64),
+    baseReaders.readU64,
+    dynBuilders.Primitive(baseReaders.readU64),
     8,
   )
   static Int64: Type = new Type(
     tsf.createTypeReferenceNode('bigint'),
-    cursorMethods.readI64,
-    dynBuilders.Primitive(cursorMethods.readI64),
+    baseReaders.readI64,
+    dynBuilders.Primitive(baseReaders.readI64),
     8,
   )
   static Char: Type = new Type(
     tsf.createTypeReferenceNode('number'),
-    cursorMethods.readU32,
-    dynBuilders.Primitive(cursorMethods.readU32),
+    baseReaders.readU32,
+    dynBuilders.Primitive(baseReaders.readU32),
     4,
   )
   static String: Type = new Type(
     tsf.createTypeReferenceNode('string'),
-    cursorMethods.readString,
-    dynBuilders.Primitive(cursorMethods.readString),
+    baseReaders.readString,
+    dynBuilders.Primitive(baseReaders.readString),
     POINTER_SIZE,
   )
 }
 
-export function seekCursor(cursor: ts.Expression, offset: number): ts.Expression {
-  if (offset === 0) {
-    return cursor
+export function seekView(view: ts.Expression, address: number): ts.Expression {
+  if (address === 0) {
+    return view
   } else {
-    return tsf.createCallExpression(
-      tsf.createPropertyAccessExpression(cursor, 'seek'),
-      [],
-      [tsf.createNumericLiteral(offset)],
-    )
+    return seekViewDyn(view, tsf.createNumericLiteral(address))
   }
+}
+
+export function seekViewDyn(view: ts.Expression, address: ts.Expression): ts.Expression {
+  return tsf.createCallExpression(support.readOffset, [], [view, address])
+}
+
+export function abstractTypeVariants(cases: ts.Identifier[]): ts.Statement {
+  const reads = cases.map((c) => tsf.createPropertyAccessChain(c, undefined, 'read'))
+  return tsf.createVariableStatement(
+    [],
+    tsf.createVariableDeclarationList(
+      [
+        tsf.createVariableDeclaration(
+          variantReadersIdent,
+          undefined,
+          undefined,
+          tsf.createArrayLiteralExpression(reads),
+        ),
+      ],
+      ts.NodeFlags.Const,
+    ),
+  )
 }
 
 export function abstractTypeDeserializer(
   ident: ts.Identifier,
-  cases: ts.CaseClause[],
-): ts.FunctionDeclaration {
-  const cursorIdent = tsf.createIdentifier('cursor')
-  return tsf.createFunctionDeclaration(
-    [modifiers.export],
-    undefined,
-    'read',
-    [],
-    [
-      tsf.createParameterDeclaration(
-        [],
-        undefined,
-        cursorIdent,
-        undefined,
-        support.Cursor,
-        undefined,
-      ),
-    ],
-    tsf.createTypeReferenceNode(ident),
-    tsf.createBlock([
-      tsf.createSwitchStatement(
-        cursorMethods.readU32(cursorIdent),
-        casesOrThrow(cases, 'Unexpected discriminant while deserializing.'),
-      ),
-    ]),
+  cursorIdent: ts.Identifier,
+  offsetIdent: ts.Identifier,
+): ts.Expression {
+  return tsf.createCallExpression(
+    support.readEnum,
+    [tsf.createTypeReferenceNode(ident)],
+    [variantReadersIdent, cursorIdent, offsetIdent],
   )
 }
 
 export function fieldDeserializer(
   ident: ts.Identifier,
   type: Type,
-  offset: number,
+  address: number,
 ): ts.GetAccessorDeclaration {
   return tsf.createGetAccessorDeclaration(
     [],
@@ -214,30 +240,26 @@ export function fieldDeserializer(
     type.type,
     tsf.createBlock([
       tsf.createReturnStatement(
-        type.reader(
-          seekCursor(
-            tsf.createPropertyAccessExpression(tsf.createThis(), cursorFieldIdent),
-            offset,
-          ),
-        ),
+        type.reader(thisAccess(viewFieldIdent), makeConstantAddress(address)),
       ),
     ]),
   )
 }
 
-export function fieldDynValue(type: Type, offset: number): ts.Expression {
-  return type.dynReader(
-    seekCursor(tsf.createPropertyAccessExpression(tsf.createThis(), cursorFieldIdent), offset),
-  )
+export function fieldDynValue(type: Type, address: number): ts.Expression {
+  return type.dynReader(thisAccess(viewFieldIdent), makeConstantAddress(address))
+}
+
+function thisAccess(ident: ts.Identifier): ts.PropertyAccessExpression {
+  return tsf.createPropertyAccessExpression(tsf.createThis(), ident)
 }
 
 // === Implementation ===
 
 /** Returns a function that, given an expression evaluating to a [`Cursor`], returns an expression applying a
  * deserialization method with the given name to the cursor. */
-function primitiveReader(name: string): ExpressionTransformer {
-  return (cursor) =>
-    tsf.createCallExpression(tsf.createPropertyAccessExpression(cursor, name), [], [])
+function primitiveReader(func: ts.Identifier): ReadApplicator {
+  return (view, address) => tsf.createCallExpression(func, [], [view, materializeAddress(address)])
 }
 
 /**
@@ -250,123 +272,121 @@ function primitiveReader(name: string): ExpressionTransformer {
  * representing the deserialization of a number from an expression that will evaluate to a location in the input. If we
  * create a `readerTransformer('readOption')`, we can apply it to the number reader to yield an optional-number reader.
  */
-function readerTransformer(
-  name: string,
-): (readElement: ExpressionTransformer) => ExpressionTransformer {
-  const innerParameter = tsf.createIdentifier('element')
-  return (readElement: ExpressionTransformer) => (cursor: ts.Expression) => {
+function readerTransformer(func: ts.Identifier): (readElement: ReadApplicator) => ReadApplicator {
+  return (readElement) => (view, offset) => {
     return tsf.createCallExpression(
-      tsf.createPropertyAccessExpression(cursor, name),
+      func,
       [],
-      [
-        tsf.createArrowFunction(
-          [],
-          [],
-          [
-            tsf.createParameterDeclaration(
-              [],
-              undefined,
-              innerParameter,
-              undefined,
-              support.Cursor,
-              undefined,
-            ),
-          ],
-          undefined,
-          undefined,
-          readElement(innerParameter),
-        ),
-      ],
+      [view, materializeAddress(offset), readerClosure(readElement)],
     )
+  }
+}
+
+interface AccessOffset {
+  expression: ts.Expression | null
+  constant: number
+}
+
+function makeConstantAddress(constant: number): AccessOffset {
+  return { expression: null, constant }
+}
+
+function makeDynAddress(expression: ts.Expression, constant = 0): AccessOffset {
+  return { expression, constant }
+}
+
+function materializeAddress(offset: AccessOffset): ts.Expression {
+  if (offset.expression == null) {
+    return tsf.createNumericLiteral(offset.constant)
+  } else if (offset.constant == 0) {
+    return offset.expression
+  } else {
+    return tsf.createAdd(offset.expression, tsf.createNumericLiteral(offset.constant))
   }
 }
 
 /** Similar to [`readerTransformer`], but for deserialization-transformers that produce a reader by combining two input
  * readers. */
 function readerTransformerTwoTyped(
-  name: string,
-): (readOk: ExpressionTransformer, readErr: ExpressionTransformer) => ExpressionTransformer {
-  function makeArrow(reader: ExpressionTransformer, data: ts.Identifier) {
-    return tsf.createArrowFunction(
-      [],
-      [],
-      [tsf.createParameterDeclaration([], undefined, data, undefined, support.Cursor, undefined)],
-      undefined,
-      undefined,
-      reader(data),
-    )
-  }
-
-  const okData = tsf.createIdentifier('okData')
-  const errData = tsf.createIdentifier('errData')
-  return (readOk: ExpressionTransformer, readErr: ExpressionTransformer) =>
-    (cursor: ts.Expression) => {
-      return tsf.createCallExpression(
-        tsf.createPropertyAccessExpression(cursor, name),
-        [],
-        [makeArrow(readOk, okData), makeArrow(readErr, errData)],
-      )
-    }
-}
-
-/** Similar to [`readerTransformer`], but for deserialization-transformers are parameterized by the size of their
- * element. */
-function readerTransformerSized(
-  name: string,
-): (readElement: ExpressionTransformer, size: number) => ExpressionTransformer {
-  const innerParameter = tsf.createIdentifier('element')
-  return (readElement: ExpressionTransformer, size: number) => (cursor: ts.Expression) => {
+  func: ts.Identifier,
+): (readOk: ReadApplicator, readErr: ReadApplicator) => ReadApplicator {
+  return (readOk: ReadApplicator, readErr: ReadApplicator) => (view, offset) => {
     return tsf.createCallExpression(
-      tsf.createPropertyAccessExpression(cursor, name),
+      func,
       [],
-      [
-        tsf.createArrowFunction(
-          [],
-          [],
-          [
-            tsf.createParameterDeclaration(
-              [],
-              undefined,
-              innerParameter,
-              undefined,
-              support.Cursor,
-              undefined,
-            ),
-          ],
-          undefined,
-          undefined,
-          readElement(innerParameter),
-        ),
-        tsf.createNumericLiteral(size),
-      ],
+      [view, materializeAddress(offset), readerClosure(readOk), readerClosure(readErr)],
     )
   }
 }
 
-function dynReader(name: string): (readValue: ExpressionTransformer) => ExpressionTransformer {
-  return (readValue: ExpressionTransformer) => (cursor: ts.Expression) => {
+function dynReader(name: string): (readValue: ReadApplicator) => ReadApplicator {
+  return (readValue) => (view, address) => {
     return tsf.createCallExpression(
       tsf.createPropertyAccessExpression(support.Dyn, name),
       [],
-      [readValue(cursor)],
+      [readValue(view, address)],
     )
   }
 }
 
-function abstractTypeReader(name: string): ExpressionTransformer {
-  return (cursor: ts.Expression) =>
+export function callRead(ident: string): ReadApplicator {
+  return (view, address) =>
     tsf.createCallExpression(
-      tsf.createPropertyAccessExpression(tsf.createIdentifier(name), 'read'),
+      tsf.createPropertyAccessExpression(tsf.createIdentifier(ident), 'read'),
       [],
-      [cursorMethods.readPointer(cursor)],
+      [view, materializeAddress(address)],
     )
 }
 
-function concreteTypeReader(name: string): ExpressionTransformer {
-  return (cursor: ts.Expression) =>
+export function createSequenceReader(size: number, reader: ReadApplicator): ReadApplicator {
+  const sizeLiteral = tsf.createNumericLiteral(size)
+  const closure = readerClosure(reader)
+  return (view, address) =>
     tsf.createCallExpression(
-      tsf.createPropertyAccessExpression(tsf.createIdentifier(name), 'read'),
+      support.readSequence,
       [],
-      [cursor],
+      [view, materializeAddress(address), sizeLiteral, closure],
     )
+}
+
+export function readerClosure(reader: ReadApplicator): ts.Expression {
+  const view = tsf.createIdentifier('view')
+  const address = tsf.createIdentifier('address')
+  const read = reader(view, makeDynAddress(address))
+  if (isSimpleRead(read)) {
+    return read.expression
+  } else {
+    return makeArrow([view, address], read)
+  }
+}
+
+function isSimpleRead(reader: ts.Expression): reader is ts.CallExpression {
+  return (
+    ts.isCallExpression(reader) &&
+    ts.isPropertyAccessExpression(reader.expression) &&
+    reader.expression.name.text === 'read' &&
+    reader.arguments.length === 2
+  )
+}
+
+function dbg<T extends ts.Node | undefined>(node: T): T {
+  if (node == null) {
+    console.log(node)
+    return node
+  }
+  const printer = ts.createPrinter({
+    newLine: ts.NewLineKind.LineFeed,
+    omitTrailingSemicolon: true,
+  })
+
+  console.log(
+    ts.SyntaxKind[node.kind],
+    ':',
+    printer.printNode(
+      ts.EmitHint.Unspecified,
+      node,
+      ts.createSourceFile('dbg.ts', '', ts.ScriptTarget.Latest, false, ts.ScriptKind.TS),
+    ),
+  )
+  return node
 }

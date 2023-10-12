@@ -195,7 +195,13 @@ class LanguageServerController(
           sender() ! ServerStarted(
             LanguageServerSockets(
               Socket(connectionInfo.interface, connectionInfo.rpcPort),
-              Socket(connectionInfo.interface, connectionInfo.dataPort)
+              connectionInfo.secureRpcPort.map(port =>
+                Socket(connectionInfo.interface, port)
+              ),
+              Socket(connectionInfo.interface, connectionInfo.dataPort),
+              connectionInfo.secureDataPort.map(port =>
+                Socket(connectionInfo.interface, port)
+              )
             )
           )
           context.become(

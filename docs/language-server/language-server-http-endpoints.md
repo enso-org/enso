@@ -168,3 +168,21 @@ Reset the idle time of the language server.
 <
 OK
 ```
+
+# HTTPS endpoints
+
+Language server can expose HTTPS endpoints when configured appropriately:
+
+1. Project-manager must be told that project's language server should be started
+   with https/wss support
+   - `NETWORK_ENABLE_HTTPS=true`
+2. User should provide appropriate secure configuration. Currently supported are
+   PKCS12 bundle with password and certificate with private key. Depending on
+   the configuration present, either choice will be sufficient.
+
+If a project-manager is started with `ENSO_HTTPS_PUBLIC_CERTIFICATE` and
+`ENSO_HTTPS_PRIVATE_KEY` env variables, SSL context will be created from a
+certificate and a private key, respectively. If a project-manager is started
+with `ENSO_HTTPS_PKCS12_PATH` and `ENSO_HTTPS_PKCS12_PASSWORD` env variables,
+SSL context will be created from a file in PKCS12 format and a password to it,
+respectively.
