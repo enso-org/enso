@@ -1303,7 +1303,7 @@ lazy val runtime = (project in file("engine/runtime"))
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"     % "tika-core"             % tikaVersion,
-      "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"     % "polyglot"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"     % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
@@ -1541,7 +1541,7 @@ lazy val `runtime-with-polyglot` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided",
+        "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
         "org.scalatest"  %% "scalatest" % scalatestVersion          % Test
       )
     )
@@ -1763,7 +1763,7 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
       "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % "provided",
       "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup"  % netbeansApiVersion        % "provided",
-      "org.graalvm.sdk"     % "graal-sdk"                % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"     % "polyglot"                % graalMavenPackagesVersion % "provided",
       "junit"               % "junit"                    % junitVersion              % Test,
       "com.github.sbt"      % "junit-interface"          % junitIfVersion            % Test,
       "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Test
@@ -1796,7 +1796,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
     libraryDependencies ++= jmh ++ Seq(
       "org.openjdk.jmh" % "jmh-core"                 % jmhVersion                % Benchmark,
       "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
-      "org.graalvm.sdk" % "graal-sdk"                % graalMavenPackagesVersion % Benchmark
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Benchmark
     ),
     commands += WithDebugCommand.withDebug,
     (Compile / logManager) :=
@@ -2066,7 +2066,7 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"  % "polyglot"               % graalMavenPackagesVersion % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
     ),
     Compile / packageBin := Def.task {
@@ -2094,7 +2094,7 @@ lazy val `common-polyglot-core-utils` = project
       `base-polyglot-root` / "common-polyglot-core-utils.jar",
     libraryDependencies ++= Seq(
       "com.ibm.icu"     % "icu4j"     % icuVersion,
-      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     )
   )
 
@@ -2106,7 +2106,7 @@ lazy val `enso-test-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file("test/Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -2137,7 +2137,7 @@ lazy val `exploratory-benchmark-java-helpers` = project
         "test/Exploratory_Benchmarks/polyglot/java/exploratory-benchmark-java-helpers.jar"
       ),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     )
   )
   .dependsOn(`std-base` % "provided")
@@ -2159,7 +2159,7 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"          % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"          % "polyglot"               % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
@@ -2189,7 +2189,7 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"  % "polyglot"               % graalMavenPackagesVersion % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.openpnp"      % "opencv"                  % "4.7.0-0"
     ),
@@ -2239,7 +2239,7 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"  % "polyglot"               % graalMavenPackagesVersion % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"   % "postgresql"              % "42.4.0"
