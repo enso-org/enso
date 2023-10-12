@@ -1,7 +1,7 @@
 /** @file Events related to changes in the asset list. */
-import * as backend from '../backend'
+import type * as backend from '../backend'
 
-import * as spinner from '../components/spinner'
+import type * as spinner from '../components/spinner'
 
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax
@@ -17,7 +17,7 @@ export enum AssetListEventType {
     newFolder = 'new-folder',
     newProject = 'new-project',
     uploadFiles = 'upload-files',
-    newSecret = 'new-secret',
+    newDataConnector = 'new-data-connector',
     closeFolder = 'close-folder',
     willDelete = 'will-delete',
     delete = 'delete',
@@ -34,7 +34,7 @@ interface AssetListEvents {
     newFolder: AssetListNewFolderEvent
     newProject: AssetListNewProjectEvent
     uploadFiles: AssetListUploadFilesEvent
-    newSecret: AssetListNewSecretEvent
+    newDataConnector: AssetListNewDataConnectorEvent
     closeFolder: AssetListCloseFolderEvent
     willDelete: AssetListWillDeleteEvent
     delete: AssetListDeleteEvent
@@ -74,8 +74,9 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
     files: File[]
 }
 
-/** A signal to create a new secret. */
-interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
+/** A signal to create a new data connector. */
+interface AssetListNewDataConnectorEvent
+    extends AssetListBaseEvent<AssetListEventType.newDataConnector> {
     parentKey: backend.DirectoryId | null
     parentId: backend.DirectoryId | null
     name: string

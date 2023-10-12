@@ -5,7 +5,7 @@ import { useDocumentEvent } from '@/util/events'
 
 import { ref } from 'vue'
 
-const _props = defineProps<{ modes: string[]; modelValue: string }>()
+const props = defineProps<{ modes: string[]; modelValue: string }>()
 const emit = defineEmits<{ execute: []; 'update:modelValue': [mode: string] }>()
 
 const isDropdownOpen = ref(false)
@@ -27,15 +27,15 @@ useDocumentEvent('click', onDocumentClick)
 <template>
   <div ref="executionModeSelectorNode" class="ExecutionModeSelector">
     <div class="execution-mode-button">
-      <div class="execution-mode button" @click="isDropdownOpen = !isDropdownOpen">
-        <span v-text="modelValue"></span>
+      <div class="execution-mode button" @pointerdown.stop="isDropdownOpen = !isDropdownOpen">
+        <span v-text="props.modelValue"></span>
       </div>
       <div class="divider"></div>
       <SvgIcon
         name="workflow_play"
         class="play button"
         draggable="false"
-        @click="
+        @pointerdown="
           () => {
             isDropdownOpen = false
             emit('execute')
@@ -45,11 +45,11 @@ useDocumentEvent('click', onDocumentClick)
     </div>
     <Transition name="dropdown">
       <div v-if="isDropdownOpen" class="execution-mode-dropdown">
-        <template v-for="otherMode in modes" :key="otherMode">
+        <template v-for="otherMode in props.modes" :key="otherMode">
           <span
             v-if="modelValue !== otherMode"
             class="button"
-            @click="emit('update:modelValue', otherMode)"
+            @pointerdown="emit('update:modelValue', otherMode), (isDropdownOpen = false)"
             v-text="otherMode"
           ></span>
         </template>

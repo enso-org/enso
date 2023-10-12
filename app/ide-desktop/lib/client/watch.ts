@@ -86,7 +86,6 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
             },
         })
         dashboardOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        dashboardOpts.write = false
         const dashboardBuilder = await esbuild.context(dashboardOpts)
         const dashboard = await dashboardBuilder.rebuild()
         console.log('Result of dashboard bundling: ', dashboard)
@@ -115,7 +114,8 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
             path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts')
         )
         contentOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        contentOpts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
+        contentOpts.define['process.env.REDIRECT_OVERRIDE'] =
+            JSON.stringify('http://localhost:8080')
         const contentBuilder = await esbuild.context(contentOpts)
         const content = await contentBuilder.rebuild()
         console.log('Result of content bundling: ', content)

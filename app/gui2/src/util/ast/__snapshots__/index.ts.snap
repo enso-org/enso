@@ -1,0 +1,431 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Parsing ' foo bar
+' 1`] = `
+{
+  "childrenLengthInCodeParsed": 8,
+  "statements": [
+    {
+      "expression": {
+        "arg": {
+          "childrenLengthInCodeParsed": 3,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": false,
+            "lengthInCodeBuffer": 3,
+            "liftLevel": 0,
+            "startInCodeBuffer": 5,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 5,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 1,
+          "whitespaceStartInCodeParsed": 4,
+        },
+        "childrenLengthInCodeParsed": 7,
+        "func": {
+          "childrenLengthInCodeParsed": 3,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": false,
+            "lengthInCodeBuffer": 3,
+            "liftLevel": 0,
+            "startInCodeBuffer": 1,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 1,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 1,
+        },
+        "type": "App",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 1,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 0,
+        "startInCodeBuffer": 0,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 0,
+      },
+    },
+    {
+      "expression": undefined,
+      "newline": {
+        "lengthInCodeBuffer": 1,
+        "startInCodeBuffer": 8,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 8,
+      },
+    },
+  ],
+  "type": "BodyBlock",
+  "whitespaceLengthInCodeParsed": 1,
+  "whitespaceStartInCodeParsed": 0,
+}
+`;
+
+exports[`Parsing 'Data.read
+2 + 2' 1`] = `
+{
+  "childrenLengthInCodeParsed": 15,
+  "statements": [
+    {
+      "expression": {
+        "childrenLengthInCodeParsed": 9,
+        "lhs": {
+          "childrenLengthInCodeParsed": 4,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": true,
+            "lengthInCodeBuffer": 4,
+            "liftLevel": 0,
+            "startInCodeBuffer": 0,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 0,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 0,
+        },
+        "opr": {
+          "ok": true,
+          "value": {
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 4,
+            "type": "Operator",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 4,
+          },
+        },
+        "rhs": {
+          "childrenLengthInCodeParsed": 4,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": false,
+            "lengthInCodeBuffer": 4,
+            "liftLevel": 0,
+            "startInCodeBuffer": 5,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 5,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 5,
+        },
+        "type": "OprApp",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 0,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 0,
+        "startInCodeBuffer": 0,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 0,
+      },
+    },
+    {
+      "expression": {
+        "childrenLengthInCodeParsed": 5,
+        "lhs": {
+          "base": undefined,
+          "childrenLengthInCodeParsed": 1,
+          "fractionalDigits": undefined,
+          "integer": {
+            "base": undefined,
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 10,
+            "type": "Digits",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 10,
+          },
+          "type": "Number",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 10,
+        },
+        "opr": {
+          "ok": true,
+          "value": {
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 12,
+            "type": "Operator",
+            "whitespaceLengthInCodeBuffer": 1,
+            "whitespaceStartInCodeBuffer": 11,
+          },
+        },
+        "rhs": {
+          "base": undefined,
+          "childrenLengthInCodeParsed": 1,
+          "fractionalDigits": undefined,
+          "integer": {
+            "base": undefined,
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 14,
+            "type": "Digits",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 14,
+          },
+          "type": "Number",
+          "whitespaceLengthInCodeParsed": 1,
+          "whitespaceStartInCodeParsed": 13,
+        },
+        "type": "OprApp",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 10,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 1,
+        "startInCodeBuffer": 9,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 9,
+      },
+    },
+  ],
+  "type": "BodyBlock",
+  "whitespaceLengthInCodeParsed": 0,
+  "whitespaceStartInCodeParsed": 0,
+}
+`;
+
+exports[`Parsing 'Data.read File
+2 + 3' 1`] = `
+{
+  "childrenLengthInCodeParsed": 20,
+  "statements": [
+    {
+      "expression": {
+        "arg": {
+          "childrenLengthInCodeParsed": 4,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": true,
+            "lengthInCodeBuffer": 4,
+            "liftLevel": 0,
+            "startInCodeBuffer": 10,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 10,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 1,
+          "whitespaceStartInCodeParsed": 9,
+        },
+        "childrenLengthInCodeParsed": 14,
+        "func": {
+          "childrenLengthInCodeParsed": 9,
+          "lhs": {
+            "childrenLengthInCodeParsed": 4,
+            "token": {
+              "isFree": false,
+              "isOperatorLexically": false,
+              "isTypeOrConstructor": true,
+              "lengthInCodeBuffer": 4,
+              "liftLevel": 0,
+              "startInCodeBuffer": 0,
+              "type": "Ident",
+              "whitespaceLengthInCodeBuffer": 0,
+              "whitespaceStartInCodeBuffer": 0,
+            },
+            "type": "Ident",
+            "whitespaceLengthInCodeParsed": 0,
+            "whitespaceStartInCodeParsed": 0,
+          },
+          "opr": {
+            "ok": true,
+            "value": {
+              "lengthInCodeBuffer": 1,
+              "startInCodeBuffer": 4,
+              "type": "Operator",
+              "whitespaceLengthInCodeBuffer": 0,
+              "whitespaceStartInCodeBuffer": 4,
+            },
+          },
+          "rhs": {
+            "childrenLengthInCodeParsed": 4,
+            "token": {
+              "isFree": false,
+              "isOperatorLexically": false,
+              "isTypeOrConstructor": false,
+              "lengthInCodeBuffer": 4,
+              "liftLevel": 0,
+              "startInCodeBuffer": 5,
+              "type": "Ident",
+              "whitespaceLengthInCodeBuffer": 0,
+              "whitespaceStartInCodeBuffer": 5,
+            },
+            "type": "Ident",
+            "whitespaceLengthInCodeParsed": 0,
+            "whitespaceStartInCodeParsed": 5,
+          },
+          "type": "OprApp",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 0,
+        },
+        "type": "App",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 0,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 0,
+        "startInCodeBuffer": 0,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 0,
+      },
+    },
+    {
+      "expression": {
+        "childrenLengthInCodeParsed": 5,
+        "lhs": {
+          "base": undefined,
+          "childrenLengthInCodeParsed": 1,
+          "fractionalDigits": undefined,
+          "integer": {
+            "base": undefined,
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 15,
+            "type": "Digits",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 15,
+          },
+          "type": "Number",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 15,
+        },
+        "opr": {
+          "ok": true,
+          "value": {
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 17,
+            "type": "Operator",
+            "whitespaceLengthInCodeBuffer": 1,
+            "whitespaceStartInCodeBuffer": 16,
+          },
+        },
+        "rhs": {
+          "base": undefined,
+          "childrenLengthInCodeParsed": 1,
+          "fractionalDigits": undefined,
+          "integer": {
+            "base": undefined,
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 19,
+            "type": "Digits",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 19,
+          },
+          "type": "Number",
+          "whitespaceLengthInCodeParsed": 1,
+          "whitespaceStartInCodeParsed": 18,
+        },
+        "type": "OprApp",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 15,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 1,
+        "startInCodeBuffer": 14,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 14,
+      },
+    },
+  ],
+  "type": "BodyBlock",
+  "whitespaceLengthInCodeParsed": 0,
+  "whitespaceStartInCodeParsed": 0,
+}
+`;
+
+exports[`Parsing 'foo bar=baz' 1`] = `
+{
+  "childrenLengthInCodeParsed": 11,
+  "statements": [
+    {
+      "expression": {
+        "arg": {
+          "childrenLengthInCodeParsed": 3,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": false,
+            "lengthInCodeBuffer": 3,
+            "liftLevel": 0,
+            "startInCodeBuffer": 8,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 8,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 8,
+        },
+        "childrenLengthInCodeParsed": 11,
+        "close": undefined,
+        "equals": {
+          "lengthInCodeBuffer": 1,
+          "startInCodeBuffer": 7,
+          "type": "Operator",
+          "whitespaceLengthInCodeBuffer": 0,
+          "whitespaceStartInCodeBuffer": 7,
+        },
+        "func": {
+          "childrenLengthInCodeParsed": 3,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": false,
+            "lengthInCodeBuffer": 3,
+            "liftLevel": 0,
+            "startInCodeBuffer": 0,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 0,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 0,
+        },
+        "name": {
+          "isFree": false,
+          "isOperatorLexically": false,
+          "isTypeOrConstructor": false,
+          "lengthInCodeBuffer": 3,
+          "liftLevel": 0,
+          "startInCodeBuffer": 4,
+          "type": "Ident",
+          "whitespaceLengthInCodeBuffer": 1,
+          "whitespaceStartInCodeBuffer": 3,
+        },
+        "open": undefined,
+        "type": "NamedApp",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 0,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 0,
+        "startInCodeBuffer": 0,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 0,
+      },
+    },
+  ],
+  "type": "BodyBlock",
+  "whitespaceLengthInCodeParsed": 0,
+  "whitespaceStartInCodeParsed": 0,
+}
+`;

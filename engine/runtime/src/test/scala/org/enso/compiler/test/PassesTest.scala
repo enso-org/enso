@@ -9,7 +9,9 @@ import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   AmbiguousImportsAnalysis,
   BindingAnalysis,
-  ImportSymbolAnalysis
+  ExportSymbolAnalysis,
+  ImportSymbolAnalysis,
+  PrivateModuleAnalysis
 }
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{ModuleNameConflicts, ShadowedPatternFields}
@@ -24,8 +26,8 @@ class PassesTest extends CompilerTest {
     override type Metadata = IRPass.Metadata.Empty
     override type Config   = IRPass.Configuration.Default
 
-    override val precursorPasses: Seq[IRPass]   = List()
-    override val invalidatedPasses: Seq[IRPass] = List()
+    override lazy val precursorPasses: Seq[IRPass]   = List()
+    override lazy val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
       ir: Module,
@@ -60,6 +62,8 @@ class PassesTest extends CompilerTest {
           LambdaShorthandToLambda,
           ImportSymbolAnalysis,
           AmbiguousImportsAnalysis,
+          PrivateModuleAnalysis.INSTANCE,
+          ExportSymbolAnalysis.INSTANCE,
           ShadowedPatternFields,
           UnreachableMatchBranches,
           NestedPatternMatch,

@@ -1,7 +1,7 @@
 /** @file Events related to changes in asset state. */
-import * as backendModule from '../backend'
+import type * as backendModule from '../backend'
 
-import * as spinner from '../components/spinner'
+import type * as spinner from '../components/spinner'
 
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax
@@ -21,7 +21,7 @@ export enum AssetEventType {
     newProject = 'new-project',
     newFolder = 'new-folder',
     uploadFiles = 'upload-files',
-    newSecret = 'new-secret',
+    newDataConnector = 'new-data-connector',
     openProject = 'open-project',
     closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
@@ -41,7 +41,7 @@ interface AssetEvents {
     newProject: AssetNewProjectEvent
     newFolder: AssetNewFolderEvent
     uploadFiles: AssetUploadFilesEvent
-    newSecret: AssetNewSecretEvent
+    newDataConnector: AssetNewDataConnectorEvent
     openProject: AssetOpenProjectEvent
     closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
@@ -78,8 +78,9 @@ export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.upl
     files: Map<backendModule.AssetId, File>
 }
 
-/** A signal to create a secret. */
-export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
+/** A signal to create a data connector. */
+export interface AssetNewDataConnectorEvent
+    extends AssetBaseEvent<AssetEventType.newDataConnector> {
     placeholderId: backendModule.SecretId
     value: string
 }

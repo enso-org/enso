@@ -89,27 +89,28 @@ watch(exprRect, (rect) => {
 
 <style scoped>
 .Span {
+  color: white;
   white-space: pre;
+  align-items: center;
+  transition: background 0.2s ease;
 
   &.Root {
-    display: inline-block;
     color: white;
   }
 
-  &.Ident {
-    color: #f97;
-  }
-
   &.Token {
-    color: #7f7;
+    color: rgb(255 255 255 / 0.33);
   }
 
   &.Literal {
-    color: #77f;
+    font-weight: bold;
   }
 
-  &.Group {
-    color: #ccc;
+  &.Ident {
+    background-color: var(--node-color-port);
+    border-radius: var(--node-border-radius);
+    margin: -2px -4px;
+    padding: 2px 4px;
   }
 }
 </style>

@@ -19,7 +19,7 @@ import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as validation from '../validation'
 
-import * as column from '../column'
+import type * as column from '../column'
 import EditableSpan from './editableSpan'
 import ProjectIcon from './projectIcon'
 import SvgMask from '../../authentication/components/svgMask'
@@ -46,6 +46,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
+            topLevelAssets,
+            nodeMap,
             doOpenManually,
             doOpenIde,
             doCloseIde,
@@ -64,15 +66,19 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const ownPermission =
         asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
         null
-    const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
+    // This is a workaround for a temporary bad state in the backend causing the `projectState` key
+    // to be absent.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const projectState = asset.projectState ?? { type: backendModule.ProjectState.closed }
+    const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
     const canExecute =
         backend.type === backendModule.BackendType.local ||
         (ownPermission != null &&
             permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
     const isOtherUserUsingProject =
         backend.type !== backendModule.BackendType.local &&
-        asset.projectState.opened_by != null &&
-        asset.projectState.opened_by !== organization?.email
+        projectState.opened_by != null &&
+        projectState.opened_by !== organization?.email
 
     const doRename = async (newName: string) => {
         try {
@@ -95,7 +101,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.newFolder:
-            case assetEventModule.AssetEventType.newSecret:
+            case assetEventModule.AssetEventType.newDataConnector:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
@@ -125,7 +131,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             ...asset,
                             id: createdProject.projectId,
                             projectState: {
-                                ...asset.projectState,
+                                ...projectState,
                                 type: backendModule.ProjectState.placeholder,
                             },
                         })
@@ -227,6 +233,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
+            onKeyDown={event => {
+                if (rowState.isEditingName && event.key === 'Enter') {
+                    event.stopPropagation()
+                }
+            }}
             onClick={event => {
                 if (rowState.isEditingName || isOtherUserUsingProject) {
                     // The project should neither be edited nor opened in these cases.
@@ -263,7 +274,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             ) : (
                 <ProjectIcon
                     keyProp={item.key}
-                    item={asset}
+                    // This is a workaround for a temporary bad state in the backend causing the
+                    // `projectState` key to be absent.
+                    item={{ ...asset, projectState }}
                     setItem={setAsset}
                     assetEvents={assetEvents}
                     doOpenManually={doOpenManually}
@@ -277,6 +290,20 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             )}
             <EditableSpan
                 editable={rowState.isEditingName}
+                checkSubmittable={newTitle =>
+                    (item.directoryKey != null
+                        ? nodeMap.current.get(item.directoryKey)?.children ?? []
+                        : topLevelAssets.current
+                    ).every(
+                        child =>
+                            // All siblings,
+                            child.key === item.key ||
+                            // that are not directories,
+                            backendModule.assetIsDirectory(child.item) ||
+                            // must have a different name.
+                            child.item.title !== newTitle
+                    )
+                }
                 onSubmit={async newTitle => {
                     setRowState(oldRowState => ({
                         ...oldRowState,
@@ -304,7 +331,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className={`bg-transparent grow leading-170 h-6 px-2 py-px ${
+                className={`bg-transparent grow leading-170 h-6 py-px ${
                     rowState.isEditingName
                         ? 'cursor-text'
                         : canExecute && !isOtherUserUsingProject

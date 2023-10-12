@@ -157,7 +157,13 @@ type Bench
     ## Run the specified set of benchmarks.
     run_main self =
         count = self.total_specs
-        IO.println <| "Found " + count.to_text + " cases to execute"
+        IO.println <| "Found " + count.to_text + " cases to execute (ETA " + self.estimated_runtime.to_display_text + ")"
+
+        case Environment.get "ENSO_BENCHMARK_REPORT_PATH" of
+            Nothing -> Nothing
+            path ->
+                line = 'Label,Phase,"Invocations count","Average time (ms)"'
+                line.write path on_existing_file=Existing_File_Behavior.Backup
 
         self.fold Nothing _-> g-> s->
             c = g.configuration
@@ -168,10 +174,10 @@ type Bench
     ## Measure the amount of time it takes to execute a given computation.
 
        Arguments:
-       - act: The action to perform.
        - label: A name for the benchmark.
        - warmup_conf: Warmup phase configuration.
        - measure_conf: Measurement phase configuration.
+       - act: The action to perform.
 
        > Example
          Measure a computation called "foo" with an iteration size of 2 and a number
@@ -193,8 +199,8 @@ type Bench
                 IO.println <| "[DRY-RUN] Benchmark '" + label + "' finished in " + fmt_duration_ms + " ms"
             False ->
                 measure_start = System.nano_time
-                Bench.run_phase "Warmup" warmup_conf act
-                Bench.run_phase "Measurement" measure_conf act
+                Bench.run_phase label "Warmup" warmup_conf act
+                Bench.run_phase label "Measurement" measure_conf act
                 measure_end = System.nano_time
                 measure_duration_ms = (measure_end - measure_start) / 1000000
                 fmt_duration_ms = measure_duration_ms.format "#.###"
@@ -215,11 +221,12 @@ type Bench
        so that it is the same as in JMH.
 
        Arguments:
+       - label: A name for the benchmark.
        - phase_name: The name of the phase.
        - conf: The phase configuration.
        - act: Method that should be measured - benchmark body.
-    run_phase : Text -> Phase_Conf -> (Any -> Any) -> Nothing
-    run_phase (phase_name:Text) (conf:Phase_Conf) ~act =
+    run_phase : Text -> Text -> Phase_Conf -> (Any -> Any) -> Nothing
+    run_phase (label:Text) (phase_name:Text) (conf:Phase_Conf) ~act =
         duration_ns = conf.iterations * conf.seconds * 1000000000
         phase_start = System.nano_time
         stop_ns = phase_start + duration_ns
@@ -230,13 +237,28 @@ type Bench
         durations = go [] phase_start
         sum = durations.reduce (_ + _)
         run_iters = durations.length
-        avg = sum / run_iters
-        fmt = (avg / 1000000).format "#.###"
+        avg = (sum / run_iters) / 1000000
         phase_end = System.nano_time
-        phase_duration_ms = (phase_end - phase_start) / 1000000
-        IO.println <| phase_name + " duration:    " + phase_duration_ms.to_text + " ms"
-        IO.println <| phase_name + " invocations: " + run_iters.to_text
+        phase_duration = Duration.new nanoseconds=(phase_end - phase_start)
+        Bench.summarize_phase label phase_name run_iters avg phase_duration
+
+    ## PRIVATE
+       This is a very simple implementation of summarizing the benchmark
+       results.
+
+       We may want to improve it later, but it gets the job done to give us
+       simple summary that can be analysed more easily than logs.
+    summarize_phase (label:Text) (phase_name:Text) (invocations:Integer) (average_time:Float) (phase_duration:Duration) =
+        fmt = average_time.format "#.###"
+        IO.println <| phase_name + " duration:    " + (phase_duration.total_milliseconds.format "#.##") + " ms"
+        IO.println <| phase_name + " invocations: " + invocations.to_text
         IO.println <| phase_name + " avg time:    " + fmt + " ms"
+
+        case Environment.get "ENSO_BENCHMARK_REPORT_PATH" of
+            Nothing -> Nothing
+            path ->
+                line = '\n"'+label+'","'+phase_name+'",'+invocations.to_text+','+fmt
+                line.write path on_existing_file=Existing_File_Behavior.Append
 
 ## PRIVATE
 

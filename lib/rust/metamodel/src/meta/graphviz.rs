@@ -28,8 +28,7 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
         let primitive = matches!(&ty.data, Data::Primitive(_));
         let label = ty.name.to_string();
         graph.nodes.insert(sname.clone(), Node { primitive, node_type, label });
-        let parentlike = ty.parent.iter().chain(&ty.mixins);
-        for id in parentlike {
+        if let Some(id) = ty.parent.as_ref() {
             let sparent = format!("{}{}", types[id].name, id);
             graph.edges.push((sparent.clone(), sname.clone(), EdgeType::Subtype));
         }

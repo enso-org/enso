@@ -59,7 +59,7 @@ type Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
-    from_vector : Text -> Vector -> Value_Type | Auto -> Column ! Invalid_Value_Type
+    from_vector : Text -> Vector -> Auto | Value_Type -> Column ! Invalid_Value_Type
     from_vector (name : Text) (items : Vector) (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
@@ -1692,8 +1692,8 @@ type Column
              input.format "#,##0.00" locale=(Locale.new "fr")
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
-    format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
-    format self (format : Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default =
+    format : Text | Date_Time_Formatter | Column | Nothing -> Locale -> Column ! Illegal_Argument
+    format self format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default =
         new_column = case format of
             format_column : Column -> Value_Type.expect_text format_column <|
                 formatter = make_value_formatter_for_value_type self.value_type locale
@@ -1833,7 +1833,7 @@ type Column
         new_st = self.to_vector.map new_fn
         Column.from_vector self.name new_st value_type=expected_value_type
 
-    ## ALIAS transform columns
+    ## ALIAS combine, merge, join by row position
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
@@ -1868,7 +1868,7 @@ type Column
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
-    zip self that function skip_nothing=True expected_value_type=Auto =
+    zip self that:Column function skip_nothing=True expected_value_type=Auto =
         new_fn = case skip_nothing of
             True ->
                 x -> y ->
@@ -2106,7 +2106,8 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Standard.Base.Selections
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -2527,3 +2528,15 @@ cast_if_needed column value_type = if column.value_type == value_type then colum
 ## PRIVATE
 naming_helper : Column_Naming_Helper
 naming_helper = Column_Naming_Helper.in_memory
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_vector
+
+## PRIVATE
+   Conversion method to a Column from a Vector.
+Column.from (that:Date_Range) (name:Text="Date Range") = Column.from_vector name that.to_vector

@@ -33,9 +33,10 @@ const edgePath = computed(() => {
   `
 })
 
-function click(e: PointerEvent) {
+function click(_e: PointerEvent) {
   if (props.editing) return
-  const pos = props.navigator.eventToScenePos(e)
+  const pos = props.navigator.sceneMousePos
+  if (pos == null) return
   const sqDistanceFromSource = Vec2.DistanceSquared(pos, props.edge.source)
   const sqDistanceFromTarget = Vec2.DistanceSquared(pos, props.edge.target)
   if (sqDistanceFromSource > sqDistanceFromTarget) {

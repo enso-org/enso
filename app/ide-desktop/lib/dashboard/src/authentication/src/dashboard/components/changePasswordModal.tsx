@@ -31,10 +31,11 @@ export default function ChangePasswordModal() {
     return (
         <Modal centered className="bg-dim">
             <div
+                data-testid="change-password-modal"
+                className="flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md"
                 onClick={event => {
                     event.stopPropagation()
                 }}
-                className="flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl px-4 py-8 w-full max-w-md"
             >
                 <div className="self-center text-xl">Change Your Password</div>
                 <div className="mt-10">
@@ -69,7 +70,7 @@ export default function ChangePasswordModal() {
                                     error={validation.PASSWORD_ERROR}
                                     value={oldPassword}
                                     setValue={setOldPassword}
-                                    className="text-sm sm:text-base placeholder-gray-500 pl-10 pr-4 rounded-2xl w-full py-2 focus:outline-none focus:border-blue-400"
+                                    className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-2xl w-full py-2 focus:outline-none focus:border-blue-400"
                                 />
                             </div>
                         </div>
@@ -96,7 +97,7 @@ export default function ChangePasswordModal() {
                             </div>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label htmlFor="new_password_confirm">Confirm New Password:</label>
+                            <label htmlFor="confirm_new_password">Confirm New Password:</label>
                             <div className="relative">
                                 <SvgIcon>
                                     <SvgMask src={LockIcon} />

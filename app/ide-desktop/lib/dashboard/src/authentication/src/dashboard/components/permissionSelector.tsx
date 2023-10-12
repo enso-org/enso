@@ -1,8 +1,8 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
-import * as backend from '../backend'
-import * as permissions from '../permissions'
+import type * as backend from '../backend'
+import type * as permissions from '../permissions'
 import * as permissionsModule from '../permissions'
 
 import Modal from './modal'
@@ -94,7 +94,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                 : function Child() {
                       return (
                           <Modal
-                              className="fixed w-full h-full z-1"
+                              className="fixed w-full h-full"
                               onClick={() => {
                                   setTheChild(null)
                               }}

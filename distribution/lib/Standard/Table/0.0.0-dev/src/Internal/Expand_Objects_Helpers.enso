@@ -1,0 +1,81 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Data.Table.Table
+import project.Data.Column.Column
+import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
+import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
+import project.Internal.Java_Exports
+
+## PRIVATE
+expand_column : Table -> (Text | Integer) -> ((Vector Text) | Nothing) -> (Text | Nothing) -> Table
+expand_column table column fields prefix =
+    column_object = table.at column
+    expanded = create_table_from_objects column_object.to_vector fields
+
+    output_builder = Vector.new_builder table.column_count+expanded.column_count-1
+
+    ## Resolve names
+    resolved_prefix = if prefix.is_nothing then column_object.name+" " else prefix
+    naming_strategy = table.column_naming_helper.create_unique_name_strategy
+    naming_strategy.mark_used (table.column_names.filter (c->c!=column_object.name))
+    new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> resolved_prefix+n)
+    new_columns = new_names.zip expanded.columns (n->c-> c.rename n)
+
+    ## Create Merged Columns
+    table.columns.each c->
+        if c.name != column_object.name then output_builder.append c else
+            output_builder.append_vector_range new_columns
+
+    Table.new output_builder.to_vector
+
+## PRIVATE
+create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table
+create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothing) = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
+    len = value.length
+
+    preset_fields = fields.is_nothing.not
+    initial_map = if preset_fields.not then Map.empty else
+        Map.from_vector (fields.map field_name-> [field_name, Java_Exports.make_inferred_builder len]) error_on_duplicates=False
+
+    # This is used to ensure that field names in the resulting table are in the order they were encountered.
+    discovered_field_names = Vector.new_builder
+
+    builder_map = case preset_fields of
+        # Just get the queried keys from each object.
+        True ->
+            0.up_to len . each idx->
+                v = (value.getter idx).to Convertible_To_Columns
+                initial_map.each_with_key field_name-> builder->
+                    builder.append (v.getter field_name)
+
+            initial_map
+
+        # In this mode we are discovering the key set as we go.
+        False ->
+            0.up_to len . fold initial_map current_map-> idx->
+                v = (value.getter idx).to Convertible_To_Columns
+                v.field_names.fold current_map inner_current_map-> f->
+                    existing_builder = inner_current_map.get f Nothing
+                    builder = existing_builder.if_nothing <|
+                        discovered_field_names.append f
+                        Java_Exports.make_inferred_builder len
+                    builder.fillUpToSize idx
+                    builder.append (v.getter f)
+                    new_map = if existing_builder.is_nothing.not then inner_current_map else
+                        inner_current_map.insert f builder
+                    new_map
+
+    # Seal all builders and create columns
+    column_map = builder_map.map_with_key name-> builder->
+        builder.fillUpToSize len
+        Column.from_storage name builder.seal
+
+    column_map.if_not_error <|
+        # Create a vector of columns, preserving the original order if it was specified.
+        columns = case preset_fields of
+            True  -> fields.distinct.map column_map.get
+            False ->
+                if discovered_field_names.is_empty then Error.throw (Illegal_Argument.Error "Unable to discover expected column names, because all input objects had no fields. Specify fields explicitly if you need a constant set of expected columns.") else
+                    discovered_field_names.to_vector.map column_map.get
+        Table.new columns

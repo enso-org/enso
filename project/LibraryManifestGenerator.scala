@@ -33,7 +33,7 @@ object LibraryManifestGenerator {
 
       val store =
         cacheStoreFactory.make(s"library-manifest-$namespace-$name-$version")
-      val sources = (projectPath / "src" allPaths).get
+      val sources = (projectPath / "src").allPaths.get
       Tracked.diffInputs(store, FileInfo.hash)(sources.toSet) { diff =>
         def manifestExists = (projectPath / "manifest.yaml").exists()
         if (diff.modified.nonEmpty || !manifestExists) {

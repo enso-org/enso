@@ -87,13 +87,13 @@ impl View {
 
             eval_ show (height_fraction.set_target_value(HEIGHT_FRACTION));
             focus <- show.gate_not(&frp.set_read_only);
-            eval_ focus (model.focus());
+            eval_ focus(model.frp.focus());
             eval_ hide (height_fraction.set_target_value(0.0));
             enable_read_only <- frp.set_read_only.on_true();
             defocus <- any(hide, enable_read_only);
             eval_ defocus ([model] {
                 model.remove_all_cursors();
-                model.blur();
+                model.frp.blur();
             });
 
             frp.private.output.is_visible <+ bool(&frp.input.hide, &frp.input.show);

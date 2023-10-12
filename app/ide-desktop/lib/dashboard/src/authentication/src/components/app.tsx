@@ -41,7 +41,7 @@ import * as toastify from 'react-toastify'
 import * as detect from 'enso-common/src/detect'
 
 import * as authServiceModule from '../authentication/service'
-import * as backend from '../dashboard/backend'
+import type * as backend from '../dashboard/backend'
 import * as hooks from '../hooks'
 import * as localBackend from '../dashboard/localBackend'
 import * as shortcutsModule from '../dashboard/shortcuts'
@@ -170,7 +170,7 @@ function AppRouter(props: AppProps) {
         projectManagerUrl,
     } = props
     const navigate = hooks.useNavigate()
-    if (IS_DEV_MODE) {
+    if (detect.IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
@@ -203,7 +203,7 @@ function AppRouter(props: AppProps) {
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
     const initialBackend: backend.Backend = isAuthenticationDisabled
-        ? new localBackend.LocalBackend(projectManagerUrl, null)
+        ? new localBackend.LocalBackend(projectManagerUrl)
         : // This is safe, because the backend is always set by the authentication flow.
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           null!

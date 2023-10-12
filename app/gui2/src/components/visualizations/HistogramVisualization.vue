@@ -1,10 +1,18 @@
 <script lang="ts">
+import { defineKeybinds } from '@/util/shortcuts'
+
 export const name = 'Histogram'
 export const inputType =
   'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
+export const defaultPreprocessor = [
+  'Standard.Visualization.Histogram',
+  'process_to_json_text',
+] as const
 
-// eslint-disable-next-line no-redeclare
-declare const d3: typeof import('d3')
+const bindings = defineKeybinds('histogram-visualization', {
+  zoomIn: ['Mod+Z'],
+  showAll: ['Mod+A'],
+})
 
 /**
  * A d3.js histogram visualization.
@@ -85,8 +93,8 @@ interface AxisConfiguration {
 }
 
 interface AxesConfiguration {
-  x: AxisConfiguration
-  y: AxisConfiguration
+  x: AxisConfiguration | undefined
+  y: AxisConfiguration | undefined
 }
 
 interface Bin {
@@ -97,25 +105,16 @@ interface Bin {
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, watchEffect, watchPostEffect } from 'vue'
+import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm'
-
-import type { BrushSelection, D3BrushEvent, D3ZoomEvent, ScaleSequential, ZoomTransform } from 'd3'
+import * as d3 from 'd3'
 
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/useVisualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
 
 import { useEvent, useEventConditional } from './events.ts'
 import { getTextWidth } from './measurement.ts'
-
-const shortcuts = {
-  zoomIn: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'z',
-  showAll: (e: KeyboardEvent) => (e.ctrlKey || e.metaKey) && e.key === 'a',
-}
 
 const MARGIN = 25
 const AXIS_LABEL_HEIGHT = 10
@@ -130,16 +129,13 @@ const RMB_DIVIDER = 100
 const PINCH_DIVIDER = 100
 
 const EPSILON = 0.001
-const ZOOM_EXTENT = [0.5, 20] satisfies BrushSelection
+const ZOOM_EXTENT = [0.5, 20] satisfies d3.BrushSelection
 const RIGHT_BUTTON = 2
 const MID_BUTTON = 1
 const MID_BUTTON_CLICKED = 4
 const SCROLL_WHEEL = 0
 
 const props = defineProps<{ data: Data }>()
-const emit = defineEmits<{
-  'update:preprocessor': [module: string, method: string, ...args: string[]]
-}>()
 
 const config = useVisualizationConfig()
 
@@ -162,14 +158,15 @@ const points = ref<number[]>([])
 const rawBins = ref<number[]>()
 const binCount = ref(DEFAULT_NUMBER_OF_BINS)
 const axis = ref(DEFAULT_AXES_CONFIGURATION)
-const rawFocus = ref<Focus>()
-const brushExtent = ref<BrushSelection>()
+const focus = ref<Focus>()
+const brushExtent = ref<d3.BrushSelection>()
 const zoomLevel = ref(1)
 const shouldAnimate = ref(false)
 
 const xDomain = ref([0, 1])
 const yDomain = ref([0, 1])
 
+const isBrushing = computed(() => brushExtent.value != null)
 // The maximum value MUST NOT be 0, otherwise 0 will be in the middle of the y axis.
 const yMax = computed(() => d3.max(bins.value, (d) => d.length) || 1)
 const originalXScale = computed(() =>
@@ -230,7 +227,7 @@ watchEffect(() => {
       axis.value = rawData.axis
     }
     if (rawData.focus != null) {
-      rawFocus.value = rawData.focus
+      focus.value = rawData.focus
     }
     if (rawData.bins != null) {
       binCount.value = Math.max(1, rawData.bins)
@@ -269,9 +266,9 @@ watchPostEffect(() => {
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
-const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x.label) / 2)
+const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x?.label) / 2)
 const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
-const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y.label) / 2)
+const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y?.label) / 2)
 
 let startX = 0
 let startY = 0
@@ -327,12 +324,12 @@ const zoom = computed(() =>
 watchEffect(() => d3Zoom.value.call(zoom.value))
 
 /** Helper function called on pan/scroll. */
-function zoomed(event: D3ZoomEvent<Element, unknown>) {
+function zoomed(event: d3.D3ZoomEvent<Element, unknown>) {
   shouldAnimate.value = false
   const xScale_ = xScale.value
   const yScale_ = yScale.value
 
-  function innerRescale(transformEvent: ZoomTransform) {
+  function innerRescale(transformEvent: d3.ZoomTransform) {
     xDomain.value = transformEvent.rescaleX(xScale_).domain()
     const newYDomain = transformEvent.rescaleY(yScale_).domain()
     const yMin = newYDomain[0] ?? 0
@@ -390,7 +387,7 @@ function rmbZoomValue(event: MouseEvent | WheelEvent | undefined) {
 }
 
 /** Helper function called when starting to pan/scroll. */
-function startZoom(event: D3ZoomEvent<Element, unknown>) {
+function startZoom(event: d3.D3ZoomEvent<Element, unknown>) {
   startX = event.sourceEvent?.offsetX ?? 0
   startY = event.sourceEvent?.offsetY ?? 0
   startClientX = event.sourceEvent?.clientX ?? 0
@@ -406,7 +403,7 @@ const brush = computed(() =>
       [0, 0],
       [boxWidth.value, boxHeight.value],
     ])
-    .on('start brush', (event: D3BrushEvent<unknown>) => {
+    .on('start brush', (event: d3.D3BrushEvent<unknown>) => {
       brushExtent.value = event.selection ?? undefined
     }),
 )
@@ -422,7 +419,7 @@ function zoomToSelected() {
   if (brushExtent.value == null) {
     return
   }
-  rawFocus.value = undefined
+  focus.value = undefined
   const xScale_ = xScale.value
   const startRaw = brushExtent.value[0]
   const endRaw = brushExtent.value[1]
@@ -441,17 +438,12 @@ function endBrushing() {
   d3Brush.value.call(brush.value.move, null)
 }
 
-useEventConditional(
-  document,
-  'keydown',
-  () => brushExtent.value != null,
-  (event) => {
-    if (shortcuts.zoomIn(event)) {
-      zoomToSelected()
-      endBrushing()
-    }
-  },
-)
+function zoomIn() {
+  zoomToSelected()
+  endBrushing()
+}
+
+useEventConditional(document, 'keydown', isBrushing, bindings.handler({ zoomIn }))
 
 /**
  * Return the extrema of the data and and paddings that ensure data will fit into the
@@ -479,7 +471,7 @@ const xExtents = computed<[min: number, max: number]>(() => {
 })
 
 watchEffect(() => {
-  const focus_ = rawFocus.value
+  const focus_ = focus.value
   if (focus_?.x != null && focus_.zoom != null) {
     let paddingX = extremesAndDeltas.value.dx / (2 * focus_.zoom)
     xDomain.value = [focus_.x - paddingX, focus_.x + paddingX]
@@ -493,7 +485,7 @@ watchEffect(() => {
  * Set up `stop` attributes on color legend gradient to match `colorScale`, so color legend shows correct colors
  * used by histogram.
  */
-function updateColorLegend(colorScale: ScaleSequential<string>) {
+function updateColorLegend(colorScale: d3.ScaleSequential<string>) {
   const colorScaleToGradient = (t: number, i: number, n: number[]) => ({
     offset: `${(100 * i) / n.length}%`,
     color: colorScale(t),
@@ -506,14 +498,6 @@ function updateColorLegend(colorScale: ScaleSequential<string>) {
     .attr('offset', (d) => d.offset)
     .attr('stop-color', (d) => d.color)
 }
-
-// =============
-// === Setup ===
-// =============
-
-onMounted(() => {
-  emit('update:preprocessor', 'Standard.Visualization.Histogram', 'process_to_json_text')
-})
 
 // ==============
 // === Update ===
@@ -576,18 +560,15 @@ watchPostEffect(() => {
 // === Event handlers ===
 // ======================
 
-function fitAll() {
-  rawFocus.value = undefined
+function showAll() {
+  focus.value = undefined
   zoomLevel.value = 1
   xDomain.value = originalXScale.value.domain()
   shouldAnimate.value = true
+  endBrushing()
 }
 
-useEvent(document, 'keydown', (event) => {
-  if (shortcuts.showAll(event)) {
-    fitAll()
-  }
-})
+useEvent(document, 'keydown', bindings.handler({ showAll }))
 useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
@@ -595,10 +576,10 @@ useEvent(document, 'scroll', endBrushing)
 </script>
 
 <template>
-  <VisualizationContainer :below-toolbar="true">
+  <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @click="fitAll" />
+        <SvgIcon name="show_all" alt="Fit all" @click="showAll" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
         <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected" />
@@ -630,20 +611,20 @@ useEvent(document, 'scroll', endBrushing)
           <g ref="xAxisNode" class="axis-x" :transform="`translate(0, ${boxHeight})`"></g>
           <g ref="yAxisNode" class="axis-y"></g>
           <text
-            v-if="axis.x.label"
+            v-if="axis.x?.label"
             class="label label-x"
             text-anchor="end"
             :x="xLabelLeft"
             :y="xLabelTop"
-            v-text="axis.x.label"
+            v-text="axis.x?.label"
           ></text>
           <text
-            v-if="axis.y.label"
+            v-if="axis.y?.label"
             class="label label-y"
             text-anchor="end"
             :x="yLabelLeft"
             :y="yLabelTop"
-            v-text="axis.y.label"
+            v-text="axis.y?.label"
           ></text>
           <g ref="plotNode" clip-path="url(#histogram-clip-path)"></g>
           <g ref="zoomNode" class="zoom">

@@ -20,8 +20,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion = "2.13.11"
-// Since the release of GraalVM 23.0.0, the versioning is the same for Graal and OpenJDK.
-val graalVersion = "17.0.7"
+val graalVersion  = "17.0.7"
 // Version used for the Graal/Truffle related Maven packages
 val graalMavenPackagesVersion = "23.0.0"
 val targetJavaVersion         = graalVersion.split("\\.")(0)
@@ -482,8 +481,10 @@ val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
 val junitIfVersion          = "0.13.2"
+val hamcrestVersion         = "1.3"
 val netbeansApiVersion      = "RELEASE180"
 val fansiVersion            = "0.4.0"
+val httpComponentsVersion   = "4.4.1"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -951,10 +952,15 @@ lazy val `json-rpc-server` = project
     libraryDependencies ++= akka ++ logbackTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
-      "io.circe"                   %% "circe-literal" % circeVersion,
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "io.circe"                   %% "circe-literal"   % circeVersion,
+      "com.typesafe.scala-logging" %% "scala-logging"   % scalaLoggingVersion,
       akkaTestkit                   % Test,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+      "org.scalatest"              %% "scalatest"       % scalatestVersion      % Test,
+      "junit"                       % "junit"           % junitVersion          % Test,
+      "com.github.sbt"              % "junit-interface" % junitIfVersion        % Test,
+      "org.apache.httpcomponents"   % "httpclient"      % httpComponentsVersion % Test,
+      "org.apache.httpcomponents"   % "httpcore"        % httpComponentsVersion % Test,
+      "commons-io"                  % "commons-io"      % commonsIoVersion      % Test
     )
   )
 
@@ -1336,6 +1342,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion              % Test,
       "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
+      "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
       "com.lihaoyi"        %% "fansi"                 % fansiVersion
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)

@@ -73,6 +73,31 @@ type Vector a
 
     ## PRIVATE
        ADVANCED
+       Collects elements of a sequence into a new vector. Various structures can be
+       converted into vector of elements. This helper methods allows to do so in an
+       iterative fashion. Enough to describe how to extract value from current item
+       and how to advance to next item.
+
+       Arguments:
+       - seq: the sequence to process.
+       - element: A function taking the `seq` and follow ups and extracting the value to put into the vector
+       - next: A function to advance to next _item_ of the sequence
+       - limit: maximal number of elements to collect. Defaults to infinity.
+       - stop_at: optional function like `(_==List.Nil)` to check for _end of sequence condition_.
+          By default checks for `Nothing` being the terminal element of a collection.
+
+       > Example
+         Turn a list into a vector.
+             Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
+    collect seq element:(Any -> Any) next:(Any->Any) limit:(Integer|Nothing)=Nothing stop_at:(Any->Boolean)=(_==Nothing) =
+        b = Vector.new_builder (if limit.is_nothing then 10 else limit)
+        iterate item remaining = if remaining == 0 || (stop_at item) then b.to_vector else
+            b.append <| element item
+            @Tail_Call iterate (next item) (if remaining.is_nothing then Nothing else remaining-1)
+        iterate seq limit
+
+    ## PRIVATE
+       ADVANCED
 
        Converts an array into a vector by copying content of the array.
 
@@ -684,7 +709,7 @@ type Vector a
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
-    ## ALIAS concatenate
+    ## ALIAS concatenate, union, append
        GROUP Operators
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
@@ -766,7 +791,7 @@ type Vector a
             if self.length == 1 then prefix + self.at 0 + suffix else
                 prefix + self.at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.at i) + suffix
 
-    ## GROUP Selections
+    ## PRIVATE
        Creates a new vector with the skipping elements until `start` and then
        continuing until `end` index.
 
@@ -781,7 +806,8 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = @Builtin_Method "Vector.slice"
 
-    ## GROUP Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Selections
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -816,7 +842,8 @@ type Vector a
     drop self range=(Index_Sub_Range.First 1) =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## GROUP Calculations
+    ## ALIAS combine, merge, join by row position
+       GROUP Calculations
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -839,7 +866,7 @@ type Vector a
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
-    zip self that function=[_,_] =
+    zip self that:Vector function=[_,_] =
         len = self.length.min that.length
         Vector.new len i-> function (self.at i) (that.at i)
 
