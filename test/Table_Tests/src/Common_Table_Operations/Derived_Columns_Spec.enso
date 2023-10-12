@@ -114,7 +114,17 @@ spec setup =
             t.set (Column_Operation.Or (Column_Ref.Name "A") "x") . should_fail_with Invalid_Value_Type
 
         Test.specify "if" <|
-            Nothing
+            t = table_builder [["A", [1, 100]], ["B", [10, 40]], ["C", [23, 55]]]
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal [False, True]
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=20) "T" "F") "Z" . at "Z" . to_vector . should_equal ["F", "T"]
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Less than=20) (Column_Ref.Name "B") (Column_Ref.Name "C")) "Z" . at "Z" . to_vector . should_equal [10, 55]
+
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than="X") "T" "F") . should_fail_with Invalid_Value_Type
+
+            t2 = table_builder [["A", ["a", "c"]], ["B", ["c", "b"]], ["C", [23, 55]]]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal [False, True]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B")) (Column_Ref.Name "C") 0) "Z" . at "Z" . to_vector . should_equal [0, 55]
+            t2.set (Column_Operation.If "A" (Filter_Condition.Greater than="B") (Column_Ref.Name "C") 0) "Z" . at "Z" . to_vector . should_equal [0, 0]
 
         Test.specify "text" <|
             t = table_builder [["A", ["  a ", "b"]], ["B", ["c", " d    "]]]
