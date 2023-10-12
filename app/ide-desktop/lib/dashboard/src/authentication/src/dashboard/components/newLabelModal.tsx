@@ -97,12 +97,17 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                             }}
                         />
                     </label>
-                    <div className="flex">
+                    <label
+                        className="flex"
+                        onClick={event => {
+                            event.preventDefault()
+                        }}
+                    >
                         <div className="w-12 h-6 py-1">Color</div>
                         <div className="grow flex items-center gap-1">
                             <ColorPicker setColor={setColor} />
                         </div>
-                    </div>
+                    </label>
                     <div className="flex gap-2">
                         <button
                             disabled={!canSubmit}

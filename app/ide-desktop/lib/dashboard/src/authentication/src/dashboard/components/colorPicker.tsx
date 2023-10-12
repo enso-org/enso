@@ -16,7 +16,9 @@ export default function ColorPicker(props: ColorPickerProps) {
             {backend.COLORS.map((currentColor, i) => (
                 <label
                     key={i}
-                    onClick={() => {
+                    className="cursor-pointer rounded-full w-4 h-4"
+                    onClick={event => {
+                        event.stopPropagation()
                         setColor(currentColor)
                     }}
                 >
