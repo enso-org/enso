@@ -157,11 +157,7 @@ export default function Login() {
                             <button
                                 disabled={isSubmitting}
                                 type="submit"
-                                className={
-                                    'flex items-center justify-center focus:outline-none text-white ' +
-                                    'text-sm bg-blue-600 hover:bg-blue-700 rounded py-2 w-full ' +
-                                    'transition duration-150 ease-in disabled:opacity-50'
-                                }
+                                className="flex items-center justify-center focus:outline-none text-white text-sm bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in disabled:opacity-50"
                             >
                                 <span className="mr-2 uppercase">Login</span>
                                 <SvgMask src={ArrowRightIcon} />
@@ -172,10 +168,7 @@ export default function Login() {
                 <div className="flex justify-center items-center mt-6">
                     <router.Link
                         to={app.REGISTRATION_PATH}
-                        className={
-                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
-                            'text-xs text-center'
-                        }
+                        className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
                     >
                         <SvgMask src={CreateAccountIcon} />
                         <span className="ml-2">You don&apos;t have an account?</span>
@@ -184,10 +177,7 @@ export default function Login() {
                 <div className="flex justify-center items-center mt-6">
                     <router.Link
                         to={app.ENTER_OFFLINE_MODE_PATH}
-                        className={
-                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
-                            'text-xs text-center'
-                        }
+                        className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
                     >
                         <SvgMask src={ArrowRightIcon} />
                         <span className="ml-2">Continue without creating an account</span>

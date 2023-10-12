@@ -28,10 +28,7 @@ export default function SetUsername() {
         <div className="min-h-screen flex flex-col items-center justify-center">
             <div
                 data-testid="set-username-panel"
-                className={
-                    'flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full ' +
-                    'max-w-md'
-                }
+                className="flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full max-w-md"
             >
                 <div className="font-medium self-center text-xl uppercase text-gray-800">
                     Set your username
@@ -63,11 +60,7 @@ export default function SetUsername() {
                         <div className="flex w-full">
                             <button
                                 type="submit"
-                                className={
-                                    'flex items-center justify-center focus:outline-none text-white text-sm ' +
-                                    'bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition ' +
-                                    'duration-150 ease-in'
-                                }
+                                className="flex items-center justify-center focus:outline-none text-white text-sm bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in"
                             >
                                 <span className="mr-2 uppercase">Set username</span>
                                 <span>

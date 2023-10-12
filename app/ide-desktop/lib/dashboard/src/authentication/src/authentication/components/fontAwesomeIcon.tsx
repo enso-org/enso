@@ -16,12 +16,7 @@ export interface FontAwesomeIconProps {
 /** A fixed-size container for a {@link fontawesome.FontAwesomeIcon FontAwesomeIcon}. */
 export default function FontAwesomeIcon(props: FontAwesomeIconProps) {
     return (
-        <span
-            className={
-                'absolute left-0 top-0 flex items-center justify-center h-full w-10 ' +
-                'text-blue-500'
-            }
-        >
+        <span className="absolute left-0 top-0 flex items-center justify-center h-full w-10 text-blue-500">
             <fontawesome.FontAwesomeIcon icon={props.icon} />
         </span>
     )

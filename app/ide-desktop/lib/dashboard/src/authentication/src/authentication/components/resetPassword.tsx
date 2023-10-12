@@ -166,11 +166,7 @@ export default function ResetPassword() {
                         <div className="flex w-full">
                             <button
                                 type="submit"
-                                className={
-                                    'flex items-center justify-center focus:outline-none text-white text-sm ' +
-                                    'bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition ' +
-                                    'duration-150 ease-in'
-                                }
+                                className="flex items-center justify-center focus:outline-none text-white text-sm bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in"
                             >
                                 <span className="mr-2 uppercase">Reset</span>
                                 <span>
@@ -183,10 +179,7 @@ export default function ResetPassword() {
                 <div className="flex justify-center items-center mt-6">
                     <router.Link
                         to={app.LOGIN_PATH}
-                        className={
-                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs ' +
-                            'text-center'
-                        }
+                        className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
                     >
                         <span>
                             <SvgMask src={GoBackIcon} />
