@@ -8,7 +8,11 @@ import org.enso.interpreter.instrument.command.{
 }
 import org.enso.text.Sha3_224VersionCalculator
 
-import java.util.concurrent.{BlockingQueue, Callable, LinkedBlockingQueue}
+import java.util.concurrent.{
+  BlockingQueue,
+  CompletableFuture,
+  LinkedBlockingQueue
+}
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 /** This component schedules the execution of commands. It keep a queue of
@@ -79,17 +83,18 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
   def invoke(cmd: Command): Future[Completion] = {
     cmd match {
       case c: SynchronousCommand =>
+        import scala.jdk.FutureConverters._
         blockingQueue.add(c)
-        val javaFuture =
-          sequentialExecutionService.submit(new Callable[Completion] {
-            override def call(): Completion = {
+        val javaFuture: CompletableFuture[Completion] = {
+          CompletableFuture.supplyAsync(
+            () => {
               val orderedCommand = blockingQueue.take()
               orderedCommand.execute(runtimeContext, sequentialExecutionContext)
-            }
-          })
-        Future {
-          javaFuture.get()
+            },
+            sequentialExecutionContext
+          )
         }
+        javaFuture.asScala
       case c: AsynchronousCommand =>
         c.execute(runtimeContext, commandExecutionContext)
     }
