@@ -1334,7 +1334,6 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
-      "-proc:full",
       "-s",
       (Compile / sourceManaged).value.getAbsolutePath,
       "-Xlint:unchecked"
