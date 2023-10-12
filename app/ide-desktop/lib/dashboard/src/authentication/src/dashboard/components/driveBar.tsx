@@ -7,15 +7,14 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
-import * as assetEventModule from '../events/assetEvent'
-import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
-import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
-
-import * as categorySwitcher from './categorySwitcher'
+import * as backendModule from '../backend'
+import * as assetEventModule from '../events/assetEvent'
+import * as shortcutsModule from '../shortcuts'
 import Button from './button'
+import * as categorySwitcher from './categorySwitcher'
 import NewDataConnectorModal from './newDataConnectorModal'
 
 // ================

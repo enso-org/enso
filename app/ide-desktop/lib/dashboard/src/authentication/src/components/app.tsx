@@ -35,33 +35,32 @@
  * {@link authProvider.FullUserSession}). */
 
 import * as React from 'react'
+
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as authServiceModule from '../authentication/service'
-import type * as backend from '../dashboard/backend'
-import * as hooks from '../hooks'
-import * as localBackend from '../dashboard/localBackend'
-import * as shortcutsModule from '../dashboard/shortcuts'
-
-import * as authProvider from '../authentication/providers/auth'
-import * as backendProvider from '../providers/backend'
-import * as localStorageProvider from '../providers/localStorage'
-import * as loggerProvider from '../providers/logger'
-import * as modalProvider from '../providers/modal'
-import * as sessionProvider from '../authentication/providers/session'
-import * as shortcutsProvider from '../providers/shortcuts'
-
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
-import Dashboard from '../dashboard/components/dashboard'
 import EnterOfflineMode from '../authentication/components/enterOfflineMode'
 import ForgotPassword from '../authentication/components/forgotPassword'
 import Login from '../authentication/components/login'
 import Registration from '../authentication/components/registration'
 import ResetPassword from '../authentication/components/resetPassword'
 import SetUsername from '../authentication/components/setUsername'
+import * as authProvider from '../authentication/providers/auth'
+import * as sessionProvider from '../authentication/providers/session'
+import * as authServiceModule from '../authentication/service'
+import type * as backend from '../dashboard/backend'
+import Dashboard from '../dashboard/components/dashboard'
+import * as localBackend from '../dashboard/localBackend'
+import * as shortcutsModule from '../dashboard/shortcuts'
+import * as hooks from '../hooks'
+import * as backendProvider from '../providers/backend'
+import * as localStorageProvider from '../providers/localStorage'
+import * as loggerProvider from '../providers/logger'
+import * as modalProvider from '../providers/modal'
+import * as shortcutsProvider from '../providers/shortcuts'
 
 // =================
 // === Constants ===

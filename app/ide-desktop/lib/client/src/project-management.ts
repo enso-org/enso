@@ -18,9 +18,10 @@ import * as tar from 'tar'
 
 import * as common from 'enso-common'
 import * as config from 'enso-content-config'
+
+import * as utils from '../../../utils'
 import * as fileAssociations from '../file-associations'
 import * as paths from './paths'
-import * as utils from '../../../utils'
 
 const logger = config.logger
 

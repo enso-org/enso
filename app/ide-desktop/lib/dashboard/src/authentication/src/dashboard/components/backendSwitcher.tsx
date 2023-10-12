@@ -4,10 +4,9 @@ import * as React from 'react'
 import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 
-import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
-
 import SvgMask from '../../authentication/components/svgMask'
+import * as backendProvider from '../../providers/backend'
+import * as backendModule from '../backend'
 
 // =======================
 // === BackendSwitcher ===

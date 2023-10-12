@@ -9,19 +9,19 @@
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 
+import type * as macOptions from 'app-builder-lib/out/options/macOptions'
 import * as electronBuilder from 'electron-builder'
 import * as electronNotarize from 'electron-notarize'
-import type * as macOptions from 'app-builder-lib/out/options/macOptions'
 import yargs from 'yargs'
 
 import * as common from 'enso-common'
 
 import * as fileAssociations from './file-associations'
 import * as paths from './paths'
-import computeHashes from './tasks/computeHashes.mjs'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
+import computeHashes from './tasks/computeHashes.mjs'
 
 // =============
 // === Types ===

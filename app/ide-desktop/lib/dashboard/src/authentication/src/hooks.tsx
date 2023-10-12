@@ -1,12 +1,13 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as React from 'react'
+
 import * as router from 'react-router'
 import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as app from './components/app'
 import * as auth from './authentication/providers/auth'
+import * as app from './components/app'
 import * as errorModule from './error'
 import * as loggerProvider from './providers/logger'
 

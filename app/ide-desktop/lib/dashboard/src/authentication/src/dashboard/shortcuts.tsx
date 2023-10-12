@@ -23,7 +23,6 @@ import SignOutIcon from 'enso-assets/sign_out.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TrashIcon from 'enso-assets/trash.svg'
 import UntrashIcon from 'enso-assets/untrash.svg'
-
 import * as detect from 'enso-common/src/detect'
 
 // This file MUST be a `.tsx` file so that Tailwind includes the CSS classes used here.

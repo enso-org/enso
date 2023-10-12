@@ -1,9 +1,14 @@
 /** @file Configuration options of the application content (the web part). */
 
+import * as linkedDist from 'ensogl-runner/src/runner'
 import * as semver from 'semver'
 
-import * as linkedDist from 'ensogl-runner/src/runner'
 import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
+// ===============
+// === Options ===
+// ===============
+
+import CONFIG from './config.json' assert { type: 'json' }
 
 // Aliases with the same name as the original.
 // eslint-disable-next-line no-restricted-syntax
@@ -36,12 +41,6 @@ export const VERSION = {
         return releaseDev || prereleaseDev
     },
 }
-
-// ===============
-// === Options ===
-// ===============
-
-import CONFIG from './config.json' assert { type: 'json' }
 
 export const OPTIONS = linkedDist.config.options.merge(
     // `valueEval` in `config.json` uses PascalCase scope variables for some reason.

@@ -3,21 +3,20 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
+import * as authProvider from '../../authentication/providers/auth'
+import * as app from '../../components/app'
+import * as hooks from '../../hooks'
+import * as backendProvider from '../../providers/backend'
+import * as localStorageProvider from '../../providers/localStorage'
+import * as backendModule from '../backend'
 import type * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
-import * as authProvider from '../../authentication/providers/auth'
-import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
-import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
-import * as localStorageProvider from '../../providers/localStorage'
-
-import * as app from '../../components/app'
+import AssetsTable from './assetsTable'
+import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
+import DriveBar from './driveBar'
 import * as pageSwitcher from './pageSwitcher'
 import type * as spinner from './spinner'
-import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
-import AssetsTable from './assetsTable'
-import DriveBar from './driveBar'
 
 // =============
 // === Drive ===

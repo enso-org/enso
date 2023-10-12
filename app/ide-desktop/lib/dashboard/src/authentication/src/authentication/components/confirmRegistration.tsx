@@ -1,13 +1,14 @@
 /** @file Registration confirmation page for when a user clicks the confirmation link set to their
  * email address. */
 import * as React from 'react'
+
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import * as app from '../../components/app'
-import * as authModule from '../providers/auth'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
+import * as authModule from '../providers/auth'
 
 // =================
 // === Constants ===

@@ -1,24 +1,24 @@
 /** @file An interactive button indicating the status of a project. */
 import * as React from 'react'
+
 import * as toast from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import * as assetEventModule from '../events/assetEvent'
+import SvgMask from '../../authentication/components/svgMask'
 import * as authProvider from '../../authentication/providers/auth'
-import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
-import * as localStorageModule from '../localStorage'
+import * as backendProvider from '../../providers/backend'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as modalProvider from '../../providers/modal'
+import * as backendModule from '../backend'
+import * as assetEventModule from '../events/assetEvent'
+import * as localStorageModule from '../localStorage'
 import * as remoteBackend from '../remoteBackend'
-
 import Spinner, * as spinner from './spinner'
-import SvgMask from '../../authentication/components/svgMask'
 
 // =================
 // === Constants ===

@@ -1,8 +1,8 @@
 /** @file The mock API. */
 import type * as test from '@playwright/test'
 
-import type * as backend from '../src/authentication/src/dashboard/backend'
 import * as config from '../src/authentication/src/config'
+import type * as backend from '../src/authentication/src/dashboard/backend'
 import * as dateTime from '../src/authentication/src/dashboard/dateTime'
 import type * as remoteBackend from '../src/authentication/src/dashboard/remoteBackend'
 import * as remoteBackendPaths from '../src/authentication/src/dashboard/remoteBackendPaths'

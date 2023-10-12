@@ -10,14 +10,14 @@
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import * as url from 'node:url'
 import process from 'node:process'
+import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
 
-import * as clientBundler from './esbuild-config'
 import * as contentBundler from '../content/esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
+import * as clientBundler from './esbuild-config'
 import * as paths from './paths'
 
 // =============

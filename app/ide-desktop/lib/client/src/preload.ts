@@ -5,7 +5,7 @@
 
 import * as electron from 'electron'
 
-import * as ipc from 'ipc'
+import * as ipc from './ipc'
 
 // =================
 // === Constants ===

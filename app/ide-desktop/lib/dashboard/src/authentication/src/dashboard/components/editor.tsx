@@ -1,8 +1,8 @@
 /** @file Container that launches the editor. */
 import * as React from 'react'
 
-import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
+import * as backendModule from '../backend'
 import * as load from '../load'
 
 // =================

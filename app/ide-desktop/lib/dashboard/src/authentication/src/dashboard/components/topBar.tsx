@@ -5,10 +5,9 @@ import FindIcon from 'enso-assets/find.svg'
 
 import type * as backendModule from '../backend'
 import * as shortcuts from '../shortcuts'
-
-import PageSwitcher, * as pageSwitcher from './pageSwitcher'
 import AssetInfoBar from './assetInfoBar'
 import BackendSwitcher from './backendSwitcher'
+import PageSwitcher, * as pageSwitcher from './pageSwitcher'
 import UserBar from './userBar'
 
 // ==============

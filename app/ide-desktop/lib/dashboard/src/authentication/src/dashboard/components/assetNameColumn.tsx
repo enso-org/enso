@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as backendModule from '../backend'
-
 import type * as column from '../column'
 import ConnectorNameColumn from './connectorNameColumn'
 import DirectoryNameColumn from './directoryNameColumn'

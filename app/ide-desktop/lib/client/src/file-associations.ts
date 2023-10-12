@@ -16,8 +16,8 @@ import electronIsDev from 'electron-is-dev'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
-import type * as clientConfig from './config'
 import * as fileAssociations from '../file-associations'
+import type * as clientConfig from './config'
 import * as project from './project-management'
 
 const logger = contentConfig.logger

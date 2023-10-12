@@ -1,6 +1,5 @@
 /** @file Events related to changes in asset state. */
 import type * as backendModule from '../backend'
-
 import type * as spinner from '../components/spinner'
 
 // This is required, to whitelist this event.

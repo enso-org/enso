@@ -2,16 +2,17 @@
  * the user with a visual representation of this process (welcome screen). It also implements a view
  * allowing to choose a debug rendering test from. */
 
-import * as semver from 'semver'
-import * as toastify from 'react-toastify'
-
 import * as app from 'ensogl-runner/src/runner'
-import * as common from 'enso-common'
-import * as contentConfig from 'enso-content-config'
+import * as toastify from 'react-toastify'
+import * as semver from 'semver'
+
 import * as dashboard from 'enso-authentication'
+import * as common from 'enso-common'
 import * as detect from 'enso-common/src/detect'
+import * as contentConfig from 'enso-content-config'
 
 import * as remoteLog from './remoteLog'
+
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger

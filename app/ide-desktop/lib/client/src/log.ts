@@ -12,7 +12,8 @@ import * as pathModule from 'node:path'
 import * as linkedDist from 'ensogl-runner/src/runner'
 
 import * as contentConfig from 'enso-content-config'
-import * as paths from 'paths'
+
+import * as paths from './paths'
 
 // ================
 // === Log File ===

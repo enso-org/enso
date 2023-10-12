@@ -5,8 +5,8 @@ import chalk from 'chalk'
 
 import * as contentConfig from 'enso-content-config'
 
-import * as naming from 'naming'
-import * as paths from 'paths'
+import * as naming from './naming'
+import * as paths from './paths'
 
 // =================
 // === Constants ===

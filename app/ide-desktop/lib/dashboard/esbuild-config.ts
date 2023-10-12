@@ -10,18 +10,18 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import type * as esbuild from 'esbuild'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
+import type * as esbuild from 'esbuild'
 import esbuildPluginInlineImage from 'esbuild-plugin-inline-image'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
-
 import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
-import * as tailwindConfig from './tailwind.config.cjs'
 import * as utils from '../../utils'
+
+import * as tailwindConfig from './tailwind.config.cjs'
 
 // =================
 // === Constants ===

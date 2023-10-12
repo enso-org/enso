@@ -4,21 +4,20 @@ import * as React from 'react'
 import FolderIcon from 'enso-assets/folder.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
-import * as assetEventModule from '../events/assetEvent'
-import * as assetListEventModule from '../events/assetListEvent'
+import SvgMask from '../../authentication/components/svgMask'
+import * as hooks from '../../hooks'
+import * as backendProvider from '../../providers/backend'
+import * as shortcutsProvider from '../../providers/shortcuts'
 import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import type * as column from '../column'
 import * as eventModule from '../event'
-import * as hooks from '../../hooks'
+import * as assetEventModule from '../events/assetEvent'
+import * as assetListEventModule from '../events/assetListEvent'
 import * as indent from '../indent'
 import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
-import * as shortcutsProvider from '../../providers/shortcuts'
-
 import EditableSpan from './editableSpan'
-import SvgMask from '../../authentication/components/svgMask'
 
 // =====================
 // === DirectoryName ===

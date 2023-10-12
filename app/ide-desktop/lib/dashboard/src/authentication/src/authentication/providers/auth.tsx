@@ -4,20 +4,21 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc. */
 import * as React from 'react'
+
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
 import * as app from '../../components/app'
-import type * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
-import * as backendProvider from '../../providers/backend'
-import * as cognitoModule from '../cognito'
+import * as localBackend from '../../dashboard/localBackend'
+import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as errorModule from '../../error'
 import * as http from '../../http'
-import * as localBackend from '../../dashboard/localBackend'
+import * as backendProvider from '../../providers/backend'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
-import * as remoteBackend from '../../dashboard/remoteBackend'
+import * as cognitoModule from '../cognito'
+import type * as authServiceModule from '../service'
 import * as sessionProvider from './session'
 
 // =================

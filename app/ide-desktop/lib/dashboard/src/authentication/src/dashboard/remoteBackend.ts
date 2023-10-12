@@ -5,11 +5,11 @@
  * the response from the API. */
 import * as detect from 'enso-common/src/detect'
 
-import * as backendModule from './backend'
 import * as config from '../config'
 import * as errorModule from '../error'
 import type * as http from '../http'
 import type * as loggerProvider from '../providers/logger'
+import * as backendModule from './backend'
 import * as remoteBackendPaths from './remoteBackendPaths'
 
 // =================

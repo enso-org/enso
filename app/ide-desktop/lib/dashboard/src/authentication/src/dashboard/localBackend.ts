@@ -5,9 +5,9 @@
  * the API. */
 import * as detect from 'enso-common/src/detect'
 
+import * as errorModule from '../error'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
-import * as errorModule from '../error'
 import * as projectManager from './projectManager'
 
 // =============================

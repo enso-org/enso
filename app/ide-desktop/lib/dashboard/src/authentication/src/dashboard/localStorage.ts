@@ -4,7 +4,6 @@ import * as common from 'enso-common'
 import * as array from './array'
 import * as backend from './backend'
 import * as column from './column'
-
 import * as categorySwitcher from './components/categorySwitcher'
 import * as pageSwitcher from './components/pageSwitcher'
 

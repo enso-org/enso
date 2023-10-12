@@ -3,8 +3,8 @@
 import * as React from 'react'
 
 import * as app from '../../components/app'
-import * as authProvider from '../providers/auth'
 import * as hooks from '../../hooks'
+import * as authProvider from '../providers/auth'
 
 // ============================
 // === Confirm Registration ===

@@ -1,5 +1,6 @@
 /** @file A styled button. */
 import * as React from 'react'
+
 import SvgMask from '../../authentication/components/svgMask'
 
 /** Props for a {@link Button}. */

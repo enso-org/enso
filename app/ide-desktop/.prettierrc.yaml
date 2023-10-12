@@ -12,5 +12,22 @@ overrides:
       trailingComma: "es5"
       arrowParens: "avoid"
 plugins:
+  - "@ianvs/prettier-plugin-sort-imports"
   - prettier-plugin-tailwindcss
+importOrderParserPlugins:
+  - typescript
+  - jsx
+  - importAssertions
+importOrder:
+  - "^react$"
+  - ""
+  - "<BUILTIN_MODULES>"
+  - ""
+  - "<THIRD_PARTY_MODULES>"
+  - ""
+  - "^enso-.*$"
+  - ""
+  - "^[.].*/[^./]*$"
+  - ""
+  - "^[.]"
 tailwindConfig: ./lib/dashboard/tailwind.config.cjs

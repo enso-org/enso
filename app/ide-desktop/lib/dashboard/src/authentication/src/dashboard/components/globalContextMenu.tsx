@@ -1,12 +1,11 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
-import * as assetListEventModule from '../events/assetListEvent'
-import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
+import * as backendModule from '../backend'
+import * as assetListEventModule from '../events/assetListEvent'
 import * as shortcuts from '../shortcuts'
-
 import ContextMenu from './contextMenu'
 import MenuEntry from './menuEntry'
 import NewDataConnectorModal from './newDataConnectorModal'

@@ -7,10 +7,9 @@ import RootIcon from 'enso-assets/root.svg'
 import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as localStorageModule from '../localStorage'
-import * as localStorageProvider from '../../providers/localStorage'
-
 import SvgMask from '../../authentication/components/svgMask'
+import * as localStorageProvider from '../../providers/localStorage'
+import * as localStorageModule from '../localStorage'
 
 // ============================
 // === CategorySwitcherItem ===

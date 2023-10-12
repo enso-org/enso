@@ -2,15 +2,15 @@
 
 import chalk from 'chalk'
 import stringLength from 'string-length'
-
 // eslint-disable-next-line no-restricted-syntax
 import yargs, { type Options } from 'yargs'
 
 import * as contentConfig from 'enso-content-config'
 
-import * as config from 'config'
-import * as fileAssociations from 'file-associations'
-import * as naming from 'naming'
+import * as config from '../config'
+import * as fileAssociations from '../file-associations'
+import * as naming from '../naming'
+
 import BUILD_INFO from '../../../../../../build.json' assert { type: 'json' }
 
 const logger = contentConfig.logger

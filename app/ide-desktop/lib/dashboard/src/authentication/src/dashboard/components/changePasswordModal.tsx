@@ -4,15 +4,14 @@ import * as React from 'react'
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
+import SvgMask from '../../authentication/components/svgMask'
 import * as auth from '../../authentication/providers/auth'
 import * as modalProvider from '../../providers/modal'
 import * as string from '../../string'
 import * as validation from '../validation'
-
 import Input from './input'
 import Modal from './modal'
 import SvgIcon from './svgIcon'
-import SvgMask from '../../authentication/components/svgMask'
 
 // ==========================
 // === ResetPasswordModal ===

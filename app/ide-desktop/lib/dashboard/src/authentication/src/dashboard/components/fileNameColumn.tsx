@@ -1,22 +1,21 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
 
-import * as assetEventModule from '../events/assetEvent'
-import * as assetListEventModule from '../events/assetListEvent'
-import * as assetTreeNode from '../assetTreeNode'
-import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
-import * as eventModule from '../event'
+import SvgMask from '../../authentication/components/svgMask'
 import * as fileIcon from '../../fileIcon'
 import * as hooks from '../../hooks'
+import * as backendProvider from '../../providers/backend'
+import * as shortcutsProvider from '../../providers/shortcuts'
+import * as assetTreeNode from '../assetTreeNode'
+import * as backendModule from '../backend'
+import type * as column from '../column'
+import * as eventModule from '../event'
+import * as assetEventModule from '../events/assetEvent'
+import * as assetListEventModule from '../events/assetListEvent'
 import * as indent from '../indent'
 import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
-import * as shortcutsProvider from '../../providers/shortcuts'
-
-import type * as column from '../column'
 import EditableSpan from './editableSpan'
-import SvgMask from '../../authentication/components/svgMask'
 
 // ================
 // === FileName ===

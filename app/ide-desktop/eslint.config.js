@@ -8,12 +8,13 @@ import * as url from 'node:url'
 // This is specialcased in other files, but these modules shouldn't be used in other files anyway.
 /* eslint-disable no-restricted-syntax */
 import eslintJs from '@eslint/js'
-import globals from 'globals'
+import tsEslint from '@typescript-eslint/eslint-plugin'
+import tsEslintParser from '@typescript-eslint/parser'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
-import tsEslint from '@typescript-eslint/eslint-plugin'
-import tsEslintParser from '@typescript-eslint/parser'
+import globals from 'globals'
+
 /* eslint-enable no-restricted-syntax */
 
 // =================
@@ -32,9 +33,6 @@ const NAME = 'enso'
 const DEFAULT_IMPORT_ONLY_MODULES =
     'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss`
-const OUR_MODULES = 'enso-.*'
-const RELATIVE_MODULES =
-    'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations'
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!do[A-Z])(?!_?([A-Z][a-z0-9]*)+$)/'
@@ -184,29 +182,6 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector:
-            'ImportDeclaration[source.value=/^(?!node:)/] ~ ImportDeclaration[source.value=/^node:/]',
-        message:
-            'Import node modules before npm modules, our modules, and relative imports, separated by a blank line',
-    },
-    {
-        selector: `ImportDeclaration[source.value=/^(?:${OUR_MODULES}|${RELATIVE_MODULES})$/] ~ ImportDeclaration[source.value=/^(?!(|${OUR_MODULES}|${RELATIVE_MODULES})$|\\.)/]`,
-        message:
-            'Import npm modules before our modules and relative imports, separated by a blank line',
-    },
-    {
-        selector: `ImportDeclaration[source.value=/^(?:${RELATIVE_MODULES})$/] ~ ImportDeclaration[source.value=/^(?:${OUR_MODULES})$/]`,
-        message: 'Import our modules before relative imports, separated by a blank line',
-    },
-    {
-        selector: `ImportDeclaration[source.value=/^\\./] ~ ImportDeclaration[source.value=/^[^.]/]`,
-        message: 'Import relative imports last',
-    },
-    {
-        selector: `ImportDeclaration[source.value=/^\\..+\\.(?:json|yml|yaml)$/] ~ ImportDeclaration[source.value=/^\\..+\\.(?!json|yml|yaml)[^.]+$/]`,
-        message: 'Import data files after other relative imports',
-    },
-    {
-        selector:
             'TSAsExpression:has(TSUnknownKeyword, TSNeverKeyword, TSAnyKeyword) > TSAsExpression',
         message: 'Use type assertions to specific types instead of `unknown`, `any` or `never`',
     },
@@ -299,7 +274,6 @@ export default [
                     ],
                 },
             ],
-            'sort-imports': ['error', { allowSeparatedGroups: true }],
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-properties': [
                 'error',

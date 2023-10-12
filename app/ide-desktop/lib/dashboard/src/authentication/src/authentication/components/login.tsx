@@ -1,18 +1,17 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as React from 'react'
-import * as router from 'react-router-dom'
 
 import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
+import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as auth from '../providers/auth'
-import * as validation from '../../dashboard/validation'
-
 import * as app from '../../components/app'
+import * as validation from '../../dashboard/validation'
+import * as auth from '../providers/auth'
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
 import SvgIcon from './svgIcon'

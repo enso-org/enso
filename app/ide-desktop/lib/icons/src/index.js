@@ -2,8 +2,8 @@
  * MacOS ICNS, and Windows ICO formats. */
 
 import * as childProcess from 'node:child_process'
-import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
+import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as url from 'node:url'

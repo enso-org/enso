@@ -1,14 +1,14 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
+
 import * as toast from 'react-toastify'
 
 import * as auth from '../../authentication/providers/auth'
-import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
+import * as backendModule from '../backend'
 import * as permissionsModule from '../permissions'
-
 import Autocomplete from './autocomplete'
 import Modal from './modal'
 import PermissionSelector from './permissionSelector'

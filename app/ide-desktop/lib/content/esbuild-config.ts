@@ -8,19 +8,20 @@
  * https://esbuild.github.io/getting-started/#bundling-for-node. */
 
 import * as childProcess from 'node:child_process'
-import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
+import * as fs from 'node:fs/promises'
 import * as pathModule from 'node:path'
 import * as url from 'node:url'
 
-import type * as esbuild from 'esbuild'
 import * as esbuildPluginNodeGlobals from '@esbuild-plugins/node-globals-polyfill'
 import * as esbuildPluginNodeModules from '@esbuild-plugins/node-modules-polyfill'
+import type * as esbuild from 'esbuild'
 import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import * as utils from '../../utils'
+
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =================

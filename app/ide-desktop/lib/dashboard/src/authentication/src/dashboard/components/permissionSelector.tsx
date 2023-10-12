@@ -4,7 +4,6 @@ import * as React from 'react'
 import type * as backend from '../backend'
 import type * as permissions from '../permissions'
 import * as permissionsModule from '../permissions'
-
 import Modal from './modal'
 import PermissionTypeSelector from './permissionTypeSelector'
 

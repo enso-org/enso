@@ -5,8 +5,8 @@ import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
 
-import * as bundler from './esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
+import * as bundler from './esbuild-config'
 
 // =================
 // === Constants ===

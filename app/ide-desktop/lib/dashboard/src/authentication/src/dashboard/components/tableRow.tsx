@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as modalProvider from '../../providers/modal'
-
 import type * as tableColumn from './tableColumn'
 
 // =============================

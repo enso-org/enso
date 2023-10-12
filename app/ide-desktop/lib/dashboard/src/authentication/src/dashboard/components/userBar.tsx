@@ -5,13 +5,12 @@ import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as authProvider from '../../authentication/providers/auth'
-import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
-
-import * as pageSwitcher from './pageSwitcher'
+import * as backendModule from '../backend'
 import Button from './button'
 import ManagePermissionsModal from './managePermissionsModal'
+import * as pageSwitcher from './pageSwitcher'
 import UserMenu from './userMenu'
 
 // ===============

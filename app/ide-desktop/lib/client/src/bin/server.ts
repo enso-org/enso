@@ -5,9 +5,9 @@ import * as http from 'node:http'
 import * as path from 'node:path'
 import type * as stream from 'node:stream'
 
+import createServer from 'create-servers'
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
-import createServer from 'create-servers'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'

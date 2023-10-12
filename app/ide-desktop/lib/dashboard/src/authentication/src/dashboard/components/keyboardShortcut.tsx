@@ -6,12 +6,11 @@ import CtrlKeyIcon from 'enso-assets/ctrl_key.svg'
 import OptionKeyIcon from 'enso-assets/option_key.svg'
 import ShiftKeyIcon from 'enso-assets/shift_key.svg'
 import WindowsKeyIcon from 'enso-assets/windows_key.svg'
-
 import * as detect from 'enso-common/src/detect'
-import * as shortcutsModule from '../shortcuts'
-import * as shortcutsProvider from '../../providers/shortcuts'
 
 import SvgMask from '../../authentication/components/svgMask'
+import * as shortcutsProvider from '../../providers/shortcuts'
+import * as shortcutsModule from '../shortcuts'
 
 // ========================
 // === KeyboardShortcut ===

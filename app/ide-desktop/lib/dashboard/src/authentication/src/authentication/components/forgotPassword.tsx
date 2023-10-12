@@ -1,6 +1,7 @@
 /** @file Container responsible for rendering and interactions in first half of forgot password
  * flow. */
 import * as React from 'react'
+
 import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
@@ -9,10 +10,9 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import SvgMask from './svgMask'
-
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // ======================
 // === ForgotPassword ===

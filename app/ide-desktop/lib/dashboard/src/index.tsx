@@ -1,6 +1,5 @@
 /** @file Entry point into the cloud dashboard. */
 import * as authentication from 'enso-authentication'
-
 import * as detect from 'enso-common/src/detect'
 
 // =================

@@ -2,12 +2,12 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
 
+import chalk from 'chalk'
 import * as esbuild from 'esbuild'
 import * as portfinder from 'portfinder'
-import chalk from 'chalk'
 
-import * as bundler from './esbuild-config'
 import * as dashboardBundler from '../dashboard/esbuild-config'
+import * as bundler from './esbuild-config'
 
 // =================
 // === Constants ===

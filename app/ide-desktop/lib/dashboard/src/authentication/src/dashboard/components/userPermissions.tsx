@@ -1,10 +1,9 @@
 /** @file A user and their permissions for a specific asset. */
 import * as React from 'react'
 
-import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
-
+import * as backendProvider from '../../providers/backend'
+import * as backendModule from '../backend'
 import PermissionSelector from './permissionSelector'
 
 /** Props for a {@link UserPermissions}. */

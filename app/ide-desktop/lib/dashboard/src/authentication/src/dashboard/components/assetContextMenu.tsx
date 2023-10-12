@@ -1,31 +1,30 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
+
 import * as toast from 'react-toastify'
 
-import * as assetEventModule from '../events/assetEvent'
-import type * as assetTreeNode from '../assetTreeNode'
-import * as backendModule from '../backend'
+import * as authProvider from '../../authentication/providers/auth'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
-import * as permissions from '../permissions'
-import * as remoteBackendModule from '../remoteBackend'
-import * as shortcuts from '../shortcuts'
-
-import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
-
+import type * as assetTreeNode from '../assetTreeNode'
+import * as backendModule from '../backend'
+import * as assetEventModule from '../events/assetEvent'
+import * as permissions from '../permissions'
+import * as remoteBackendModule from '../remoteBackend'
+import * as shortcuts from '../shortcuts'
 import type * as assetsTable from './assetsTable'
 import * as categorySwitcher from './categorySwitcher'
-import type * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
-import ContextMenuSeparator from './contextMenuSeparator'
 import ContextMenus from './contextMenus'
+import ContextMenuSeparator from './contextMenuSeparator'
 import GlobalContextMenu from './globalContextMenu'
 import ManagePermissionsModal from './managePermissionsModal'
 import MenuEntry from './menuEntry'
+import type * as tableRow from './tableRow'
 
 // ========================
 // === AssetContextMenu ===

@@ -2,6 +2,7 @@
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
 import * as React from 'react'
+
 import * as reactDOM from 'react-dom/client'
 
 import * as detect from 'enso-common/src/detect'

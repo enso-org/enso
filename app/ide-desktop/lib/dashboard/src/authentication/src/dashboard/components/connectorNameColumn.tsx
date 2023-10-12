@@ -3,19 +3,18 @@ import * as React from 'react'
 
 import ConnectorIcon from 'enso-assets/connector.svg'
 
-import * as assetEventModule from '../events/assetEvent'
-import * as assetListEventModule from '../events/assetListEvent'
+import * as hooks from '../../hooks'
+import * as backendProvider from '../../providers/backend'
+import * as shortcutsProvider from '../../providers/shortcuts'
 import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
+import type * as column from '../column'
 import * as eventModule from '../event'
-import * as hooks from '../../hooks'
+import * as assetEventModule from '../events/assetEvent'
+import * as assetListEventModule from '../events/assetListEvent'
 import * as indent from '../indent'
 import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
-import * as shortcutsProvider from '../../providers/shortcuts'
-
-import type * as column from '../column'
 import EditableSpan from './editableSpan'
 
 // =====================
