@@ -242,15 +242,12 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.get<ListDirectoryResponseBody>(
             remoteBackendPaths.LIST_DIRECTORY_PATH +
                 '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.parentId != null ? { parent_id: query.parentId } : {}),
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.filterBy != null ? { filter_by: query.filterBy } : {}),
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.recentProjects ? { recent_projects: String(true) } : {}),
-                    ...(query.labels != null ? { labels: query.labels.join(',') } : {}),
-                }).toString()
+                new URLSearchParams([
+                    ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+                    ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+                    ...(query.recentProjects ? [['recent_projects', String(true)]] : []),
+                    ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
+                ]).toString()
         )
         if (!responseIsSuccessful(response)) {
             if (response.status === STATUS_SERVER_ERROR) {
