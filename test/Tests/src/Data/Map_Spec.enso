@@ -268,19 +268,19 @@ spec =
 
         Test.specify "should allow building the map from two vectors" <|
             expected = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
-            Map.from_keys_and_values [0, 3, 1] [0, -5. 2] . should_equal expected
+            Map.from_keys_and_values [0, 3, 1] [0, -5, 2] . should_equal expected
 
         Test.specify "should allow building the map from vector like things" <|
             expected = Map.empty . insert 0 0 . insert 1 -5 . insert 2 2
-            Map.from_keys_and_values (0.up_to 3) [0, -5. 2] . should_equal expected
+            Map.from_keys_and_values (0.up_to 3) [0, -5, 2] . should_equal expected
 
         Test.specify "should not allow building with duplicate keys unless explicitly allowed" <|
             expected = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
-            Map.from_keys_and_values [0, 3, 1, 0] [3, -5. 2 0] . should_fail_with Illegal_Argument
-            Map.from_keys_and_values [0, 3, 1, 0] [3, -5. 2 0] True . should_equal expected
+            Map.from_keys_and_values [0, 3, 1, 0] [3, -5, 2, 0] . should_fail_with Illegal_Argument
+            Map.from_keys_and_values [0, 3, 1, 0] [3, -5, 2, 0] error_on_duplicates=False . should_equal expected
 
         Test.specify "should not allow different length vectors when building" <|
-            Map.from_keys_and_values [0, 3, 1] [3, -5. 2 0] . should_fail_with Illegal_Argument
+            Map.from_keys_and_values [0, 3, 1] [3, -5, 2, 0] . should_fail_with Illegal_Argument
 
         Test.specify "should allow building the map from a vector" <|
             expected = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
