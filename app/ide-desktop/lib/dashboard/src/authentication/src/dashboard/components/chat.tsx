@@ -7,6 +7,7 @@ import * as toastify from 'react-toastify'
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
+
 import * as chat from 'enso-chat/chat'
 
 import * as animations from '../../animations'

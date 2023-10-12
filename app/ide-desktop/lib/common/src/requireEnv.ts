@@ -1,14 +1,7 @@
-/** @file Shared utility functions. */
+/** @file Utility functions related to getting environment variables. */
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import process from 'node:process'
-
-// =================
-// === Constants ===
-// =================
-
-/** Indent size for outputting JSON. */
-export const INDENT_SIZE = 4
 
 // ===================
 // === Environment ===
@@ -49,17 +42,4 @@ export function requireEnvPathExist(name: string) {
     } else {
         throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
     }
-}
-
-// ======================
-// === String Helpers ===
-// ======================
-
-/** Get the common prefix of the two strings. */
-export function getCommonPrefix(a: string, b: string): string {
-    let i = 0
-    while (i < a.length && i < b.length && a[i] === b[i]) {
-        i++
-    }
-    return a.slice(0, i)
 }

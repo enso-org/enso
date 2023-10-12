@@ -17,9 +17,10 @@ import * as electron from 'electron'
 import * as tar from 'tar'
 
 import * as common from 'enso-common'
+import * as json from 'enso-common/json'
+import * as string from 'enso-common/string'
 import * as config from 'enso-content-config'
 
-import * as utils from '../../../utils'
 import * as fileAssociations from '../file-associations'
 import * as paths from './paths'
 
@@ -233,7 +234,7 @@ export function getMetadata(projectRoot: string): ProjectMetadata | null {
 export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
     const metadataPath = pathModule.join(projectRoot, paths.PROJECT_METADATA_RELATIVE)
     fs.mkdirSync(pathModule.dirname(metadataPath), { recursive: true })
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, utils.INDENT_SIZE))
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, json.INDENT_SIZE))
 }
 
 /** Update the project's metadata.
@@ -276,7 +277,7 @@ export function prefixInBundle(bundlePath: string): string | null {
         sync: true,
         onentry: entry => {
             const path = entry.path
-            commonPrefix = commonPrefix == null ? path : utils.getCommonPrefix(commonPrefix, path)
+            commonPrefix = commonPrefix == null ? path : string.getCommonPrefix(commonPrefix, path)
         },
     })
 

@@ -18,10 +18,10 @@ import * as common from 'enso-common'
 
 import * as fileAssociations from './file-associations'
 import * as paths from './paths'
+import computeHashes from './tasks/computeHashes'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
-import computeHashes from './tasks/computeHashes.mjs'
 
 // =============
 // === Types ===

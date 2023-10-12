@@ -5,6 +5,9 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./src/detect": "./src/detect.ts"
+    "./detect": "./src/detect.ts",
+    "./json": "./src/json.ts",
+    "./string": "./src/string.ts",
+    "./requireEnv": "./src/requireEnv.ts"
   }
 }

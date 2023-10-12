@@ -3,7 +3,7 @@
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/detect'
 
 import * as errorModule from '../error'
 import * as backend from './backend'

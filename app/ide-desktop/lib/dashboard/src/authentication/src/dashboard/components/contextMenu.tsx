@@ -1,7 +1,7 @@
 /** @file A context menu. */
 import * as React from 'react'
 
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/detect'
 
 // ===================
 // === ContextMenu ===

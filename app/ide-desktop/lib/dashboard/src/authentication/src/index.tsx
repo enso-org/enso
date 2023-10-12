@@ -5,7 +5,7 @@ import * as React from 'react'
 
 import * as reactDOM from 'react-dom/client'
 
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/detect'
 
 import type * as app from './components/app'
 import App from './components/app'

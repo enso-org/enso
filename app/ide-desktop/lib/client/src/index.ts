@@ -15,9 +15,9 @@ import * as electron from 'electron'
 import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
+import * as json from 'enso-common/json'
 import * as contentConfig from 'enso-content-config'
 
-import * as utils from '../../../utils'
 import * as authentication from './authentication'
 import * as projectManager from './bin/project-manager'
 import * as server from './bin/server'
@@ -405,7 +405,7 @@ class App {
 
     /** Print the version of the frontend and the backend. */
     async printVersion(): Promise<void> {
-        const indent = ' '.repeat(utils.INDENT_SIZE)
+        const indent = ' '.repeat(json.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
             maxNameLen = Math.max(maxNameLen, name.length)

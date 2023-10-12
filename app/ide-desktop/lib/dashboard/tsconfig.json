@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["../types", ".", "../../utils.ts"],
+  "include": ["../types", ".", "../common/src/requireEnv.ts"],
   "compilerOptions": {
     "composite": true,
     "noEmit": false,

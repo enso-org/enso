@@ -8,7 +8,7 @@ import * as semver from 'semver'
 
 import * as dashboard from 'enso-authentication'
 import * as common from 'enso-common'
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/detect'
 import * as contentConfig from 'enso-content-config'
 
 import * as remoteLog from './remoteLog'

@@ -8,7 +8,7 @@
     "../content",
     "../dashboard",
     "../types",
-    "../../utils.ts",
+    "../common/src/requireEnv.ts",
     "../../../../build.json"
   ],
   "references": [

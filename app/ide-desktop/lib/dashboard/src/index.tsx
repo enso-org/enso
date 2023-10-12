@@ -1,6 +1,6 @@
 /** @file Entry point into the cloud dashboard. */
 import * as authentication from 'enso-authentication'
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/detect'
 
 // =================
 // === Constants ===

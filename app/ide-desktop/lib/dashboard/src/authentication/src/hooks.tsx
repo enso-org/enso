@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as router from 'react-router'
 import * as toastify from 'react-toastify'
 
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/detect'
 
 import * as auth from './authentication/providers/auth'
 import * as app from './components/app'

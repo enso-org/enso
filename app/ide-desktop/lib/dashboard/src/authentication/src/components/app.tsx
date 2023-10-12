@@ -39,7 +39,7 @@ import * as React from 'react'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/detect'
 
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
 import EnterOfflineMode from '../authentication/components/enterOfflineMode'

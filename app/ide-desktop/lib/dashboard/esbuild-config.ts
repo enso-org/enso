@@ -19,7 +19,7 @@ import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
-import * as utils from '../../utils'
+import * as requireEnv from 'enso-common/requireEnv'
 
 import * as tailwindConfig from './tailwind.config.cjs'
 
@@ -43,7 +43,7 @@ export interface Arguments {
 
 /** Get arguments from the environment. */
 export function argumentsFromEnv(): Arguments {
-    const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
+    const outputPath = path.resolve(requireEnv.requireEnv('ENSO_BUILD_GUI'), 'assets')
     return { outputPath, devMode: false }
 }
 
