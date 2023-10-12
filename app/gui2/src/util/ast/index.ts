@@ -90,8 +90,8 @@ export function* childrenAstNodes(obj: unknown): Generator<Tree> {
   } else if (isIterator) {
     const iterable = obj as Iterable<unknown>
     for (const element of iterable) {
-      // The elements must be Lazy Objecs. Otherwise we risk infinite loop, when, for example,
-      // the iterable happens to be string which elements are also strings.
+      // The elements must be Lazy Objects. Otherwise we risk infinite loop, when, for example,
+      // the iterable happens to be string (which elements are also strings).
       if (element instanceof LazyObject) {
         yield* astNodeOrChildren(element)
       }
