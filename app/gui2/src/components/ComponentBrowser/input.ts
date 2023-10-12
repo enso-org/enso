@@ -94,7 +94,7 @@ export class Input {
         ctx.accessOpr != null &&
         ctx.accessOpr.lhs != null
       ) {
-        const qn = Input.asQualifiedName(ctx.accessOpr, code)
+        const qn = Input.pathAsQualifiedName(ctx.accessOpr, code)
         if (qn != null) return { qualifiedNamePattern: qn }
       }
       return {}
@@ -143,37 +143,30 @@ export class Input {
     }
   }
 
-  /**
-   * Try to get a Qualified Name part from given accessor chain.
-   * @param accessOpr The accessor chain. It's not validated, i.e. the user must ensure
-   *   it's GeneralOprApp with `.` as leading operator.
-   * @param code The code from which `accessorChain` was generated.
-   * @returns If all segments except the last one are identifiers, returns QualifiedName with
-   *   those. Otherwise returns null.
-   */
-  private static asQualifiedName(accessOpr: GeneralOprApp, code: string): QualifiedName | null {
-    const operandsAsIdents = Array.from(
-      accessOpr.operandsOfLeftAssocOprChain(code, '.'),
-      (operand) =>
-        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
-    ).slice(0, -1)
-    if (operandsAsIdents.some((optIdent) => optIdent == null)) return null
+  private static pathAsQualifiedName(accessOpr: GeneralOprApp, code: string): QualifiedName | null {
+    const operandsAsIdents = Input.qnIdentifiers(accessOpr, code)
     const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
   }
 
-  private static qnIdentifiers(accessOpr: GeneralOprApp, code: string): Ast.Tree.Ident[] {
-    const operandsAsIdents = Array.from(
-      accessOpr.operandsOfLeftAssocOprChain(code, '.'),
-      (operand) =>
-        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+  /**
+   * Read path segments as idents. The 'path' means all access chain operands except the last.
+   * If some of such operands is not and identifier, this returns `null`.
+   * @param opr
+   * @param code The code from which `opr` was generated.
+   * @returns If all path segments are identifiers, return them
+   */
+  private static qnIdentifiers(opr: GeneralOprApp, code: string): Ast.Tree.Ident[] {
+    const operandsAsIdents = Array.from(opr.operandsOfLeftAssocOprChain(code, '.'), (operand) =>
+      operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
     ).slice(0, -1)
     if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
     else return operandsAsIdents as Ast.Tree.Ident[]
   }
 
+  /** Apply given suggested entry to the input. */
   applySuggestion(entry: SuggestionEntry) {
     const oldCode = this.code.value
     const changes = Array.from(this.inputChangesAfterApplying(entry)).reverse()
@@ -193,6 +186,11 @@ export class Input {
     this.selection.value = { start: newCursorPos, end: newCursorPos }
   }
 
+  /** Return all input changes resulting from applying given suggestion.
+   *
+   * @returns The changes, starting from the rightmost. The `start` and `end` parameters refer
+   * to indices of "old" input content.
+   */
   private *inputChangesAfterApplying(
     entry: SuggestionEntry,
   ): Generator<{ start: number; end: number; str: string }> {
@@ -228,6 +226,9 @@ export class Input {
     return entry.name
   }
 
+  /** All changes to the qualified name already written by the user.
+   *
+   * See `inputChangesAfterApplying`. */
   private *qnChangesAfterApplying(
     entry: SuggestionEntry,
   ): Generator<{ start: number; end: number; str: string }> {
