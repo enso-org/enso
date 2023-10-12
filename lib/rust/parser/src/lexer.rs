@@ -657,7 +657,7 @@ impl<'s> Lexer<'s> {
             match token.code.as_ref() {
                 // Special-case: Split into multiple operators.
                 "+-" => {
-                    let (left, right) = token.split_at(Bytes(1));
+                    let (left, right) = token.split_at(code::Length::of("+"));
                     let lhs = analyze_operator(&left.code);
                     self.submit_token(left.with_variant(token::Variant::operator(lhs)));
                     // The `-` in this case is not identical to a free `-`: It is only allowed a
@@ -1079,7 +1079,13 @@ impl<'s> Lexer<'s> {
                 if let Some(indent) = new_indent {
                     if indent <= *block_indent {
                         let text_end = {
-                            let location = newlines.first().as_ref().unwrap().left_offset.code.position_before();
+                            let location = newlines
+                                .first()
+                                .as_ref()
+                                .unwrap()
+                                .left_offset
+                                .code
+                                .position_before();
                             let offset = Offset(VisibleOffset(0), location.clone());
                             Token(offset, location, token::Variant::text_end())
                         };
@@ -1400,22 +1406,23 @@ impl<'s> Lexer<'s> {
     /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
     /// as start and end tokens).
     pub fn run(mut self) -> ParseResult<Vec<Token<'s>>> {
+        // If the first line is indented, open a block for it.
         self.spaces_after_lexeme();
-        self.current_block_indent = self.last_spaces_visible_offset;
-        let mut any_parser_matched = true;
-        while any_parser_matched {
-            any_parser_matched = false;
-            for f in PARSERS {
-                if self.run_and_check_if_progressed(f) {
-                    any_parser_matched = true;
-                    break;
-                }
-            }
+        let first_block_indent = self.last_spaces_visible_offset;
+        if first_block_indent.width_in_spaces != 0 {
+            self.submit_token(token::block_start(Code::empty(0), Code::empty(0)).into());
+            self.start_block(first_block_indent);
+            self.submit_token(token::newline(Code::empty(0), Code::empty(0)).into());
         }
+        // Main parsing loop.
+        while PARSERS.iter().any(|f| self.run_and_check_if_progressed(f)) {}
+        // If any blocks were still open at EOF, close them.
         while self.end_block().is_some() {
             let block_end = self.marker_token(token::Variant::block_end());
             self.submit_token(block_end);
         }
+        // If the last line ended in whitespace, ensure it is represented; we'll attach it to a
+        // phantom newline token.
         if self.last_spaces_visible_offset != VisibleOffset(0) {
             let left_offset_start = self.current_offset - self.last_spaces_offset;
             let offset_code = self.input.slice(left_offset_start.utf8..self.current_offset.utf8);
@@ -1427,13 +1434,14 @@ impl<'s> Lexer<'s> {
             let eof = token::variant::Variant::Newline(token::variant::Newline());
             self.submit_token(Token(offset, Code::empty(self.current_offset.utf16), eof));
         }
+        // Sanity check.
         let mut internal_error = self.internal_error.take();
         if self.current_char.is_some() {
             let message = format!("Lexer did not consume all input. State: {self:?}");
             internal_error.get_or_insert(message);
         }
+
         let value = self.output;
-        trace!("Tokens:\n{:#?}", value);
         ParseResult { value, internal_error }
     }
 }
@@ -1574,6 +1582,15 @@ mod tests {
     #[test]
     fn test_case_block_bad_indents() {
         let newline = newline_(empty(), test_code("\n"));
+        #[rustfmt::skip]
+        test_lexer("  foo\n  bar\nbaz", vec![
+            block_start_(empty(), empty()),
+            newline_(empty(), empty()),
+            ident_("  ", "foo"),
+            newline.clone(), ident_("  ", "bar"),
+            block_end_(empty(), empty()),
+            newline.clone(), ident_("", "baz"),
+        ]);
         #[rustfmt::skip]
         test_lexer("\n  foo\n bar\nbaz", vec![
             block_start_(empty(), empty()),
@@ -1811,10 +1828,7 @@ mod tests {
 
     #[test]
     fn test_doc_comment() {
-        let code = [
-            "## Foo.",
-            "main = 23",
-        ].join("\n");
+        let code = ["## Foo.", "main = 23"].join("\n");
         lex_and_validate_spans(&code);
     }
 }

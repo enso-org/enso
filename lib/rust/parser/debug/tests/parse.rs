@@ -135,22 +135,17 @@ fn doc_comments() {
          (Function (Ident id) #((() (Ident x) () ())) "=" (Ident x)))]);
     #[rustfmt::skip]
     let lines = vec![
-        " ## Test indent handling",
-        " foo",
-    ];
-    #[rustfmt::skip]
-    test!(&lines.join("\n"), (Documented (#((Section " Test indent handling")) #(())) (Ident foo)));
-    #[rustfmt::skip]
-    let lines = vec![
+        "type Foo",
         " ## Test indent handling",
         "  ",
         " foo",
     ];
     #[rustfmt::skip]
     test!(&lines.join("\n"),
-        (Documented
-         (#((Section " Test indent handling")) #(() ()))
-         (Ident foo)));
+        (TypeDef type Foo #() #(
+         (Documented
+          (#((Section " Test indent handling")) #(() ()))
+          (Ident foo)))));
 }
 
 
@@ -329,7 +324,7 @@ fn assignment_simple() {
 
 #[test]
 fn function_inline_simple_args() {
-    test(" foo a = x", block![(Function (Ident foo) #((() (Ident a) () ())) "=" (Ident x))]);
+    test("foo a = x", block![(Function (Ident foo) #((() (Ident a) () ())) "=" (Ident x))]);
     #[rustfmt::skip]
     test("foo a b = x",
          block![(Function (Ident foo) #((() (Ident a) () ()) (() (Ident b) () ())) "=" (Ident x))]);
@@ -340,7 +335,7 @@ fn function_inline_simple_args() {
              #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ()))
              "=" (Ident x))],
     );
-    test(" foo _ = x", block![(Function (Ident foo) #((() (Wildcard -1) () ())) "=" (Ident x))]);
+    test("foo _ = x", block![(Function (Ident foo) #((() (Wildcard -1) () ())) "=" (Ident x))]);
 }
 
 #[test]
@@ -986,8 +981,7 @@ x"#;
         (Ident x)
     ];
     test(code, expected);
-
-    let code = "  x = \"\"\"\n    Indented multiline\n  x";
+    let code = "x = \"\"\"\n    Indented multiline\nx";
     #[rustfmt::skip]
     let expected = block![
         (Assignment (Ident x) "=" (TextLiteral #((Section "Indented multiline"))))

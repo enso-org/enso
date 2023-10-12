@@ -201,7 +201,6 @@ impl Default for Parser {
 /// interpreted as a variable assignment or method definition.
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    let mut left_offset = tree.span.left_offset.position_before();
     if let Tree { variant: box Variant::Annotated(annotated), .. } = &mut tree {
         annotated.expression = annotated.expression.take().map(expression_to_statement);
         return tree;
@@ -223,6 +222,7 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         }));
         return tree;
     }
+    let mut left_offset = tree.span.left_offset.position_before();
     let tree_ = &mut tree;
     let opr_app = match tree_ {
         Tree { variant: box Variant::OprApp(opr_app), span } => {

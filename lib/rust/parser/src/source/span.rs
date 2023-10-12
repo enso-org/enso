@@ -192,6 +192,7 @@ impl<'s> Span<'s> {
         start..end
     }
 
+    /// Return the sum of the whitespace length and the code length.
     pub fn length_including_whitespace(&self) -> code::Length {
         self.left_offset.code.length() + self.code_length
     }

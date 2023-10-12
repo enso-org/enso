@@ -12,21 +12,21 @@ export function parseEnso(code: string): Ast.Tree {
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
   test('testParse', () => {
-    const identInput = ' foo bar\n'
+    const identInput = 'foo bar\n'
     const tree = parseEnso(identInput)
     expect(debug(tree)).toMatchObject({
       childrenLengthInCodeParsed: 8,
       whitespaceStartInCodeParsed: 0,
-      whitespaceLengthInCodeParsed: 1,
+      whitespaceLengthInCodeParsed: 0,
       statements: [
         {
           expression: {
             arg: {
               childrenLengthInCodeParsed: 3,
-              whitespaceStartInCodeParsed: 4,
+              whitespaceStartInCodeParsed: 3,
               whitespaceLengthInCodeParsed: 1,
               token: {
-                startInCodeBuffer: 5,
+                startInCodeBuffer: 4,
                 lengthInCodeBuffer: 3,
                 whitespaceLengthInCodeBuffer: 0,
               },
@@ -36,7 +36,7 @@ if (import.meta.vitest) {
               childrenLengthInCodeParsed: 3,
               whitespaceLengthInCodeParsed: 0,
               token: {
-                startInCodeBuffer: 1,
+                startInCodeBuffer: 0,
                 lengthInCodeBuffer: 3,
                 whitespaceLengthInCodeBuffer: 0,
               },
@@ -54,7 +54,7 @@ if (import.meta.vitest) {
         {
           expression: undefined,
           newline: {
-            startInCodeBuffer: 8,
+            startInCodeBuffer: 7,
             lengthInCodeBuffer: 1,
             whitespaceLengthInCodeBuffer: 0,
           },
