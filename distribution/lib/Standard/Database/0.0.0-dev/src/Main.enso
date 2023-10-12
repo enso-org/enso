@@ -30,6 +30,5 @@ export project.Data.SQL_Query.SQL_Query
 export project.Data.Update_Action.Update_Action
 from project.Connection.Postgres_Details.Postgres_Details export Postgres
 from project.Connection.SQLite_Details.SQLite_Details export SQLite
-from project.Extensions.Table_Conversions export all
 from project.Extensions.Upload_Database_Table export all
 from project.Extensions.Upload_In_Memory_Table export all
