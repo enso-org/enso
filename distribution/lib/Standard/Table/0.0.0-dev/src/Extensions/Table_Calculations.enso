@@ -41,6 +41,12 @@ type Column_Operation
        If a Date_Time, returns the Date.
     Truncate (input : Column_Ref|Number|Date_Time)
 
+    ## Returns the minimum value of two columns.
+    Min (lhs : Column_Ref|Number) (rhs : Column_Ref|Any)
+
+    ## Returns the maximum value of two columns.
+    Max (lhs : Column_Ref|Number) (rhs : Column_Ref|Any)
+
     ## Adds a period to a date/time column.
     Date_Add (input : Column_Ref|Date_Time|Date|Time_Of_Day) (length : Column_Ref|Integer) (period : Date_Period|Time_Period = Date_Period.Day)
 
@@ -59,8 +65,10 @@ type Column_Operation
     ## Boolean OR on two boolean columns.
     Or (lhs : Column_Ref|Boolean) (rhs : Column_Ref|Boolean)
 
-    ## If input meets a condition return true value other false value.
-    If (input : Column_Ref|Any) (condition:Filter_Condition) (true_value:Any = True) (false_value:Any = False)
+    ## If input meets a condition return true value, otherwise false value.
+
+       The `true_value` and `false_value` can be either a constant or a column.
+    If (input : Column_Ref|Any) (condition:Filter_Condition) (true_value:Column_Ref|Any = True) (false_value:Column_Ref|Any = False)
 
     ## PRIVATE
        Interprets the `Column_Operation` as operation on columns of a provided
@@ -83,6 +91,9 @@ type Column_Operation
             Column_Operation.Floor input    -> (resolve_input_column input).floor
             Column_Operation.Truncate input -> (resolve_input_column input).truncate
 
+            Column_Operation.Min lhs rhs -> (resolve_input_column lhs).min (table.resolve rhs)
+            Column_Operation.Max lhs rhs -> (resolve_input_column lhs).max (table.resolve rhs)
+
             Column_Operation.Date_Add input length period ->
                 (resolve_input_column input).date_add (table.resolve length) period
             Column_Operation.Date_Part input period ->
@@ -103,26 +114,27 @@ type Column_Operation
        Create a widget for operation
     default_widget : Table_Ref -> Widget
     default_widget table:Table_Ref display=Display.Always =
-        col_names = Widget_Helpers.make_column_name_selector table
         col_refs = Widget_Helpers.make_column_ref_by_name_selector table
         filter_cond = Widget_Helpers.make_filter_condition_selector table
         builder = Vector.new_builder
         fqn = Meta.get_qualified_type_name Column_Operation
-        builder.append (Option "add" fqn+".Add" [["input", col_names], ["other", col_refs]])
-        builder.append (Option "subtract" fqn+".Subtract" [["input", col_names], ["other", col_refs]])
-        builder.append (Option "multiply" fqn+".Multiply" [["input", col_names], ["other", col_refs]])
-        builder.append (Option "divide" fqn+".Divide" [["input", col_names], ["other", col_refs]])
-        builder.append (Option "round" fqn+".Round" [["input", col_names]])
-        builder.append (Option "ceil" fqn+".Ceil" [["input", col_names]])
-        builder.append (Option "floor" fqn+".Floor" [["input", col_names]])
-        builder.append (Option "truncate" fqn+".Truncate" [["input", col_names]])
-        builder.append (Option "date add" fqn+".Date_Add" [["input", col_names], ["length", col_refs]])
-        builder.append (Option "date part" fqn+".Date_Part" [["input", col_names]])
-        builder.append (Option "date diff" fqn+".Date_Diff" [["input", col_names], ["end", col_refs]])
-        builder.append (Option "not" fqn+".Not" [["input", col_names]])
-        builder.append (Option "and" fqn+".And" [["input", col_names], ["other", col_refs]])
-        builder.append (Option "or" fqn+".Or" [["input", col_names], ["other", col_refs]])
-        builder.append (Option "if" fqn+".If" [["input", col_names], ["condition", filter_cond], ["true_value", col_refs], ["false_value", col_refs]])
+        builder.append (Option "add" fqn+".Add" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "subtract" fqn+".Subtract" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "multiply" fqn+".Multiply" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "divide" fqn+".Divide" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "round" fqn+".Round" [["input", col_refs]])
+        builder.append (Option "ceil" fqn+".Ceil" [["input", col_refs]])
+        builder.append (Option "floor" fqn+".Floor" [["input", col_refs]])
+        builder.append (Option "truncate" fqn+".Truncate" [["input", col_refs]])
+        builder.append (Option "min" fqn+".Min" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "max" fqn+".Max" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "date add" fqn+".Date_Add" [["input", col_refs], ["length", col_refs]])
+        builder.append (Option "date part" fqn+".Date_Part" [["input", col_refs]])
+        builder.append (Option "date diff" fqn+".Date_Diff" [["start", col_refs], ["end", col_refs]])
+        builder.append (Option "not" fqn+".Not" [["input", col_refs]])
+        builder.append (Option "and" fqn+".And" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "or" fqn+".Or" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "if" fqn+".If" [["input", col_refs], ["condition", filter_cond], ["true_value", col_refs], ["false_value", col_refs]])
         Single_Choice builder.to_vector display=display
 
 ## Reference to a column in a table.
@@ -134,7 +146,7 @@ type Column_Ref
     Index index:Integer
 
 ## PRIVATE
-   Private type class for defining a table against
+   A helper type allowing to resolve column references in a context of an underlying table.
 type Table_Ref
     ## PRIVATE
     Value underlying
