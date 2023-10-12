@@ -97,7 +97,21 @@ spec setup =
             t2.set (Column_Operation.Date_Diff 42 "x" Date_Period.Year) . should_fail_with Invalid_Value_Type
 
         Test.specify "boolean" <|
-            Nothing
+            t = table_builder [["A", [True, False]], ["T", [True, True]]]
+
+            t.set (Column_Operation.And (Column_Ref.Name "A") (Column_Ref.Name "T")) "Z" . at "Z" . to_vector . should_equal [True, False]
+            t.set (Column_Operation.And (Column_Ref.Name "A") False) "Z" . at "Z" . to_vector . should_equal [False, False]
+            t.set (Column_Operation.And True True) "Z" . at "Z" . to_vector . should_equal [True, True]
+
+            t.set (Column_Operation.Or (Column_Ref.Name "A") (Column_Ref.Name "T")) "Z" . at "Z" . to_vector . should_equal [True, True]
+            t.set (Column_Operation.Or False (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [True, False]
+            t.set (Column_Operation.Or False False) "Z" . at "Z" . to_vector . should_equal [False, False]
+
+            t.set (Column_Operation.Not (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [False, True]
+            t.set (Column_Operation.Not False) "Z" . at "Z" . to_vector . should_equal [True, True]
+
+            t.set (Column_Operation.And 42 True) . should_fail_with Invalid_Value_Type
+            t.set (Column_Operation.Or (Column_Ref.Name "A") "x") . should_fail_with Invalid_Value_Type
 
         Test.specify "if" <|
             Nothing
@@ -146,3 +160,13 @@ spec setup =
                 t3 = table_builder [["A", [Date.new 2002 12 10, Date.new 2005 01 01]]]
                 t3.set (Column_Operation.Min (Column_Ref.Name "A") (Date.new 2003)) "Z" . at "Z" . to_vector . should_equal [Date.new 2002 12 10, Date.new 2003 01 01]
                 t3.set (Column_Operation.Max (Column_Ref.Name "A") (Date.new 2003)) "Z" . at "Z" . to_vector . should_equal [Date.new 2003 01 01, Date.new 2005 01 01]
+
+        Test.specify "allows also indexing columns numerically" <|
+            t = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t.set (Column_Operation.Add (Column_Ref.Index 0) (Column_Ref.Index 1)) "Z" . at "Z" . to_vector . should_equal [4, 6]
+
+        Test.specify "will forward column resolution errors" <|
+            t = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t.set (Column_Operation.Add (Column_Ref.Name "X") (Column_Ref.Name "Z")) . should_fail_with No_Such_Column
+            t.set (Column_Operation.Not (Column_Ref.Name "zzz")) . should_fail_with No_Such_Column
+            t.set (Column_Operation.Not (Column_Ref.Index 42)) . should_fail_with Index_Out_Of_Bounds
