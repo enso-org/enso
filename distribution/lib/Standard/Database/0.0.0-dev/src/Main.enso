@@ -12,7 +12,6 @@ import project.Data.SQL_Query.SQL_Query
 import project.Data.Update_Action.Update_Action
 from project.Connection.Postgres_Details.Postgres_Details import Postgres
 from project.Connection.SQLite_Details.SQLite_Details import SQLite
-from project.Extensions.Table_Conversions import all
 from project.Extensions.Upload_Database_Table import all
 from project.Extensions.Upload_In_Memory_Table import all
 
