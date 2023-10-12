@@ -1,7 +1,7 @@
 import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { parse } from '@/util/ffi'
-import { LazyObject, validateSpans } from '@/util/parserSupport'
+import { LazyObject, debug, validateSpans } from '@/util/parserSupport'
 import { assert } from '../assert'
 
 export { Ast }
@@ -100,14 +100,20 @@ if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
   // Not working cases commented.
-  test.each([
+  const parseCases = [
     ' foo bar\n',
     'Data.read\n2 + 2',
     'Data.read File\n2 + 3',
     // 'Data.read "File"\n2 + 3',
     'foo bar=baz',
     // '2\n + 3\n + 4',
-  ])("AST spans of '%s' are valid", (input) => {
+  ]
+
+  test.each(parseCases)("Parsing '%s'", (code) => {
+    expect(debug(parseEnso(code))).toMatchSnapshot()
+  })
+
+  test.each(parseCases)("AST spans of '%s' are valid", (input) => {
     const tree = parseEnso(input)
     const endPos = validateSpans(tree)
     expect(endPos).toStrictEqual(input.length)
