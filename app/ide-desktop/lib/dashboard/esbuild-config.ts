@@ -21,7 +21,7 @@ import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
 import * as requireEnv from 'enso-common/requireEnv'
 
-import * as tailwindConfig from './tailwind.config.cjs'
+import tailwindConfig from './tailwind.config.cjs'
 
 // =================
 // === Constants ===
