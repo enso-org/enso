@@ -26,7 +26,7 @@ type Any
        If such method doesn't exist, `No_Such_Conversion` panic is raised.
 
        Arguments:
-       - typ: the requested type.
+       - target_type: the requested type.
 
        > Example
          Following code defines conversion of a `Complex` type to a `Number`
@@ -61,9 +61,8 @@ type Any
              yields_3 = Complex.Value 3 4 . to Number ignore_im=True
              yields_5 = Complex.Value 3 4 . to Number ignore_im=False
              default5 = Complex.Value 3 4 . to Number
-
     to : Any -> Any ! No_Such_Conversion
-    to self typ = typ.from self ...
+    to self target_type = target_type.from self ...
 
     ## GROUP Conversions
        Generic conversion of an arbitrary Enso value to a corresponding textual

@@ -144,7 +144,8 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Vector.sort self order on by on_incomparable
 
-    ## GROUP Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Selections
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -673,7 +674,8 @@ type Array
     contains : Any -> Boolean
     contains self elem = self.any (== elem)
 
-    ## GROUP Calculations
+    ## ALIAS combine, merge, join by row position
+       GROUP Calculations
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -696,7 +698,7 @@ type Array
 
              [1, 2, 3].to_array.zip [4, 5, 6].to_array == [[1, 4].to_array, [2, 5].to_array, [3, 6].to_array].to_array
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
-    zip self that function=[_,_] = Vector.zip self that function
+    zip self that:Vector function=[_,_] = Vector.zip self that function
 
     ## Returns the array as a `Vector`.
     to_vector : Vector
@@ -750,7 +752,7 @@ type Array
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self f = Vector.each_with_index self f
 
-    ## ALIAS concatenate
+    ## ALIAS concatenate, union, append
        GROUP Operators
        Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
