@@ -1,16 +1,10 @@
 {
   "devDependencies": {
-    "@playwright/experimental-ct-react": "^1.38.0",
-    "@playwright/test": "^1.38.0",
     "npm-run-all": "^4.1.5",
-    "playwright": "^1.38.0",
     "prettier": "^3.0.0"
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
-    "enso-gui2": "^0.1.0",
-    "lint": "^0.8.19",
-    "run": "^1.4.0",
     "tslib": "^2.6.2"
   },
   "name": "root",
