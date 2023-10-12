@@ -26,8 +26,6 @@ import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 import { useSuggestionDbStore } from '../stores/suggestionDatabase'
-import type { QualifiedName } from '../util/qualifiedName'
-import { Filtering } from './ComponentBrowser/filtering'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 
@@ -427,20 +425,7 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => {
   const method = expressionInfo.value?.methodCall?.methodPointer
   if (method == null) return undefined
-  const filtering = new Filtering({
-    pattern: method.name,
-    qualifiedNamePattern: method.module,
-    selfType: method.definedOnType as QualifiedName,
-    showLocal: true,
-    showUnstable: true,
-  })
-  if (filtering == null) return undefined
-  for (const entry of suggestionDbStore.entries.values()) {
-    if (filtering.filter(entry)) {
-      return entry
-    }
-  }
-  return undefined
+  return suggestionDbStore.methodPointerToEntry.get(method.module)?.get(method.name)
 })
 const icon = computed(() => {
   if (suggestionEntry.value?.iconName) {
