@@ -70,44 +70,9 @@ expand_column table column fields prefix =
 expand_to_rows : Table -> Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
 expand_to_rows table column at_least_one_row=False =
     row_expander : Any -> Vector
-    row_expander value:Expand_To_Rows_Iterator = value.to_vector
+    row_expander value:Convertible_To_Rows = value.to_vector
 
     Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=make_inferred_builder
-
-## PRIVATE
-type Expand_To_Rows_Iterator
-    ## PRIVATE
-       Arguments:
-       - length: The number of rows in the table.
-       - getter: Get the value for a specified row.
-    Value length:Integer getter:Function
-
-    ## PRIVATE
-       Return the iterator values as a `Vector`.
-    to_vector : Vector Any
-    to_vector self = 0.up_to self.length . map self.getter
-
-## PRIVATE
-Expand_To_Rows_Iterator.from that:Vector = Expand_To_Rows_Iterator.Value that.length that.get
-
-## PRIVATE
-Expand_To_Rows_Iterator.from that:Array = Expand_To_Rows_Iterator.Value that.length that.get
-
-## PRIVATE
-Expand_To_Rows_Iterator.from that:List = Expand_To_Rows_Iterator.Value that.length that.get
-
-## PRIVATE
-Expand_To_Rows_Iterator.from that:Range = Expand_To_Rows_Iterator.Value that.length that.get
-
-## PRIVATE
-Expand_To_Rows_Iterator.from that:Pair = Expand_To_Rows_Iterator.Value that.length that.get
-
-## PRIVATE
-Expand_To_Rows_Iterator.from that:Date_Range = Expand_To_Rows_Iterator.Value that.length that.get
-
-## PRIVATE
-Expand_To_Rows_Iterator.from (that:Any) =
-    Expand_To_Rows_Iterator.Value 1 (n-> if n==0 then that else Nothing)
 
 ## PRIVATE
 create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table
