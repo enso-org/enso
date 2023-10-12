@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import PlusIcon from 'enso-assets/plus.svg'
 
-import * as backend from '../backend'
+import type * as backend from '../backend'
 import * as modalProvider from '../../providers/modal'
 
 import Label, * as labelModule from './label'

@@ -57,6 +57,8 @@ object Main {
   private val INTERFACE_OPTION               = "interface"
   private val RPC_PORT_OPTION                = "rpc-port"
   private val DATA_PORT_OPTION               = "data-port"
+  private val SECURE_RPC_PORT_OPTION         = "secure-rpc-port"
+  private val SECURE_DATA_PORT_OPTION        = "secure-data-port"
   private val ROOT_ID_OPTION                 = "root-id"
   private val ROOT_PATH_OPTION               = "path"
   private val IN_PROJECT_OPTION              = "in-project"
@@ -220,12 +222,26 @@ object Main {
       .argName("rpc-port")
       .desc("RPC port for processing all incoming connections")
       .build()
+    val secureRpcPortOption = CliOption.builder
+      .longOpt(SECURE_RPC_PORT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("rpc-port")
+      .desc("A secure RPC port for processing all incoming connections")
+      .build()
     val dataPortOption = CliOption.builder
       .longOpt(DATA_PORT_OPTION)
       .hasArg(true)
       .numberOfArgs(1)
       .argName("data-port")
       .desc("Data port for visualization protocol")
+      .build()
+    val secureDataPortOption = CliOption.builder
+      .longOpt(SECURE_DATA_PORT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("data-port")
+      .desc("A secure data port for visualization protocol")
       .build()
     val uuidOption = CliOption.builder
       .hasArg(true)
@@ -412,6 +428,8 @@ object Main {
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
       .addOption(dataPortOption)
+      .addOption(secureRpcPortOption)
+      .addOption(secureDataPortOption)
       .addOption(uuidOption)
       .addOption(pathOption)
       .addOption(inProjectOption)
@@ -958,6 +976,18 @@ object Main {
       dataPort <- Either
         .catchNonFatal(dataPortStr.toInt)
         .leftMap(_ => "Port must be integer")
+      secureRpcPortStr = Option(line.getOptionValue(SECURE_RPC_PORT_OPTION))
+        .map(Some(_))
+        .getOrElse(None)
+      secureRpcPort <- Either
+        .catchNonFatal(secureRpcPortStr.map(_.toInt))
+        .leftMap(_ => "Port must be integer")
+      secureDataPortStr = Option(line.getOptionValue(SECURE_DATA_PORT_OPTION))
+        .map(Some(_))
+        .getOrElse(None)
+      secureDataPort <- Either
+        .catchNonFatal(secureDataPortStr.map(_.toInt))
+        .leftMap(_ => "Port must be integer")
       profilingPathStr =
         Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_PATH))
       profilingPath <- Either
@@ -979,7 +1009,9 @@ object Main {
     } yield boot.LanguageServerConfig(
       interface,
       rpcPort,
+      secureRpcPort,
       dataPort,
+      secureDataPort,
       rootId,
       rootPath,
       ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime),

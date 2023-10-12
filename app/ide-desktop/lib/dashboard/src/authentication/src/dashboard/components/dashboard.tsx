@@ -21,7 +21,7 @@ import * as modalProvider from '../../providers/modal'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as pageSwitcher from './pageSwitcher'
-import * as spinner from './spinner'
+import type * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import Drive from './drive'
 import Editor from './editor'

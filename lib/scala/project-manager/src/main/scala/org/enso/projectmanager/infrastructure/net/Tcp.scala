@@ -15,16 +15,22 @@ object Tcp {
     * @param host a host
     * @param minPort a minimum value of port
     * @param maxPort a maximum value of port
+    * @param excludeSet a set of ports that should never be selected
     * @return a port that is available to bind
     */
   @tailrec
-  def findAvailablePort(host: String, minPort: Int, maxPort: Int): Int = {
+  def findAvailablePort(
+    host: String,
+    minPort: Int,
+    maxPort: Int,
+    excludeSet: Set[Int] = Set.empty
+  ): Int = {
     val random = Random.nextInt(maxPort - minPort + 1)
     val port   = minPort + random
-    if (isPortAvailable(host, port)) {
+    if (!excludeSet.contains(port) && isPortAvailable(host, port)) {
       port
     } else {
-      findAvailablePort(host, minPort, maxPort)
+      findAvailablePort(host, minPort, maxPort, excludeSet + port)
     }
   }
 
