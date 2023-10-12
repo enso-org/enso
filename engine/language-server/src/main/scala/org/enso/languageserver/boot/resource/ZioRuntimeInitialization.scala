@@ -21,13 +21,21 @@ class ZioRuntimeInitialization(
 ) extends InitializationComponent
     with LazyLogging {
 
+  @volatile
+  private var _isInitialized: Boolean = false
+
+  override def isInitialized: Boolean = _isInitialized
+
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
-    Future {
-      logger.info("Initializing ZIO runtime...")
-      runtime.init()
-      logger.info("ZIO runtime initialized [{}].", runtime)
-      eventStream.publish(InitializedEvent.ZioRuntimeInitialized)
-      InitializationComponent.Initialized
-    }
+    if (isInitialized) Future.successful(InitializationComponent.Initialized)
+    else
+      Future {
+        logger.info("Initializing ZIO runtime...")
+        runtime.init()
+        logger.info("ZIO runtime initialized [{}].", runtime)
+        _isInitialized = true
+        eventStream.publish(InitializedEvent.ZioRuntimeInitialized)
+        InitializationComponent.Initialized
+      }
 }

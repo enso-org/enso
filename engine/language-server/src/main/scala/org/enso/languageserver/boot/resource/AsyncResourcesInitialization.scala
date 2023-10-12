@@ -7,15 +7,23 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param resources the list of resources to initialize
   * @param ec the execution context
   */
-class AsyncResourcesInitialization(
+final class AsyncResourcesInitialization(
   resources: Iterable[InitializationComponent]
 )(implicit ec: ExecutionContext)
     extends InitializationComponent {
 
   /** @inheritdoc */
+  override def isInitialized: Boolean =
+    resources.forall(_.isInitialized)
+
+  /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
     Future
-      .traverse(resources)(_.init())
+      .traverse(resources) { component =>
+        if (component.isInitialized)
+          Future.successful(InitializationComponent.Initialized)
+        else component.init()
+      }
       .map { _ => InitializationComponent.Initialized }
 }
 

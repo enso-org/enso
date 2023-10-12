@@ -5,20 +5,35 @@ import scala.concurrent.{ExecutionContext, Future}
   *
   * @param resources the list of resources to initialize
   */
-class SequentialResourcesInitialization(
+final class SequentialResourcesInitialization(
   resources: Seq[InitializationComponent]
 )(implicit ec: ExecutionContext)
     extends InitializationComponent {
 
   /** @inheritdoc */
+  override def isInitialized: Boolean =
+    resources.forall(_.isInitialized)
+
+  /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
     resources.foldLeft(Future.successful(InitializationComponent.Initialized)) {
-      (action, resource) => action.flatMap(_ => resource.init())
+      (action, resource) =>
+        action.flatMap { _ =>
+          if (resource.isInitialized)
+            Future.successful(InitializationComponent.Initialized)
+          else resource.init()
+        }
     }
 }
 
 object SequentialResourcesInitialization {
 
+  /** Create a sequential initialization component from a sequence of resources.
+    *
+    * @param resources the list of resources to initialize.
+    * @param ec the execution context
+    * @return the sequential initialization component
+    */
   def apply(resources: InitializationComponent*)(implicit
     ec: ExecutionContext
   ): SequentialResourcesInitialization =

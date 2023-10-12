@@ -22,7 +22,7 @@ import scala.util.{Failure, Success}
   * @param sqlDatabase the sql database
   * @param suggestionsRepo the suggestions repo
   */
-class RepoInitialization(
+final class RepoInitialization(
   directoriesConfig: ProjectDirectoriesConfig,
   eventStream: EventStream,
   sqlDatabase: SqlDatabase,
@@ -31,12 +31,24 @@ class RepoInitialization(
     extends InitializationComponent
     with LazyLogging {
 
+  @volatile
+  private var _isInitialized: Boolean = false
+
+  /** @inheritdoc */
+  override def isInitialized: Boolean = _isInitialized
+
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
-    for {
-      _ <- sqlDatabaseInit
-      _ <- suggestionsRepoInit
-    } yield InitializationComponent.Initialized
+    if (isInitialized) Future.successful(InitializationComponent.Initialized)
+    else {
+      for {
+        _ <- sqlDatabaseInit
+        _ <- suggestionsRepoInit
+      } yield {
+        _isInitialized = true
+        InitializationComponent.Initialized
+      }
+    }
 
   private def sqlDatabaseInit: Future[Unit] = {
     val initAction = Future {

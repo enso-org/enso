@@ -13,13 +13,19 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param eventStream akka events stream
   * @param truffleContext the Truffle context
   */
-class TruffleContextInitialization(
+final class TruffleContextInitialization(
   eventStream: EventStream,
   truffleContext: Context
 )(implicit
   ec: ExecutionContext
 ) extends InitializationComponent
     with LazyLogging {
+
+  @volatile
+  private var _isInitialized: Boolean = false
+
+  /** @inheritdoc */
+  override def isInitialized: Boolean = _isInitialized
 
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
@@ -28,6 +34,7 @@ class TruffleContextInitialization(
       truffleContext.initialize(LanguageInfo.ID)
       eventStream.publish(InitializedEvent.TruffleContextInitialized)
       logger.info("Initialized Runtime context.")
+      _isInitialized = true
       InitializationComponent.Initialized
     }
 }

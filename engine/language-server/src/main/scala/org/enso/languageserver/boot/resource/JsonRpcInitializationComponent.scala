@@ -9,17 +9,27 @@ import scala.concurrent.{ExecutionContext, Future}
   *
   * @param protocolFactory the JSON-RPC protocol factory
   */
-class JsonRpcInitializationComponent(protocolFactory: ProtocolFactory)(implicit
-  ec: ExecutionContext
+final class JsonRpcInitializationComponent(protocolFactory: ProtocolFactory)(
+  implicit ec: ExecutionContext
 ) extends InitializationComponent
     with LazyLogging {
 
+  @volatile
+  private var _isInitialized: Boolean = false
+
   /** @inheritdoc */
-  override def init(): Future[InitializationComponent.Initialized.type] =
-    Future {
-      logger.info("Initializing JSON-RPC protocol.")
-      protocolFactory.init()
-      logger.info("JSON-RPC protocol initialized.")
-      InitializationComponent.Initialized
-    }
+  override def isInitialized: Boolean = _isInitialized
+
+  /** @inheritdoc */
+  override def init(): Future[InitializationComponent.Initialized.type] = {
+    if (isInitialized) Future.successful(InitializationComponent.Initialized)
+    else
+      Future {
+        logger.info("Initializing JSON-RPC protocol.")
+        protocolFactory.init()
+        logger.info("JSON-RPC protocol initialized.")
+        _isInitialized = true
+        InitializationComponent.Initialized
+      }
+  }
 }
