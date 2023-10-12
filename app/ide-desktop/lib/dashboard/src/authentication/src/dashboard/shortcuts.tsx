@@ -71,6 +71,8 @@ export enum KeyboardAction {
     duplicate = 'duplicate',
     copy = 'copy',
     cut = 'cut',
+    cutAll = 'cut-all',
+    cancelCut = 'cancel-cut',
     paste = 'paste',
     download = 'download',
     uploadFiles = 'upload-files',
@@ -177,6 +179,8 @@ function makeKeyboardActionMap<T>(make: (action: KeyboardAction) => T): Record<K
         [KeyboardAction.duplicate]: make(KeyboardAction.duplicate),
         [KeyboardAction.copy]: make(KeyboardAction.copy),
         [KeyboardAction.cut]: make(KeyboardAction.cut),
+        [KeyboardAction.cutAll]: make(KeyboardAction.cutAll),
+        [KeyboardAction.cancelCut]: make(KeyboardAction.cancelCut),
         [KeyboardAction.paste]: make(KeyboardAction.paste),
         [KeyboardAction.download]: make(KeyboardAction.download),
         [KeyboardAction.uploadFiles]: make(KeyboardAction.uploadFiles),
@@ -464,6 +468,8 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
     [KeyboardAction.copy]: [keybind(KeyboardAction.copy, [CTRL], 'C')],
     [KeyboardAction.cut]: [keybind(KeyboardAction.cut, [CTRL], 'X')],
+    [KeyboardAction.cutAll]: [keybind(KeyboardAction.cutAll, [CTRL], 'X')],
+    [KeyboardAction.cancelCut]: [keybind(KeyboardAction.cancelCut, [], 'Escape')],
     [KeyboardAction.paste]: [keybind(KeyboardAction.paste, [CTRL], 'V')],
     [KeyboardAction.download]: [keybind(KeyboardAction.download, [CTRL, 'Shift'], 'S')],
     [KeyboardAction.uploadFiles]: [keybind(KeyboardAction.uploadFiles, [CTRL], 'U')],
@@ -507,6 +513,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.duplicate]: { name: 'Duplicate', icon: DuplicateIcon },
     [KeyboardAction.copy]: { name: 'Copy', icon: CopyIcon },
     [KeyboardAction.cut]: { name: 'Cut', icon: ScissorsIcon },
+    [KeyboardAction.cutAll]: { name: 'Cut All', icon: ScissorsIcon },
     [KeyboardAction.paste]: { name: 'Paste', icon: PasteIcon },
     [KeyboardAction.download]: { name: 'Download', icon: DataDownloadIcon },
     [KeyboardAction.uploadFiles]: { name: 'Upload Files', icon: DataUploadIcon },
@@ -520,6 +527,7 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
     [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
     [KeyboardAction.signIn]: { name: 'Sign In', icon: SignInIcon },
     [KeyboardAction.signOut]: { name: 'Sign Out', icon: SignOutIcon, colorClass: 'text-delete' },
+    [KeyboardAction.cancelCut]: { name: 'Cancel Cut', icon: BlankIcon },
 }
 
 /** The default mouse shortcuts. */

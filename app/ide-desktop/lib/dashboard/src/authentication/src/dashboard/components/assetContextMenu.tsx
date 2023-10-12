@@ -115,7 +115,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         doAction={() => {
                             unsetModal()
                             dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.restoreMultiple,
+                                type: assetEventModule.AssetEventType.restore,
                                 ids: new Set([asset.id]),
                             })
                         }}

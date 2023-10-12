@@ -1,5 +1,6 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
+import * as toast from 'react-toastify'
 
 import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
@@ -12,12 +13,13 @@ import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as permissions from '../permissions'
-import type * as presenceModule from '../presence'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
 import * as style from '../style'
 import * as uniqueString from '../../uniqueString'
+import type * as visibilityModule from '../visibility'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
@@ -76,22 +78,11 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 
 const ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE = 'application/x-enso-asset-list'
 
+const ASSET_ROWS_DRAG_PAYLOAD_MAP = new WeakMap<DataTransfer, AssetRowsDragPayload>()
+
 /** Resolve to an {@link AssetRowsDragPayload}, if any, else resolve to `null`. */
-export function tryFindAssetRowsDragPayload(dataTransfer: DataTransfer) {
-    return new Promise<AssetRowsDragPayload | null>(resolve => {
-        for (const item of dataTransfer.items) {
-            if (item.type.startsWith(ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE)) {
-                item.getAsString(json => {
-                    // `JSON.parse` is unsafe; this error is unavoidable.
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                    resolve(JSON.parse(json))
-                })
-                // eslint-disable-next-line no-restricted-syntax
-                return
-            }
-        }
-        resolve(null)
-    })
+export function tryGetAssetRowsDragPayload(dataTransfer: DataTransfer) {
+    return ASSET_ROWS_DRAG_PAYLOAD_MAP.get(dataTransfer) ?? null
 }
 
 /** Metadata for an asset row. */
@@ -203,13 +194,13 @@ export interface AssetsTableState {
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
-    setPresence: (presence: presenceModule.Presence) => void
+    setVisibility: (presence: visibilityModule.Visibility) => void
     isEditingName: boolean
 }
 
 /** The default {@link AssetRowState} associated with a {@link AssetRow}. */
 export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
-    setPresence: () => {
+    setVisibility: () => {
         // Ignored. This MUST be replaced by the row component. It should also update `presence`.
     },
     isEditingName: false,
@@ -263,6 +254,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [assetTree, setAssetTree] = React.useState<assetTreeNode.AssetTreeNode[]>([])
@@ -279,6 +271,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const headerRowRef = React.useRef<HTMLTableRowElement>(null)
     const assetTreeRef = React.useRef<assetTreeNode.AssetTreeNode[]>([])
+    const copyDataRef = React.useRef<Set<backendModule.AssetId> | null>(null)
     const nodeMapRef = React.useRef<
         ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>
     >(new Map<backendModule.AssetId, assetTreeNode.AssetTreeNode>())
@@ -351,6 +344,27 @@ export default function AssetsTable(props: AssetsTableProps) {
             assetTreeNode.assetTreePreorderTraversal(assetTree).map(asset => [asset.key, asset])
         )
     }, [assetTree])
+
+    React.useEffect(() => {
+        copyDataRef.current = copyData
+    }, [copyData])
+
+    React.useEffect(() => {
+        return shortcuts.registerKeyboardHandlers({
+            [shortcutsModule.KeyboardAction.cancelCut]: () => {
+                if (copyDataRef.current == null) {
+                    return false
+                } else {
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.cancelCut,
+                        ids: copyDataRef.current,
+                    })
+                    setCopyData(null)
+                    return
+                }
+            },
+        })
+    }, [/* should never change */ shortcuts, /* should never change */ dispatchAssetEvent])
 
     React.useEffect(() => {
         if (isLoading) {
@@ -997,11 +1011,21 @@ export default function AssetsTable(props: AssetsTableProps) {
     const doCut = React.useCallback(() => {
         setSelectedKeys(oldSelectedKeys => {
             queueMicrotask(() => {
+                if (copyData != null) {
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.cancelCut,
+                        ids: copyData,
+                    })
+                }
                 setCopyData(oldSelectedKeys)
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.cut,
+                    ids: oldSelectedKeys,
+                })
             })
             return new Set()
         })
-    }, [])
+    }, [copyData, /* should never change */ dispatchAssetEvent])
 
     const doPaste = React.useCallback(
         (
@@ -1009,16 +1033,144 @@ export default function AssetsTable(props: AssetsTableProps) {
             newParentId: backendModule.DirectoryId | null
         ) => {
             if (copyData != null) {
-                setCopyData(null)
-                dispatchAssetEvent({
-                    type: assetEventModule.AssetEventType.move,
-                    ids: copyData,
-                    newParentKey,
-                    newParentId,
-                })
+                if (newParentKey != null && copyData.has(newParentKey)) {
+                    toast.toast.error('Cannot paste a folder into itself.')
+                } else {
+                    setCopyData(null)
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.move,
+                        ids: copyData,
+                        newParentKey,
+                        newParentId,
+                    })
+                }
             }
         },
         [copyData, /* should never change */ dispatchAssetEvent]
+    )
+
+    const doRenderContextMenu = React.useCallback(
+        (
+            innerSelectedKeys: Set<backendModule.AssetId>,
+            event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>,
+            innerSetSelectedKeys: (items: Set<backendModule.AssetId>) => void,
+            hidden: boolean
+        ) => {
+            const pluralized = pluralize(innerSelectedKeys.size)
+            // This works because all items are mutated, ensuring their value stays
+            // up to date.
+            const ownsAllSelectedAssets =
+                backend.type === backendModule.BackendType.local ||
+                (organization != null &&
+                    Array.from(innerSelectedKeys, key => {
+                        const userPermissions = nodeMapRef.current.get(key)?.item.permissions
+                        const selfPermission = userPermissions?.find(
+                            permission => permission.user.user_email === organization.email
+                        )
+                        return selfPermission?.permission === permissions.PermissionAction.own
+                    }).every(isOwner => isOwner))
+            // This is not a React component even though it contains JSX.
+            // eslint-disable-next-line no-restricted-syntax
+            const doDeleteAll = () => {
+                if (backend.type === backendModule.BackendType.remote) {
+                    unsetModal()
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.delete,
+                        ids: innerSelectedKeys,
+                    })
+                } else {
+                    setModal(
+                        <ConfirmDeleteModal
+                            description={`${innerSelectedKeys.size} selected ${pluralized}`}
+                            doDelete={() => {
+                                innerSetSelectedKeys(new Set())
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.delete,
+                                    ids: innerSelectedKeys,
+                                })
+                            }}
+                        />
+                    )
+                }
+            }
+            // This is not a React component even though it contains JSX.
+            // eslint-disable-next-line no-restricted-syntax
+            const doRestoreAll = () => {
+                unsetModal()
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.restore,
+                    ids: innerSelectedKeys,
+                })
+            }
+            if (category === categorySwitcher.Category.trash) {
+                return innerSelectedKeys.size === 0 ? (
+                    <></>
+                ) : (
+                    <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
+                        <ContextMenu hidden={hidden}>
+                            <MenuEntry
+                                hidden={hidden}
+                                action={shortcutsModule.KeyboardAction.restoreAllFromTrash}
+                                doAction={doRestoreAll}
+                            />
+                        </ContextMenu>
+                    </ContextMenus>
+                )
+            } else {
+                const deleteAction =
+                    backend.type === backendModule.BackendType.local
+                        ? shortcutsModule.KeyboardAction.deleteAll
+                        : shortcutsModule.KeyboardAction.moveAllToTrash
+                return (
+                    <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
+                        {innerSelectedKeys.size !== 0 && ownsAllSelectedAssets && (
+                            <ContextMenu hidden={hidden}>
+                                <MenuEntry
+                                    hidden={hidden}
+                                    action={deleteAction}
+                                    doAction={doDeleteAll}
+                                />
+                                {backend.type !== backendModule.BackendType.local && (
+                                    <MenuEntry
+                                        hidden={hidden}
+                                        action={shortcutsModule.KeyboardAction.cutAll}
+                                        doAction={() => {
+                                            unsetModal()
+                                            doCut()
+                                        }}
+                                    />
+                                )}
+                            </ContextMenu>
+                        )}
+                        <GlobalContextMenu
+                            hidden={hidden}
+                            hasCopyData={copyData != null}
+                            directoryKey={null}
+                            directoryId={null}
+                            dispatchAssetListEvent={dispatchAssetListEvent}
+                            doPaste={doPaste}
+                        />
+                    </ContextMenus>
+                )
+            }
+        },
+        [
+            backend.type,
+            category,
+            copyData,
+            doCut,
+            doPaste,
+            organization,
+            /* should never change */ dispatchAssetEvent,
+            /* should never change */ dispatchAssetListEvent,
+            /* should never change */ setModal,
+            /* should never change */ unsetModal,
+        ]
+    )
+
+    const hiddenContextMenu = React.useMemo(
+        () => doRenderContextMenu(selectedKeys, { pageX: 0, pageY: 0 }, setSelectedKeys, true),
+        [doRenderContextMenu, selectedKeys]
     )
 
     const state = React.useMemo(
@@ -1090,6 +1242,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         </div>
                     </div>
                 )}
+                {hiddenContextMenu}
                 <Table<
                     assetTreeNode.AssetTreeNode,
                     AssetsTableState,
@@ -1104,10 +1257,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                             onDragOver={event => {
                                 event.preventDefault()
                             }}
-                            onDrop={async event => {
-                                const payload = await tryFindAssetRowsDragPayload(
-                                    event.dataTransfer
-                                )
+                            onDrop={event => {
+                                const payload = tryGetAssetRowsDragPayload(event.dataTransfer)
                                 if (payload != null) {
                                     event.preventDefault()
                                     event.stopPropagation()
@@ -1145,98 +1296,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                     onContextMenu={(innerSelectedKeys, event, innerSetSelectedKeys) => {
                         event.preventDefault()
                         event.stopPropagation()
-                        const pluralized = pluralize(innerSelectedKeys.size)
-                        // This works because all items are mutated, ensuring their value stays
-                        // up to date.
-                        const ownsAllSelectedAssets =
-                            backend.type === backendModule.BackendType.local ||
-                            (organization != null &&
-                                Array.from(innerSelectedKeys, key => {
-                                    const userPermissions =
-                                        nodeMapRef.current.get(key)?.item.permissions
-                                    const selfPermission = userPermissions?.find(
-                                        permission =>
-                                            permission.user.user_email === organization.email
-                                    )
-                                    return (
-                                        selfPermission?.permission ===
-                                        permissions.PermissionAction.own
-                                    )
-                                }).every(isOwner => isOwner))
-                        // This is not a React component even though it contains JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const doDeleteAll = () => {
-                            if (backend.type === backendModule.BackendType.remote) {
-                                unsetModal()
-                                dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.deleteMultiple,
-                                    ids: innerSelectedKeys,
-                                })
-                            } else {
-                                setModal(
-                                    <ConfirmDeleteModal
-                                        description={`${innerSelectedKeys.size} selected ${pluralized}`}
-                                        doDelete={() => {
-                                            innerSetSelectedKeys(new Set())
-                                            dispatchAssetEvent({
-                                                type: assetEventModule.AssetEventType
-                                                    .deleteMultiple,
-                                                ids: innerSelectedKeys,
-                                            })
-                                        }}
-                                    />
-                                )
-                            }
-                        }
-                        // This is not a React component even though it contains JSX.
-                        // eslint-disable-next-line no-restricted-syntax
-                        const doRestoreAll = () => {
-                            unsetModal()
-                            dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.restoreMultiple,
-                                ids: innerSelectedKeys,
-                            })
-                        }
-                        if (category === categorySwitcher.Category.trash) {
-                            if (innerSelectedKeys.size !== 0) {
-                                setModal(
-                                    <ContextMenus key={uniqueString.uniqueString()} event={event}>
-                                        <ContextMenu>
-                                            <MenuEntry
-                                                action={
-                                                    shortcuts.KeyboardAction.restoreAllFromTrash
-                                                }
-                                                doAction={doRestoreAll}
-                                            />
-                                        </ContextMenu>
-                                    </ContextMenus>
-                                )
-                            }
-                        } else {
-                            const deleteAction =
-                                backend.type === backendModule.BackendType.local
-                                    ? shortcuts.KeyboardAction.deleteAll
-                                    : shortcuts.KeyboardAction.moveAllToTrash
-                            setModal(
-                                <ContextMenus key={uniqueString.uniqueString()} event={event}>
-                                    {innerSelectedKeys.size !== 0 && ownsAllSelectedAssets && (
-                                        <ContextMenu>
-                                            <MenuEntry
-                                                action={deleteAction}
-                                                doAction={doDeleteAll}
-                                            />
-                                        </ContextMenu>
-                                    )}
-                                    <GlobalContextMenu
-                                        hasCopyData={copyData != null}
-                                        directoryKey={null}
-                                        directoryId={null}
-                                        dispatchAssetListEvent={dispatchAssetListEvent}
-                                        doPaste={doPaste}
-                                    />
-                                </ContextMenus>
+                        setModal(
+                            doRenderContextMenu(
+                                innerSelectedKeys,
+                                event,
+                                innerSetSelectedKeys,
+                                false
                             )
-                        }
+                        )
                     }}
                     draggableRows
                     onRowDragStart={event => {
@@ -1252,16 +1319,20 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE,
                                 JSON.stringify(data)
                             )
+                            ASSET_ROWS_DRAG_PAYLOAD_MAP.set(event.dataTransfer, data)
                             const blankElement = document.createElement('div')
+                            blankElement.style.position = 'fixed'
                             blankElement.style.height = blankElement.style.width = '0'
                             document.body.appendChild(blankElement)
                             event.dataTransfer.setDragImage(blankElement, 0, 0)
-                            blankElement.remove()
                             queueMicrotask(() => {
                                 setModal(
                                     <DragModal
                                         event={event}
                                         className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
+                                        onDrop={() => {
+                                            blankElement.remove()
+                                        }}
                                     >
                                         {nodes.map(node => (
                                             <AssetNameColumn

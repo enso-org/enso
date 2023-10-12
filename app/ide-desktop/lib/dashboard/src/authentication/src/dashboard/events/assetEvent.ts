@@ -25,9 +25,11 @@ export enum AssetEventType {
     openProject = 'open-project',
     closeProject = 'close-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
+    cut = 'cut',
+    cancelCut = 'cancel-cut',
     move = 'move',
-    deleteMultiple = 'delete-multiple',
-    restoreMultiple = 'restore-multiple',
+    delete = 'delete',
+    restore = 'restore',
     downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
 }
@@ -46,9 +48,11 @@ interface AssetEvents {
     openProject: AssetOpenProjectEvent
     closeProject: AssetCloseProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
+    cut: AssetCutEvent
+    cancelCut: AssetCancelCutEvent
     move: AssetMoveEvent
-    deleteMultiple: AssetDeleteMultipleEvent
-    restoreMultiple: AssetRestoreMultipleEvent
+    delete: AssetDeleteEvent
+    restore: AssetRestoreEvent
     downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
 }
@@ -103,7 +107,17 @@ export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.cl
 export interface AssetCancelOpeningAllProjectsEvent
     extends AssetBaseEvent<AssetEventType.cancelOpeningAllProjects> {}
 
-/** A signal to move an asset. */
+/** A signal that multiple assets have been cut. */
+export interface AssetCutEvent extends AssetBaseEvent<AssetEventType.cut> {
+    ids: Set<backendModule.AssetId>
+}
+
+/** A signal that a cut operation has been cancelled. */
+export interface AssetCancelCutEvent extends AssetBaseEvent<AssetEventType.cancelCut> {
+    ids: Set<backendModule.AssetId>
+}
+
+/** A signal to move multiple assets. */
 export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
     newParentKey: backendModule.AssetId | null
     newParentId: backendModule.DirectoryId | null
@@ -111,12 +125,12 @@ export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
 }
 
 /** A signal to delete multiple assets. */
-export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
+export interface AssetDeleteEvent extends AssetBaseEvent<AssetEventType.delete> {
     ids: Set<backendModule.AssetId>
 }
 
-/** A signal to restore assets from trash. */
-export interface AssetRestoreMultipleEvent extends AssetBaseEvent<AssetEventType.restoreMultiple> {
+/** A signal to restore multiple assets from trash. */
+export interface AssetRestoreEvent extends AssetBaseEvent<AssetEventType.restore> {
     ids: Set<backendModule.AssetId>
 }
 

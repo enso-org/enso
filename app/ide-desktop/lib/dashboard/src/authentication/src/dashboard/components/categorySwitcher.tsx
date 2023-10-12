@@ -159,7 +159,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                             event.preventDefault()
                         }
                     }}
-                    onDrop={async event => {
+                    onDrop={event => {
                         if (
                             (category === Category.trash && currentCategory === Category.home) ||
                             (category !== Category.trash && currentCategory === Category.trash)
@@ -167,15 +167,15 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                             event.preventDefault()
                             event.stopPropagation()
                             unsetModal()
-                            const payload = await assetsTable.tryFindAssetRowsDragPayload(
+                            const payload = assetsTable.tryGetAssetRowsDragPayload(
                                 event.dataTransfer
                             )
                             if (payload != null) {
                                 dispatchAssetEvent({
                                     type:
                                         category === Category.trash
-                                            ? assetEvent.AssetEventType.restoreMultiple
-                                            : assetEvent.AssetEventType.deleteMultiple,
+                                            ? assetEvent.AssetEventType.restore
+                                            : assetEvent.AssetEventType.delete,
                                     ids: new Set(payload.map(item => item.asset.id)),
                                 })
                             }
