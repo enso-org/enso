@@ -20,20 +20,20 @@ type Column_Operation
     Add (input : Column_Ref|Number|Text) (rhs : Column_Ref|Number|Text)
 
     ## Subtract two values/columns.
-    Subtract (input : Column_Ref|Number) (rhs : Column_Ref|Any)
+    Subtract (input : Column_Ref|Number) (rhs : Column_Ref|Number)
 
     ## Multiply two values/columns.
-    Multiply (input : Column_Ref|Number) (rhs : Column_Ref|Any)
+    Multiply (input : Column_Ref|Number) (rhs : Column_Ref|Number)
 
     ## Divide a fixed value or column by another value or column.
-    Divide (input : Column_Ref|Number) (rhs : Column_Ref|Any)
+    Divide (input : Column_Ref|Number) (rhs : Column_Ref|Number)
 
     ## Compute the remainder of a fixed value or column divided by another
        value or column.
-    Mod (input : Column_Ref|Number) (rhs : Column_Ref|Any)
+    Mod (input : Column_Ref|Number) (rhs : Column_Ref|Number)
 
     ## Raise a fixed value or column to the power of another value or column.
-    Power (input : Column_Ref|Number) (rhs : Column_Ref|Any)
+    Power (input : Column_Ref|Number) (rhs : Column_Ref|Number)
 
     ## Rounds values in the column to the specified precision.
     Round (input : Column_Ref|Number) (precision:Integer = 0) (use_bankers:Boolean = False)
@@ -49,10 +49,10 @@ type Column_Operation
     Truncate (input : Column_Ref|Number|Date_Time)
 
     ## Returns the minimum value of two columns.
-    Min (input : Column_Ref|Number) (rhs : Column_Ref|Any)
+    Min (input : Column_Ref|Any) (rhs : Column_Ref|Any)
 
     ## Returns the maximum value of two columns.
-    Max (input : Column_Ref|Number) (rhs : Column_Ref|Any)
+    Max (input : Column_Ref|Any) (rhs : Column_Ref|Any)
 
     ## Adds a period to a date/time column.
     Date_Add (input : Column_Ref|Date_Time|Date|Time_Of_Day) (length : Column_Ref|Integer) (period : Date_Period|Time_Period = Date_Period.Day)
