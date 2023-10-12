@@ -9,7 +9,7 @@
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
 module.exports = {
-    content: [__dirname + '/src/**/*.tsx'],
+    content: [__dirname + '/src/**/*.tsx', __dirname + '/src/**/*.ts'],
     important: `:is(.enso-dashboard, .enso-chat)`,
     theme: {
         extend: {
