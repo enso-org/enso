@@ -70,6 +70,10 @@ type Column_Operation
        The `true_value` and `false_value` can be either a constant or a column.
     If (input : Column_Ref|Any) (condition:Filter_Condition) (true_value:Column_Ref|Any = True) (false_value:Column_Ref|Any = False)
 
+    ## Removes the specified characters, by default any whitespace, from the
+       start, the end, or both ends of the input.
+    Trim (input : Column_Ref|Text) (where:Location = Location.Both) (what:Text|Column_Ref = "")
+
     ## PRIVATE
        Interprets the `Column_Operation` as operation on columns of a provided
        table, resolving the column references.
@@ -108,6 +112,9 @@ type Column_Operation
             Column_Operation.If input condition true_value false_value ->
                 condition_column =  make_filter_column (resolve_input_column input) (table.resolve_condition condition) on_problems
                 condition_column.iif (table.resolve true_value) (table.resolve false_value)
+
+            Column_Operation.Trim input where what ->
+                (resolve_input_column input).trim where (table.resolve what)
         if use_input_name then derived.rename input_column.name else derived
 
     ## PRIVATE
@@ -135,6 +142,7 @@ type Column_Operation
         builder.append (Option "and" fqn+".And" [["lhs", col_refs], ["rhs", col_refs]])
         builder.append (Option "or" fqn+".Or" [["lhs", col_refs], ["rhs", col_refs]])
         builder.append (Option "if" fqn+".If" [["input", col_refs], ["condition", filter_cond], ["true_value", col_refs], ["false_value", col_refs]])
+        builder.append (Option "trim" fqn+".Trim" [["input", col_refs], ["what", col_refs]])
         Single_Choice builder.to_vector display=display
 
 ## Reference to a column in a table.
