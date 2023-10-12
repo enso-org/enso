@@ -73,6 +73,31 @@ type Vector a
 
     ## PRIVATE
        ADVANCED
+       Collects elements of a sequence into a new vector. Various structures can be
+       converted into vector of elements. This helper methods allows to do so in an
+       iterative fashion. Enough to describe how to extract value from current item
+       and how to advance to next item.
+
+       Arguments:
+       - seq: the sequence to process.
+       - element: A function taking the `seq` and follow ups and extracting the value to put into the vector
+       - next: A function to advance to next _item_ of the sequence
+       - limit: maximal number of elements to collect. Defaults to infinity.
+       - stop_at: optional function like `(_==List.Nil)` to check for _end of sequence condition_.
+          By default checks for `Nothing` being the terminal element of a collection.
+
+       > Example
+         Turn a list into a vector.
+             Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
+    collect seq element:(Any -> Any) next:(Any->Any) limit:(Integer|Nothing)=Nothing stop_at:(Any->Boolean)=(_==Nothing) =
+        b = Vector.new_builder (if limit.is_nothing then 10 else limit)
+        iterate item remaining = if remaining == 0 || (stop_at item) then b.to_vector else
+            b.append <| element item
+            @Tail_Call iterate (next item) (if remaining.is_nothing then Nothing else remaining-1)
+        iterate seq limit
+
+    ## PRIVATE
+       ADVANCED
 
        Converts an array into a vector by copying content of the array.
 
