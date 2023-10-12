@@ -10,6 +10,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor14;
+import javax.lang.model.util.SimpleElementVisitor14;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
 import org.apache.commons.lang3.StringUtils;
@@ -244,7 +245,14 @@ public abstract class MethodGenerator {
   private class AnnotationTypeVisitor extends SimpleAnnotationValueVisitor14<TypeElement, Object> {
     @Override
     public TypeElement visitType(TypeMirror t, Object o) {
-      var typeElement = processingEnvironment.getElementUtils().getTypeElement(t.toString());
+      var element = processingEnvironment.getTypeUtils().asElement(t);
+      var elementVisitor = new SimpleElementVisitor14<TypeElement, Object>() {
+        @Override
+        public TypeElement visitType(TypeElement e, Object o) {
+          return e;
+        }
+      };
+      var typeElement = element.accept(elementVisitor, null);
       if (typeElement == null) {
         processingEnvironment.getMessager().printMessage(Kind.ERROR, "Cannot find type element for " + t);
       }
