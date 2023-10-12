@@ -1272,6 +1272,11 @@ lazy val `runtime-language-epb` =
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
+    moduleInfos := Seq(
+      AutomaticModule(
+        "org.enso.runtime"
+      )
+    ),
     frgaalJavaCompilerSetting,
     truffleDslSuppressWarnsSetting,
     Compile / logManager :=
@@ -1313,11 +1318,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
       "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
       "com.lihaoyi"        %% "fansi"                 % fansiVersion
-    ),
-    moduleInfos := Seq(
-      AutomaticModule(
-        "org.enso.runtime"
-      )
     ),
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
