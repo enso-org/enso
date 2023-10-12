@@ -48,6 +48,7 @@ const input = new Input()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
+  console.log('recompute filtering')
   return new Filtering({
     ...input.filter.value,
     ...filterFlags.value,
@@ -57,11 +58,12 @@ const currentFiltering = computed(() => {
 watch(currentFiltering, selectLastAfterRefresh)
 
 function readInputFieldSelection() {
+  console.log('readInputFieldSelection')
   if (inputField.value != null) {
-    input.selection.value = {
-      start: inputField.value.selectionStart ?? 0,
-      end: inputField.value.selectionEnd ?? 0,
-    }
+    console.log(`old: ${JSON.stringify(input.selection.value)}`)
+    input.selection.value.start = inputField.value.selectionStart ?? 0
+    input.selection.value.end = inputField.value.selectionEnd ?? 0
+    console.log(`new: ${JSON.stringify(input.selection.value)}`)
   }
 }
 
@@ -75,6 +77,12 @@ watch(input.selection, (newPos) => {
     return
   inputField.value.setSelectionRange(newPos.start, newPos.end)
 })
+
+function applySuggestion() {
+  const suggestion = selectedSuggestion.value
+  if (suggestion == null) return
+  input.applySuggestion(suggestion)
+}
 
 function handleDefocus(e: FocusEvent) {
   const stillInside =
@@ -146,6 +154,13 @@ const selectedPosition = computed(() =>
 const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
 const animatedHighlightPosition = useApproach(highlightPosition)
 const animatedHighlightHeight = useApproach(highlightHeight)
+
+const selectedSuggestion = computed(() => {
+  if (selected.value === null) return null
+  const id = components.value[selected.value]?.suggestionId
+  if (id == null) return null
+  return suggestionDbStore.entries.get(id) ?? null
+})
 
 watch(selectedPosition, (newPos) => {
   if (newPos == null) return
@@ -230,7 +245,13 @@ function handleKeydown(e: KeyboardEvent) {
   switch (e.key) {
     case 'Enter':
       e.stopPropagation()
+      applySuggestion()
       emit('finished')
+      break
+    case 'Tab':
+      e.stopPropagation()
+      e.preventDefault()
+      applySuggestion()
       break
     case 'ArrowUp':
       e.preventDefault()

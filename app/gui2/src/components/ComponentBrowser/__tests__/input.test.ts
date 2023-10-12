@@ -88,57 +88,57 @@ const baseCases: ApplySuggestionCase[] = [
   {
     code: '',
     suggestion: makeLocal('local.Project.Main', 'operator1'),
-    expected: 'operator1',
+    expected: 'operator1 ',
   },
   {
     code: '',
     suggestion: makeMethod('Standard.Base.Data.Vector.get'),
-    expected: '_.get',
+    expected: '_.get ',
   },
   {
     code: '',
     suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-    expected: 'Vector.new',
+    expected: 'Vector.new ',
   },
   {
     code: '',
     suggestion: makeModuleMethod('Standard.Base.Data.read'),
-    expected: 'Data.read',
+    expected: 'Data.read ',
   },
   {
     code: '',
     suggestion: makeCon('local.Project.Main.Option.Some'),
-    expected: 'Option.Some',
+    expected: 'Option.Some ',
   },
   {
     code: 'operator1.',
     suggestion: makeMethod('Standard.Base.Data.Vector.get'),
-    expected: 'operator1.get',
+    expected: 'operator1.get ',
   },
   {
     code: 'Data.Vector.',
     suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-    expected: 'Data.Vector.new',
+    expected: 'Data.Vector.new ',
   },
   {
     code: 'Dat.V.',
     suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-    expected: 'Data.Vector.new',
+    expected: 'Data.Vector.new ',
   },
   // {
   //   code: 'Dat . V . ',
   //   suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-  //   expected: 'Data . Vector . new',
+  //   expected: 'Data . Vector . new ',
   // },
   // {
   //   code: 'Dat . V .',
   //   suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-  //   expected: 'Data . Vector . new',
+  //   expected: 'Data . Vector . new ',
   // },
   {
     code: '(type_method some_arg).Vector.',
     suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-    expected: '(type_method some_arg).Vector.new',
+    expected: '(type_method some_arg).Vector.new ',
   },
 ]
 
@@ -147,7 +147,8 @@ function makeComplexCase(prefix: string, suffix: string): ApplySuggestionCase[] 
     return {
       ...aCase,
       code: `${prefix}${aCase.code}${suffix}`,
-      expected: `${prefix}${aCase.expected}${suffix}`,
+      // We must remove trailing space. The suffix should contain one.
+      expected: `${prefix}${aCase.expected.substring(0, aCase.expected.length - 1)}${suffix}`,
       cursorPos: prefix.length + aCase.code.length,
       expectedCursorPos: prefix.length + aCase.expected.length,
     }

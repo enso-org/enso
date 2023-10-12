@@ -1,12 +1,4 @@
-import {
-  SuggestionKind,
-  makeCon,
-  makeLocal,
-  makeMethod,
-  makeModuleMethod,
-  makeStaticMethod,
-  type SuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast, astContainingChar, astSpan, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import {
@@ -180,9 +172,13 @@ export class Input {
       },
       { code: '', oldCodeIndex: 0 },
     )
-    const newCursorPos = newCodeUpToLastChange.code.length
+    const firstCharAfter = oldCode[newCodeUpToLastChange.oldCodeIndex]
+    const shouldInsertSpace = firstCharAfter == null || /^[a-zA-Z0-9_]$/.test(firstCharAfter)
+    const newCursorPos = newCodeUpToLastChange.code.length + 1
     this.code.value =
-      newCodeUpToLastChange.code + oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
+      newCodeUpToLastChange.code +
+      (shouldInsertSpace ? ' ' : '') +
+      oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
     this.selection.value = { start: newCursorPos, end: newCursorPos }
   }
 

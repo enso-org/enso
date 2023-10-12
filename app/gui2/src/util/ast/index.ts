@@ -76,7 +76,7 @@ export function* childrenAstNodes(obj: unknown): Generator<Tree> {
   }
   if (obj == null) return
   const maybeIterable = obj as Record<symbol, unknown>
-  const isIterator = typeof maybeIterable[Symbol.iterator] == 'function'
+  const isIterator = typeof maybeIterable[Symbol.iterator] === 'function'
   if (obj instanceof LazyObject) {
     const prototype = Object.getPrototypeOf(obj)
     const descriptors = Object.getOwnPropertyDescriptors(prototype)
@@ -90,7 +90,11 @@ export function* childrenAstNodes(obj: unknown): Generator<Tree> {
   } else if (isIterator) {
     const iterable = obj as Iterable<unknown>
     for (const element of iterable) {
-      yield* astNodeOrChildren(element)
+      // The elements must be Lazy Objecs. Otherwise we risk infinite loop, when, for example,
+      // the iterable happens to be string which elements are also strings.
+      if (element instanceof LazyObject) {
+        yield* astNodeOrChildren(element)
+      }
     }
   }
 }
@@ -189,6 +193,14 @@ if (import.meta.vitest) {
       'Data.read file=foo',
       [
         { type: Tree.Type.OprApp, repr: 'Data.read' },
+        { type: Tree.Type.Ident, repr: 'foo' },
+      ],
+    ],
+    ['(', [{ type: Tree.Type.Invalid, repr: '(' }]],
+    [
+      '(foo',
+      [
+        { type: Tree.Type.Invalid, repr: '(' },
         { type: Tree.Type.Ident, repr: 'foo' },
       ],
     ],
