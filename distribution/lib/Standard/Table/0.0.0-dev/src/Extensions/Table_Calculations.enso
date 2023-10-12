@@ -17,7 +17,7 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
    column.
 type Column_Operation
     ## Add two values/columns.
-    Add (input : Column_Ref|Number) (rhs : Column_Ref|Any)
+    Add (input : Column_Ref|Number|Text) (rhs : Column_Ref|Number|Text)
 
     ## Subtract two values/columns.
     Subtract (input : Column_Ref|Number) (rhs : Column_Ref|Any)
