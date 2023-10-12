@@ -53,6 +53,11 @@ export function locateUsernameInput(page: test.Locator | test.Page) {
     return page.getByPlaceholder('Username')
 }
 
+/** Find a "name" input for a "new label" modal (if any) on the current page. */
+export function locateNewLabelModalNameInput(page: test.Locator | test.Page) {
+    return locateNewLabelModal(page).getByLabel('Name')
+}
+
 // === Button locators ===
 
 /** Find a login button (if any) on the current page. */
@@ -187,6 +192,11 @@ export function locateNewDataConnectorButton(page: test.Locator | test.Page) {
     return page.getByRole('button', { name: 'New Data Connector' })
 }
 
+/** Find a "new label" button (if any) on the current page. */
+export function locateNewLabelButton(page: test.Locator | test.Page) {
+    return page.getByRole('button', { name: 'new label' })
+}
+
 // === Container locators ===
 
 /** Find a drive view (if any) on the current page. */
@@ -217,6 +227,12 @@ export function locateConfirmDeleteModal(page: test.Locator | test.Page) {
     return page.getByTestId('confirm-delete-modal')
 }
 
+/** Find a "new label" modal (if any) on the current page. */
+export function locateNewLabelModal(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('new-label-modal')
+}
+
 /** Find a user menu (if any) on the current page. */
 export function locateUserMenu(page: test.Locator | test.Page) {
     // This has no identifying features.
@@ -225,12 +241,26 @@ export function locateUserMenu(page: test.Locator | test.Page) {
 
 /** Find a "set username" panel (if any) on the current page. */
 export function locateSetUsernamePanel(page: test.Locator | test.Page) {
+    // This has no identifying features.
     return page.getByTestId('set-username-panel')
 }
 
 /** Find a set of context menus (if any) on the current page. */
 export function locateContextMenus(page: test.Locator | test.Page) {
+    // This has no identifying features.
     return page.getByTestId('context-menus')
+}
+
+/** Find a labels panel (if any) on the current page. */
+export function locateLabelsPanel(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('labels')
+}
+
+/** Find a list of labels (if any) on the current page. */
+export function locateLabelsList(page: test.Locator | test.Page) {
+    // This has no identifying features.
+    return page.getByTestId('labels-list')
 }
 
 // =============

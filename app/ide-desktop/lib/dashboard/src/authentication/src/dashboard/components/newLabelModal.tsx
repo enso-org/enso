@@ -7,6 +7,7 @@ import * as errorModule from '../../error'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import ColorPicker from './colorPicker'
 import Modal from './modal'
 
 // =====================
@@ -46,12 +47,13 @@ export default function NewLabelModal(props: NewLabelModalProps) {
     return (
         <Modal className="absolute bg-dim">
             <div
+                data-testid="new-label-modal"
                 tabIndex={-1}
                 style={{
                     left: position.left + window.scrollX,
                     top: position.top + window.scrollY,
                 }}
-                className="relative rounded-2xl pointer-events-auto w-96"
+                className="relative rounded-2xl pointer-events-auto w-80"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') {
                         event.stopPropagation()
@@ -69,10 +71,10 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                         // delete an important asset.
                         onSubmit()
                     }}
-                    className="relative flex flex-col rounded-2xl gap-2 w-96 px-4 py-2"
+                    className="relative flex flex-col rounded-2xl gap-2 w-80 px-4 py-2"
                 >
                     <h1 className="text-sm font-semibold">New Label</h1>
-                    <div className="flex">
+                    <label className="flex">
                         <div className="w-12 h-6 py-1">Name</div>
                         <input
                             autoFocus
@@ -80,7 +82,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                             className={`grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px ${
                                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                                 color != null && color.lightness <= 50
-                                    ? 'text-tag-text placeholder-tag-text'
+                                    ? 'text-tag-text placeholder-frame-selected'
                                     : 'text-primary'
                             }`}
                             style={
@@ -94,22 +96,11 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                                 setName(event.currentTarget.value)
                             }}
                         />
-                    </div>
+                    </label>
                     <div className="flex">
                         <div className="w-12 h-6 py-1">Color</div>
                         <div className="grow flex items-center gap-1">
-                            {backend.COLORS.map((currentColor, i) => (
-                                <div
-                                    key={i}
-                                    className="cursor-pointer h-4 w-4 rounded-full"
-                                    style={{
-                                        backgroundColor: backend.lChColorToCssColor(currentColor),
-                                    }}
-                                    onClick={() => {
-                                        setColor(currentColor)
-                                    }}
-                                />
-                            ))}
+                            <ColorPicker setColor={setColor} />
                         </div>
                     </div>
                     <div className="flex gap-2">

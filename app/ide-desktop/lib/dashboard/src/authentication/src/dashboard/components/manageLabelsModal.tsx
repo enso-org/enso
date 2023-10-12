@@ -8,6 +8,7 @@ import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
 import * as string from '../../string'
 
+import ColorPicker from './colorPicker'
 import Label from './label'
 import Modal from './modal'
 
@@ -179,18 +180,7 @@ export default function ManageLabelsModal<
                         {canSelectColor && (
                             <div className="flex gap-1">
                                 <div className="grow flex items-center gap-1">
-                                    {backendModule.COLORS.map((currentColor, i) => (
-                                        <div
-                                            key={i}
-                                            className="cursor-pointer h-4 w-4 rounded-full"
-                                            style={{
-                                                backgroundColor: `lch(${currentColor.lightness}% ${currentColor.chroma} ${currentColor.hue})`,
-                                            }}
-                                            onClick={() => {
-                                                setColor(currentColor)
-                                            }}
-                                        />
-                                    ))}
+                                    <ColorPicker setColor={setColor} />
                                 </div>
                             </div>
                         )}

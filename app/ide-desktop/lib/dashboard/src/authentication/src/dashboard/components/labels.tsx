@@ -39,17 +39,17 @@ export default function Labels(props: LabelsProps) {
     const { setModal } = modalProvider.useSetModal()
 
     return (
-        <div className="flex flex-col items-start w-30">
+        <div data-testid="labels" className="flex flex-col items-start w-30">
             <div className="pl-2 pb-1.5">
                 <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">
                     Labels
                 </span>
             </div>
-            <div className="flex flex-col items-start gap-1">
+            <ul data-testid="labels-list" className="flex flex-col items-start gap-1">
                 {labels
                     .filter(label => !deletedLabelNames.has(label.value))
                     .map(label => (
-                        <div key={label.id} className="group flex items-center gap-1">
+                        <li key={label.id} className="group flex items-center gap-1">
                             <Label
                                 color={label.color}
                                 active={currentLabels?.includes(label.value) ?? false}
@@ -89,26 +89,28 @@ export default function Labels(props: LabelsProps) {
                                     className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
                                 />
                             </button>
-                        </div>
+                        </li>
                     ))}
-                <Label
-                    active
-                    color={labelModule.DEFAULT_LABEL_COLOR}
-                    className="bg-frame-selected text-not-selected"
-                    onClick={event => {
-                        event.stopPropagation()
-                        setModal(
-                            <NewLabelModal
-                                eventTarget={event.currentTarget}
-                                doCreate={doCreateLabel}
-                            />
-                        )
-                    }}
-                >
-                    <img src={PlusIcon} className="w-1.5 h-1.5" />
-                    <span className="leading-144.5 h-6 py-0.5">new label</span>
-                </Label>
-            </div>
+                <li>
+                    <Label
+                        active
+                        color={labelModule.DEFAULT_LABEL_COLOR}
+                        className="bg-frame-selected text-not-selected"
+                        onClick={event => {
+                            event.stopPropagation()
+                            setModal(
+                                <NewLabelModal
+                                    eventTarget={event.currentTarget}
+                                    doCreate={doCreateLabel}
+                                />
+                            )
+                        }}
+                    >
+                        <img src={PlusIcon} className="w-1.5 h-1.5" />
+                        <span className="leading-144.5 h-6 py-0.5">new label</span>
+                    </Label>
+                </li>
+            </ul>
         </div>
     )
 }

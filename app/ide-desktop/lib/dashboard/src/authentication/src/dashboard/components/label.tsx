@@ -27,14 +27,14 @@ interface InternalLabelProps extends React.PropsWithChildren {
     active?: boolean
     color: backend.LChColor
     className?: string
-    onClick: React.MouseEventHandler<HTMLDivElement>
+    onClick: React.MouseEventHandler<HTMLButtonElement>
 }
 
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
     const { active = false, color, className = 'text-tag-text', onClick, children } = props
     return (
-        <div
+        <button
             className={`cursor-pointer flex items-center rounded-full gap-1.5 h-6 px-2.25 group-hover:opacity-100 ${className} ${
                 active ? '' : 'text-not-selected opacity-50'
             } ${
@@ -45,6 +45,6 @@ export default function Label(props: InternalLabelProps) {
             onClick={onClick}
         >
             {children}
-        </div>
+        </button>
     )
 }
