@@ -200,8 +200,8 @@ type Table_Ref
         Filter_Condition.Not_Contains prefix case_sensitivity -> Filter_Condition.Not_Contains (self.resolve prefix) case_sensitivity
         Filter_Condition.Like pattern -> Filter_Condition.Like (self.resolve pattern)
         Filter_Condition.Not_Like pattern -> Filter_Condition.Not_Like (self.resolve pattern)
-        Filter_Condition.Is_In values -> Filter_Condition.Is_In (values.map self.resolve)
-        Filter_Condition.Not_In values -> Filter_Condition.Is_In (values.map self.resolve)
+        Filter_Condition.Is_In values -> Filter_Condition.Is_In values
+        Filter_Condition.Not_In values -> Filter_Condition.Is_In values
         _ -> condition
 
     ## PRIVATE
