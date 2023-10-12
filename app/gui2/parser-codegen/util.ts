@@ -76,16 +76,22 @@ export function forwardToSuper(
 }
 
 export function casesOrThrow(cases: ts.CaseClause[], error: string): ts.CaseBlock {
-  return tsf.createCaseBlock([
-    ...cases,
-    tsf.createDefaultClause([
-      tsf.createThrowStatement(
-        tsf.createNewExpression(
-          tsf.createIdentifier('Error'),
-          [],
-          [tsf.createStringLiteral(error)],
-        ),
-      ),
-    ]),
-  ])
+  return tsf.createCaseBlock([...cases, tsf.createDefaultClause([throwError(error)])])
+}
+
+export function throwError(error: string): ts.Statement {
+  return tsf.createThrowStatement(
+    tsf.createNewExpression(tsf.createIdentifier('Error'), [], [tsf.createStringLiteral(error)]),
+  )
+}
+
+export function makeArrow(params: ts.BindingName[], expr: ts.Expression) {
+  return tsf.createArrowFunction(
+    [],
+    [],
+    params.map((ident) => tsf.createParameterDeclaration([], undefined, ident)),
+    undefined,
+    undefined,
+    expr,
+  )
 }

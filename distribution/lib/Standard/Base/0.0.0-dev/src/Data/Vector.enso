@@ -684,7 +684,7 @@ type Vector a
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
-    ## ALIAS concatenate
+    ## ALIAS concatenate, union, append
        GROUP Operators
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
@@ -781,7 +781,8 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = @Builtin_Method "Vector.slice"
 
-    ## GROUP Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Selections
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -816,7 +817,8 @@ type Vector a
     drop self range=(Index_Sub_Range.First 1) =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
-    ## GROUP Calculations
+    ## ALIAS combine, merge, join by row position
+       GROUP Calculations
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -839,7 +841,7 @@ type Vector a
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
-    zip self that function=[_,_] =
+    zip self that:Vector function=[_,_] =
         len = self.length.min that.length
         Vector.new len i-> function (self.at i) (that.at i)
 

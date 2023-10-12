@@ -1,0 +1,36 @@
+from Standard.Base import all
+
+## PRIVATE
+   A special type that is used to define what types can be converted to a table
+   as a sequence of rows, using `Table.from_objects`.
+
+   It defines a `length` determining how many rows the table will have,
+   and a `getter` function providing values for each row.
+
+   To 'register' a type, a conversion `Convertible_To_Rows.from (that:Type)`
+   must be defined.
+type Convertible_To_Rows
+    ## PRIVATE
+       Arguments:
+       - length: The number of rows in the table.
+       - getter: Get the value for a specified row.
+    Value length:Integer (getter : Integer->Any)
+
+## PRIVATE
+Convertible_To_Rows.from that:Vector = Convertible_To_Rows.Value that.length that.get
+
+## PRIVATE
+Convertible_To_Rows.from that:Array = Convertible_To_Rows.Value that.length that.get
+
+## PRIVATE
+Convertible_To_Rows.from that:Range = Convertible_To_Rows.Value that.length that.get
+
+## PRIVATE
+Convertible_To_Rows.from that:Pair = Convertible_To_Rows.Value that.length that.get
+
+## PRIVATE
+Convertible_To_Rows.from that:Date_Range = Convertible_To_Rows.Value that.length that.get
+
+## PRIVATE
+Convertible_To_Rows.from (that:Any) =
+    Convertible_To_Rows.Value 1 (n-> if n==0 then that else Nothing)

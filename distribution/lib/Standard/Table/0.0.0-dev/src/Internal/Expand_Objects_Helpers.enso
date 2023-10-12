@@ -1,0 +1,161 @@
+from Standard.Base import all
+
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Data.Table.Table
+import project.Data.Column.Column
+import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
+import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
+import project.Errors.No_Such_Column
+import project.Internal.Fan_Out
+import project.Internal.Java_Exports
+from project.Internal.Java_Exports import make_inferred_builder
+
+## PRIVATE
+expand_column : Table -> (Text | Integer) -> ((Vector Text) | Nothing) -> (Text | Nothing) -> Table
+expand_column table column fields prefix =
+    column_object = table.at column
+    expanded = create_table_from_objects column_object.to_vector fields
+
+    output_builder = Vector.new_builder table.column_count+expanded.column_count-1
+
+    ## Resolve names
+    resolved_prefix = if prefix.is_nothing then column_object.name+" " else prefix
+    naming_strategy = table.column_naming_helper.create_unique_name_strategy
+    naming_strategy.mark_used (table.column_names.filter (c->c!=column_object.name))
+    new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> resolved_prefix+n)
+    new_columns = new_names.zip expanded.columns (n->c-> c.rename n)
+
+    ## Create Merged Columns
+    table.columns.each c->
+        if c.name != column_object.name then output_builder.append c else
+            output_builder.append_vector_range new_columns
+
+    Table.new output_builder.to_vector
+
+## GROUP Standard.Base.Conversions
+   Expand aggregate values in a column to separate rows.
+
+   For each value in the specified column, if it is an aggregate (`Vector`,
+   `Range`, etc.), expand it to multiple rows, duplicating the values in the
+   other columns.
+
+   Arguments:
+   - column: The column to expand.
+   - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
+     true, a single row is output with `Nothing` for the aggregates column; if
+     false, no row is output at all.
+
+   The following aggregate values are supported:
+   - `Array`
+   - `Vector`
+   - `List`
+   - `Range`
+   - `Date_Range`
+   - `Pair
+
+   Any other values are treated as non-aggregate values, and their rows are kept
+   unchanged.
+
+   In in-memory tables, it is permitted to mix values of different types.
+
+   > Example
+     Expand a column of integer `Vectors` to a column of `Integer`
+
+     table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
+     # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
+@column Widget_Helpers.make_column_name_selector
+expand_to_rows : Table -> Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+expand_to_rows table column at_least_one_row=False =
+    row_expander : Any -> Vector
+    row_expander value:Expand_To_Rows_Iterator = value.to_vector
+
+    Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=make_inferred_builder
+
+## PRIVATE
+type Expand_To_Rows_Iterator
+    ## PRIVATE
+       Arguments:
+       - length: The number of rows in the table.
+       - getter: Get the value for a specified row.
+    Value length:Integer getter:Function
+
+    ## PRIVATE
+       Return the iterator values as a `Vector`.
+    to_vector : Vector Any
+    to_vector self = 0.up_to self.length . map self.getter
+
+## PRIVATE
+Expand_To_Rows_Iterator.from that:Vector = Expand_To_Rows_Iterator.Value that.length that.get
+
+## PRIVATE
+Expand_To_Rows_Iterator.from that:Array = Expand_To_Rows_Iterator.Value that.length that.get
+
+## PRIVATE
+Expand_To_Rows_Iterator.from that:List = Expand_To_Rows_Iterator.Value that.length that.get
+
+## PRIVATE
+Expand_To_Rows_Iterator.from that:Range = Expand_To_Rows_Iterator.Value that.length that.get
+
+## PRIVATE
+Expand_To_Rows_Iterator.from that:Pair = Expand_To_Rows_Iterator.Value that.length that.get
+
+## PRIVATE
+Expand_To_Rows_Iterator.from that:Date_Range = Expand_To_Rows_Iterator.Value that.length that.get
+
+## PRIVATE
+Expand_To_Rows_Iterator.from (that:Any) =
+    Expand_To_Rows_Iterator.Value 1 (n-> if n==0 then that else Nothing)
+
+## PRIVATE
+create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table
+create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothing) = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
+    len = value.length
+
+    preset_fields = fields.is_nothing.not
+    initial_map = if preset_fields.not then Map.empty else
+        Map.from_vector (fields.map field_name-> [field_name, Java_Exports.make_inferred_builder len]) error_on_duplicates=False
+
+    # This is used to ensure that field names in the resulting table are in the order they were encountered.
+    discovered_field_names = Vector.new_builder
+
+    builder_map = case preset_fields of
+        # Just get the queried keys from each object.
+        True ->
+            0.up_to len . each idx->
+                v = (value.getter idx).to Convertible_To_Columns
+                initial_map.each_with_key field_name-> builder->
+                    builder.append (v.getter field_name)
+
+            initial_map
+
+        # In this mode we are discovering the key set as we go.
+        False ->
+            0.up_to len . fold initial_map current_map-> idx->
+                v = (value.getter idx).to Convertible_To_Columns
+                v.field_names.fold current_map inner_current_map-> f->
+                    existing_builder = inner_current_map.get f Nothing
+                    builder = existing_builder.if_nothing <|
+                        discovered_field_names.append f
+                        Java_Exports.make_inferred_builder len
+                    builder.fillUpToSize idx
+                    builder.append (v.getter f)
+                    new_map = if existing_builder.is_nothing.not then inner_current_map else
+                        inner_current_map.insert f builder
+                    new_map
+
+    # Seal all builders and create columns
+    column_map = builder_map.map_with_key name-> builder->
+        builder.fillUpToSize len
+        Column.from_storage name builder.seal
+
+    column_map.if_not_error <|
+        # Create a vector of columns, preserving the original order if it was specified.
+        columns = case preset_fields of
+            True  -> fields.distinct.map column_map.get
+            False ->
+                if discovered_field_names.is_empty then Error.throw (Illegal_Argument.Error "Unable to discover expected column names, because all input objects had no fields. Specify fields explicitly if you need a constant set of expected columns.") else
+                    discovered_field_names.to_vector.map column_map.get
+        Table.new columns
