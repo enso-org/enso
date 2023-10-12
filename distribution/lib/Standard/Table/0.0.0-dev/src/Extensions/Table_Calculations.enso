@@ -16,17 +16,24 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
 ## Defines a column operation generally acting on each row producing a new
    column.
 type Column_Operation
-    ## Add a fixed value or another column to a column.
+    ## Add two values/columns.
     Add (lhs : Column_Ref|Number) (rhs : Column_Ref|Any)
 
-    ## Subtract a fixed value or another column to a column.
+    ## Subtract two values/columns.
     Subtract (lhs : Column_Ref|Number) (rhs : Column_Ref|Any)
 
-    ## Multiply a fixed value or another column to a column.
+    ## Multiply two values/columns.
     Multiply (lhs : Column_Ref|Number) (rhs : Column_Ref|Any)
 
-    ## Divide a fixed value or another column to a column.
+    ## Divide a fixed value or column by another value or column.
     Divide (lhs : Column_Ref|Number) (rhs : Column_Ref|Any)
+
+    ## Compute the remainder of a fixed value or column divided by another
+       value or column.
+    Mod (lhs : Column_Ref|Number) (rhs : Column_Ref|Any)
+
+    ## Raise a fixed value or column to the power of another value or column.
+    Power (lhs : Column_Ref|Number) (rhs : Column_Ref|Any)
 
     ## Rounds values in the column to the specified precision.
     Round (input : Column_Ref|Number) (precision:Integer = 0) (use_bankers:Boolean = False)
@@ -88,6 +95,8 @@ type Column_Operation
             Column_Operation.Subtract lhs rhs -> (resolve_input_column lhs) - (table.resolve rhs)
             Column_Operation.Multiply lhs rhs -> (resolve_input_column lhs) * (table.resolve rhs)
             Column_Operation.Divide lhs rhs   -> (resolve_input_column lhs) / (table.resolve rhs)
+            Column_Operation.Mod lhs rhs      -> (resolve_input_column lhs) % (table.resolve rhs)
+            Column_Operation.Power lhs rhs    -> (resolve_input_column lhs) ** (table.resolve rhs)
 
             Column_Operation.Round input precision use_bankers ->
                 (resolve_input_column input).round precision use_bankers
@@ -129,6 +138,8 @@ type Column_Operation
         builder.append (Option "subtract" fqn+".Subtract" [["lhs", col_refs], ["rhs", col_refs]])
         builder.append (Option "multiply" fqn+".Multiply" [["lhs", col_refs], ["rhs", col_refs]])
         builder.append (Option "divide" fqn+".Divide" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "mod" fqn+".Mod" [["lhs", col_refs], ["rhs", col_refs]])
+        builder.append (Option "power" fqn+".Power" [["lhs", col_refs], ["rhs", col_refs]])
         builder.append (Option "round" fqn+".Round" [["input", col_refs]])
         builder.append (Option "ceil" fqn+".Ceil" [["input", col_refs]])
         builder.append (Option "floor" fqn+".Floor" [["input", col_refs]])
