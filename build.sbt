@@ -1278,6 +1278,8 @@ lazy val runtime = (project in file("engine/runtime"))
         "org.enso.runtime"
       )
     ),
+    // This is needed to make JPMS work in sbt
+    compileOrder := CompileOrder.JavaThenScala,
     frgaalJavaCompilerSetting,
     truffleDslSuppressWarnsSetting,
     Compile / logManager :=
