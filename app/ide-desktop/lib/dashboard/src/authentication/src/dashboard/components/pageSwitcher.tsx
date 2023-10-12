@@ -49,8 +49,8 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     const { page, setPage, isEditorDisabled } = props
     return (
         <div
-            className={`flex items-center rounded-full shrink-0 gap-4 ${
-                page === Page.editor ? 'bg-frame backdrop-blur-3xl px-3 -mx-3' : ''
+            className={`flex shrink-0 items-center gap-4 rounded-full ${
+                page === Page.editor ? '-mx-3 bg-frame px-3 backdrop-blur-3xl' : ''
             }`}
         >
             {PAGE_DATA.map(pageData => {
@@ -63,7 +63,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                         active={page === pageData.page}
                         disabled={isDisabled}
                         error={ERRORS[pageData.page]}
-                        className="cursor-default pointer-events-auto"
+                        className="pointer-events-auto cursor-default"
                         onClick={() => {
                             setPage(pageData.page)
                         }}

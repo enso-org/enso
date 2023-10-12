@@ -57,7 +57,7 @@ export default function UserBar(props: UserBarProps) {
         setProjectAsset != null &&
         self != null
     return (
-        <div className="flex shrink-0 items-center bg-frame backdrop-blur-3xl rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto">
+        <div className="pointer-events-auto flex h-8 shrink-0 cursor-default items-center gap-3 rounded-full bg-frame pl-2 pr-0.75 backdrop-blur-3xl">
             <Button
                 active={isHelpChatOpen}
                 image={ChatIcon}
@@ -67,7 +67,7 @@ export default function UserBar(props: UserBarProps) {
             />
             {shouldShowShareButton && (
                 <button
-                    className="text-inversed bg-share rounded-full leading-5 h-6 px-2 py-px"
+                    className="h-6 rounded-full bg-share px-2 py-px leading-5 text-inversed"
                     onClick={event => {
                         event.stopPropagation()
                         setModal(

@@ -57,7 +57,7 @@ const PLACEHOLDER = (
     </span>
 )
 /** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
+const TRASH_PLACEHOLDER = <span className="px-1.5 opacity-75">Your trash is empty.</span>
 /** Placeholder row for directories that are empty. */
 export const EMPTY_DIRECTORY_PLACEHOLDER = (
     <span className="px-2 opacity-75">This folder is empty.</span>
@@ -963,10 +963,10 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     return (
         <div ref={scrollContainerRef} className="flex-1 overflow-auto">
-            <div className="flex flex-col w-min min-w-full h-full">
+            <div className="flex h-full w-min min-w-full flex-col">
                 {backend.type !== backendModule.BackendType.local && (
                     <div className="sticky top-0 h-0">
-                        <div className="block sticky right-0 ml-auto w-29 p-2 z-1">
+                        <div className="sticky right-0 z-1 ml-auto block w-29 p-2">
                             <div className="inline-flex gap-3">
                                 {columnModule.EXTRA_COLUMNS.map(column => (
                                     <Button

@@ -132,7 +132,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+            className={`flex min-w-max items-center gap-1 whitespace-nowrap rounded-l-full px-1.5 py-1 text-left ${indent.indentClass(
                 item.depth
             )}`}
             onMouseEnter={() => {
@@ -171,7 +171,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             {isHovered ? (
                 <SvgMask
                     src={TriangleDownIcon}
-                    className={`cursor-pointer h-4 w-4 m-1 ${
+                    className={`m-1 h-4 w-4 cursor-pointer ${
                         shouldAnimate ? 'transition-transform duration-300' : ''
                     } ${item.children != null ? '' : '-rotate-90'}`}
                     onClick={event => {
@@ -180,7 +180,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                     }}
                 />
             ) : (
-                <SvgMask src={FolderIcon} className="h-4 w-4 m-1" />
+                <SvgMask src={FolderIcon} className="m-1 h-4 w-4" />
             )}
             <EditableSpan
                 editable={rowState.isEditingName}
@@ -219,7 +219,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+                className={`h-6 grow cursor-pointer bg-transparent py-px leading-170 ${
                     rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
                 }`}
             >

@@ -43,9 +43,9 @@ export default function Login() {
     const shouldReportValidityRef = React.useRef(true)
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center">
-            <div className="flex flex-col bg-white shadow-md p-8 rounded-md w-full max-w-md">
-                <div className="font-medium self-center text-xl uppercase text-gray-800">
+        <div className="flex min-h-screen flex-col items-center justify-center">
+            <div className="flex w-full max-w-md flex-col rounded-md bg-white p-8 shadow-md">
+                <div className="self-center text-xl font-medium uppercase text-gray-800">
                     Login To Your Account
                 </div>
                 <button
@@ -56,7 +56,7 @@ export default function Login() {
                         event.preventDefault()
                         await signInWithGoogle()
                     }}
-                    className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
+                    className="relative mt-6 rounded-md border bg-gray-100 py-2 text-sm text-gray-800 hover:bg-gray-200"
                 >
                     <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
                     <span>Sign Up or Login with Google</span>
@@ -69,14 +69,14 @@ export default function Login() {
                         event.preventDefault()
                         await signInWithGitHub()
                     }}
-                    className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
+                    className="relative mt-6 rounded-md border bg-gray-100 py-2 text-sm text-gray-800 hover:bg-gray-200"
                 >
                     <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
                     <span>Sign Up or Login with Github</span>
                 </button>
                 <div className="relative mt-10 h-px bg-gray-300">
-                    <div className="absolute left-0 top-0 flex justify-center w-full -mt-2">
-                        <span className="bg-white px-4 text-xs text-gray-500 uppercase">
+                    <div className="absolute left-0 top-0 -mt-2 flex w-full justify-center">
+                        <span className="bg-white px-4 text-xs uppercase text-gray-500">
                             Or Login With Email
                         </span>
                     </div>
@@ -91,7 +91,7 @@ export default function Login() {
                             setIsSubmitting(false)
                         }}
                     >
-                        <div className="flex flex-col mb-6">
+                        <div className="mb-6 flex flex-col">
                             <label
                                 htmlFor="email"
                                 className="mb-1 text-xs tracking-wide text-gray-600"
@@ -116,7 +116,7 @@ export default function Login() {
                                 />
                             </div>
                         </div>
-                        <div className="flex flex-col mb-6">
+                        <div className="mb-6 flex flex-col">
                             <label
                                 htmlFor="password"
                                 className="mb-1 text-xs tracking-wide text-gray-600"
@@ -143,8 +143,8 @@ export default function Login() {
                                 />
                             </div>
                         </div>
-                        <div className="flex items-center mb-6 -mt-4">
-                            <div className="flex ml-auto">
+                        <div className="-mt-4 mb-6 flex items-center">
+                            <div className="ml-auto flex">
                                 <router.Link
                                     to={app.FORGOT_PASSWORD_PATH}
                                     className="inline-flex text-xs text-blue-500 hover:text-blue-700"
@@ -157,7 +157,7 @@ export default function Login() {
                             <button
                                 disabled={isSubmitting}
                                 type="submit"
-                                className="flex items-center justify-center focus:outline-none text-white text-sm bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in disabled:opacity-50"
+                                className="flex w-full items-center justify-center rounded bg-blue-600 py-2 text-sm text-white transition duration-150 ease-in hover:bg-blue-700 focus:outline-none disabled:opacity-50"
                             >
                                 <span className="mr-2 uppercase">Login</span>
                                 <SvgMask src={ArrowRightIcon} />
@@ -165,19 +165,19 @@ export default function Login() {
                         </div>
                     </form>
                 </div>
-                <div className="flex justify-center items-center mt-6">
+                <div className="mt-6 flex items-center justify-center">
                     <router.Link
                         to={app.REGISTRATION_PATH}
-                        className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
+                        className="inline-flex items-center text-center text-xs font-bold text-blue-500 hover:text-blue-700"
                     >
                         <SvgMask src={CreateAccountIcon} />
                         <span className="ml-2">You don&apos;t have an account?</span>
                     </router.Link>
                 </div>
-                <div className="flex justify-center items-center mt-6">
+                <div className="mt-6 flex items-center justify-center">
                     <router.Link
                         to={app.ENTER_OFFLINE_MODE_PATH}
-                        className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
+                        className="inline-flex items-center text-center text-xs font-bold text-blue-500 hover:text-blue-700"
                     >
                         <SvgMask src={ArrowRightIcon} />
                         <span className="ml-2">Continue without creating an account</span>

@@ -235,7 +235,7 @@ export default function ManagePermissionsModal<
         return (
             <Modal
                 centered={eventTarget == null}
-                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0"
+                className="absolute left-0 top-0 h-full w-full overflow-hidden bg-dim"
             >
                 <div
                     tabIndex={-1}
@@ -261,8 +261,8 @@ export default function ManagePermissionsModal<
                         }
                     }}
                 >
-                    <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
-                    <div className="relative flex flex-col rounded-2xl gap-2 p-2">
+                    <div className="absolute h-full w-full rounded-2xl bg-frame-selected backdrop-blur-3xl" />
+                    <div className="relative flex flex-col gap-2 rounded-2xl p-2">
                         <div>
                             <h2 className="text-sm font-bold">Invite</h2>
                             {/* Space reserved for other tabs. */}
@@ -274,7 +274,7 @@ export default function ManagePermissionsModal<
                                 void doSubmit()
                             }}
                         >
-                            <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
+                            <div className="flex grow items-center gap-2 rounded-full border border-black-a10 px-1">
                                 <PermissionSelector
                                     disabled={willInviteNewUser}
                                     selfPermission={self.permission}
@@ -324,18 +324,18 @@ export default function ManagePermissionsModal<
                                     (willInviteNewUser &&
                                         emailValidityRef.current?.validity.valid !== true)
                                 }
-                                className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
+                                className="rounded-full bg-invite px-2 py-1 text-tag-text disabled:opacity-30"
                             >
                                 <div className="h-6 py-0.5">
                                     {willInviteNewUser ? 'Invite' : 'Share'}
                                 </div>
                             </button>
                         </form>
-                        <div className="overflow-auto pl-1 pr-12 max-h-80">
+                        <div className="max-h-80 overflow-auto pl-1 pr-12">
                             {editablePermissions.map(userPermissions => (
                                 <div
                                     key={userPermissions.user.pk}
-                                    className="flex items-center h-8"
+                                    className="flex h-8 items-center"
                                 >
                                     <UserPermissions
                                         asset={item}

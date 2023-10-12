@@ -13,10 +13,10 @@ import YoutubeIcon from 'enso-assets/youtube.svg'
 export default function WhatsNew() {
     return (
         <div className="flex flex-col gap-4 px-4.75">
-            <h2 className="text-xl leading-144.5 py-0.5">Discover what&rsquo;s new</h2>
-            <div className="grid gap-3 grid-cols-fill-75">
+            <h2 className="py-0.5 text-xl leading-144.5">Discover what&rsquo;s new</h2>
+            <div className="grid grid-cols-fill-75 gap-3">
                 <a
-                    className="relative whatsnew-span-2 col-span-2 bg-v3 text-tag-text rounded-2xl h-45"
+                    className="whatsnew-span-2 relative col-span-2 h-45 rounded-2xl bg-v3 text-tag-text"
                     rel="noreferrer"
                     target="_blank"
                     href="https://enso.org/"
@@ -24,49 +24,49 @@ export default function WhatsNew() {
                         background: `url(${IntegrationsImage}) top -85px right -390px / 1055px`,
                     }}
                 >
-                    <div className="absolute flex flex-col bottom-0 p-4">
-                        <span className="text-xl font-bold leading-144.5 py-0.5">
+                    <div className="absolute bottom-0 flex flex-col p-4">
+                        <span className="py-0.5 text-xl font-bold leading-144.5">
                             Read what&rsquo;s new in Enso 3.0 Beta
                         </span>
-                        <span className="text-sm leading-144.5 py-0.5">
+                        <span className="py-0.5 text-sm leading-144.5">
                             Learn about Enso Cloud, new data libraries, and Enso AI.
                         </span>
                     </div>
                 </a>
                 <a
-                    className="relative bg-youtube text-tag-text rounded-2xl h-45"
+                    className="relative h-45 rounded-2xl bg-youtube text-tag-text"
                     rel="noreferrer"
                     target="_blank"
                     href="https://www.youtube.com/c/Enso_org"
                 >
                     <img
-                        className="absolute top-6 left-1/2 -translate-x-1/2 mx-auto"
+                        className="absolute left-1/2 top-6 mx-auto -translate-x-1/2"
                         src={YoutubeIcon}
                     />
-                    <div className="absolute flex flex-col bottom-0 p-4">
-                        <span className="text-xl font-bold leading-144.5 py-0.5">
+                    <div className="absolute bottom-0 flex flex-col p-4">
+                        <span className="py-0.5 text-xl font-bold leading-144.5">
                             Watch weekly Enso tutorials
                         </span>
-                        <span className="text-sm leading-144.5 py-0.5">
+                        <span className="py-0.5 text-sm leading-144.5">
                             Subscribe not to miss new weekly tutorials.
                         </span>
                     </div>
                 </a>
                 <a
-                    className="relative bg-discord text-tag-text rounded-2xl h-45"
+                    className="relative h-45 rounded-2xl bg-discord text-tag-text"
                     rel="noreferrer"
                     target="_blank"
                     href="https://discord.gg/enso"
                 >
                     <img
-                        className="absolute top-7 left-1/2 -translate-x-1/2 mx-auto"
+                        className="absolute left-1/2 top-7 mx-auto -translate-x-1/2"
                         src={DiscordIcon}
                     />
-                    <div className="absolute flex flex-col bottom-0 p-4">
-                        <span className="text-xl font-bold leading-144.5 py-0.5">
+                    <div className="absolute bottom-0 flex flex-col p-4">
+                        <span className="py-0.5 text-xl font-bold leading-144.5">
                             Join our community server
                         </span>
-                        <span className="text-sm leading-144.5 py-0.5">
+                        <span className="py-0.5 text-sm leading-144.5">
                             Chat with our team and other Enso users.
                         </span>
                     </div>

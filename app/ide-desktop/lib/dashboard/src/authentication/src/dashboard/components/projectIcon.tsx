@@ -352,7 +352,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
-                    className="w-6 h-6 disabled:opacity-50"
+                    className="h-6 w-6 disabled:opacity-50"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -371,7 +371,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     {...(isOtherUserUsingProject
                         ? { title: 'Someone else is using this project.' }
                         : {})}
-                    className="w-6 h-6 disabled:opacity-50"
+                    className="h-6 w-6 disabled:opacity-50"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -396,7 +396,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         {...(isOtherUserUsingProject
                             ? { title: 'Someone else has this project open.' }
                             : {})}
-                        className="w-6 h-6 disabled:opacity-50"
+                        className="h-6 w-6 disabled:opacity-50"
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
@@ -418,7 +418,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     </button>
                     {!isOtherUserUsingProject && !isRunningInBackground && (
                         <button
-                            className="w-6 h-6"
+                            className="h-6 w-6"
                             onClick={clickEvent => {
                                 clickEvent.stopPropagation()
                                 unsetModal()

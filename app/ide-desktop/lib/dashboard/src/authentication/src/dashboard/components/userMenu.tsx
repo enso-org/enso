@@ -38,10 +38,10 @@ export default function UserMenu(props: UserMenuProps) {
     const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
 
     return (
-        <Modal className="absolute overflow-hidden bg-dim w-full h-full">
+        <Modal className="absolute h-full w-full overflow-hidden bg-dim">
             <div
                 data-testid="user-menu"
-                className="absolute flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl gap-3 right-2.25 top-2.25 w-51.5 px-2 py-2.25"
+                className="absolute right-2.25 top-2.25 flex w-51.5 flex-col gap-3 rounded-2xl bg-frame-selected px-2 py-2.25 backdrop-blur-3xl"
                 onClick={event => {
                     event.stopPropagation()
                 }}
@@ -50,7 +50,7 @@ export default function UserMenu(props: UserMenuProps) {
                     <>
                         <div className="flex items-center gap-3 px-1">
                             <img src={DefaultUserIcon} height={28} width={28} />
-                            <span className="leading-170 h-6 py-px">{organization.name}</span>
+                            <span className="h-6 py-px leading-170">{organization.name}</span>
                         </div>
                         <div className="flex flex-col">
                             {canChangePassword && (
@@ -77,8 +77,8 @@ export default function UserMenu(props: UserMenuProps) {
                     </>
                 ) : (
                     <>
-                        <div className="flex items-center h-7">
-                            <span className="leading-170 h-6 py-px">You are not signed in.</span>
+                        <div className="flex h-7 items-center">
+                            <span className="h-6 py-px leading-170">You are not signed in.</span>
                         </div>
                         <div className="flex flex-col">
                             <MenuEntry

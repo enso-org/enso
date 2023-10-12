@@ -220,7 +220,7 @@ function SharedWithColumn(props: AssetColumnProps) {
                         )
                     }}
                 >
-                    <img className="w-4.5 h-4.5" src={PlusIcon} />
+                    <img className="h-4.5 w-4.5" src={PlusIcon} />
                 </button>
             )}
         </div>
@@ -258,7 +258,7 @@ export const COLUMN_HEADING: Record<
         const isSortActive = sortColumn === Column.name && sortDirection != null
         return (
             <div
-                className="flex items-center cursor-pointer gap-2 pt-1 pb-1.5"
+                className="flex cursor-pointer items-center gap-2 pb-1.5 pt-1"
                 onMouseEnter={() => {
                     setIsHovered(true)
                 }}
@@ -274,7 +274,7 @@ export const COLUMN_HEADING: Record<
                     }
                 }}
             >
-                <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.name]}</span>
+                <span className="h-6 py-0.5 leading-144.5">{COLUMN_NAME[Column.name]}</span>
                 <img
                     src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
                     className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
@@ -290,7 +290,7 @@ export const COLUMN_HEADING: Record<
         const isSortActive = sortColumn === Column.modified && sortDirection != null
         return (
             <div
-                className="flex items-center cursor-pointer gap-2"
+                className="flex cursor-pointer items-center gap-2"
                 onMouseEnter={() => {
                     setIsHovered(true)
                 }}
@@ -307,7 +307,7 @@ export const COLUMN_HEADING: Record<
                 }}
             >
                 <SvgMask src={TimeIcon} className="h-4 w-4" />
-                <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.modified]}</span>
+                <span className="h-6 py-0.5 leading-144.5">{COLUMN_NAME[Column.modified]}</span>
                 <img
                     src={isSortActive ? SORT_ICON[sortDirection] : SortAscendingIcon}
                     className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
@@ -318,19 +318,19 @@ export const COLUMN_HEADING: Record<
     [Column.sharedWith]: () => (
         <div className="flex items-center gap-2">
             <SvgMask src={PeopleIcon} className="h-4 w-4" />
-            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.sharedWith]}</span>
+            <span className="h-6 py-0.5 leading-144.5">{COLUMN_NAME[Column.sharedWith]}</span>
         </div>
     ),
     [Column.tags]: () => (
         <div className="flex items-center gap-2">
             <SvgMask src={TagIcon} className="h-4 w-4" />
-            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.tags]}</span>
+            <span className="h-6 py-0.5 leading-144.5">{COLUMN_NAME[Column.tags]}</span>
         </div>
     ),
     [Column.accessedByProjects]: () => (
         <div className="flex items-center gap-2">
             <SvgMask src={AccessedByProjectsIcon} className="h-4 w-4" />
-            <span className="leading-144.5 h-6 py-0.5">
+            <span className="h-6 py-0.5 leading-144.5">
                 {COLUMN_NAME[Column.accessedByProjects]}
             </span>
         </div>
@@ -338,13 +338,13 @@ export const COLUMN_HEADING: Record<
     [Column.accessedData]: () => (
         <div className="flex items-center gap-2">
             <SvgMask src={AccessedDataIcon} className="h-4 w-4" />
-            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.accessedData]}</span>
+            <span className="h-6 py-0.5 leading-144.5">{COLUMN_NAME[Column.accessedData]}</span>
         </div>
     ),
     [Column.docs]: () => (
         <div className="flex items-center gap-2">
             <SvgMask src={DocsIcon} className="h-4 w-4" />
-            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.docs]}</span>
+            <span className="h-6 py-0.5 leading-144.5">{COLUMN_NAME[Column.docs]}</span>
         </div>
     ),
 }

@@ -1,0 +1,16 @@
+overrides:
+  - files:
+      - "*.[j|t]s"
+      - "*.[j|t]sx"
+      - "*.m[j|t]s"
+      - "*.c[j|t]s"
+    options:
+      printWidth: 100
+      tabWidth: 4
+      semi: false
+      singleQuote: true
+      trailingComma: "es5"
+      arrowParens: "avoid"
+plugins:
+  - prettier-plugin-tailwindcss
+tailwindConfig: ./lib/dashboard/tailwind.config.cjs

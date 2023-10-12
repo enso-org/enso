@@ -365,8 +365,8 @@ export default function Dashboard(props: DashboardProps) {
     return (
         <>
             <div
-                className={`flex flex-col relative select-none text-primary text-xs h-screen pb-2 ${
-                    page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+                className={`relative flex h-screen select-none flex-col pb-2 text-xs text-primary ${
+                    page === pageSwitcher.Page.editor ? 'pointer-events-none cursor-none' : ''
                 }`}
                 onContextMenu={event => {
                     event.preventDefault()
@@ -438,7 +438,7 @@ export default function Dashboard(props: DashboardProps) {
                     />
                 )}
             </div>
-            <div className="text-xs text-primary select-none">
+            <div className="select-none text-xs text-primary">
                 <TheModal />
             </div>
         </>

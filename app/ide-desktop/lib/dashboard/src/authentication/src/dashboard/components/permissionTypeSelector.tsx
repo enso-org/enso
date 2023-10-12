@@ -83,13 +83,13 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
     return (
         <div
             style={style}
-            className="sticky pointer-events-auto w-min"
+            className="pointer-events-auto sticky w-min"
             onClick={event => {
                 event.stopPropagation()
             }}
         >
-            <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full" />
-            <div className="relative flex flex-col w-112.5 p-1">
+            <div className="absolute h-full w-full rounded-2xl bg-frame-selected backdrop-blur-3xl" />
+            <div className="relative flex w-112.5 flex-col p-1">
                 {PERMISSION_TYPE_DATA.filter(
                     data =>
                         (showDelete ? true : data.type !== permissions.Permission.delete) &&
@@ -101,7 +101,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                         key={data.type}
                         type="button"
                         disabled={type === data.type}
-                        className={`flex items-center rounded-full gap-2 h-8 px-1 ${
+                        className={`flex h-8 items-center gap-2 rounded-full px-1 ${
                             type === data.type ? 'bg-black-a5' : ''
                         }`}
                         onClick={() => {
@@ -109,30 +109,30 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                         }}
                     >
                         <div
-                            className={`rounded-full w-13 h-5 my-1 py-0.5 ${
+                            className={`my-1 h-5 w-13 rounded-full py-0.5 ${
                                 permissions.PERMISSION_CLASS_NAME[data.type]
                             }`}
                         >
                             {data.type}
                         </div>
-                        <span className="font-normal leading-170 h-6.5 pt-1">
+                        <span className="h-6.5 pt-1 font-normal leading-170">
                             <span className="h-5.5 py-px">=</span>
                         </span>
                         {data.previous != null && (
                             <>
                                 <div
-                                    className={`text-center rounded-full w-13 h-5 my-1 py-0.5 ${
+                                    className={`my-1 h-5 w-13 rounded-full py-0.5 text-center ${
                                         permissions.PERMISSION_CLASS_NAME[data.previous]
                                     }`}
                                 >
                                     {data.previous}
                                 </div>
-                                <span className="font-normal leading-170 h-6.5 pt-1">
+                                <span className="h-6.5 pt-1 font-normal leading-170">
                                     <span className="h-5.5 py-px">+</span>
                                 </span>
                             </>
                         )}
-                        <div className="leading-170 h-6.5 pt-1">
+                        <div className="h-6.5 pt-1 leading-170">
                             <span className="h-5.5 py-px">{data.description(assetType)}</span>
                         </div>
                     </button>

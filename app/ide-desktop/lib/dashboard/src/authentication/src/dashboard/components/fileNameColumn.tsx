@@ -104,7 +104,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
     return (
         <div
-            className={`flex text-left items-center align-middle whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+            className={`flex min-w-max items-center gap-1 whitespace-nowrap rounded-l-full px-1.5 py-1 text-left align-middle ${indent.indentClass(
                 item.depth
             )}`}
             onKeyDown={event => {
@@ -149,7 +149,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                         isEditingName: false,
                     }))
                 }}
-                className="bg-transparent grow leading-170 h-6 py-px"
+                className="h-6 grow bg-transparent py-px leading-170"
             >
                 {asset.title}
             </EditableSpan>

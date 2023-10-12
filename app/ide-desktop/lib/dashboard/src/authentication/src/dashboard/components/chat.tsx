@@ -106,7 +106,7 @@ function ReactionBar(props: ReactionBarProps) {
     const { selectedReactions, doReact, doRemoveReaction, className } = props
 
     return (
-        <div className={`inline-block bg-white rounded-full m-1 ${className ?? ''}`}>
+        <div className={`m-1 inline-block rounded-full bg-white ${className ?? ''}`}>
             {REACTION_EMOJIS.map(emoji => (
                 <button
                     key={emoji}
@@ -118,7 +118,7 @@ function ReactionBar(props: ReactionBarProps) {
                         }
                     }}
                     // FIXME: Grayscale has the wrong lightness
-                    className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
+                    className={`m-1 rounded-full p-1 hover:bg-gray-200 ${
                         selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
                     }`}
                 >
@@ -186,11 +186,11 @@ function ChatMessage(props: ChatMessageProps) {
                 <img
                     crossOrigin="anonymous"
                     src={message.avatar ?? DefaultUserIcon}
-                    className="rounded-full h-8 w-8 my-1"
+                    className="my-1 h-8 w-8 rounded-full"
                 />
                 <div className="mx-2 leading-5">
                     <div className="font-bold">{message.name}</div>
-                    <div className="text-opacity-50 text-primary">
+                    <div className="text-primary text-opacity-50">
                         {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
                     </div>
                 </div>
@@ -207,7 +207,7 @@ function ChatMessage(props: ChatMessageProps) {
                 />
             )}
             {message.isStaffMessage && !shouldShowReactionBar && isHovered && (
-                <div className="relative h-0 py-1 -my-1">
+                <div className="relative -my-1 h-0 py-1">
                     <ReactionBar
                         doReact={doReact}
                         doRemoveReaction={doRemoveReaction}
@@ -275,7 +275,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
     return (
         <>
-            <div className="flex text-sm font-semibold mx-4 mt-2">
+            <div className="mx-4 mt-2 flex text-sm font-semibold">
                 <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
                     <img
                         className={`transition-transform duration-300 ${
@@ -290,7 +290,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
                             type="text"
                             ref={titleInputRef}
                             defaultValue={threadTitle}
-                            className="bg-transparent w-full leading-6"
+                            className="w-full bg-transparent leading-6"
                             onClick={event => {
                                 event.stopPropagation()
                             }}
@@ -333,11 +333,11 @@ function ChatHeader(props: InternalChatHeaderProps) {
             </div>
             <div className="relative text-sm font-semibold">
                 <div
-                    className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows z-1 ${
+                    className={`clip-path-bottom-shadow absolute z-1 grid w-full overflow-hidden bg-ide-bg shadow-soft transition-grid-template-rows ${
                         isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
                     }`}
                 >
-                    <div className="min-h-0 max-h-70 overflow-y-auto">
+                    <div className="max-h-70 min-h-0 overflow-y-auto">
                         {threads.map(thread => (
                             <div
                                 key={thread.id}
@@ -693,7 +693,7 @@ export default function Chat(props: ChatProps) {
         return reactDom.createPortal(
             <div
                 style={{ right }}
-                className="text-xs text-chat flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-83.5 py-1 z-1"
+                className="fixed right-0 top-0 z-1 flex h-screen w-83.5 flex-col border-l-2 border-ide-bg-dark bg-ide-bg py-1 text-xs text-chat"
             >
                 <ChatHeader
                     threads={threads}
@@ -777,7 +777,7 @@ export default function Chat(props: ChatProps) {
                         />
                     ))}
                 </div>
-                <div className="rounded-2xl bg-white p-1 mx-2 my-1">
+                <div className="mx-2 my-1 rounded-2xl bg-white p-1">
                     <form onSubmit={sendCurrentMessage}>
                         <div>
                             <textarea
@@ -786,7 +786,7 @@ export default function Chat(props: ChatProps) {
                                 autoFocus
                                 required
                                 placeholder="Type your message ..."
-                                className="w-full rounded-lg resize-none p-1"
+                                className="w-full resize-none rounded-lg p-1"
                                 onKeyDown={event => {
                                     switch (event.key) {
                                         case 'Enter': {
@@ -818,7 +818,7 @@ export default function Chat(props: ChatProps) {
                                 <button
                                     type="button"
                                     disabled={!isReplyEnabled}
-                                    className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
+                                    className={`text-xxs grow rounded-full px-1.5 py-1 text-left text-white ${
                                         isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
                                     }`}
                                     onClick={event => {
@@ -832,7 +832,7 @@ export default function Chat(props: ChatProps) {
                                 <button
                                     type="submit"
                                     disabled={!isReplyEnabled}
-                                    className={`text-white bg-blue-600 rounded-full px-1.5 py-1 ${
+                                    className={`rounded-full bg-blue-600 px-1.5 py-1 text-white ${
                                         isReplyEnabled ? '' : 'opacity-50'
                                     }`}
                                 >
@@ -844,7 +844,7 @@ export default function Chat(props: ChatProps) {
                 </div>
                 {!isPaidUser && (
                     <button
-                        className="text-left leading-5 rounded-2xl bg-call-to-action text-white p-2 mx-2 my-1"
+                        className="mx-2 my-1 rounded-2xl bg-call-to-action p-2 text-left leading-5 text-white"
                         onClick={upgradeToPro}
                     >
                         Click here to upgrade to Enso Pro and get access to high-priority, live

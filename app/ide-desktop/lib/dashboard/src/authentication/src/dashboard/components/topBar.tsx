@@ -74,7 +74,7 @@ export default function TopBar(props: TopBarProps) {
 
     return (
         <div
-            className={`relative flex ml-4.75 mr-2.25 h-8 gap-6 z-3 ${
+            className={`relative z-3 ml-4.75 mr-2.25 flex h-8 gap-6 ${
                 page !== pageSwitcher.Page.home ? 'mt-2.25' : 'my-2.25'
             }`}
         >
@@ -85,7 +85,7 @@ export default function TopBar(props: TopBarProps) {
             <div className="grow" />
             {page !== pageSwitcher.Page.editor && (
                 <>
-                    <div className="search-bar absolute flex items-center text-primary bg-frame rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 min-w-31.5 px-2">
+                    <div className="search-bar absolute left-1/2 flex h-8 w-98.25 min-w-31.5 -translate-x-1/2 items-center gap-2.5 rounded-full bg-frame px-2 text-primary">
                         <label htmlFor="search">
                             <img src={FindIcon} className="opacity-80" />
                         </label>
@@ -99,7 +99,7 @@ export default function TopBar(props: TopBarProps) {
                             onChange={event => {
                                 setQuery(event.target.value)
                             }}
-                            className="grow bg-transparent leading-5 h-6 py-px"
+                            className="h-6 grow bg-transparent py-px leading-5"
                         />
                     </div>
                     <div className="grow" />

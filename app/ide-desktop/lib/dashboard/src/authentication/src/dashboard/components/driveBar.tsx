@@ -71,7 +71,7 @@ export default function DriveBar(props: DriveBarProps) {
             <div className="flex gap-2.5">
                 <button
                     disabled={category === categorySwitcher.Category.trash}
-                    className="flex items-center bg-frame rounded-full h-8 px-2.5"
+                    className="flex h-8 items-center rounded-full bg-frame px-2.5"
                     {...(category === categorySwitcher.Category.trash
                         ? {
                               title: 'Cannot create a new project in Trash.',
@@ -83,14 +83,14 @@ export default function DriveBar(props: DriveBarProps) {
                     }}
                 >
                     <span
-                        className={`font-semibold whitespace-nowrap leading-5 h-6 py-px ${
+                        className={`h-6 whitespace-nowrap py-px font-semibold leading-5 ${
                             category === categorySwitcher.Category.trash ? 'opacity-50' : ''
                         }`}
                     >
                         New Project
                     </span>
                 </button>
-                <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
+                <div className="flex h-8 items-center gap-3 rounded-full bg-frame px-3 text-black-a50">
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
                             active={category !== categorySwitcher.Category.trash}

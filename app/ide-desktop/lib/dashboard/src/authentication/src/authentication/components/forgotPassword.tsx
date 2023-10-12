@@ -25,9 +25,9 @@ export default function ForgotPassword() {
     const [email, setEmail] = React.useState('')
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center">
-            <div className="flex flex-col bg-white shadow-md p-8 rounded-md w-full max-w-md">
-                <div className="font-medium self-center text-xl uppercase text-gray-800">
+        <div className="flex min-h-screen flex-col items-center justify-center">
+            <div className="flex w-full max-w-md flex-col rounded-md bg-white p-8 shadow-md">
+                <div className="self-center text-xl font-medium uppercase text-gray-800">
                     Forgot Your Password?
                 </div>
                 <div className="mt-10">
@@ -37,7 +37,7 @@ export default function ForgotPassword() {
                             await forgotPassword(email)
                         }}
                     >
-                        <div className="flex flex-col mb-6">
+                        <div className="mb-6 flex flex-col">
                             <label
                                 htmlFor="email"
                                 className="mb-1 text-xs tracking-wide text-gray-600"
@@ -62,7 +62,7 @@ export default function ForgotPassword() {
                         <div className="flex w-full">
                             <button
                                 type="submit"
-                                className="flex items-center justify-center focus:outline-none text-white text-sm bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in"
+                                className="flex w-full items-center justify-center rounded bg-blue-600 py-2 text-sm text-white transition duration-150 ease-in hover:bg-blue-700 focus:outline-none"
                             >
                                 <span className="mr-2 uppercase">Send link</span>
                                 <span>
@@ -72,10 +72,10 @@ export default function ForgotPassword() {
                         </div>
                     </form>
                 </div>
-                <div className="flex justify-center items-center mt-6">
+                <div className="mt-6 flex items-center justify-center">
                     <router.Link
                         to={app.LOGIN_PATH}
-                        className="inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
+                        className="inline-flex items-center text-center text-xs font-bold text-blue-500 hover:text-blue-700"
                     >
                         <span>
                             <SvgMask src={GoBackIcon} />

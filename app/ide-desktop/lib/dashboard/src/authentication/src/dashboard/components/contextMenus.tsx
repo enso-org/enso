@@ -33,7 +33,7 @@ export default function ContextMenus(props: ContextMenusProps) {
         <>{children}</>
     ) : (
         <Modal
-            className="absolute overflow-hidden bg-dim w-full h-full"
+            className="absolute h-full w-full overflow-hidden bg-dim"
             onContextMenu={innerEvent => {
                 innerEvent.preventDefault()
             }}
@@ -42,7 +42,7 @@ export default function ContextMenus(props: ContextMenusProps) {
                 data-testid="context-menus"
                 ref={contextMenuRef}
                 style={{ left, top }}
-                className="sticky flex pointer-events-none items-start gap-0.5 w-min"
+                className="pointer-events-none sticky flex w-min items-start gap-0.5"
                 onClick={clickEvent => {
                     clickEvent.stopPropagation()
                 }}

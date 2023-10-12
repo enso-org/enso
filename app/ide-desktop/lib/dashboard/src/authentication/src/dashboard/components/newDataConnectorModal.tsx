@@ -42,14 +42,14 @@ export default function NewDataConnectorModal(props: NewDataConnectorModalProps)
         <Modal centered className="bg-dim">
             <div
                 tabIndex={-1}
-                className="relative rounded-2xl pointer-events-auto"
+                className="pointer-events-auto relative rounded-2xl"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') {
                         event.stopPropagation()
                     }
                 }}
             >
-                <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
+                <div className="absolute h-full w-full rounded-2xl bg-frame-selected backdrop-blur-3xl" />
                 <form
                     onClick={event => {
                         event.stopPropagation()
@@ -60,25 +60,25 @@ export default function NewDataConnectorModal(props: NewDataConnectorModalProps)
                         // delete an important asset.
                         onSubmit()
                     }}
-                    className="relative flex flex-col rounded-2xl gap-2 w-96 px-4 py-2"
+                    className="relative flex w-96 flex-col gap-2 rounded-2xl px-4 py-2"
                 >
                     <h1 className="text-sm font-semibold">New Data Connector</h1>
                     <div className="flex">
-                        <div className="w-12 h-6 py-1">Name</div>
+                        <div className="h-6 w-12 py-1">Name</div>
                         <input
                             autoFocus
                             placeholder="Enter the name of the data connector"
-                            className="grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px"
+                            className="h-6 grow rounded-full border border-black-a10 bg-transparent px-4 py-px leading-170"
                             onInput={event => {
                                 setName(event.currentTarget.value)
                             }}
                         />
                     </div>
                     <div className="flex">
-                        <div className="w-12 h-6 py-1">Value</div>
+                        <div className="h-6 w-12 py-1">Value</div>
                         <input
                             placeholder="Enter the value of the data connector"
-                            className="grow bg-transparent border border-black-a10 rounded-full leading-170 h-6 px-4 py-px"
+                            className="h-6 grow rounded-full border border-black-a10 bg-transparent px-4 py-px leading-170"
                             onInput={event => {
                                 setValue(event.currentTarget.value)
                             }}
@@ -88,13 +88,13 @@ export default function NewDataConnectorModal(props: NewDataConnectorModalProps)
                         <button
                             disabled={!canSubmit}
                             type="submit"
-                            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                            className="inline-block rounded-full bg-invite px-4 py-1 text-white hover:cursor-pointer disabled:cursor-default disabled:opacity-50"
                         >
                             Create
                         </button>
                         <button
                             type="button"
-                            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+                            className="inline-block rounded-full bg-frame-selected px-4 py-1 hover:cursor-pointer"
                             onClick={unsetModal}
                         >
                             Cancel

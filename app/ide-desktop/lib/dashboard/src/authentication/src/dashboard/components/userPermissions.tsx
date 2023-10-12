@@ -55,7 +55,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
     }
 
     return (
-        <div className="flex gap-3 items-center">
+        <div className="flex items-center gap-3">
             <PermissionSelector
                 showDelete
                 disabled={isOnlyOwner && userPermissions.user.pk === self.user.pk}
@@ -79,7 +79,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
                     doDelete(userPermissions.user)
                 }}
             />
-            <span className="leading-170 h-6 py-px">{userPermissions.user.user_name}</span>
+            <span className="h-6 py-px leading-170">{userPermissions.user.user_name}</span>
         </div>
     )
 }

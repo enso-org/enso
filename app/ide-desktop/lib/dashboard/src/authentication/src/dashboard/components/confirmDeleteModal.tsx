@@ -44,14 +44,14 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                     element?.focus()
                 }}
                 tabIndex={-1}
-                className="relative rounded-2xl pointer-events-auto"
+                className="pointer-events-auto relative rounded-2xl"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') {
                         event.stopPropagation()
                     }
                 }}
             >
-                <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
+                <div className="absolute h-full w-full rounded-2xl bg-frame-selected backdrop-blur-3xl" />
                 <form
                     onClick={event => {
                         event.stopPropagation()
@@ -62,19 +62,19 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                         // delete an important asset.
                         onSubmit()
                     }}
-                    className="relative flex flex-col rounded-2xl gap-2 w-96 px-4 p-2"
+                    className="relative flex w-96 flex-col gap-2 rounded-2xl p-2 px-4"
                 >
                     <div>Are you sure you want to delete {description}?</div>
                     <div className="flex gap-2">
                         <button
                             type="submit"
-                            className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"
+                            className="inline-block rounded-full bg-delete px-4 py-1 text-white hover:cursor-pointer"
                         >
                             Delete
                         </button>
                         <button
                             type="button"
-                            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+                            className="inline-block rounded-full bg-frame-selected px-4 py-1 hover:cursor-pointer"
                             onClick={unsetModal}
                         >
                             Cancel

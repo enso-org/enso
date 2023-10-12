@@ -32,7 +32,7 @@ export default function ChangePasswordModal() {
         <Modal centered className="bg-dim">
             <div
                 data-testid="change-password-modal"
-                className="flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md"
+                className="flex w-full max-w-md flex-col rounded-2xl bg-frame-selected p-8 backdrop-blur-3xl"
                 onClick={event => {
                     event.stopPropagation()
                 }}
@@ -70,7 +70,7 @@ export default function ChangePasswordModal() {
                                     error={validation.PASSWORD_ERROR}
                                     value={oldPassword}
                                     setValue={setOldPassword}
-                                    className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-2xl w-full py-2 focus:outline-none focus:border-blue-400"
+                                    className="w-full rounded-2xl py-2 pl-10 pr-4 text-sm placeholder-gray-500 focus:border-blue-400 focus:outline-none"
                                 />
                             </div>
                         </div>
@@ -92,7 +92,7 @@ export default function ChangePasswordModal() {
                                     error={validation.PASSWORD_ERROR}
                                     value={newPassword}
                                     setValue={setNewPassword}
-                                    className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
+                                    className="w-full rounded-full py-2 pl-10 pr-4 text-sm placeholder-gray-500"
                                 />
                             </div>
                         </div>
@@ -114,14 +114,14 @@ export default function ChangePasswordModal() {
                                     error={validation.CONFIRM_PASSWORD_ERROR}
                                     value={confirmNewPassword}
                                     setValue={setConfirmNewPassword}
-                                    className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
+                                    className="w-full rounded-full py-2 pl-10 pr-4 text-sm placeholder-gray-500"
                                 />
                             </div>
                         </div>
                         <button
                             disabled={isSubmitting}
                             type="submit"
-                            className="flex items-center justify-center text-white text-sm bg-cloud rounded-full gap-2 h-10 disabled:opacity-50"
+                            className="flex h-10 items-center justify-center gap-2 rounded-full bg-cloud text-sm text-white disabled:opacity-50"
                         >
                             Reset
                             <SvgMask src={ArrowRightIcon} />

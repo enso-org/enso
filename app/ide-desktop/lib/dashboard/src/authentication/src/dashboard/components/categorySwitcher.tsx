@@ -35,12 +35,12 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     const { active = false, disabled = false, hidden, image, name, iconClassName, onClick } = props
     return (
         <div
-            className={`group flex items-center rounded-full gap-2 h-8 px-2 ${
+            className={`group flex h-8 items-center gap-2 rounded-full px-2 ${
                 hidden ? 'hidden' : ''
             } ${active ? 'bg-frame-selected' : 'text-not-selected'} ${
                 disabled
                     ? ''
-                    : 'hover:text-primary hover:bg-frame-selected cursor-pointer hover:opacity-100'
+                    : 'cursor-pointer hover:bg-frame-selected hover:text-primary hover:opacity-100'
             } ${!active && disabled ? 'cursor-not-allowed' : ''}`}
             {...(disabled ? {} : { onClick })}
         >
@@ -116,9 +116,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     }, [category, /* should never change */ localStorage])
 
     return (
-        <div className="flex flex-col items-start w-30">
-            <div className="pl-2 pb-1.5">
-                <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">
+        <div className="flex w-30 flex-col items-start">
+            <div className="pb-1.5 pl-2">
+                <span className="inline-block h-6 py-0.5 text-sm font-bold leading-144.5">
                     Category
                 </span>
             </div>

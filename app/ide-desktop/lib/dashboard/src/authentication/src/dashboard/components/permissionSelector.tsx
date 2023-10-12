@@ -94,12 +94,12 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                 : function Child() {
                       return (
                           <Modal
-                              className="fixed w-full h-full"
+                              className="fixed h-full w-full"
                               onClick={() => {
                                   setTheChild(null)
                               }}
                           >
-                              <div style={{ clipPath }} className="absolute bg-dim w-full h-full" />
+                              <div style={{ clipPath }} className="absolute h-full w-full bg-dim" />
                               <PermissionTypeSelector
                                   showDelete={showDelete}
                                   type={permission.type}
@@ -129,14 +129,14 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         case permissionsModule.Permission.read:
         case permissionsModule.Permission.view: {
             permissionDisplay = (
-                <div className="flex gap-px w-30.25">
+                <div className="flex w-30.25 gap-px">
                     <button
                         type="button"
                         disabled={disabled}
                         {...(disabled && error != null ? { title: error } : {})}
                         className={`${
                             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-                        } grow rounded-l-full h-6 px-1.75 py-0.5 disabled:opacity-30`}
+                        } h-6 grow rounded-l-full px-1.75 py-0.5 disabled:opacity-30`}
                         onClick={doShowPermissionTypeSelector}
                     >
                         {permission.type}
@@ -147,7 +147,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                         {...(disabled && error != null ? { title: error } : {})}
                         className={`${
                             permissionsModule.DOCS_CLASS_NAME
-                        } grow h-6 px-1.75 py-0.5 disabled:opacity-30 ${
+                        } h-6 grow px-1.75 py-0.5 disabled:opacity-30 ${
                             permission.docs ? '' : 'opacity-30'
                         }`}
                         onClick={event => {
@@ -169,7 +169,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                         {...(disabled && error != null ? { title: error } : {})}
                         className={`${
                             permissionsModule.EXEC_CLASS_NAME
-                        } grow rounded-r-full h-6 px-1.75 py-0.5 disabled:opacity-30 ${
+                        } h-6 grow rounded-r-full px-1.75 py-0.5 disabled:opacity-30 ${
                             permission.execute ? '' : 'opacity-30'
                         }`}
                         onClick={event => {
@@ -197,7 +197,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                     {...(disabled && error != null ? { title: error } : {})}
                     className={`${
                         permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-                    } rounded-full h-6 w-30.25 disabled:opacity-30`}
+                    } h-6 w-30.25 rounded-full disabled:opacity-30`}
                     onClick={doShowPermissionTypeSelector}
                 >
                     {permission.type}

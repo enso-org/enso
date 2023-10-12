@@ -264,7 +264,7 @@ export default function AssetRow(props: AssetRowProps) {
                 <tr>
                     <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
                         <div
-                            className={`flex justify-center rounded-full h-8 py-1 ${indent.indentClass(
+                            className={`flex h-8 justify-center rounded-full py-1 ${indent.indentClass(
                                 item.depth
                             )}`}
                         >
@@ -282,7 +282,7 @@ export default function AssetRow(props: AssetRowProps) {
                 <tr>
                     <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
                         <div
-                            className={`flex items-center rounded-full h-8 py-2 ${indent.indentClass(
+                            className={`flex h-8 items-center rounded-full py-2 ${indent.indentClass(
                                 item.depth
                             )}`}
                         >

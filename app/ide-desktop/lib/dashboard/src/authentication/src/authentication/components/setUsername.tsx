@@ -25,12 +25,12 @@ export default function SetUsername() {
     const [username, setUsername] = React.useState('')
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="flex min-h-screen flex-col items-center justify-center">
             <div
                 data-testid="set-username-panel"
-                className="flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full max-w-md"
+                className="flex w-full max-w-md flex-col rounded-md bg-white px-4 py-8 shadow-md sm:px-6 md:px-8 lg:px-10"
             >
-                <div className="font-medium self-center text-xl uppercase text-gray-800">
+                <div className="self-center text-xl font-medium uppercase text-gray-800">
                     Set your username
                 </div>
                 <div className="mt-10">
@@ -40,7 +40,7 @@ export default function SetUsername() {
                             await authSetUsername(backend, username, email)
                         }}
                     >
-                        <div className="flex flex-col mb-6">
+                        <div className="mb-6 flex flex-col">
                             <div className="relative">
                                 <SvgIcon>
                                     <SvgMask src={AtIcon} />
@@ -60,7 +60,7 @@ export default function SetUsername() {
                         <div className="flex w-full">
                             <button
                                 type="submit"
-                                className="flex items-center justify-center focus:outline-none text-white text-sm bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition duration-150 ease-in"
+                                className="flex w-full items-center justify-center rounded bg-blue-600 py-2 text-sm text-white transition duration-150 ease-in hover:bg-blue-700 focus:outline-none"
                             >
                                 <span className="mr-2 uppercase">Set username</span>
                                 <span>

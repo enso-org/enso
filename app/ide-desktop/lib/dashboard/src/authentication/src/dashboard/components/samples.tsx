@@ -96,7 +96,7 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
     return (
-        <div className="flex flex-col gap-1.5 h-51">
+        <div className="flex h-51 flex-col gap-1.5">
             <button
                 className="relative grow cursor-pointer"
                 onClick={() => {
@@ -111,9 +111,9 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
                     })
                 }}
             >
-                <div className="absolute bg-frame rounded-2xl w-full h-full opacity-60" />
-                <div className="relative flex rounded-2xl w-full h-full">
-                    <div className="flex flex-col text-center items-center gap-3 m-auto">
+                <div className="absolute h-full w-full rounded-2xl bg-frame opacity-60" />
+                <div className="relative flex h-full w-full rounded-2xl">
+                    <div className="m-auto flex flex-col items-center gap-3 text-center">
                         {spinnerState != null ? (
                             <div className="p-2">
                                 <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
@@ -121,7 +121,7 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
                         ) : (
                             <img src={ProjectIcon} />
                         )}
-                        <p className="font-semibold text-sm">New empty project</p>
+                        <p className="text-sm font-semibold">New empty project</p>
                     </div>
                 </div>
             </button>
@@ -164,10 +164,10 @@ function ProjectTile(props: InternalProjectTileProps) {
     )
 
     return (
-        <div className="flex flex-col gap-1.5 h-51">
+        <div className="flex h-51 flex-col gap-1.5">
             <button
                 key={template.title}
-                className="relative flex flex-col grow cursor-pointer text-left"
+                className="relative flex grow cursor-pointer flex-col text-left"
                 onClick={() => {
                     setSpinnerState(spinner.SpinnerState.initial)
                     onTemplateClick(template.id, onSpinnerStateChange)
@@ -177,37 +177,37 @@ function ProjectTile(props: InternalProjectTileProps) {
                     style={{
                         background: template.background,
                     }}
-                    className={`rounded-t-2xl w-full h-25 ${
+                    className={`h-25 w-full rounded-t-2xl ${
                         template.background != null ? '' : 'bg-frame'
                     }`}
                 />
-                <div className="grow bg-frame backdrop-blur rounded-b-2xl w-full px-4 pt-1.75 pb-3.5">
-                    <h2 className="text-sm font-bold leading-144.5 py-0.5">{template.title}</h2>
-                    <div className="text-xs text-ellipsis leading-144.5 pb-px">
+                <div className="w-full grow rounded-b-2xl bg-frame px-4 pb-3.5 pt-1.75 backdrop-blur">
+                    <h2 className="py-0.5 text-sm font-bold leading-144.5">{template.title}</h2>
+                    <div className="text-ellipsis pb-px text-xs leading-144.5">
                         {template.description}
                     </div>
                 </div>
                 {spinnerState != null && (
-                    <div className="absolute grid w-full h-25 place-items-center">
+                    <div className="absolute grid h-25 w-full place-items-center">
                         <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
                     </div>
                 )}
             </button>
-            <div className="flex justify-between text-primary h-4.5 px-4 opacity-70">
+            <div className="flex h-4.5 justify-between px-4 text-primary opacity-70">
                 <div className="flex gap-1.5">
                     <SvgMask src={Logo} />
-                    <span className="font-bold leading-144.5 pb-px">{author}</span>
+                    <span className="pb-px font-bold leading-144.5">{author}</span>
                 </div>
                 <div className="flex gap-3">
                     {/* Opens */}
                     <div className="flex gap-1.5">
                         <SvgMask src={OpenCountIcon} />
-                        <span className="font-bold leading-144.5 pb-px">{opens}</span>
+                        <span className="pb-px font-bold leading-144.5">{opens}</span>
                     </div>
                     {/* Likes */}
                     <div className="flex gap-1.5">
                         <SvgMask src={HeartIcon} />
-                        <span className="font-bold leading-144.5 pb-px">{likes}</span>
+                        <span className="pb-px font-bold leading-144.5">{likes}</span>
                     </div>
                 </div>
             </div>
@@ -232,8 +232,8 @@ export default function Samples(props: SamplesProps) {
     const { onTemplateClick } = props
     return (
         <div className="flex flex-col gap-4 px-4.75">
-            <h2 className="text-xl leading-144.5 py-0.5">Sample and community projects</h2>
-            <div className="grid gap-2 grid-cols-fill-60">
+            <h2 className="py-0.5 text-xl leading-144.5">Sample and community projects</h2>
+            <div className="grid grid-cols-fill-60 gap-2">
                 <ProjectsEntry onTemplateClick={onTemplateClick} />
                 {SAMPLES.map(template => (
                     <ProjectTile

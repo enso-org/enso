@@ -39,9 +39,9 @@ export default function Registration() {
     const { organizationId } = parseUrlSearchParams(location.search)
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-8">
-            <div className="rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 shadow-md px-4 py-6 sm:p-8">
-                <div className="font-medium self-center text-xl uppercase text-gray-800">
+        <div className="flex min-h-screen flex-col items-center justify-center p-8">
+            <div className="w-full max-w-sm rounded-md border border-gray-200 bg-white px-4 py-6 shadow-md sm:max-w-md sm:p-8">
+                <div className="self-center text-xl font-medium uppercase text-gray-800">
                     Create new account
                 </div>
 
@@ -53,7 +53,7 @@ export default function Registration() {
                         setIsSubmitting(false)
                     }}
                 >
-                    <div className="flex flex-col mb-4">
+                    <div className="mb-4 flex flex-col">
                         <label htmlFor="email" className="mb-1 text-xs tracking-wide text-gray-600">
                             E-Mail Address:
                         </label>
@@ -74,7 +74,7 @@ export default function Registration() {
                             />
                         </div>
                     </div>
-                    <div className="flex flex-col mb-4">
+                    <div className="mb-4 flex flex-col">
                         <label
                             htmlFor="password"
                             className="mb-1 text-xs tracking-wide text-gray-600"
@@ -100,7 +100,7 @@ export default function Registration() {
                             />
                         </div>
                     </div>
-                    <div className="flex flex-col mb-4">
+                    <div className="mb-4 flex flex-col">
                         <label
                             htmlFor="password_confirmation"
                             className="mb-1 text-xs tracking-wide text-gray-600"
@@ -126,11 +126,11 @@ export default function Registration() {
                             />
                         </div>
                     </div>
-                    <div className="flex w-full mt-6">
+                    <div className="mt-6 flex w-full">
                         <button
                             disabled={isSubmitting}
                             type="submit"
-                            className="flex items-center justify-center focus:outline-none text-white text-sm bg-indigo-600 hover:bg-indigo-700 rounded py-2 w-full transition duration-150 ease-in disabled:opacity-50"
+                            className="flex w-full items-center justify-center rounded bg-indigo-600 py-2 text-sm text-white transition duration-150 ease-in hover:bg-indigo-700 focus:outline-none disabled:opacity-50"
                         >
                             <span className="mr-2 uppercase">Register</span>
                             <span>
@@ -140,10 +140,10 @@ export default function Registration() {
                     </div>
                 </form>
             </div>
-            <div className="flex justify-center items-center mt-6">
+            <div className="mt-6 flex items-center justify-center">
                 <router.Link
                     to={app.LOGIN_PATH}
-                    className="inline-flex items-center font-bold text-indigo-500 hover:text-indigo-700 text-sm text-center"
+                    className="inline-flex items-center text-center text-sm font-bold text-indigo-500 hover:text-indigo-700"
                 >
                     <span>
                         <SvgMask src={GoBackIcon} />

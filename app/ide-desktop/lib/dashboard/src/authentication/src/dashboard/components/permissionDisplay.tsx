@@ -29,7 +29,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
                 <div
                     className={`${
                         permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-                    } inline-block rounded-full h-6 px-1.75 py-0.5 ${className ?? ''}`}
+                    } inline-block h-6 rounded-full px-1.75 py-0.5 ${className ?? ''}`}
                     onClick={onClick}
                     onMouseEnter={onMouseEnter}
                     onMouseLeave={onMouseLeave}
@@ -48,15 +48,15 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
                     onMouseLeave={onMouseLeave}
                 >
                     {permission.docs && (
-                        <div className="border-permission-docs clip-path-top border-2 rounded-full absolute w-full h-full" />
+                        <div className="clip-path-top absolute h-full w-full rounded-full border-2 border-permission-docs" />
                     )}
                     {permission.execute && (
-                        <div className="border-permission-exec clip-path-bottom border-2 rounded-full absolute w-full h-full" />
+                        <div className="clip-path-bottom absolute h-full w-full rounded-full border-2 border-permission-exec" />
                     )}
                     <div
                         className={`${
                             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-                        } rounded-full h-6 px-1.75 py-0.5 m-1`}
+                        } m-1 h-6 rounded-full px-1.75 py-0.5`}
                     >
                         {children}
                     </div>

@@ -162,11 +162,11 @@ export default function Drive(props: DriveProps) {
     }, [page])
 
     return isListingRemoteDirectoryWhileOffline ? (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+        <div className={`mx-2 grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
             <div className="flex flex-col gap-4">
-                <div className="text-base text-center">You are not signed in.</div>
+                <div className="text-center text-base">You are not signed in.</div>
                 <button
-                    className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
+                    className="h-8 w-16 self-center rounded-full bg-help py-px text-base leading-170 text-white"
                     onClick={() => {
                         navigate(app.LOGIN_PATH)
                     }}
@@ -176,27 +176,27 @@ export default function Drive(props: DriveProps) {
             </div>
         </div>
     ) : isListingLocalDirectoryAndWillFail ? (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-            <div className="text-base text-center">
+        <div className={`mx-2 grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
+            <div className="text-center text-base">
                 Could not connect to the Project Manager. Please try restarting{' '}
                 {common.PRODUCT_NAME}, or manually launching the Project Manager.
             </div>
         </div>
     ) : isListingRemoteDirectoryAndWillFail ? (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-            <div className="text-base text-center">
+        <div className={`mx-2 grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
+            <div className="text-center text-base">
                 We will review your user details and enable the cloud experience for you shortly.
             </div>
         </div>
     ) : (
         <div
             data-testid="drive-view"
-            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
+            className={`mt-8 flex flex-1 flex-col gap-2.5 overflow-hidden px-3.25 ${
                 hidden ? 'hidden' : ''
             }`}
         >
-            <div className="flex flex-col self-start gap-3">
-                <h1 className="text-xl font-bold h-9.5 pl-1.5">
+            <div className="flex flex-col gap-3 self-start">
+                <h1 className="h-9.5 pl-1.5 text-xl font-bold">
                     {backend.type === backendModule.BackendType.remote
                         ? 'Cloud Drive'
                         : 'Local Drive'}
@@ -238,7 +238,7 @@ export default function Drive(props: DriveProps) {
             organization != null &&
             backend.type === backendModule.BackendType.remote ? (
                 <div
-                    className="text-white text-lg fixed w-screen h-screen inset-0 opacity-0 hover:opacity-100 bg-primary bg-opacity-75 backdrop-blur-none hover:backdrop-blur-xs transition-all grid place-items-center"
+                    className="fixed inset-0 grid h-screen w-screen place-items-center bg-primary bg-opacity-75 text-lg text-white opacity-0 backdrop-blur-none transition-all hover:opacity-100 hover:backdrop-blur-xs"
                     onDragLeave={() => {
                         setIsFileBeingDragged(false)
                     }}
