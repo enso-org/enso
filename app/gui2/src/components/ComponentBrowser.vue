@@ -6,10 +6,10 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useApproach } from '@/util/animation'
-import { useResizeObserver } from '@/util/events'
+import { useDocumentEvent, useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch, watchEffect } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -58,25 +58,34 @@ const currentFiltering = computed(() => {
 watch(currentFiltering, selectLastAfterRefresh)
 
 function readInputFieldSelection() {
-  console.log('readInputFieldSelection')
-  if (inputField.value != null) {
-    console.log(`old: ${JSON.stringify(input.selection.value)}`)
-    input.selection.value.start = inputField.value.selectionStart ?? 0
-    input.selection.value.end = inputField.value.selectionEnd ?? 0
-    console.log(`new: ${JSON.stringify(input.selection.value)}`)
+  if (
+    inputField.value != null &&
+    inputField.value.selectionStart != null &&
+    inputField.value.selectionEnd != null
+  ) {
+    input.selection.value.start = inputField.value.selectionStart
+    input.selection.value.end = inputField.value.selectionEnd
   }
 }
+// HTMLInputElement's same event is not supported in chrome yet. We just react for any
+// selectionchange in the document and check if the input selection chagned.
+useDocumentEvent('selectionchange', readInputFieldSelection)
 
-watch(input.selection, (newPos) => {
-  if (inputField.value == null) return
-  // Do nothing if boundaries didn't change. We don't want to affect selection dir.
-  if (
-    inputField.value.selectionStart == newPos.start &&
-    inputField.value.selectionEnd == newPos.end
-  )
-    return
-  inputField.value.setSelectionRange(newPos.start, newPos.end)
-})
+watch(
+  input.selection,
+  (newPos) => {
+    if (inputField.value == null) return
+    // Do nothing if boundaries didn't change. We don't want to affect selection dir.
+    if (
+      inputField.value.selectionStart == newPos.start &&
+      inputField.value.selectionEnd == newPos.end
+    )
+      return
+    inputField.value.setSelectionRange(newPos.start, newPos.end)
+  },
+  // This update should be after any possible inputField content udpate.
+  { flush: 'post' },
+)
 
 function applySuggestion() {
   const suggestion = selectedSuggestion.value
@@ -332,7 +341,7 @@ function handleKeydown(e: KeyboardEvent) {
       <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
     <div class="CBInput">
-      <input ref="inputField" v-model="input.code.value" @keyup="readInputFieldSelection" />
+      <input ref="inputField" v-model="input.code.value" />
     </div>
   </div>
 </template>
