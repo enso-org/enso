@@ -21,8 +21,8 @@ public abstract class MethodGenerator {
   protected final boolean convertToGuestValue;
   protected final TypeWithKind returnTpe;
   protected final ProcessingEnvironment processingEnvironment;
-  private static final String FromElementName = "from";
-  private static final String ToElementName = "to";
+  private static final String FROM_ELEMENT_NAME = "from";
+  private static final String TO_ELEMENT_NAME = "to";
   private static final Class<? extends Annotation> wrapExceptionAnnotationClass = Builtin.WrapException.class;
   private static final Class<? extends Annotation> wrapExceptionsAnnotationClass = Builtin.WrapExceptions.class;
 
@@ -175,8 +175,8 @@ public abstract class MethodGenerator {
           Name key = entry.getKey().getSimpleName();
           var annotationVisitor = new AnnotationTypeVisitor();
           switch (key.toString()) {
-            case FromElementName -> valueFrom = entry.getValue().accept(annotationVisitor, null);
-            case ToElementName -> valueTo = entry.getValue().accept(annotationVisitor, null);
+            case FROM_ELEMENT_NAME -> valueFrom = entry.getValue().accept(annotationVisitor, null);
+            case TO_ELEMENT_NAME -> valueTo = entry.getValue().accept(annotationVisitor, null);
           }
         }
         if (valueFrom != null) {
@@ -226,8 +226,8 @@ public abstract class MethodGenerator {
       for (var entry : a.getElementValues().entrySet()) {
         var name = entry.getKey().getSimpleName().toString();
         switch (name) {
-          case "from" -> valueFrom = entry.getValue().accept(typeVisitor, null);
-          case "to" -> valueTo = entry.getValue().accept(typeVisitor, null);
+          case FROM_ELEMENT_NAME -> valueFrom = entry.getValue().accept(typeVisitor, null);
+          case TO_ELEMENT_NAME -> valueTo = entry.getValue().accept(typeVisitor, null);
           default -> processingEnvironment.getMessager().printMessage(
               Kind.ERROR,
               "Unknown annotation element name: " + name);
