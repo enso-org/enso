@@ -1,0 +1,70 @@
+from Standard.Base import all
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    Test.group prefix+"Table.set with Column_Operation" <|
+        Test.specify "arithmetics" <|
+            t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
+            t.set (Column_Operation.Add (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [11, 42]
+            t.set (Column_Operation.Add 100 (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [110, 140]
+            t.set (Column_Operation.Add (Column_Ref.Name "A") 100) "C" . at "C" . to_vector . should_equal [101, 102]
+            t.set (Column_Operation.Add 23 100) "C" . at "C" . to_vector . should_equal [123, 123]
+
+            t.set (Column_Operation.Subtract (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [-9, -38]
+            t.set (Column_Operation.Subtract 100 (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [90, 60]
+            t.set (Column_Operation.Subtract (Column_Ref.Name "A") 100) "C" . at "C" . to_vector . should_equal [-99, -98]
+            t.set (Column_Operation.Subtract 23 100) "C" . at "C" . to_vector . should_equal [-77, -77]
+
+            t.set (Column_Operation.Multiply (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [10, 80]
+            t.set (Column_Operation.Multiply 100 (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [1000, 4000]
+            t.set (Column_Operation.Multiply (Column_Ref.Name "A") 100) "C" . at "C" . to_vector . should_equal [100, 200]
+            t.set (Column_Operation.Multiply 23 100) "C" . at "C" . to_vector . should_equal [2300, 2300]
+
+            t.set (Column_Operation.Divide (Column_Ref.Name "B") (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [10, 20]
+            t.set (Column_Operation.Divide (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [0.1, 0.05]
+            t.set (Column_Operation.Divide 1 (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [1, 0.5]
+            t.set (Column_Operation.Divide 1 2) "C" . at "C" . to_vector . should_equal [0.5, 0.5]
+
+            t2 = table_builder [["A", [23, 42]], ["B", [10, 3]]]
+            t2.set (Column_Operation.Mod (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [3, 0]
+            t2.set (Column_Operation.Mod (Column_Ref.Name "A") 10) "C" . at "C" . to_vector . should_equal [3, 2]
+            t2.set (Column_Operation.Mod 7 5) "C" . at "C" . to_vector . should_equal [2, 2]
+
+            t.set (Column_Operation.Power (Column_Ref.Name "B") (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [10, 1600]
+            t.set (Column_Operation.Power (Column_Ref.Name "A") 3) "C" . at "C" . to_vector . should_equal [1, 8]
+            t.set (Column_Operation.Power 2 (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [2, 4]
+            t.set (Column_Operation.Power 3 4) "C" . at "C" . to_vector . should_equal [81, 81]
+
+        Test.specify "rounding" <|
+            t = table_builder [["A", [1.13333, 122.74463, 32.52424, -12.7]]]
+            t.set (Column_Operation.Round (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [1, 123, 33, -13]
+            t.set (Column_Operation.Round (Column_Ref.Name "A") precision=1) "Z" . at "Z" . to_vector . should_equal [1.1, 122.7, 32.5, -12.7]
+            t.set (Column_Operation.Round (Column_Ref.Name "A") precision=-1) "Z" . at "Z" . to_vector . should_equal [0, 120, 30, -10]
+
+            t.set (Column_Operation.Ceil (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [2, 123, 33, -12]
+            t.set (Column_Operation.Floor (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [1, 122, 32, -13]
+            t.set (Column_Operation.Truncate (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [1, 122, 32, -12]
+
+        Test.specify "date/time" <|
+            Nothing
+        Test.specify "boolean" <|
+            Nothing
+        Test.specify "if" <|
+            Nothing
+        Test.specify "text" <|
+            Nothing
+        Test.specify "min/max" <|
+            Nothing
+        Test.specify "type checks" <|
+            Nothing

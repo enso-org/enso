@@ -94,7 +94,7 @@ type Column_Operation
             Column_Operation.Multiply _ rhs -> input_column * (table.resolve rhs)
             Column_Operation.Divide _ rhs   -> input_column / (table.resolve rhs)
             Column_Operation.Mod _ rhs      -> input_column % (table.resolve rhs)
-            Column_Operation.Power _ rhs    -> input_column ** (table.resolve rhs)
+            Column_Operation.Power _ rhs    -> input_column ^ (table.resolve rhs)
 
             Column_Operation.Round _ precision use_bankers ->
                 input_column.round precision use_bankers
