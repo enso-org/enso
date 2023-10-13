@@ -145,7 +145,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       resultType = Constants.UNRESOLVED_SYMBOL;
     } else {
       var typeOfNode = TypeOfNode.getUncached();
-      Object typeResult = typeOfNode.execute(value);
+      Object typeResult = value == null ? null : typeOfNode.execute(value);
       if (typeResult instanceof Type t) {
         resultType = t.getQualifiedName().toString();
       } else {
