@@ -4,6 +4,7 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
+import scala.concurrent.ExecutionContext
 
 /** A command that opens a file.
   *
@@ -14,7 +15,8 @@ class OpenFileCmd(request: Api.OpenFileNotification)
 
   /** @inheritdoc */
   override def executeSynchronously(implicit
-    ctx: RuntimeContext
+    ctx: RuntimeContext,
+    ec: ExecutionContext
   ): Unit = {
     val logger            = ctx.executionService.getLogger
     val readLockTimestamp = ctx.locking.acquireReadCompilationLock()
