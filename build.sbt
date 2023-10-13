@@ -1,18 +1,15 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks._
+import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers._
+import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
-import com.sandinh.javamodule.moduleinfo.AutomaticModule
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import com.sandinh.javamodule.moduleinfo.{AutomaticModule, JpmsModule}
 
 import java.io.File
 
