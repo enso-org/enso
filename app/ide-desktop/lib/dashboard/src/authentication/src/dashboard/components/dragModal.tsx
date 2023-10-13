@@ -19,6 +19,7 @@ const DEFAULT_OFFSET_PX = 16
 /** Props for a {@link DragModal}. */
 export interface DragModalProps extends React.PropsWithChildren<JSX.IntrinsicElements['div']> {
     event: React.DragEvent
+    doCleanup: () => void
     offsetPx?: number
     offsetXPx?: number
     offsetYPx?: number
@@ -34,6 +35,7 @@ export default function DragModal(props: DragModalProps) {
         children,
         style,
         className,
+        doCleanup,
         ...passthrough
     } = props
     const { unsetModal } = modalProvider.useSetModal()
@@ -48,6 +50,7 @@ export default function DragModal(props: DragModalProps) {
             }
         }
         const onDragEnd = () => {
+            doCleanup()
             unsetModal()
         }
         document.addEventListener('drag', onDrag)
@@ -56,6 +59,8 @@ export default function DragModal(props: DragModalProps) {
             document.removeEventListener('drag', onDrag)
             document.removeEventListener('dragend', onDragEnd)
         }
+        // `doCleanup` is a callback, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         /* should never change */ offsetPx,
         /* should never change */ offsetXPx,

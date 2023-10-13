@@ -77,12 +77,18 @@ const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 // ============================
 
 const ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE = 'application/x-enso-asset-list'
-
-const ASSET_ROWS_DRAG_PAYLOAD_MAP = new WeakMap<DataTransfer, AssetRowsDragPayload>()
+const ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE_REGEX = new RegExp(
+    '^' + ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE + '; id=(.+)$'
+)
+const ASSET_ROWS_DRAG_PAYLOAD_MAP = new Map<string, AssetRowsDragPayload>()
 
 /** Resolve to an {@link AssetRowsDragPayload}, if any, else resolve to `null`. */
 export function tryGetAssetRowsDragPayload(dataTransfer: DataTransfer) {
-    return ASSET_ROWS_DRAG_PAYLOAD_MAP.get(dataTransfer) ?? null
+    const item = Array.from(dataTransfer.items).find(dataTransferItem =>
+        dataTransferItem.type.startsWith(ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE)
+    )
+    const id = item?.type.match(ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE_REGEX)?.[1] ?? null
+    return id != null ? ASSET_ROWS_DRAG_PAYLOAD_MAP.get(id) ?? null : null
 }
 
 /** Metadata for an asset row. */
@@ -1315,11 +1321,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 key: node.key,
                                 asset: node.item,
                             }))
+                            const id = uniqueString.uniqueString()
                             event.dataTransfer.setData(
-                                ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE,
+                                `${ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE}; id=${id}`,
                                 JSON.stringify(data)
                             )
-                            ASSET_ROWS_DRAG_PAYLOAD_MAP.set(event.dataTransfer, data)
+                            ASSET_ROWS_DRAG_PAYLOAD_MAP.set(id, data)
                             const blankElement = document.createElement('div')
                             blankElement.style.position = 'fixed'
                             blankElement.style.height = blankElement.style.width = '0'
@@ -1330,7 +1337,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                     <DragModal
                                         event={event}
                                         className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
-                                        onDrop={() => {
+                                        doCleanup={() => {
+                                            ASSET_ROWS_DRAG_PAYLOAD_MAP.delete(id)
                                             blankElement.remove()
                                         }}
                                     >
