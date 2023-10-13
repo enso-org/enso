@@ -21,6 +21,9 @@ export function evalWatchSource<T>(src: WatchSource<T>): T {
   return isRef(src) ? src.value : src()
 }
 
+export type OnCleanup = (fn: () => void) => void
+export type StopEffect = () => void
+
 /**
  * A set of effects that will defer their re-execution until an explicit flush. This is useful for
  * implementing incremental updates to an external data structure, while delaying the update logic
@@ -37,40 +40,32 @@ export class LazySyncEffectSet {
    *
    * Returns a function that can be used to manually stop the effect.
    */
-  lazyEffect(fn: (onCleanup: (cleanupFn: () => void) => void) => void): () => void {
+  lazyEffect(fn: (onCleanup: OnCleanup) => void): StopEffect {
     return (
       this.scope.run(() => {
-        let dirty = true
-        let userCleanup: (() => void) | null = null
-        const callUserCleanup = () => {
-          if (userCleanup != null) {
-            callWithErrorHandling(userCleanup, null, 4 /* ErrorCodes.WATCH_CLEANUP */)
-            userCleanup = null
+        let cleanup: (() => void) | null = null
+        const callCleanup = () => {
+          if (cleanup != null) {
+            callWithErrorHandling(cleanup, null, 4 /* ErrorCodes.WATCH_CLEANUP */)
+            cleanup = null
           }
         }
-
-        function onCleanup(cleanupFn: () => void) {
-          userCleanup = cleanupFn
+        function onCleanup(fn: () => void) {
+          cleanup = fn
         }
 
         const runner = effect(
           () => {
-            if (dirty) {
-              dirty = false
-              callUserCleanup()
-              fn(onCleanup)
-            }
+            callCleanup()
+            fn(onCleanup)
           },
           {
             scheduler: () => {
-              if (!dirty) {
-                dirty = true
-                this.dirtyRunners.add(runner)
-              }
+              this.dirtyRunners.add(runner)
             },
             onStop: () => {
               this.dirtyRunners.delete(runner)
-              callUserCleanup()
+              callCleanup()
             },
           },
         )
@@ -120,7 +115,7 @@ if (import.meta.vitest) {
       onCleanup(() => lazilyUpdatedMap.delete(currentValue))
     })
 
-    // Dependant watcher, notices when -1 key is inserted into the map by another effect.
+    // Dependant effect, notices when -1 key is inserted into the map by another effect.
     const cleanupSpy = vi.fn()
     lazySet.lazyEffect((onCleanup) => {
       const negOne = lazilyUpdatedMap.get(-1)
@@ -171,7 +166,7 @@ if (import.meta.vitest) {
     lazySet.flush()
     expect(
       lazilyUpdatedMap,
-      'Flush should trigger remaining updates, but not run the stopped watchers',
+      'Flush should trigger remaining updates, but not run the stopped effects',
     ).toEqual(new Map([[103, 'b3']]))
 
     key1.value = 4
@@ -228,7 +223,7 @@ if (import.meta.vitest) {
     key2.value = 1
     lazySet.flush()
     expect(cleanupSpy).toHaveBeenCalledTimes(1)
-    expect(lazilyUpdatedMap, 'Dependant watcher is cleaned up.').toEqual(
+    expect(lazilyUpdatedMap, 'Dependant effect is cleaned up.').toEqual(
       new Map([
         [1, 'b8'],
         [5, 'c6'],
@@ -236,6 +231,8 @@ if (import.meta.vitest) {
     )
 
     key2.value = 2
+    lazySet.flush()
+    key2.value = -1
     lazySet.flush()
     expect(cleanupSpy, 'Cleanup runs only once.').toHaveBeenCalledTimes(1)
   })
