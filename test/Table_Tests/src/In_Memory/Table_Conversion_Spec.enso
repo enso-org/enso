@@ -245,7 +245,7 @@ spec =
             range1 = (Date.new 2020 10 28).up_to (Date.new 2020 11 16) . with_step Date_Period.Week
             range2 = (Date.new 2023 07 03).up_to (Date.new 2023 10 03) . with_step Date_Period.Month
             values_to_expand = [range0, range1, range2]
-            values_expanded = [Date.new 2020 02 28, Date.new 2020 02 29, Date.new 2020 10 28, Date.new 2020 11 4, Date.new 2020 11 11, Date.new 2023 07 03, Date.new 2023 08 03, Date.new 2023 09 03]
+            values_expanded = [Date.new 2020 02 28, Date.new 2020 02 29] + [Date.new 2020 10 28, Date.new 2020 11 4, Date.new 2020 11 11, Date.new 2023 07 03, Date.new 2023 08 03] + [Date.new 2023 09 03]
             table = Table.new [["aaa", [1, 2, 3]], ["bbb", values_to_expand], ["ccc", [5, 6, 7]]]
             expected = Table.new [["aaa", [1, 1, 2, 2, 2, 3, 3, 3]], ["bbb", values_expanded], ["ccc", [5, 5, 6, 6, 6, 7, 7, 7]]]
             table.expand_to_rows "bbb" . should_equal expected
