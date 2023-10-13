@@ -1273,13 +1273,6 @@ lazy val `runtime-language-epb` =
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
-    moduleInfos := Seq(
-      AutomaticModule(
-        "org.enso.runtime"
-      )
-    ),
-    // This is needed to make JPMS work in sbt
-    compileOrder := CompileOrder.JavaThenScala,
     frgaalJavaCompilerSetting,
     truffleDslSuppressWarnsSetting,
     Compile / logManager :=
@@ -1331,6 +1324,65 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
     ),
+  )
+  // JPMS related compilation settings
+  // Note that runtime needs to be an explicit JPMS module.
+  .settings(
+    moduleInfos := Seq(
+      JpmsModule(
+        "org.enso.runtime"
+      )
+    ),
+    Compile / javacOptions ++= {
+      // Put only Truffle and Graal related artifacts on module-path.
+      val managedCp = (Compile / managedClasspath).value.map(_.data)
+      val truffleRelatedArtifacts = managedCp
+        .filter(file => file.getPath.contains("graalvm") || file.getPath.contains("truffle"))
+      val modulePathStr = truffleRelatedArtifacts
+        .map(_.getAbsolutePath)
+        .mkString(File.pathSeparator)
+      Seq(
+        "--module-path",
+        modulePathStr,
+      )
+    },
+    // Filter module-info.java from the compilation
+    excludeFilter := excludeFilter.value || "module-info.java",
+    // Manual compilation of module-info.java before packageBin task, i.e.,
+    // before classes are packaged into Jar.
+    (Compile / packageBin) := (Compile / packageBin)
+      .dependsOn(
+        Def.task {
+          val moduleInfo = (Compile / javaSource).value / "module-info.java"
+          val log = streams.value.log
+          val incToolOpts = IncToolOptionsUtil.defaultIncToolOptions()
+          val reporter = (Compile / compile / bspReporter).value
+          val output = CompileOutput((Compile / classDirectory).value.toPath)
+          log.info("Compiling module-info.java with javac")
+          val outputAbsPath: String = output
+            .getSingleOutputAsPath
+            .get()
+            .toAbsolutePath
+            .toString
+          val opts: List[String] =
+            (Compile / javacOptions).value.toList ++
+              List("-d", outputAbsPath)
+          val javaCompiler =
+            (Compile / compile / compilers).value.javaTools.javac()
+          val succ = javaCompiler.run(
+            Array(PlainVirtualFile(moduleInfo.toPath)),
+            opts.toArray,
+            output,
+            incToolOpts,
+            reporter,
+            log
+          )
+          if (!succ) {
+            log.error(s"Compilation of ${moduleInfo} failed")
+          }
+        }
+      )
+      .value
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
