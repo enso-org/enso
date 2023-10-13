@@ -86,6 +86,7 @@ export default function Drive(props: DriveProps) {
     )
     const [labels, setLabels] = React.useState<backendModule.Label[]>([])
     const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
+    const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
     const [deletedLabelNames, setDeletedLabelNames] = React.useState(
         new Set<backendModule.LabelName>()
     )
@@ -155,11 +156,13 @@ export default function Drive(props: DriveProps) {
 
     const doCreateLabel = React.useCallback(
         async (value: string, color: backendModule.LChColor) => {
+            const newLabelName = backendModule.LabelName(value)
             const placeholderLabel: backendModule.Label = {
                 id: backendModule.TagId(uniqueString.uniqueString()),
-                value: backendModule.LabelName(value),
+                value: newLabelName,
                 color,
             }
+            setNewLabelNames(labelNames => new Set([...labelNames, newLabelName]))
             setLabels(oldLabels => [...oldLabels, placeholderLabel])
             try {
                 const newLabel = await backend.createTag({ value, color })
@@ -199,6 +202,10 @@ export default function Drive(props: DriveProps) {
                     return found ? (newLabels.length === 0 ? null : newLabels) : oldLabels
                 })
             }
+            setNewLabelNames(
+                labelNames =>
+                    new Set([...labelNames].filter(labelName => labelName !== newLabelName))
+            )
         },
         [backend, /* should never change */ toastAndLog]
     )
@@ -314,6 +321,7 @@ export default function Drive(props: DriveProps) {
                             setCurrentLabels={setCurrentLabels}
                             doCreateLabel={doCreateLabel}
                             doDeleteLabel={doDeleteLabel}
+                            newLabelNames={newLabelNames}
                             deletedLabelNames={deletedLabelNames}
                         />
                     </div>

@@ -23,6 +23,7 @@ export interface LabelsProps {
     setCurrentLabels: React.Dispatch<React.SetStateAction<backend.LabelName[] | null>>
     doCreateLabel: (name: string, color: backend.LChColor) => void
     doDeleteLabel: (id: backend.TagId, name: backend.LabelName) => void
+    newLabelNames: Set<backend.LabelName>
     deletedLabelNames: Set<backend.LabelName>
 }
 
@@ -34,6 +35,7 @@ export default function Labels(props: LabelsProps) {
         setCurrentLabels,
         doCreateLabel,
         doDeleteLabel,
+        newLabelNames,
         deletedLabelNames,
     } = props
     const { setModal } = modalProvider.useSetModal()
@@ -53,6 +55,7 @@ export default function Labels(props: LabelsProps) {
                             <Label
                                 color={label.color}
                                 active={currentLabels?.includes(label.value) ?? false}
+                                disabled={newLabelNames.has(label.value)}
                                 onClick={() => {
                                     setCurrentLabels(oldLabels => {
                                         if (oldLabels == null) {
@@ -70,26 +73,28 @@ export default function Labels(props: LabelsProps) {
                             >
                                 {label.value}
                             </Label>
-                            <button
-                                className="flex"
-                                onClick={event => {
-                                    event.stopPropagation()
-                                    setModal(
-                                        <ConfirmDeleteModal
-                                            description={`the label '${label.value}'`}
-                                            doDelete={() => {
-                                                doDeleteLabel(label.id, label.value)
-                                            }}
-                                        />
-                                    )
-                                }}
-                            >
-                                <SvgMask
-                                    src={Trash2Icon}
-                                    alt="Delete"
-                                    className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
-                                />
-                            </button>
+                            {!newLabelNames.has(label.value) && (
+                                <button
+                                    className="flex"
+                                    onClick={event => {
+                                        event.stopPropagation()
+                                        setModal(
+                                            <ConfirmDeleteModal
+                                                description={`the label '${label.value}'`}
+                                                doDelete={() => {
+                                                    doDeleteLabel(label.id, label.value)
+                                                }}
+                                            />
+                                        )
+                                    }}
+                                >
+                                    <SvgMask
+                                        src={Trash2Icon}
+                                        alt="Delete"
+                                        className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
+                                    />
+                                </button>
+                            )}
                         </li>
                     ))}
                 <li>

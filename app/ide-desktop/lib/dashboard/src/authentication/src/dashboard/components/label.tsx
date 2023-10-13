@@ -25,6 +25,8 @@ export const DEFAULT_LABEL_COLOR: backend.LChColor = {
 interface InternalLabelProps extends React.PropsWithChildren {
     /** When true, the button is not faded out even when not hovered. */
     active?: boolean
+    /** When true, the button cannot be clicked. */
+    disabled?: boolean
     color: backend.LChColor
     className?: string
     onClick: React.MouseEventHandler<HTMLButtonElement>
@@ -32,12 +34,20 @@ interface InternalLabelProps extends React.PropsWithChildren {
 
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
-    const { active = false, color, className = 'text-tag-text', onClick, children } = props
+    const {
+        active = false,
+        disabled = false,
+        color,
+        className = 'text-tag-text',
+        onClick,
+        children,
+    } = props
     return (
         <button
-            className={`cursor-pointer flex items-center rounded-full gap-1.5 h-6 px-2.25 group-hover:opacity-100 ${className} ${
+            disabled={disabled}
+            className={`flex items-center rounded-full gap-1.5 h-6 px-2.25 ${className} ${
                 active ? '' : 'text-not-selected opacity-50'
-            } ${
+            } ${disabled ? '' : 'group-hover:opacity-100'} ${
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                 color.lightness <= 50 ? 'text-tag-text placeholder-tag-text' : 'text-primary'
             }`}
