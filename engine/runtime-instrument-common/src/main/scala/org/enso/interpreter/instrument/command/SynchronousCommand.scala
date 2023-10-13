@@ -44,6 +44,9 @@ abstract class SynchronousCommand(maybeRequestId: Option[RequestId])
     }
   }
 
-  def executeSynchronously(implicit ctx: RuntimeContext): Unit
+  def executeSynchronously(implicit
+    ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Unit
 
 }
