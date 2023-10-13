@@ -7,19 +7,19 @@ import GraphNode from '@/components/GraphNode.vue'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useGraphStore, type Edge } from '@/stores/graph'
+import type { UnconnectedEdge } from '@/stores/graph.ts'
 import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, usePointer, useWindowEvent } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
+import { defineKeybinds } from '@/util/shortcuts.ts'
 import { Vec2 } from '@/util/vec2'
-import * as set from 'lib0/set'
 import { clamp } from '@vueuse/core'
+import * as set from 'lib0/set'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-import { defineKeybinds } from "@/util/shortcuts.ts";
-import type { UnconnectedEdge } from "@/stores/graph.ts";
 </script>
 <script setup lang="ts">
 const EXECUTION_MODES = ['design', 'live']
@@ -48,7 +48,10 @@ function updateExprRect(id: ExprId, rect: Rect) {
 }
 
 useWindowEvent('keydown', (event) => {
-  disconnectedEdgeBindingsHandler(event) || graphBindingsHandler(event) || nodeSelectionHandler(event) || codeEditorHandler(event)
+  disconnectedEdgeBindingsHandler(event) ||
+    graphBindingsHandler(event) ||
+    nodeSelectionHandler(event) ||
+    codeEditorHandler(event)
 })
 
 onMounted(() => viewportNode.value?.focus())
@@ -280,8 +283,6 @@ const groupColors = computed(() => {
   return styles
 })
 
-
-
 const disconnectedEdgeBindings = defineKeybinds('disconnected-edge', {
   cancel: ['Escape'],
   connect: ['PointerMain'],
@@ -305,7 +306,7 @@ const disconnectedEdgeBindingsHandler = disconnectedEdgeBindings.handler({
       graphStore.unconnectedEdge = undefined
     }
     return true
-  }
+  },
 })
 useWindowEvent('pointerdown', disconnectedEdgeBindingsHandler, { capture: true })
 

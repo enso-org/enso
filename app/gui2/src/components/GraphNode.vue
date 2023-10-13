@@ -503,7 +503,7 @@ watchEffect(() => {
           :span="node.rootSpan"
           :offset="0"
           @updateExprRect="updateExprRect"
-          @updateHoveredExpr="expr => emit('updateHoveredExpr', expr)"
+          @updateHoveredExpr="(expr) => emit('updateHoveredExpr', expr)"
         />
       </div>
     </div>
