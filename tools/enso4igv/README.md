@@ -20,7 +20,7 @@ Java/Enso code interchangeably.
 After installing the Enso `.vsix` file (and reloading window) we can find
 following two extensions in the system:
 
-![Installed VSCode extensions](https://github.com/enso-org/enso/assets/26887752/7dcfc0a0-8e7f-4aa6-ae67-99c3f875a658)
+![Installed VSCode extensions](https://user-images.githubusercontent.com/26887752/274904239-ae1ad4cc-e2ec-4c5b-bca0-c7d7189c6885.png)
 
 ## Using & Debugging
 
