@@ -29,6 +29,9 @@ spec =
             { "first": "Mary", "last": "Smith", "age": 23 },
             { "height": 1.9, "weight": 70 }
         ]
+    library_test_file = enso_project.data / "xml" / "library.xml"
+    library_document = XML_Document.from_file library_test_file
+    library_root = library_document . root_element
 
     Test.group "from_objects with single values" <|
         Test.specify "Can create a table from a single value" <|
@@ -275,5 +278,18 @@ spec =
         Test.specify "Missing column" <|
             table = Table.new [["aaa", [1, 2, 3]], ["notbbbb", [8, 8, 8]], ["ccc", [5, 6, 7]]]
             table.expand_to_rows "bbb" . should_fail_with No_Such_Column
+
+    Test.group "XML" <|
+        Test.specify "Can convert XML_Document and XML_Element to a table" <|
+            [library_document, library_root].map x->
+                t = x.to Table
+                t.at "Name" . to_vector . should_equal ["Library"]
+                t.at "@catalog" . to_vector . should_equal ["Fiction"]
+                t.at "@letter" . to_vector . should_equal ["A"]
+                t.at "Children" . at 0 . at 0 . trim . should_equal "Hello"
+                t.at "Children" . at 0 . at 1 . name . should_equal "Book"
+                t.at "Children" . at 0 . at 2 . trim . should_equal "World"
+                t.at "Children" . at 0 . at 3 . name . should_equal "Book"
+                t.at "Children" . at 0 . at 4 . name . should_equal "Magazine"
 
 main = Test_Suite.run_main spec

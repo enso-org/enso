@@ -14,15 +14,16 @@ import project.Internal.Java_Exports
 from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE
-expand_column : Table -> (Text | Integer) -> ((Vector Text) | Nothing) -> (Text | Nothing) -> Table
-expand_column table column fields prefix =
+expand_column : Table -> (Text | Integer) -> ((Vector Text) | Nothing) -> (Text | Nothing) -> Boolean -> Table
+expand_column table column fields prefix omit_prefix=False =
     column_object = table.at column
     expanded = create_table_from_objects column_object.to_vector fields
 
     output_builder = Vector.new_builder table.column_count+expanded.column_count-1
 
     ## Resolve names
-    resolved_prefix = if prefix.is_nothing then column_object.name+" " else prefix
+    resolved_prefix = if omit_prefix then "" else
+        if prefix.is_nothing then column_object.name+" " else prefix
     naming_strategy = table.column_naming_helper.create_unique_name_strategy
     naming_strategy.mark_used (table.column_names.filter (c->c!=column_object.name))
     new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> resolved_prefix+n)
