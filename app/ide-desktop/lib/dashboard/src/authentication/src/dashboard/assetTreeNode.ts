@@ -19,8 +19,7 @@ export interface AssetTreeNode {
     directoryKey: backendModule.AssetId | null
     /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
     directoryId: backendModule.DirectoryId | null
-    /** This is `null` if the asset is not a directory asset, OR if it is a collapsed directory
-     * asset. */
+    /** This is `null` if the asset has no children, OR if its children have not yet been fetched. */
     children: AssetTreeNode[] | null
     depth: number
 }

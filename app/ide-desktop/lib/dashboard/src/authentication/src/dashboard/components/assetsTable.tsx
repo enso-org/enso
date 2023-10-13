@@ -441,7 +441,29 @@ export default function AssetsTable(props: AssetsTableProps) {
                         )
                         if (!signal.aborted) {
                             setIsLoading(false)
-                            overwriteAssets(newAssets)
+                            overwriteAssets(
+                                newAssets.filter(
+                                    asset => asset.projectState?.parentProjectId == null
+                                )
+                            )
+                            const childProjects = newAssets.filter(
+                                asset => asset.projectState?.parentProjectId != null
+                            )
+                            setAssetTree(oldTree => {
+                                for (const childProject of childProjects) {
+                                    oldTree = assetTreeNode.assetTreeMap(oldTree, node =>
+                                        node.item.id !== childProject.projectState?.parentProjectId
+                                            ? node
+                                            : insertAssetTreeNodeChildren(
+                                                  node,
+                                                  [childProject],
+                                                  null,
+                                                  null
+                                              )
+                                    )
+                                }
+                                return oldTree
+                            })
                         }
                     } else {
                         setIsLoading(false)
@@ -572,19 +594,52 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             childAssetsMap.delete(child.item.id)
                                         }
                                     }
-                                    const childAssetNodes = Array.from(
-                                        childAssetsMap.values(),
-                                        child =>
+                                    const childAssetNodes = new Map<
+                                        backendModule.AssetId,
+                                        assetTreeNode.AssetTreeNode
+                                    >(
+                                        Array.from(childAssetsMap.values(), child => [
+                                            child.id,
                                             assetTreeNode.assetTreeNodeFromAsset(
                                                 child,
                                                 key,
                                                 directoryId,
                                                 item.depth + 1
-                                            )
+                                            ),
+                                        ])
                                     )
+                                    for (const child of childAssetNodes.values()) {
+                                        const parentId = child.item.projectState?.parentProjectId
+                                        if (parentId != null) {
+                                            const parent = childAssetNodes.get(parentId)
+                                            if (parent != null) {
+                                                childAssetNodes.set(parentId, {
+                                                    ...parent,
+                                                    children:
+                                                        parent.children == null
+                                                            ? [child]
+                                                            : [...parent.children, child],
+                                                })
+                                            } else if (initialChildren != null) {
+                                                for (const initialChild of initialChildren) {
+                                                    if (initialChild.item.id === parentId) {
+                                                        initialChild.children =
+                                                            insertChildrenIntoAssetTreeNodeArray(
+                                                                initialChild.children ?? [],
+                                                                [child.item],
+                                                                key,
+                                                                directoryId,
+                                                                item.depth + 1
+                                                            )
+                                                    }
+                                                }
+                                            }
+                                            childAssetNodes.delete(child.item.id)
+                                        }
+                                    }
                                     const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
                                         (initialChildren != null && initialChildren.length !== 0) ||
-                                        childAssetNodes.length !== 0
+                                        childAssetNodes.size !== 0
                                             ? null
                                             : backendModule.createSpecialEmptyAsset(directoryId)
                                     const children =
@@ -599,10 +654,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                                               ]
                                             : initialChildren == null ||
                                               initialChildren.length === 0
-                                            ? childAssetNodes
-                                            : [...initialChildren, ...childAssetNodes].sort(
-                                                  assetTreeNode.compareAssetTreeNodes
-                                              )
+                                            ? [...childAssetNodes.values()]
+                                            : [
+                                                  ...initialChildren,
+                                                  ...childAssetNodes.values(),
+                                              ].sort(assetTreeNode.compareAssetTreeNodes)
                                     return {
                                         ...item,
                                         children,

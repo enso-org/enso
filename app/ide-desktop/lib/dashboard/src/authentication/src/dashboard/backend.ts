@@ -104,6 +104,7 @@ export enum ProjectState {
     new = 'New',
     openInProgress = 'OpenInProgress',
     provisioned = 'Provisioned',
+    cloning = 'Cloning',
     opened = 'Opened',
     closed = 'Closed',
     /** A frontend-specific state, representing a project that should be displayed as
@@ -127,6 +128,7 @@ export interface ProjectStateType {
     ec2_public_ip_address?: string
     current_session_id?: string
     opened_by?: EmailAddress
+    parentProjectId?: ProjectId
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -135,6 +137,7 @@ export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean
     [ProjectState.new]: false,
     [ProjectState.openInProgress]: true,
     [ProjectState.provisioned]: true,
+    [ProjectState.cloning]: true,
     [ProjectState.opened]: true,
     [ProjectState.closed]: false,
     [ProjectState.placeholder]: true,
@@ -214,8 +217,6 @@ export interface File {
 
 /** Metadata uniquely identifying an uploaded file. */
 export interface FileInfo {
-    /* TODO: Should potentially be S3FilePath,
-     * but it's just string on the backend. */
     path: string
     id: FileId
     project: CreatedProject | null
@@ -761,6 +762,8 @@ export abstract class Backend {
     ): Promise<UpdatedProject>
     /** Return project memory, processor and storage usage. */
     abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
+    /** Return logs sent by a project. */
+    abstract getLogs(projectId: ProjectId, title: string | null): Promise<string>
     /** Return a list of files accessible by the current user. */
     abstract listFiles(): Promise<File[]>
     /** Upload a file. */

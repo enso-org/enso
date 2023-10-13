@@ -67,6 +67,10 @@ export function projectUpdatePath(projectId: backend.ProjectId) {
 export function checkResourcesPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/resources`
 }
+/** Relative HTTP path to the "get logs" endpoint of the Cloud backend API. */
+export function getLogsPath(projectId: backend.ProjectId) {
+    return `projects/${projectId}/logs`
+}
 /** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 export function getSecretPath(secretId: backend.SecretId) {
     return `secrets/${secretId}`

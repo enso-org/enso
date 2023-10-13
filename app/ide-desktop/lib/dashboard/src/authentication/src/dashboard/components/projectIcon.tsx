@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
+import LogsIcon from 'enso-assets/logs.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
@@ -18,6 +19,7 @@ import * as modalProvider from '../../providers/modal'
 import * as remoteBackend from '../remoteBackend'
 
 import Spinner, * as spinner from './spinner'
+import LogsModal from './logsModal'
 import SvgMask from '../../authentication/components/svgMask'
 
 // =================
@@ -40,6 +42,7 @@ const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSt
     [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
+    [backendModule.ProjectState.cloning]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 /** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
@@ -52,6 +55,7 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
     [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingMedium,
     [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
     [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingMedium,
+    [backendModule.ProjectState.cloning]: spinner.SpinnerState.loadingMedium,
     [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 
@@ -76,7 +80,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
-    const { unsetModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { localStorage } = localStorageProvider.useLocalStorage()
     const toastAndLog = hooks.useToastAndLog()
     const state = item.projectState.type
@@ -364,6 +368,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             )
         case backendModule.ProjectState.openInProgress:
         case backendModule.ProjectState.provisioned:
+        case backendModule.ProjectState.cloning:
         case backendModule.ProjectState.placeholder:
             return (
                 <button
@@ -430,6 +435,19 @@ export default function ProjectIcon(props: ProjectIconProps) {
                                 src={ArrowUpIcon}
                                 className={ICON_CLASSES}
                             />
+                        </button>
+                    )}
+                    {isRunningInBackground && (
+                        <button
+                            className="w-6 h-6"
+                            onClick={async clickEvent => {
+                                clickEvent.stopPropagation()
+                                unsetModal()
+                                const logs = await backend.getLogs(item.id, item.title)
+                                setModal(<LogsModal logs={logs} />)
+                            }}
+                        >
+                            <SvgMask alt="Show logs" src={LogsIcon} className={ICON_CLASSES} />
                         </button>
                     )}
                 </div>

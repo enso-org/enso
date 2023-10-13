@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1+Code&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
@@ -34,9 +35,14 @@ body {
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
   tab-size: 4;
-  font-family: "M PLUS 1";
+  font-family: "M PLUS 1", sans-serif;
   font-weight: 500;
   font-feature-settings: normal;
+}
+
+.enso-dashboard pre,
+.enso-chat pre {
+  font-family: "M PLUS 1 Code", monospace;
 }
 
 .enso-dashboard *:focus,
