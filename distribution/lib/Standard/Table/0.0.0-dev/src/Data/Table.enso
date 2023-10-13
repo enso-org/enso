@@ -14,6 +14,7 @@ from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
+import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Data_Formatter.Data_Formatter
@@ -29,8 +30,7 @@ import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Delimited.Delimited_Format.Delimited_Format
-import project.Extensions.Table_Calculations.Column_Operation
-import project.Extensions.Table_Calculations.Table_Ref
+import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper

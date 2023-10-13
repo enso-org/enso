@@ -11,6 +11,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
+import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
@@ -21,8 +22,7 @@ import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
-import Standard.Table.Extensions.Table_Calculations.Column_Operation
-import Standard.Table.Extensions.Table_Calculations.Table_Ref
+import Standard.Table.Extensions.Table_Ref.Table_Ref
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
