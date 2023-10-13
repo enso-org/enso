@@ -9,6 +9,7 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as identity from '../identity'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as uniqueString from '../../uniqueString'
@@ -167,26 +168,35 @@ export default function Drive(props: DriveProps) {
                         oldLabel.id === placeholderLabel.id ? newLabel : oldLabel
                     )
                 )
-                setCurrentLabels(
-                    oldLabels =>
-                        oldLabels?.map(oldLabel =>
-                            oldLabel === placeholderLabel.value ? newLabel.value : oldLabel
-                        ) ?? []
-                )
+                setCurrentLabels(oldLabels => {
+                    let found = identity.identity<boolean>(false)
+                    const newLabels =
+                        oldLabels?.map(oldLabel => {
+                            if (oldLabel === placeholderLabel.value) {
+                                found = true
+                                return newLabel.value
+                            } else {
+                                return oldLabel
+                            }
+                        }) ?? null
+                    return found ? newLabels : oldLabels
+                })
             } catch (error) {
                 toastAndLog(null, error)
                 setLabels(oldLabels =>
                     oldLabels.filter(oldLabel => oldLabel.id !== placeholderLabel.id)
                 )
                 setCurrentLabels(oldLabels => {
-                    if (oldLabels == null) {
-                        return null
-                    } else {
-                        const newLabels = oldLabels.filter(
-                            oldLabel => oldLabel !== placeholderLabel.value
-                        )
-                        return newLabels.length === 0 ? null : newLabels
-                    }
+                    let found = identity.identity<boolean>(false)
+                    const newLabels = (oldLabels ?? []).filter(oldLabel => {
+                        if (oldLabel === placeholderLabel.value) {
+                            found = true
+                            return false
+                        } else {
+                            return true
+                        }
+                    })
+                    return found ? (newLabels.length === 0 ? null : newLabels) : oldLabels
                 })
             }
         },
