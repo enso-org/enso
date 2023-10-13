@@ -154,7 +154,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
       type === undefined
         ? allVisualizations
         : visualizationsForType.get(type) ?? visualizationsForAny.value
-    console.log(type, ret, allVisualizations, visualizationsForType, visualizationsForAny)
     return ret
   }
 
