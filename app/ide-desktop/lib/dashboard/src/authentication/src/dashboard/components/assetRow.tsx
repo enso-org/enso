@@ -5,13 +5,14 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
-import type * as assetTreeNode from '../assetTreeNode'
+import * as assetTreeNode from '../assetTreeNode'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as download from '../../download'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
+import * as identity from '../identity'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
 import * as presenceModule from '../presence'
@@ -68,6 +69,7 @@ export default function AssetRow(props: AssetRowProps) {
         // parent.
         rawItem.item = asset
     }, [asset, rawItem])
+    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
@@ -198,6 +200,21 @@ export default function AssetRow(props: AssetRowProps) {
                     }
                 }
                 break
+            }
+            case assetEventModule.AssetEventType.deleteLabel: {
+                setAsset(oldAsset => {
+                    let found = identity.identity<boolean>(false)
+                    const labels =
+                        oldAsset.labels?.filter(label => {
+                            if (label === event.labelName) {
+                                found = true
+                                return false
+                            } else {
+                                return true
+                            }
+                        }) ?? null
+                    return found ? { ...oldAsset, labels } : oldAsset
+                })
             }
         }
     })

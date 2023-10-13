@@ -135,6 +135,7 @@ export interface AssetsTableState {
     numberOfSelectedItems: number
     category: categorySwitcher.Category
     labels: Map<backendModule.LabelName, backendModule.Label>
+    deletedLabelNames: Set<backendModule.LabelName>
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
     sortDirection: sorting.SortDirection | null
@@ -184,6 +185,7 @@ export interface AssetsTableProps {
     currentLabels: backendModule.LabelName[] | null
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
+    deletedLabelNames: Set<backendModule.LabelName>
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
     queuedAssetEvents: assetEventModule.AssetEvent[]
@@ -211,6 +213,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         category,
         allLabels,
         currentLabels,
+        deletedLabelNames,
         initialProjectName,
         projectStartupInfo,
         queuedAssetEvents: rawQueuedAssetEvents,
@@ -947,6 +950,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             numberOfSelectedItems: selectedKeys.size,
             category,
             labels: allLabels,
+            deletedLabelNames,
             sortColumn,
             setSortColumn,
             sortDirection,
@@ -966,6 +970,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             selectedKeys.size,
             category,
             allLabels,
+            deletedLabelNames,
             sortColumn,
             sortDirection,
             assetEvents,

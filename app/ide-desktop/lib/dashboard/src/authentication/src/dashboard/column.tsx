@@ -242,7 +242,7 @@ function LabelsColumn(props: AssetColumnProps) {
     const {
         item: { item: asset },
         setItem,
-        state: { category, labels, doCreateLabel },
+        state: { category, labels, deletedLabelNames, doCreateLabel },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -278,38 +278,41 @@ function LabelsColumn(props: AssetColumnProps) {
                 setIsHovered(false)
             }}
         >
-            {(asset.labels ?? []).map(label => (
-                <Label
-                    active
-                    key={label}
-                    color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
-                    onClick={() => {
-                        setAsset(oldAsset => {
-                            const newLabels =
-                                oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                            void backend
-                                .associateTag(asset.id, newLabels, asset.title)
-                                .catch(() => {
-                                    setAsset(oldAsset2 =>
-                                        oldAsset2.labels?.some(oldLabel => oldLabel === label) ===
-                                        true
-                                            ? oldAsset2
-                                            : {
-                                                  ...oldAsset2,
-                                                  labels: [...(oldAsset2.labels ?? []), label],
-                                              }
-                                    )
-                                })
-                            return {
-                                ...oldAsset,
-                                labels: newLabels,
-                            }
-                        })
-                    }}
-                >
-                    {label}
-                </Label>
-            ))}
+            {(asset.labels ?? [])
+                .filter(label => !deletedLabelNames.has(label))
+                .map(label => (
+                    <Label
+                        active
+                        key={label}
+                        color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
+                        onClick={() => {
+                            setAsset(oldAsset => {
+                                const newLabels =
+                                    oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
+                                void backend
+                                    .associateTag(asset.id, newLabels, asset.title)
+                                    .catch(() => {
+                                        setAsset(oldAsset2 =>
+                                            oldAsset2.labels?.some(
+                                                oldLabel => oldLabel === label
+                                            ) === true
+                                                ? oldAsset2
+                                                : {
+                                                      ...oldAsset2,
+                                                      labels: [...(oldAsset2.labels ?? []), label],
+                                                  }
+                                        )
+                                    })
+                                return {
+                                    ...oldAsset,
+                                    labels: newLabels,
+                                }
+                            })
+                        }}
+                    >
+                        {label}
+                    </Label>
+                ))}
             {managesThisAsset && (
                 <button
                     className={`h-4 w-4 ${isHovered ? '' : 'invisible'}`}

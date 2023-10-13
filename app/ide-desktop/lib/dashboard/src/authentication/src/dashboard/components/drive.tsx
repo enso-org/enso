@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
-import type * as assetEventModule from '../events/assetEvent'
+import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
@@ -208,6 +208,10 @@ export default function Drive(props: DriveProps) {
             setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
             try {
                 await backend.deleteTag(id, value)
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.deleteLabel,
+                    labelName: value,
+                })
                 setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
             } catch (error) {
                 toastAndLog(null, error)
@@ -216,7 +220,11 @@ export default function Drive(props: DriveProps) {
                 oldNames => new Set([...oldNames].filter(oldValue => oldValue !== value))
             )
         },
-        [backend, /* should never change */ toastAndLog]
+        [
+            backend,
+            /* should never change */ dispatchAssetEvent,
+            /* should never change */ toastAndLog,
+        ]
     )
 
     const doCreateDataConnector = React.useCallback(
@@ -317,6 +325,7 @@ export default function Drive(props: DriveProps) {
                     currentLabels={currentLabels}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
+                    deletedLabelNames={deletedLabelNames}
                     queuedAssetEvents={queuedAssetEvents}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}
