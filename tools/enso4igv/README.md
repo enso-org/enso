@@ -10,9 +10,7 @@ Simply install it from there.
 
 It is possible to download the latest development version of the _"VSCode Extension" artifact_ from the
 [latest actions run](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml). After downloading
-the ZIP file unzip a `.vsix` from it and install the `.vsix` file into VSCode:
-
-![Install from VSIX file](https://github.com/enso-org/enso/assets/26887752/9d7c35d6-44b2-4157-b451-bb27980425c7)
+the ZIP file unzip a `.vsix` from it and install the `.vsix` file into VSCode.
 
 Your Enso files will get proper **syntax coloring**. You'll be able to **debug**
 Java/Enso code interchangeably.
@@ -86,7 +84,7 @@ enso4vscode-*.vsix
 one needs to have `npm`, Java and `mvn` available to successfully build the
 VSCode extension.
 
-![Install from VSIX...](https://user-images.githubusercontent.com/26887752/210131513-8c729f9b-5ddc-43aa-9ad5-420b7d87d81d.png)
+![Install from VSIX...](https://user-images.githubusercontent.com/26887752/269557870-9d7c35d6-44b2-4157-b451-bb27980425c7.png)
 
 Once the `.vsix` file is created, it can be installed into VSCode. Select
 _Extension perspective_ and choose _Install from VSIX..._ menu item.
