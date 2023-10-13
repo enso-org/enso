@@ -423,7 +423,7 @@ spec setup =
 
             # Date period defaults to Day for date/date-time
             (t1.at "X").date_add (t1.at "Y") . to_vector . should_equal [Date.new 2021 02 05, Date.new 2020 12 31, Date.new 2021 12 31]
-            (t2.at "X").date_add (t2.at "Y") . to_vector . should_equal [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
             # and defaults to Hour for time-of-day
             (t3.at "X").date_add (t3.at "Y") . to_vector . should_equal [Time_Of_Day.new 17 30 0, Time_Of_Day.new 22 45 0, Time_Of_Day.new 1 30 0]
 

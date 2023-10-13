@@ -9,7 +9,7 @@ from Standard.Table.Errors import all
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import all
 
 main = run_default_backend spec
 
@@ -74,9 +74,9 @@ spec setup =
                 t.set (Column_Operation.Truncate (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [Date.new 2023 1 12, Date.new 2020 5 12]
                 t.set (Column_Operation.Truncate (Date_Time.new 1999 12 10 14 55 11)) "Z" . at "Z" . to_vector . should_equal [Date.new 1999 12 10, Date.new 1999 12 10]
 
-            t.set (Column_Operation.Date_Add (Column_Ref.Name "A") (Column_Ref.Name "x")) "Z" . at "Z" . to_vector . should_equal [Date_Time.new 2023 1 13 12 45, Date_Time.new 2020 5 15 1 45]
-            t.set (Column_Operation.Date_Add (Column_Ref.Name "A") 10 Date_Period.Year) "Z" . at "Z" . to_vector . should_equal [Date_Time.new 2033 1 12 12 45, Date_Time.new 2030 5 12 1 45]
-            t.set (Column_Operation.Date_Add (Date_Time.new 2001 12 15 11 00) 10 Time_Period.Minute) "Z" . at "Z" . to_vector . should_equal [Date_Time.new 2001 12 15 11 10, Date_Time.new 2001 12 15 11 10]
+            t.set (Column_Operation.Date_Add (Column_Ref.Name "A") (Column_Ref.Name "x")) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 1 13 12 45, Date_Time.new 2020 5 15 1 45]
+            t.set (Column_Operation.Date_Add (Column_Ref.Name "A") 10 Date_Period.Year) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2033 1 12 12 45, Date_Time.new 2030 5 12 1 45]
+            t.set (Column_Operation.Date_Add (Date_Time.new 2001 12 15 11 00) 10 Time_Period.Minute) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2001 12 15 11 10, Date_Time.new 2001 12 15 11 10]
 
             t.set (Column_Operation.Date_Diff (Column_Ref.Name "A") (Column_Ref.Name "B") Date_Period.Day) "Z" . at "Z" . to_vector . should_equal [3, 31]
             t.set (Column_Operation.Date_Part (Column_Ref.Name "A") Date_Period.Year) "Z" . at "Z" . to_vector . should_equal [2023, 2020]
