@@ -86,4 +86,5 @@ object JPMSUtils {
         log.error(s"Compilation of ${moduleInfo} failed")
       }
     }
+      .dependsOn(Compile / compile)
 }
