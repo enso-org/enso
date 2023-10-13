@@ -1328,10 +1328,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                             )
                             ASSET_ROWS_DRAG_PAYLOAD_MAP.set(id, data)
                             const blankElement = document.createElement('div')
-                            blankElement.style.position = 'fixed'
-                            blankElement.style.height = blankElement.style.width = '0'
-                            document.body.appendChild(blankElement)
-                            event.dataTransfer.setDragImage(blankElement, 0, 0)
+                            const image = new Image()
+                            image.src =
+                                // Blank GIF
+                                'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+                            event.dataTransfer.setDragImage(image, 0, 0)
+                            blankElement.remove()
                             queueMicrotask(() => {
                                 setModal(
                                     <DragModal
@@ -1339,7 +1341,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
                                         doCleanup={() => {
                                             ASSET_ROWS_DRAG_PAYLOAD_MAP.delete(id)
-                                            blankElement.remove()
                                         }}
                                     >
                                         {nodes.map(node => (
