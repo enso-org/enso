@@ -5,8 +5,10 @@ import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success, Try}
 
 /** Implements the [[LockManager]] interface by using a
   * [[RuntimeServerConnectionEndpoint]] and delegating the locking requests to a
@@ -46,12 +48,14 @@ class ConnectedLockManager extends LockManager {
       )
     )
     response match {
-      case Api.LockAcquired(lockId) =>
+      case Success(Api.LockAcquired(lockId)) =>
         WrappedConnectedLock(lockId)
-      case Api.LockAcquireFailed(errorMessage) =>
-        throw new LockOperationFailed(errorMessage)
-      case unexpected =>
-        throw new LockOperationFailed(s"Unexpected response [$unexpected].")
+      case Success(Api.LockAcquireFailed(errorMessage)) =>
+        throw LockOperationFailed(errorMessage)
+      case Success(unexpected) =>
+        throw LockOperationFailed(s"Unexpected response [$unexpected].")
+      case Failure(exception) =>
+        throw LockOperationFailed(exception)
     }
   }
 
@@ -68,37 +72,52 @@ class ConnectedLockManager extends LockManager {
       )
     )
     response match {
-      case Api.LockAcquired(lockId) =>
+      case Success(Api.LockAcquired(lockId)) =>
         Some(WrappedConnectedLock(lockId))
-      case Api.CannotAcquireImmediately() =>
+      case Success(Api.CannotAcquireImmediately()) =>
         None
-      case Api.LockAcquireFailed(errorMessage) =>
-        throw new LockOperationFailed(errorMessage)
-      case unexpected =>
-        throw new LockOperationFailed(s"Unexpected response [$unexpected].")
+      case Success(Api.LockAcquireFailed(errorMessage)) =>
+        throw LockOperationFailed(errorMessage)
+      case Success(unexpected) =>
+        throw LockOperationFailed(s"Unexpected response [$unexpected].")
+      case Failure(exception) =>
+        throw LockOperationFailed(exception)
     }
   }
 
   private def sendRequestAndWaitForResponse(
     request: Runtime.ApiRequest
-  ): Runtime.ApiResponse = {
+  ): Try[Runtime.ApiResponse] = {
     val future = getEndpoint.sendRequest(request)
-    Await.result(future, Duration.Inf)
+    Try(Await.result(future, Duration(60, TimeUnit.SECONDS)))
   }
 
   private case class WrappedConnectedLock(lockId: UUID) extends Lock {
     override def release(): Unit = sendRequestAndWaitForResponse(
       Runtime.Api.ReleaseLockRequest(lockId)
     ) match {
-      case Api.LockReleased() =>
-      case Api.LockReleaseFailed(errorMessage) =>
-        throw new LockOperationFailed(errorMessage)
-      case unexpected =>
-        throw new LockOperationFailed(s"Unexpected response [$unexpected].")
+      case Success(Api.LockReleased()) =>
+      case Success(Api.LockReleaseFailed(errorMessage)) =>
+        throw LockOperationFailed(errorMessage)
+      case Success(unexpected) =>
+        throw LockOperationFailed(s"Unexpected response [$unexpected].")
+      case Failure(exception) =>
+        throw LockOperationFailed(exception)
+
     }
   }
 
   /** Indicates that the lock operation has failed due to some internal errors.
     */
-  class LockOperationFailed(message: String) extends RuntimeException(message)
+  class LockOperationFailed(message: String, exception: Option[Throwable])
+      extends RuntimeException(message, exception.getOrElse(null))
+  object LockOperationFailed {
+    def apply(exception: Throwable): LockOperationFailed =
+      new LockOperationFailed(
+        s"Unexpected internal error while waiting on a lock request: ${exception.getMessage}",
+        Some(exception)
+      )
+    def apply(message: String): LockOperationFailed =
+      new LockOperationFailed(message, None)
+  }
 }

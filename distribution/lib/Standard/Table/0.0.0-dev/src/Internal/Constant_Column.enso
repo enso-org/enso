@@ -1,0 +1,25 @@
+from Standard.Base import all
+
+## PRIVATE
+type Constant_Column
+    Value value:Any
+
+## PRIVATE
+   Conversion method to a Table from a Number.
+Constant_Column.from (that:Number) = Constant_Column.Value that
+
+## PRIVATE
+   Conversion method to a Table from a Date_Time.
+Constant_Column.from (that:Date_Time) = Constant_Column.Value that
+
+## PRIVATE
+   Conversion method to a Table from a Date.
+Constant_Column.from (that:Date) = Constant_Column.Value that
+
+## PRIVATE
+   Conversion method to a Table from a Time_Of_Day.
+Constant_Column.from (that:Time_Of_Day) = Constant_Column.Value that
+
+## PRIVATE
+   Conversion method to a Table from a Boolean.
+Constant_Column.from (that:Boolean) = Constant_Column.Value that
