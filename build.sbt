@@ -1351,37 +1351,7 @@ lazy val runtime = (project in file("engine/runtime"))
     // Manual compilation of module-info.java before packageBin task, i.e.,
     // before classes are packaged into Jar.
     (Compile / packageBin) := (Compile / packageBin)
-      .dependsOn(
-        Def.task {
-          val moduleInfo = (Compile / javaSource).value / "module-info.java"
-          val log = streams.value.log
-          val incToolOpts = IncToolOptionsUtil.defaultIncToolOptions()
-          val reporter = (Compile / compile / bspReporter).value
-          val output = CompileOutput((Compile / classDirectory).value.toPath)
-          log.info("Compiling module-info.java with javac")
-          val outputAbsPath: String = output
-            .getSingleOutputAsPath
-            .get()
-            .toAbsolutePath
-            .toString
-          val opts: List[String] =
-            (Compile / javacOptions).value.toList ++
-              List("-d", outputAbsPath)
-          val javaCompiler =
-            (Compile / compile / compilers).value.javaTools.javac()
-          val succ = javaCompiler.run(
-            Array(PlainVirtualFile(moduleInfo.toPath)),
-            opts.toArray,
-            output,
-            incToolOpts,
-            reporter,
-            log
-          )
-          if (!succ) {
-            log.error(s"Compilation of ${moduleInfo} failed")
-          }
-        }
-      )
+      .dependsOn(JPMSUtils.compileModuleInfo)
       .value
   )
   .settings(
@@ -1547,7 +1517,7 @@ lazy val `runtime-with-instruments` =
         case PathList("META-INF", "services", xs @ _*) =>
           MergeStrategy.concat
         case PathList(file, _*) if file.contains("module-info") =>
-          AssemblyUberJar.moduleInfoMergeStrategy
+          JPMSUtils.moduleInfoMergeStrategy
         case _ => MergeStrategy.first
       }
     )
@@ -1658,6 +1628,8 @@ lazy val `engine-runner` = project
         MergeStrategy.concat
       case "reference.conf" =>
         MergeStrategy.concat
+      case "module-info" =>
+        JPMSUtils.moduleInfoMergeStrategy
       case x =>
         MergeStrategy.first
     },
