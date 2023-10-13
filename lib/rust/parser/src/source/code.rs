@@ -215,10 +215,7 @@ impl Length {
     /// Returns the length of the given input.
     #[inline(always)]
     pub fn of(s: &str) -> Self {
-        Self {
-            utf8: s.len(),
-            utf16: s.encode_utf16().count() as u32,
-        }
+        Self { utf8: s.len(), utf16: s.encode_utf16().count() as u32 }
     }
 
     /// Returns true if the code is empty.
