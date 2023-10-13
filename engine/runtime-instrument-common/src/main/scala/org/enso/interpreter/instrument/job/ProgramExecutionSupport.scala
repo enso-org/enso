@@ -17,7 +17,7 @@ import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
-import org.enso.interpreter.runtime.`type`.Types
+import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
@@ -484,17 +484,19 @@ object ProgramExecutionSupport {
       case Left(error) =>
         val message =
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
-        ctx.executionService.getLogger.log(
-          Level.WARNING,
-          "Execution of visualization [{0}] on value [{1}] of [{2}] failed.",
-          Array[Object](
-            visualization.config,
-            expressionId,
-            Try(TypeOfNode.getUncached.execute(expressionValue))
-              .getOrElse(expressionValue.getClass),
-            error
+        val typeOfNode = Try(TypeOfNode.getUncached.execute(expressionValue))
+        if (!typeOfNode.map(TypesGen.isPanicSentinel).getOrElse(false)) {
+          ctx.executionService.getLogger.log(
+            Level.WARNING,
+            "Execution of visualization [{0}] on value [{1}] of [{2}] failed.",
+            Array[Object](
+              visualization.config,
+              expressionId,
+              typeOfNode.getOrElse(expressionValue.getClass),
+              error
+            )
           )
-        )
+        }
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualizationEvaluationFailed(
