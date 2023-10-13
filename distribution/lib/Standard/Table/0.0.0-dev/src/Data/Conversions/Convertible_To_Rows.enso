@@ -28,7 +28,7 @@ Convertible_To_Rows.from that:Vector = Convertible_To_Rows.Value that.length tha
 Convertible_To_Rows.from that:Array = Convertible_To_Rows.Value that.length that.get
 
 ## PRIVATE
-Convertible_To_Rows.from that:List = Convertible_To_Rows.Value that.length that.get
+Convertible_To_Rows.from that:List = Convertible_To_Rows.from that.to_vector
 
 ## PRIVATE
 Convertible_To_Rows.from that:Range = Convertible_To_Rows.Value that.length that.get
