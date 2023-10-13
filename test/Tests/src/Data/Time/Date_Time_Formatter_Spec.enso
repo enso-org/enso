@@ -276,7 +276,9 @@ spec =
              Date.parse "1976-W53-6" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d") . should_equal (Date.new 1977 01 01)
              Date_Time.parse "1978-W01-4 12:34:56" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d HH:mm:ss") . should_equal (Date_Time.new 1978 01 05 12 34 56)
 
-             Date.parse "1978-W01, Mon" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee") . should_equal (Date.new 1978 01 02)
+             Date.parse "1978-W01, Monday" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee") . should_equal (Date.new 1978 01 02)
+             Date.parse "1978-W01, Mon" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, ddd") . should_equal (Date.new 1978 01 02)
+
              # Just week will parse to first day of the week:
              Date.parse "1978-W01" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") . should_equal (Date.new 1978 01 02)
 
