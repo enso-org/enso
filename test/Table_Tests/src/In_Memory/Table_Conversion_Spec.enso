@@ -29,6 +29,7 @@ spec =
             { "first": "Mary", "last": "Smith", "age": 23 },
             { "height": 1.9, "weight": 70 }
         ]
+
     library_test_file = enso_project.data / "xml" / "library.xml"
     library_document = XML_Document.from_file library_test_file
     library_root = library_document . root_element
@@ -294,17 +295,33 @@ spec =
                 t.column_names . should_not_contain "Value"
 
         Test.specify "Can expand child nodes" <|
-            [library_document, library_root].map x->
-                t = x.to Table . expand_to_rows "Children"
-                IO.println t.display
-                t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
-                t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
-                t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
-                t.at "Children" . at 0 . trim . should_equal "Hello"
-                t.at "Children" . at 1 . name . should_equal "Book"
-                t.at "Children" . at 2 . trim . should_equal "World"
-                t.at "Children" . at 3 . name . should_equal "Book"
-                t.at "Children" . at 4 . name . should_equal "Magazine"
-                t.column_names . should_not_contain "Value"
+            t = library_root.to Table . expand_to_rows "Children"
+            t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
+            t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
+            t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
+            t.at "Children" . at 0 . trim . should_equal "Hello"
+            t.at "Children" . at 1 . name . should_equal "Book"
+            t.at "Children" . at 2 . trim . should_equal "World"
+            t.at "Children" . at 3 . name . should_equal "Book"
+            t.at "Children" . at 4 . name . should_equal "Magazine"
+            t.column_names . should_not_contain "Value"
+
+        Test.specify "Converting a node without child nodes produces a Value column" <|
+            book = library_root . at 1
+            IO.println book
+            t = book.to Table
+            IO.println t.display
+            t.at "Name" . to_vector . should_equal ["Book"]
+            t.at "@author" . to_vector . should_equal ["An Author"]
+            t.column_names . should_not_contain "Children"
+            t.at "Value" . to_vector . should_equal ["My Book"]
+
+        Test.specify "Converting a node without any child nodes does not produce Value or Children columns" <|
+            xml = XML_Document.from_text '<foo id="10"></foo>'
+            t = xml.to Table
+            t.at "Name" . to_vector . should_equal ["foo"]
+            t.at "@id" . to_vector . should_equal ["10"]
+            t.column_names . should_not_contain "Children"
+            t.column_names . should_not_contain "Value"
 
 main = Test_Suite.run_main spec
