@@ -1145,6 +1145,27 @@ fn case_expression() {
 }
 
 #[test]
+fn case_documentation() {
+    #[rustfmt::skip]
+    let code = [
+        "case a of",
+        "    ## The Some case",
+        "    Some -> x",
+        "    ## The Int case",
+        "    Int -> x",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (CaseOf (Ident a) #(
+            (((#((Section " The Some case")) #()) () () ()))
+            ((() (Ident Some) "->" (Ident x)))
+            (((#((Section " The Int case")) #()) () () ()))
+            ((() (Ident Int) "->" (Ident x)))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
 fn case_by_type() {
     macro_rules! test_case {
         ( $code:expr, $case:tt ) => {

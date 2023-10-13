@@ -608,7 +608,7 @@ impl<'s> span::Builder<'s> for ArgumentType<'s> {
 
 // === CaseOf ===
 
-/// A that may contain a case-expression in a case-of expression.
+/// A line that may contain a case-expression in a case-of expression.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct CaseLine<'s> {
     /// The token beginning the line. This will always be present, unless the first case-expression
@@ -661,7 +661,10 @@ impl<'s> Case<'s> {
 
 impl<'s> span::Builder<'s> for Case<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.pattern).add(&mut self.arrow).add(&mut self.expression)
+        span.add(&mut self.documentation)
+            .add(&mut self.pattern)
+            .add(&mut self.arrow)
+            .add(&mut self.expression)
     }
 }
 
