@@ -279,7 +279,7 @@ spec =
             table = Table.new [["aaa", [1, 2, 3]], ["notbbbb", [8, 8, 8]], ["ccc", [5, 6, 7]]]
             table.expand_to_rows "bbb" . should_fail_with No_Such_Column
 
-    Test.group "XML" <|
+    Test.group "asdfasdfXML" <|
         Test.specify "Can convert XML_Document and XML_Element to a table" <|
             [library_document, library_root].map x->
                 t = x.to Table
@@ -291,5 +291,20 @@ spec =
                 t.at "Children" . at 0 . at 2 . trim . should_equal "World"
                 t.at "Children" . at 0 . at 3 . name . should_equal "Book"
                 t.at "Children" . at 0 . at 4 . name . should_equal "Magazine"
+                t.column_names . should_not_contain "Value"
+
+        Test.specify "Can expand child nodes" <|
+            [library_document, library_root].map x->
+                t = x.to Table . expand_to_rows "Children"
+                IO.println t.display
+                t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
+                t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
+                t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
+                t.at "Children" . at 0 . trim . should_equal "Hello"
+                t.at "Children" . at 1 . name . should_equal "Book"
+                t.at "Children" . at 2 . trim . should_equal "World"
+                t.at "Children" . at 3 . name . should_equal "Book"
+                t.at "Children" . at 4 . name . should_equal "Magazine"
+                t.column_names . should_not_contain "Value"
 
 main = Test_Suite.run_main spec

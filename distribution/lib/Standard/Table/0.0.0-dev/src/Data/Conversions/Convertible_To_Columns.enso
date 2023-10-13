@@ -35,6 +35,6 @@ Convertible_To_Columns.from (that:XML_Element) =
     that_children = that.children
     has_child_nodes = that_children.any (_.is_a XML_Element)
     children = if that_children.is_empty.not && has_child_nodes then [["Children", that_children]] else []
-    value = if that_children.is_empty.not && has_child_nodes then [["Value", that.text]]
+    value = if that_children.is_empty.not && has_child_nodes.not then [["Value", that.text]] else []
     as_map = Map.from_vector (name + tags + children + value)
     Convertible_To_Columns.from as_map
