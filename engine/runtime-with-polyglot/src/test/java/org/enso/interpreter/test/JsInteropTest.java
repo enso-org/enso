@@ -29,7 +29,7 @@ public class JsInteropTest extends TestBase {
   public void testDefaultJSPrint() {
     var src = """
       from Standard.Base import Json
-      
+
       main =
         json = Json.parse <| '''
           {
@@ -38,7 +38,7 @@ public class JsInteropTest extends TestBase {
             }
           }
         json.get "inner"
-    """;
+      """;
     Value res = evalModule(ctx, src);
     assertEquals("{\"a\":1}", res.toString());
   }
