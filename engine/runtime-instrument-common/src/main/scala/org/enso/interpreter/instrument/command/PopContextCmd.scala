@@ -16,13 +16,13 @@ import scala.concurrent.{ExecutionContext, Future}
 class PopContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.PopContextRequest
-) extends AsynchronousCommand(maybeRequestId) {
+) extends SynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
-  override def executeAsynchronously(implicit
+  override def executeSynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
-  ): Future[Unit] =
+  ): Unit =
     if (doesContextExist) {
       popItemFromStack() flatMap { _ => scheduleExecutionIfNeeded() }
     } else {
