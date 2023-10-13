@@ -350,7 +350,7 @@ export default function AssetRow(props: AssetRowProps) {
                                         type: assetEventModule.AssetEventType.move,
                                         newParentKey: item.key,
                                         newParentId: item.item.id,
-                                        ids: new Set(payload.map(dragItem => dragItem.asset.id)),
+                                        ids: new Set(payload.map(dragItem => dragItem.key)),
                                     })
                                 }
                             }
