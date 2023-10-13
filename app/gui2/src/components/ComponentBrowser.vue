@@ -10,7 +10,7 @@ import { useApproach } from '@/util/animation'
 import { useDocumentEvent, useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
-import { computed, nextTick, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -49,7 +49,6 @@ const input = new Input()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
-  console.log('recompute filtering', input.code.value, input.selection.value)
   return new Filtering({
     ...input.filter.value,
     ...filterFlags.value,
@@ -91,17 +90,12 @@ watch(
   { flush: 'post' },
 )
 
-function applySuggestion() {
-  const suggestion = selectedSuggestion.value
-  if (suggestion == null) return
-  input.applySuggestion(suggestion)
-}
-
 function handleDefocus(e: FocusEvent) {
   const stillInside =
     cbRoot.value != null &&
     e.relatedTarget instanceof Node &&
     cbRoot.value.contains(e.relatedTarget)
+  console.log('DEFOCUS', stillInside, e.relatedTarget)
   if (stillInside) {
     if (inputField.value != null) {
       inputField.value.focus({ preventScroll: true })
@@ -252,15 +246,29 @@ function updateScroll() {
 
 const docsVisible = ref(true)
 
+// === Accepting Entry ===
+
+function applySuggestion() {
+  const suggestion = selectedSuggestion.value
+  if (suggestion == null) return
+  input.applySuggestion(suggestion)
+}
+
+function acceptSuggestion() {
+  console.log(selectedSuggestion.value)
+  const shouldFinish =
+    selectedSuggestion.value == null || selectedSuggestion.value.kind !== SuggestionKind.Module
+  applySuggestion()
+  if (shouldFinish) emit('finished')
+}
+
 // === Key Events Handler ===
 
 function handleKeydown(e: KeyboardEvent) {
   switch (e.key) {
     case 'Enter': {
       e.stopPropagation()
-      const shouldFinish = selectedSuggestion.value.kind !== SuggestionKind.Module
-      applySuggestion()
-      if (shouldFinish) emit('finished')
+      acceptSuggestion()
       break
     }
     case 'Tab':
@@ -292,6 +300,7 @@ function handleKeydown(e: KeyboardEvent) {
     tabindex="-1"
     @focusout="handleDefocus"
     @keydown="handleKeydown"
+    @pointerdown.stop
   >
     <div class="panels">
       <div class="panel components">
@@ -319,6 +328,7 @@ function handleKeydown(e: KeyboardEvent) {
                 class="component"
                 :style="componentStyle(item.index)"
                 @mousemove="selected = item.index"
+                @click="acceptSuggestion"
               >
                 <SvgIcon
                   :name="item.component.icon"
@@ -336,6 +346,7 @@ function handleKeydown(e: KeyboardEvent) {
                   backgroundColor: componentColor(item.component),
                   ...componentStyle(item.index),
                 }"
+                @click="acceptSuggestion"
               >
                 <SvgIcon :name="item.component.icon" />
                 {{ item.component.label }}
