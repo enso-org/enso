@@ -177,11 +177,12 @@ type Date_Time_Formatter
     @locale Locale.default_widget
     from_iso_week_date_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_iso_week_date_pattern pattern:Text locale:Locale=Locale.default =
-        FormatterCache.ISO_WEEK_DATE_FORMAT.get_or_set (FormatterCacheKey.new pattern locale.java_locale) _->
+        used_locale = if locale == Locale.default then Locale.us else locale
+        FormatterCache.ISO_WEEK_DATE_FORMAT.get_or_set (FormatterCacheKey.new pattern used_locale.java_locale) _->
             parsed = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern
             analyzer = Analyzer.new parsed
             java_formatter = analyzer.validate_after_parsing <|
-                As_Java_Formatter_Interpreter.interpret locale parsed
+                As_Java_Formatter_Interpreter.interpret used_locale parsed
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## ADVANCED
