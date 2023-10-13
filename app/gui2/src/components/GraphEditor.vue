@@ -18,6 +18,8 @@ import * as set from 'lib0/set'
 import { clamp } from '@vueuse/core'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { defineKeybinds } from "@/util/shortcuts.ts";
+import type { UnconnectedEdge } from "@/stores/graph.ts";
 </script>
 <script setup lang="ts">
 const EXECUTION_MODES = ['design', 'live']
@@ -46,7 +48,7 @@ function updateExprRect(id: ExprId, rect: Rect) {
 }
 
 useWindowEvent('keydown', (event) => {
-  graphBindingsHandler(event) || nodeSelectionHandler(event) || codeEditorHandler(event)
+  disconnectedEdgeBindingsHandler(event) || graphBindingsHandler(event) || nodeSelectionHandler(event) || codeEditorHandler(event)
 })
 
 onMounted(() => viewportNode.value?.focus())
@@ -280,16 +282,43 @@ const groupColors = computed(() => {
 
 
 
+const disconnectedEdgeBindings = defineKeybinds('disconnected-edge', {
+  cancel: ['Escape'],
+  connect: ['PointerMain'],
+})
+const disconnectedEdgeBindingsHandler = disconnectedEdgeBindings.handler({
+  cancel() {
+    if (graphStore.unconnectedEdge == null) return false
+    graphStore.unconnectedEdge = undefined
+    return true
+  },
+  connect() {
+    if (graphStore.unconnectedEdge == null) return false
+    const edge = snapEdge(graphStore.unconnectedEdge)
+    if (edge.source == null || edge.target == null) {
+      createNodeFromEdgeDrop(edge)
+    } else {
+      if (graphStore.unconnectedEdge.disconnectedEdgeTarget != null) {
+        disconnectEdge(graphStore.unconnectedEdge.disconnectedEdgeTarget)
+      }
+      createEdge(edge.source, edge.target)
+      graphStore.unconnectedEdge = undefined
+    }
+    return true
+  }
+})
+useWindowEvent('pointerdown', disconnectedEdgeBindingsHandler, { capture: true })
 
-interface Interaction {
-  cancel?: () => void
-  handleExprClick?: (expr: ExprId) => void
-  handleNodeClick?: (node: ExprId) => void
+function createNodeFromEdgeDrop(edge: Edge) {
+  console.log(`TODO: createNodeFromEdgeDrop(${JSON.stringify(edge)})`)
 }
-let currentInteraction: Interaction | undefined
-function setCurrentInteraction(interaction?: Interaction) {
-  currentInteraction?.cancel?.()
-  currentInteraction = interaction
+
+function createEdge(source: ExprId, target: ExprId) {
+  console.log(`TODO: createEdge(${source}, ${target})`)
+}
+
+function disconnectEdge(target: ExprId) {
+  console.log(`TODO: disconnectEdge(${target})`)
 }
 
 function layoutEdge(edge: Edge): { source: Vec2; target: Vec2 } | undefined {
@@ -329,18 +358,16 @@ const connectedEdges = computed(() => {
   }
   return edges
 })
-function edgeTarget(expr?: ExprId): ExprId | undefined {
-  if (expr === undefined) return undefined
-  // TODO: Check if the hovered expr is a legal target; if not, recursively try its ancestors.
-  return expr
+function snapEdge(edge: UnconnectedEdge): Edge {
+  return {
+    source: edge.source ?? hoveredNode.value,
+    target: edge.target ?? hoveredExpr.value,
+  }
 }
 const unconnectedEdges = computed(() => {
   const unconnected = graphStore.unconnectedEdge
   if (unconnected == null) return []
-  const edge = layoutEdge({
-    source: unconnected.source ?? hoveredNode.value,
-    target: unconnected.target ?? edgeTarget(hoveredExpr.value),
-  })
+  const edge = layoutEdge(snapEdge(unconnected))
   if (edge == null) return []
   return [edge]
 })
@@ -357,15 +384,13 @@ function disconnect(edgeIndex: number, disconnectEnd: 'source' | 'target') {
       disconnectedEdgeTarget: edge.target,
     }
   }
-  setCurrentInteraction({
-    cancel: () => {
-      graphStore.unconnectedEdge = undefined
-    },
-  })
 }
 
 const hoveredNode = ref<ExprId>()
 const hoveredExpr = ref<ExprId>()
+function updateHoveredNode(expr?: ExprId) {
+  hoveredNode.value = expr
+}
 function updateHoveredExpr(expr?: ExprId) {
   hoveredExpr.value = expr
 }
@@ -413,6 +438,9 @@ function updateHoveredExpr(expr?: ExprId) {
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
+        @mouseenter="updateHoveredNode(id)"
+        @mouseleave="updateHoveredNode(undefined)"
+        @updateHoveredExpr="updateHoveredExpr"
         @updateContent="updateNodeContent(id, $event)"
         @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
         @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
