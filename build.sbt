@@ -1334,16 +1334,14 @@ lazy val runtime = (project in file("engine/runtime"))
       )
     ),
     Compile / javacOptions ++= {
-      // Put only Truffle and Graal related artifacts on module-path.
-      val managedCp = (Compile / managedClasspath).value.map(_.data)
-      val truffleRelatedArtifacts = managedCp
-        .filter(file => file.getPath.contains("graalvm") || file.getPath.contains("truffle"))
-      val modulePathStr = truffleRelatedArtifacts
-        .map(_.getAbsolutePath)
+      // Put everything from class-path into module-path
+      val managedCp = (Compile / managedClasspath).value
+      val allCp = managedCp
+        .map(_.data.getAbsolutePath)
         .mkString(File.pathSeparator)
       Seq(
         "--module-path",
-        modulePathStr,
+        allCp,
       )
     },
     // Filter module-info.java from the compilation
@@ -1484,6 +1482,24 @@ lazy val `runtime-with-instruments` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
+      (Compile / compile) := (Compile / compile)
+        .dependsOn(runtime / Compile / packageBin)
+        .value,
+      // Add everything from class-path to module-path. Most of our projects have
+      // Automatic-Module-Name attribute in their MANIFEST in their Jar archive,
+      // which means that they are *automatic modules*. Note that we have to "convert"
+      // them to automati modules, because `runtime` projects are explicit modules that
+      // cannot depend on packages from an unnamed modules.
+      Compile / javacOptions ++= {
+        val managedCp = (Compile / managedClasspath).value.map(_.data)
+        val allCp = managedCp
+          .map(_.getAbsolutePath)
+          .mkString(File.pathSeparator)
+        Seq(
+          "--module-path",
+          allCp,
+        )
+      },
       Test / javaOptions ++= Seq(
         "-Dgraalvm.locatorDisabled=true",
         s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
@@ -1502,7 +1518,7 @@ lazy val `runtime-with-instruments` =
       // We need to package runtime into Jar, as it should behave as an explicit JPMS
       // module.
       assembly := assembly
-        .dependsOn(LocalProject("runtime") / Compile / packageBin)
+        .dependsOn(runtime / Compile / packageBin)
         .value,
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
