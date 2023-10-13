@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
-import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
@@ -9,7 +8,6 @@ from Standard.Base.Metadata import make_single_choice
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
 import project.Errors.Invalid_JSON_Format
-import project.Errors.No_Such_Column
 import project.Internal.Expand_Objects_Helpers
 import project.Internal.Parse_To_Table
 import project.Internal.Widget_Helpers
