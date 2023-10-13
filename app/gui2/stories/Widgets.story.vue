@@ -59,7 +59,7 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
           <DropdownWidget
             :color="color"
             :values="values"
-            :selected-value="selectedValue"
+            :selectedValue="selectedValue"
             @click="(selectedValue = values[$event]!), logEvent('click', [$event])"
           />
         </div>
