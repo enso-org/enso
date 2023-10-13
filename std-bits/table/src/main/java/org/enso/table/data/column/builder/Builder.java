@@ -94,4 +94,17 @@ public abstract class Builder {
   public WithAggregatedProblems<Storage<?>> sealWithProblems() {
     return new WithAggregatedProblems<>(seal(), getProblems());
   }
+
+  /** Adds nulls to the builder to ensure that it reaches the size specified. */
+  public void fillUpToSize(int size) {
+    int currentSize = getCurrentSize();
+    if (currentSize > size) {
+      throw new IllegalArgumentException("fillUpToSize("+size+") called on a builder that already has "+currentSize+" elements.");
+    }
+
+    if (currentSize < size) {
+      int nullsToAppend = size - currentSize;
+      appendNulls(nullsToAppend);
+    }
+  }
 }

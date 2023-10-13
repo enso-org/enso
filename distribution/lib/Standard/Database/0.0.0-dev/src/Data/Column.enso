@@ -1087,7 +1087,8 @@ type Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Standard.Base.Selections
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -1634,7 +1635,7 @@ type Column
         _ = [function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.map` is not supported in the Database backends."
 
-    ## ALIAS transform columns
+    ## ALIAS combine, merge, join by row position
 
        Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
@@ -1669,7 +1670,7 @@ type Column
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
-    zip self that function skip_nothing=True expected_value_type=Auto =
+    zip self that:Column function skip_nothing=True expected_value_type=Auto =
         _ = [that, function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "`Column.zip` is not supported in the Database backends."
 

@@ -94,6 +94,7 @@ export default function UserBar(props: UserBarProps) {
             >
                 <img
                     src={DefaultUserIcon}
+                    alt="Open user menu"
                     height={28}
                     width={28}
                     onDragStart={event => {

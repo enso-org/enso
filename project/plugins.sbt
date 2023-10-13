@@ -9,3 +9,5 @@ addSbtPlugin("com.simplytyped"   % "sbt-antlr4"         % "0.8.3")
 libraryDependencies += "io.circe"  %% "circe-yaml" % "0.14.2"
 libraryDependencies += "commons-io" % "commons-io" % "2.12.0"
 libraryDependencies += "nl.gn0s1s" %% "bump"       % "0.1.3"
+
+scalacOptions ++= Seq("-deprecation", "-feature")

@@ -1,5 +1,6 @@
 package org.enso.runner
 
+import com.typesafe.scalalogging.Logger
 import org.enso.languageserver.boot.{
   LanguageServerComponent,
   LanguageServerConfig
@@ -7,7 +8,6 @@ import org.enso.languageserver.boot.{
 import org.slf4j.event.Level
 
 import java.util.concurrent.Semaphore
-
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.io.StdIn
@@ -16,7 +16,8 @@ import scala.io.StdIn
   */
 object LanguageServerApp {
 
-  private val semaphore = new Semaphore(1)
+  private val semaphore   = new Semaphore(1)
+  private lazy val logger = Logger[LanguageServerApp.type]
 
   /** Runs a Language Server
     *
@@ -31,7 +32,7 @@ object LanguageServerApp {
   ): Unit = {
     val server = new LanguageServerComponent(config, logLevel)
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
-      stop(server)(config.computeExecutionContext)
+      stop(server, "shutdown hook")(config.computeExecutionContext)
     }))
     Await.result(server.start(), 1.minute)
     if (deamonize) {
@@ -41,7 +42,7 @@ object LanguageServerApp {
       }
     } else {
       StdIn.readLine()
-      stop(server)(config.computeExecutionContext)
+      stop(server, "stopped by the user")(config.computeExecutionContext)
     }
   }
 
@@ -51,8 +52,10 @@ object LanguageServerApp {
     * @param ec the execution context
     */
   private def stop(
-    server: LanguageServerComponent
+    server: LanguageServerComponent,
+    reason: String
   )(implicit ec: ExecutionContext): Unit = {
+    logger.info("Stopping Language Server: {}", reason)
     Await.ready(synchronize(server.stop()), 40.seconds)
   }
 

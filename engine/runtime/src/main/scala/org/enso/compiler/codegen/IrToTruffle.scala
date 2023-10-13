@@ -711,6 +711,14 @@ class IrToTruffle(
             name,
             mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
           )
+        case Some(
+              BindingsMap
+                .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
+            ) =>
+          ReadArgumentCheckNode.meta(
+            name,
+            mod.unsafeAsModule().getScope.getPolyglotSymbol(symbol.name)
+          )
         case _ => null
       }
     }

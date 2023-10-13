@@ -6,7 +6,7 @@ import * as util from 'node:util'
 
 import * as contentConfig from 'enso-content-config'
 
-import * as config from 'config'
+import type * as config from 'config'
 
 const logger = contentConfig.logger
 // This is a wrapped function, so it should be `camelCase`.

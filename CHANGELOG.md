@@ -582,6 +582,7 @@
 - [Implemented `Table.auto_value_types` for in-memory tables.][7908]
 - [Implemented Text.substring to easily select part of a Text field][7913]
 - [Implemented basic XML support][7947]
+- [Implemented `Table.lookup_and_replace` for the in-memory backend.][7979]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -828,6 +829,7 @@
 [7908]: https://github.com/enso-org/enso/pull/7908
 [7913]: https://github.com/enso-org/enso/pull/7913
 [7947]: https://github.com/enso-org/enso/pull/7947
+[7979]: https://github.com/enso-org/enso/pull/7979
 
 #### Enso Compiler
 
@@ -976,6 +978,7 @@
 - [New `project/status` route for reporting LS state][7801]
 - [Add Enso-specific assertions][7883]
 - [Modules can be `private`][7840]
+- [HTTPS and WSS support in Language Server][7937]
 - [Export of non-existing symbols results in error][7960]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -1124,6 +1127,7 @@
 [7861]: https://github.com/enso-org/enso/pull/7861
 [7883]: https://github.com/enso-org/enso/pull/7883
 [7840]: https://github.com/enso-org/enso/pull/7840
+[7937]: https://github.com/enso-org/enso/pull/7937
 [7960]: https://github.com/enso-org/enso/pull/7960
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

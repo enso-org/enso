@@ -1,18 +1,16 @@
 package org.enso.interpreter.dsl.builtins;
 
 import com.google.common.base.CaseFormat;
-import com.sun.tools.javac.code.Attribute;
-import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.util.Pair;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.SimpleAnnotationValueVisitor14;
+import javax.lang.model.util.SimpleElementVisitor14;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
 import org.apache.commons.lang3.StringUtils;
@@ -24,13 +22,14 @@ public abstract class MethodGenerator {
   protected final boolean convertToGuestValue;
   protected final TypeWithKind returnTpe;
   protected final ProcessingEnvironment processingEnvironment;
-
-  private static final WrapExceptionExtractor wrapExceptionsExtractor =
-      new WrapExceptionExtractor(Builtin.WrapException.class, Builtin.WrapExceptions.class);
+  private static final String FROM_ELEMENT_NAME = "from";
+  private static final String TO_ELEMENT_NAME = "to";
+  private static final Class<? extends Annotation> wrapExceptionAnnotationClass = Builtin.WrapException.class;
+  private static final Class<? extends Annotation> wrapExceptionsAnnotationClass = Builtin.WrapExceptions.class;
 
   protected SafeWrapException[] wrapExceptions(
-      ProcessingEnvironment processingEnv, Element element) {
-    return wrapExceptionsExtractor.extract(processingEnv, element);
+      Element element) {
+    return extractExceptions(element);
   }
 
   public MethodGenerator(
@@ -144,121 +143,120 @@ public abstract class MethodGenerator {
   protected abstract Optional<Integer> expandVararg(int paramsLen, int paramIndex);
 
   /**
-   * Helper class that encapsulates retrieving the values of elements which type involves Class<?>.
-   * Such elements' values cannot be retrieved by invoking the <element>() method. Instead one has
-   * to go through mirrors. The logic has to deal with the following scenarios: - method with an
-   * individual annotation - method with multiple annotations of the same type, thus implicitly
-   * being annotation with container annotation - method with an explicit container annotation
+   * Extract {@link org.enso.interpreter.dsl.Builtin.WrapException} from the annotated element in
+   * a mirror-safe manner.
    *
-   * <p>Refer to <a
-   * href="https://area-51.blog/2009/02/13/getting-class-values-from-annotations-in-an-annotationprocessor/">blog</a>
-   * for details.
+   * @param element a method annotated with either {@link
+   *     org.enso.interpreter.dsl.Builtin.WrapException} or {@link
+   *     org.enso.interpreter.dsl.Builtin.WrapExceptions}
+   * @return An array of safely retrieved (potentially repeated) values of {@link
+   *     org.enso.interpreter.dsl.Builtin.WrapException} annotation(s)
    */
-  private static class WrapExceptionExtractor {
-
-    private static final String FromElementName = "from";
-    private static final String ToElementName = "to";
-    private static final String ValueElementName = "value";
-
-    private Class<? extends Annotation> wrapExceptionAnnotationClass;
-    private Class<? extends Annotation> wrapExceptionsAnnotationClass;
-
-    public WrapExceptionExtractor(
-        Class<? extends Annotation> wrapExceptionAnnotationClass,
-        Class<? extends Annotation> wrapExceptionsAnnotationClass) {
-      this.wrapExceptionAnnotationClass = wrapExceptionAnnotationClass;
-      this.wrapExceptionsAnnotationClass = wrapExceptionsAnnotationClass;
+  private SafeWrapException[] extractExceptions(Element element) {
+    if (element.getAnnotation(wrapExceptionsAnnotationClass) != null) {
+      return extractClassElementFromAnnotationContainer(element);
+    } else if (element.getAnnotation(wrapExceptionAnnotationClass) != null) {
+      return extractClassElementFromAnnotation(element);
+    } else {
+      return new SafeWrapException[0];
     }
+  }
 
-    /**
-     * Extract {@link org.enso.interpreter.dsl.Builtin.WrapException} from the annotated element in
-     * a mirror-safe manner.
-     *
-     * @param element a method annotated with either {@link
-     *     org.enso.interpreter.dsl.Builtin.WrapException} or {@link
-     *     org.enso.interpreter.dsl.Builtin.WrapExceptions}
-     * @return An array of safely retrieved (potentially repeated) values of {@link
-     *     org.enso.interpreter.dsl.Builtin.WrapException} annotation(s)
-     */
-    public SafeWrapException[] extract(ProcessingEnvironment processingEnv, Element element) {
-      if (element.getAnnotation(wrapExceptionsAnnotationClass) != null) {
-        return extractClassElementFromAnnotationContainer(
-            processingEnv, element, wrapExceptionsAnnotationClass);
-      } else if (element.getAnnotation(wrapExceptionAnnotationClass) != null) {
-        return extractClassElementFromAnnotation(
-            processingEnv, element, wrapExceptionAnnotationClass);
-      } else {
-        return new SafeWrapException[0];
-      }
-    }
+  private SafeWrapException[] extractClassElementFromAnnotation(Element element) {
+    Element builtinElement =
+        processingEnvironment.getElementUtils().getTypeElement(MethodGenerator.wrapExceptionAnnotationClass.getCanonicalName());
+    TypeMirror builtinType = builtinElement.asType();
 
-    private SafeWrapException[] extractClassElementFromAnnotation(
-        ProcessingEnvironment processingEnv, Element element, Class<?> annotationClass) {
-      Element builtinElement =
-          processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
-      TypeMirror builtinType = builtinElement.asType();
-
-      List<SafeWrapException> exceptionWrappers = new ArrayList<>();
-      for (AnnotationMirror am : element.getAnnotationMirrors()) {
-        if (am.getAnnotationType().equals(builtinType)) {
-          Attribute.Class valueFrom = null;
-          Attribute.Class valueTo = null;
-          for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry :
-              am.getElementValues().entrySet()) {
-            Name key = entry.getKey().getSimpleName();
-            if (key.toString().equals(FromElementName)) {
-              valueFrom = (Attribute.Class) (entry.getValue());
-            } else if (key.toString().equals(ToElementName)) {
-              valueTo = (Attribute.Class) (entry.getValue());
-            }
-          }
-          if (valueFrom != null) {
-            exceptionWrappers.add(new SafeWrapException(valueFrom, Optional.ofNullable(valueTo)));
+    List<SafeWrapException> exceptionWrappers = new ArrayList<>();
+    for (AnnotationMirror am : element.getAnnotationMirrors()) {
+      if (am.getAnnotationType().equals(builtinType)) {
+        TypeElement valueFrom = null;
+        TypeElement valueTo = null;
+        for (var entry : am.getElementValues().entrySet()) {
+          Name key = entry.getKey().getSimpleName();
+          var annotationVisitor = new AnnotationTypeVisitor();
+          switch (key.toString()) {
+            case FROM_ELEMENT_NAME -> valueFrom = entry.getValue().accept(annotationVisitor, null);
+            case TO_ELEMENT_NAME -> valueTo = entry.getValue().accept(annotationVisitor, null);
           }
         }
-      }
-      return exceptionWrappers.toArray(new SafeWrapException[0]);
-    }
-
-    private SafeWrapException[] extractClassElementFromAnnotationContainer(
-        ProcessingEnvironment processingEnv, Element element, Class<?> annotationClass) {
-
-      Element builtinElement =
-          processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
-      Types tpeUtils = processingEnv.getTypeUtils();
-      TypeMirror builtinType = builtinElement.asType();
-
-      List<SafeWrapException> wrappedExceptions = new ArrayList<>();
-      for (AnnotationMirror am : element.getAnnotationMirrors()) {
-        if (tpeUtils.isSameType(am.getAnnotationType(), builtinType)) {
-          for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry :
-              am.getElementValues().entrySet()) {
-            if (ValueElementName.equals(entry.getKey().getSimpleName().toString())) {
-              Attribute.Array wrapExceptions = (Attribute.Array) entry.getValue();
-              for (int i = 0; i < wrapExceptions.values.length; i++) {
-                Attribute.Class valueFrom = null;
-                Attribute.Class valueTo = null;
-                Attribute.Compound attr = (Attribute.Compound) wrapExceptions.values[i];
-                for (Pair<Symbol.MethodSymbol, Attribute> p : attr.values) {
-                  Name key = p.fst.getSimpleName();
-                  if (key.contentEquals(FromElementName)) {
-                    valueFrom = (Attribute.Class) p.snd;
-                  } else if (key.contentEquals(ToElementName)) {
-                    valueTo = (Attribute.Class) p.snd;
-                  }
-                }
-                if (valueFrom != null) {
-                  SafeWrapException converted =
-                      new SafeWrapException(valueFrom, Optional.ofNullable(valueTo));
-                  wrappedExceptions.add(converted);
-                }
-              }
-              break;
-            }
-          }
+        if (valueFrom != null) {
+          exceptionWrappers.add(new SafeWrapException(valueFrom, Optional.ofNullable(valueTo)));
         }
       }
-      return wrappedExceptions.toArray(new SafeWrapException[0]);
+    }
+    return exceptionWrappers.toArray(SafeWrapException[]::new);
+  }
+
+  private SafeWrapException[] extractClassElementFromAnnotationContainer(Element element) {
+    Element builtinElement =
+        processingEnvironment.getElementUtils().getTypeElement(
+            MethodGenerator.wrapExceptionsAnnotationClass.getCanonicalName());
+    Types tpeUtils = processingEnvironment.getTypeUtils();
+    TypeMirror builtinType = builtinElement.asType();
+
+    List<SafeWrapException> wrappedExceptions = new ArrayList<>();
+    for (AnnotationMirror am : element.getAnnotationMirrors()) {
+      if (tpeUtils.isSameType(am.getAnnotationType(), builtinType)) {
+        for (var entry : am.getElementValues().entrySet()) {
+          var anotVisitor = new AnnotationArrayVisitor();
+          var collectedWrapExceptions = entry.getValue().accept(anotVisitor, null);
+          wrappedExceptions.addAll(collectedWrapExceptions);
+        }
+      }
+    }
+    return wrappedExceptions.toArray(SafeWrapException[]::new);
+  }
+
+  private class AnnotationArrayVisitor extends SimpleAnnotationValueVisitor14<List<SafeWrapException>, Object> {
+    private final List<SafeWrapException> elements = new ArrayList<>();
+    private final AnnotationTypeVisitor typeVisitor = new AnnotationTypeVisitor();
+
+    @Override
+    public List<SafeWrapException> visitArray(List<? extends AnnotationValue> vals, Object o) {
+      for (var annotationValue : vals) {
+        annotationValue.accept(this, o);
+      }
+      return elements;
+    }
+
+    @Override
+    public List<SafeWrapException> visitAnnotation(AnnotationMirror a, Object o) {
+      TypeElement valueFrom = null;
+      TypeElement valueTo = null;
+      for (var entry : a.getElementValues().entrySet()) {
+        var name = entry.getKey().getSimpleName().toString();
+        switch (name) {
+          case FROM_ELEMENT_NAME -> valueFrom = entry.getValue().accept(typeVisitor, null);
+          case TO_ELEMENT_NAME -> valueTo = entry.getValue().accept(typeVisitor, null);
+          default -> processingEnvironment.getMessager().printMessage(
+              Kind.ERROR,
+              "Unknown annotation element name: " + name);
+        }
+      }
+      if (valueFrom != null) {
+        var safeWrapException = new SafeWrapException(valueFrom, Optional.ofNullable(valueTo));
+        elements.add(safeWrapException);
+      }
+      return elements;
+    }
+  }
+
+  private class AnnotationTypeVisitor extends SimpleAnnotationValueVisitor14<TypeElement, Object> {
+    @Override
+    public TypeElement visitType(TypeMirror t, Object o) {
+      var element = processingEnvironment.getTypeUtils().asElement(t);
+      var elementVisitor = new SimpleElementVisitor14<TypeElement, Object>() {
+        @Override
+        public TypeElement visitType(TypeElement e, Object o) {
+          return e;
+        }
+      };
+      var typeElement = element.accept(elementVisitor, null);
+      if (typeElement == null) {
+        processingEnvironment.getMessager().printMessage(Kind.ERROR, "Cannot find type element for " + t);
+      }
+      return typeElement;
     }
   }
 }
