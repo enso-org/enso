@@ -41,6 +41,10 @@ public final class LogbackSetup extends LoggerSetup {
         this(LoggingServiceConfig.parseConfig(), (LoggerContext) LoggerFactory.getILoggerFactory());
     }
 
+    public LogbackSetup(LoggerContext ctx) throws MissingConfigurationField {
+        this(LoggingServiceConfig.parseConfig(), ctx);
+    }
+
     /**
      * Create a logger setup for a provided context and a single appender configuration
      * @param context context that will be initialized by this setup
