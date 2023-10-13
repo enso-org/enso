@@ -1,6 +1,6 @@
 // sbt/sbt-assembly#496
 addSbtPlugin("com.sandinh"       % "sbt-java-module-info" % "0.4.0")
-addSbtPlugin("com.eed3si9n"      % "sbt-assembly"         % "1.2.0")
+addSbtPlugin("com.eed3si9n"      % "sbt-assembly"         % "2.1.3")
 addSbtPlugin("ch.epfl.scala"     % "sbt-bloop"            % "1.5.6")
 addSbtPlugin("com.github.sbt"    % "sbt-license-report"   % "1.5.0")
 addSbtPlugin("com.lightbend.sbt" % "sbt-java-formatter"   % "0.8.0")

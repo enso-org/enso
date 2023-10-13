@@ -1546,6 +1546,8 @@ lazy val `runtime-with-instruments` =
           MergeStrategy.discard
         case PathList("META-INF", "services", xs @ _*) =>
           MergeStrategy.concat
+        case PathList(file, _*) if file.contains("module-info") =>
+          AssemblyUberJar.moduleInfoMergeStrategy
         case _ => MergeStrategy.first
       }
     )
