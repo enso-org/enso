@@ -10,7 +10,7 @@ Simply install it from there.
 
 It is possible to download the latest development version of the _"VSCode Extension" artifact_ from the
 [latest actions run](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml). After downloading
-the ZIP file unzip a `.vsix` from from it and install the `.vsix` file into VSCode:
+the ZIP file unzip a `.vsix` from it and install the `.vsix` file into VSCode:
 
 ![Install from VSIX file](https://github.com/enso-org/enso/assets/26887752/9d7c35d6-44b2-4157-b451-bb27980425c7)
 
@@ -27,7 +27,7 @@ following two extensions in the system:
 Once installation is over let's continue with choosing _File/Open Folder..._ and
 opening root of [Enso Git Repository](http://github.com/enso-org/enso)
 (presumably already built with
-[sbt buildEngineDistribution](../../docs/CONTRIBUTING.md#running-enso)).
+[sbt buildEngineDistribution](https://github.com/enso-org/enso/blob/develop/docs/CONTRIBUTING.md#running-enso)).
 Following set of projects is opened and ready for use:
 
 ![Enso Projects](https://github.com/enso-org/enso/assets/26887752/7919d2ee-4bcd-4b7b-954a-e2dc61f7c01a)
@@ -48,7 +48,7 @@ Let's do a bit of debugging. Select _"Listen to 5005"_ debug configuration:
 ![Listen to 5005](https://github.com/enso-org/enso/assets/26887752/1874bcb1-cf8b-4df4-92d8-e7fb57e1b17a)
 
 And then just
-[execute the engine distribution](../../docs/CONTRIBUTING.md#running-enso) in
+[execute the engine distribution](https://github.com/enso-org/enso/blob/develop/docs/CONTRIBUTING.md#running-enso) in
 debug mode:
 
 ```bash
