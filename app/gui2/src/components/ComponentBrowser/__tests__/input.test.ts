@@ -15,22 +15,30 @@ test.each([
   [
     'Data.',
     5,
-    { type: 'insert', position: 5, accessorChain: ['Data', '.', null] },
+    { type: 'insert', position: 5, oprApp: ['Data', '.', null] },
     { qualifiedNamePattern: 'Data' },
   ],
   ['Data.', 4, { type: 'changeIdentifier', identifier: 'Data' }, { pattern: 'Data' }],
   [
     'Data.read',
     5,
-    { type: 'insert', position: 5, accessorChain: ['Data', '.', 'read'] },
+    { type: 'insert', position: 5, oprApp: ['Data', '.', 'read'] },
     { qualifiedNamePattern: 'Data' },
   ],
   [
     'Data.read',
     7,
-    { type: 'changeIdentifier', identifier: 'read', accessorChain: ['Data', '.', 'read'] },
+    { type: 'changeIdentifier', identifier: 'read', oprApp: ['Data', '.', 'read'] },
     { pattern: 're', qualifiedNamePattern: 'Data' },
   ],
+  [
+    'Base . Data .',
+    13,
+    { type: 'insert', position: 13, oprApp: ['Base . Data', '.', null] },
+    { qualifiedNamePattern: 'Base.Data' },
+  ],
+  ['2 +', 3, { type: 'insert', position: 3, oprApp: ['2', '+', null] }, {}],
+  ['2 + 3', 5, { type: 'changeLiteral', literal: '3' }, { pattern: '3' }],
 ])(
   "Input context and filtering, when content is '%s' and cursor at %i",
   (
@@ -39,7 +47,7 @@ test.each([
     expContext: {
       type: string
       position?: number
-      accessorChain?: (string | null)[]
+      oprApp?: (string | null)[]
       identifier?: string
       literal?: string
     },
@@ -55,18 +63,14 @@ test.each([
       case 'insert':
         expect(context.position).toStrictEqual(expContext.position)
         expect(
-          context.accessOpr != null
-            ? Array.from(context.accessOpr.componentsReprs(code))
-            : undefined,
-        ).toStrictEqual(expContext.accessorChain)
+          context.oprApp != null ? Array.from(context.oprApp.componentsReprs(code)) : undefined,
+        ).toStrictEqual(expContext.oprApp)
         break
       case 'changeIdentifier':
         expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
         expect(
-          context.accessOpr != null
-            ? Array.from(context.accessOpr.componentsReprs(code))
-            : undefined,
-        ).toStrictEqual(expContext.accessorChain)
+          context.oprApp != null ? Array.from(context.oprApp.componentsReprs(code)) : undefined,
+        ).toStrictEqual(expContext.oprApp)
         break
       case 'changeLiteral':
         expect(readAstSpan(context.literal, code)).toStrictEqual(expContext.literal)
@@ -125,16 +129,11 @@ const baseCases: ApplySuggestionCase[] = [
     suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
     expected: 'Data.Vector.new ',
   },
-  // {
-  //   code: 'Dat . V . ',
-  //   suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-  //   expected: 'Data . Vector . new ',
-  // },
-  // {
-  //   code: 'Dat . V .',
-  //   suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
-  //   expected: 'Data . Vector . new ',
-  // },
+  {
+    code: 'Dat . V .',
+    suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
+    expected: 'Data . Vector . new ',
+  },
   {
     code: '(type_method some_arg).Vector.',
     suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
@@ -159,7 +158,25 @@ const insideInfixCases = makeComplexCase('333 + ', ' + 444')
 const insideBracketsCases = makeComplexCase('(', ')')
 const insideListCases = makeComplexCase('[foo, ', ', bar]')
 
-test.each(baseCases.concat(insideInfixCases).concat(insideBracketsCases).concat(insideListCases))(
+test.each(
+  baseCases
+    .concat(insideInfixCases)
+    .concat(insideBracketsCases)
+    .concat(insideListCases)
+    .concat([
+      // space is added to operands if needed.
+      {
+        code: '2+',
+        suggestion: makeLocal('local.Project.Main', 'operator2'),
+        expected: '2+operator2 ',
+      },
+      {
+        code: '2 +',
+        suggestion: makeLocal('local.Project.Main', 'operator2'),
+        expected: '2 + operator2 ',
+      },
+    ]),
+)(
   'Applying suggestion $suggestion.name to $code',
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length

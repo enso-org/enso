@@ -24,13 +24,13 @@ export type EditingContext =
   | {
       type: 'insert'
       position: number
-      accessOpr?: GeneralOprApp
+      oprApp?: GeneralOprApp
     }
   // Suggestion should replace given identifier.
   | {
       type: 'changeIdentifier'
       identifier: Ast.Tree.Ident
-      accessOpr?: GeneralOprApp
+      oprApp?: GeneralOprApp
     }
   // Suggestion should replace given literal.
   | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
@@ -64,7 +64,7 @@ export class Input {
           return {
             type: 'changeIdentifier',
             identifier: leaf.value,
-            ...Input.readAccessOpr(editedAst.next(), input, leaf.value),
+            ...Input.readOprApp(editedAst.next(), input, leaf.value),
           }
         case Ast.Tree.Type.TextLiteral:
         case Ast.Tree.Type.Number:
@@ -73,7 +73,7 @@ export class Input {
           return {
             type: 'insert',
             position: cursorPosition,
-            ...Input.readAccessOpr(leaf, input),
+            ...Input.readOprApp(leaf, input),
           }
       }
     })
@@ -81,15 +81,13 @@ export class Input {
     const qualifiedNameFilter: ComputedRef<Filter> = computed(() => {
       const code = this.code.value
       const ctx = this.context.value
-      if (
-        (ctx.type == 'changeIdentifier' || ctx.type == 'insert') &&
-        ctx.accessOpr != null &&
-        ctx.accessOpr.lhs != null
-      ) {
-        const qn = Input.pathAsQualifiedName(ctx.accessOpr, code)
-        if (qn != null) return { qualifiedNamePattern: qn }
-      }
-      return {}
+      if (ctx.type === 'changeLiteral') return {}
+      if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
+      const opr = ctx.oprApp.lastOpr()
+      if (!opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
+      const qn = Input.pathAsQualifiedName(ctx.oprApp, code)
+      if (qn != null) return { qualifiedNamePattern: qn }
+      else return {}
     })
 
     this.filter = computed(() => {
@@ -108,12 +106,12 @@ export class Input {
     })
   }
 
-  private static readAccessOpr(
+  private static readOprApp(
     leafParent: IteratorResult<Ast.Tree>,
     code: string,
     editedAst?: Ast.Tree,
   ): {
-    accessOpr?: GeneralOprApp
+    oprApp?: GeneralOprApp
   } {
     if (leafParent.done) return {}
     switch (leafParent.value.type) {
@@ -121,14 +119,14 @@ export class Input {
       case Ast.Tree.Type.OperatorBlockApplication: {
         const generalized = new GeneralOprApp(leafParent.value)
         const opr = generalized.lastOpr()
-        if (opr == null || !opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
-        // The filtering should be affected only when we edit right part of '.' application.
+        if (opr == null || !opr.ok) return {}
+        // Opr application affects context only when we edit right part of operator.
         else if (
           editedAst != null &&
           opr.value.startInCodeBuffer > editedAst.whitespaceStartInCodeParsed
         )
           return {}
-        else return { accessOpr: generalized }
+        else return { oprApp: generalized }
       }
       default:
         return {}
@@ -210,16 +208,22 @@ export class Input {
   }
 
   private codeToBeInserted(entry: SuggestionEntry): string {
-    // Always return single name if accessOpr is already present.
-    if (this.context.value.type !== 'changeLiteral' && this.context.value.accessOpr != null)
-      return entry.name
+    const ctx = this.context.value
+    const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
+    const neededSpace =
+      ctx.type === 'insert' && opr != null && opr.ok && opr.value.whitespaceLengthInCodeBuffer > 0
+        ? ' '
+        : ''
+    // Always return single name if we're extending access opr chain.
+    if (opr != null && opr.ok && readTokenSpan(opr.value, this.code.value))
+      return neededSpace + entry.name
     // Otherwise they may be cases we want to add type/module name, or self argument placeholder.
-    if (entry.selfType != null) return `_.${entry.name}`
+    if (entry.selfType != null) return `${neededSpace}_.${entry.name}`
     if (entry.memberOf != null) {
       const parentName = qnLastSegment(entry.memberOf)
-      return `${parentName}.${entry.name}`
+      return `${neededSpace}${parentName}.${entry.name}`
     }
-    return entry.name
+    return neededSpace + entry.name
   }
 
   /** All changes to the qualified name already written by the user.
@@ -231,8 +235,8 @@ export class Input {
     if (entry.selfType != null) return []
     if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return []
     if (this.context.value.type === 'changeLiteral') return []
-    if (this.context.value.accessOpr == null) return []
-    const writtenQn = Input.qnIdentifiers(this.context.value.accessOpr, this.code.value).reverse()
+    if (this.context.value.oprApp == null) return []
+    const writtenQn = Input.qnIdentifiers(this.context.value.oprApp, this.code.value).reverse()
 
     let containingQn =
       entry.kind === SuggestionKind.Module
