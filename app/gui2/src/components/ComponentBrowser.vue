@@ -48,7 +48,7 @@ const input = new Input()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
-  console.log('recompute filtering')
+  console.log('recompute filtering', input.code.value, input.selection.value)
   return new Filtering({
     ...input.filter.value,
     ...filterFlags.value,
@@ -341,7 +341,7 @@ function handleKeydown(e: KeyboardEvent) {
       <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
     </div>
     <div class="CBInput">
-      <input ref="inputField" v-model="input.code.value" />
+      <input ref="inputField" v-model="input.code.value" @input="readInputFieldSelection" />
     </div>
   </div>
 </template>

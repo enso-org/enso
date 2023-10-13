@@ -2,6 +2,7 @@ import {
   makeCon,
   makeLocal,
   makeMethod,
+  makeModule,
   makeModuleMethod,
   makeStaticMethod,
   type SuggestionEntry,
@@ -139,6 +140,21 @@ const baseCases: ApplySuggestionCase[] = [
     suggestion: makeStaticMethod('Standard.Base.Data.Vector.new'),
     expected: '(type_method some_arg).Vector.new ',
   },
+  {
+    code: '',
+    suggestion: makeModule('local.Project.Module'),
+    expected: 'local.Project.Module.',
+  },
+  {
+    code: 'local.Project.',
+    suggestion: makeModule('local.Project.Module'),
+    expected: 'local.Project.Module.',
+  },
+  {
+    code: 'Project.Mod',
+    suggestion: makeModule('local.Project.Module'),
+    expected: 'Project.Module.',
+  },
 ]
 
 function makeComplexCase(prefix: string, suffix: string): ApplySuggestionCase[] {
@@ -147,7 +163,7 @@ function makeComplexCase(prefix: string, suffix: string): ApplySuggestionCase[] 
       ...aCase,
       code: `${prefix}${aCase.code}${suffix}`,
       // We must remove trailing space. The suffix should contain one.
-      expected: `${prefix}${aCase.expected.substring(0, aCase.expected.length - 1)}${suffix}`,
+      expected: `${prefix}${aCase.expected.trimEnd()}${suffix}`,
       cursorPos: prefix.length + aCase.code.length,
       expectedCursorPos: prefix.length + aCase.expected.length,
     }

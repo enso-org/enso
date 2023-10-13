@@ -170,9 +170,12 @@ export class Input {
       },
       { code: '', oldCodeIndex: 0 },
     )
+    const isModule = entry.kind === SuggestionKind.Module
     const firstCharAfter = oldCode[newCodeUpToLastChange.oldCodeIndex]
-    const shouldInsertSpace = firstCharAfter == null || /^[a-zA-Z0-9_]$/.test(firstCharAfter)
-    const newCursorPos = newCodeUpToLastChange.code.length + 1
+    const shouldInsertSpace =
+      !isModule && (firstCharAfter == null || /^[a-zA-Z0-9_]$/.test(firstCharAfter))
+    const shouldMoveCursor = !isModule
+    const newCursorPos = newCodeUpToLastChange.code.length + (shouldMoveCursor ? 1 : 0)
     this.code.value =
       newCodeUpToLastChange.code +
       (shouldInsertSpace ? ' ' : '') +
@@ -210,20 +213,26 @@ export class Input {
   private codeToBeInserted(entry: SuggestionEntry): string {
     const ctx = this.context.value
     const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
-    const neededSpace =
+    const oprAppSpacing =
       ctx.type === 'insert' && opr != null && opr.ok && opr.value.whitespaceLengthInCodeBuffer > 0
-        ? ' '
+        ? ' '.repeat(opr.value.whitespaceLengthInCodeBuffer)
         : ''
+    const extendingAccessOprChain =
+      opr != null && opr.ok && readTokenSpan(opr.value, this.code.value) === '.'
+    // Modules are special case, as we want to encourage user to continue writing path.
+    if (entry.kind === SuggestionKind.Module) {
+      if (extendingAccessOprChain) return `${oprAppSpacing}${entry.name}${oprAppSpacing}.`
+      else return `${entry.definedIn}.`
+    }
     // Always return single name if we're extending access opr chain.
-    if (opr != null && opr.ok && readTokenSpan(opr.value, this.code.value))
-      return neededSpace + entry.name
+    if (extendingAccessOprChain) return oprAppSpacing + entry.name
     // Otherwise they may be cases we want to add type/module name, or self argument placeholder.
-    if (entry.selfType != null) return `${neededSpace}_.${entry.name}`
+    if (entry.selfType != null) return `${oprAppSpacing}_.${entry.name}`
     if (entry.memberOf != null) {
       const parentName = qnLastSegment(entry.memberOf)
-      return `${neededSpace}${parentName}.${entry.name}`
+      return `${oprAppSpacing}${parentName}.${entry.name}`
     }
-    return neededSpace + entry.name
+    return oprAppSpacing + entry.name
   }
 
   /** All changes to the qualified name already written by the user.
