@@ -34,6 +34,10 @@ spec =
     library_document = XML_Document.from_file library_test_file
     library_root = library_document . root_element
 
+    trim_if_text x = case x of
+        _ : Text -> x.trim
+        _ -> x
+
     Test.group "from_objects with single values" <|
         Test.specify "Can create a table from a single value" <|
             single_values.map v->
@@ -294,7 +298,7 @@ spec =
                 t.at "Children" . at 0 . at 4 . name . should_equal "Magazine"
                 t.column_names . should_not_contain "Value"
 
-        Test.specify "Can expand child nodes" <|
+        Test.specify "Can expand the Children column to rows" <|
             t = library_root.to Table . expand_to_rows "Children"
             t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
             t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
@@ -306,11 +310,21 @@ spec =
             t.at "Children" . at 4 . name . should_equal "Magazine"
             t.column_names . should_not_contain "Value"
 
+        Test.specify "Can expand the child nodes" <|
+            t = library_root.to Table . expand_to_rows "Children" . expand_column "Children"
+            t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
+            t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
+            t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
+            t.at "Children Value" . to_vector . map trim_if_text . should_equal ["Hello", "My Book", "World", "Your Book", "Cheap Cars For You"]
+            t.at "Children Name" . to_vector . map trim_if_text . should_equal [Nothing, "Book", Nothing, "Book", "Magazine"]
+            t.at "Children @author" . to_vector . map trim_if_text . should_equal [Nothing, "An Author", Nothing, "Another Author", Nothing]
+            t.at "Children @month" . to_vector . map trim_if_text . should_equal [Nothing, Nothing, Nothing, Nothing, 'August-2023']
+            t.at "Children @series" . to_vector . map trim_if_text . should_equal [Nothing, Nothing, Nothing, Nothing, 'AutoCar']
+            t.column_names . should_not_contain "Children Children"
+
         Test.specify "Converting a node without child nodes produces a Value column" <|
             book = library_root . at 1
-            IO.println book
             t = book.to Table
-            IO.println t.display
             t.at "Name" . to_vector . should_equal ["Book"]
             t.at "@author" . to_vector . should_equal ["An Author"]
             t.column_names . should_not_contain "Children"
