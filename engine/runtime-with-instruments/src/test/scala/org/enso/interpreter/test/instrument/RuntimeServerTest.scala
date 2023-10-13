@@ -51,7 +51,7 @@ class RuntimeServerTest
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(
           RuntimeOptions.LOG_LEVEL,
-          java.util.logging.Level.SEVERE.getName
+          java.util.logging.Level.WARNING.getName
         )
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
