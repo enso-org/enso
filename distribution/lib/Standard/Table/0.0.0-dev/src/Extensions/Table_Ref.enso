@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column_Ref.Column_Ref
 import project.Data.Expression.Expression_Error
@@ -56,8 +57,8 @@ type Table_Ref
         Filter_Condition.Not_Contains prefix case_sensitivity -> Filter_Condition.Not_Contains (self.resolve prefix) case_sensitivity
         Filter_Condition.Like pattern -> Filter_Condition.Like (self.resolve pattern)
         Filter_Condition.Not_Like pattern -> Filter_Condition.Not_Like (self.resolve pattern)
-        Filter_Condition.Is_In values -> Filter_Condition.Is_In values
-        Filter_Condition.Not_In values -> Filter_Condition.Not_In values
+        Filter_Condition.Is_In values -> Filter_Condition.Is_In (check_is_in_values "Is_In" values)
+        Filter_Condition.Not_In values -> Filter_Condition.Not_In (check_is_in_values "Not_In" values)
         _ -> condition
 
     ## PRIVATE
@@ -74,3 +75,16 @@ type Table_Ref
 
 ## PRIVATE
 Table_Ref.from (that:Table) = Table_Ref.Value that
+
+## PRIVATE
+check_is_in_values : Text -> Vector -> Vector ! Illegal_Argument
+check_is_in_values operation_name values =
+    check_value v = case v of
+        _ : Column_Ref ->
+            message = "Column_Ref is not allowed in "+operation_name+" to avoid unexpected behavior. As opposed to other operations, which operate on a row-by-row basis when passed a column, "+operation_name+" looks at the whole contents of the passed collection - thus usually expecting a Vector. If you want to filter the elements checking if they are present _anywhere_ in a passed column, you can pass a column by first getting it from the table using the `at` operator."
+            Error.throw (Illegal_Argument.Error message)
+        _ -> v
+    case values of
+        _ : Vector -> values.map check_value
+        _ : Array -> values.map check_value
+        _ -> check_value values
