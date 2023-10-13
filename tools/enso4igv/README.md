@@ -8,9 +8,9 @@ _Enso Tools for VSCode_ is available from [VSCode marketplace](https://marketpla
 Simply install it from there.
 
 
-It is possible to download latest development version of the _Enso VSCode Extension artifact_ from the
-[latest actions run](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml),
-unzip, install into VSCode:
+It is possible to download the latest development version of the _"VSCode Extension" artifact_ from the
+[latest actions run](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml). After downloading
+the ZIP file unzip a `.vsix` from from it and install the `.vsix` file into VSCode:
 
 ![Install from VSIX file](https://github.com/enso-org/enso/assets/26887752/9d7c35d6-44b2-4157-b451-bb27980425c7)
 
@@ -74,7 +74,7 @@ reaches a statement in Enso, it stops:
 
 ## Building VSCode Extension
 
-To build thisVSCode extension and obtain _Enso_ syntax coloring as well as
+To build this VSCode extension and obtain _Enso_ syntax coloring as well as
 support for editing and debugging of `engine/runtime` sources in **VSCode**:
 
 ```
