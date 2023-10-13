@@ -57,6 +57,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const { backend } = backendProvider.useBackend()
     const { organization } = authProvider.useNonPartialUserSession()
     const { shortcuts } = shortcutsProvider.useShortcuts()
+    const [isHovered, setIsHovered] = React.useState(false)
     const asset = item.item
     if (asset.type !== backendModule.AssetType.project) {
         // eslint-disable-next-line no-restricted-syntax
@@ -233,6 +234,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
                 item.depth
             )}`}
+            onMouseEnter={() => {
+                setIsHovered(true)
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+            }}
             onKeyDown={event => {
                 if (rowState.isEditingName && event.key === 'Enter') {
                     event.stopPropagation()
@@ -276,8 +283,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     keyProp={item.key}
                     // This is a workaround for a temporary bad state in the backend causing the
                     // `projectState` key to be absent.
-                    item={{ ...asset, projectState }}
-                    setItem={setAsset}
+                    asset={{ ...asset, projectState }}
+                    item={item}
+                    setItem={setItem}
+                    setAsset={setAsset}
+                    isHovered={isHovered}
+                    setRowState={setRowState}
                     assetEvents={assetEvents}
                     doOpenManually={doOpenManually}
                     openIde={switchPage => {

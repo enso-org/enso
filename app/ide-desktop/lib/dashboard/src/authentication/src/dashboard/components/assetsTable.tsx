@@ -254,7 +254,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [query])
     const displayItems = React.useMemo(() => {
         if (sortColumn == null || sortDirection == null) {
-            return assetTreeNode.assetTreePreorderTraversal(assetTree)
+            return assetTreeNode.assetTreePreorderTraversal(assetTree, (tree, parent) =>
+                parent != null &&
+                backendModule.assetIsProject(parent.item) &&
+                !parent.isProjectExpanded
+                    ? []
+                    : tree
+            )
         } else {
             const sortDescendingMultiplier = -1
             const multiplier = {
@@ -281,8 +287,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                     break
                 }
             }
-            return assetTreeNode.assetTreePreorderTraversal(assetTree, tree =>
-                Array.from(tree).sort(compare)
+            return assetTreeNode.assetTreePreorderTraversal(assetTree, (tree, parent) =>
+                parent != null &&
+                backendModule.assetIsProject(parent.item) &&
+                !parent.isProjectExpanded
+                    ? []
+                    : Array.from(tree).sort(compare)
             )
         }
     }, [assetTree, sortColumn, sortDirection])
@@ -345,14 +355,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 setTimeout(() => {
                     setInitialized(true)
                     setAssetTree(
-                        newAssets.map(asset => ({
-                            key: asset.id,
-                            item: asset,
-                            directoryKey: null,
-                            directoryId: null,
-                            children: null,
-                            depth: 0,
-                        }))
+                        newAssets.map(asset =>
+                            assetTreeNode.assetTreeNodeFromAsset(asset, null, null, 0)
+                        )
                     )
                     // The project name here might also be a string with project id, e.g.
                     // when opening a project file from explorer on Windows.

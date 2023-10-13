@@ -21,6 +21,8 @@ export interface AssetTreeNode {
     directoryId: backendModule.DirectoryId | null
     /** This is `null` if the asset has no children, OR if its children have not yet been fetched. */
     children: AssetTreeNode[] | null
+    /** This stores expanded state for projects, since their children are always loaded. */
+    isProjectExpanded: boolean
     depth: number
 }
 
@@ -103,11 +105,12 @@ export function assetTreeFilter(
 /** Returns all items in the tree, flattened into an array using pre-order traversal. */
 export function assetTreePreorderTraversal(
     tree: AssetTreeNode[],
-    preprocess?: ((tree: AssetTreeNode[]) => AssetTreeNode[]) | null
+    preprocess?: ((tree: AssetTreeNode[], parent: AssetTreeNode | null) => AssetTreeNode[]) | null,
+    parent: AssetTreeNode | null = null
 ): AssetTreeNode[] {
-    return (preprocess?.(tree) ?? tree).flatMap(node => {
+    return (preprocess?.(tree, parent) ?? tree).flatMap(node => {
         if (node.children != null) {
-            return [node, ...assetTreePreorderTraversal(node.children, preprocess ?? null)]
+            return [node, ...assetTreePreorderTraversal(node.children, preprocess ?? null, node)]
         } else {
             return [node]
         }
@@ -127,6 +130,7 @@ export function assetTreeNodeFromAsset(
         directoryKey,
         directoryId,
         children: null,
+        isProjectExpanded: false,
         depth,
     }
 }
