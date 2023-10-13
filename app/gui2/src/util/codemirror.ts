@@ -4,44 +4,133 @@
  */
 
 export { defaultKeymap } from '@codemirror/commands'
+export {
+  bracketMatching,
+  defaultHighlightStyle,
+  foldNodeProp,
+  syntaxHighlighting,
+} from '@codemirror/language'
 export { EditorState } from '@codemirror/state'
 export { EditorView } from '@codemirror/view'
-export { classHighlighter } from '@lezer/highlight'
+export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
-import { childrenAstNodes, parseEnso, type Ast } from '@/util/ast'
-import { NodeType, Parser, Tree, type Input, type PartialParse } from '@lezer/common'
+import { Ast, childrenAstNodes, parseEnso } from '@/util/ast'
+import {
+  Language,
+  LanguageSupport,
+  defineLanguageFacet,
+  foldInside,
+  foldNodeProp,
+  languageDataProp,
+} from '@codemirror/language'
+import {
+  NodeSet,
+  NodeType,
+  Parser,
+  Tree,
+  type Input,
+  type NodeProp,
+  type PartialParse,
+} from '@lezer/common'
+import { styleTags, tags } from '@lezer/highlight'
 
-const nodeTypeCache = new Map<Ast.Tree.Type, NodeType>()
+// TODO: hover tooltips
 
-function nodeType(tree: Ast.Tree) {
-  const cached = nodeTypeCache.get(tree.type)
-  if (cached != null) return cached
-  const nodeType = NodeType.define({ id: tree.type, name: tree.constructor.name })
-  nodeTypeCache.set(tree.type, nodeType)
-  return nodeType
+const nodeTypes: NodeType[] = []
+for (const potentialAstNodeType of Object.values(Ast.Tree)) {
+  if (
+    'prototype' in potentialAstNodeType &&
+    potentialAstNodeType.prototype instanceof Ast.Tree.AbstractBase &&
+    potentialAstNodeType !== Ast.Tree.AbstractBase
+  ) {
+    const view = new DataView(new Uint8Array().buffer)
+    const tree = new (potentialAstNodeType as new (
+      view: DataView,
+    ) => Ast.Tree.AbstractBase & { type: Ast.Tree.Type })(view)
+    nodeTypes.push(NodeType.define({ id: tree.type, name: tree.constructor.name }))
+  }
 }
 
-function astToCodeMirrorTree(tree: Ast.Tree): Tree {
-  const begin = tree.spanLeftOffsetCodeReprBegin
+const nodeSet = new NodeSet(nodeTypes).extend(
+  styleTags({
+    Ident: tags.variableName,
+    Private: tags.variableName,
+    Number: tags.number,
+    Wildcard: tags.variableName,
+    TextLiteral: tags.string,
+    OprApp: tags.operator,
+    UnaryOprApp: tags.operator,
+    Function: tags.function(tags.variableName),
+    ForeignFunction: tags.function(tags.variableName),
+    Import: tags.function(tags.moduleKeyword),
+    Export: tags.function(tags.moduleKeyword),
+    Lambda: tags.function(tags.variableName),
+    Documented: tags.docComment,
+    ConstructorDefinition: tags.function(tags.variableName),
+  }),
+  foldNodeProp.add({
+    BodyBlock: foldInside,
+    ArgumentBlockApplication: foldInside,
+    OperatorBlockApplication: foldInside,
+  }),
+)
+
+function astToCodeMirrorTree(
+  nodeSet: NodeSet,
+  tree: Ast.Tree,
+  props?: readonly [number | NodeProp<any>, any][] | undefined,
+): Tree {
+  const begin = tree.whitespaceStartInCodeParsed
   return new Tree(
-    nodeType(tree),
-    Array.from(childrenAstNodes(tree), astToCodeMirrorTree),
-    Array.from(childrenAstNodes(tree), (child) => child.spanLeftOffsetCodeReprBegin - begin),
-    tree.spanLeftOffsetCodeReprLen,
+    nodeSet.types[tree.type]!,
+    Array.from(childrenAstNodes(tree), (tree) => astToCodeMirrorTree(nodeSet, tree)),
+    Array.from(childrenAstNodes(tree), (child) => child.whitespaceStartInCodeParsed - begin),
+    tree.whitespaceLengthInCodeParsed,
+    props,
   )
 }
 
-export class EnsoParser extends Parser {
+const facet = defineLanguageFacet()
+
+class EnsoParser extends Parser {
+  nodeSet
+  constructor() {
+    super()
+    this.nodeSet = nodeSet
+  }
+  cachedCode: string | undefined
+  cachedTree: Tree | undefined
   createParse(input: Input): PartialParse {
-    const tree = astToCodeMirrorTree(parseEnso(input.read(0, input.length)))
+    const self = this
     return {
       parsedPos: input.length,
       stopAt() {},
       stoppedAt: null,
       advance() {
-        return tree
+        const code = input.read(0, input.length)
+        if (code === self.cachedCode && self.cachedTree != null) {
+          return self.cachedTree
+        }
+        self.cachedCode = code
+        const ast = parseEnso(code)
+        console.log(ast)
+        return (self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [
+          [languageDataProp, facet],
+        ]))
       },
     }
   }
+}
+
+class EnsoLanguage extends Language {
+  constructor() {
+    super(facet, new EnsoParser())
+  }
+}
+
+const ensoLanguage = new EnsoLanguage()
+
+export function enso() {
+  return new LanguageSupport(ensoLanguage)
 }
