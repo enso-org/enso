@@ -37,12 +37,11 @@ object StdBits {
       val configFilter: ConfigurationFilter =
         DependencyFilter.configurationFilter(name = validConfig)
 
-      val graalOrg = new ExactFilter("org.graalvm.sdk")
       val relevantFiles =
         libraryUpdates
           .select(
             configuration = configFilter,
-            module        = DependencyFilter.moduleFilter(organization = -graalOrg),
+            module        = DependencyFilter.moduleFilter(),
             artifact      = DependencyFilter.artifactFilter()
           )
 
