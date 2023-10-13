@@ -5,7 +5,6 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Value_Type
 from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
 
-import Standard.Database.Extensions.Table_Conversions
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems

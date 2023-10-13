@@ -751,7 +751,7 @@ content root to be provided (`--root-id` and `--path` options). Command-line
 interface of the runner prints all server options when you execute it with
 `--help` option.
 
-Below are options uses by the Language Server:
+Below are options used by the Language Server:
 
 - `--server`: Runs the Language Server
 - `--root-id <uuid>`: Content root id. The Language Server chooses one randomly,
@@ -763,6 +763,10 @@ Below are options uses by the Language Server:
   value is 8080.
 - `--data-port <port>`: Data port for visualization protocol. Default value
   is 8081.
+- `--secure-rpc-port <port>`: (optional) Secure RPC port for processing all
+  incoming connections.
+- `--secure-data-port <port>`: (optional) Secure data port for visualization
+  protocol.
 
 To run the Language Server on 127.0.0.1:8080 type:
 

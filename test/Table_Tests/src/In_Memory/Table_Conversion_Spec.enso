@@ -10,6 +10,11 @@ import Standard.Test.Extensions
 
 from project.Util import all
 
+type My_Mod_Type
+    Value x
+
+    to_text self = "x%10="+(self.x%10).to_text
+
 spec =
     single_values = [Nothing, 12, 13.4, True, "hello", Date.new 2023 10 6, Time_Of_Day.new 3 4 5 200, Date_Time.new 2023 11 7 2 3 4]
     uniform_json = Json.parse <| '''
@@ -49,6 +54,10 @@ spec =
         Test.specify "Generates a single-row table from a JSON object" <|
             expected = Table.from_rows ["first", "last", "age"] [["Mary", "Smith", 23]]
             Table.from_objects (uniform_json.at 0) . should_equal expected
+
+        Test.specify "works fine even if requested fields are duplicated" <|
+            expected = Table.from_rows ["first", "last"] [["Mary", "Smith"]]
+            Table.from_objects (uniform_json.at 0) ["first", "last", "first", "first"] . should_equal expected
 
     Test.group "from_objects with uniform JSON vector" <|
         Test.specify "Generates a table from a vector of JSON objects" <|
@@ -148,11 +157,45 @@ spec =
             expected = Table.new [["aaa", [1, 2]], ["bbb last", ["Smith", Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] . should_equal expected
 
-        Test.specify "Error if there are vectors/arrays within a column" <|
-            table = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3], [4, 5, 6]]]]
-            table2 = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3].to_array, [4, 5, 6].to_array]]]
-            table.expand_column "bbb" . should_fail_with Illegal_Argument
-            table2.expand_column "bbb" . should_fail_with Illegal_Argument
+        Test.specify "accept vectors/arrays within a column" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [[1, 2, 3], [4, 5, 6].to_array]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb Value", [[1, 2, 3], [4, 5, 6].to_array]]]
+            table.expand_column "bbb" . should_equal expected
+
+        Test.specify "will work even if keys are not Text" <|
+            table = Table.new [["a", [1, 2]], ["b", [Map.from_vector [[1, "x"], [2, "y"]], Map.from_vector [[2, "z"], [3, "w"]]]]]
+            expected = Table.new [["a", [1, 2]], ["b 1", ["x", Nothing]], ["b 2", ["y", "z"]], ["b 3", [Nothing, "w"]]]
+            table.expand_column "b" . should_equal expected
+
+            table2 = Table.new [["a", [1, 2]], ["b", [Map.from_vector [[My_Mod_Type.Value 12, "x"], [My_Mod_Type.Value 23, "y"]], Map.from_vector [[My_Mod_Type.Value 32, "z"]]]]]
+            expected2 = Table.new [["a", [1, 2]], ["b x%10=2", ["x", "z"]], ["b x%10=3", ["y", Nothing]]]
+            table2.expand_column "b" . should_equal expected2
+
+        Test.specify "will fail if text representation of keys is not unique" <|
+            k1 = My_Mod_Type.Value 12
+            k2 = My_Mod_Type.Value 32
+            m = Map.from_vector [[k1, "a"], [k2, "b"]]
+            m.at k1 . should_equal "a"
+            m.at k2 . should_equal "b"
+            k1.to_text . should_equal "x%10=2"
+            k2.to_text . should_equal "x%10=2"
+
+            table = Table.new [["a", [1, 2]], ["b", [Map.from_vector [[k1, "x"], [k2, "y"]] , Map.from_vector []]]]
+            r = table.expand_column "b"
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "keys are duplicated when converted to text"
+
+        Test.specify "will error when all objects have no fields" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", [Map.from_vector [], Map.from_vector []]], ["ccc", [5, 6]]]
+            r = table.expand_column "bbb"
+            r.should_fail_with Illegal_Argument
+            r.catch.message.should_contain "all input objects had no fields"
+
+        Test.specify "will error when fields=[]" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", uniform_json], ["ccc", [5, 6]]]
+            r = table.expand_column "bbb" fields=[]
+            r.should_fail_with Illegal_Argument
+            r.catch.message . should_equal "The fields parameter cannot be empty."
 
         Test.specify "Can expand with a prefix" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
