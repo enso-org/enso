@@ -281,7 +281,7 @@ spec setup =
                within the same table - and that's the only approach Column_Ref would support.
             t = table_builder [["A", [1, 2, 3]], ["B", [2, 3, 4]]]
 
-            Test.expect_panic_with (t.filter "A" (Filter_Condition.Is_In (Column_Ref.Name "B"))) Type_Error
+            t.filter "A" (Filter_Condition.Is_In (Column_Ref.Name "B")) . should_fail_with Illegal_Argument
 
             # If the user really wants this, they pass it as a raw column:
             t.filter "A" (Filter_Condition.Is_In (t.at "B")) . at "A" . to_vector . should_equal [2, 3]
