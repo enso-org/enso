@@ -57,7 +57,7 @@ type Table_Ref
         Filter_Condition.Like pattern -> Filter_Condition.Like (self.resolve pattern)
         Filter_Condition.Not_Like pattern -> Filter_Condition.Not_Like (self.resolve pattern)
         Filter_Condition.Is_In values -> Filter_Condition.Is_In values
-        Filter_Condition.Not_In values -> Filter_Condition.Is_In values
+        Filter_Condition.Not_In values -> Filter_Condition.Not_In values
         _ -> condition
 
     ## PRIVATE
