@@ -1347,7 +1347,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                             <AssetNameColumn
                                                 key={node.key}
                                                 keyProp={node.key}
-                                                item={node}
+                                                item={{ ...node, depth: 0 }}
                                                 state={state}
                                                 // Default states.
                                                 selected={false}

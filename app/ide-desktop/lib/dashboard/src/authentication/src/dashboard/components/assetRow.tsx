@@ -55,6 +55,7 @@ export default function AssetRow(props: AssetRowProps) {
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { user } = authProvider.useNonPartialUserSession()
     const toastAndLog = hooks.useToastAndLog()
+    const [isDraggedOver, setIsDraggedOver] = React.useState(false)
     const [item, setItem] = React.useState(rawItem)
     const asset = item.item
     const [visibility, setVisibility] = React.useState(visibilityModule.Visibility.visible)
@@ -291,7 +292,9 @@ export default function AssetRow(props: AssetRowProps) {
             return (
                 <>
                     <TableRow
-                        className={visibilityModule.CLASS_NAME[visibility]}
+                        className={`${visibilityModule.CLASS_NAME[visibility]} ${
+                            !isDraggedOver ? '' : 'selected'
+                        }`}
                         {...props}
                         hidden={hidden || visibility === visibilityModule.Visibility.hidden}
                         onContextMenu={(innerProps, event) => {
@@ -331,8 +334,12 @@ export default function AssetRow(props: AssetRowProps) {
                                     payload.every(innerItem => innerItem.key !== item.key)
                                 ) {
                                     event.preventDefault()
+                                    setIsDraggedOver(true)
                                 }
                             }
+                        }}
+                        onDragLeave={() => {
+                            setIsDraggedOver(false)
                         }}
                         onDrop={event => {
                             if (item.item.type === backendModule.AssetType.directory) {
