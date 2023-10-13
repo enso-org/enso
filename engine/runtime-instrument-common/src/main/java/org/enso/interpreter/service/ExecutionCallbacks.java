@@ -152,7 +152,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
         resultType = t.getQualifiedName().toString();
       } else {
         var iop = InteropLibrary.getUncached();
-        if (iop.hasMetaObject(value)) {
+        if (value != null && iop.hasMetaObject(value)) {
           try {
             var meta = iop.getMetaObject(value);
             resultType = iop.asString(iop.getMetaQualifiedName(meta));
