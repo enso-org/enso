@@ -1529,6 +1529,11 @@ lazy val `runtime-with-instruments` =
       ),
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
+      // We need to package runtime into Jar, as it should behave as an explicit JPMS
+      // module.
+      assembly := assembly
+        .dependsOn(LocalProject("runtime") / Compile / packageBin)
+        .value,
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
