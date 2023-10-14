@@ -21,6 +21,7 @@ import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.SourceSection;
 
 import java.util.UUID;
 
@@ -257,9 +258,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             .tagIsNot(AvoidIdInstrumentationTag.class)
             .sourceIs(module::isModuleSource);
 
-    if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {
-      final int firstFunctionLine = c.getSourceSection().getStartLine();
-      final int afterFunctionLine = c.getSourceSection().getEndLine() + 1;
+    if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() instanceof SourceSection section && section != null) {
+      final int firstFunctionLine = section.getStartLine();
+      final int afterFunctionLine = section.getEndLine() + 1;
       builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
     }
     var filter = builder.build();

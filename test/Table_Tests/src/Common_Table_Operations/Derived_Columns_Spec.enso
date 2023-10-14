@@ -1,0 +1,199 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import all
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
+    Test.group prefix+"Table.set with Column_Operation" <|
+        Test.specify "arithmetics" <|
+            t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
+            t.set (Column_Operation.Add (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [11, 42]
+            t.set (Column_Operation.Add 100 (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [110, 140]
+            t.set (Column_Operation.Add (Column_Ref.Name "A") 100) "C" . at "C" . to_vector . should_equal [101, 102]
+            t.set (Column_Operation.Add 23 100) "C" . at "C" . to_vector . should_equal [123, 123]
+
+            t.set (Column_Operation.Subtract (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [-9, -38]
+            t.set (Column_Operation.Subtract 100 (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [90, 60]
+            t.set (Column_Operation.Subtract (Column_Ref.Name "A") 100) "C" . at "C" . to_vector . should_equal [-99, -98]
+            t.set (Column_Operation.Subtract 23 100) "C" . at "C" . to_vector . should_equal [-77, -77]
+
+            t.set (Column_Operation.Multiply (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [10, 80]
+            t.set (Column_Operation.Multiply 100 (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [1000, 4000]
+            t.set (Column_Operation.Multiply (Column_Ref.Name "A") 100) "C" . at "C" . to_vector . should_equal [100, 200]
+            t.set (Column_Operation.Multiply 23 100) "C" . at "C" . to_vector . should_equal [2300, 2300]
+
+            t.set (Column_Operation.Divide (Column_Ref.Name "B") (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [10, 20]
+            t.set (Column_Operation.Divide (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [0.1, 0.05]
+            t.set (Column_Operation.Divide 1 (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [1, 0.5]
+            t.set (Column_Operation.Divide 1 2) "C" . at "C" . to_vector . should_equal [0.5, 0.5]
+
+            t2 = table_builder [["A", [23, 42]], ["B", [10, 3]]]
+            t2.set (Column_Operation.Mod (Column_Ref.Name "A") (Column_Ref.Name "B")) "C" . at "C" . to_vector . should_equal [3, 0]
+            t2.set (Column_Operation.Mod (Column_Ref.Name "A") 10) "C" . at "C" . to_vector . should_equal [3, 2]
+            t2.set (Column_Operation.Mod 7 5) "C" . at "C" . to_vector . should_equal [2, 2]
+
+            t.set (Column_Operation.Power (Column_Ref.Name "B") (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [10, 1600]
+            t.set (Column_Operation.Power (Column_Ref.Name "A") 3) "C" . at "C" . to_vector . should_equal [1, 8]
+            t.set (Column_Operation.Power 2 (Column_Ref.Name "A")) "C" . at "C" . to_vector . should_equal [2, 4]
+            t.set (Column_Operation.Power 3 4) "C" . at "C" . to_vector . should_equal [81, 81]
+
+            Test.expect_panic Type_Error <| t.set (Column_Operation.Subtract "x" "y")
+            t.set (Column_Operation.Add 42 "y") . should_fail_with Illegal_Argument
+
+        Test.specify "rounding" <|
+            t = table_builder [["A", [1.13333, 122.74463, 32.52424, -12.7]]]
+            t.set (Column_Operation.Round (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [1, 123, 33, -13]
+            t.set (Column_Operation.Round (Column_Ref.Name "A") precision=1) "Z" . at "Z" . to_vector . should_equal [1.1, 122.7, 32.5, -12.7]
+            t.set (Column_Operation.Round (Column_Ref.Name "A") precision=-1) "Z" . at "Z" . to_vector . should_equal [0, 120, 30, -10]
+
+            t.set (Column_Operation.Ceil (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [2, 123, 33, -12]
+            t.set (Column_Operation.Floor (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [1, 122, 32, -13]
+            t.set (Column_Operation.Truncate (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [1, 122, 32, -12]
+
+            Test.expect_panic Type_Error <| t.set (Column_Operation.Round "1.23")
+            Test.expect_panic Type_Error <| t.set (Column_Operation.Truncate "1.23")
+
+        Test.specify "date/time" pending=pending_datetime <|
+            t = table_builder [["A", [Date_Time.new 2023 1 12 12 45, Date_Time.new 2020 5 12 1 45]], ["B", [Date_Time.new 2023 1 15 18 45, Date_Time.new 2020 6 12 22 20]], ["x", [1, 3]]]
+
+            # TODO ticket for truncate for DB
+            if setup.is_database.not then
+                t.set (Column_Operation.Truncate (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [Date.new 2023 1 12, Date.new 2020 5 12]
+                t.set (Column_Operation.Truncate (Date_Time.new 1999 12 10 14 55 11)) "Z" . at "Z" . to_vector . should_equal [Date.new 1999 12 10, Date.new 1999 12 10]
+
+            t.set (Column_Operation.Date_Add (Column_Ref.Name "A") (Column_Ref.Name "x")) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 1 13 12 45, Date_Time.new 2020 5 15 1 45]
+            t.set (Column_Operation.Date_Add (Column_Ref.Name "A") 10 Date_Period.Year) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2033 1 12 12 45, Date_Time.new 2030 5 12 1 45]
+            t.set (Column_Operation.Date_Add (Date_Time.new 2001 12 15 11 00) 10 Time_Period.Minute) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2001 12 15 11 10, Date_Time.new 2001 12 15 11 10]
+
+            t.set (Column_Operation.Date_Diff (Column_Ref.Name "A") (Column_Ref.Name "B") Date_Period.Day) "Z" . at "Z" . to_vector . should_equal [3, 31]
+            t.set (Column_Operation.Date_Part (Column_Ref.Name "A") Date_Period.Year) "Z" . at "Z" . to_vector . should_equal [2023, 2020]
+            t.set (Column_Operation.Date_Part (Column_Ref.Name "A") Time_Period.Minute) "Z" . at "Z" . to_vector . should_equal [45, 45]
+
+            t2 = table_builder [["C", [Date.new 2002 12 10, Date.new 2005 01 01]], ["D", [Time_Of_Day.new 12 45, Time_Of_Day.new 01 01]]]
+            t2.set (Column_Operation.Date_Add (Column_Ref.Name "C") 5 Date_Period.Month) "Z" . at "Z" . to_vector . should_equal [Date.new 2003 5 10, Date.new 2005 6 01]
+            t2.set (Column_Operation.Date_Add (Column_Ref.Name "D") 15 Time_Period.Hour) "Z" . at "Z" . to_vector . should_equal [Time_Of_Day.new 03 45, Time_Of_Day.new 16 01]
+
+            t2.set (Column_Operation.Date_Diff (Column_Ref.Name "C") (Date.new 2003) Date_Period.Year) "Z" . at "Z" . to_vector . should_equal [0, -2]
+            t2.set (Column_Operation.Date_Diff (Column_Ref.Name "D") (Time_Of_Day.new 13) Time_Period.Minute) "Z" . at "Z" . to_vector . should_equal [15, 59+(60*11)]
+
+            t2.set (Column_Operation.Date_Part (Column_Ref.Name "C") Date_Period.Year) "Z" . at "Z" . to_vector . should_equal [2002, 2005]
+            t2.set (Column_Operation.Date_Part (Column_Ref.Name "D") Time_Period.Minute) "Z" . at "Z" . to_vector . should_equal [45, 1]
+
+            # error handling
+            t2.set (Column_Operation.Date_Part (Column_Ref.Name "C") Time_Period.Second) . should_fail_with Illegal_Argument
+            t2.set (Column_Operation.Date_Add (Column_Ref.Name "D") 5 Date_Period.Year) . should_fail_with Illegal_Argument
+            t.set (Column_Operation.Date_Part (Column_Ref.Name "x") Date_Period.Year) . should_fail_with Invalid_Value_Type
+            Test.expect_panic Type_Error <| t2.set (Column_Operation.Date_Diff 42 "x" Date_Period.Year)
+
+        Test.specify "boolean" <|
+            t = table_builder [["A", [True, False]], ["T", [True, True]]]
+
+            t.set (Column_Operation.And (Column_Ref.Name "A") (Column_Ref.Name "T")) "Z" . at "Z" . to_vector . should_equal [True, False]
+            t.set (Column_Operation.And (Column_Ref.Name "A") False) "Z" . at "Z" . to_vector . should_equal [False, False]
+            t.set (Column_Operation.And True True) "Z" . at "Z" . to_vector . should_equal [True, True]
+
+            t.set (Column_Operation.Or (Column_Ref.Name "A") (Column_Ref.Name "T")) "Z" . at "Z" . to_vector . should_equal [True, True]
+            t.set (Column_Operation.Or False (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [True, False]
+            t.set (Column_Operation.Or False False) "Z" . at "Z" . to_vector . should_equal [False, False]
+
+            t.set (Column_Operation.Not (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal [False, True]
+            t.set (Column_Operation.Not False) "Z" . at "Z" . to_vector . should_equal [True, True]
+
+            Test.expect_panic_with (t.set (Column_Operation.And 42 True)) Type_Error
+            Test.expect_panic_with (t.set (Column_Operation.Or (Column_Ref.Name "A") "x")) Type_Error
+
+        Test.specify "if" <|
+            t = table_builder [["A", [1, 100]], ["B", [10, 40]], ["C", [23, 55]]]
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal [False, True]
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=20) "T" "F") "Z" . at "Z" . to_vector . should_equal ["F", "T"]
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Less than=20) (Column_Ref.Name "B") (Column_Ref.Name "C")) "Z" . at "Z" . to_vector . should_equal [10, 55]
+
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than="X") "T" "F") . should_fail_with Invalid_Value_Type
+
+            t2 = table_builder [["A", ["a", "c"]], ["B", ["c", "b"]], ["C", [23, 55]]]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal [False, True]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B")) (Column_Ref.Name "C") 0) "Z" . at "Z" . to_vector . should_equal [0, 55]
+            t2.set (Column_Operation.If "A" (Filter_Condition.Greater than="B") (Column_Ref.Name "C") 0) "Z" . at "Z" . to_vector . should_equal [0, 0]
+
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In ["x", "a", "dd"]) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["TT", "FF"]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In ["x", "a", "dd"]) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["FF", "TT"]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In []) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["FF", "FF"]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In []) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["TT", "TT"]
+
+            # Passing a column does not work row-by-row, but looks at whole column contents.
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In (t2.at "B")) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["FF", "TT"]
+            t3 = table_builder [["x", ["e", "e", "a"]]]
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In (t3.at "x")) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["TT", "FF"]
+
+            # Thus, passing a Column_Ref into Is_In/Not_In is not allowed as it would be confusing.
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In (Column_Ref.Name "B")) "TT" "FF") . should_fail_with Illegal_Argument
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In (Column_Ref.Name "B")) "TT" "FF") . should_fail_with Illegal_Argument
+            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In [Column_Ref.Name "B", "X"]) "TT" "FF") . should_fail_with Illegal_Argument
+
+        Test.specify "text" <|
+            t = table_builder [["A", ["  a ", "b"]], ["B", ["c", " d    "]]]
+
+            t.set (Column_Operation.Trim (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal ["a", "b"]
+            t.set (Column_Operation.Trim (Column_Ref.Name "A") Location.End) "Z" . at "Z" . to_vector . should_equal ["  a", "b"]
+            t.set (Column_Operation.Trim (Column_Ref.Name "A") Location.Start) "Z" . at "Z" . to_vector . should_equal ["a ", "b"]
+            t.set (Column_Operation.Trim (Column_Ref.Name "A") Location.Both "abc") "Z" . at "Z" . to_vector . should_equal ["  a ", ""]
+            t.set (Column_Operation.Trim "bb aaaa" Location.Both (Column_Ref.Name "A")) "Z" . at "Z" . to_vector . should_equal ["bb", " aaaa"]
+
+            t.set (Column_Operation.Add (Column_Ref.Name "A") (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal ["  a c", "b d    "]
+            t.set (Column_Operation.Add "prefix_" (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal ["prefix_c", "prefix_ d    "]
+            t.set (Column_Operation.Add (Column_Ref.Name "A") "!") "Z" . at "Z" . to_vector . should_equal ["  a !", "b!"]
+            t.set (Column_Operation.Add "O" "!") "Z" . at "Z" . to_vector . should_equal ["O!", "O!"]
+
+            t2 = table_builder [["A", [42]]]
+            t2.set (Column_Operation.Trim (Column_Ref.Name "A")) . should_fail_with Invalid_Value_Type
+
+        Test.specify "min/max" <|
+            t = table_builder [["A", [1, 20]], ["B", [10, 2]]]
+
+            t.set (Column_Operation.Min (Column_Ref.Name "A") (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal [1, 2]
+            t.set (Column_Operation.Min (Column_Ref.Name "A") 5) "Z" . at "Z" . to_vector . should_equal [1, 5]
+
+            t.set (Column_Operation.Max (Column_Ref.Name "A") (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal [10, 20]
+            t.set (Column_Operation.Max (Column_Ref.Name "A") 5) "Z" . at "Z" . to_vector . should_equal [5, 20]
+
+            t.set (Column_Operation.Max 2 5) "Z" . at "Z" . to_vector . should_equal [5, 5]
+            t.set (Column_Operation.Min 2 5) "Z" . at "Z" . to_vector . should_equal [2, 2]
+
+            t2 = table_builder [["A", ["aardvark", "zebra"]], ["B", ["cat", "dog"]], ["x", [1, 20]]]
+            t2.set (Column_Operation.Min (Column_Ref.Name "A") (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal ["aardvark", "dog"]
+            t2.set (Column_Operation.Max (Column_Ref.Name "A") (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal ["cat", "zebra"]
+            t2.set (Column_Operation.Min (Column_Ref.Name "A") "animal") "Z" . at "Z" . to_vector . should_equal ["aardvark", "animal"]
+            t2.set (Column_Operation.Max "coyote" (Column_Ref.Name "B")) "Z" . at "Z" . to_vector . should_equal ["coyote", "dog"]
+
+            # mixed types result in an error
+            t2.set (Column_Operation.Min (Column_Ref.Name "A") 42) . should_fail_with Invalid_Value_Type
+            t2.set (Column_Operation.Min (Column_Ref.Name "x") "x") . should_fail_with Invalid_Value_Type
+            t2.set (Column_Operation.Min (Column_Ref.Name "x") (Column_Ref.Name "A")) . should_fail_with Invalid_Value_Type
+
+            if pending_datetime.is_nothing then
+                t3 = table_builder [["A", [Date.new 2002 12 10, Date.new 2005 01 01]]]
+                t3.set (Column_Operation.Min (Column_Ref.Name "A") (Date.new 2003)) "Z" . at "Z" . to_vector . should_equal [Date.new 2002 12 10, Date.new 2003 01 01]
+                t3.set (Column_Operation.Max (Column_Ref.Name "A") (Date.new 2003)) "Z" . at "Z" . to_vector . should_equal [Date.new 2003 01 01, Date.new 2005 01 01]
+
+        Test.specify "allows also indexing columns numerically" <|
+            t = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t.set (Column_Operation.Add (Column_Ref.Index 0) (Column_Ref.Index 1)) "Z" . at "Z" . to_vector . should_equal [4, 6]
+
+        Test.specify "will forward column resolution errors" <|
+            t = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t.set (Column_Operation.Add (Column_Ref.Name "X") (Column_Ref.Name "Z")) . should_fail_with No_Such_Column
+            t.set (Column_Operation.Not (Column_Ref.Name "zzz")) . should_fail_with No_Such_Column
+            t.set (Column_Operation.Not (Column_Ref.Index 42)) . should_fail_with Index_Out_Of_Bounds

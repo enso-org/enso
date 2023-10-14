@@ -155,7 +155,13 @@ public class InferredBuilder extends Builder {
   }
 
   private void retypeToMixed() {
-    ObjectBuilder objectBuilder = new MixedBuilder(initialSize);
+    // The new internal builder must be at least `currentSize` so it can store
+    // all the current values. It must also be at least 'initialSize' since the
+    // caller might be using appendNoGrow and is expecting to write at least
+    // that many values.
+    int capacity = Math.max(initialSize, currentSize);
+
+    ObjectBuilder objectBuilder = new MixedBuilder(capacity);
     currentBuilder.retypeToMixed(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
     objectBuilder.setPreExistingProblems(currentBuilder.getProblems());

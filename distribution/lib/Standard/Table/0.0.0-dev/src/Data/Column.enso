@@ -1463,7 +1463,8 @@ type Column
          shift each date.
        - period: The period by which to shift. For `Date` columns it should be a
          `Date_Period` and for `Time` columns it should be a `Time_Period`. For
-         `Date_Time` columns it can be either.
+         `Date_Time` columns it can be either. It defaults to `Day` where
+         possible and `Hour` for `Time` columns.
 
        ? Time Zone handling
 
@@ -1473,7 +1474,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_add self amount (period : Date_Period | Time_Period) =
+    date_add self amount (period : Date_Period|Time_Period = default_date_period self) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
@@ -2528,6 +2529,10 @@ cast_if_needed column value_type = if column.value_type == value_type then colum
 ## PRIVATE
 naming_helper : Column_Naming_Helper
 naming_helper = Column_Naming_Helper.in_memory
+
+## PRIVATE
+   Resolves the default date period for `date_add` depending on the source column value type.
+default_date_period column = if column.value_type.has_date then Date_Period.Day else Time_Period.Hour
 
 ## PRIVATE
    Conversion method to a Column from a Vector.
