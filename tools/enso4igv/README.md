@@ -4,13 +4,15 @@
 
 ## Downloading
 
-_Enso Tools for VSCode_ is available from [VSCode marketplace](https://marketplace.visualstudio.com/items?itemName=Enso.enso4vscode).
+_Enso Tools for VSCode_ is available from
+[VSCode marketplace](https://marketplace.visualstudio.com/items?itemName=Enso.enso4vscode).
 Simply install it from there.
 
-
-It is possible to download the latest development version of the _"VSCode Extension" artifact_ from the
-[latest actions run](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml). After downloading
-the ZIP file unzip a `.vsix` from it and install the `.vsix` file into VSCode.
+It is possible to download the latest development version of the _"VSCode
+Extension" artifact_ from the
+[latest actions run](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml).
+After downloading the ZIP file unzip a `.vsix` from it and install the `.vsix`
+file into VSCode.
 
 Your Enso files will get proper **syntax coloring**. You'll be able to **debug**
 Java/Enso code interchangeably.
@@ -46,8 +48,8 @@ Let's do a bit of debugging. Select _"Listen to 5005"_ debug configuration:
 ![Listen to 5005](https://github.com/enso-org/enso/assets/26887752/1874bcb1-cf8b-4df4-92d8-e7fb57e1b17a)
 
 And then just
-[execute the engine distribution](https://github.com/enso-org/enso/blob/develop/docs/CONTRIBUTING.md#running-enso) in
-debug mode:
+[execute the engine distribution](https://github.com/enso-org/enso/blob/develop/docs/CONTRIBUTING.md#running-enso)
+in debug mode:
 
 ```bash
 sbt:enso> runEngineDistribution --debug --run test/Tests/src/Data/Vector_Spec.enso
@@ -91,4 +93,5 @@ _Extension perspective_ and choose _Install from VSIX..._ menu item.
 
 ## Reference
 
-There are extensions for [NetBeans](http://netbeans.apache.org) and also for **IGV**. Read more [here](IGV.md).
+There are extensions for [NetBeans](http://netbeans.apache.org) and also for
+**IGV**. Read more [here](IGV.md).
