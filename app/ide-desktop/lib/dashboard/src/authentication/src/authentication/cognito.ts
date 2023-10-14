@@ -30,13 +30,13 @@
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error. */
 import * as amplify from '@aws-amplify/auth'
-import * as cognito from 'amazon-cognito-identity-js'
+import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
 import * as detect from 'enso-common/src/detect'
 
 import * as config from './config'
-import * as loggerProvider from '../providers/logger'
+import type * as loggerProvider from '../providers/logger'
 
 // =================
 // === Constants ===
@@ -103,7 +103,7 @@ interface UserInfo {
  * from `unknown` to a typed object. Then, use one of the response error handling functions  (e.g.
  * {@link intoSignUpErrorOrThrow}) to see if the error is one that must be handled by the
  * application (i.e., it is an error that is relevant to our business logic). */
-interface AmplifyError extends Error {
+export interface AmplifyError extends Error {
     /** Error code for disambiguating the error. */
     code: string
 }
@@ -120,7 +120,7 @@ function isAmplifyError(error: unknown): error is AmplifyError {
 /** Convert the `unknown` error into an {@link AmplifyError} and returns it, or re-throws it if
  * conversion is not possible.
  * @throws If the error is not an amplify error. */
-function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
+export function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
     if (isAmplifyError(error)) {
         return error
     } else {
@@ -182,9 +182,7 @@ export class Cognito {
 
     /** Save the access token to a file for further reuse. */
     saveAccessToken(accessToken: string) {
-        if (this.amplifyConfig.accessTokenSaver) {
-            this.amplifyConfig.accessTokenSaver(accessToken)
-        }
+        this.amplifyConfig.accessTokenSaver?.(accessToken)
     }
 
     /** Return the current {@link UserSession}, or `None` if the user is not logged in.
@@ -387,13 +385,15 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
     }
 }
 
-const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
-    internalMessage: 'No current user',
-    kind: 'NoCurrentUser',
-} as const
-
 /** Internal IDs of errors that may occur when getting the current session. */
-type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['kind']
+export enum CurrentSessionErrorKind {
+    noCurrentUser = 'NoCurrentUser',
+}
+
+export const CURRENT_SESSION_NO_CURRENT_USER_ERROR = {
+    internalMessage: 'No current user',
+    kind: CurrentSessionErrorKind.noCurrentUser,
+}
 
 /**
  * Convert an {@link AmplifyError} into a {@link CurrentSessionErrorKind} if it is a known error,
@@ -401,7 +401,7 @@ type CurrentSessionErrorKind = (typeof CURRENT_SESSION_NO_CURRENT_USER_ERROR)['k
  *
  * @throws {Error} If the error is not recognized.
  */
-function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
+export function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
     if (error === CURRENT_SESSION_NO_CURRENT_USER_ERROR.internalMessage) {
         return CURRENT_SESSION_NO_CURRENT_USER_ERROR.kind
     } else {
@@ -442,26 +442,27 @@ function intoSignUpParams(
     }
 }
 
+/** Internal IDs of errors that may occur when signing up. */
+export enum SignUpErrorKind {
+    usernameExists = 'UsernameExists',
+    invalidParameter = 'InvalidParameter',
+    invalidPassword = 'InvalidPassword',
+}
+
 const SIGN_UP_USERNAME_EXISTS_ERROR = {
     internalCode: 'UsernameExistsException',
-    kind: 'UsernameExists',
-} as const
+    kind: SignUpErrorKind.usernameExists,
+}
 
 const SIGN_UP_INVALID_PARAMETER_ERROR = {
     internalCode: 'InvalidParameterException',
-    kind: 'InvalidParameter',
-} as const
+    kind: SignUpErrorKind.invalidParameter,
+}
 
 const SIGN_UP_INVALID_PASSWORD_ERROR = {
     internalCode: 'InvalidPasswordException',
-    kind: 'InvalidPassword',
-} as const
-
-/** Internal IDs of errors that may occur when signing up. */
-type SignUpErrorKind =
-    | (typeof SIGN_UP_INVALID_PARAMETER_ERROR)['kind']
-    | (typeof SIGN_UP_INVALID_PASSWORD_ERROR)['kind']
-    | (typeof SIGN_UP_USERNAME_EXISTS_ERROR)['kind']
+    kind: SignUpErrorKind.invalidPassword,
+}
 
 /** An error that may occur when signing up. */
 export interface SignUpError extends CognitoError {
@@ -475,7 +476,7 @@ export interface SignUpError extends CognitoError {
  *
  * @throws {Error} If the error is not recognized.
  */
-function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
+export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
     if (error.code === SIGN_UP_USERNAME_EXISTS_ERROR.internalCode) {
         return {
             kind: SIGN_UP_USERNAME_EXISTS_ERROR.kind,
@@ -500,14 +501,16 @@ function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 // === ConfirmSignUp ===
 // =====================
 
+/** Internal IDs of errors that may occur when confirming registration. */
+export enum ConfirmSignUpErrorKind {
+    userAlreadyConfirmed = 'UserAlreadyConfirmed',
+}
+
 const CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR = {
     internalCode: 'NotAuthorizedException',
     internalMessage: 'User cannot be confirmed. Current status is CONFIRMED',
-    kind: 'UserAlreadyConfirmed',
-} as const
-
-/** Internal IDs of errors that may occur when confirming registration. */
-type ConfirmSignUpErrorKind = (typeof CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR)['kind']
+    kind: ConfirmSignUpErrorKind.userAlreadyConfirmed,
+}
 
 /** An error that may occur when confirming registration. */
 export interface ConfirmSignUpError extends CognitoError {
@@ -518,7 +521,7 @@ export interface ConfirmSignUpError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link ConfirmSignUpError} if it is a known error,
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
+export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError {
     if (
         error.code === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalCode &&
         error.message === CONFIRM_SIGN_UP_USER_ALREADY_CONFIRMED_ERROR.internalMessage
@@ -540,7 +543,11 @@ function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignUpError 
 // ==========================
 
 /** Internal IDs of errors that may occur when signing in with a password. */
-type SignInWithPasswordErrorKind = 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
+export enum SignInWithPasswordErrorKind {
+    notAuthorized = 'NotAuthorized',
+    userNotConfirmed = 'UserNotConfirmed',
+    userNotFound = 'UserNotFound',
+}
 
 /** An error that may occur when signing in with a password. */
 export interface SignInWithPasswordError extends CognitoError {
@@ -551,21 +558,21 @@ export interface SignInWithPasswordError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link SignInWithPasswordError} if it is a known error,
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPasswordError {
+export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPasswordError {
     switch (error.code) {
         case 'UserNotFoundException':
             return {
-                kind: 'UserNotFound',
+                kind: SignInWithPasswordErrorKind.userNotFound,
                 message: MESSAGES.signInWithPassword.userNotFound,
             }
         case 'UserNotConfirmedException':
             return {
-                kind: 'UserNotConfirmed',
+                kind: SignInWithPasswordErrorKind.userNotConfirmed,
                 message: MESSAGES.signInWithPassword.userNotConfirmed,
             }
         case 'NotAuthorizedException':
             return {
-                kind: 'NotAuthorized',
+                kind: SignInWithPasswordErrorKind.notAuthorized,
                 message: MESSAGES.signInWithPassword.incorrectUsernameOrPassword,
             }
         default:
@@ -577,22 +584,23 @@ function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInWithPass
 // === ForgotPassword ===
 // ======================
 
+/** Internal IDs of errors that may occur when requesting a password reset. */
+export enum ForgotPasswordErrorKind {
+    userNotConfirmed = 'UserNotConfirmed',
+    userNotFound = 'UserNotFound',
+}
+
 const FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR = {
     internalCode: 'InvalidParameterException',
-    kind: 'UserNotConfirmed',
-    message: `Cannot reset password for the user as there is no registered/verified email \
-or phone_number`,
-} as const
+    kind: ForgotPasswordErrorKind.userNotConfirmed,
+    message: `Cannot reset password for the user as there is no registered/verified email or \
+phone_number`,
+}
 
 const FORGOT_PASSWORD_USER_NOT_FOUND_ERROR = {
     internalCode: 'UserNotFoundException',
-    kind: 'UserNotFound',
-} as const
-
-/** Internal IDs of errors that may occur when requesting a password reset. */
-type ForgotPasswordErrorKind =
-    | (typeof FORGOT_PASSWORD_USER_NOT_CONFIRMED_ERROR)['kind']
-    | (typeof FORGOT_PASSWORD_USER_NOT_FOUND_ERROR)['kind']
+    kind: ForgotPasswordErrorKind.userNotFound,
+}
 
 /** An error that may occur when requesting a password reset. */
 export interface ForgotPasswordError extends CognitoError {
@@ -603,7 +611,7 @@ export interface ForgotPasswordError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link ForgotPasswordError} if it is a known error,
  * else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
+export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
     if (error.code === FORGOT_PASSWORD_USER_NOT_FOUND_ERROR.internalCode) {
         return {
             kind: FORGOT_PASSWORD_USER_NOT_FOUND_ERROR.kind,
@@ -627,7 +635,10 @@ function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordErro
 // ============================
 
 /** Internal IDs of errors that may occur when resetting a password. */
-type ForgotPasswordSubmitErrorKind = 'AmplifyError' | 'AuthError'
+export enum ForgotPasswordSubmitErrorKind {
+    amplifyError = 'AmplifyError',
+    authError = 'AuthError',
+}
 
 /** An error that may occur when resetting a password. */
 export interface ForgotPasswordSubmitError extends CognitoError {
@@ -638,15 +649,15 @@ export interface ForgotPasswordSubmitError extends CognitoError {
 /** Convert an {@link AmplifyError} into a {@link ForgotPasswordSubmitError}
  * if it is a known error, else re-throws the error.
  * @throws {Error} If the error is not recognized. */
-function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSubmitError {
+export function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSubmitError {
     if (isAuthError(error)) {
         return {
-            kind: 'AuthError',
+            kind: ForgotPasswordSubmitErrorKind.authError,
             message: error.log,
         }
     } else if (isAmplifyError(error)) {
         return {
-            kind: 'AmplifyError',
+            kind: ForgotPasswordSubmitErrorKind.amplifyError,
             message: error.message,
         }
     } else {

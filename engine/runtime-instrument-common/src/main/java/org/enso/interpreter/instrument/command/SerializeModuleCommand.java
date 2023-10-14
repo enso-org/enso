@@ -10,7 +10,7 @@ import scala.concurrent.Future;
 import scala.runtime.BoxedUnit;
 
 /** The command to start the module serialization. */
-public final class SerializeModuleCommand extends Command {
+public final class SerializeModuleCommand extends AsynchronousCommand {
 
   private final QualifiedName moduleName;
 
@@ -20,7 +20,7 @@ public final class SerializeModuleCommand extends Command {
   }
 
   @Override
-  public Future<BoxedUnit> execute(RuntimeContext ctx, ExecutionContext ec) {
+  public Future<BoxedUnit> executeAsynchronously(RuntimeContext ctx, ExecutionContext ec) {
     ctx.jobProcessor().runBackground(new SerializeModuleJob(moduleName));
     return Future.successful(BoxedUnit.UNIT);
   }

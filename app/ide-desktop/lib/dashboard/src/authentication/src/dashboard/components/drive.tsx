@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
-import * as assetEventModule from '../events/assetEvent'
+import type * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
@@ -14,6 +14,7 @@ import * as localStorageProvider from '../../providers/localStorage'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
+import type * as spinner from './spinner'
 import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
@@ -62,7 +63,6 @@ export default function Drive(props: DriveProps) {
         dispatchAssetListEvent,
         assetEvents,
         dispatchAssetEvent,
-        doCreateProject,
         doOpenEditor,
         doCloseEditor,
         loadingProjectManagerDidFail,
@@ -107,6 +107,22 @@ export default function Drive(props: DriveProps) {
             }
         },
         [backend, organization, toastAndLog, /* should never change */ dispatchAssetListEvent]
+    )
+
+    const doCreateProject = React.useCallback(
+        (
+            templateId: string | null,
+            onSpinnerStateChange?: (state: spinner.SpinnerState) => void
+        ) => {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.newProject,
+                parentKey: null,
+                parentId: null,
+                templateId: templateId ?? null,
+                onSpinnerStateChange: onSpinnerStateChange ?? null,
+            })
+        },
+        [/* should never change */ dispatchAssetListEvent]
     )
 
     const doCreateDirectory = React.useCallback(() => {
@@ -174,6 +190,7 @@ export default function Drive(props: DriveProps) {
         </div>
     ) : (
         <div
+            data-testid="drive-view"
             className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
                 hidden ? 'hidden' : ''
             }`}

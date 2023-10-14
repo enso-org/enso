@@ -7,14 +7,14 @@ import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as eventModule from '../event'
-import * as fileInfo from '../../fileInfo'
+import * as fileIcon from '../../fileIcon'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
-import * as column from '../column'
+import type * as column from '../column'
 import EditableSpan from './editableSpan'
 import SvgMask from '../../authentication/components/svgMask'
 
@@ -125,7 +125,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 }
             }}
         >
-            <SvgMask src={fileInfo.fileIcon()} className="m-1" />
+            <SvgMask src={fileIcon.fileIcon()} className="m-1" />
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {

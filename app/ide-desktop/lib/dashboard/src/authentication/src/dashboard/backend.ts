@@ -1,5 +1,5 @@
 /** @file Type definitions common between all backends. */
-import * as React from 'react'
+import type * as React from 'react'
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'

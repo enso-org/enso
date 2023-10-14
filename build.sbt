@@ -484,6 +484,7 @@ val junitIfVersion          = "0.13.2"
 val hamcrestVersion         = "1.3"
 val netbeansApiVersion      = "RELEASE180"
 val fansiVersion            = "0.4.0"
+val httpComponentsVersion   = "4.4.1"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -951,10 +952,15 @@ lazy val `json-rpc-server` = project
     libraryDependencies ++= akka ++ logbackTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
-      "io.circe"                   %% "circe-literal" % circeVersion,
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "io.circe"                   %% "circe-literal"   % circeVersion,
+      "com.typesafe.scala-logging" %% "scala-logging"   % scalaLoggingVersion,
       akkaTestkit                   % Test,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+      "org.scalatest"              %% "scalatest"       % scalatestVersion      % Test,
+      "junit"                       % "junit"           % junitVersion          % Test,
+      "com.github.sbt"              % "junit-interface" % junitIfVersion        % Test,
+      "org.apache.httpcomponents"   % "httpclient"      % httpComponentsVersion % Test,
+      "org.apache.httpcomponents"   % "httpcore"        % httpComponentsVersion % Test,
+      "commons-io"                  % "commons-io"      % commonsIoVersion      % Test
     )
   )
 

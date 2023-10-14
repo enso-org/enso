@@ -39,6 +39,7 @@ export default function ContextMenus(props: ContextMenusProps) {
             }}
         >
             <div
+                data-testid="context-menus"
                 ref={contextMenuRef}
                 style={{ left, top }}
                 className="sticky flex pointer-events-none items-start gap-0.5 w-min"

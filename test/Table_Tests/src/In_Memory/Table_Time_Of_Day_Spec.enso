@@ -1,8 +1,8 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Delimited, Column, Data_Formatter
-import Standard.Table.Data.Table_Conversions
 import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table.Extensions.Table_Conversions import all
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions

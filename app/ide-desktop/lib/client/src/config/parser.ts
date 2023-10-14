@@ -4,7 +4,7 @@ import chalk from 'chalk'
 import stringLength from 'string-length'
 
 // eslint-disable-next-line no-restricted-syntax
-import yargs, { Options } from 'yargs'
+import yargs, { type Options } from 'yargs'
 
 import * as contentConfig from 'enso-content-config'
 
