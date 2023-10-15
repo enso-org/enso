@@ -3,12 +3,15 @@ import type { Doc } from '@/util/docParser'
 import {
   isIdentifier,
   isQualifiedName,
+  qnJoin,
   qnLastSegment,
   qnParent,
   qnSplit,
+  tryQualifiedName,
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -62,6 +65,19 @@ export interface SuggestionEntry {
   iconName?: string
   /// An index of a group from group list in suggestionDb store this entry belongs to.
   groupIndex?: number
+}
+
+/**
+ * Get the fully qualified name of the `SuggestionEntry`, disregarding reexports.
+ */
+export function entryQn(entry: SuggestionEntry): QualifiedName {
+  if (entry.kind == SuggestionKind.Module) {
+    return entry.definedIn
+  } else if (entry.memberOf) {
+    return qnJoin(entry.memberOf, entry.name)
+  } else {
+    return qnJoin(entry.definedIn, unwrap(tryQualifiedName(entry.name)))
+  }
 }
 
 function makeSimpleEntry(

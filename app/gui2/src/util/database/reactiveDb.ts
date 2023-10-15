@@ -85,6 +85,15 @@ export class ReactiveDb<K, V> extends ObservableV2<{
   get size(): number {
     return this.internal.size
   }
+
+  /**
+   * Retrieves an iterator over entries in the database, equivalent to `Map.entries`.
+   *
+   * @returns An iterator that yields key-value pairs in the database.
+   */
+  entries(): IterableIterator<[K, V]> {
+    return this.internal.entries()
+  }
 }
 
 /**

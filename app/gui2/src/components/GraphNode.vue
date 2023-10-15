@@ -22,6 +22,8 @@ import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { UnsafeMutable } from '@/util/mutable'
 import type { Opt } from '@/util/opt'
+import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
@@ -425,7 +427,16 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => {
   const method = expressionInfo.value?.methodCall?.methodPointer
   if (method == null) return undefined
-  return suggestionDbStore.methodPointerToEntry.get(method.module)?.get(method.name)
+  const moduleName = tryQualifiedName(method.module)
+  const methodName = tryQualifiedName(method.name)
+  if (!moduleName.ok || !methodName.ok) return undefined
+  const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+  const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
+  if (id) {
+    return suggestionDbStore.entries.get(id)
+  } else {
+    return undefined
+  }
 })
 const icon = computed(() => {
   if (suggestionEntry.value?.iconName) {

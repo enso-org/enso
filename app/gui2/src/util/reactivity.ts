@@ -30,8 +30,8 @@ export type StopEffect = () => void
  * until next time that data structure is queried.
  */
 export class LazySyncEffectSet {
-  private dirtyRunners = new Set<() => void>()
-  private scope = effectScope()
+  dirtyRunners = new Set<() => void>()
+  scope = effectScope()
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs
