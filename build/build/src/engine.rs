@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 
+use crate::engine::bundle::GraalVmVersion;
 use crate::get_graal_packages_version;
 use crate::get_graal_version;
 use crate::paths::generated;
@@ -27,7 +28,6 @@ pub mod env;
 pub mod package;
 pub mod sbt;
 
-use crate::engine::bundle::GraalVmVersion;
 pub use context::RunContext;
 
 
