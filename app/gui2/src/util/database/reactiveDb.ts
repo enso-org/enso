@@ -8,7 +8,7 @@
 
 import { setIfUndefined } from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
 
 export type CleanupFn = (() => void) | null
 export type OnCleanup = (cleanupFn: CleanupFn) => void
@@ -65,23 +65,39 @@ export type Indexer<Key, Value, IndexKey, IndexValue> = (
 export class ReactiveIndex<Key, Value, IndexKey, IndexValue> {
   forward: Map<IndexKey, Set<IndexValue>>
   reverse: Map<IndexValue, Set<IndexKey>>
+  indexer: Indexer | null
   constructor(db: ReactiveDb<Key, Value>, indexer: Indexer<Key, Value, IndexKey, IndexValue>) {
     this.forward = reactive(new Map())
     this.reverse = reactive(new Map())
+	this.indexer = indexer
     db.on('entryAdded', (key, value, onDelete) => {
-      let indexOnDeleteCb: CleanupFn = null
-      const index: IndexFn<IndexKey, IndexValue> = (key, value) => {
-        this.writeToIndex(key, value)
-        onDelete(() => {
-          if (indexOnDeleteCb) indexOnDeleteCb()
-          this.removeFromIndex(key, value)
-        })
-      }
-      const userOnDelete: OnCleanup = (callback) => {
-        indexOnDeleteCb = callback
-      }
-      indexer(key, value, index, userOnDelete)
+      const keyValues = indexer(key, value)
+	  const stop = watch(() => indexer(key, value),
+						 (keyValues, _, cleanup) => {
+						   keyValues.forEach((value, key) => {
+							 this.writeToIndex(key, value)
+						   })
+						   cleanup(() => keyValues.forEach((value, key) => this.removeFromIndex(key, value)))
+						 }, { immediate: true })
+	  onDelete(() => stop())
     })
+  }
+  updateEntryIndex(closure: () => Map<IndexKey, IndexValue>) {
+	const stop = watch(closure, (keyValues, _, onCleanup) => {
+	  keyValues.forEach((value, key) => {
+		this.writeToIndex(key, value)
+	  })
+	  onCleanup(() => {
+		keyValues.forEach((value, key) => this.removeFromIndex(key, value))
+		stop()
+		invalidatedClosures.add(closure)
+	  })
+
+	  
+	}, { immediate: true, flush: 'sync' })
+  }
+  flush() {
+	runAllInvalidatedClosures()
   }
   /* Internal method for adding a new key-value relation to the index. */
   writeToIndex(key: IndexKey, value: IndexValue): void {

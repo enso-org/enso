@@ -33,7 +33,7 @@ test('Indexing is efficient', () => {
 
 test('Name to id index', () => {
   const db = new ReactiveDb()
-  const index = new ReactiveIndex(db, (id, entry, index) => index(entry.name, id))
+  const index = new ReactiveIndex(db, (id, entry) => new Map([[entry.name, id]]))
   db.set(1, { name: 'abc' })
   db.set(2, { name: 'xyz' })
   db.set(3, { name: 'abc' })
@@ -55,16 +55,15 @@ test('Name to id index', () => {
 
 test('Parent index', async () => {
   const db = new ReactiveDb()
-  const qnIndex = reactive(
+  const qnIndex = 
     new ReactiveIndex(db, (id, entry, index) => {
       console.log('index qnIndex')
       index(entry.name, id)
-    }),
-  )
+    })
   const children = new ReactiveIndex(db, (id, entry, index, onDelete) => {
     console.log('index children')
     const stop = watch(
-      qnIndex,
+      () => qnIndex,
       (qnIndex) => {
         qnIndex.lookup(entry.definedIn).forEach((parentId) => index(parentId, id))
       },
