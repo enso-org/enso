@@ -585,7 +585,6 @@ impl Processor {
     }
 
     pub fn handle_ide2(&self, ide: arg::ide2::Target) -> BoxFuture<'static, Result> {
-        // TODO? deduplicate with old ide
         match ide.command {
             arg::ide2::Command::Build { params } => self.build_new_ide(params).void_ok().boxed(),
             arg::ide2::Command::Upload { params, release_id } => {

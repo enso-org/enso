@@ -148,10 +148,3 @@
     <edition>.yaml:
   runtime/:
   .enso.portable:
-
-# Launcher Bundle aka Portable Enso Distribution
-# https://enso.org/docs/developer/enso/distribution/distribution.html#portable-enso-distribution-layout
-? {
-    path: graalvm-ce-java<java_language_version>-<graal_maven_version>/,
-    var: graalvm_package,
-  }
