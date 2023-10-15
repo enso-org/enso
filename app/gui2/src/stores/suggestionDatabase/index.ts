@@ -1,57 +1,39 @@
+import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
-import { type QualifiedName } from '@/util/qualifiedName'
+import { qnParent, type QualifiedName } from '@/util/qualifiedName'
 import * as map from 'lib0/map'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { reactive, ref, watch, type Ref, watchEffect } from 'vue'
+import { reactive, ref, watch, watchEffect, type Ref } from 'vue'
 import { useProjectStore } from '../project'
-import { type SuggestionEntry, type SuggestionId, entryQn } from './entry'
+import { entryQn, type SuggestionEntry, type SuggestionId } from './entry'
 import { applyUpdates, entryFromLs } from './lsUpdate'
-import * as map from 'lib0/map'
 
 export class SuggestionDb {
-  entries: Map<SuggestionId, SuggestionEntry>
-  nameToId: Map<QualifiedName, SuggestionId>
-  children: Map<SuggestionId, Set<SuggestionId>>
+  entries: ReactiveDb<SuggestionId, SuggestionEntry>
+  public nameToId: ReactiveIndex<SuggestionId, SuggestionEntry, QualifiedName, SuggestionId>
+  public parent: ReactiveIndex<SuggestionId, SuggestionEntry, SuggestionId, SuggestionId>
   constructor() {
-    this.entries = reactive(new Map())
-    this.nameToId = reactive(new Map())
-    watch(this.entries, (entries) => {
-      const id = magic()
-      const close = watch(() => this.getParent(id), (newParent, _, onCleanup) => {
-        const parentId = newParent
-        const children = this.children.get(parentId) ?? new Set()
-        const setOfChildren = map.setIfUndefined(this.children, parentId, () => new Set())
-        setOfChildren.add(id)
-        onCleanup(() => {
-          setOfChildren.delete(id)
-        })
-      })
+    this.entries = new ReactiveDb()
+    this.nameToId = new ReactiveIndex(this.entries, (id, entry) => [[entryQn(entry), id]])
+    this.parent = new ReactiveIndex(this.entries, (id, entry) => {
+      if (entry.memberOf) {
+        const parents = Array.from(this.nameToId.lookup(entry.memberOf))
+        return Array.from(parents.map((p) => [id, p]))
+      } else {
+        const parentQn = qnParent(entryQn(entry))
+        const parents = Array.from(this.nameToId.lookup(parentQn))
+        return Array.from(parents.map((p) => [id, p]))
+      }
     })
   }
-  getParent(id: SuggestionId): SuggestionId | undefined {
-    const entry = this.get(id)
-    if (!entry) {
-      return undefined
-    }
-    const parent = entry.parent
-    if (!parent) {
-      return undefined
-    }
-    return this.nameToId.get(parent)
-  }
   set(id: SuggestionId, entry: SuggestionEntry) {
-    this.entries.set(id, entry)
-    this.nameToId.set(entryQn(entry), id)
+    this.entries.set(id, reactive(entry))
   }
   get(id: SuggestionId): SuggestionEntry | undefined {
     return this.entries.get(id)
   }
   delete(id: SuggestionId) {
-    const entry = this.get(id)
-    if (entry) {
-      this.nameToId.delete(entryQn(entry))
-    }
     this.entries.delete(id)
   }
 }
