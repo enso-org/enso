@@ -1,5 +1,6 @@
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
 import { type QualifiedName } from '@/util/qualifiedName'
+import * as map from 'lib0/map'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import { reactive, ref, watch, type Ref, watchEffect } from 'vue'
@@ -130,7 +131,21 @@ class Synchronizer {
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = new SuggestionDb()
   const groups = ref<Group[]>([])
+  const methodPointerToEntry = reactive(new Map<string, Map<string, SuggestionEntry>>())
+
+  // FIXME: Replace this inefficient watcher with reactive index, once we have it developed.
+  watchEffect(() => {
+    methodPointerToEntry.clear()
+    for (const entry of entries.values()) {
+      const methodNameToEntry = map.setIfUndefined(
+        methodPointerToEntry,
+        entry.definedIn as string,
+        () => new Map<string, SuggestionEntry>(),
+      )
+      methodNameToEntry.set(entry.name, entry)
+    }
+  })
 
   const synchronizer = new Synchronizer(entries, groups)
-  return { entries, groups, _synchronizer: synchronizer }
+  return { entries, groups, methodPointerToEntry, _synchronizer: synchronizer }
 })

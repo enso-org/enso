@@ -813,6 +813,20 @@ spec =
             e.length . should_equal 1
             b.at 0 . should_equal 32
 
+        Test.specify "Vector.collect lazy" <|
+            seq = Fib.sequence
+            seq.take 5 . should_equal [1, 1, 2, 3, 5]
+
+        Test.specify "Vector.collect empty list" <|
+            l = List.Nil
+            v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
+            v . should_equal []
+
+        Test.specify "Vector.collect finite" <|
+            l = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
+            v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
+            v . should_equal [1, 2, 3]
+
     Test.group "Vector/Array equality" <|
         v1 = [1, 2, 3]
         a1 = v1.to_array
@@ -864,5 +878,19 @@ spec =
         sliced_vector = v2.slice 0 v.length
         sliced_array = sliced_vector.to_array
         sliced_array
+
+
+
+type Fib
+    Number n:Integer ~next:Fib
+
+    take self limit:Integer = Vector.collect self .n .next limit
+
+    sequence =
+        sum_two seq = Fib.Number seq.n+seq.next.n (sum_two seq.next)
+        start = Fib.Number 1 <| Fib.Number 1 (sum_two start)
+        start
+
+
 
 main = Test_Suite.run_main spec

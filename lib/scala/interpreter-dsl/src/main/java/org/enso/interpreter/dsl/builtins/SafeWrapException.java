@@ -1,7 +1,7 @@
 package org.enso.interpreter.dsl.builtins;
 
-import com.sun.tools.javac.code.Attribute;
-import org.apache.commons.lang3.StringUtils;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeMirror;
 import org.enso.interpreter.dsl.Builtin;
 
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  * Wrapper around {@link Builtin.WrapException} annotation with all elements of Class type resolved.
  * extracted
  */
-public record SafeWrapException(Attribute.Class from, Optional<Attribute.Class> to) {
+public record SafeWrapException(TypeElement from, Optional<TypeElement> to) {
 
     private static final String PanicExceptionClassName = "PanicException";
     private static final String UnsupportedMessageExceptionClassName = "UnsupportedMessageException";
@@ -54,16 +54,11 @@ public record SafeWrapException(Attribute.Class from, Optional<Attribute.Class> 
         return clazz.map(c -> c.equals(PanicExceptionClassName)).orElse(true);
     }
 
-    private String fromAttributeToClassName(Attribute.Class clazz, Boolean fullName) {
-        String baseType = clazz.classType.baseType().toString();
-        if (fullName) return baseType;
-        else {
-            String[] clazzElements = baseType.split("\\.");
-            if (clazzElements.length == 0) {
-                return baseType;
-            } else {
-                return clazzElements[clazzElements.length - 1];
-            }
+    private String fromAttributeToClassName(TypeElement typeElement, boolean fullName) {
+        if (fullName) {
+            return typeElement.getQualifiedName().toString();
+        } else {
+            return typeElement.getSimpleName().toString();
         }
     }
 }

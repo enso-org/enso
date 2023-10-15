@@ -23,7 +23,7 @@ pub mod block;
 // ============
 
 /// The Abstract Syntax Tree of the language.
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Debug, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[reflect(flatten, hide)]
@@ -41,19 +41,6 @@ pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Variant<'s>>) -> Tree<'s> {
     Tree { variant, span }
 }
 
-impl<'s> Debug for Tree<'s> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let max_code_len = 30;
-        let ellipsis = "...";
-        let mut code = self.code();
-        if code.len() > max_code_len {
-            code = format!("{}{}", &code[..max_code_len - ellipsis.len()], ellipsis);
-        }
-        write!(f, "[{}:{}:\"{}\"] ", self.span.left_offset.visible, self.span.code_length, code)?;
-        Debug::fmt(&self.variant, f)
-    }
-}
-
 impl<'s> AsRef<Span<'s>> for Tree<'s> {
     fn as_ref(&self) -> &Span<'s> {
         &self.span
@@ -64,7 +51,7 @@ impl<'s> Default for Tree<'s> {
     fn default() -> Self {
         Self {
             variant: Box::new(Variant::Ident(Ident { token: Default::default() })),
-            span:    Default::default(),
+            span:    Span::empty_without_offset(),
         }
     }
 }
@@ -782,7 +769,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func
         }
         (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
-            let func_left_offset = mem::take(&mut func.span.left_offset);
+            let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.arguments.first_mut() {
                 first.newline.left_offset += arg_left_offset;
@@ -791,7 +778,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OperatorBlockApplication(block)) if block.lhs.is_none() => {
-            let func_left_offset = mem::take(&mut func.span.left_offset);
+            let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.expressions.first_mut() {
                 first.newline.left_offset += arg_left_offset;
@@ -921,7 +908,7 @@ pub fn apply_operator<'s>(
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
                 if let Some(first) = block.arguments.first_mut() {
-                    first.newline.left_offset += mem::take(&mut rhs_.span.left_offset);
+                    first.newline.left_offset += rhs_.span.left_offset.take_as_prefix();
                 }
                 let ArgumentBlockApplication { lhs: _, arguments } = block;
                 let arguments = mem::take(arguments);

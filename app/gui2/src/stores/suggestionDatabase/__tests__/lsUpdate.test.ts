@@ -1,4 +1,4 @@
-import { parseDocs } from '@/util/ffi'
+import { parseDocs } from '@/util/docParser'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'

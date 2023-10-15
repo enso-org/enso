@@ -17,7 +17,7 @@ export function colorFromString(s: string) {
   const part2: number = (hash >> 10) & 0x3ff
   const part3: number = hash & 0x3ff
   // Range values below can be adjusted if necessary, they were chosen arbitrarily.
-  const chroma = mapInt32(part1, 0.1, 0.19, 12)
+  const chroma = mapInt32(part1, 0.1, 0.16, 12)
   const hue = mapInt32(part2, 0, 360, 10)
   const lightness = mapInt32(part3, 0.52, 0.57, 10)
   const color: Oklch = {

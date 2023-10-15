@@ -1,8 +1,6 @@
+import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { expect, test, vi } from 'vitest'
-import { ReactiveDb } from '@/util/database/reactiveDb'
-import { ReactiveIndex } from '@/util/database/reactiveDb'
-import { setIfUndefined } from 'lib0/map'
-import { watch, reactive, nextTick } from 'vue'
+import { nextTick, reactive } from 'vue'
 
 test('Basic add/remove', () => {
   const db = new ReactiveDb()
@@ -19,23 +17,28 @@ test('Basic add/remove', () => {
 
 test('Indexing is efficient', () => {
   const db = new ReactiveDb()
-  const index = new ReactiveIndex(db, (id, entry, index) => index(entry.name, id))
+  const index = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])
   const adding = vi.spyOn(index, 'writeToIndex')
   const removing = vi.spyOn(index, 'removeFromIndex')
-  db.set(1, { name: 'abc' })
-  db.set(2, { name: 'xyz' })
-  db.set(3, { name: 'abc' })
+  db.set(1, reactive({ name: 'abc' }))
+  db.set(2, reactive({ name: 'xyz' }))
+  db.set(3, reactive({ name: 'abc' }))
   db.delete(2)
   expect(adding).toHaveBeenCalledTimes(3)
   expect(removing).toHaveBeenCalledTimes(1)
   db.set(1, { name: 'qdr' })
   expect(adding).toHaveBeenCalledTimes(4)
   expect(removing).toHaveBeenCalledTimes(2)
+  db.get(3).name = 'xyz'
+  expect(adding).toHaveBeenCalledTimes(4)
+  expect(removing).toHaveBeenCalledTimes(2)
+  expect(index.lookup('qdr')).toEqual(new Set([1]))
+  expect(index.lookup('xyz')).toEqual(new Set([3]))
 })
 
 test('Name to id index', () => {
   const db = new ReactiveDb()
-  const index = new ReactiveIndex(db, (id, entry, index) => index(entry.name, id))
+  const index = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])
   db.set(1, { name: 'abc' })
   db.set(2, { name: 'xyz' })
   db.set(3, { name: 'abc' })
@@ -57,46 +60,40 @@ test('Name to id index', () => {
 
 test('Parent index', async () => {
   const db = new ReactiveDb()
-  const qnIndex = reactive(new ReactiveIndex(db,
-											 (id, entry, index) => {
-											   console.log('index qnIndex')
-											   index(entry.name, id)
-  }))
-  const children = new ReactiveIndex(db, (id, entry, index, onDelete) => {
-	console.log('index children')
- 	const stop = watch(qnIndex, (qnIndex) => {
- 	  qnIndex.lookup(entry.definedIn).forEach((parentId) => index(parentId, id))
- 	}, { immediate: true })
- 	onDelete(() => stop())
+  const qnIndex = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])
+
+  const parent = new ReactiveIndex(db, (id, entry) => {
+    if (entry.definedIn) {
+      const parents = Array.from(qnIndex.lookup(entry.definedIn))
+      return Array.from(parents.map((parent) => [id, parent]))
+    }
+    return []
   })
-  //const lookupQn = vi.spyOn(qnIndex, 'lookup')
-  //const adding = vi.spyOn(children, 'writeToIndex')
-  //const removing = vi.spyOn(children, 'removeFromIndex')
+  const lookupQn = vi.spyOn(qnIndex, 'lookup')
+  const adding = vi.spyOn(parent, 'writeToIndex')
+  const removing = vi.spyOn(parent, 'removeFromIndex')
   db.set(1, { name: 'foo', definedIn: 'A' })
   db.set(2, { name: 'A' })
   db.set(3, { name: 'bar', definedIn: 'A' })
-  await nextTick()
+
   expect(qnIndex.lookup('foo')).toEqual(new Set([1]))
   expect(qnIndex.lookup('A')).toEqual(new Set([2]))
   expect(qnIndex.lookup('bar')).toEqual(new Set([3]))
-  // expect(children.lookup(1)).toEqual(new Set())
-  // expect(children.lookup(2)).toEqual(new Set([1, 3]))
-  // expect(children.lookup(3)).toEqual(new Set())
-  // expect(children.reverseLookup(1)).toStrictEqual(new Set([2]))
-  // expect(children.reverseLookup(2)).toEqual(new Set())
-  // expect(children.reverseLookup(3)).toStrictEqual(new Set([2]))
-  //expect(adding).toHaveBeenCalledTimes(2)
-  //expect(removing).toHaveBeenCalledTimes(0)
-  //expect(lookupQn).toHaveBeenCalledTimes(5)
+  expect(parent.lookup(1)).toEqual(new Set([2]))
+  expect(parent.lookup(2)).toEqual(new Set())
+  expect(parent.lookup(3)).toEqual(new Set([2]))
+  expect(parent.reverseLookup(1)).toStrictEqual(new Set())
+  expect(parent.reverseLookup(2)).toEqual(new Set([1, 3]))
+  expect(parent.reverseLookup(3)).toStrictEqual(new Set())
+  expect(adding).toHaveBeenCalledTimes(2)
+  expect(removing).toHaveBeenCalledTimes(0)
+  expect(lookupQn).toHaveBeenCalledTimes(6)
 
   db.delete(3)
   await nextTick()
-  expect(qnIndex.lookup('foo')).toEqual(new Set([1]))
-  expect(qnIndex.lookup('A')).toEqual(new Set([2]))
-  expect(qnIndex.lookup('bar')).toEqual(new Set([]))
-  // expect(children.lookup(2)).toEqual(new Set([1]))
-  // expect(children.reverseLookup(3)).toEqual(new Set())
-  // expect(adding).toHaveBeenCalledTimes(2)
-  // expect(removing).toHaveBeenCalledTimes(1)
-  // expect(lookupQn).toHaveBeenCalledTimes(5)
+  expect(parent.lookup(3)).toEqual(new Set())
+  expect(parent.reverseLookup(2)).toEqual(new Set([1]))
+  expect(adding).toHaveBeenCalledTimes(2)
+  expect(removing).toHaveBeenCalledTimes(1)
+  expect(lookupQn).toHaveBeenCalledTimes(6)
 })

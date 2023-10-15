@@ -2365,6 +2365,7 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid 1.2.2",
+ "wasm-bindgen-test",
 ]
 
 [[package]]
@@ -2377,6 +2378,7 @@ dependencies = [
  "enso-reflect",
  "lexpr",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2398,6 +2400,17 @@ dependencies = [
  "enso-parser",
  "enso-prelude",
  "jni",
+]
+
+[[package]]
+name = "enso-parser-schema"
+version = "0.1.0"
+dependencies = [
+ "enso-metamodel",
+ "enso-parser",
+ "enso-reflect",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

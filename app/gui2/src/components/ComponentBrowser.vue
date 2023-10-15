@@ -43,21 +43,38 @@ const transform = computed(() => {
 // === Input and Filtering ===
 
 const cbRoot = ref<HTMLElement>()
-const inputField = ref<HTMLElement>()
-const inputText = ref('')
+const inputField = ref<HTMLInputElement>()
+const input = new Input()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
-  const input = inputText.value
-  const pathPatternSep = inputText.value.lastIndexOf('.')
   return new Filtering({
-    pattern: input.substring(pathPatternSep + 1),
-    qualifiedNamePattern: input.substring(0, pathPatternSep),
+    ...input.filter.value,
     ...filterFlags.value,
   })
 })
 
 watch(currentFiltering, selectLastAfterRefresh)
+
+function readInputFieldSelection() {
+  if (inputField.value != null) {
+    input.selection.value = {
+      start: inputField.value.selectionStart ?? 0,
+      end: inputField.value.selectionEnd ?? 0,
+    }
+  }
+}
+
+watch(input.selection, (newPos) => {
+  if (inputField.value == null) return
+  // Do nothing if boundaries didn't change. We don't want to affect selection dir.
+  if (
+    inputField.value.selectionStart == newPos.start &&
+    inputField.value.selectionEnd == newPos.end
+  )
+    return
+  inputField.value.setSelectionRange(newPos.start, newPos.end)
+})
 
 function handleDefocus(e: FocusEvent) {
   const stillInside =
@@ -295,7 +312,9 @@ function handleKeydown(e: KeyboardEvent) {
 		<DocumentationPanel />
 	  </div>
     </div>
-    <div class="CBInput"><input ref="inputField" v-model="inputText" /></div>
+    <div class="CBInput">
+      <input ref="inputField" v-model="input.code.value" @keyup="readInputFieldSelection" />
+    </div>
   </div>
 </template>
 

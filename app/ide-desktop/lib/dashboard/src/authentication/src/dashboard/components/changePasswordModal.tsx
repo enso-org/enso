@@ -31,10 +31,11 @@ export default function ChangePasswordModal() {
     return (
         <Modal centered className="bg-dim">
             <div
+                data-testid="change-password-modal"
+                className="flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md"
                 onClick={event => {
                     event.stopPropagation()
                 }}
-                className="flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md"
             >
                 <div className="self-center text-xl">Change Your Password</div>
                 <div className="mt-10">
@@ -96,7 +97,7 @@ export default function ChangePasswordModal() {
                             </div>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label htmlFor="new_password_confirm">Confirm New Password:</label>
+                            <label htmlFor="confirm_new_password">Confirm New Password:</label>
                             <div className="relative">
                                 <SvgIcon>
                                     <SvgMask src={LockIcon} />
