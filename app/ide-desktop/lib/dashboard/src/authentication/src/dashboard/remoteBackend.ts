@@ -325,6 +325,24 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
+    /** Change the parent directory of an asset.
+     *
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async updateAsset(
+        assetId: backendModule.AssetId,
+        body: backendModule.UpdateAssetRequestBody,
+        title: string | null
+    ) {
+        const response = await this.patch(remoteBackendPaths.updateAssetPath(assetId), body)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Unable to delete ${title != null ? `'${title}'` : `asset with ID '${assetId}'`}.`
+            )
+        } else {
+            return
+        }
+    }
+
     /** Delete an arbitrary asset.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */

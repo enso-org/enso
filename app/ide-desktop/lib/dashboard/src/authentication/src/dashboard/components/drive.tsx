@@ -213,7 +213,11 @@ export default function Drive(props: DriveProps) {
             <div className="flex flex-1 gap-3 overflow-hidden">
                 {backend.type === backendModule.BackendType.remote && (
                     <div className="flex flex-col gap-4 py-1">
-                        <CategorySwitcher category={category} setCategory={setCategory} />
+                        <CategorySwitcher
+                            category={category}
+                            setCategory={setCategory}
+                            dispatchAssetEvent={dispatchAssetEvent}
+                        />
                     </div>
                 )}
                 <AssetsTable
