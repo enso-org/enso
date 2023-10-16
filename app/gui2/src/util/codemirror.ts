@@ -7,9 +7,11 @@ export { defaultKeymap } from '@codemirror/commands'
 export {
   bracketMatching,
   defaultHighlightStyle,
+  foldGutter,
   foldNodeProp,
   syntaxHighlighting,
 } from '@codemirror/language'
+export { highlightSelectionMatches } from '@codemirror/search'
 export { EditorState } from '@codemirror/state'
 export { EditorView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
@@ -20,7 +22,6 @@ import {
   Language,
   LanguageSupport,
   defineLanguageFacet,
-  foldInside,
   foldNodeProp,
   languageDataProp,
 } from '@codemirror/language'
@@ -70,9 +71,9 @@ const nodeSet = new NodeSet(nodeTypes).extend(
     ConstructorDefinition: tags.function(tags.variableName),
   }),
   foldNodeProp.add({
-    BodyBlock: foldInside,
-    ArgumentBlockApplication: foldInside,
-    OperatorBlockApplication: foldInside,
+    Function: (node) => node,
+    ArgumentBlockApplication: (node) => node,
+    OperatorBlockApplication: (node) => node,
   }),
 )
 
@@ -81,12 +82,15 @@ function astToCodeMirrorTree(
   tree: Ast.Tree,
   props?: readonly [number | NodeProp<any>, any][] | undefined,
 ): Tree {
-  const begin = tree.whitespaceStartInCodeParsed
+  const begin = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
   return new Tree(
     nodeSet.types[tree.type]!,
     Array.from(childrenAstNodes(tree), (tree) => astToCodeMirrorTree(nodeSet, tree)),
-    Array.from(childrenAstNodes(tree), (child) => child.whitespaceStartInCodeParsed - begin),
-    tree.whitespaceLengthInCodeParsed,
+    Array.from(
+      childrenAstNodes(tree),
+      (child) => child.whitespaceStartInCodeParsed + child.whitespaceLengthInCodeParsed - begin,
+    ),
+    tree.childrenLengthInCodeParsed,
     props,
   )
 }
@@ -109,15 +113,13 @@ class EnsoParser extends Parser {
       stoppedAt: null,
       advance() {
         const code = input.read(0, input.length)
-        if (code === self.cachedCode && self.cachedTree != null) {
-          return self.cachedTree
+        if (code !== self.cachedCode || self.cachedTree == null) {
+          self.cachedCode = code
+          const ast = parseEnso(code)
+          self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [[languageDataProp, facet]])
+          console.log(self.cachedTree)
         }
-        self.cachedCode = code
-        const ast = parseEnso(code)
-        console.log(ast)
-        return (self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [
-          [languageDataProp, facet],
-        ]))
+        return self.cachedTree
       },
     }
   }

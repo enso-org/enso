@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/stores/project'
-import { bracketMatching, type Highlighter } from '@/util/codemirror'
+import type { Highlighter } from '@/util/codemirror'
 import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
 import { computed, onMounted, ref, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
+  bracketMatching,
+  foldGutter,
+  highlightSelectionMatches,
   minimalSetup,
   EditorState,
   EditorView,
@@ -36,6 +39,8 @@ watchEffect(() => {
         yCollab(yText, awareness, { undoManager }),
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
         bracketMatching(),
+        foldGutter(),
+        highlightSelectionMatches(),
         enso(),
       ],
     }),
