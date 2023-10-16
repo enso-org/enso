@@ -35,7 +35,6 @@ public class AddRowNumber {
           new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       long currentIx = groups.getOrDefault(key, start);
       numbers[i] = currentIx;
-      // TODO handle exception
       long nextIx = Math.addExact(currentIx, step);
       groups.put(key, nextIx);
     }
@@ -62,7 +61,6 @@ public class AddRowNumber {
     long nextIx = start;
     for (var key : keys) {
       numbers[key.getRight()] = nextIx;
-      // TODO handle exception
       nextIx = Math.addExact(nextIx, step);
     }
     return new LongStorage(numbers, IntegerType.INT_64);
@@ -94,7 +92,6 @@ public class AddRowNumber {
       long nextIx = start;
       for (var key : orderingKeys) {
         numbers[key.getRight()] = nextIx;
-        // TODO handle exception
         nextIx = Math.addExact(nextIx, step);
       }
     }

@@ -11,6 +11,7 @@ import project.Internal.Table_Helpers
 from project.Errors import Duplicate_Output_Column_Names
 from project.Internal.Java_Exports import make_long_builder
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.base.arrays.MutableLongArrayWrapper
 polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
 polyglot java import org.enso.table.data.column.storage.numeric.LongStorage
@@ -23,7 +24,11 @@ add_row_number table name from step group_by order_by on_problems =
     grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
     Unordered_Multi_Value_Key.validate_grouping_columns grouping_columns problem_builder
     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
-    problem_builder.attach_problems_before on_problems <|
+
+    handle_arithmetic_exception _ =
+        Error.throw (Illegal_Argument.Error "The row number has exceeded the 64-bit integer range. BigInteger numbering is currently not supported. Please use a smaller start/step.")
+
+    problem_builder.attach_problems_before on_problems <| Panic.catch ArithmeticException handle_arithmetic_exception <|
         new_column = case ordering.is_empty of
             True ->
                 case grouping_columns.is_empty of
