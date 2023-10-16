@@ -451,13 +451,11 @@ const icon = computed(() => {
     return 'in_out'
   }
 })
-const color = computed(() => {
-  const colorFromGroup =
-    suggestionEntry.value?.groupIndex != null
-      ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
-      : undefined
-  return colorFromGroup ?? colorFromString(expressionInfo.value?.typename ?? 'Unknown')
-})
+const color = computed(() =>
+  suggestionEntry.value?.groupIndex != null
+    ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
+    : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
+)
 
 watchEffect(() => {
   visualizationConfig.value.types = visualizationStore.types(expressionInfo.value?.typename)
