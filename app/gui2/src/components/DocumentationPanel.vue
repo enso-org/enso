@@ -5,17 +5,54 @@ import { default as Synopsis } from '@/components/documentation/Synopsis.vue'
 import { makeMethod } from '@/stores/suggestionDatabase/entry'
 import { Doc } from '@/util/ffi'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
-import { computed, ref } from 'vue'
+ import { computed, ref } from 'vue'
+ import { type SuggestionDb, type SuggestionEntry, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+ import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 
-const props = defineProps<{}>()
+const props = defineProps<{ selectedEntry: SuggestionEntry }>()
 const emit = defineEmits<{}>()
 
 export interface Sections {
   tags: Doc.Section.Tag[]
   synopsis: Doc.Section[]
   examples: Doc.Section[]
-}
+ }
 
+ function filterSections(sections: Iterable<Doc.Section>): Sections {
+   const tags = []
+   const synopsis = []
+   const examples = []
+   for (const section of sections) {
+     if ('Tag' in section) {
+       tags.push(section)
+     } else if ('Marked' in section && section.Marked.mark == 'Example') {
+       examples.push(section)
+     } else {
+       synopsis.push(section)
+     }
+   }
+   return { tags, synopsis, examples }
+ }
+
+ export type Docs =
+   | { Function: FunctionDocs }
+   | { Type: TypeDocs }
+   | { Module: ModuleDocs }
+   | { Placeholder: string }
+
+ function lookupDocumentation(db: SuggestionDb, entry: SuggestionEntry): Docs {
+   if (entry == undefined) return { Placeholder: 'entry not found in db' }
+   if (entry.kind == SuggestionKind.Function || entry.kind == SuggestionKind.Method) {
+     return { Function: {
+       name: entry.name,
+       arguments: entry.arguments,
+       sections: filterSections(entry.documentation)
+     }}
+   } else {
+     return { Placeholder: 'entry kind not handled: ' + entry.kind }
+   }
+ }
+ 
 export interface FunctionDocs {
   name: string
   arguments: SuggestionEntryArgument[]
@@ -62,8 +99,25 @@ const mockFunctions = ref([
     arguments: [],
     sections: { tags: [], synopsis: [{ List: { items: ['Test'] } }], examples: [] },
   },
-])
-const documentation = computed(() => {
+ ])
+
+ const documentation = computed(() => {
+   const db = useSuggestionDbStore()
+   const entry = props.selectedEntry
+   return lookupDocumentation(db, entry)
+ })
+ const sections = computed(() => {
+   const docs = documentation.value
+   console.log(docs)
+   if ('Placeholder' in docs) {
+     return { tags: [ { Tag: { tag: 'Placeholder', body: '' }}], synopsis: [], examples: [] }
+   } else if ('Function' in docs) {
+     return docs.Function.sections
+   } else {
+     return { tags: [], synopsis: [], examples: [] }
+   }
+ })
+const fakeDocumentation = computed(() => {
   const docs: Sections = {
     tags: [
       { tag: 'Unstable', body: '' },
@@ -99,20 +153,20 @@ const documentation = computed(() => {
   <div class="DocumentationPanel">
     <div class="sectionContent">
       <div class="tagsContainer">
-        <div v-for="tag in documentation.tags" class="tag">
+        <div v-for="tag in sections.tags" class="tag">
           {{ tag.tag }}
           {{ tag.body !== '' ? `= ${tag.body}` : '' }}
         </div>
       </div>
     </div>
     <Functions :functions="mockFunctions" />
-    <Synopsis :sections="documentation.synopsis" />
+    <Synopsis :sections="sections.synopsis" />
     <div class="headerContainer sectionHeader examplesHeader">
       <SvgIcon name="doc_examples" />
       <div class="headerText">Examples</div>
     </div>
     <div class="sectionContent">
-      <div v-for="example in documentation.examples" class="exampleContainer">
+      <div v-for="example in sections.examples" class="exampleContainer">
         <span v-html="example.Marked.body"></span>
       </div>
     </div>

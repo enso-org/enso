@@ -1,251 +1,262 @@
 <script setup lang="ts">
-import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
-import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
-import { default as SvgIcon } from '@/components/SvgIcon.vue'
-import { default as ToggleIcon } from '@/components/ToggleIcon.vue'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { useApproach } from '@/util/animation'
-import { useResizeObserver } from '@/util/events'
-import type { useNavigator } from '@/util/navigator'
-import { Vec2 } from '@/util/vec2'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+ import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+ import { Filtering } from '@/components/ComponentBrowser/filtering'
+ import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
+ import { default as SvgIcon } from '@/components/SvgIcon.vue'
+ import { default as ToggleIcon } from '@/components/ToggleIcon.vue'
+ import { Input } from '@/components/ComponentBrowser/input'
+ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+ import { useApproach } from '@/util/animation'
+ import { useResizeObserver } from '@/util/events'
+ import type { useNavigator } from '@/util/navigator'
+ import { Vec2 } from '@/util/vec2'
+ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
-const ITEM_SIZE = 32
-const TOP_BAR_HEIGHT = 32
+ const ITEM_SIZE = 32
+ const TOP_BAR_HEIGHT = 32
 
-const props = defineProps<{
-  position: Vec2
-  navigator: ReturnType<typeof useNavigator>
-}>()
+ const props = defineProps<{
+   position: Vec2
+   navigator: ReturnType<typeof useNavigator>
+ }>()
 
-const emit = defineEmits<{
-  (e: 'finished'): void
-}>()
+ const emit = defineEmits<{
+   (e: 'finished'): void
+ }>()
 
-onMounted(() => {
-  if (inputField.value != null) {
-    inputField.value.focus({ preventScroll: true })
-    selectLastAfterRefresh()
-  }
-})
+ onMounted(() => {
+   if (inputField.value != null) {
+     inputField.value.focus({ preventScroll: true })
+     selectLastAfterRefresh()
+   }
+ })
 
-// === Position ===
+ // === Position ===
 
-const transform = computed(() => {
-  const nav = props.navigator
-  const pos = props.position
-  return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
+ const transform = computed(() => {
+   const nav = props.navigator
+   const pos = props.position
+   return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
     1 / nav.scale
   }) translateY(-100%)`
-})
+ })
 
-// === Input and Filtering ===
+ // === Input and Filtering ===
 
-const cbRoot = ref<HTMLElement>()
-const inputField = ref<HTMLInputElement>()
-const input = new Input()
-const filterFlags = ref({ showUnstable: false, showLocal: false })
+ const cbRoot = ref<HTMLElement>()
+ const inputField = ref<HTMLInputElement>()
+ const input = new Input()
+ const filterFlags = ref({ showUnstable: false, showLocal: false })
 
-const currentFiltering = computed(() => {
-  return new Filtering({
-    ...input.filter.value,
-    ...filterFlags.value,
-  })
-})
+ const currentFiltering = computed(() => {
+   return new Filtering({
+     ...input.filter.value,
+     ...filterFlags.value,
+   })
+ })
 
-watch(currentFiltering, selectLastAfterRefresh)
+ watch(currentFiltering, selectLastAfterRefresh)
 
-function readInputFieldSelection() {
-  if (inputField.value != null) {
-    input.selection.value = {
-      start: inputField.value.selectionStart ?? 0,
-      end: inputField.value.selectionEnd ?? 0,
-    }
-  }
-}
+ function readInputFieldSelection() {
+   if (inputField.value != null) {
+     input.selection.value = {
+       start: inputField.value.selectionStart ?? 0,
+       end: inputField.value.selectionEnd ?? 0,
+     }
+   }
+ }
 
-watch(input.selection, (newPos) => {
-  if (inputField.value == null) return
-  // Do nothing if boundaries didn't change. We don't want to affect selection dir.
-  if (
-    inputField.value.selectionStart == newPos.start &&
-    inputField.value.selectionEnd == newPos.end
-  )
-    return
-  inputField.value.setSelectionRange(newPos.start, newPos.end)
-})
+ watch(input.selection, (newPos) => {
+   if (inputField.value == null) return
+   // Do nothing if boundaries didn't change. We don't want to affect selection dir.
+   if (
+     inputField.value.selectionStart == newPos.start &&
+     inputField.value.selectionEnd == newPos.end
+   )
+     return
+   inputField.value.setSelectionRange(newPos.start, newPos.end)
+ })
 
-function handleDefocus(e: FocusEvent) {
-  const stillInside =
-    cbRoot.value != null &&
-    e.relatedTarget instanceof Node &&
-    cbRoot.value.contains(e.relatedTarget)
-  if (stillInside) {
-    if (inputField.value != null) {
-      inputField.value.focus({ preventScroll: true })
-    }
-  } else {
-    //emit('finished')
-  }
-}
+ function handleDefocus(e: FocusEvent) {
+   const stillInside =
+     cbRoot.value != null &&
+     e.relatedTarget instanceof Node &&
+     cbRoot.value.contains(e.relatedTarget)
+   if (stillInside) {
+     if (inputField.value != null) {
+       inputField.value.focus({ preventScroll: true })
+     }
+   } else {
+     //emit('finished')
+   }
+ }
 
-// === Components List and Positions ===
+ // === Components List and Positions ===
 
-const suggestionDbStore = useSuggestionDbStore()
+ const suggestionDbStore = useSuggestionDbStore()
 
-const components = computed(() => {
-  return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
-})
+ const components = computed(() => {
+   return makeComponentList(suggestionDbStore.entries, currentFiltering.value)
+ })
 
-const visibleComponents = computed(() => {
-  if (scroller.value == null) return []
-  const scrollPosition = animatedScrollPosition.value
-  const topmostVisible = componentAtY(scrollPosition)
-  const bottommostVisible = Math.max(
-    0,
-    componentAtY(animatedScrollPosition.value + scrollerSize.value.y),
-  )
-  return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
-    return { component, index: i + bottommostVisible }
-  })
-})
+ const visibleComponents = computed(() => {
+   if (scroller.value == null) return []
+   const scrollPosition = animatedScrollPosition.value
+   const topmostVisible = componentAtY(scrollPosition)
+   const bottommostVisible = Math.max(
+     0,
+     componentAtY(animatedScrollPosition.value + scrollerSize.value.y),
+   )
+   return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
+     return { component, index: i + bottommostVisible }
+   })
+ })
 
-function componentPos(index: number) {
-  return listContentHeight.value - (index + 1) * ITEM_SIZE
-}
+ function componentPos(index: number) {
+   return listContentHeight.value - (index + 1) * ITEM_SIZE
+ }
 
-function componentAtY(pos: number) {
-  return Math.floor((listContentHeight.value - pos) / ITEM_SIZE)
-}
+ function componentAtY(pos: number) {
+   return Math.floor((listContentHeight.value - pos) / ITEM_SIZE)
+ }
 
-function componentStyle(index: number) {
-  return { transform: `translateY(${componentPos(index)}px)` }
-}
+ function componentStyle(index: number) {
+   return { transform: `translateY(${componentPos(index)}px)` }
+ }
 
-/**
- * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
- */
-function componentColor(component: Component): string {
-  const group = suggestionDbStore.groups[component.group ?? -1]
-  if (group) {
-    const name = group.name.replace(/\s/g, '-')
-    return `var(--group-color-${name})`
-  } else {
-    return 'var(--group-color-fallback)'
-  }
-}
+ /**
+  * Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created.
+  */
+ function componentColor(component: Component): string {
+   const group = suggestionDbStore.groups[component.group ?? -1]
+   if (group) {
+     const name = group.name.replace(/\s/g, '-')
+     return `var(--group-color-${name})`
+   } else {
+     return 'var(--group-color-fallback)'
+   }
+ }
 
-// === Highlight ===
+ // === Highlight ===
 
-const selected = ref<number | null>(null)
-const highlightPosition = ref(0)
-const selectedPosition = computed(() =>
-  selected.value != null ? componentPos(selected.value) : null,
-)
-const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
-const animatedHighlightPosition = useApproach(highlightPosition)
-const animatedHighlightHeight = useApproach(highlightHeight)
+ const selected = ref<number | null>(null)
+ const highlightPosition = ref(0)
+ const selectedPosition = computed(() =>
+   selected.value != null ? componentPos(selected.value) : null,
+ )
+ const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
+ const animatedHighlightPosition = useApproach(highlightPosition)
+ const animatedHighlightHeight = useApproach(highlightHeight)
 
-watch(selectedPosition, (newPos) => {
-  if (newPos == null) return
-  highlightPosition.value = newPos
-  if (animatedHighlightHeight.value <= 1.0) {
-    animatedHighlightPosition.skip()
-  }
-})
 
-const highlightClipPath = computed(() => {
-  let height = animatedHighlightHeight.value
-  let position = animatedHighlightPosition.value
-  let top = position + ITEM_SIZE - height
-  let bottom = listContentHeight.value - position - ITEM_SIZE
-  return `inset(${top}px 0px ${bottom}px 0px round 16px)`
-})
+const selectedSuggestion = computed(() => {
+   if (selected.value === null) return null
+   const id = components.value[selected.value]?.suggestionId
+   if (id == null) return null
+   return suggestionDbStore.entries.get(id) ?? null
+ })
 
-function navigateUp() {
-  if (selected.value != null && selected.value < components.value.length - 1) {
-    selected.value += 1
-  }
-  scrollToSelected()
-}
+ watch(selectedSuggestion, (s) => console.log('selected:', s))
+ 
+ watch(selectedPosition, (newPos) => {
+   if (newPos == null) return
+   highlightPosition.value = newPos
+   if (animatedHighlightHeight.value <= 1.0) {
+     animatedHighlightPosition.skip()
+   }
+ })
 
-function navigateDown() {
-  if (selected.value == null) {
-    selected.value = components.value.length - 1
-  } else if (selected.value > 0) {
-    selected.value -= 1
-  }
-  scrollToSelected()
-}
+ const highlightClipPath = computed(() => {
+   let height = animatedHighlightHeight.value
+   let position = animatedHighlightPosition.value
+   let top = position + ITEM_SIZE - height
+   let bottom = listContentHeight.value - position - ITEM_SIZE
+   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
+ })
 
-/**
- * Select the last element after updating component list.
- *
- * As the list changes the scroller's content, we need to wait a frame so the scroller
- * recalculates its height and setting scrollTop will work properly.
- */
-function selectLastAfterRefresh() {
-  selected.value = 0
-  nextTick(() => {
-    scrollToSelected()
-    animatedScrollPosition.skip()
-    animatedHighlightPosition.skip()
-  })
-}
+ function navigateUp() {
+   if (selected.value != null && selected.value < components.value.length - 1) {
+     selected.value += 1
+   }
+   scrollToSelected()
+ }
 
-// === Scrolling ===
+ function navigateDown() {
+   if (selected.value == null) {
+     selected.value = components.value.length - 1
+   } else if (selected.value > 0) {
+     selected.value -= 1
+   }
+   scrollToSelected()
+ }
 
-const scroller = ref<HTMLElement>()
-const scrollerSize = useResizeObserver(scroller)
-const scrollPosition = ref(0)
-const animatedScrollPosition = useApproach(scrollPosition)
+ /**
+  * Select the last element after updating component list.
+  *
+  * As the list changes the scroller's content, we need to wait a frame so the scroller
+  * recalculates its height and setting scrollTop will work properly.
+  */
+ function selectLastAfterRefresh() {
+   selected.value = 0
+   nextTick(() => {
+     scrollToSelected()
+     animatedScrollPosition.skip()
+     animatedHighlightPosition.skip()
+   })
+ }
 
-const listContentHeight = computed(() =>
-  // We add a top padding of TOP_BAR_HEIGHT / 2 - otherwise the topmost entry would be covered
-  // by top bar.
-  Math.max(components.value.length * ITEM_SIZE + TOP_BAR_HEIGHT / 2, scrollerSize.value.y),
-)
-const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
+ // === Scrolling ===
 
-function scrollToSelected() {
-  if (selectedPosition.value == null) return
-  scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
-}
+ const scroller = ref<HTMLElement>()
+ const scrollerSize = useResizeObserver(scroller)
+ const scrollPosition = ref(0)
+ const animatedScrollPosition = useApproach(scrollPosition)
 
-function updateScroll() {
-  if (scroller.value && Math.abs(scroller.value.scrollTop - animatedScrollPosition.value) > 1.0) {
-    scrollPosition.value = scroller.value.scrollTop
-    animatedScrollPosition.skip()
-  }
-}
+ const listContentHeight = computed(() =>
+   // We add a top padding of TOP_BAR_HEIGHT / 2 - otherwise the topmost entry would be covered
+   // by top bar.
+   Math.max(components.value.length * ITEM_SIZE + TOP_BAR_HEIGHT / 2, scrollerSize.value.y),
+ )
+ const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
-// === Documentation Panel ===
+ function scrollToSelected() {
+   if (selectedPosition.value == null) return
+   scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
+ }
 
-const docsVisible = ref(true)
+ function updateScroll() {
+   if (scroller.value && Math.abs(scroller.value.scrollTop - animatedScrollPosition.value) > 1.0) {
+     scrollPosition.value = scroller.value.scrollTop
+     animatedScrollPosition.skip()
+   }
+ }
 
-// === Key Events Handler ===
+ // === Documentation Panel ===
 
-function handleKeydown(e: KeyboardEvent) {
-  switch (e.key) {
-    case 'Enter':
-      e.stopPropagation()
-      emit('finished')
-      break
-    case 'ArrowUp':
-      e.preventDefault()
-      navigateUp()
-      break
-    case 'ArrowDown':
-      e.preventDefault()
-      navigateDown()
-      break
-    case 'Escape':
-      e.preventDefault()
-      selected.value = null
-      break
-  }
-}
+ const docsVisible = ref(true)
+
+ // === Key Events Handler ===
+
+ function handleKeydown(e: KeyboardEvent) {
+   switch (e.key) {
+     case 'Enter':
+       e.stopPropagation()
+       emit('finished')
+       break
+     case 'ArrowUp':
+       e.preventDefault()
+       navigateUp()
+       break
+     case 'ArrowDown':
+       e.preventDefault()
+       navigateDown()
+       break
+     case 'Escape':
+       e.preventDefault()
+       selected.value = null
+       break
+   }
+ }
 </script>
 
 <template>
@@ -309,7 +320,7 @@ function handleKeydown(e: KeyboardEvent) {
         </div>
       </div>
       <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop>
-        <DocumentationPanel />
+        <DocumentationPanel selectedEntry="selectedSuggestion" />
       </div>
     </div>
     <div class="CBInput">
