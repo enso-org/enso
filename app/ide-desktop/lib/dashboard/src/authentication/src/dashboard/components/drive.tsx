@@ -213,6 +213,22 @@ export default function Drive(props: DriveProps) {
     const doDeleteLabel = React.useCallback(
         async (id: backendModule.TagId, value: backendModule.LabelName) => {
             setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
+            setCurrentLabels(oldLabels => {
+                let found = identity.identity<boolean>(false)
+                const newLabels = oldLabels?.filter(oldLabel => {
+                    if (oldLabel === value) {
+                        found = true
+                        return false
+                    } else {
+                        return true
+                    }
+                })
+                return newLabels != null && newLabels.length > 0
+                    ? found
+                        ? newLabels
+                        : oldLabels
+                    : null
+            })
             try {
                 await backend.deleteTag(id, value)
                 dispatchAssetEvent({
