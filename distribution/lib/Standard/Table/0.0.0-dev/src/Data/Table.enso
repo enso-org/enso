@@ -2585,11 +2585,11 @@ Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table
 
    The columns generated are:
    - Name: the root tag name
-   - @[attribute name]: the attribute with that name
+   - @[attribute name]: the attribute with that name.
    - Children: the children of the tag, including `XML_Element`s and text
-     elements. This is only generated if the tag has `XML_Element` children.
+     elements. This is only generated if the tag has `XML_Element` children
    - Value: the text content of the tag. This is only generated if the tag does
-     not have `XML_Element` children.
+     not have `XML_Element` children
 
    Either `Children` or `Value` will be generated, but not both.
 Table.from (that:XML_Element) =
@@ -2607,9 +2607,9 @@ Table.from (that:XML_Element) =
    - Name: the root tag name
    - @[attribute name]: the attribute with that name
    - Children: the children of the tag, including `XML_Element`s and text
-     elements. This is only generated if the tag has `XML_Element` children.
+     elements. This is only generated if the tag has `XML_Element` children
    - Value: the text content of the tag. This is only generated if the tag does
-     not have `XML_Element` children.
+     not have `XML_Element` children
 
    Either `Children` or `Value` will be generated, but not both.
 Table.from (that:XML_Document) = Table.from that.root_element
