@@ -181,7 +181,7 @@ export class ReactiveIndex<K, V, IK, IV> {
     remove(this.reverse, value, key)
   }
 
-  /** Look for key in the forward index. */ /**
+  /** Look for key in the forward index.
    * Returns a set of values associated with the given index key.
    *
    * @param key - The index key to look up values for.
