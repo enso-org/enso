@@ -84,7 +84,7 @@ export class Input {
       if (ctx.type === 'changeLiteral') return {}
       if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
       const opr = ctx.oprApp.lastOpr()
-      if (!opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
+      if (opr == null || !opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
       const qn = Input.pathAsQualifiedName(ctx.oprApp, code)
       if (qn != null) return { qualifiedNamePattern: qn }
       else return {}
