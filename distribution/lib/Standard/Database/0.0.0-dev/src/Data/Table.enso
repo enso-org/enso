@@ -11,6 +11,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
+import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
@@ -21,9 +22,11 @@ import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
+import Standard.Table.Extensions.Table_Ref.Table_Ref
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
+import Standard.Table.Internal.Constant_Column.Constant_Column
 import Standard.Table.Internal.Lookup_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Table_Helpers
@@ -549,6 +552,7 @@ type Table
 
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
+    @filter Widget_Helpers.make_filter_condition_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
        _ : Column ->
@@ -560,7 +564,9 @@ type Table
                    new_ctx = self.context.set_where_filters new_filters
                    self.updated_context new_ctx
            case filter of
-               _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
+               _ : Filter_Condition ->
+                   resolved = (self:Table_Ref).resolve_condition filter
+                   mask (make_filter_column column resolved on_problems)
                ## We check the `filter` predicate before reporting unsupported
                   operation, because it may just be a Filter_Condition with
                   missing arguments and then another error is more appropriate.
@@ -607,7 +613,8 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Standard.Base.Selections
        Creates a new Table with the specified range of rows from the input
        Table.
 
@@ -824,22 +831,22 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @new_name Widget_Helpers.make_column_name_selector
-    set : Column | Text | Array | Vector | Range | Date_Range -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    set : Column | Text | Array | Vector | Range | Date_Range | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column ->
                 if Helpers.check_integrity self column then column else
                     Error.throw (Integrity_Error.Error "Column "+column.name)
+            _ : Constant_Column -> self.make_constant_column column
+            _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Vector` for `set` in the database.")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Date_Range` for `set` in the database.")
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
-        renamed = case new_name of
-           Nothing -> resolved
-           _ : Text -> resolved.rename new_name
 
+        renamed = if new_name == "" then resolved else resolved.rename new_name
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
             check_add = case set_mode of
@@ -1979,6 +1986,57 @@ type Table
         Error.throw (Unsupported_Database_Operation.Error "Table.parse_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
+       Expand a column of objects to a new set of columns.
+
+        Arguments:
+        - column: The column to expand.
+        - fields: The set fields to expand. If `Nothing` then all fields are added.
+        - prefix: Prefix to add to the column names. If `Nothing` then the column
+          name is used.
+    @column Widget_Helpers.make_column_name_selector
+    expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Table ! Type_Error
+    expand_column self column fields=Nothing prefix=Nothing =
+            _ = [column, fields, prefix]
+            Error.throw (Unsupported_Database_Operation.Error "Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+
+    ## GROUP Standard.Base.Conversions
+      Expand aggregate values in a column to separate rows.
+
+      For each value in the specified column, if it is an aggregate (`Vector`,
+      `Range`, etc.), expand it to multiple rows, duplicating the values in the
+      other columns.
+
+      Arguments:
+      - column: The column to expand.
+      - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
+        true, a single row is output with `Nothing` for the aggregates column; if
+        false, no row is output at all.
+
+      The following aggregate values are supported:
+      - `Array`
+      - `Vector`
+      - `List`
+      - `Range`
+      - `Date_Range`
+      - `Pair
+
+      Any other values are treated as non-aggregate values, and their rows are kept
+      unchanged.
+
+      In in-memory tables, it is permitted to mix values of different types.
+
+      > Example
+        Expand a column of integer `Vectors` to a column of `Integer`
+
+        table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
+        # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
+    @column Widget_Helpers.make_column_name_selector
+    expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+    expand_to_rows self column at_least_one_row=False =
+        _ = [column, at_least_one_row]
+        Error.throw (Unsupported_Database_Operation.Error "Table.expand_to_rows is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+
+    ## GROUP Standard.Base.Conversions
        Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
@@ -2471,3 +2529,6 @@ default_join_condition table join_kind = case join_kind of
 Materialized_Table.from (that:Table) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+
+## PRIVATE
+Table_Ref.from (that:Table) = Table_Ref.Value that

@@ -8,10 +8,10 @@ from Standard.Base.System.File_Format import format_types
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Table.Table
-import project.Data.Table_Conversions
 import project.Data.Type.Value_Type.Auto
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
+from project.Extensions.Table_Conversions import all
 
 ## PRIVATE
    Make an aggregate column selector.
@@ -79,6 +79,43 @@ make_column_name_vector_selector : Table -> Display -> Widget
 make_column_name_vector_selector table display=Display.Always =
     item_editor = make_column_name_selector table display=Display.Always
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
+
+## PRIVATE
+   Make a column reference by name selector.
+make_column_ref_by_name_selector : Table -> Display -> Widget
+make_column_ref_by_name_selector table display=Display.Always =
+    col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
+    Single_Choice values=col_names_options display=display
+
+## PRIVATE
+   Make a filter condition selector.
+make_filter_condition_selector : Table -> Display -> Widget
+make_filter_condition_selector table display=Display.Always =
+    col_names = make_column_ref_by_name_selector table
+    builder = Vector.new_builder
+    fqn = Meta.get_qualified_type_name Filter_Condition
+    builder.append (Option "Equals" fqn+".Equal" [["to", col_names]])
+    builder.append (Option "Not Equals" fqn+".Not_Equal" [["to", col_names]])
+    builder.append (Option "Less Than" fqn+".Less" [["than", col_names]])
+    builder.append (Option "Less Than Or Equal" fqn+".Equal_Or_Less" [["than", col_names]])
+    builder.append (Option "Greater Than" fqn+".Greater" [["than", col_names]])
+    builder.append (Option "Greater Than Or Equal" fqn+".Greater_Or_Less" [["than", col_names]])
+    builder.append (Option "Between" fqn+".Between" [["lower", col_names], ["upper", col_names]])
+    builder.append (Option "Starts With" fqn+".Starts_With" [["prefix", col_names]])
+    builder.append (Option "Ends With" fqn+".Ends_With" [["suffix", col_names]])
+    builder.append (Option "Contains" fqn+".Contains" [["substring", col_names]])
+    builder.append (Option "Not Contains" fqn+".Not_Contains" [["substring", col_names]])
+    builder.append (Option "Is Nothing" fqn+".Is_Nothing")
+    builder.append (Option "Is Not Nothing" fqn+".Not_Nothing")
+    builder.append (Option "Is True" fqn+".Is_True")
+    builder.append (Option "Is False" fqn+".Is_False")
+    builder.append (Option "Is Empty" fqn+".Is_Empty")
+    builder.append (Option "Is Not Empty" fqn+".Not_Empty")
+    builder.append (Option "Like" fqn+".Like" [["pattern", col_names]])
+    builder.append (Option "Not Like" fqn+".Not_Like" [["pattern", col_names]])
+    builder.append (Option "Is In" fqn+".Is_In")
+    builder.append (Option "Not In" fqn+".Not_In")
+    Single_Choice builder.to_vector display=display
 
 ## PRIVATE
    Make a join condition selector.

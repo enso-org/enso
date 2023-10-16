@@ -23,13 +23,14 @@ import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
+import java.nio.file.Path
 
 import scala.concurrent.duration._
 
 class LibrariesTest extends BaseServerTest {
   private val libraryRepositoryPort: Int = 47308
 
-  private val exampleRepo = new ExampleRepository {
+  private val exampleRepo = new ExampleRepository(Path.of(".")) {
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
         LibraryName("Foo", "Bar"),
@@ -422,8 +423,9 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      val repoRoot = getTestDirectory.resolve("libraries_repo_root")
-      EmptyRepository.withServer(
+      val repoRoot        = getTestDirectory.resolve("libraries_repo_root")
+      val emptyRepository = new EmptyRepository(Path.of("."))
+      emptyRepository.withServer(
         libraryRepositoryPort,
         repoRoot,
         uploads = true
@@ -657,7 +659,7 @@ class LibrariesTest extends BaseServerTest {
     }
 
     "update the list of editions if requested" ignore {
-      val repo     = new ExampleRepository
+      val repo     = new ExampleRepository(Path.of("."))
       val repoPath = getTestDirectory.resolve("repo_root")
       repo.createRepository(repoPath)
       repo.withServer(43707, repoPath) {

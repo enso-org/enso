@@ -183,10 +183,10 @@ type Excel_Workbook
             Excel_Section.Sheet_Names -> self.sheet_names
             Excel_Section.Range_Names -> self.named_ranges
             Excel_Section.Worksheet sheet skip_rows row_limit ->
+                names = self.sheet_names
                 sheet_name = case sheet of
-                    _ : Text -> sheet
+                    _ : Text -> if names.contains sheet then sheet else Error.throw (Illegal_Argument.Error "Worksheet not found.")
                     _ : Integer ->
-                        names = self.sheet_names
                         if (sheet < 1 || sheet >= names.length) then Error.throw (Illegal_Argument.Error "Worksheet index out of range.") else
                             names.at (sheet - 1)
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
@@ -199,3 +199,13 @@ type Excel_Workbook
                         _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
                         _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit java_problem_aggregator
                 Table.Value java_table
+
+    ## ALIAS worksheet, get
+       GROUP Standard.Base.Input
+       Reads a worksheet from the workbook.
+
+       Arguments:
+       - name: the name of the worksheet to read.
+    sheet : Text | Integer -> Table
+    sheet self name:(Text|Integer) =
+        self.read_section (Excel_Section.Worksheet name 0 Nothing)

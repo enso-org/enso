@@ -108,6 +108,29 @@ type Test
         if err.is_a matcher then Nothing else
             Test.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
+    ## Expect a function to fail with the provided panic.
+
+       An alternative API to `expect_panic_with` where the order of arguments is
+       more natural - as it allows blocks without reordering the arguments.
+
+       Arguments:
+       - matcher: The expected type of the panic thrown by `action`.
+       - action: The action to evaluate that is expected to fail with a panic.
+
+       > Example
+         Expect that a computation should panic as part of a test.
+
+              import Standard.Examples
+              from Standard.Test import Test
+
+              example_expect_panic_with =
+                  Test.expect_panic_with Examples.My_Error <|
+                      IO.println 'hello'
+                      Examples.throw_panic
+                      IO.println 'this is not reached'
+    expect_panic : Any -> Any -> Test_Result
+    expect_panic matcher ~action = Test.expect_panic_with action matcher
+
 
     ## Checks that the provided action returns without any errors or warnings.
 

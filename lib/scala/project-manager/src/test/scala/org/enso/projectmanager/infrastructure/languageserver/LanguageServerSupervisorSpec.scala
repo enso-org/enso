@@ -3,7 +3,6 @@ package org.enso.projectmanager.infrastructure.languageserver
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestActor, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
-import org.enso.logger.LoggerSetup
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.ServerBooted
@@ -107,8 +106,6 @@ class LanguageServerSupervisorSpec
 
   trait TestCtx {
 
-    LoggerSetup.get().setup()
-
     val VerificationTimeout = 120000
 
     val virtualTime = new VirtualTime
@@ -136,7 +133,9 @@ class LanguageServerSupervisorSpec
       LanguageServerConnectionInfo(
         testHost,
         testRpcPort,
-        testDataPort
+        secureRpcPort = None,
+        testDataPort,
+        secureDataPort = None
       )
 
     val supervisionConfig =

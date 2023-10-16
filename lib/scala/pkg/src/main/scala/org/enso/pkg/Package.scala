@@ -337,9 +337,11 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           else Failure(PackageManager.PackageNotFound())
 
         val configFile = root.getChild(Package.configFileName)
-        for {
-          result <- readConfig(configFile)
-        } yield new Package(root, result, fileSystem)
+        if (configFile.exists) {
+          for {
+            result <- readConfig(configFile)
+          } yield new Package(root, result, fileSystem)
+        } else Failure(PackageManager.PackageNotFound())
       }
     result.recoverWith {
       case packageLoadingException: PackageManager.PackageLoadingException =>
