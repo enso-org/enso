@@ -1695,7 +1695,7 @@ class IrToTruffle(
             .getPolyglotSymbol(name)
           if (s == null) {
             throw new CompilerError(
-              s"No polyglot symbol for ${name}"
+              s"No polyglot field for ${name}"
             )
           }
 
