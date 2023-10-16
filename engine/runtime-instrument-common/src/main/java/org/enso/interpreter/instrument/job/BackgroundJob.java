@@ -2,10 +2,16 @@ package org.enso.interpreter.instrument.job;
 
 import scala.collection.immutable.List$;
 
+import java.util.Comparator;
+
 /** The job that runs in the background. */
-public abstract class BackgroundJob<A> extends Job<A> implements Comparable<BackgroundJob<?>> {
+public abstract class BackgroundJob<A> extends Job<A> {
 
   private final int priority;
+
+  /** Comparator defining the order of jobs in the background jobs queue. */
+  public static final Comparator<BackgroundJob<?>> BACKGROUND_JOBS_QUEUE_ORDER =
+      Comparator.comparingInt(BackgroundJob::getPriority);
 
   /**
    * Create a background job with priority.
@@ -20,10 +26,5 @@ public abstract class BackgroundJob<A> extends Job<A> implements Comparable<Back
   /** @return the job priority. */
   public int getPriority() {
     return priority;
-  }
-
-  @Override
-  public int compareTo(BackgroundJob<?> that) {
-    return Integer.compare(this.priority, that.getPriority());
   }
 }

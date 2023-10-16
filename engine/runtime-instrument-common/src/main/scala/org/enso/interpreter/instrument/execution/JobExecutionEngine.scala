@@ -85,8 +85,7 @@ final class JobExecutionEngine(
           runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
         allJobs.foreach { runningJob =>
           runningJob.job match {
-            case jobRef: UniqueJob[_]
-                if jobRef.getClass == job.getClass && jobRef.key == job.key =>
+            case jobRef: UniqueJob[_] if jobRef.equalsTo(job) =>
               runtimeContext.executionService.getLogger
                 .log(Level.FINEST, s"Cancelling duplicate job [$jobRef].")
               runningJob.future.cancel(jobRef.mayInterruptIfRunning)
@@ -193,7 +192,10 @@ final class JobExecutionEngine(
 
   /** Submit background jobs preserving the stable order. */
   private def submitBackgroundJobsOrdered(): Unit = {
-    Collections.sort(delayedBackgroundJobsQueue)
+    Collections.sort(
+      delayedBackgroundJobsQueue,
+      BackgroundJob.BACKGROUND_JOBS_QUEUE_ORDER
+    )
     delayedBackgroundJobsQueue.forEach(job => runBackground(job))
     delayedBackgroundJobsQueue.clear()
   }
