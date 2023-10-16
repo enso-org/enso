@@ -52,10 +52,12 @@ const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** The default placeholder row. */
 const PLACEHOLDER = (
     <span className="opacity-75">
-        You have no projects yet. Go ahead and create one using the button above, or open a template
-        from the home screen.
+        You have no files. Go ahead and create one using the buttons above, or open a template from
+        the home screen.
     </span>
 )
+/** A placeholder row for when a query (text or labels) is active. */
+const QUERY_PLACEHOLDER = <span className="opacity-75">No files match the current filters.</span>
 /** The placeholder row for the Trash category. */
 const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
 /** Placeholder row for directories that are empty. */
@@ -1119,6 +1121,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     placeholder={
                         category === categorySwitcher.Category.trash
                             ? TRASH_PLACEHOLDER
+                            : query !== '' || currentLabels != null
+                            ? QUERY_PLACEHOLDER
                             : PLACEHOLDER
                     }
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
