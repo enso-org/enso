@@ -16,20 +16,21 @@ import Modal from './modal'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface NewLabelModalProps {
+    labelNames: Set<string>
     eventTarget: HTMLElement
     doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
-    const { eventTarget, doCreate } = props
+    const { labelNames, eventTarget, doCreate } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
 
     const [value, setName] = React.useState('')
     const [color, setColor] = React.useState<backend.LChColor | null>(null)
-    const canSubmit = Boolean(value && color)
+    const canSubmit = Boolean(value && !labelNames.has(value) && color)
 
     const onSubmit = () => {
         unsetModal()
