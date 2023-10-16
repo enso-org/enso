@@ -19,8 +19,8 @@ export default defineConfig({
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
+      'rust-ffi': fileURLToPath(new URL('./rust-ffi', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      events$: fileURLToPath(new URL('./shared/events.ts', import.meta.url)),
     },
   },
   define: {

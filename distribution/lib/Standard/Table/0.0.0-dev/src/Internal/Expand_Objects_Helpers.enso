@@ -11,6 +11,7 @@ import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Errors.No_Such_Column
 import project.Internal.Fan_Out
 import project.Internal.Java_Exports
+import project.Internal.Java_Problems
 from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE
@@ -79,48 +80,49 @@ create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table
 create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothing) = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
     len = value.length
 
-    preset_fields = fields.is_nothing.not
-    initial_map = if preset_fields.not then Map.empty else
-        Map.from_vector (fields.map field_name-> [field_name, Java_Exports.make_inferred_builder len]) error_on_duplicates=False
+    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+        preset_fields = fields.is_nothing.not
+        initial_map = if preset_fields.not then Map.empty else
+            Map.from_vector (fields.map field_name-> [field_name, Java_Exports.make_inferred_builder len java_problem_aggregator]) error_on_duplicates=False
 
-    # This is used to ensure that field names in the resulting table are in the order they were encountered.
-    discovered_field_names = Vector.new_builder
+        # This is used to ensure that field names in the resulting table are in the order they were encountered.
+        discovered_field_names = Vector.new_builder
 
-    builder_map = case preset_fields of
-        # Just get the queried keys from each object.
-        True ->
-            0.up_to len . each idx->
-                v = (value.getter idx).to Convertible_To_Columns
-                initial_map.each_with_key field_name-> builder->
-                    builder.append (v.getter field_name)
+        builder_map = case preset_fields of
+            # Just get the queried keys from each object.
+            True ->
+                0.up_to len . each idx->
+                    v = (value.getter idx).to Convertible_To_Columns
+                    initial_map.each_with_key field_name-> builder->
+                        builder.append (v.getter field_name)
 
-            initial_map
+                initial_map
 
-        # In this mode we are discovering the key set as we go.
-        False ->
-            0.up_to len . fold initial_map current_map-> idx->
-                v = (value.getter idx).to Convertible_To_Columns
-                v.field_names.fold current_map inner_current_map-> f->
-                    existing_builder = inner_current_map.get f Nothing
-                    builder = existing_builder.if_nothing <|
-                        discovered_field_names.append f
-                        Java_Exports.make_inferred_builder len
-                    builder.fillUpToSize idx
-                    builder.append (v.getter f)
-                    new_map = if existing_builder.is_nothing.not then inner_current_map else
-                        inner_current_map.insert f builder
-                    new_map
-
-    # Seal all builders and create columns
-    column_map = builder_map.map_with_key name-> builder->
-        builder.fillUpToSize len
-        Column.from_storage name builder.seal
-
-    column_map.if_not_error <|
-        # Create a vector of columns, preserving the original order if it was specified.
-        columns = case preset_fields of
-            True  -> fields.distinct.map column_map.get
+            # In this mode we are discovering the key set as we go.
             False ->
-                if discovered_field_names.is_empty then Error.throw (Illegal_Argument.Error "Unable to discover expected column names, because all input objects had no fields. Specify fields explicitly if you need a constant set of expected columns.") else
-                    discovered_field_names.to_vector.map column_map.get
-        Table.new columns
+                0.up_to len . fold initial_map current_map-> idx->
+                    v = (value.getter idx).to Convertible_To_Columns
+                    v.field_names.fold current_map inner_current_map-> f->
+                        existing_builder = inner_current_map.get f Nothing
+                        builder = existing_builder.if_nothing <|
+                            discovered_field_names.append f
+                            Java_Exports.make_inferred_builder len java_problem_aggregator
+                        builder.fillUpToSize idx
+                        builder.append (v.getter f)
+                        new_map = if existing_builder.is_nothing.not then inner_current_map else
+                            inner_current_map.insert f builder
+                        new_map
+
+        # Seal all builders and create columns
+        column_map = builder_map.map_with_key name-> builder->
+            builder.fillUpToSize len
+            Column.from_storage name builder.seal
+
+        column_map.if_not_error <|
+            # Create a vector of columns, preserving the original order if it was specified.
+            columns = case preset_fields of
+                True  -> fields.distinct.map column_map.get
+                False ->
+                    if discovered_field_names.is_empty then Error.throw (Illegal_Argument.Error "Unable to discover expected column names, because all input objects had no fields. Specify fields explicitly if you need a constant set of expected columns.") else
+                        discovered_field_names.to_vector.map column_map.get
+            Table.new columns

@@ -1,6 +1,5 @@
 package org.enso.table.data.table.join;
 
-import org.enso.table.problems.AggregatedProblems;
 import org.graalvm.polyglot.Context;
 
 public class CrossJoin {
@@ -14,6 +13,6 @@ public class CrossJoin {
       }
     }
 
-    return resultBuilder.build(AggregatedProblems.of());
+    return resultBuilder.build();
   }
 }

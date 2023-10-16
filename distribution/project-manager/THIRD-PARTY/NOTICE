@@ -288,7 +288,7 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'slf4j-api', licensed under the MIT License, is distributed with the project-manager.
 The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-1.7.36`.
+Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-2.0.9`.
 
 
 'cats-core_2.13', licensed under the MIT, is distributed with the project-manager.

@@ -10,7 +10,7 @@ import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 import org.graalvm.polyglot.Context;
 
@@ -20,7 +20,7 @@ public class Distinct {
       int tableSize,
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
-      AggregatedProblems problems) {
+      ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     var mask = new BitSet();
     if (keyColumns.length != 0) {
@@ -37,7 +37,8 @@ public class Distinct {
           key.floatColumnPositions()
               .forEach(
                   columnIx ->
-                      problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
+                      problemAggregator.report(
+                          new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
         }
 
         if (!visitedRows.contains(key)) {

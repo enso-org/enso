@@ -1,3 +1,4 @@
+import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
@@ -7,7 +8,6 @@ import {
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/opt'
 import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
-import { Filtering, type MatchResult } from './filtering'
 
 export interface Component {
   suggestionId: SuggestionId
