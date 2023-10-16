@@ -4,10 +4,13 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
 
+import java.nio.file.Path
+
 /** A simple [[DummyRepository]] containing a single library for testing
   * downloads.
   */
-class ExampleRepository extends DummyRepository {
+class ExampleRepository(serverRepoPath: Path)
+    extends DummyRepository(serverRepoPath) {
 
   /** The library provided by this repository. */
   val testLib: DummyLibrary = DummyLibrary(
