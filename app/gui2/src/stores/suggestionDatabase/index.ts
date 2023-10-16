@@ -1,40 +1,46 @@
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
+import { type Opt } from '@/util/opt'
 import { qnParent, type QualifiedName } from '@/util/qualifiedName'
-import * as map from 'lib0/map'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { reactive, ref, watch, watchEffect, type Ref } from 'vue'
+import { reactive, ref, type Ref } from 'vue'
 import { useProjectStore } from '../project'
 import { entryQn, type SuggestionEntry, type SuggestionId } from './entry'
 import { applyUpdates, entryFromLs } from './lsUpdate'
 
 export class SuggestionDb {
-  entries: ReactiveDb<SuggestionId, SuggestionEntry>
+  internal: ReactiveDb<SuggestionId, SuggestionEntry>
   public nameToId: ReactiveIndex<SuggestionId, SuggestionEntry, QualifiedName, SuggestionId>
   public parent: ReactiveIndex<SuggestionId, SuggestionEntry, SuggestionId, SuggestionId>
   constructor() {
-    this.entries = new ReactiveDb()
-    this.nameToId = new ReactiveIndex(this.entries, (id, entry) => [[entryQn(entry), id]])
-    this.parent = new ReactiveIndex(this.entries, (id, entry) => {
+    this.internal = new ReactiveDb()
+    this.nameToId = new ReactiveIndex(this.internal, (id, entry) => [[entryQn(entry), id]])
+    this.parent = new ReactiveIndex(this.internal, (id, entry) => {
+      let qualifiedName: Opt<QualifiedName>
       if (entry.memberOf) {
-        const parents = Array.from(this.nameToId.lookup(entry.memberOf))
-        return Array.from(parents.map((p) => [id, p]))
+        qualifiedName = entry.memberOf
       } else {
-        const parentQn = qnParent(entryQn(entry))
-        const parents = Array.from(this.nameToId.lookup(parentQn))
-        return Array.from(parents.map((p) => [id, p]))
+        qualifiedName = qnParent(entryQn(entry))
       }
+      if (qualifiedName) {
+        const parents = Array.from(this.nameToId.lookup(qualifiedName))
+        return parents.map((p) => [id, p])
+      }
+      return []
     })
   }
-  set(id: SuggestionId, entry: SuggestionEntry) {
-    this.entries.set(id, reactive(entry))
+  set(id: SuggestionId, entry: SuggestionEntry): void {
+    this.internal.set(id, reactive(entry))
   }
   get(id: SuggestionId): SuggestionEntry | undefined {
-    return this.entries.get(id)
+    return this.internal.get(id)
   }
-  delete(id: SuggestionId) {
-    this.entries.delete(id)
+  delete(id: SuggestionId): boolean {
+    return this.internal.delete(id)
+  }
+  entries(): IterableIterator<[SuggestionId, SuggestionEntry]> {
+    return this.internal.entries()
   }
 }
 
@@ -113,21 +119,7 @@ class Synchronizer {
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const entries = new SuggestionDb()
   const groups = ref<Group[]>([])
-  const methodPointerToEntry = reactive(new Map<string, Map<string, SuggestionEntry>>())
-
-  // FIXME: Replace this inefficient watcher with reactive index, once we have it developed.
-  watchEffect(() => {
-    methodPointerToEntry.clear()
-    for (const entry of entries.values()) {
-      const methodNameToEntry = map.setIfUndefined(
-        methodPointerToEntry,
-        entry.definedIn as string,
-        () => new Map<string, SuggestionEntry>(),
-      )
-      methodNameToEntry.set(entry.name, entry)
-    }
-  })
 
   const synchronizer = new Synchronizer(entries, groups)
-  return { entries, groups, methodPointerToEntry, _synchronizer: synchronizer }
+  return { entries, groups, _synchronizer: synchronizer }
 })

@@ -3,12 +3,15 @@ import type { Doc } from '@/util/docParser'
 import {
   isIdentifier,
   isQualifiedName,
+  qnJoin,
   qnLastSegment,
   qnParent,
   qnSplit,
+  tryQualifiedName,
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -72,9 +75,9 @@ export function entryQn(entry: SuggestionEntry): QualifiedName {
   if (entry.kind == SuggestionKind.Module) {
     return entry.definedIn
   } else if (entry.memberOf) {
-    return [entry.memberOf, entry.name].join('.')
+    return qnJoin(entry.memberOf, entry.name)
   } else {
-    return [entry.definedIn, entry.name].join('.')
+    return qnJoin(entry.definedIn, unwrap(tryQualifiedName(entry.name)))
   }
 }
 
