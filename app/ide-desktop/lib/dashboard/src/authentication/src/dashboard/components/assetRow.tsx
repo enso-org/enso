@@ -14,7 +14,7 @@ import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
-import * as presenceModule from '../presence'
+import * as visibilityModule from '../visibility'
 
 import * as assetsTable from './assetsTable'
 import type * as tableRow from './tableRow'
@@ -43,22 +43,25 @@ export default function AssetRow(props: AssetRowProps) {
         initialRowState,
         hidden,
         selected,
+        setSelected,
         allowContextMenu,
         onContextMenu,
         state,
         columns,
     } = props
-    const { assetEvents, dispatchAssetListEvent } = state
+    const { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, doCut, doPaste } = state
+    const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-    const { setModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { user } = authProvider.useNonPartialUserSession()
     const toastAndLog = hooks.useToastAndLog()
+    const [isDraggedOver, setIsDraggedOver] = React.useState(false)
     const [item, setItem] = React.useState(rawItem)
     const asset = item.item
-    const [presence, setPresence] = React.useState(presenceModule.Presence.present)
+    const [visibility, setVisibility] = React.useState(visibilityModule.Visibility.visible)
     const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() => ({
         ...initialRowState,
-        setPresence,
+        setVisibility,
     }))
     React.useEffect(() => {
         setItem(rawItem)
@@ -69,8 +72,68 @@ export default function AssetRow(props: AssetRowProps) {
         rawItem.item = asset
     }, [asset, rawItem])
 
+    React.useEffect(() => {
+        if (selected && visibility !== visibilityModule.Visibility.visible) {
+            setSelected(false)
+        }
+    }, [selected, visibility, /* should never change */ setSelected])
+
+    const doMove = React.useCallback(
+        async (
+            newParentKey: backendModule.AssetId | null,
+            newParentId: backendModule.DirectoryId | null
+        ) => {
+            // The asset is effectivly being deleted from the current position, and created at the new
+            // position, from the viewpoint of the asset list.
+            try {
+                dispatchAssetListEvent({
+                    type: assetListEventModule.AssetListEventType.move,
+                    newParentKey,
+                    newParentId,
+                    key: item.key,
+                    item: asset,
+                })
+                setItem(oldItem => ({
+                    ...oldItem,
+                    directoryKey: newParentKey,
+                    directoryId: newParentId,
+                }))
+                await backend.updateAsset(
+                    asset.id,
+                    { parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization) },
+                    asset.title
+                )
+            } catch (error) {
+                toastAndLog(`Could not move '${asset.title}'`, error)
+                setItem(oldItem => ({
+                    ...oldItem,
+                    directoryKey: item.directoryKey,
+                    directoryId: item.directoryId,
+                }))
+                // Move the asset back to its original position.
+                dispatchAssetListEvent({
+                    type: assetListEventModule.AssetListEventType.move,
+                    newParentKey: item.directoryKey,
+                    newParentId: item.directoryId,
+                    key: item.key,
+                    item: asset,
+                })
+            }
+        },
+        [
+            backend,
+            organization,
+            asset,
+            item.directoryId,
+            item.directoryKey,
+            item.key,
+            /* should never change */ toastAndLog,
+            /* should never change */ dispatchAssetListEvent,
+        ]
+    )
+
     const doDelete = React.useCallback(async () => {
-        setPresence(presenceModule.Presence.deleting)
+        setVisibility(visibilityModule.Visibility.hidden)
         if (asset.type === backendModule.AssetType.directory) {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.closeFolder,
@@ -107,7 +170,7 @@ export default function AssetRow(props: AssetRowProps) {
                 key: item.key,
             })
         } catch (error) {
-            setPresence(presenceModule.Presence.present)
+            setVisibility(visibilityModule.Visibility.visible)
             toastAndLog(
                 errorModule.tryGetMessage(error)?.slice(0, -1) ??
                     `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
@@ -123,7 +186,7 @@ export default function AssetRow(props: AssetRowProps) {
 
     const doRestore = React.useCallback(async () => {
         // Visually, the asset is deleted from the Trash view.
-        setPresence(presenceModule.Presence.deleting)
+        setVisibility(visibilityModule.Visibility.hidden)
         try {
             await backend.undoDeleteAsset(asset.id, asset.title)
             dispatchAssetListEvent({
@@ -131,7 +194,7 @@ export default function AssetRow(props: AssetRowProps) {
                 key: item.key,
             })
         } catch (error) {
-            setPresence(presenceModule.Presence.present)
+            setVisibility(visibilityModule.Visibility.visible)
             toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
         }
     }, [
@@ -144,7 +207,7 @@ export default function AssetRow(props: AssetRowProps) {
 
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
-            // These events are handled in the specific NameColumn files.
+            // These events are handled in the specific `NameColumn` files.
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
@@ -154,13 +217,32 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
                 break
             }
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.cut: {
+                if (event.ids.has(item.key)) {
+                    setVisibility(visibilityModule.Visibility.faded)
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.cancelCut: {
+                if (event.ids.has(item.key)) {
+                    setVisibility(visibilityModule.Visibility.visible)
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.move: {
+                if (event.ids.has(item.key)) {
+                    setVisibility(visibilityModule.Visibility.visible)
+                    await doMove(event.newParentKey, event.newParentId)
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.delete: {
                 if (event.ids.has(item.key)) {
                     await doDelete()
                 }
                 break
             }
-            case assetEventModule.AssetEventType.restoreMultiple: {
+            case assetEventModule.AssetEventType.restore: {
                 if (event.ids.has(item.key)) {
                     await doRestore()
                 }
@@ -178,7 +260,7 @@ export default function AssetRow(props: AssetRowProps) {
             case assetEventModule.AssetEventType.removeSelf: {
                 // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
                 if (event.id === asset.id && user != null) {
-                    setPresence(presenceModule.Presence.deleting)
+                    setVisibility(visibilityModule.Visibility.hidden)
                     try {
                         await backend.createPermission({
                             action: null,
@@ -190,7 +272,7 @@ export default function AssetRow(props: AssetRowProps) {
                             key: item.key,
                         })
                     } catch (error) {
-                        setPresence(presenceModule.Presence.present)
+                        setVisibility(visibilityModule.Visibility.visible)
                         toastAndLog(
                             errorModule.tryGetMessage(error)?.slice(0, -1) ??
                                 `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
@@ -210,9 +292,11 @@ export default function AssetRow(props: AssetRowProps) {
             return (
                 <>
                     <TableRow
-                        className={presenceModule.CLASS_NAME[presence]}
+                        className={`${visibilityModule.CLASS_NAME[visibility]} ${
+                            isDraggedOver ? 'selected' : ''
+                        }`}
                         {...props}
-                        hidden={hidden || presence === presenceModule.Presence.deleting}
+                        hidden={hidden || visibility === visibilityModule.Visibility.hidden}
                         onContextMenu={(innerProps, event) => {
                             if (allowContextMenu) {
                                 event.preventDefault()
@@ -222,7 +306,13 @@ export default function AssetRow(props: AssetRowProps) {
                                     <AssetContextMenu
                                         innerProps={innerProps}
                                         event={event}
-                                        eventTarget={event.currentTarget}
+                                        eventTarget={
+                                            event.target instanceof HTMLElement
+                                                ? event.target
+                                                : event.currentTarget
+                                        }
+                                        doCut={doCut}
+                                        doPaste={doPaste}
                                         doDelete={doDelete}
                                     />
                                 )
@@ -234,10 +324,52 @@ export default function AssetRow(props: AssetRowProps) {
                         setItem={setItem}
                         initialRowState={rowState}
                         setRowState={setRowState}
+                        onDragOver={event => {
+                            if (item.item.type === backendModule.AssetType.directory) {
+                                const payload = assetsTable.tryGetAssetRowsDragPayload(
+                                    event.dataTransfer
+                                )
+                                if (
+                                    payload != null &&
+                                    payload.every(innerItem => innerItem.key !== item.key)
+                                ) {
+                                    event.preventDefault()
+                                    setIsDraggedOver(true)
+                                }
+                            }
+                        }}
+                        onDragEnd={() => {
+                            setIsDraggedOver(false)
+                        }}
+                        onDragLeave={() => {
+                            setIsDraggedOver(false)
+                        }}
+                        onDrop={event => {
+                            setIsDraggedOver(false)
+                            if (item.item.type === backendModule.AssetType.directory) {
+                                const payload = assetsTable.tryGetAssetRowsDragPayload(
+                                    event.dataTransfer
+                                )
+                                if (
+                                    payload != null &&
+                                    payload.every(innerItem => innerItem.key !== item.key)
+                                ) {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    unsetModal()
+                                    dispatchAssetEvent({
+                                        type: assetEventModule.AssetEventType.move,
+                                        newParentKey: item.key,
+                                        newParentId: item.item.id,
+                                        ids: new Set(payload.map(dragItem => dragItem.key)),
+                                    })
+                                }
+                            }
+                        }}
                     />
                     {selected &&
                         allowContextMenu &&
-                        presence !== presenceModule.Presence.deleting && (
+                        visibility !== visibilityModule.Visibility.hidden && (
                             // This is a copy of the context menu, since the context menu registers keyboard
                             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
                             // the entire context menu (once for the keyboard actions, once for the JSX).
@@ -253,6 +385,8 @@ export default function AssetRow(props: AssetRowProps) {
                                 }}
                                 event={{ pageX: 0, pageY: 0 }}
                                 eventTarget={null}
+                                doCut={doCut}
+                                doPaste={doPaste}
                                 doDelete={doDelete}
                             />
                         )}

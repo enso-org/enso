@@ -247,7 +247,7 @@ export default function ManagePermissionsModal<
                               }
                             : {}
                     }
-                    className="sticky w-115.25"
+                    className="sticky w-115.25 rounded-2xl before:absolute before:bg-frame-selected before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
                     onClick={mouseEvent => {
                         mouseEvent.stopPropagation()
                     }}
@@ -261,7 +261,6 @@ export default function ManagePermissionsModal<
                         }
                     }}
                 >
-                    <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
                     <div className="relative flex flex-col rounded-2xl gap-2 p-2">
                         <div>
                             <h2 className="text-sm font-bold">Invite</h2>
