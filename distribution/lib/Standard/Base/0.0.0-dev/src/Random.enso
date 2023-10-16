@@ -1,99 +1,83 @@
-import project.Any.Any
-import project.Data.Boolean.Boolean
-import project.Data.Json.JS_Object
-import project.Data.Numbers.Float
-import project.Data.Numbers.Integer
-import project.Data.Text.Text
-import project.Data.Vector.Vector
-import project.Error.Error
-import project.Errors.Illegal_Argument.Illegal_Argument
-import project.System
+type Random
+    # Default Random instance
+    default_instance : Random
 
-polyglot java import java.lang.Integer as Java_Integer
-polyglot java import java.util.Random as Java_Random
-polyglot java import java.util.UUID
-polyglot java import org.enso.base.Random_Utils
+    # Set the seed of the default Random instance
+    set_seed : Integer -> Nothing
 
-## PRIVATE
-   UNSTABLE
-   Returns a default seed to use for random number generation.
+    # Create a new Random with the specified seed
+    new : Int -> Random
 
-   The returned seed may differ between each call to this method.
-get_default_seed : Integer
-get_default_seed = System.nano_time
+    # Static versions of methods from Random_Generator.
+    rand_int low=0 high = Random.default_instance.rand_int low high
+    rand_int_32 low=MIN_INT high=MIN_INT =
+    # ...
 
-## Constructs a new random number generator.
-new : Integer -> Random_Number_Generator
-new seed=get_default_seed =
-    Random_Number_Generator.Value (Java_Random.new seed)
+type Random_Generator
+    # Return a random `Integer`
+    rand_int low=0 high =
+    rand_int self ... =
 
-type Random_Number_Generator
-    ## A random number generator.
-    Value java_random
+    # Return a random 64-bit `Float`
+    rand_float low=0.0 high=1.0 =
 
-    ## GROUP Random
-       Gets the next random Boolean.
-    boolean : Float
-    boolean self =
-        self.java_random.nextBoolean
+    # Return a random 32-bit `Integer` from the entire 32-bit range
+    rand_int_32 low=MIN_INT high=MIN_INT =
 
-    ## GROUP Random
-       Gets the next random Float between 0 and 1.
-    float : Float
-    float self =
-        self.java_random.nextDouble
+    # Return a random 64-bit `Integer` from the entire 64-bit range
+    rand_int_64 low=MIN_LONG high=MIN_LONG =
 
-    ## GROUP Random
-       Gets the next random Float from a normal distribution with mean 0 and std-dev 1.
-    gaussian : Float
-    gaussian self =
-        self.java_random.nextGaussian
+    # Return a random `Float` from the entire double precision range range
+    rand_double_precision low=MIN_DOUBLE high=MIN_DOUBLE =
 
-    ## GROUP Random
-       Gets the next random integer between min (inclusive) and max (exclusive).
+    # Return a random `Boolean`
+    rand_boolean : Boolean
 
-       Arguments:
-        - min: the minimum value (inclusive) of the random integer.
-        - max: the maximum value (exclusive) of the random integer.
-    integer : Integer -> Integer -> Integer
-    integer self min=0 max=100 =
-        range = max - min
-        if range < Java_Integer.MAX_VALUE then min + (self.java_random.nextInt range) else
-            Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.")
+    # Return a random Gaussian distribution float in the range 0..1
+    rand_gaussian : Float
 
-    ## PRIVATE
-       Serialise to JS_Object
-    to_js_object : JS_Object
-    to_js_object self =
-        JS_Object.from_pairs [["type", "Random_Number_Generator"], ["constructor", "new"]]
+    # Return a random `Integer` in the range 0..255
+    rand_byte : Integer
 
-    ## PRIVATE
-       Convert to a display representation of this Random_Number_Generator.
-    to_display_text : Text
-    to_display_text self = "Random_Number_Generator"
+    # Return a random `Integer` from the range [0, n-1], sampled without replacement.
+    rand_index : Integer -> Integer -> Integer
 
-## PRIVATE
-   Returns a new vector containing a random sample of the input vector, without
-   replacement.
+    # Return a random `Integer` in the given `Range` (respects `step`)
+    rand_in_range : Range -> Integer
 
-   If the amount of elements to select is larger than the input vector size, it
-   returns a random permutation of the input vector.
-sample : Vector Any -> Integer -> Random_Number_Generator -> Vector Any
-sample vector k rng =
-    new_array = Random_Utils.sample vector k rng.java_random
-    Vector.from_polyglot_array new_array
+    # Return a random `Date` in the given `Date_Range`
+    rand_in_date_range : Date_Range -> DAte
 
-## PRIVATE
-   Returns `k` indices sampled from the range [0, n-1] without replacement.
+    # Return a random UUID
+    rand_uuid : Text
 
-   If `k >= n`, it will return a random permutation of the indices.
-random_indices : Integer -> Integer -> Random_Number_Generator -> Vector Integer
-random_indices n k rng =
-    array = Random_Utils.random_indices n k rng.java_random
-    Vector.from_polyglot_array array
+    # Generate a string by selecting a random character from each element of the list.
+    # Previously `Faker.string_value`
+    rand_text_from_charsets : Vector (Text | Vector Char)
 
-## PRIVATE
-   Generates a text representation of a randomly generated UUID.
-random_uuid : Text
-random_uuid =
-    UUID.randomUUID.to_text
+    ## Generate a string based on a pattern.
+       (As seen in AlteryxAbacus.)
+       Pattern language TBD.
+
+       Example:
+       rnd.rand_text_from_pattern "AAaaa###" -> "BZdje533"
+    rand_text_from_pattern pattern : Text -> Text
+
+    ## GROUP Standard.Base.Random
+       Randomly converts some values to Nothing
+    make_some_nothing : Any -> Float -> Any
+
+    ## Return a random value from the given collection.
+       If `with_replacement` is false, and `count` is equal to or greater than
+       the size of the collection, a random permutation of the collection is returned.
+    rand_sample : Vector | Set | Map | Range -> Integer -> Boolean -> Any
+    rand_sample collection count with_replacement=True =
+
+    rand_permutation : Vector | Set | Map | Range -> Any
+    rand_permutation collection = Random.rand_sample collection collection.length with_replacement=False
+
+    # Return a list of random `Integers`
+    rand_ints count=1 low=0 high count=Nothing
+    rand_int_32s ...
+    rand_int_64s ...
+    # etc.
