@@ -39,15 +39,12 @@ final class RepoInitialization(
 
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
-    if (isInitialized) Future.successful(InitializationComponent.Initialized)
-    else {
-      for {
-        _ <- sqlDatabaseInit
-        _ <- suggestionsRepoInit
-      } yield {
-        _isInitialized = true
-        InitializationComponent.Initialized
-      }
+    for {
+      _ <- sqlDatabaseInit
+      _ <- suggestionsRepoInit
+    } yield {
+      _isInitialized = true
+      InitializationComponent.Initialized
     }
 
   private def sqlDatabaseInit: Future[Unit] = {

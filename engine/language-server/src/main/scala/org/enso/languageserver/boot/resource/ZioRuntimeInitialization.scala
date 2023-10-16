@@ -28,14 +28,12 @@ class ZioRuntimeInitialization(
 
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
-    if (isInitialized) Future.successful(InitializationComponent.Initialized)
-    else
-      Future {
-        logger.info("Initializing ZIO runtime...")
-        runtime.init()
-        logger.info("ZIO runtime initialized [{}].", runtime)
-        _isInitialized = true
-        eventStream.publish(InitializedEvent.ZioRuntimeInitialized)
-        InitializationComponent.Initialized
-      }
+    Future {
+      logger.info("Initializing ZIO runtime...")
+      runtime.init()
+      logger.info("ZIO runtime initialized [{}].", runtime)
+      _isInitialized = true
+      eventStream.publish(InitializedEvent.ZioRuntimeInitialized)
+      InitializationComponent.Initialized
+    }
 }

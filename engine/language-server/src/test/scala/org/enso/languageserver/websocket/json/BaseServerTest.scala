@@ -141,16 +141,17 @@ class BaseServerTest
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
 
-  val initializationComponent = SequentialResourcesInitialization(
-    new DirectoriesInitialization(config.directories),
-    new ZioRuntimeInitialization(zioRuntime, system.eventStream),
-    new RepoInitialization(
-      config.directories,
-      system.eventStream,
-      sqlDatabase,
-      suggestionsRepo
+  private def initializationComponent =
+    SequentialResourcesInitialization(
+      new DirectoriesInitialization(config.directories),
+      new ZioRuntimeInitialization(zioRuntime, system.eventStream),
+      new RepoInitialization(
+        config.directories,
+        system.eventStream,
+        sqlDatabase,
+        suggestionsRepo
+      )
     )
-  )
 
   val contentRootManagerActor =
     system.actorOf(ContentRootManagerActor.props(config))

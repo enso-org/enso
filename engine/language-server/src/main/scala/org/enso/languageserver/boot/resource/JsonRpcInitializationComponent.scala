@@ -21,15 +21,13 @@ final class JsonRpcInitializationComponent(protocolFactory: ProtocolFactory)(
   override def isInitialized: Boolean = _isInitialized
 
   /** @inheritdoc */
-  override def init(): Future[InitializationComponent.Initialized.type] = {
-    if (isInitialized) Future.successful(InitializationComponent.Initialized)
-    else
-      Future {
-        logger.info("Initializing JSON-RPC protocol.")
-        protocolFactory.init()
-        logger.info("JSON-RPC protocol initialized.")
-        _isInitialized = true
-        InitializationComponent.Initialized
-      }
-  }
+  override def init(): Future[InitializationComponent.Initialized.type] =
+    Future {
+      logger.info("Initializing JSON-RPC protocol.")
+      protocolFactory.init()
+      logger.info("JSON-RPC protocol initialized.")
+      _isInitialized = true
+      InitializationComponent.Initialized
+    }
+
 }
