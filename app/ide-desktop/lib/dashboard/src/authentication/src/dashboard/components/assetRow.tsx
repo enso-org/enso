@@ -293,7 +293,7 @@ export default function AssetRow(props: AssetRowProps) {
                 <>
                     <TableRow
                         className={`${visibilityModule.CLASS_NAME[visibility]} ${
-                            !isDraggedOver ? '' : 'selected'
+                            isDraggedOver ? 'selected' : ''
                         }`}
                         {...props}
                         hidden={hidden || visibility === visibilityModule.Visibility.hidden}
@@ -338,10 +338,14 @@ export default function AssetRow(props: AssetRowProps) {
                                 }
                             }
                         }}
+                        onDragEnd={() => {
+                            setIsDraggedOver(false)
+                        }}
                         onDragLeave={() => {
                             setIsDraggedOver(false)
                         }}
                         onDrop={event => {
+                            setIsDraggedOver(false)
                             if (item.item.type === backendModule.AssetType.directory) {
                                 const payload = assetsTable.tryGetAssetRowsDragPayload(
                                     event.dataTransfer

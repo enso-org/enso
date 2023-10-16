@@ -1261,11 +1261,20 @@ export default function AssetsTable(props: AssetsTableProps) {
                         <div
                             className="grow"
                             onDragOver={event => {
-                                event.preventDefault()
+                                const payload = tryGetAssetRowsDragPayload(event.dataTransfer)
+                                const filtered = payload?.filter(
+                                    item => item.asset.parentId !== rootDirectoryId
+                                )
+                                if (filtered != null && filtered.length > 0) {
+                                    event.preventDefault()
+                                }
                             }}
                             onDrop={event => {
                                 const payload = tryGetAssetRowsDragPayload(event.dataTransfer)
-                                if (payload != null) {
+                                const filtered = payload?.filter(
+                                    item => item.asset.parentId !== rootDirectoryId
+                                )
+                                if (filtered != null && filtered.length > 0) {
                                     event.preventDefault()
                                     event.stopPropagation()
                                     unsetModal()
@@ -1273,7 +1282,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         type: assetEventModule.AssetEventType.move,
                                         newParentKey: null,
                                         newParentId: null,
-                                        ids: new Set(payload.map(dragItem => dragItem.asset.id)),
+                                        ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
                                     })
                                 }
                             }}
