@@ -22,7 +22,10 @@ public class AddRowNumber {
 
   public static LongStorage create_grouped_numbering(
       long start, long step, Column[] groupingColumns) {
-    assert groupingColumns.length > 0;
+    if (groupingColumns.length == 0) {
+      throw new IllegalArgumentException("At least one grouping column is required.");
+    }
+
     int n = groupingColumns[0].getSize();
     long[] numbers = new long[n];
     Storage<?>[] groupingStorages =
@@ -41,8 +44,14 @@ public class AddRowNumber {
 
   public static LongStorage create_ordered_numbering(
       long start, long step, Column[] orderingColumns, int[] directions) {
-    assert orderingColumns.length > 0;
-    assert orderingColumns.length == directions.length;
+    if (orderingColumns.length == 0) {
+      throw new IllegalArgumentException("At least one ordering column is required.");
+    }
+    if (orderingColumns.length != directions.length) {
+      throw new IllegalArgumentException(
+          "The number of ordering columns and directions must be the same.");
+    }
+
     int n = orderingColumns[0].getSize();
     Storage<?>[] orderingStorages =
         Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
@@ -65,8 +74,13 @@ public class AddRowNumber {
 
   public static LongStorage create_grouped_ordered_numbering(
       long start, long step, Column[] orderingColumns, int[] directions, Column[] groupingColumns) {
-    assert orderingColumns.length > 0;
-    assert orderingColumns.length == directions.length;
+    if (orderingColumns.length == 0) {
+      throw new IllegalArgumentException("At least one ordering column is required.");
+    }
+    if (orderingColumns.length != directions.length) {
+      throw new IllegalArgumentException(
+          "The number of ordering columns and directions must be the same.");
+    }
 
     int n = orderingColumns[0].getSize();
     Storage<?>[] orderingStorages =
