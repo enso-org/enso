@@ -26,7 +26,6 @@ use octocrab::models::repos::Release;
 use octocrab::params::repos::Reference;
 use reqwest::Response;
 use serde_json::json;
-use std::env::consts::EXE_SUFFIX;
 use tempfile::tempdir;
 
 
@@ -190,19 +189,8 @@ pub async fn get_engine_package<R: IsRepo>(
     triple: &TargetTriple,
 ) -> Result<generated::EnginePackage> {
     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-    let package_name = generated::RepoRootBuiltDistribution::new_root(
-        ".",
-        triple.versions.edition_name(),
-        EXE_SUFFIX,
-        triple.to_string(),
-        triple.versions.version.to_string(),
-    )
-    .enso_engine_triple
-    .file_name()
-    .context("Failed to get Engine Package name.")?
-    .as_str()
-    .to_string();
-
+    let package_name =
+        generated::RepoRootBuiltDistributionEnsoEngineTriple::segment_name(triple.to_string());
     let release = repo.find_release_by_id(release_id).await?;
     let asset = github::find_asset_by_text(&release, &package_name)?;
     let temp_for_archive = tempdir()?;

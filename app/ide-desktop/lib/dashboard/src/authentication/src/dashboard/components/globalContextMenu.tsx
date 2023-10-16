@@ -14,14 +14,26 @@ import NewDataConnectorModal from './newDataConnectorModal'
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
     hidden?: boolean
+    hasCopyData: boolean
     directoryKey: backendModule.DirectoryId | null
     directoryId: backendModule.DirectoryId | null
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+    doPaste: (
+        newParentKey: backendModule.AssetId | null,
+        newParentId: backendModule.DirectoryId | null
+    ) => void
 }
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-    const { hidden = false, directoryKey, directoryId, dispatchAssetListEvent } = props
+    const {
+        hidden = false,
+        hasCopyData,
+        directoryKey,
+        directoryId,
+        dispatchAssetListEvent,
+        doPaste,
+    } = props
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
@@ -128,6 +140,16 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                                 }}
                             />
                         )
+                    }}
+                />
+            )}
+            {directoryKey == null && hasCopyData && (
+                <MenuEntry
+                    hidden={hidden}
+                    action={shortcuts.KeyboardAction.paste}
+                    doAction={() => {
+                        unsetModal()
+                        doPaste(null, null)
                     }}
                 />
             )}

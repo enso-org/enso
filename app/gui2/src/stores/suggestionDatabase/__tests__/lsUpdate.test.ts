@@ -4,7 +4,7 @@ import { unwrap } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { expect, test } from 'vitest'
 import { SuggestionDb, type Group } from '..'
-import { SuggestionKind, type SuggestionEntry } from '../entry'
+import { SuggestionKind, entryQn, type SuggestionEntry } from '../entry'
 import { applyUpdates } from '../lsUpdate'
 
 test('Adding suggestion database entries', () => {
@@ -12,6 +12,88 @@ test('Adding suggestion database entries', () => {
   const db = new SuggestionDb()
   applyUpdates(db, test.addUpdatesForExpected(), test.groups)
   test.check(db)
+})
+
+test('Entry qualified names', () => {
+  const test = new Fixture()
+  const db = test.createDbWithExpected()
+  expect(entryQn(db.get(1))).toStrictEqual('Standard.Base')
+  expect(entryQn(db.get(2))).toStrictEqual('Standard.Base.Type')
+  expect(entryQn(db.get(3))).toStrictEqual('Standard.Base.Type.Con')
+  expect(entryQn(db.get(4))).toStrictEqual('Standard.Base.Type.method')
+  expect(entryQn(db.get(5))).toStrictEqual('Standard.Base.Type.static_method')
+  expect(entryQn(db.get(6))).toStrictEqual('Standard.Base.function')
+  expect(entryQn(db.get(7))).toStrictEqual('Standard.Base.local')
+})
+
+test('Qualified name indexing', () => {
+  const test = new Fixture()
+  const db = new SuggestionDb()
+  applyUpdates(db, test.addUpdatesForExpected(), test.groups)
+  for (let i = 1; i <= 7; i++) {
+    const qName = entryQn(db.get(i))
+    expect(db.nameToId.lookup(qName)).toEqual(new Set([i]))
+    expect(db.nameToId.reverseLookup(i)).toEqual(new Set([qName]))
+  }
+})
+
+test('Parent-children indexing', () => {
+  const test = new Fixture()
+  const db = new SuggestionDb()
+  applyUpdates(db, test.addUpdatesForExpected(), test.groups)
+  // Parent lookup.
+  expect(db.parent.lookup(1)).toEqual(new Set([]))
+  expect(db.parent.lookup(2)).toEqual(new Set([1]))
+  expect(db.parent.lookup(3)).toEqual(new Set([2]))
+  expect(db.parent.lookup(4)).toEqual(new Set([2]))
+  expect(db.parent.lookup(5)).toEqual(new Set([2]))
+  expect(db.parent.lookup(6)).toEqual(new Set([1]))
+  expect(db.parent.lookup(7)).toEqual(new Set([1]))
+
+  // Children lookup.
+  expect(db.parent.reverseLookup(1)).toEqual(new Set([2, 6, 7]))
+  expect(db.parent.reverseLookup(2)).toEqual(new Set([3, 4, 5]))
+  expect(db.parent.reverseLookup(3)).toEqual(new Set([]))
+  expect(db.parent.reverseLookup(4)).toEqual(new Set([]))
+  expect(db.parent.reverseLookup(5)).toEqual(new Set([]))
+  expect(db.parent.reverseLookup(6)).toEqual(new Set([]))
+  expect(db.parent.reverseLookup(7)).toEqual(new Set([]))
+
+  // Add new entry.
+  const modifications: lsTypes.SuggestionsDatabaseUpdate[] = [
+    {
+      type: 'Add',
+      id: 8,
+      suggestion: {
+        type: 'method',
+        module: 'Standard.Base',
+        name: 'method2',
+        selfType: 'Standard.Base.Type',
+        isStatic: false,
+        arguments: [],
+        returnType: 'Standard.Base.Number',
+        documentation: '',
+        annotations: [],
+      },
+    },
+  ]
+  applyUpdates(db, modifications, test.groups)
+  expect(db.parent.lookup(8)).toEqual(new Set([2]))
+  expect(db.parent.reverseLookup(8)).toEqual(new Set([]))
+  expect(db.parent.reverseLookup(2)).toEqual(new Set([3, 4, 5, 8]))
+
+  // Remove entry.
+  const modifications2: lsTypes.SuggestionDatabaseUpdate[] = [{ type: 'Remove', id: 3 }]
+  applyUpdates(db, modifications2, test.groups)
+  expect(db.parent.lookup(3)).toEqual(new Set([]))
+  expect(db.parent.reverseLookup(2)).toEqual(new Set([4, 5, 8]))
+
+  // Modify entry. Moving new method from `Standard.Base.Type` to `Standard.Base`.
+  db.get(8).memberOf = 'Standard.Base'
+  expect(db.parent.reverseLookup(1)).toEqual(new Set([2, 6, 7, 8]))
+  expect(db.parent.lookup(8)).toEqual(new Set([1]))
+  expect(db.parent.reverseLookup(8)).toEqual(new Set([]))
+  expect(db.parent.reverseLookup(2)).toEqual(new Set([4, 5]))
 })
 
 test("Modifying suggestion entries' fields", () => {

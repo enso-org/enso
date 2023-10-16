@@ -15,16 +15,19 @@ use octocrab::models::ReleaseId;
 
 
 
-source_args_hlp!(Target, "ide", BuildInput<Gui>);
+source_args_hlp!(Target, "ide", BuildInput<Gui, Target>);
 
-#[derive(Args, Clone, Debug, PartialEq)]
-pub struct BuildInput<Gui: IsTargetSource> {
+#[derive(Args, Clone, Debug, Derivative)]
+#[derivative(PartialEq)]
+pub struct BuildInput<Gui: IsTargetSource, Ide: IsTargetSource = Target> {
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub gui:             Source<Gui>,
     #[clap(flatten)]
     pub project_manager: Source<Backend>,
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
-    pub output_path:     OutputPath<Target>,
+    pub output_path:     OutputPath<Ide>,
     /// Override the default target for electron-builder. E.g. pass `dir` for unpacked directory
     /// (fastest). See <https://www.electron.build> for all supported targets.
     #[clap(long, enso_env())]

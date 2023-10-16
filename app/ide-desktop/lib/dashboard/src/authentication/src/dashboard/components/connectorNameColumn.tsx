@@ -11,9 +11,9 @@ import * as backendProvider from '../../providers/backend'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
-import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
+import * as visibility from '../visibility'
 
 import type * as column from '../column'
 import EditableSpan from './editableSpan'
@@ -62,8 +62,11 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.restoreMultiple:
+            case assetEventModule.AssetEventType.cut:
+            case assetEventModule.AssetEventType.cancelCut:
+            case assetEventModule.AssetEventType.move:
+            case assetEventModule.AssetEventType.delete:
+            case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to secrets.
@@ -76,14 +79,14 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Data connectors cannot be created on the local backend')
                     } else {
-                        rowState.setPresence(presence.Presence.inserting)
+                        rowState.setVisibility(visibility.Visibility.faded)
                         try {
                             const createdSecret = await backend.createSecret({
                                 parentDirectoryId: asset.parentId,
                                 secretName: asset.title,
                                 secretValue: event.value,
                             })
-                            rowState.setPresence(presence.Presence.present)
+                            rowState.setVisibility(visibility.Visibility.visible)
                             setAsset({
                                 ...asset,
                                 id: createdSecret.id,

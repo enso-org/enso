@@ -3,29 +3,30 @@
  * waiting for a server response, based on the assumption that virtually all requests succeed.
  * In our case it is MANDATORY because immediate user feedback is important. */
 
-// ================
-// === Presence ===
-// ================
+// ==================
+// === Visibility ===
+// ==================
 
 /** The state of an item being synced to a remote server. */
-export enum Presence {
+export enum Visibility {
     /** The item is present. */
-    present = 'present',
-    /** The item will be inserted, but the backend request has not yet finished. */
-    inserting = 'inserting',
+    visible = 'visible',
+    /** The item will be inserted, but the backend request has not yet finished,
+     * or the item has been cut and will potentially be moved in the future. */
+    faded = 'faded',
     /** The item will be deleted, but the backend request has not yet finished. */
-    deleting = 'deleting',
+    hidden = 'hidden',
 }
 
 // =================
 // === Constants ===
 // =================
 
-/** The corresponding CSS classes for table rows, for each {@link Presence}. */
-export const CLASS_NAME: Record<Presence, string> = {
-    [Presence.present]: '',
+/** The corresponding CSS classes for table rows, for each {@link Visibility}. */
+export const CLASS_NAME: Record<Visibility, string> = {
+    [Visibility.visible]: '',
     // Note that in some cases (e.g. table rows with alternating colors), the element should be
     // completely removed from the DOM.
-    [Presence.deleting]: 'hidden',
-    [Presence.inserting]: 'opacity-50 pointer-events-none-recursive',
+    [Visibility.hidden]: 'hidden',
+    [Visibility.faded]: 'opacity-50 pointer-events-none-recursive',
 } as const
