@@ -16,7 +16,7 @@ export interface ExpressionInfo {
   profilingInfo: ProfilingInfo[]
 }
 
-//* This class holds the computed values that have been received from the language server. */
+/** This class holds the computed values that have been received from the language server. */
 export class VisualizationDataRegistry {
   private visualizationValues: Map<Uuid, string | null>
   private dataServer: Promise<DataServer>

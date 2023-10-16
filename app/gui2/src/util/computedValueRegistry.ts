@@ -15,7 +15,7 @@ export interface ExpressionInfo {
   profilingInfo: ProfilingInfo[]
 }
 
-//* This class holds the computed values that have been received from the language server. */
+/** This class holds the computed values that have been received from the language server. */
 export class ComputedValueRegistry {
   private expressionMap: Map<ExpressionId, ExpressionInfo>
   private _updateHandler = this.processUpdates.bind(this)
