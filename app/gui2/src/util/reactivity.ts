@@ -30,8 +30,8 @@ export type StopEffect = () => void
  * until next time that data structure is queried.
  */
 export class LazySyncEffectSet {
-  dirtyRunners = new Set<() => void>()
-  scope = effectScope()
+  _dirtyRunners = new Set<() => void>()
+  _scope = effectScope()
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs
@@ -42,7 +42,7 @@ export class LazySyncEffectSet {
    */
   lazyEffect(fn: (onCleanup: OnCleanup) => void): StopEffect {
     return (
-      this.scope.run(() => {
+      this._scope.run(() => {
         let cleanup: (() => void) | null = null
         const callCleanup = () => {
           if (cleanup != null) {
@@ -61,10 +61,10 @@ export class LazySyncEffectSet {
           },
           {
             scheduler: () => {
-              this.dirtyRunners.add(runner)
+              this._dirtyRunners.add(runner)
             },
             onStop: () => {
-              this.dirtyRunners.delete(runner)
+              this._dirtyRunners.delete(runner)
               callCleanup()
             },
           },
@@ -79,16 +79,16 @@ export class LazySyncEffectSet {
    * dirty, they will be rerun during the same flush.
    */
   flush() {
-    while (this.dirtyRunners.size !== 0) {
-      const runners = [...this.dirtyRunners]
-      this.dirtyRunners.clear()
+    while (this._dirtyRunners.size !== 0) {
+      const runners = [...this._dirtyRunners]
+      this._dirtyRunners.clear()
       for (let i = 0; i < runners.length; ++i) runners[i]!()
     }
   }
 
   // Immediately stops all effects and clears the dirty set.
   stop() {
-    this.scope.stop()
+    this._scope.stop()
   }
 }
 
