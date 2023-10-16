@@ -59,7 +59,6 @@ public class DelimitedReader {
   private final boolean keepInvalidRows;
   private String newlineSetting;
   private final NoOpParseProblemAggregator noOpProblemAggregator = new NoOpParseProblemAggregator();
-  private long invalidRowsCount = 0;
   private long targetTableIndex = 0;
   /** The line number of the start of the current row in the input file. */
   private long currentLine = 0;
