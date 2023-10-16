@@ -66,6 +66,7 @@ final class JobExecutionEngine(
   override def runBackground[A](job: BackgroundJob[A]): Unit =
     synchronized {
       if (isBackgroundJobsStarted) {
+        cancelDuplicateJobs(job, backgroundJobsRef)
         runInternal(job, backgroundJobExecutor, backgroundJobsRef)
       } else {
         delayedBackgroundJobsQueue.add(job)
@@ -74,11 +75,14 @@ final class JobExecutionEngine(
 
   /** @inheritdoc */
   override def run[A](job: Job[A]): Future[A] = {
-    cancelDuplicateJobs(job)
+    cancelDuplicateJobs(job, runningJobsRef)
     runInternal(job, jobExecutor, runningJobsRef)
   }
 
-  private def cancelDuplicateJobs[A](job: Job[A]): Unit = {
+  private def cancelDuplicateJobs[A](
+    job: Job[A],
+    runningJobsRef: AtomicReference[Vector[RunningJob]]
+  ): Unit = {
     job match {
       case job: UniqueJob[_] =>
         val allJobs =

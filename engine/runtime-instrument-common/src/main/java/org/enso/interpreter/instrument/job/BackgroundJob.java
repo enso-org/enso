@@ -19,7 +19,7 @@ public abstract class BackgroundJob<A> extends Job<A> {
    * @param priority the job priority. Lower number indicates higher priority.
    */
   public BackgroundJob(int priority) {
-    super(List$.MODULE$.empty(), false, false);
+    super(List$.MODULE$.empty(), true, false);
     this.priority = priority;
   }
 
