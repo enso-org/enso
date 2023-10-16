@@ -3,7 +3,6 @@ package org.enso.table.data.column.storage.datetime;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -68,10 +67,5 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   @Override
   public StorageType getType() {
     return DateTimeType.INSTANCE;
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new DateTimeBuilder(capacity);
   }
 }

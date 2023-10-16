@@ -19,6 +19,7 @@ polyglot java import org.enso.table.data.column.storage.type.IntegerType
 polyglot java import org.enso.table.data.column.storage.type.StorageType
 polyglot java import org.enso.table.data.column.storage.type.TextType
 polyglot java import org.enso.table.data.column.storage.type.TimeOfDayType
+polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## PRIVATE
    Gets the value type represented by this Java Storage.
@@ -87,6 +88,6 @@ from_value_type_strict value_type =
 
 ## PRIVATE
    Creates a column storage builder for the given storage type.
-make_builder : StorageType -> Integer -> Java_Builder
-make_builder storage initial_size=64 =
-    Java_Builder.getForType storage initial_size
+make_builder : StorageType -> Integer -> ProblemAggregator -> Java_Builder
+make_builder storage initial_size java_problem_aggregator =
+    Java_Builder.getForType storage initial_size java_problem_aggregator

@@ -6,6 +6,8 @@ import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime
+import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.ArithmeticException
@@ -416,3 +418,38 @@ type Out_Of_Memory
     handle_java_exception operation ~function =
         Panic.catch OutOfMemoryError handler=(_-> Error.throw (Out_Of_Memory.Error operation)) <|
             function
+
+## Indicates that an expression cannot be evaluated because somewhere within it,
+   a function does not have all required arguments provided.
+type Missing_Required_Argument
+    ## PRIVATE
+       Indicates that an expression cannot be evaluated because somewhere within
+       it, a function does not have all required arguments provided.
+    Error (argument_name : Text) (function_name : Text) (call_location : Source_Location | Nothing)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "Missing required argument `" + self.argument_name + "` in function `" + self.function_name + "`."
+
+    ## PRIVATE
+       Throws an error saying that a required argument has not been provided.
+
+       This function is supposed to be used as a default value for arguments
+       that are supposed to be required and should prevent errors stemming from
+       a not-fully-applied function being passed around. Instead, this error is
+       raised and propagated to the top, so that the IDE can see that the node
+       still has some missing arguments within it.
+
+       > Example
+
+         my_function (arg1 = Missing_Required_Argument.ensure_present "arg1") (arg2 = 100) = arg1+arg2
+    ensure_present : Text -> Nothing ! Missing_Required_Argument
+    ensure_present (argument_name : Text = Missing_Required_Argument.ensure_present "argument_name") =
+        stack_trace = Runtime.get_stack_trace
+        function_frame = stack_trace . at 1
+        caller_frame = stack_trace . at 2
+
+        function_name = function_frame.name
+        call_location = caller_frame.source_location
+        Error.throw (Missing_Required_Argument.Error argument_name function_name call_location)

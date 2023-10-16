@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.table.problems.Problem;
 
-public abstract class ColumnAggregatedProblems implements Problem {
+public abstract class ColumnAggregatedProblem implements Problem {
   private final String locationName;
   protected final List<Integer> rows;
 
-  protected ColumnAggregatedProblems(String locationName, Integer row) {
+  protected ColumnAggregatedProblem(String locationName, Integer row) {
     this.locationName = locationName;
     this.rows = new ArrayList<>();
     this.rows.add(row);
@@ -27,7 +27,7 @@ public abstract class ColumnAggregatedProblems implements Problem {
     return rows.size();
   }
 
-  public abstract boolean merge(ColumnAggregatedProblems another);
+  public abstract boolean merge(ColumnAggregatedProblem another);
 
   public abstract String getMessage();
 
