@@ -208,17 +208,24 @@ pub fn validate_spans(tree: &enso_parser::syntax::tree::Tree, expected_span: std
             None => b.clone(),
         }
     }
+    sum_span = Some(concat(&sum_span, &tree.span.left_offset.code.range_utf16()));
     tree.visit_items(|item| match item {
         enso_parser::syntax::item::Ref::Token(token) => {
-            sum_span = Some(concat(&sum_span, &token.left_offset.code.range_utf16()));
-            sum_span = Some(concat(&sum_span, &token.code.range_utf16()));
+            if !(token.left_offset.is_empty() && token.code.is_empty()) {
+                sum_span = Some(concat(&sum_span, &token.left_offset.code.range_utf16()));
+                sum_span = Some(concat(&sum_span, &token.code.range_utf16()));
+            }
         }
         enso_parser::syntax::item::Ref::Tree(tree) => {
-            let children_span = tree.span.range_utf16();
+            let children_span =
+                concat(&Some(tree.span.left_offset.code.range_utf16()), &tree.span.range_utf16());
             validate_spans(tree, children_span.clone());
-            sum_span = Some(concat(&sum_span, &tree.span.left_offset.code.range_utf16()));
             sum_span = Some(concat(&sum_span, &children_span));
         }
     });
-    assert_eq!(sum_span.unwrap(), expected_span);
+    if expected_span.is_empty() {
+        assert!(sum_span.map_or(true, |range| range.is_empty()));
+    } else {
+        assert_eq!(sum_span.unwrap(), expected_span);
+    }
 }

@@ -573,6 +573,11 @@ fn operator_section_in_operator_block() {
     test(&code.join("\n"), expected);
 }
 
+#[test]
+fn first_line_indented() {
+    expect_invalid_node(" a");
+}
+
 
 // === Binary Operators ===
 

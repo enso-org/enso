@@ -222,6 +222,12 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         }));
         return tree;
     }
+    if matches!(&tree, Tree {
+        variant: box Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, .. }),
+        ..
+    }) {
+        return tree.with_error("Expected expression before indented block.");
+    }
     let mut left_offset = tree.span.left_offset.position_before();
     let tree_ = &mut tree;
     let opr_app = match tree_ {
