@@ -10,8 +10,11 @@ import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.WithAggregatedProblems;
 import org.graalvm.polyglot.Context;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /** A parser for numbers.
@@ -43,22 +46,78 @@ public class NumberParser extends IncrementalDatatypeParser {
     private final static String CCY = "(?<ccy>[^0-9(),. '+-]+)";
     private final static String EXP = "(?<exp>[eE][+-]?\\d+)?";
     private final static String SPACE = "\\s*";
-    private final static String[] SEPARATORS = new String[] {",.", ".,", " ,", "',"};
+
+    private record Separators(String thousand, String decimal) {}
+
+    private final Separators[] SEPARATORS;
 
     private final static Map<String, Pattern> PATTERNS = new HashMap<>();
     private final IntegerType integerTargetType;
 
-    private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, boolean trimValues, int index) {
-        int allowedSet = (allowCurrency ? ALLOWED_CCY_PATTERNS : ALLOWED_NON_CCY_PATTERNS);
-        int separatorsIndex = index / allowedSet;
-        int patternIndex = index % allowedSet;
+    private static void validateSeparator(String name, String value) {
+        if (value == null) return;
 
-        if (separatorsIndex >= SEPARATORS.length) {
-            return null;
+        if (value.length() != 1) {
+            throw new IllegalArgumentException(name + " must be a single character, but it was '" + value + "'.");
         }
 
-        var separators = SEPARATORS[separatorsIndex];
-        return getPattern(allowDecimal, allowCurrency, allowScientific, trimValues, patternIndex, separators);
+        // If we allowed separators to be a digit, super crazy stuff could happen - e.g. technically 10000 could be interpreted as 1000 by interpreting the first 0 as a thousand separator. Let's not do that.
+        if (Character.isDigit(value.charAt(0))) {
+            throw new IllegalArgumentException(name + " cannot be a digit, but it was '" + value + "'.");
+        }
+    }
+
+    /**
+     * Builds a list of possible separator pairs.
+     * <p>
+     * If one of the parameters is null, it is meant to be inferred (multiple separator pairs will be provided for
+     * it), if
+     * it is set to a concrete value, it will be fixed.
+     */
+    private static Separators[] buildSeparators(boolean allowDecimal, String decimalPoint, String thousandSeparator) {
+        validateSeparator("Decimal point", decimalPoint);
+        validateSeparator("Thousand separator", thousandSeparator);
+        if (decimalPoint != null && decimalPoint.equals(thousandSeparator)) {
+            throw new IllegalArgumentException("Decimal point and thousand separator cannot be the same, but they were both '" + decimalPoint + "'.");
+        }
+
+        boolean fullAutomaticMode = allowDecimal && decimalPoint == null && thousandSeparator == null;
+        if (fullAutomaticMode) {
+            return new Separators[] {
+                new Separators(",", "."),
+                new Separators(".", ","),
+                new Separators(" ", ","),
+                new Separators("'", ","),
+            };
+        }
+
+        List<String> thousandSeparators;
+        if (thousandSeparator == null) {
+            List<String> autoThousandSeparators = List.of(",", ".", "'", " ");
+            thousandSeparators = autoThousandSeparators.stream().filter(sep -> !sep.equals(decimalPoint)).toList();
+        } else {
+            thousandSeparators = List.of(thousandSeparator);
+        }
+
+        List<String> decimalPoints;
+        if (decimalPoint == null) {
+            if (allowDecimal) {
+                List<String> autoDecimalPoints = List.of(",", ".");
+                assert thousandSeparator != null;
+                decimalPoints = autoDecimalPoints.stream().filter(sep -> !sep.equals(thousandSeparator)).toList();
+            } else {
+                // List.of(null) is not permitted...
+                decimalPoints = new ArrayList<>();
+                decimalPoints.add(null);
+            }
+        } else {
+            decimalPoints = List.of(decimalPoint);
+        }
+
+        return thousandSeparators.stream()
+                .flatMap(thousand -> decimalPoints.stream().map(decimal -> new Separators(thousand, decimal)))
+                .toArray(Separators[]::new);
+
     }
 
     /** The number of patterns that are allowed for non-currency numbers. */
@@ -67,7 +126,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     /** The number of patterns that are allowed for currency numbers. */
     private static final int ALLOWED_CCY_PATTERNS = 6;
 
-    private static Pattern getPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, boolean trimValues, int patternIndex, String separators) {
+    private static Pattern buildPattern(boolean allowDecimal, boolean allowCurrency, boolean allowScientific, boolean trimValues, int patternIndex, Separators separators) {
         if (allowScientific && !allowDecimal) {
             throw new IllegalArgumentException("Scientific notation requires decimal numbers.");
         }
@@ -76,9 +135,9 @@ public class NumberParser extends IncrementalDatatypeParser {
             return null;
         }
 
-        var INTEGER = "(?<integer>(\\d*)" + (separators.length() == 1 ? "" : "|(\\d{1,3}([" + separators.charAt(0) + "]\\d{3})*)") + ")";
+        String INTEGER = "(?<integer>(\\d*)" + (separators.thousand == null ? "" : "|(\\d{1,3}([" + separators.thousand + "]\\d{3})*)") + ")";
 
-        var decimalPoint = (separators.length() == 1 ? separators : separators.charAt(1));
+        String decimalPoint = allowDecimal ? Objects.requireNonNull(separators.decimal) : null;
         var NUMBER = INTEGER + (allowDecimal ? "(?<decimal>[" + decimalPoint + "]\\d*)?" : "") + (allowScientific ? EXP : "");
 
         var pattern = switch (patternIndex) {
@@ -103,20 +162,23 @@ public class NumberParser extends IncrementalDatatypeParser {
     private final boolean allowLeadingZeros;
     private final boolean allowScientific;
     private final boolean trimValues;
-    private final String separators;
 
-    /**
-     * Creates a new integer instance of this parser.
-     *
-     * @param integerTargetType the target type describing how large integer values can be accepted
-     * @param allowCurrency whether to allow currency symbols
-     * @param allowLeadingZeros whether to allow leading zeros
-     * @param trimValues whether to trim the input values
-     * @param thousandSeparator the thousand separator to use
-     */
-    public static NumberParser createIntegerParser(IntegerType integerTargetType, boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, String thousandSeparator) {
-        var separator = thousandSeparator == null ? null : (thousandSeparator + '_');
-        return new NumberParser(false, integerTargetType, allowCurrency, allowLeadingZeros, trimValues, false, separator);
+  /**
+   * Creates a new integer instance of this parser.
+   *
+   * @param integerTargetType the target type describing how large integer values can be accepted
+   * @param allowCurrency whether to allow currency symbols
+   * @param allowLeadingZeros whether to allow leading zeros
+   * @param trimValues whether to trim the input values
+   * @param decimalPoint the decimal point set for the current format, or null if not specified; this parser does
+   *     not use decimal point (since it is for integers) but it ensure that if a decimal point is chosen, the inferred
+   *     thousand separator will not clash with that specific decimal point
+   * @param thousandSeparator the thousand separator to use (if null then will be inferred)
+   */
+  public static NumberParser createIntegerParser(IntegerType integerTargetType, boolean allowCurrency,
+                                                 boolean allowLeadingZeros, boolean trimValues,
+                                                 String decimalPoint, String thousandSeparator) {
+        return new NumberParser(false, integerTargetType, allowCurrency, allowLeadingZeros, trimValues, false, decimalPoint, thousandSeparator);
     }
 
     /**
@@ -126,50 +188,39 @@ public class NumberParser extends IncrementalDatatypeParser {
      * @param allowLeadingZeros whether to allow leading zeros
      * @param trimValues whether to trim the input values
      * @param allowScientific whether to allow scientific notation
+     * @param decimalPoint the decimal separator to use (if null, then will be inferred)
+     * @param thousandSeparator the thousand separator to use (if null, then will be inferred)
      */
-    public static NumberParser createAutoDecimalParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific) {
-        return new NumberParser(true, null, allowCurrency, allowLeadingZeros, trimValues, allowScientific, null);
+    public static NumberParser createDecimalParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String decimalPoint, String thousandSeparator) {
+        return new NumberParser(true, null, allowCurrency, allowLeadingZeros, trimValues, allowScientific, decimalPoint, thousandSeparator);
     }
 
-    /**
-     * Creates a new decimal instance of this parser.
-     *
-     * @param allowCurrency whether to allow currency symbols
-     * @param allowLeadingZeros whether to allow leading zeros
-     * @param trimValues whether to trim the input values
-     * @param allowScientific whether to allow scientific notation
-     * @param thousandSeparator the thousand separator to use
-     * @param decimalSeparator the decimal separator to use
-     */
-    public static NumberParser createFixedDecimalParser(boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String thousandSeparator, String decimalSeparator) {
-        if (decimalSeparator == null || decimalSeparator.length() != 1) {
-            throw new IllegalArgumentException("Decimal separator must be a single character.");
-        }
-
-        thousandSeparator = thousandSeparator == null ? "" : thousandSeparator;
-        return new NumberParser(true, null, allowCurrency, allowLeadingZeros, trimValues, allowScientific, thousandSeparator + decimalSeparator);
-    }
-
-    private NumberParser(boolean allowDecimal, IntegerType integerTargetType, boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String separators) {
+    private NumberParser(boolean allowDecimal, IntegerType integerTargetType, boolean allowCurrency, boolean allowLeadingZeros, boolean trimValues, boolean allowScientific, String decimalPoint, String thousandSeparator) {
         this.allowDecimal = allowDecimal;
         this.integerTargetType = integerTargetType;
         this.allowCurrency = allowCurrency;
         this.allowLeadingZeros = allowLeadingZeros;
         this.trimValues = trimValues;
         this.allowScientific = allowScientific;
-        this.separators = separators;
+        SEPARATORS = buildSeparators(allowDecimal, decimalPoint, thousandSeparator);
     }
 
     /**
      * Creates a Pattern for the given index.
      * The index will be decoded into a specific set of separators (unless fixed
-     * separators are used) and then paired with on of the valid patterns for
+     * separators are used) and then paired with one of the valid patterns for
      * the given parser.
      */
     private Pattern patternForIndex(int index) {
-        return separators == null
-            ? getPattern(allowDecimal, allowCurrency, allowScientific, trimValues, index)
-            : getPattern(allowDecimal, allowCurrency, allowScientific, trimValues, index, separators);
+        int allowedSet = (allowCurrency ? ALLOWED_CCY_PATTERNS : ALLOWED_NON_CCY_PATTERNS);
+        int separatorsIndex = index / allowedSet;
+        int patternIndex = index % allowedSet;
+
+        if (separatorsIndex >= SEPARATORS.length) {
+            return null;
+        }
+
+        return buildPattern(allowDecimal, allowCurrency, allowScientific, trimValues, patternIndex, SEPARATORS[separatorsIndex]);
     }
 
     @Override

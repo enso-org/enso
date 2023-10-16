@@ -10,6 +10,7 @@ use crate::version::ENSO_RELEASE_MODE;
 use crate::version::ENSO_VERSION;
 
 use ide_ci::actions::workflow::definition::checkout_repo_step;
+use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::is_non_windows_runner;
 use ide_ci::actions::workflow::definition::is_windows_runner;
 use ide_ci::actions::workflow::definition::run;
@@ -46,9 +47,6 @@ pub mod job;
 pub mod step;
 
 
-
-#[derive(Clone, Copy, Debug)]
-pub struct DeluxeRunner;
 
 #[derive(Clone, Copy, Debug)]
 pub struct BenchmarkRunner;
@@ -113,21 +111,6 @@ pub mod secret {
 
 pub fn release_concurrency() -> Concurrency {
     Concurrency::new(RELEASE_CONCURRENCY_GROUP)
-}
-
-/// Get expression that gets input from the workflow dispatch. See:
-/// <https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs>
-pub fn get_input_expression(name: impl Into<String>) -> String {
-    wrap_expression(format!("inputs.{}", name.into()))
-}
-
-impl RunsOn for DeluxeRunner {
-    fn runs_on(&self) -> Vec<RunnerLabel> {
-        vec![RunnerLabel::MwuDeluxe]
-    }
-    fn os_name(&self) -> Option<String> {
-        None
-    }
 }
 
 impl RunsOn for BenchmarkRunner {
@@ -251,8 +234,21 @@ impl JobArchetype for PublishRelease {
 pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(&self, os: OS) -> Job {
-        plain_job_customized(&os, "Build IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", |step| 
+        plain_job_customized(&os, "Build Old IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", |step| 
             vec![expose_os_specific_signing_secret(os, step)]
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct UploadIde2;
+impl JobArchetype for UploadIde2 {
+    fn job(&self, os: OS) -> Job {
+        plain_job_customized(
+            &os,
+            "Build New IDE",
+            "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
+            |step| vec![expose_os_specific_signing_secret(os, step)],
         )
     }
 }
@@ -334,6 +330,10 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
             &build_wasm_job_id,
         ]);
         packaging_job_ids.push(build_ide_job_id.clone());
+
+        let build_ide2_job_id =
+            workflow.add_dependent(os, UploadIde2, [&prepare_job_id, &backend_job_id]);
+        packaging_job_ids.push(build_ide2_job_id.clone());
 
         // Deploying our release to cloud needs to be done only once.
         // We could do this on any platform, but we choose Linux, because it's most easily
@@ -445,6 +445,7 @@ pub fn gui() -> Result<Workflow> {
     workflow.add(PRIMARY_OS, job::Lint);
     workflow.add(PRIMARY_OS, job::WasmTest);
     workflow.add(PRIMARY_OS, job::NativeTest);
+    workflow.add(PRIMARY_OS, job::NewGuiTest);
 
     // FIXME: Integration tests are currently always failing.
     //        The should be reinstated when fixed.
@@ -461,10 +462,14 @@ pub fn gui() -> Result<Workflow> {
             let _wasm_job = workflow.add(os, job::BuildWasm);
         }
         let project_manager_job = workflow.add(os, job::BuildBackend);
-        workflow.add_customized(os, job::PackageIde, |job| {
+        workflow.add_customized(os, job::PackageOldIde, |job| {
             job.needs.insert(wasm_job_linux.clone());
-            job.needs.insert(project_manager_job);
+            job.needs.insert(project_manager_job.clone());
         });
+        workflow.add_customized(os, job::PackageNewIde, |job| {
+            job.needs.insert(project_manager_job.clone());
+        });
+        workflow.add(os, job::NewGuiBuild);
     }
     Ok(workflow)
 }

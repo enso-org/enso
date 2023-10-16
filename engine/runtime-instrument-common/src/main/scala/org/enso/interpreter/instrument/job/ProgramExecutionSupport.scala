@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
-import org.enso.interpreter.instrument.IdExecutionService.{
+import org.enso.interpreter.service.ExecutionService.{
   ExpressionCall,
   ExpressionValue,
   FunctionPointer
@@ -17,7 +17,7 @@ import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
-import org.enso.interpreter.runtime.`type`.Types
+import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
@@ -81,11 +81,6 @@ object ProgramExecutionSupport {
       }
     }
 
-    val onExceptionalCallback: Consumer[Exception] = { value =>
-      logger.log(Level.FINEST, s"ON_ERROR $value")
-      sendErrorUpdate(contextId, value)
-    }
-
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
         enterables += fun.getExpressionId -> fun.getCall
@@ -107,8 +102,7 @@ object ProgramExecutionSupport {
           callStack.headOption.map(_.expressionId).orNull,
           callablesCallback,
           onComputedValueCallback,
-          onCachedValueCallback,
-          onExceptionalCallback
+          onCachedValueCallback
         )
       case ExecutionFrame(
             ExecutionItem.CallData(expressionId, callData),
@@ -130,8 +124,7 @@ object ProgramExecutionSupport {
           callStack.headOption.map(_.expressionId).orNull,
           callablesCallback,
           onComputedValueCallback,
-          onCachedValueCallback,
-          onExceptionalCallback
+          onCachedValueCallback
         )
     }
 
@@ -304,25 +297,6 @@ object ProgramExecutionSupport {
 
     case ex: ServiceException =>
       Api.ExecutionResult.Failure(ex.getMessage, None)
-  }
-
-  private def sendErrorUpdate(contextId: ContextId, error: Exception)(implicit
-    ctx: RuntimeContext
-  ): Unit = {
-    ctx.endpoint.sendToClient(
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            getDiagnosticOutcome.applyOrElse(
-              error,
-              (ex: Exception) =>
-                Api.ExecutionResult.Diagnostic.error(ex.getMessage)
-            )
-          )
-        )
-      )
-    )
   }
 
   private def sendExpressionUpdate(
@@ -510,17 +484,19 @@ object ProgramExecutionSupport {
       case Left(error) =>
         val message =
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
-        ctx.executionService.getLogger.log(
-          Level.WARNING,
-          "Execution of visualization [{0}] on value [{1}] of [{2}] failed.",
-          Array[Object](
-            visualization.config,
-            expressionId,
-            Try(TypeOfNode.getUncached.execute(expressionValue))
-              .getOrElse(expressionValue.getClass),
-            error
+        val typeOfNode = Try(TypeOfNode.getUncached.execute(expressionValue))
+        if (!typeOfNode.map(TypesGen.isPanicSentinel).getOrElse(false)) {
+          ctx.executionService.getLogger.log(
+            Level.WARNING,
+            "Execution of visualization [{0}] on value [{1}] of [{2}] failed.",
+            Array[Object](
+              visualization.config,
+              expressionId,
+              typeOfNode.getOrElse(expressionValue.getClass),
+              error
+            )
           )
-        )
+        }
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualizationEvaluationFailed(

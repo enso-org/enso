@@ -3,6 +3,7 @@
 use crate::macros::pattern::*;
 use crate::macros::*;
 
+use crate::source::Code;
 use crate::syntax::operator;
 
 
@@ -38,6 +39,7 @@ fn statement() -> resolver::SegmentMap<'static> {
     register_import_macros(&mut macro_map);
     register_export_macros(&mut macro_map);
     macro_map.register(type_def());
+    macro_map.register(private());
     macro_map.register(foreign());
     macro_map
 }
@@ -338,7 +340,7 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
         return line_expression;
     }
     let mut last_argument_default = default();
-    let mut left_offset = crate::source::Offset::default();
+    let mut left_offset = line_expression.span.left_offset.position_before();
     let lhs = match &line_expression {
         Tree {
             variant: box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
@@ -436,8 +438,10 @@ fn case_body<'s>(
             _ => initial_case.push(item),
         }
     }
-    if !initial_case.is_empty() {
-        let newline = syntax::token::newline("", "");
+    if let Some(_first) = initial_case.first() {
+        // FIXME: Create 0-length span at offset preceding `_first`.
+        let newline =
+            syntax::token::newline(Code::empty_without_offset(), Code::empty_without_offset());
         case_builder.push(syntax::item::Line { newline, items: initial_case });
     }
     block.into_iter().for_each(|line| case_builder.push(line));
@@ -672,12 +676,26 @@ fn foreign<'s>() -> Definition<'s> {
     crate::macro_definition! {("foreign", everything()) foreign_body}
 }
 
+fn private<'s>() -> Definition<'s> {
+    crate::macro_definition! {("private", everything()) private_keyword}
+}
+
 fn skip<'s>() -> Definition<'s> {
     crate::macro_definition! {("SKIP", everything()) capture_expressions}
 }
 
 fn freeze<'s>() -> Definition<'s> {
     crate::macro_definition! {("FREEZE", everything()) capture_expressions}
+}
+
+fn private_keyword<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> syntax::Tree<'s> {
+    let segment = segments.pop().0;
+    let keyword = into_private(segment.header);
+    let body = precedence.resolve(segment.result.tokens());
+    syntax::Tree::private(keyword, body)
 }
 
 /// Macro body builder that just parses the tokens of each segment as expressions, and places them
@@ -783,6 +801,11 @@ fn into_ident(token: syntax::token::Token) -> syntax::token::Ident {
     syntax::token::ident(left_offset, code, false, 0, false, false, false)
 }
 
+fn into_private(token: syntax::token::Token) -> syntax::token::Private {
+    let syntax::token::Token { left_offset, code, .. } = token;
+    syntax::token::private(left_offset, code)
+}
+
 
 // === Validators ===
 
@@ -803,6 +826,14 @@ fn expect_qualified(tree: syntax::Tree) -> syntax::Tree {
 }
 
 fn expected_nonempty<'s>() -> syntax::Tree<'s> {
-    let empty = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false, false, false));
+    let empty = syntax::Tree::ident(syntax::token::ident(
+        Code::empty_without_offset(),
+        Code::empty_without_offset(),
+        false,
+        0,
+        false,
+        false,
+        false,
+    ));
     empty.with_error("Expected tokens.")
 }

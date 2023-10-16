@@ -18,6 +18,9 @@ export const DEEP_LINK_SCHEME = 'enso'
 /** Name of the product. */
 export const PRODUCT_NAME = 'Enso'
 
+/** Company name, used as the copyright holder. */
+export const COMPANY_NAME = 'New Byte Order sp. z o.o.'
+
 /** COOP, COEP, and CORP headers: https://web.dev/coop-coep/
  *
  * These are required to increase the resolution of `performance.now()` timers,

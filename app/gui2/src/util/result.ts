@@ -48,3 +48,22 @@ export function withContext<T, E>(context: () => string, f: () => Result<T, E>):
   if (!result.ok) result.error.context.splice(0, 0, context)
   return result
 }
+
+/**
+ * Catch promise rejection of provided types and convert them to a Result type.
+ */
+export function rejectionToResult<ErrorKind extends new (...args: any[]) => any>(
+  errorKinds: ErrorKind | ErrorKind[],
+): <T>(promise: Promise<T>) => Promise<Result<T, InstanceType<ErrorKind>>> {
+  const errorKindArray = Array.isArray(errorKinds) ? errorKinds : [errorKinds]
+  return async (promise) => {
+    try {
+      return Ok(await promise)
+    } catch (error) {
+      for (const errorKind of errorKindArray) {
+        if (error instanceof errorKind) return Err(error)
+      }
+      throw error
+    }
+  }
+}

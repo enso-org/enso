@@ -14,12 +14,12 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as permissions from '../permissions'
-import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as validation from '../validation'
+import * as visibility from '../visibility'
 
-import * as column from '../column'
+import type * as column from '../column'
 import EditableSpan from './editableSpan'
 import ProjectIcon from './projectIcon'
 import SvgMask from '../../authentication/components/svgMask'
@@ -46,6 +46,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
+            topLevelAssets,
+            nodeMap,
             doOpenManually,
             doOpenIde,
             doCloseIde,
@@ -103,8 +105,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.restoreMultiple:
+            case assetEventModule.AssetEventType.cut:
+            case assetEventModule.AssetEventType.cancelCut:
+            case assetEventModule.AssetEventType.move:
+            case assetEventModule.AssetEventType.delete:
+            case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
@@ -117,14 +122,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 // by this event handler. In both cases `key` will match, so using `key` here
                 // is a mistake.
                 if (asset.id === event.placeholderId) {
-                    rowState.setPresence(presence.Presence.inserting)
+                    rowState.setVisibility(visibility.Visibility.faded)
                     try {
                         const createdProject = await backend.createProject({
                             parentDirectoryId: asset.parentId,
                             projectName: asset.title,
                             projectTemplateName: event.templateId,
                         })
-                        rowState.setPresence(presence.Presence.present)
+                        rowState.setVisibility(visibility.Visibility.visible)
                         setAsset({
                             ...asset,
                             id: createdProject.projectId,
@@ -152,7 +157,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
-                    rowState.setPresence(presence.Presence.inserting)
+                    rowState.setVisibility(visibility.Visibility.faded)
                     try {
                         if (backend.type === backendModule.BackendType.local) {
                             let id: string
@@ -178,7 +183,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                 backendModule.ProjectId(id),
                                 null
                             )
-                            rowState.setPresence(presence.Presence.present)
+                            rowState.setVisibility(visibility.Visibility.visible)
                             setAsset({
                                 ...asset,
                                 title: listedProject.packageName,
@@ -203,7 +208,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             if (project == null) {
                                 throw new Error('The uploaded file was not a project.')
                             } else {
-                                rowState.setPresence(presence.Presence.present)
+                                rowState.setVisibility(visibility.Visibility.visible)
                                 setAsset({
                                     ...asset,
                                     title,
@@ -288,6 +293,20 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             )}
             <EditableSpan
                 editable={rowState.isEditingName}
+                checkSubmittable={newTitle =>
+                    (item.directoryKey != null
+                        ? nodeMap.current.get(item.directoryKey)?.children ?? []
+                        : topLevelAssets.current
+                    ).every(
+                        child =>
+                            // All siblings,
+                            child.key === item.key ||
+                            // that are not directories,
+                            backendModule.assetIsDirectory(child.item) ||
+                            // must have a different name.
+                            child.item.title !== newTitle
+                    )
+                }
                 onSubmit={async newTitle => {
                     setRowState(oldRowState => ({
                         ...oldRowState,

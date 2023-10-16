@@ -2,7 +2,6 @@ package org.enso.languageserver.http.server
 
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.RemoteAddress
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
@@ -12,6 +11,7 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{CompletionStrategy, Materializer, OverflowStrategy}
 import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.jsonrpc.{SecureConnectionConfig, Server}
 import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   CloseConnection,
   ConnectionClosed,
@@ -26,7 +26,7 @@ import org.enso.languageserver.util.binary.{
 }
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 /** A web socket server using a binary protocol.
   *
@@ -49,7 +49,8 @@ class BinaryWebSocketServer[A, B](
 )(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
-) extends LazyLogging {
+) extends Server
+    with LazyLogging {
 
   implicit val ec: ExecutionContext = system.dispatcher
 
@@ -66,18 +67,6 @@ class BinaryWebSocketServer[A, B](
           get { handleWebSocketMessages(newConnection(ip)) }
         }
     }
-
-  /** Binds this server instance to a given port and interface, allowing
-    * future connections.
-    *
-    * @param interface the interface to bind to.
-    * @param port the port to bind to.
-    * @return a representation of the binding state of the server.
-    */
-  def bind(interface: String, port: Int): Future[Http.ServerBinding] =
-    Http()
-      .newServerAt(interface, port)
-      .bind(route)
 
   private def newConnection(
     ip: RemoteAddress.IP
@@ -148,6 +137,10 @@ class BinaryWebSocketServer[A, B](
       }
   }
 
+  override protected def serverRoute(port: Int): Route = route
+
+  override protected def secureConfig(): Option[SecureConnectionConfig] =
+    config.secureConfig
 }
 
 object BinaryWebSocketServer {
@@ -163,6 +156,7 @@ object BinaryWebSocketServer {
   case class Config(
     outgoingBufferSize: Int,
     lazyMessageTimeout: FiniteDuration,
+    secureConfig: Option[SecureConnectionConfig],
     path: String = ""
   )
 
@@ -173,6 +167,10 @@ object BinaryWebSocketServer {
       * @return a default config.
       */
     def default: Config =
-      Config(outgoingBufferSize = 10, lazyMessageTimeout = 10.seconds)
+      Config(
+        outgoingBufferSize = 10,
+        lazyMessageTimeout = 10.seconds,
+        secureConfig       = None
+      )
   }
 }

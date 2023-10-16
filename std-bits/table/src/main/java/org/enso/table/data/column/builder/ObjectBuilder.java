@@ -23,7 +23,7 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
-  public void writeTo(Object[] items) {
+  public void retypeToMixed(Object[] items) {
     throw new IllegalStateException("Broken invariant: rewriting the most general type.");
   }
 

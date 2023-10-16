@@ -5,10 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import org.enso.interpreter.instrument.IdExecutionService;
-import org.enso.interpreter.instrument.IdExecutionService.ExpressionCall;
-import org.enso.interpreter.instrument.IdExecutionService.ExpressionValue;
-import org.enso.interpreter.instrument.IdExecutionService.FunctionCallInfo;
+import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
@@ -19,8 +16,12 @@ import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.type.Constants;
+import org.enso.interpreter.service.ExecutionService.ExpressionCall;
+import org.enso.interpreter.service.ExecutionService.ExpressionValue;
+import org.enso.interpreter.service.ExecutionService.FunctionCallInfo;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.TruffleObject;
 
 final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
@@ -32,7 +33,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
-  private final Consumer<Exception> onExceptionalCallback;
 
   /** Creates callbacks instance.
    *
@@ -43,13 +43,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
    * @param functionCallCallback the consumer of function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
-   * @param onExceptionalCallback the consumer of the exceptional events.
    */
   ExecutionCallbacks(
           UUID nextExecutionItem,
           RuntimeCache cache, MethodCallsCache methodCallsCache, UpdatesSynchronizationState syncState,
           Consumer<ExpressionValue> onCachedCallback, Consumer<ExpressionValue> onComputedCallback,
-          Consumer<ExpressionCall> functionCallCallback, Consumer<Exception> onExceptionalCallback
+          Consumer<ExpressionCall> functionCallCallback
   ) {
     this.nextExecutionItem = nextExecutionItem;
     this.cache = cache;
@@ -58,7 +57,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.onCachedCallback = onCachedCallback;
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
-    this.onExceptionalCallback = onExceptionalCallback;
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -118,9 +116,10 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public final Object onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result) {
-    calls.put(nodeId, FunctionCallInfo.fromFunctionCall(result));
-    functionCallCallback.accept(new ExpressionCall(nodeId, result));
+  public final Object onFunctionReturn(UUID nodeId, TruffleObject result) {
+    var fnCall = (FunctionCallInstrumentationNode.FunctionCall) result;
+    calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
+    functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
     // Return cached value after capturing the enterable function call in `functionCallCallback`
     Object cachedResult = cache.get(nodeId);
     if (cachedResult != null) {
@@ -128,12 +127,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
     methodCallsCache.setExecuted(nodeId);
     return null;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  @Override
-  public final void onExceptionalCallback(Exception e) {
-    onExceptionalCallback.accept(e);
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -152,7 +145,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       resultType = Constants.UNRESOLVED_SYMBOL;
     } else {
       var typeOfNode = TypeOfNode.getUncached();
-      Object typeResult = typeOfNode.execute(value);
+      Object typeResult = value == null ? null : typeOfNode.execute(value);
       if (typeResult instanceof Type t) {
         resultType = t.getQualifiedName().toString();
       } else {

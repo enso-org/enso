@@ -421,8 +421,11 @@ spec setup =
             (t3.at "X").date_add (t3.at "Y") Time_Period.Day . to_vector . should_fail_with Illegal_Argument
             (t3.at "X").date_add 1 Date_Period.Month . to_vector . should_fail_with Illegal_Argument
 
-            # There is no default period.
-            (t1.at "X").date_add (t1.at "Y") . should_be_a Function
+            # Date period defaults to Day for date/date-time
+            (t1.at "X").date_add (t1.at "Y") . to_vector . should_equal [Date.new 2021 02 05, Date.new 2020 12 31, Date.new 2021 12 31]
+            (t2.at "X").date_add (t2.at "Y") . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            # and defaults to Hour for time-of-day
+            (t3.at "X").date_add (t3.at "Y") . to_vector . should_equal [Time_Of_Day.new 17 30 0, Time_Of_Day.new 22 45 0, Time_Of_Day.new 1 30 0]
 
         Test.specify "should check shift_amount type in date_add" <|
             t = table_builder [["X", [Date.new 2021 01 31]]]

@@ -11,7 +11,7 @@ import * as fs from 'node:fs/promises'
 
 import * as electronBuilder from 'electron-builder'
 import * as electronNotarize from 'electron-notarize'
-import * as macOptions from 'app-builder-lib/out/options/macOptions'
+import type * as macOptions from 'app-builder-lib/out/options/macOptions'
 import yargs from 'yargs'
 
 import * as common from 'enso-common'
@@ -99,7 +99,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         extraMetadata: {
             version: BUILD_INFO.version,
         },
-        copyright: 'Copyright © 2022 ${author}.',
+        copyright: `Copyright © ${new Date().getFullYear()} ${common.COMPANY_NAME}`,
         artifactName: 'enso-${os}-${version}.${ext}',
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *

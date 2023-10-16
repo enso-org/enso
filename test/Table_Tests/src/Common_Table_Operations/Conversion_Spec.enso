@@ -1,10 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
-
+from Standard.Table import Value_Type
 from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
+
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
@@ -426,15 +426,16 @@ spec setup =
                 c3 = t2.cast "super-mix" Value_Type.Char . at "super-mix"
                 c3.value_type . should_equal Value_Type.Char
                 date_time_str = Date_Time.new 2023 12 15 19 25 . to_text
-                c3.to_vector . should_equal ["1.0", "2.25", "3", "-45.25", "2.0", "X", "2020-01-01", date_time_str, "12:30:00", "{{{MY Type [x=42] }}}", "True", Nothing, "True"]
+                c3.to_vector . should_equal ["1", "2.25", "3", "-45.25", "2.0", "X", "2020-01-01", date_time_str, "12:30:00", "{{{MY Type [x=42] }}}", "True", Nothing, "True"]
                 Problems.assume_no_problems c3
 
                 if setup.test_selection.fixed_length_text_columns then
                     c3_2 = t2.cast "super-mix" (Value_Type.Char size=2) . at "super-mix"
                     c3_2.value_type . should_equal (Value_Type.Char size=2)
-                    c3_2.to_vector . should_equal ["1.", "2.", "3", "-4", "2.", "X", "20", "20", "12", "{{", "Tr", Nothing, "Tr"]
+                    c3_2.to_vector . should_equal ["1", "2.", "3", "-4", "2.", "X", "20", "20", "12", "{{", "Tr", Nothing, "Tr"]
                     w3_2 = Problems.expect_warning Conversion_Failure c3_2
-                    w3_2.affected_rows_count . should_equal 10
+                    w3_2.affected_rows_count . should_equal 9
+                    w3_2.to_display_text . should_contain "have a text representation that does not fit the target type"
 
                 c4 = t2.cast "super-mix" Value_Type.Boolean . at "super-mix"
                 c4.value_type . should_equal Value_Type.Boolean
@@ -546,6 +547,18 @@ spec setup =
             t.auto_value_types . should_fail_with Unsupported_Database_Operation
             t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation
 
+    # The in-memory functionality of `expand_column` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
+    if setup.is_database then Test.group prefix+"Table.expand_column" <|
+        Test.specify "should report unsupported" <|
+            table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" . should_fail_with Unsupported_Database_Operation
+
+    # The in-memory functionality of `expand_to_rows` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
+    if setup.is_database then Test.group prefix+"Table.expand_to_rows" <|
+        Test.specify "should report unsupported" <|
+            table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            table.expand_to_rows "bbb" . should_fail_with Unsupported_Database_Operation
+
     if setup.is_database.not then Test.group prefix+"Table/Column auto value type" <|
         Test.specify "should allow to narrow down types of a Mixed column" <|
             [True, False].each shrink_types->
@@ -630,13 +643,13 @@ spec setup =
             t3.at "Y" . value_type . should_equal Value_Type.Char
 
         Test.specify "will choose Decimal type if all values are integers but cannot fit long" <|
-            c0 = table_builder [["X", [My_Type.Value 42, 1, 2, 2^100]]] . at "X"
+            c0 = table_builder [["X", [My_Type.Value 42, 1, 2, (2^100)+1]]] . at "X"
             c1 = c0.drop 1
 
             c1.value_type . should_equal Value_Type.Mixed
             c2 = c1.auto_value_type
             c2.value_type . should_be_a (Value_Type.Decimal ...)
-            c2.to_vector . should_equal [1, 2, 2^100]
+            c2.to_vector . should_equal [1, 2, (2^100)+1]
 
         Test.specify "will try to find the smallest integer type to fit the value (if shrink_types=True)" <|
             [False, True].each is_mixed->

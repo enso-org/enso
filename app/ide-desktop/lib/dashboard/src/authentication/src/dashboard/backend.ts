@@ -1,5 +1,5 @@
 /** @file Type definitions common between all backends. */
-import * as React from 'react'
+import type * as React from 'react'
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
@@ -182,10 +182,15 @@ export interface ProjectRaw extends ListedProjectRaw {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-    /** This must not be null as it is required to determine the base URL for backend assets. */
-    ideVersion: VersionNumber
+    ideVersion: VersionNumber | null
     engineVersion: VersionNumber | null
     openedBy?: EmailAddress
+}
+
+/** A user/organization's project containing and/or currently executing code. */
+export interface BackendProject extends Project {
+    /** This must not be null as it is required to determine the base URL for backend assets. */
+    ideVersion: VersionNumber
 }
 
 /** Information required to open a project. */
@@ -563,6 +568,11 @@ export interface UpdateDirectoryRequestBody {
     title: string
 }
 
+/** HTTP request body for the "update asset" endpoint. */
+export interface UpdateAssetRequestBody {
+    parentDirectoryId: DirectoryId
+}
+
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
     projectName: string
@@ -731,6 +741,12 @@ export abstract class Backend {
         body: UpdateDirectoryRequestBody,
         title: string | null
     ): Promise<UpdatedDirectory>
+    /** Change the parent directory of an asset. */
+    abstract updateAsset(
+        assetId: AssetId,
+        body: UpdateAssetRequestBody,
+        title: string | null
+    ): Promise<void>
     /** Delete an arbitrary asset. */
     abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
     /** Restore an arbitrary asset from the trash. */

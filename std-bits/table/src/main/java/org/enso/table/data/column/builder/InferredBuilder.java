@@ -102,7 +102,7 @@ public class InferredBuilder extends Builder {
       // In inferred builder, we always default to 64-bits.
       currentBuilder = NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64);
     } else if (NumericConverter.isFloatLike(o)) {
-      currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
+      currentBuilder = NumericBuilder.createInferringDoubleBuilder(initialCapacity);
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else if (o instanceof BigInteger) {
@@ -155,8 +155,14 @@ public class InferredBuilder extends Builder {
   }
 
   private void retypeToMixed() {
-    ObjectBuilder objectBuilder = new MixedBuilder(initialSize);
-    currentBuilder.writeTo(objectBuilder.getData());
+    // The new internal builder must be at least `currentSize` so it can store
+    // all the current values. It must also be at least 'initialSize' since the
+    // caller might be using appendNoGrow and is expecting to write at least
+    // that many values.
+    int capacity = Math.max(initialSize, currentSize);
+
+    ObjectBuilder objectBuilder = new MixedBuilder(capacity);
+    currentBuilder.retypeToMixed(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
     objectBuilder.setPreExistingProblems(currentBuilder.getProblems());
     currentBuilder = objectBuilder;

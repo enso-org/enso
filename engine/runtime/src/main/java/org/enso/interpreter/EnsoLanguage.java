@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
