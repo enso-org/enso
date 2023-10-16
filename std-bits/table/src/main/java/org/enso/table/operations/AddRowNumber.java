@@ -27,16 +27,14 @@ public class AddRowNumber {
     long[] numbers = new long[n];
     Storage<?>[] groupingStorages =
         Arrays.stream(groupingColumns).map(Column::getStorage).toArray(Storage[]::new);
-    Map<UnorderedMultiValueKey, Long> groups = new HashMap<>();
     List<TextFoldingStrategy> textFoldingStrategy =
         ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
+    Map<UnorderedMultiValueKey, RangeIterator> groups = new HashMap<>();
     for (int i = 0; i < n; i++) {
       UnorderedMultiValueKey key =
           new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
-      long currentIx = groups.getOrDefault(key, start);
-      numbers[i] = currentIx;
-      long nextIx = Math.addExact(currentIx, step);
-      groups.put(key, nextIx);
+      RangeIterator it = groups.computeIfAbsent(key, k -> new RangeIterator(start, step));
+      numbers[i] = it.next();
     }
     return new LongStorage(numbers, IntegerType.INT_64);
   }
@@ -58,10 +56,9 @@ public class AddRowNumber {
 
     keys.sort(OrderedPairComparator.INSTANCE);
 
-    long nextIx = start;
+    RangeIterator it = new RangeIterator(start, step);
     for (var key : keys) {
-      numbers[key.getRight()] = nextIx;
-      nextIx = Math.addExact(nextIx, step);
+      numbers[key.getRight()] = it.next();
     }
     return new LongStorage(numbers, IntegerType.INT_64);
   }
@@ -89,10 +86,9 @@ public class AddRowNumber {
                           Pair.create(new OrderedMultiValueKey(orderingStorages, i, directions), i))
                   .toList());
       orderingKeys.sort(OrderedPairComparator.INSTANCE);
-      long nextIx = start;
+      RangeIterator it = new RangeIterator(start, step);
       for (var key : orderingKeys) {
-        numbers[key.getRight()] = nextIx;
-        nextIx = Math.addExact(nextIx, step);
+        numbers[key.getRight()] = it.next();
       }
     }
 
@@ -118,5 +114,32 @@ public class AddRowNumber {
     }
 
     static OrderedPairComparator INSTANCE = new OrderedPairComparator();
+  }
+
+  /**
+   * A helper for computing consecutive numbers based on a start and step. It will throw an {@link
+   * java.lang.ArithmeticException} if the next number overflows.
+   */
+  private static class RangeIterator {
+    private final long start;
+    private final long step;
+    private long current;
+    private boolean isFirst = true;
+
+    RangeIterator(long start, long step) {
+      this.start = start;
+      this.step = step;
+    }
+
+    long next() throws ArithmeticException {
+      if (isFirst) {
+        isFirst = false;
+        current = start;
+      } else {
+        current = Math.addExact(current, step);
+      }
+
+      return current;
+    }
   }
 }
