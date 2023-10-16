@@ -3,8 +3,8 @@ package org.enso.table.parsing;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
-import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A parser that just returns its input. Useful as a fallback. */
@@ -22,7 +22,7 @@ public class IdentityParser extends IncrementalDatatypeParser {
 
   @Override
   public Storage<?> parseColumn(
-      Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
+      Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
     return sourceStorage;
   }
 }

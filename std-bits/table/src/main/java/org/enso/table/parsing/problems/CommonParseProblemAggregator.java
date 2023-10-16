@@ -5,7 +5,11 @@ import java.util.List;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Value;
 
-public final class ParseProblemAggregatorImpl extends ProblemAggregator
+/**
+ * A {@link org.enso.table.parsing.problems.ParseProblemAggregator} implementation that also
+ * forwards problems to the parent {@link org.enso.table.problems.ProblemAggregator}.
+ */
+public final class CommonParseProblemAggregator extends ProblemAggregator
     implements ParseProblemAggregator {
   public final String relatedColumnName;
 
@@ -13,7 +17,7 @@ public final class ParseProblemAggregatorImpl extends ProblemAggregator
   public final Value expectedEnsoValueType;
   private final List<String> invalidFormatCells = new ArrayList<>();
 
-  public ParseProblemAggregatorImpl(
+  public CommonParseProblemAggregator(
       ProblemAggregator parent, String relatedColumnName, Value expectedEnsoValueType) {
     super(parent);
     this.relatedColumnName = relatedColumnName;
@@ -47,7 +51,7 @@ public final class ParseProblemAggregatorImpl extends ProblemAggregator
     return baseSummary;
   }
 
-  public ParseProblemAggregatorImpl createContextAwareChild() {
-    return new ParseProblemAggregatorImpl(this, relatedColumnName, expectedEnsoValueType);
+  public CommonParseProblemAggregator createContextAwareChild() {
+    return new CommonParseProblemAggregator(this, relatedColumnName, expectedEnsoValueType);
   }
 }

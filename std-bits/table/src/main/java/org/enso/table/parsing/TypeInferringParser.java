@@ -2,9 +2,9 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
-import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
-import org.enso.table.parsing.problems.SimplifiedParseProblemAggregator;
+import org.enso.table.parsing.problems.ShortCircuitParseProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -28,7 +28,7 @@ public class TypeInferringParser extends DatatypeParser {
   @Override
   public Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
     for (IncrementalDatatypeParser parser : baseParsers) {
-      SimplifiedParseProblemAggregator internal = new SimplifiedParseProblemAggregator();
+      ShortCircuitParseProblemAggregator internal = new ShortCircuitParseProblemAggregator();
       Object result = parser.parseSingleValue(text, internal);
       if (!internal.hasProblems()) {
         return result;
@@ -40,7 +40,7 @@ public class TypeInferringParser extends DatatypeParser {
 
   @Override
   public Storage<?> parseColumn(
-      Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
+      Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
     // If there are no values, the Auto parser would guess some random type (the first one that is
     // checked). Instead, we just return the empty column unchanged.
     boolean hasNoValues =
@@ -52,7 +52,7 @@ public class TypeInferringParser extends DatatypeParser {
     Context context = Context.getCurrent();
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
-      ParseProblemAggregatorImpl innerAggregator = problemAggregator.createContextAwareChild();
+      CommonParseProblemAggregator innerAggregator = problemAggregator.createContextAwareChild();
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size(), innerAggregator);
 
       for (int i = 0; i < sourceStorage.size(); ++i) {

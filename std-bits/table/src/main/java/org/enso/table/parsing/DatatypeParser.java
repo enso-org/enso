@@ -1,8 +1,8 @@
 package org.enso.table.parsing;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
-import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 
 /** A base type for a parser capable of parsing a column of text values into some other type. */
 public abstract class DatatypeParser {
@@ -23,5 +23,5 @@ public abstract class DatatypeParser {
    * containing the parsed elements.
    */
   public abstract Storage<?> parseColumn(
-      Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator);
+      Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator);
 }

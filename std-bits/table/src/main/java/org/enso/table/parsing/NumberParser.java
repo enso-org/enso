@@ -5,7 +5,7 @@ import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
-import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
@@ -241,7 +241,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     }
 
     @Override
-    public Storage<?> parseColumn(Storage<String> sourceStorage, ParseProblemAggregatorImpl problemAggregator) {
+    public Storage<?> parseColumn(Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
         int index = 0;
         var pattern = patternForIndex(index);
 
@@ -267,7 +267,7 @@ public class NumberParser extends IncrementalDatatypeParser {
             pattern = patternForIndex(index);
         }
 
-        ParseProblemAggregatorImpl aggregator = problemAggregator.createContextAwareChild();
+        CommonParseProblemAggregator aggregator = problemAggregator.createContextAwareChild();
         Builder fallback = makeBuilderWithCapacity(sourceStorage.size(), aggregator);
         parseColumnWithPattern(patternForIndex(bestIndex), sourceStorage, fallback, aggregator);
         return fallback.seal();
