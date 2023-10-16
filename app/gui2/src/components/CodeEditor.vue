@@ -72,7 +72,12 @@ watchEffect(() => {
             foundNode.rootSpan.id,
           )
           if (expressionInfo == null) return
-          dom.appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+          dom
+            .appendChild(document.createElement('div'))
+            .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.id}`))
+          dom
+            .appendChild(document.createElement('div'))
+            .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
           const method = expressionInfo?.methodCall?.methodPointer
           if (method != null) {
             const suggestionEntry = suggestionDbStore.methodPointerToEntry
