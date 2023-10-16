@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-
-import { useDocumentEvent } from '@/util/events'
-
+import { useEvent } from '@/util/events'
 import { ref } from 'vue'
 
 const props = defineProps<{ modes: string[]; modelValue: string }>()
@@ -21,7 +19,7 @@ function onDocumentClick(event: MouseEvent) {
   }
 }
 
-useDocumentEvent('click', onDocumentClick)
+useEvent(document, 'click', onDocumentClick)
 </script>
 
 <template>

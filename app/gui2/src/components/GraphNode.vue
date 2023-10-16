@@ -11,6 +11,7 @@ import {
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { Rect } from '@/stores/rect'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,
@@ -25,7 +26,6 @@ import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-import { useSuggestionDbStore } from '../stores/suggestionDatabase'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 

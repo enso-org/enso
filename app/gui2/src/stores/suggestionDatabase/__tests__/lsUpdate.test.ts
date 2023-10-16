@@ -1,11 +1,11 @@
+import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 import { parseDocs } from '@/util/docParser'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { expect, test } from 'vitest'
-import { SuggestionDb, type Group } from '..'
-import { SuggestionKind, type SuggestionEntry } from '../entry'
-import { applyUpdates } from '../lsUpdate'
 
 test('Adding suggestion database entries', () => {
   const test = new Fixture()

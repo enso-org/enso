@@ -43,7 +43,7 @@ import { computed } from 'vue'
 import * as sqlFormatter from 'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { DEFAULT_THEME, type RGBA, type Theme } from './builtins.ts'
+import { DEFAULT_THEME, type RGBA, type Theme } from '@/components/visualizations/builtins'
 
 const props = defineProps<{ data: Data }>()
 

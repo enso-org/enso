@@ -1,12 +1,12 @@
+import { useProjectStore } from '@/stores/project'
+import { type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
 import { type QualifiedName } from '@/util/qualifiedName'
 import * as map from 'lib0/map'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import { reactive, ref, watchEffect, type Ref } from 'vue'
-import { useProjectStore } from '../project'
-import { type SuggestionEntry, type SuggestionId } from './entry'
-import { applyUpdates, entryFromLs } from './lsUpdate'
 
 export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
 export const SuggestionDb = Map<SuggestionId, SuggestionEntry>
