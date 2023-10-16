@@ -6,19 +6,13 @@ import project.Data.Column.Column
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
-import project.Data.Type.Value_Type.Bits
 import project.Internal.Java_Problems
-import project.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
-import project.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 from project.Errors import Duplicate_Output_Column_Names
-from project.Internal.Java_Exports import make_long_builder
 
 polyglot java import java.lang.ArithmeticException
-polyglot java import org.enso.base.arrays.MutableLongArrayWrapper
 polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
-polyglot java import org.enso.table.data.column.storage.numeric.LongStorage
 polyglot java import org.enso.table.operations.AddRowNumber
 
 ## PRIVATE
@@ -26,7 +20,6 @@ add_row_number : Table -> Text -> Integer -> Integer -> Text | Integer | Regex |
 add_row_number table name from step group_by order_by on_problems =
     problem_builder = Problem_Builder.new error_on_missing_columns=True
     grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
-    Unordered_Multi_Value_Key.validate_grouping_columns grouping_columns problem_builder
     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
 
     handle_arithmetic_exception _ =
@@ -37,8 +30,8 @@ add_row_number table name from step group_by order_by on_problems =
             True ->
                 case grouping_columns.is_empty of
                     True -> make_range_column name from step table.row_count
-                    False -> make_grouped_enumeration name grouping_columns from step
-            False -> make_grouped_ordered_enumeration name grouping_columns ordering from step
+                    False -> make_grouped_enumeration name grouping_columns from step on_problems
+            False -> make_grouped_ordered_enumeration name grouping_columns ordering from step on_problems
 
         renamed_table = rename_columns_if_needed table name on_problems Table.new
         renamed_table.set new_column name set_mode=Set_Mode.Add
@@ -68,14 +61,15 @@ make_range_column name start step length =
     Column.from_storage name storage
 
 ## PRIVATE
-make_grouped_enumeration name grouping_columns start step =
+make_grouped_enumeration name grouping_columns start step on_problems =
     grouping_java_columns = grouping_columns.map .java_column
-    new_storage = AddRowNumber.create_grouped_numbering start step grouping_java_columns
-    Column.from_storage name new_storage
+    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        new_storage = AddRowNumber.create_grouped_numbering start step grouping_java_columns java_problem_aggregator
+        Column.from_storage name new_storage
 
 ## PRIVATE
    If the `grouping_columns` are empty, all rows are considered to be in the same group.
-make_grouped_ordered_enumeration name grouping_columns ordering from step =
+make_grouped_ordered_enumeration name grouping_columns ordering from step on_problems =
     ordering_columns = ordering.map c->
         c.column.java_column
     directions = ordering.map c->
@@ -87,5 +81,6 @@ make_grouped_ordered_enumeration name grouping_columns ordering from step =
         True ->
             AddRowNumber.create_ordered_numbering from step ordering_columns directions
         False ->
-            AddRowNumber.create_grouped_ordered_numbering from step ordering_columns directions grouping_java_columns
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                AddRowNumber.create_grouped_ordered_numbering from step ordering_columns directions grouping_java_columns java_problem_aggregator
     Column.from_storage name new_storage

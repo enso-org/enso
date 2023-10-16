@@ -15,13 +15,15 @@ import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 import org.graalvm.collections.Pair;
 
 public class AddRowNumber {
 
   public static LongStorage create_grouped_numbering(
-      long start, long step, Column[] groupingColumns) {
+      long start, long step, Column[] groupingColumns, ProblemAggregator problemAggregator) {
     if (groupingColumns.length == 0) {
       throw new IllegalArgumentException("At least one grouping column is required.");
     }
@@ -30,12 +32,16 @@ public class AddRowNumber {
     long[] numbers = new long[n];
     Storage<?>[] groupingStorages =
         Arrays.stream(groupingColumns).map(Column::getStorage).toArray(Storage[]::new);
+    ColumnAggregatedProblemAggregator groupingProblemAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     List<TextFoldingStrategy> textFoldingStrategy =
         ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
     Map<UnorderedMultiValueKey, RangeIterator> groups = new HashMap<>();
     for (int i = 0; i < n; i++) {
       UnorderedMultiValueKey key =
           new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
+      key.checkAndReportFloatingEquality(
+          groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
       RangeIterator it = groups.computeIfAbsent(key, k -> new RangeIterator(start, step));
       numbers[i] = it.next();
     }
@@ -73,7 +79,12 @@ public class AddRowNumber {
   }
 
   public static LongStorage create_grouped_ordered_numbering(
-      long start, long step, Column[] orderingColumns, int[] directions, Column[] groupingColumns) {
+      long start,
+      long step,
+      Column[] orderingColumns,
+      int[] directions,
+      Column[] groupingColumns,
+      ProblemAggregator problemAggregator) {
     if (orderingColumns.length == 0) {
       throw new IllegalArgumentException("At least one ordering column is required.");
     }
@@ -88,7 +99,7 @@ public class AddRowNumber {
     long[] numbers = new long[n];
     MultiValueIndex<UnorderedMultiValueKey> groupIndex =
         MultiValueIndex.makeUnorderedIndex(
-            groupingColumns, n, TextFoldingStrategy.unicodeNormalizedFold);
+            groupingColumns, n, TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
 
     for (var entry : groupIndex.mapping().entrySet()) {
       List<Integer> indices = entry.getValue();

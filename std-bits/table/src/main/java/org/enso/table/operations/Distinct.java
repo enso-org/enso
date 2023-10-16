@@ -9,7 +9,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 import org.graalvm.polyglot.Context;
@@ -21,6 +21,8 @@ public class Distinct {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator groupingProblemAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     var mask = new BitSet();
     if (keyColumns.length != 0) {
@@ -31,15 +33,8 @@ public class Distinct {
       List<TextFoldingStrategy> strategies = ConstantList.make(textFoldingStrategy, storage.length);
       for (int i = 0; i < size; i++) {
         UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, strategies);
-
-        if (key.hasFloatValues()) {
-          final int row = i;
-          key.floatColumnPositions()
-              .forEach(
-                  columnIx ->
-                      problemAggregator.report(
-                          new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
-        }
+        key.checkAndReportFloatingEquality(
+            groupingProblemAggregator, columnIx -> keyColumns[columnIx].getName());
 
         if (!visitedRows.contains(key)) {
           mask.set(i);
