@@ -13,7 +13,7 @@ export {
 } from '@codemirror/language'
 export { highlightSelectionMatches } from '@codemirror/search'
 export { EditorState } from '@codemirror/state'
-export { EditorView } from '@codemirror/view'
+export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
@@ -24,19 +24,20 @@ import {
   defineLanguageFacet,
   foldNodeProp,
   languageDataProp,
+  syntaxTree,
 } from '@codemirror/language'
+import { hoverTooltip as originalHoverTooltip, type TooltipView } from '@codemirror/view'
 import {
+  NodeProp,
   NodeSet,
   NodeType,
   Parser,
   Tree,
   type Input,
-  type NodeProp,
   type PartialParse,
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
-
-// TODO: hover tooltips
+import type { EditorView } from 'codemirror'
 
 const nodeTypes: NodeType[] = []
 for (const potentialAstNodeType of Object.values(Ast.Tree)) {
@@ -77,6 +78,8 @@ const nodeSet = new NodeSet(nodeTypes).extend(
   }),
 )
 
+export const astProp = new NodeProp<Ast.Tree>({ perNode: true })
+
 function astToCodeMirrorTree(
   nodeSet: NodeSet,
   tree: Ast.Tree,
@@ -91,7 +94,7 @@ function astToCodeMirrorTree(
       (child) => child.whitespaceStartInCodeParsed + child.whitespaceLengthInCodeParsed - begin,
     ),
     tree.childrenLengthInCodeParsed,
-    props,
+    [...(props ?? []), [astProp, tree]],
   )
 }
 
@@ -117,7 +120,6 @@ class EnsoParser extends Parser {
           self.cachedCode = code
           const ast = parseEnso(code)
           self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [[languageDataProp, facet]])
-          console.log(self.cachedTree)
         }
         return self.cachedTree
       },
@@ -135,4 +137,22 @@ const ensoLanguage = new EnsoLanguage()
 
 export function enso() {
   return new LanguageSupport(ensoLanguage)
+}
+
+export function hoverTooltip(
+  create: (node: Ast.Tree) => TooltipView | ((view: EditorView) => TooltipView) | null | undefined,
+) {
+  return originalHoverTooltip((view, pos, side) => {
+    const node = syntaxTree(view.state).resolveInner(pos, side)
+    const ast = node.tree?.prop(astProp)
+    if (ast == null) return null
+    const domOrCreate = create(ast)
+    if (domOrCreate == null) return null
+    return {
+      pos: node.from,
+      end: node.to,
+      above: true,
+      create: typeof domOrCreate !== 'function' ? () => domOrCreate : domOrCreate,
+    }
+  })
 }
