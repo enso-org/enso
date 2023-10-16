@@ -1,10 +1,14 @@
 //! Run the parser from the command line, and output the a JSON serialization of the AST for
 //! debugging.
 
-// === Features ===
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+
+
+
 // === Non-Standard Linter Configuration ===
 
 fn main() {
