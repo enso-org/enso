@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 
+import { Filtering } from '@/components/ComponentBrowser/filtering'
 import {
   makeCon,
   makeFunction,
@@ -11,7 +12,6 @@ import {
   makeType,
 } from '@/stores/suggestionDatabase/entry'
 import type { QualifiedName } from '@/util/qualifiedName'
-import { Filtering } from '../filtering'
 
 test.each([
   { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },

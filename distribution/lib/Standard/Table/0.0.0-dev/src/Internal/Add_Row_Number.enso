@@ -6,6 +6,8 @@ import project.Data.Column.Column
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
+import project.Data.Type.Value_Type.Bits
+import project.Internal.Java_Problems
 import project.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
 import project.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
 import project.Internal.Problem_Builder.Problem_Builder

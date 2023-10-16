@@ -28,6 +28,7 @@ polyglot java import org.enso.table.parsing.NumberParser
 polyglot java import org.enso.table.parsing.TimeOfDayParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
+polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type Data_Formatter
     ## Specifies options for reading text data in a table to more specific types and
@@ -76,8 +77,10 @@ type Data_Formatter
     parse : Text -> (Value_Type | Auto) -> Problem_Behavior -> Any
     parse self text type=Auto on_problems=Problem_Behavior.Report_Warning =
         parser = self.make_value_type_parser type
-        Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
-            parser.parseIndependentValue text
+        Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            related_column_name = Nothing
+            parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator related_column_name type
+            parser.parseSingleValue text parse_problem_aggregator
 
     ## PRIVATE
        ADVANCED

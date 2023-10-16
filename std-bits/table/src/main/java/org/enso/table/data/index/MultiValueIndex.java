@@ -18,55 +18,69 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
+  private final ProblemAggregator problemAggregator;
   private final Column[] keyColumns;
   private final Map<KeyType, List<Integer>> locs;
-  private final AggregatedProblems problems;
   private final boolean isUnique;
 
   public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
-      Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
+      Column[] keyColumns,
+      int tableSize,
+      int[] ordering,
+      Comparator<Object> objectComparator,
+      ProblemAggregator problemAggregator) {
     TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
     final Storage<?>[] storage =
         Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<OrderedMultiValueKey> keyFactory =
         i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator);
-    return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory);
+    return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory, problemAggregator);
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
-      Column[] keyColumns, int tableSize, List<TextFoldingStrategy> textFoldingStrategies) {
+      Column[] keyColumns,
+      int tableSize,
+      List<TextFoldingStrategy> textFoldingStrategies,
+      ProblemAggregator problemAggregator) {
     HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
     final Storage<?>[] storage =
         Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<UnorderedMultiValueKey> keyFactory =
         i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
-    return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory);
+    return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory, problemAggregator);
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
-      Column[] keyColumns, int tableSize, TextFoldingStrategy commonTextFoldingStrategy) {
+      Column[] keyColumns,
+      int tableSize,
+      TextFoldingStrategy commonTextFoldingStrategy,
+      ProblemAggregator problemAggregator) {
     List<TextFoldingStrategy> strategies =
         ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
-    return makeUnorderedIndex(keyColumns, tableSize, strategies);
+    return makeUnorderedIndex(keyColumns, tableSize, strategies, problemAggregator);
   }
 
   private MultiValueIndex(
       Column[] keyColumns,
       int tableSize,
       Map<KeyType, List<Integer>> initialLocs,
-      IntFunction<KeyType> keyFactory) {
+      IntFunction<KeyType> keyFactory,
+      ProblemAggregator problemAggregator) {
     this.keyColumns = keyColumns;
-    this.problems = new AggregatedProblems();
     this.locs = initialLocs;
+    this.problemAggregator = problemAggregator;
 
     if (keyColumns.length != 0) {
       boolean isUnique = true;
       int size = keyColumns[0].getSize();
+      ColumnAggregatedProblemAggregator groupingProblemAggregator =
+          new ColumnAggregatedProblemAggregator(problemAggregator);
 
       Context context = Context.getCurrent();
       for (int i = 0; i < size; i++) {
@@ -77,7 +91,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
           key.floatColumnPositions()
               .forEach(
                   columnIx ->
-                      problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
+                      groupingProblemAggregator.reportColumnAggregatedProblem(
+                          new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
         }
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
@@ -107,41 +122,30 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     boolean emptyScenario = size == 0 && keyColumns.length == 0;
     Builder[] storage =
         Arrays.stream(columns)
-            .map(c -> Builder.getForType(c.getType(), emptyScenario ? 1 : size))
+            .map(c -> Builder.getForType(c.getType(), emptyScenario ? 1 : size, problemAggregator))
             .toArray(Builder[]::new);
 
     if (emptyScenario) {
       // No grouping and no data
       List<Integer> empty = new ArrayList<>();
       for (int i = 0; i < length; i++) {
-        storage[i].appendNoGrow(columns[i].aggregate(empty));
+        storage[i].appendNoGrow(columns[i].aggregate(empty, problemAggregator));
         context.safepoint();
       }
     } else {
       for (List<Integer> group_locs : this.locs.values()) {
         for (int i = 0; i < length; i++) {
-          Object value = columns[i].aggregate(group_locs);
+          Object value = columns[i].aggregate(group_locs, problemAggregator);
           storage[i].appendNoGrow(value);
           context.safepoint();
         }
       }
     }
 
-    // Merge Problems
-    AggregatedProblems[] problems = new AggregatedProblems[1 + length];
-    problems[0] = this.problems;
-    IntStream.range(0, length).forEach(i -> problems[i + 1] = columns[i].getProblems());
-    AggregatedProblems merged = AggregatedProblems.merge(problems);
-
     return new Table(
         IntStream.range(0, length)
             .mapToObj(i -> new Column(columns[i].getName(), storage[i].seal()))
-            .toArray(Column[]::new),
-        merged);
-  }
-
-  public AggregatedProblems getProblems() {
-    return problems;
+            .toArray(Column[]::new));
   }
 
   public int[] makeOrderMap(int rowCount) {

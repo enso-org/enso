@@ -30,15 +30,16 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    *
    * @param n the operation name
    * @param storage the storage to run operation on
-   * @param problemBuilder the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
-  public Storage<?> runUnaryMap(String n, S storage, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runUnaryMap(
+      String n, S storage, MapOperationProblemAggregator problemAggregator) {
     if (!isSupportedUnary(n)) {
       throw new IllegalStateException(
           "Requested vectorized unary operation " + n + ", but no such operation is known.");
     }
-    return unaryOps.get(n).runUnaryMap(storage, problemBuilder);
+    return unaryOps.get(n).runUnaryMap(storage, problemAggregator);
   }
 
   /**
@@ -57,16 +58,16 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param n the operation name
    * @param storage the storage to run operation on
    * @param arg the argument to pass to the operation
-   * @param problemBuilder the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public Storage<?> runBinaryMap(
-      String n, S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+      String n, S storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (!isSupportedBinary(n)) {
       throw new IllegalStateException(
           "Requested vectorized binary operation " + n + ", but no such operation is known.");
     }
-    return binaryOps.get(n).runBinaryMap(storage, arg, problemBuilder);
+    return binaryOps.get(n).runBinaryMap(storage, arg, problemAggregator);
   }
 
   /**
@@ -86,16 +87,20 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param storage the storage to run operation on
    * @param arg0 the first argument to pass to the operation
    * @param arg1 the second argument to pass to the operation
-   * @param problemBuilder the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public Storage<?> runTernaryMap(
-      String n, S storage, Object arg0, Object arg1, MapOperationProblemBuilder problemBuilder) {
+      String n,
+      S storage,
+      Object arg0,
+      Object arg1,
+      MapOperationProblemAggregator problemAggregator) {
     if (!isSupportedTernary(n)) {
       throw new IllegalStateException(
           "Requested vectorized ternary operation " + n + ", but no such operation is known.");
     }
-    return ternaryOps.get(n).runTernaryMap(storage, arg0, arg1, problemBuilder);
+    return ternaryOps.get(n).runTernaryMap(storage, arg0, arg1, problemAggregator);
   }
 
   /**
@@ -104,11 +109,11 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
    * @param n the operation name
    * @param storage the storage to run operation on
    * @param arg the storage containing operation arguments
-   * @param problemBuilder the builder allowing to report computation problems
+   * @param problemAggregator the aggregator allowing to report computation problems
    * @return the result of running the operation
    */
   public Storage<?> runZip(
-      String n, S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+      String n, S storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     if (!isSupportedBinary(n)) {
       throw new IllegalStateException(
           "Requested vectorized binary operation " + n + ", but no such operation is known.");
@@ -121,7 +126,7 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
       // will know how to deal with it.
       arg = arg.tryGettingMoreSpecializedStorage();
     }
-    return operation.runZip(storage, arg, problemBuilder);
+    return operation.runZip(storage, arg, problemAggregator);
   }
 
   /**

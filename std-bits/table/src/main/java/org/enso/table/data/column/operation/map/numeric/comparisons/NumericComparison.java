@@ -3,7 +3,7 @@ package org.enso.table.data.column.operation.map.numeric.comparisons;
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -38,30 +38,30 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   @Override
-  public BoolStorage runBinaryMap(I storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(I storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
       return BoolStorage.makeEmpty(storage.size());
     } else if (arg instanceof BigInteger bigInteger) {
       return switch (storage) {
         case AbstractLongStorage s ->
-            runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), bigInteger, problemBuilder);
-        case BigIntegerStorage s -> runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), bigInteger, problemBuilder);
-        case DoubleStorage s -> runDoubleMap(s, bigInteger.doubleValue(), problemBuilder);
+            runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), bigInteger, problemAggregator);
+        case BigIntegerStorage s -> runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), bigInteger, problemAggregator);
+        case DoubleStorage s -> runDoubleMap(s, bigInteger.doubleValue(), problemAggregator);
         default -> throw new IllegalStateException("Unsupported lhs storage: " + storage.getClass().getCanonicalName());
       };
     } else if (NumericConverter.isCoercibleToLong(arg)) {
       long rhs = NumericConverter.coerceToLong(arg);
       return switch (storage) {
-        case AbstractLongStorage s -> runLongMap(s, rhs, problemBuilder);
+        case AbstractLongStorage s -> runLongMap(s, rhs, problemAggregator);
         case BigIntegerStorage s ->
-            runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), BigInteger.valueOf(rhs), problemBuilder);
-        case DoubleStorage s -> runDoubleMap(s, (double) rhs, problemBuilder);
+            runBigIntegerMap(BigIntegerArrayAdapter.fromStorage(s), BigInteger.valueOf(rhs), problemAggregator);
+        case DoubleStorage s -> runDoubleMap(s, (double) rhs, problemAggregator);
         default -> throw new IllegalStateException("Unsupported lhs storage: " + storage.getClass().getCanonicalName());
       };
     } else if (NumericConverter.isCoercibleToDouble(arg)) {
       DoubleArrayAdapter lhs = DoubleArrayAdapter.fromAnyStorage(storage);
       double rhs = NumericConverter.coerceToDouble(arg);
-      return runDoubleMap(lhs, rhs, problemBuilder);
+      return runDoubleMap(lhs, rhs, problemAggregator);
     } else {
       int n = storage.size();
       BitSet missing = new BitSet();
@@ -85,7 +85,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     }
   }
 
-  protected BoolStorage runLongMap(AbstractLongStorage lhs, long rhs, MapOperationProblemBuilder problemBuilder) {
+  protected BoolStorage runLongMap(AbstractLongStorage lhs, long rhs, MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
     BitSet missing = BitSets.makeDuplicate(lhs.getIsMissing());
@@ -105,7 +105,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     return new BoolStorage(comparisonResults, missing, n, false);
   }
 
-  protected BoolStorage runDoubleMap(DoubleArrayAdapter lhs, double rhs, MapOperationProblemBuilder problemBuilder) {
+  protected BoolStorage runDoubleMap(DoubleArrayAdapter lhs, double rhs, MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
     BitSet missing = new BitSet();
@@ -128,7 +128,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected BoolStorage runBigIntegerMap(BigIntegerArrayAdapter lhs, BigInteger rhs,
-                                         MapOperationProblemBuilder problemBuilder) {
+                                         MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
     BitSet missing = new BitSet();
@@ -151,25 +151,25 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   @Override
-  public BoolStorage runZip(I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runZip(I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     return switch (storage) {
       case DoubleStorage lhs -> {
         if (arg.getType() instanceof AnyObjectType) {
-          yield runMixedZip(lhs, arg, problemBuilder);
+          yield runMixedZip(lhs, arg, problemAggregator);
         } else {
-          yield runDoubleZip(lhs, fromAnyStorage(arg), problemBuilder);
+          yield runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
         }
       }
 
       case AbstractLongStorage lhs -> switch (arg) {
-        case AbstractLongStorage rhs -> runLongZip(lhs, rhs, problemBuilder);
+        case AbstractLongStorage rhs -> runLongZip(lhs, rhs, problemAggregator);
         case BigIntegerStorage rhs -> {
           BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
           BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
-          yield runBigIntegerZip(left, right, problemBuilder);
+          yield runBigIntegerZip(left, right, problemAggregator);
         }
-        case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
-        default -> runMixedZip(lhs, arg, problemBuilder);
+        case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
+        default -> runMixedZip(lhs, arg, problemAggregator);
       };
 
       case BigIntegerStorage lhs -> {
@@ -177,14 +177,14 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         yield switch (arg) {
           case AbstractLongStorage rhs -> {
             BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
-            yield runBigIntegerZip(left, right, problemBuilder);
+            yield runBigIntegerZip(left, right, problemAggregator);
           }
           case BigIntegerStorage rhs -> {
             BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
-            yield runBigIntegerZip(left, right, problemBuilder);
+            yield runBigIntegerZip(left, right, problemAggregator);
           }
-          case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemBuilder);
-          default -> runMixedZip(lhs, arg, problemBuilder);
+          case DoubleStorage rhs -> runDoubleZip(DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
+          default -> runMixedZip(lhs, arg, problemAggregator);
         };
       }
 
@@ -194,7 +194,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected BoolStorage runLongZip(AbstractLongStorage lhs, AbstractLongStorage rhs,
-                                   MapOperationProblemBuilder problemBuilder) {
+                                   MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
@@ -223,7 +223,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected BoolStorage runDoubleZip(DoubleArrayAdapter lhs, DoubleArrayAdapter rhs,
-                                     MapOperationProblemBuilder problemBuilder) {
+                                     MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
@@ -252,7 +252,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected BoolStorage runBigIntegerZip(BigIntegerArrayAdapter lhs, BigIntegerArrayAdapter rhs,
-                                         MapOperationProblemBuilder problemBuilder) {
+                                         MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
@@ -280,7 +280,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     return new BoolStorage(comparisonResults, missing, n, false);
   }
 
-  protected BoolStorage runMixedZip(Storage<?> lhs, Storage<?> rhs, MapOperationProblemBuilder problemBuilder) {
+  protected BoolStorage runMixedZip(Storage<?> lhs, Storage<?> rhs, MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();

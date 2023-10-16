@@ -1,9 +1,9 @@
 package org.enso.table.data.index;
 
-import java.util.Comparator;
-
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
+
+import java.util.Comparator;
 
 /**
  * A multi-value key for ordered operations like sorting.
