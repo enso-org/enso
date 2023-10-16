@@ -137,4 +137,47 @@ public class ExecCompilerTest {
     var err = run.execute(0);
     assertEquals("Error: Module is not a part of a package.", err.asString());
   }
+
+  @Test
+  public void testDoubledRandom() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+          """
+          from Standard.Base import all
+          polyglot java import java.util.Random
+
+          run seed =
+              operator1 = Random.new seed
+          """);
+    var run = module.invokeMember("eval_expression", "run");
+    try {
+      var err = run.execute(1L);
+      fail("Not expecting any result: " + err);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: Compiler Internal Error: No polyglot symbol for Random.", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testUnknownStaticField() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+          """
+          from Standard.Base import all
+          polyglot java import java.util.Random as R
+
+          run seed = case seed of
+              R.NO_FIELD -> 0
+              _ -> -1
+          """);
+    var run = module.invokeMember("eval_expression", "run");
+    try {
+      var err = run.execute(1L);
+      fail("Not expecting any result: " + err);
+    } catch (PolyglotException ex) {
+      assertEquals("Compile error: NO_FIELD is not visible in this scope.", ex.getMessage());
+    }
+  }
 }
