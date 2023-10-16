@@ -3,17 +3,18 @@ package org.enso.table.parsing.problems;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class ParseProblemAggregatorImpl extends ProblemAggregator
     implements ParseProblemAggregator {
   public final String relatedColumnName;
 
   // Used for the InvalidFormat error
-  public final Object expectedEnsoValueType;
+  public final Value expectedEnsoValueType;
   private final List<String> invalidFormatCells = new ArrayList<>();
 
   public ParseProblemAggregatorImpl(
-      ProblemAggregator parent, String relatedColumnName, Object expectedEnsoValueType) {
+      ProblemAggregator parent, String relatedColumnName, Value expectedEnsoValueType) {
     super(parent);
     this.relatedColumnName = relatedColumnName;
     this.expectedEnsoValueType = expectedEnsoValueType;

@@ -17,6 +17,7 @@ import org.enso.table.parsing.problems.ParseProblemAggregatorImpl;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 import java.io.Reader;
 import java.util.ArrayDeque;
@@ -454,7 +455,7 @@ public class DelimitedReader {
       Storage<String> col = builders[i].seal();
 
       // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type that we expect, so it can safely be null.
-      Object expectedEnsoValueType = null;
+      Value expectedEnsoValueType = Value.asValue(null);
       ParseProblemAggregatorImpl parseProblemAggregator =
           ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
       Storage<?> storage = valueParser.parseColumn(col, parseProblemAggregator);

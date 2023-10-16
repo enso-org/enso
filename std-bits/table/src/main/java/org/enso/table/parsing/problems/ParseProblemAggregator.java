@@ -1,6 +1,7 @@
 package org.enso.table.parsing.problems;
 
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 /**
  * An aggregator for parsing problems.
@@ -26,7 +27,7 @@ public sealed interface ParseProblemAggregator permits ParseProblemAggregatorImp
   boolean hasProblems();
 
   /** The preferred way to construct a ParseProblemAggregator. */
-  static ParseProblemAggregatorImpl make(ProblemAggregator parent, String columnName, Object expectedEnsoValueType) {
+  static ParseProblemAggregatorImpl make(ProblemAggregator parent, String columnName, Value expectedEnsoValueType) {
     return new ParseProblemAggregatorImpl(parent, columnName, expectedEnsoValueType);
   }
 }

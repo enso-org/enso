@@ -1119,15 +1119,14 @@ type Column
         common_type.if_not_error <|
             storage = self.java_column.getStorage
             storage_type = Storage.from_value_type_strict common_type
-            new_st = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                 case default of
                     Column.Value java_col ->
                         other_storage = java_col.getStorage
                         storage.fillMissingFrom other_storage storage_type java_problem_aggregator
                     _ ->
                         storage.fillMissing default storage_type java_problem_aggregator
-            col = Java_Column.new self.name new_st
-            Column.Value col
+            Column.Value (Java_Column.new self.name new_storage)
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
