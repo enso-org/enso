@@ -1,6 +1,6 @@
+import { Err, Error, Ok, rejectionToResult, type Result } from '@/util/result'
 import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
-import { Err, Error, Ok, rejectionToResult, type Result } from './result'
 
 export interface BackoffOptions<E> {
   maxRetries?: number

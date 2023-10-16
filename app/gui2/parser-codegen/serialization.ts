@@ -369,7 +369,7 @@ function isSimpleRead(reader: ts.Expression): reader is ts.CallExpression {
   )
 }
 
-function dbg<T extends ts.Node | undefined>(node: T): T {
+function _dbg<T extends ts.Node | undefined>(node: T): T {
   if (node == null) {
     console.log(node)
     return node

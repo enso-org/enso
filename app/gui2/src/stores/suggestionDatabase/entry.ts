@@ -41,29 +41,29 @@ export enum SuggestionKind {
 
 export interface SuggestionEntry {
   kind: SuggestionKind
-  /// A module where the suggested object is defined.
+  /** A module where the suggested object is defined. */
   definedIn: QualifiedName
-  /// A type or module this method or constructor belongs to.
+  /** A type or module this method or constructor belongs to. */
   memberOf?: QualifiedName
   isPrivate: boolean
   isUnstable: boolean
   name: Identifier
   aliases: string[]
-  /// A type of the "self" argument. This field is present only for instance methods.
+  /** A type of the "self" argument. This field is present only for instance methods. */
   selfType?: Typename
-  /// Argument lists of suggested object (atom or function). If the object does not take any
-  /// arguments, the list is empty.
+  /** Argument lists of suggested object (atom or function). If the object does not take any
+   * arguments, the list is empty. */
   arguments: SuggestionEntryArgument[]
-  /// A type returned by the suggested object.
+  /** A type returned by the suggested object. */
   returnType: Typename
-  /// A least-nested module reexporting this entity.
+  /** A least-nested module reexporting this entity. */
   reexportedIn?: QualifiedName
   documentation: Doc.Section[]
-  /// A scope where this suggestion is visible.
+  /** A scope where this suggestion is visible. */
   scope?: SuggestionEntryScope
-  /// A name of a custom icon to use when displaying the entry.
+  /** A name of a custom icon to use when displaying the entry. */
   iconName?: string
-  /// An index of a group from group list in suggestionDb store this entry belongs to.
+  /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex?: number
 }
 
