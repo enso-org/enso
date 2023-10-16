@@ -322,6 +322,22 @@ spec =
             t.at "Children @series" . to_vector . map trim_if_text . should_equal [Nothing, Nothing, Nothing, Nothing, 'AutoCar']
             t.column_names . should_not_contain "Children Children"
 
+        Test.specify "Can expand nested child nodes" <|
+            xml_string = '''
+                <a>
+                  <b>
+                    <c id="1"/>
+                    <c id="2"/>
+                  </b>
+                  <b>
+                    <c id="3"/>
+                    <c id="4"/>
+                  </b>
+                </a>
+            xml = XML_Document.from_text xml_string . root_element
+            t = xml.to Table . expand_to_rows "Children" . expand_column "Children" . expand_to_rows "Children Children" . expand_column "Children Children"
+            t.at "Children Children @id" . to_vector . should_equal ["1", "2", "3", "4"]
+
         Test.specify "Converting a node without child nodes produces a Value column" <|
             book = library_root . at 1
             t = book.to Table
