@@ -13,9 +13,12 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
-/** A builder for creating columns dynamically. */
+/**
+ * A builder for creating columns dynamically.
+ */
 public abstract class Builder {
-  /** Constructs a builder accepting values of a specific type.
+  /**
+   * Constructs a builder accepting values of a specific type.
    * <p>
    * If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer the type from the data.
    */
@@ -60,8 +63,7 @@ public abstract class Builder {
    * Appends a specified number of missing values into the builder.
    *
    * <p>This operation should be equivalent to calling {@link #append(Object)} with {@code null} as
-   * an argument, {@code count} times, however it may be implemented more efficiently by the
-   * builder.
+   * an argument, {@code count} times, however it may be implemented more efficiently by the builder.
    *
    * @param count the number of missing values to append.
    */
@@ -88,14 +90,18 @@ public abstract class Builder {
    */
   public abstract Storage<?> seal();
 
-  /** @return the current storage type of this builder */
+  /**
+   * @return the current storage type of this builder
+   */
   public abstract StorageType getType();
 
-  /** Adds nulls to the builder to ensure that it reaches the size specified. */
+  /**
+   * Adds nulls to the builder to ensure that it reaches the size specified.
+   */
   public void fillUpToSize(int size) {
     int currentSize = getCurrentSize();
     if (currentSize > size) {
-      throw new IllegalArgumentException("fillUpToSize("+size+") called on a builder that already has "+currentSize+" elements.");
+      throw new IllegalArgumentException("fillUpToSize(" + size + ") called on a builder that already has " + currentSize + " elements.");
     }
 
     if (currentSize < size) {
