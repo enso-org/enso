@@ -1,155 +1,97 @@
-# Enso Language Support for NetBeans, Ideal Graph Visualizer & VSCode
+# Enso Language Support for VSCode
 
-[![Enso Language Support for IGV](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml/badge.svg)](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
+[![Enso Language Support for VSCode](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml/badge.svg)](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
 
-Searching for **VSCode** support? Read more about
-[VSCode extension for Enso here](vscode.md).
+## Downloading
 
-[Enso language](http://enso.org) runtime engine is built on top of
-[GraalVM](http://graalvm.org) and its _Truffle framework_. Enso, as a good
-citizen of the GraalVM ecosystem, benefits from polyglot capabilities of GraalVM
-as well as its rich tooling offering. One of such tools is _IGV_ - the _Ideal
-Graph Visualizer_ - an excellent tool to get insights into behavior of Graal
-compiler.
+_Enso Tools for VSCode_ is available from
+[VSCode marketplace](https://marketplace.visualstudio.com/items?itemName=Enso.enso4vscode).
+Simply install it from there.
 
-This document shows how to use _IGV_ with the _Enso language_. The command line
-instructions format is Unix oriented. Use instructions appropriate for your
-operating system to perform the same on different _OS_. _IGV_ itself as well as
-the _Enso language_ support are platform neutral with launch scripts for all
-major operating systems.
+It is possible to download the latest development version of the _"VSCode
+Extension" artifact_ from the
+[latest actions run](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml).
+After downloading the ZIP file unzip a `.vsix` from it and install the `.vsix`
+file into VSCode.
 
-## Installation
+Your Enso files will get proper **syntax coloring**. You'll be able to **debug**
+Java/Enso code interchangeably.
 
-Visit [GraalVM.org](http://graalvm.org) download page and continue towards
-_enterprise edition_ option. There is an _Ideal Graph Visualizer_ option. After
-clicking through the confirmation dialogs you should get a ZIP - I've just got
-`idealgraphvisualizer-22.1.0.zip` and then:
+After installing the Enso `.vsix` file (and reloading window) we can find
+following two extensions in the system:
 
-```bash
-$ unzip idealgraphvisualizer-22.1.0.zip
-$ ./idealgraphvisualizer/bin/idealgraphvisualizer --userdir /tmp/emptyuserdir
-```
+![Installed VSCode extensions](https://user-images.githubusercontent.com/26887752/274904239-ae1ad4cc-e2ec-4c5b-bca0-c7d7189c6885.png)
 
-launches the _IGV_ application. One doesn't have to use the `--userdir` option,
-but doing so ensures the newly running _IGV_ process is isolated from any
-settings left around by previous usage of _IGV_.
+## Using & Debugging
 
-IGV understands Enso when
-[Enso Language Support module](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
-is installed. Login to GitHub, follow the
-[GitHub actions link](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
-and select a build. Unless you have some special needs choose the latest one.
-The build summary page provides various information as well as list of artifacts
-at the bottom. Download the _Enso IGV Plugin_ ZIP file (make sure you are logged
-into GitHub - artifacts are only available to those logged in). Unzip it and get
-`enso*.nbm` file. This file can be installed into _IGV_ (or any other
-[NetBeans](http://netbeans.apache.org) based application). Go to
-_Tools_/_Plugins_/_Downloaded_/_Add Plugins_ and select the NBM file.
+Once installation is over let's continue with choosing _File/Open Folder..._ and
+opening root of [Enso Git Repository](http://github.com/enso-org/enso)
+(presumably already built with
+[sbt buildEngineDistribution](https://github.com/enso-org/enso/blob/develop/docs/CONTRIBUTING.md#running-enso)).
+Following set of projects is opened and ready for use:
 
-![Tools/Plugins/Downloaded](https://user-images.githubusercontent.com/26887752/174608153-9f0b54fa-b507-45be-83de-d7911186d121.png)
+![Enso Projects](https://github.com/enso-org/enso/assets/26887752/7919d2ee-4bcd-4b7b-954a-e2dc61f7c01a)
 
-Proceed by clicking _Install_. You may be asked to download _TextMate Lexer_ - a
-necessary dependency of the _Enso support_ module. Continue through the wizard
-to _finish_ the installation.
+With the workspace opened, you can open any Enso or Java file. Let's open for
+example `Vector_Spec.enso` - a set of unit tests for `Vector` - a core class of
+Enso standard library:
 
-![Tools/Plugins/Downloaded](https://user-images.githubusercontent.com/26887752/174608219-1faf2728-0045-478b-a297-e3c06f691b19.png)
+![Openning Vector](https://github.com/enso-org/enso/assets/26887752/0d182fc8-4ff9-48d7-af63-35cad5fb75cc)
 
-## Using the IGV
+It is now possible to place breakpoints into the `Vector_Spec.enso` file. Let's
+place one on line 120:
 
-Build an instance of the Enso runtime engine (see
-[Running Enso](../../docs/CONTRIBUTING.md#running-enso)) using and then launch
-it with special `--dump-graphs` option:
+![Breakpoint](https://github.com/enso-org/enso/assets/26887752/b6ae4725-49ef-439f-b900-3e08724e3748)
+
+Let's do a bit of debugging. Select _"Listen to 5005"_ debug configuration:
+
+![Listen to 5005](https://github.com/enso-org/enso/assets/26887752/1874bcb1-cf8b-4df4-92d8-e7fb57e1b17a)
+
+And then just
+[execute the engine distribution](https://github.com/enso-org/enso/blob/develop/docs/CONTRIBUTING.md#running-enso)
+in debug mode:
 
 ```bash
-enso$ sbt runEngineDistribution --dump-graphs --run yourprogram.enso
+sbt:enso> runEngineDistribution --debug --run test/Tests/src/Data/Vector_Spec.enso
 ```
 
-When executed on [GraalVM 22.3.1](http://graalvm.org) these options instruct the
-_Graal/Truffle compiler_ to dump files into `graal_dumps/_sometimestamp_`
-directory. Generating these files takes a while - make sure `yourprogram.enso`
-runs long enough for the system to warmup, compile the code and run at _full
-speed_.
+After a while the breakpoint is hit and one can inspect variables, step over the
+statements and more...
 
-#### Sieve of Eratosthenes Example
+![Breakpoint in Enso](https://github.com/enso-org/enso/assets/26887752/54ae4126-f77a-4463-9647-4dd3a5f83526)
 
-As an example you can download
-[sieve.enso](https://github.com/jtulach/sieve/blob/5b32450da35415322e683bb9769aa45f0d71f1df/enso/sieve.enso)
-which computes hundred thousand of prime numbers repeatedly and measures time of
-each round. Download the file and launch Enso with `--dump-graphs` argument:
+...as one can seamlessly switch to debugging on the Enso interpreter itself! One
+can place breakpoint into Java class like `PanicException.java` and continue
+debugging with `F5`:
 
-```bash
-enso$ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --dump-graphs --run sieve.enso
+![Breakpoint in Java](https://github.com/enso-org/enso/assets/26887752/db3fbe4e-3bb3-4d4a-bb2a-b5039f716c85)
+
+Should one ever want to jump back from Java to Enso one can use the _"Pause in
+GraalVM Script"_ action. Select it and continue with `F5` - as soon as the code
+reaches a statement in Enso, it stops:
+
+![Pause in GraalVM](https://github.com/enso-org/enso/assets/26887752/98eb0bb7-48c2-4208-9d9a-5b8bacc99de2)
+
+## Building VSCode Extension
+
+To build this VSCode extension and obtain _Enso_ syntax coloring as well as
+support for editing and debugging of `engine/runtime` sources in **VSCode**:
+
+```
+enso/tools/enso4igv$ mvn clean install -Pvsix
+enso/tools/enso4igv$ ls *.vsix
+enso4vscode-*.vsix
 ```
 
-Bunch of files in `graal_dumps/*` subdirectory is going to be generated:
+one needs to have `npm`, Java and `mvn` available to successfully build the
+VSCode extension.
 
-```bash
-enso$ ls graal_dumps/*/Truffle* | tail -n5
-graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9889[argument<2>].bgv
-graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9896[IfThenElseMethodGen@3af870b9_<split-62b6b4f3>]_1.bgv
-graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9896[IfThenElseMethodGen@3af870b9_<split-62b6b4f3>].bgv
-graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9935[Primes.next_<split-717d5bdf>]_1.bgv
-graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9935[Primes.next_<split-717d5bdf>].bgv
-```
+![Install from VSIX...](https://user-images.githubusercontent.com/26887752/269557870-9d7c35d6-44b2-4157-b451-bb27980425c7.png)
 
-Let's launch IGV with Enso integration. Locate the `engine/runtime` directory
-and open it as _"project"_ in IGV:
+Once the `.vsix` file is created, it can be installed into VSCode. Select
+_Extension perspective_ and choose _Install from VSIX..._ menu item.
 
-![Open Project in IGV](https://user-images.githubusercontent.com/26887752/201684275-b3ee7a37-7b55-4290-b426-75df0280ba32.png)
+## Reference
 
-The project directories (not only `runtime`, but also other like
-`runtime-language-epb`, etc.) are recognized only if you have built the Enso
-engine sources with `sbt buildEngineDistribution`. Once the IGV opens the
-`runtime` & co. projects, it allows smooth navigation among the sources
-
-![IGV Projects view](https://user-images.githubusercontent.com/26887752/209615348-8911af4c-4680-4e61-ac87-19a19738e2ca.png)
-
-With such setup let's open graph for one of the top-most functions:
-`TruffleHotSpotCompilation*Primes*next*.bgv`. Choose compilation phase _"Before
-lowering"_:
-
-![Before Lowering Graph](https://user-images.githubusercontent.com/26887752/174608397-331a4438-1f12-40b0-9fcd-59eda5e53fb6.png)
-
-Now you can inspect the _compiler graphs_ the regular _IGV_ way. Let's locate
-for example `LoadField#FunctionSchema.isFullyApplied` node and let's check how
-it got _inlined_(you can use search box in the top-right corner)
-
-![Inlining Stacktrace](https://user-images.githubusercontent.com/26887752/174608478-e7002c43-d746-42c0-b61c-92ceb9d9f124.png)
-
-The stack trace shows what methods of the Enso interpreter and Truffle runtime
-are _"inlined on stack"_ when this node is being compiled. However thanks to
-integration with `engine/runtime` sources one can directly jump to the sources
-of the interpreter that represent certain graph nodes:
-
-![Associated Engine Sources](https://user-images.githubusercontent.com/26887752/201688115-4afdb2ac-9a41-4469-8b7b-d7130f74883e.png)
-
-Not only that, but one we can also switch to _Enso view_:
-
-![Enso Source](https://user-images.githubusercontent.com/26887752/174608595-4ce80b00-949a-4b28-84a7-60d5988bfc70.png)
-
-By choosing the _Enso language icon_ in front of the stack trace combo, the
-source code of our `.enso` program is opened and we can analyze what _compiler
-nodes_ refer to what lines in the our _Enso_ program. Click _Navigate to Source_
-icon in the _Stack View_ to get from graph node to source. Select a drop down
-widget in the editor toolbar to show you what compiler nodes as associated with
-currently selected line.
-
-## Building
-
-The plugin can be rebuilt using [Apache Maven](http://maven.apache.org). The
-build is platform independent. The following instructions are for Unix like
-environment. Switch to this directory and invoke:
-
-```bash
-enso/tools/enso4igv$ mvn clean install
-enso/tools/enso4igv$ ls target/*.nbm
-target/enso4igv-*-SNAPSHOT.nbm
-```
-
-an NBM file is generated which can be installed into IGV, NetBeans or any other
-NetBeans based application.
-
-## VSCode Extension
-
-There is also a VSCode extension for Enso. Read more about the extension
-[here](vscode.md).
+There are extensions for [NetBeans](http://netbeans.apache.org) and also for
+**IGV**. Read more [here](IGV.md).

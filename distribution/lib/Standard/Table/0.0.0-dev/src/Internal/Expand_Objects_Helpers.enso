@@ -1,11 +1,17 @@
 from Standard.Base import all
+
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Table.Table
 import project.Data.Column.Column
 import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
+import project.Errors.No_Such_Column
+import project.Internal.Fan_Out
 import project.Internal.Java_Exports
+from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE
 expand_column : Table -> (Text | Integer) -> ((Vector Text) | Nothing) -> (Text | Nothing) -> Table
@@ -28,6 +34,45 @@ expand_column table column fields prefix =
             output_builder.append_vector_range new_columns
 
     Table.new output_builder.to_vector
+
+## GROUP Standard.Base.Conversions
+   Expand aggregate values in a column to separate rows.
+
+   For each value in the specified column, if it is an aggregate (`Vector`,
+   `Range`, etc.), expand it to multiple rows, duplicating the values in the
+   other columns.
+
+   Arguments:
+   - column: The column to expand.
+   - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
+     true, a single row is output with `Nothing` for the aggregates column; if
+     false, no row is output at all.
+
+   The following aggregate values are supported:
+   - `Array`
+   - `Vector`
+   - `List`
+   - `Range`
+   - `Date_Range`
+   - `Pair
+
+   Any other values are treated as non-aggregate values, and their rows are kept
+   unchanged.
+
+   In in-memory tables, it is permitted to mix values of different types.
+
+   > Example
+     Expand a column of integer `Vectors` to a column of `Integer`
+
+     table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
+     # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
+@column Widget_Helpers.make_column_name_selector
+expand_to_rows : Table -> Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+expand_to_rows table column at_least_one_row=False =
+    row_expander : Any -> Vector
+    row_expander value:Convertible_To_Rows = value.to_vector
+
+    Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=make_inferred_builder
 
 ## PRIVATE
 create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table

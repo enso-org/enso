@@ -16,11 +16,19 @@ type Convertible_To_Rows
        - getter: Get the value for a specified row.
     Value length:Integer (getter : Integer->Any)
 
+    ## PRIVATE
+       Return the iterator values as a `Vector`.
+    to_vector : Vector Any
+    to_vector self = 0.up_to self.length . map self.getter
+
 ## PRIVATE
 Convertible_To_Rows.from that:Vector = Convertible_To_Rows.Value that.length that.get
 
 ## PRIVATE
 Convertible_To_Rows.from that:Array = Convertible_To_Rows.Value that.length that.get
+
+## PRIVATE
+Convertible_To_Rows.from that:List = Convertible_To_Rows.from that.to_vector
 
 ## PRIVATE
 Convertible_To_Rows.from that:Range = Convertible_To_Rows.Value that.length that.get

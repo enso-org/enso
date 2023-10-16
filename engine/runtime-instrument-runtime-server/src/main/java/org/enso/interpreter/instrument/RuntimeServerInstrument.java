@@ -40,11 +40,6 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   private Handler handler;
   private EventBinding<Initializer> initializerEventBinding;
 
-  /** @return the handler instance. */
-  public Handler getHandler() {
-    return handler;
-  }
-
   private void initializeExecutionService(ExecutionService service, TruffleContext context) {
     initializerEventBinding.dispose();
     handler.initializeExecutionService(service, context);

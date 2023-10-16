@@ -75,9 +75,9 @@ spec =
         Test.specify "should allow printing month names" <|
             d = Date.new 2020 6 30
             d.format "d. MMM yyyy" . should_equal "30. Jun 2020"
+            d.format "d. MMMM yyyy" . should_equal "30. June 2020"
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.us) . should_equal "30. June 2020"
-            # Note that the default (ROOT) locale returns a short name even for MMMM (full name) month format.
-            d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal "30. Jun 2020"
+            d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal "30. June 2020"
 
         Test.specify "should allow using a Java formatter" <|
             jformatter = Date_Time_Formatter.from_java DateTimeFormatter.ISO_ORDINAL_DATE
@@ -85,6 +85,7 @@ spec =
 
         Test.specify "should allow parsing Java patterns" <|
             Date.new 2020 2 1 . format (Date_Time_Formatter.from_java "E, d LLL yyyy") . should_equal "Sat, 1 Feb 2020"
+            Date.new 2020 3 1 . format (Date_Time_Formatter.from_java "E, d LLLL yyyy") . should_equal "Sun, 1 March 2020"
 
         Test.specify "should handle various formats" <|
             Date.new 2023 09 21 . format "E, dd.MM.yy" . should_equal "Thu, 21.09.23"
@@ -117,7 +118,12 @@ spec =
             Date.parse "30. Jun 2020" "d. MMM yyyy" . should_equal (Date.new 2020 6 30)
 
         Test.specify "should allow long month names" <|
+            Date.parse "30. June 2020" (Date_Time_Formatter.from "d. MMMM yyyy") . should_equal (Date.new 2020 6 30)
             Date.parse "30. June 2020" (Date_Time_Formatter.from "d. MMMM yyyy" Locale.uk) . should_equal (Date.new 2020 6 30)
+
+        Test.specify "should allow long month names from Java" <|
+            Date.parse "30. June 2020" (Date_Time_Formatter.from_java "d. LLLL yyyy") . should_equal (Date.new 2020 6 30)
+            Date.parse "30. June 2020" (Date_Time_Formatter.from_java "d. LLLL yyyy" Locale.uk) . should_equal (Date.new 2020 6 30)
 
         Test.specify "should parse default time format" <|
             text = Date_Time.new 1970 (zone = Time_Zone.utc) . to_text
@@ -270,7 +276,9 @@ spec =
              Date.parse "1976-W53-6" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d") . should_equal (Date.new 1977 01 01)
              Date_Time.parse "1978-W01-4 12:34:56" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW-d HH:mm:ss") . should_equal (Date_Time.new 1978 01 05 12 34 56)
 
-             Date.parse "1978-W01, Mon" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee") . should_equal (Date.new 1978 01 02)
+             Date.parse "1978-W01, Monday" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, eee") . should_equal (Date.new 1978 01 02)
+             Date.parse "1978-W01, Mon" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW, ddd") . should_equal (Date.new 1978 01 02)
+
              # Just week will parse to first day of the week:
              Date.parse "1978-W01" (Date_Time_Formatter.from_iso_week_date_pattern "YYYY-'W'WW") . should_equal (Date.new 1978 01 02)
 

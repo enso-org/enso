@@ -13,6 +13,7 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Auto, Data_Formatter, Sort_Column, Value_Type
+from Standard.Table.Data.Column import default_date_period
 from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
@@ -1385,7 +1386,8 @@ type Column
          shift each date.
        - period: The period by which to shift. For `Date` columns it should be a
          `Date_Period` and for `Time` columns it should be a `Time_Period`. For
-         `Date_Time` columns it can be either.
+         `Date_Time` columns it can be either. It defaults to `Day` where
+         possible and `Hour` for `Time` columns.
 
        ? Time Zone handling
 
@@ -1395,7 +1397,7 @@ type Column
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
     date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_add self amount (period : Date_Period | Time_Period) =
+    date_add self amount (period : Date_Period|Time_Period = default_date_period self) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
