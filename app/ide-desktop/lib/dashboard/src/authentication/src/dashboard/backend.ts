@@ -568,6 +568,11 @@ export interface UpdateDirectoryRequestBody {
     title: string
 }
 
+/** HTTP request body for the "update asset" endpoint. */
+export interface UpdateAssetRequestBody {
+    parentDirectoryId: DirectoryId
+}
+
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
     projectName: string
@@ -736,6 +741,12 @@ export abstract class Backend {
         body: UpdateDirectoryRequestBody,
         title: string | null
     ): Promise<UpdatedDirectory>
+    /** Change the parent directory of an asset. */
+    abstract updateAsset(
+        assetId: AssetId,
+        body: UpdateAssetRequestBody,
+        title: string | null
+    ): Promise<void>
     /** Delete an arbitrary asset. */
     abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
     /** Restore an arbitrary asset from the trash. */

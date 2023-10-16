@@ -106,13 +106,10 @@ export default function DriveBar(props: DriveBarProps) {
                     )}
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
-                            active
+                            active={category !== categorySwitcher.Category.trash}
+                            disabled={category === categorySwitcher.Category.trash}
+                            error="Cannot create a new data connector in Trash."
                             image={AddConnectorIcon}
-                            error={
-                                category === categorySwitcher.Category.trash
-                                    ? 'Cannot create a new data connector in Trash.'
-                                    : 'Not implemented yet.'
-                            }
                             disabledOpacityClassName="opacity-20"
                             onClick={event => {
                                 event.stopPropagation()
