@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Required_Argument
 
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Bits
@@ -21,18 +22,18 @@ make_bool_builder = BoolBuilder.new
 
 ## PRIVATE
 make_double_builder : Integer -> ProblemAggregator -> NumericBuilder
-make_double_builder initial_size java_problem_aggregator=(Error.throw "problem aggregator argument is required on make_double_builder") =
+make_double_builder initial_size java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
     NumericBuilder.createDoubleBuilder initial_size java_problem_aggregator
 
 ## PRIVATE
 make_long_builder : Integer -> Bits -> NumericBuilder
-make_long_builder initial_size bits java_problem_aggregator=(Error.throw "problem aggregator argument is required on make_long_builder") =
+make_long_builder initial_size bits java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
     NumericBuilder.createLongBuilder initial_size integer_type java_problem_aggregator
 
 ## PRIVATE
 make_biginteger_builder : Integer -> ProblemAggregator -> BigIntegerBuilder
-make_biginteger_builder initial_size java_problem_aggregator=(Error.throw "problem aggregator argument is required on make_bigint_builder") =
+make_biginteger_builder initial_size java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
     BigIntegerBuilder.new initial_size java_problem_aggregator
 
 ## PRIVATE
@@ -55,7 +56,7 @@ make_date_builder initial_size = DateBuilder.new initial_size
 
 ## PRIVATE
 make_inferred_builder : Integer -> ProblemAggregator -> InferredBuilder
-make_inferred_builder initial_size java_problem_aggregator=(Error.throw "problem aggregator argument is required on make_inferred_builder") =
+make_inferred_builder initial_size java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
     InferredBuilder.new initial_size java_problem_aggregator
 
 ## PRIVATE
