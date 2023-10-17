@@ -1,4 +1,3 @@
-import type { Opt } from '@/util/opt'
 import { Err, Ok, unwrap, type Result } from '@/util/result'
 
 declare const identifierBrand: unique symbol
