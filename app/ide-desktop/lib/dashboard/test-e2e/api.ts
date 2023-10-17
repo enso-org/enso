@@ -1,11 +1,12 @@
 /** @file The mock API. */
 import type * as test from '@playwright/test'
 
-import type * as backend from '../src/authentication/src/dashboard/backend'
+import * as backend from '../src/authentication/src/dashboard/backend'
 import * as config from '../src/authentication/src/config'
 import * as dateTime from '../src/authentication/src/dashboard/dateTime'
 import type * as remoteBackend from '../src/authentication/src/dashboard/remoteBackend'
 import * as remoteBackendPaths from '../src/authentication/src/dashboard/remoteBackendPaths'
+import * as uniqueString from '../src/authentication/src/uniqueString'
 
 // =================
 // === Constants ===
@@ -184,6 +185,18 @@ export async function mockApi(page: test.Page) {
         await route.fulfill({
             json: currentUser,
         })
+    })
+    await page.route(BASE_URL + remoteBackendPaths.CREATE_TAG_PATH + '*', async route => {
+        if (route.request().method() === 'POST') {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const body: backend.CreateTagRequestBody = route.request().postDataJSON()
+            const json: backend.Label = {
+                id: backend.TagId(`tag-${uniqueString.uniqueString()}`),
+                value: backend.LabelName(body.value),
+                color: body.color,
+            }
+            await route.fulfill({ json })
+        }
     })
 
     return {

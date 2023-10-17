@@ -56,10 +56,12 @@ const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** The default placeholder row. */
 const PLACEHOLDER = (
     <span className="opacity-75">
-        You have no projects yet. Go ahead and create one using the button above, or open a template
-        from the home screen.
+        You have no files. Go ahead and create one using the buttons above, or open a template from
+        the home screen.
     </span>
 )
+/** A placeholder row for when a query (text or labels) is active. */
+const QUERY_PLACEHOLDER = <span className="opacity-75">No files match the current filters.</span>
 /** The placeholder row for the Trash category. */
 const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
 /** Placeholder row for directories that are empty. */
@@ -166,6 +168,8 @@ const CATEGORY_TO_FILTER_BY: Record<categorySwitcher.Category, backendModule.Fil
 export interface AssetsTableState {
     numberOfSelectedItems: number
     category: categorySwitcher.Category
+    labels: Map<backendModule.LabelName, backendModule.Label>
+    deletedLabelNames: Set<backendModule.LabelName>
     hasCopyData: boolean
     sortColumn: columnModule.SortableColumn | null
     setSortColumn: (column: columnModule.SortableColumn | null) => void
@@ -191,6 +195,7 @@ export interface AssetsTableState {
         switchPage: boolean
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
+    doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
     doCut: () => void
     doPaste: (
         newParentKey: backendModule.AssetId | null,
@@ -216,8 +221,11 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 export interface AssetsTableProps {
     query: string
     category: categorySwitcher.Category
+    allLabels: Map<backendModule.LabelName, backendModule.Label>
+    currentLabels: backendModule.LabelName[] | null
     initialProjectName: string | null
     projectStartupInfo: backendModule.ProjectStartupInfo | null
+    deletedLabelNames: Set<backendModule.LabelName>
     /** These events will be dispatched the next time the assets list is refreshed, rather than
      * immediately. */
     queuedAssetEvents: assetEventModule.AssetEvent[]
@@ -231,6 +239,7 @@ export interface AssetsTableProps {
         switchPage: boolean
     ) => void
     doCloseIde: (project: backendModule.ProjectAsset) => void
+    doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
     isListingLocalDirectoryAndWillFail: boolean
@@ -242,6 +251,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     const {
         query,
         category,
+        allLabels,
+        currentLabels,
+        deletedLabelNames,
         initialProjectName,
         projectStartupInfo,
         queuedAssetEvents: rawQueuedAssetEvents,
@@ -251,6 +263,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         dispatchAssetEvent,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
+        doCreateLabel,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
         isListingLocalDirectoryAndWillFail,
@@ -399,7 +412,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialProjectName])
 
-    const overwriteAssets = React.useCallback(
+    const overwriteNodes = React.useCallback(
         (newAssets: backendModule.AnyAsset[]) => {
             // This is required, otherwise we are using an outdated
             // `nameOfProjectToImmediatelyOpen`.
@@ -461,7 +474,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         if (initialized) {
-            overwriteAssets([])
+            overwriteNodes([])
         }
         // `overwriteAssets` is a callback, not a dependency.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -478,12 +491,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
                                 recentProjects: category === categorySwitcher.Category.recent,
+                                labels: currentLabels,
                             },
                             null
                         )
                         if (!signal.aborted) {
                             setIsLoading(false)
-                            overwriteAssets(newAssets)
+                            overwriteNodes(newAssets)
                         }
                     }
                     break
@@ -493,17 +507,104 @@ export default function AssetsTable(props: AssetsTableProps) {
                         !isListingRemoteDirectoryAndWillFail &&
                         !isListingRemoteDirectoryWhileOffline
                     ) {
+                        const queuedDirectoryListings = new Map<
+                            backendModule.AssetId,
+                            backendModule.AnyAsset[]
+                        >()
+                        /** An {@link assetTreeNode.AssetTreeNode} with no children. */
+                        interface AssetTreeNodeWithNoChildren extends assetTreeNode.AssetTreeNode {
+                            children: null
+                        }
+                        const withChildren = (
+                            node: AssetTreeNodeWithNoChildren
+                        ): assetTreeNode.AssetTreeNode => {
+                            const queuedListing = queuedDirectoryListings.get(node.item.id)
+                            if (
+                                queuedListing == null ||
+                                !backendModule.assetIsDirectory(node.item)
+                            ) {
+                                return node
+                            } else {
+                                const directoryAsset = node.item
+                                const depth = node.depth + 1
+                                return {
+                                    ...node,
+                                    children: queuedListing.map(asset =>
+                                        withChildren({
+                                            key: asset.id,
+                                            item: asset,
+                                            directoryKey: directoryAsset.id,
+                                            directoryId: directoryAsset.id,
+                                            children: null,
+                                            depth,
+                                        })
+                                    ),
+                                }
+                            }
+                        }
+                        for (const entry of nodeMapRef.current.values()) {
+                            if (
+                                backendModule.assetIsDirectory(entry.item) &&
+                                entry.children != null
+                            ) {
+                                const id = entry.item.id
+                                void backend
+                                    .listDirectory(
+                                        {
+                                            parentId: id,
+                                            filterBy: CATEGORY_TO_FILTER_BY[category],
+                                            recentProjects:
+                                                category === categorySwitcher.Category.recent,
+                                            labels: currentLabels,
+                                        },
+                                        entry.item.title
+                                    )
+                                    .then(assets => {
+                                        setAssetTree(oldTree => {
+                                            let found = signal.aborted
+                                            const newTree = signal.aborted
+                                                ? oldTree
+                                                : assetTreeNode.assetTreeMap(oldTree, oldAsset => {
+                                                      if (oldAsset.key === entry.key) {
+                                                          found = true
+                                                          const depth = oldAsset.depth + 1
+                                                          return {
+                                                              ...oldAsset,
+                                                              children: assets.map(asset =>
+                                                                  withChildren({
+                                                                      key: asset.id,
+                                                                      item: asset,
+                                                                      directoryKey: entry.key,
+                                                                      directoryId: id,
+                                                                      children: null,
+                                                                      depth,
+                                                                  })
+                                                              ),
+                                                          }
+                                                      } else {
+                                                          return oldAsset
+                                                      }
+                                                  })
+                                            if (!found) {
+                                                queuedDirectoryListings.set(entry.key, assets)
+                                            }
+                                            return newTree
+                                        })
+                                    })
+                            }
+                        }
                         const newAssets = await backend.listDirectory(
                             {
                                 parentId: null,
                                 filterBy: CATEGORY_TO_FILTER_BY[category],
                                 recentProjects: category === categorySwitcher.Category.recent,
+                                labels: currentLabels,
                             },
                             null
                         )
                         if (!signal.aborted) {
                             setIsLoading(false)
-                            overwriteAssets(newAssets)
+                            overwriteNodes(newAssets)
                         }
                     } else {
                         setIsLoading(false)
@@ -512,7 +613,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
         },
-        [category, accessToken, organization, backend]
+        [category, currentLabels, accessToken, organization, backend]
     )
 
     React.useEffect(() => {
@@ -610,6 +711,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             parentId: directoryId,
                             filterBy: CATEGORY_TO_FILTER_BY[category],
                             recentProjects: category === categorySwitcher.Category.recent,
+                            labels: currentLabels,
                         },
                         title ?? null
                     )
@@ -676,7 +778,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })()
             }
         },
-        [category, nodeMapRef, backend]
+        [category, currentLabels, backend]
     )
 
     const getNewProjectName = React.useCallback(
@@ -710,13 +812,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                     Math.max(0, ...directoryIndices) + 1
                 }`
                 const placeholderItem: backendModule.DirectoryAsset = {
+                    type: backendModule.AssetType.directory,
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? rootDirectoryId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
-                    type: backendModule.AssetType.directory,
+                    labels: [],
                 }
                 if (
                     event.parentId != null &&
@@ -755,6 +858,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const projectName = getNewProjectName(event.templateId, event.parentId)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
+                    type: backendModule.AssetType.project,
                     id: dummyId,
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
@@ -767,7 +871,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         // eslint-disable-next-line @typescript-eslint/naming-convention
                         ...(organization != null ? { opened_by: organization.email } : {}),
                     },
-                    type: backendModule.AssetType.project,
+                    labels: [],
                 }
                 if (
                     event.parentId != null &&
@@ -816,6 +920,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
+                        labels: [],
                     })
                 )
                 const placeholderProjects = reversedFiles.filter(backendModule.fileIsProject).map(
@@ -833,6 +938,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             // eslint-disable-next-line @typescript-eslint/naming-convention
                             ...(organization != null ? { opened_by: organization.email } : {}),
                         },
+                        labels: [],
                     })
                 )
                 if (
@@ -889,13 +995,14 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             case assetListEventModule.AssetListEventType.newDataConnector: {
                 const placeholderItem: backendModule.SecretAsset = {
+                    type: backendModule.AssetType.secret,
                     id: backendModule.SecretId(uniqueString.uniqueString()),
                     title: event.name,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? rootDirectoryId,
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
-                    type: backendModule.AssetType.secret,
+                    labels: [],
                 }
                 if (
                     event.parentId != null &&
@@ -1184,6 +1291,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         (): AssetsTableState => ({
             numberOfSelectedItems: selectedKeys.size,
             category,
+            labels: allLabels,
+            deletedLabelNames,
             hasCopyData: copyData != null,
             sortColumn,
             setSortColumn,
@@ -1198,12 +1307,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
+            doCreateLabel,
             doCut,
             doPaste,
         }),
         [
             selectedKeys.size,
             category,
+            allLabels,
+            deletedLabelNames,
             copyData,
             sortColumn,
             sortDirection,
@@ -1212,6 +1324,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
+            doCreateLabel,
             doCut,
             doPaste,
             /* should never change */ setSortColumn,
@@ -1300,6 +1413,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     placeholder={
                         category === categorySwitcher.Category.trash
                             ? TRASH_PLACEHOLDER
+                            : query !== '' || currentLabels != null
+                            ? QUERY_PLACEHOLDER
                             : PLACEHOLDER
                     }
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({

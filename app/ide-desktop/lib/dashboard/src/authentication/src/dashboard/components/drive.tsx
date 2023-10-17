@@ -3,14 +3,16 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
-import type * as assetEventModule from '../events/assetEvent'
+import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as identity from '../identity'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
+import * as uniqueString from '../../uniqueString'
 
 import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
@@ -18,6 +20,7 @@ import type * as spinner from './spinner'
 import CategorySwitcher, * as categorySwitcher from './categorySwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
+import Labels from './labels'
 
 // =============
 // === Drive ===
@@ -81,6 +84,16 @@ export default function Drive(props: DriveProps) {
             localStorage.get(localStorageModule.LocalStorageKey.driveCategory) ??
             categorySwitcher.Category.home
     )
+    const [labels, setLabels] = React.useState<backendModule.Label[]>([])
+    const [currentLabels, setCurrentLabels] = React.useState<backendModule.LabelName[] | null>(null)
+    const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
+    const [deletedLabelNames, setDeletedLabelNames] = React.useState(
+        new Set<backendModule.LabelName>()
+    )
+    const allLabels = React.useMemo(
+        () => new Map(labels.map(label => [label.value, label])),
+        [labels]
+    )
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -91,6 +104,14 @@ export default function Drive(props: DriveProps) {
             window.removeEventListener('blur', onBlur)
         }
     }, [])
+
+    React.useEffect(() => {
+        void (async () => {
+            if (backend.type !== backendModule.BackendType.local) {
+                setLabels(await backend.listTags())
+            }
+        })()
+    }, [backend])
 
     const doUploadFiles = React.useCallback(
         (files: File[]) => {
@@ -132,6 +153,102 @@ export default function Drive(props: DriveProps) {
             parentId: null,
         })
     }, [/* should never change */ dispatchAssetListEvent])
+
+    const doCreateLabel = React.useCallback(
+        async (value: string, color: backendModule.LChColor) => {
+            const newLabelName = backendModule.LabelName(value)
+            const placeholderLabel: backendModule.Label = {
+                id: backendModule.TagId(uniqueString.uniqueString()),
+                value: newLabelName,
+                color,
+            }
+            setNewLabelNames(labelNames => new Set([...labelNames, newLabelName]))
+            setLabels(oldLabels => [...oldLabels, placeholderLabel])
+            try {
+                const newLabel = await backend.createTag({ value, color })
+                setLabels(oldLabels =>
+                    oldLabels.map(oldLabel =>
+                        oldLabel.id === placeholderLabel.id ? newLabel : oldLabel
+                    )
+                )
+                setCurrentLabels(oldLabels => {
+                    let found = identity.identity<boolean>(false)
+                    const newLabels =
+                        oldLabels?.map(oldLabel => {
+                            if (oldLabel === placeholderLabel.value) {
+                                found = true
+                                return newLabel.value
+                            } else {
+                                return oldLabel
+                            }
+                        }) ?? null
+                    return found ? newLabels : oldLabels
+                })
+            } catch (error) {
+                toastAndLog(null, error)
+                setLabels(oldLabels =>
+                    oldLabels.filter(oldLabel => oldLabel.id !== placeholderLabel.id)
+                )
+                setCurrentLabels(oldLabels => {
+                    let found = identity.identity<boolean>(false)
+                    const newLabels = (oldLabels ?? []).filter(oldLabel => {
+                        if (oldLabel === placeholderLabel.value) {
+                            found = true
+                            return false
+                        } else {
+                            return true
+                        }
+                    })
+                    return found ? (newLabels.length === 0 ? null : newLabels) : oldLabels
+                })
+            }
+            setNewLabelNames(
+                labelNames =>
+                    new Set([...labelNames].filter(labelName => labelName !== newLabelName))
+            )
+        },
+        [backend, /* should never change */ toastAndLog]
+    )
+
+    const doDeleteLabel = React.useCallback(
+        async (id: backendModule.TagId, value: backendModule.LabelName) => {
+            setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
+            setCurrentLabels(oldLabels => {
+                let found = identity.identity<boolean>(false)
+                const newLabels = oldLabels?.filter(oldLabel => {
+                    if (oldLabel === value) {
+                        found = true
+                        return false
+                    } else {
+                        return true
+                    }
+                })
+                return newLabels != null && newLabels.length > 0
+                    ? found
+                        ? newLabels
+                        : oldLabels
+                    : null
+            })
+            try {
+                await backend.deleteTag(id, value)
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.deleteLabel,
+                    labelName: value,
+                })
+                setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
+            } catch (error) {
+                toastAndLog(null, error)
+            }
+            setDeletedLabelNames(
+                oldNames => new Set([...oldNames].filter(oldValue => oldValue !== value))
+            )
+        },
+        [
+            backend,
+            /* should never change */ dispatchAssetEvent,
+            /* should never change */ toastAndLog,
+        ]
+    )
 
     const doCreateDataConnector = React.useCallback(
         (name: string, value: string) => {
@@ -218,13 +335,25 @@ export default function Drive(props: DriveProps) {
                             setCategory={setCategory}
                             dispatchAssetEvent={dispatchAssetEvent}
                         />
+                        <Labels
+                            labels={labels}
+                            currentLabels={currentLabels}
+                            setCurrentLabels={setCurrentLabels}
+                            doCreateLabel={doCreateLabel}
+                            doDeleteLabel={doDeleteLabel}
+                            newLabelNames={newLabelNames}
+                            deletedLabelNames={deletedLabelNames}
+                        />
                     </div>
                 )}
                 <AssetsTable
                     query={query}
                     category={category}
+                    allLabels={allLabels}
+                    currentLabels={currentLabels}
                     initialProjectName={initialProjectName}
                     projectStartupInfo={projectStartupInfo}
+                    deletedLabelNames={deletedLabelNames}
                     queuedAssetEvents={queuedAssetEvents}
                     assetEvents={assetEvents}
                     dispatchAssetEvent={dispatchAssetEvent}
@@ -232,6 +361,7 @@ export default function Drive(props: DriveProps) {
                     dispatchAssetListEvent={dispatchAssetListEvent}
                     doOpenIde={doOpenEditor}
                     doCloseIde={doCloseEditor}
+                    doCreateLabel={doCreateLabel}
                     loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                     isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
                     isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}

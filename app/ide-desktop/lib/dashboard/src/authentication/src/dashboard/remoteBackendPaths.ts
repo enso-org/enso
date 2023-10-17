@@ -75,7 +75,11 @@ export function checkResourcesPath(projectId: backend.ProjectId) {
 export function getSecretPath(secretId: backend.SecretId) {
     return `secrets/${secretId}`
 }
+/** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
+export function associateTagPath(assetId: backend.AssetId) {
+    return `assets/${assetId}/labels`
+}
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
 export function deleteTagPath(tagId: backend.TagId) {
-    return `secrets/${tagId}`
+    return `tags/${tagId}`
 }
