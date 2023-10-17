@@ -5,6 +5,7 @@ import project.Data.Time.Date_Range.Date_Range
 import project.Data.Map.Map
 import project.Data.Set.Set
 import project.Data.Vector.Vector
+import project.IO
 import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
 import project.System
@@ -15,6 +16,7 @@ polyglot java import java.util.Random as Java_Random
 
 type Random
     ## GROUP Random
+
        Create a new `Random_Generator` with the specified seed.
 
        Arguments:
@@ -22,15 +24,37 @@ type Random
     new_generator : Integer -> Random_Generator
     new_generator seed = Random_Generator.new seed
 
-    # Default Random instance
-    default_instance_ref : Ref Random_Generator
-    default_instance_ref = Ref.new (Random_Generator.new get_default_seed)
+    ## GROUP Random
 
-    # Set the seed of the default Random instance
+       Set the seed of the default `Random_Generator` instance.
+
+       Arguments:
+       - seed: The seed used to initialze the default `Random_Generator`.
+
+       > Example
+         Set the seed of the default `Random_Generator` to 42.
+
+             import Standard.Base.Random.Random
+
+             Random.set_seed 42
     set_seed : Integer -> Nothing
     set_seed seed =
         rng = Random_Generator.new seed
         Random.default_instance_ref.put rng
+
+    ## GROUP Random
+       Return a random `Boolean` using the default instance of
+       `Random_Generator`.
+
+       > Example
+         Generate a random boolean using the default instance of
+         `Random_Generator`.
+
+             import Standard.Base.Random.Random
+
+             b = Random.boolean
+    boolean : Boolean
+    boolean self = Random.default_instance.boolean
 
     ##
         # Static versions of methods from Random_Generator.
@@ -38,8 +62,18 @@ type Random
         int_32 low=MIN_INT high=MIN_INT =
         # ...
 
+    ## PRIVATE
+       Reference to the default instance.
+    default_instance_ref : Ref Random_Generator
+    default_instance_ref = Ref.new (Random_Generator.new 0) # get_default_seed)
+
+    ## PRIVATE
+       Return the default instance.
+    default_instance : Random_Generator
+    default_instance = Random.default_instance_ref.get
+
 type Random_Generator
-    ## PRVIATE
+    ## PRIVATE
        Create a new rng with the given seed.
     new : Integer -> Random_Generator
     new seed = Random_Generator.Value (Java_Random.new seed)
@@ -47,9 +81,23 @@ type Random_Generator
     ## PRIVATE
     Value (java_random : Java_Random)
 
-    # Return a random `Boolean`
+    ## GROUP Random
+
+       Return a random `Boolean`.
+
+       > Example
+         Generate a random boolean.
+             import Standard.Base.Random.Random
+
+             rng = Random.new 42
+             b = rng.boolean
     boolean : Boolean
-    boolean self = self.java_random.nextBoolean
+    boolean self =
+        IO.println 'BBB'
+        IO.println self.java_random
+        n = self.java_random.nextBoolean
+        IO.println self.java_random
+        n
 
     ##
         # Return a random `Integer`
