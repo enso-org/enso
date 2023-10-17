@@ -5,6 +5,7 @@ import {
   labelOfEntry,
   type MatchedSuggestion,
 } from '@/components/ComponentBrowser/component'
+import { Filtering } from '@/components/ComponentBrowser/filtering'
 import {
   makeCon,
   makeMethod,
@@ -13,7 +14,6 @@ import {
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/entry'
 import shuffleSeed from 'shuffle-seed'
-import { Filtering } from '../filtering'
 
 test.each([
   [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],

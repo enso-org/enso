@@ -11,6 +11,7 @@ import {
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { Rect } from '@/stores/rect'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,
@@ -22,10 +23,11 @@ import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { UnsafeMutable } from '@/util/mutable'
 import type { Opt } from '@/util/opt'
+import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-import { useSuggestionDbStore } from '../stores/suggestionDatabase'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 
@@ -425,7 +427,13 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => {
   const method = expressionInfo.value?.methodCall?.methodPointer
   if (method == null) return undefined
-  return suggestionDbStore.methodPointerToEntry.get(method.module)?.get(method.name)
+  const moduleName = tryQualifiedName(method.module)
+  const methodName = tryQualifiedName(method.name)
+  if (!moduleName.ok || !methodName.ok) return undefined
+  const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+  const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
+  if (id == null) return undefined
+  return suggestionDbStore.entries.get(id)
 })
 const icon = computed(() => {
   if (suggestionEntry.value?.iconName) {
@@ -440,13 +448,11 @@ const icon = computed(() => {
     return 'in_out'
   }
 })
-const color = computed(() => {
-  const colorFromGroup =
-    suggestionEntry.value?.groupIndex != null
-      ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
-      : undefined
-  return colorFromGroup ?? colorFromString(expressionInfo.value?.typename ?? 'Unknown')
-})
+const color = computed(() =>
+  suggestionEntry.value?.groupIndex != null
+    ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
+    : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
+)
 
 watchEffect(() => {
   visualizationConfig.value.types = visualizationStore.types(expressionInfo.value?.typename)

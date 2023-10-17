@@ -29,7 +29,7 @@ public abstract class GenericBinaryObjectMapOperation<
 
   @Override
   public Storage<?> runBinaryMap(
-      InputStorageType storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+      InputStorageType storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     arg = Polyglot_Utils.convertPolyglotValue(arg);
     if (arg == null) {
       int n = storage.size();
@@ -60,7 +60,7 @@ public abstract class GenericBinaryObjectMapOperation<
 
   @Override
   public Storage<?> runZip(
-      InputStorageType storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+      InputStorageType storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     if (inputStorageTypeClass.isInstance(arg)) {
       InputStorageType otherCasted = inputStorageTypeClass.cast(arg);
       int n = storage.size();

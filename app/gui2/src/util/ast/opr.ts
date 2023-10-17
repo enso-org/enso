@@ -1,7 +1,7 @@
 import { Tree, type MultipleOperatorError, type Token } from '@/generated/ast'
+import { assert } from '@/util/assert'
 import { parseEnsoLine, readAstSpan, readTokenSpan } from '@/util/ast'
 import type { Result } from '@/util/result'
-import { assert } from '../assert'
 
 /** An operand of one of the applications inside `GenralOprApp` */
 export type GeneralOperand =

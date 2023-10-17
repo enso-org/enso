@@ -1,7 +1,7 @@
 import { Rect } from '@/stores/rect'
+import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
+import { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, ref, type Ref } from 'vue'
-import { PointerButtonMask, usePointer, useResizeObserver, useWindowEvent } from './events'
-import { Vec2 } from './vec2'
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element) {
@@ -82,7 +82,8 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       }px)`,
   )
 
-  useWindowEvent(
+  useEvent(
+    window,
     'contextmenu',
     (e) => {
       e.preventDefault()

@@ -1,4 +1,4 @@
-import { isMacLike } from './events'
+import { isMacLike } from '@/util/events'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG

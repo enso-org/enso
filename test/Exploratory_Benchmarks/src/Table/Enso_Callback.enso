@@ -12,7 +12,6 @@ import project.Table.Helpers
 polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
 polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
-polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## This tests an operation that executes an Enso function on each element of a column.
@@ -26,7 +25,8 @@ type Boxed_Enso_Callback_Test
     java_roundtrip self =
         expected_type = Storage.from_value_type_strict Value_Type.Char
         Column.from_storage "result" <|
-            MapHelpers.mapCallback self.text_column.java_column.getStorage self.fn expected_type
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                MapHelpers.mapCallback self.text_column.java_column.getStorage self.fn expected_type java_problem_aggregator
 
     enso_map_as_vector self convert_polyglot_dates =
         vector_proxy = self.text_column.to_vector
@@ -67,7 +67,8 @@ type Primitive_Enso_Callback_Test
     java_roundtrip self =
         expected_type = Storage.from_value_type_strict Value_Type.Integer
         Column.from_storage "result" <|
-            MapHelpers.mapCallback self.int_column.java_column.getStorage self.fn expected_type
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                MapHelpers.mapCallback self.int_column.java_column.getStorage self.fn expected_type java_problem_aggregator
 
     enso_map_as_vector_inferred_builder self convert_polyglot_dates =
         vector_proxy = self.int_column.to_vector
@@ -79,8 +80,8 @@ type Primitive_Enso_Callback_Test
         mapped = vector_proxy.map self.fn
         # No expected storage will use inferred builder.
         expected_storage_type = Storage.from_value_type_strict Value_Type.Integer
-        java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Error <|
-            Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type)
+        java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Error java_problem_aggregator->
+            Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type java_problem_aggregator
         Column.Value java_column
 
     enso_map_with_builder_2_calls_unboxed self =

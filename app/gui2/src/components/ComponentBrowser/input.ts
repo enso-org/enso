@@ -1,3 +1,4 @@
+import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast, astContainingChar, astSpan, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
@@ -9,7 +10,6 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
-import type { Filter } from './filtering'
 
 /** Input's editing context.
  *

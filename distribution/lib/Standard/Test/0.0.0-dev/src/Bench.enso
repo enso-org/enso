@@ -230,11 +230,14 @@ type Bench
         duration_ns = conf.iterations * conf.seconds * 1000000000
         phase_start = System.nano_time
         stop_ns = phase_start + duration_ns
-        go = durations -> cur_ns ->
-            if cur_ns  > stop_ns then durations else
+        durations_builder = Vector.new_builder
+        go cur_ns =
+            if cur_ns  > stop_ns then Nothing else
                 dur = Bench.single_call act
-                @Tail_Call go (durations + [dur]) (cur_ns + dur)
-        durations = go [] phase_start
+                durations_builder.append dur
+                @Tail_Call go (cur_ns + dur)
+        go phase_start
+        durations = durations_builder.to_vector
         sum = durations.reduce (_ + _)
         run_iters = durations.length
         avg = (sum / run_iters) / 1000000

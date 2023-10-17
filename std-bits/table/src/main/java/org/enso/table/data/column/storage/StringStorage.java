@@ -1,10 +1,9 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.text.LikeOp;
@@ -13,7 +12,7 @@ import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -52,18 +51,13 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
+  public Storage<?> fillMissing(Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isString()) {
       TextType newType = TextType.maxType(type, TextType.preciseTypeForValue(arg.asString()));
       return fillMissingHelper(arg, new StringBuilder(size(), newType));
     } else {
-      return super.fillMissing(arg, commonType);
+      return super.fillMissing(arg, commonType, problemAggregator);
     }
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new StringBuilder(capacity, type);
   }
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
@@ -74,7 +68,7 @@ public final class StringStorage extends SpecializedStorage<String> {
           public BoolStorage runBinaryMap(
               SpecializedStorage<String> storage,
               Object arg,
-              MapOperationProblemBuilder problemBuilder) {
+              MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             Context context = Context.getCurrent();
@@ -94,7 +88,7 @@ public final class StringStorage extends SpecializedStorage<String> {
           public BoolStorage runZip(
               SpecializedStorage<String> storage,
               Storage<?> arg,
-              MapOperationProblemBuilder problemBuilder) {
+              MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
             Context context = Context.getCurrent();
@@ -115,7 +109,7 @@ public final class StringStorage extends SpecializedStorage<String> {
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
           protected BoolStorage runUnaryMap(SpecializedStorage<String> storage,
-                                            MapOperationProblemBuilder problemBuilder) {
+                                            MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size; i++) {

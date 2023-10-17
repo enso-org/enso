@@ -8,7 +8,8 @@ import java.util.stream.Collectors;
 import org.enso.base.text.CaseInsensitiveUnicodeNormalizedTextEquivalence;
 import org.enso.base.text.UnicodeNormalizedTextEquivalence;
 import org.enso.table.data.table.Column;
-import org.enso.table.problems.Problem;
+import org.enso.table.problems.BlackholeProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.problems.DuplicateNames;
 import org.enso.table.util.problems.InvalidNames;
 import org.graalvm.collections.EconomicMap;
@@ -17,6 +18,25 @@ import org.graalvm.collections.Equivalence;
 import org.graalvm.collections.Pair;
 
 public class NameDeduplicator {
+
+  /**
+   * Creates an instance that will not report any problems.
+   *
+   * <p>It may be useful when problem handling is done manually (e.g. Unique_Name_Strategy), or the
+   * problems should just be ignored.
+   */
+  public static NameDeduplicator createIgnoringProblems(NamingProperties namingProperties) {
+    return new NameDeduplicator(namingProperties, BlackholeProblemAggregator.INSTANCE);
+  }
+
+  public static NameDeduplicator createIgnoringProblems() {
+    return new NameDeduplicator(BlackholeProblemAggregator.INSTANCE);
+  }
+
+  public static NameDeduplicator createDefault(ProblemAggregator problemAggregator) {
+    return new NameDeduplicator(problemAggregator);
+  }
+
   private final EconomicSet<String> usedNames;
   private final List<String> invalidNames = new ArrayList<>();
   private final EconomicMap<String, String> truncatedNames;
@@ -25,40 +45,23 @@ public class NameDeduplicator {
   private final String invalidNameReplacement;
   private final NamingProperties namingProperties;
 
-  public NameDeduplicator() {
-    this("Column", new DefaultNamingProperties());
+  private NameDeduplicator(ProblemAggregator parentAggregator) {
+    this("Column", new DefaultNamingProperties(), parentAggregator);
   }
 
-  private static class DefaultNamingProperties implements NamingProperties {
-
-    @Override
-    public Long size_limit() {
-      return null;
-    }
-
-    @Override
-    public long encoded_size(String name) {
-      throw new IllegalStateException(
-          "`DefaultNamingProperties.encoded_size` called but no limit is set.");
-    }
-
-    @Override
-    public String truncate(String name, long max_encoded_size) {
-      throw new IllegalStateException(
-          "`DefaultNamingProperties.encoded_size` called but no limit is set.");
-    }
-
-    @Override
-    public boolean is_case_sensitive() {
-      return true;
-    }
+  private NameDeduplicator(NamingProperties namingProperties, ProblemAggregator parentAggregator) {
+    this("Column", namingProperties, parentAggregator);
   }
 
-  public NameDeduplicator(NamingProperties namingProperties) {
-    this("Column", namingProperties);
-  }
+  private NameDeduplicator(
+      String invalidNameReplacement,
+      NamingProperties namingProperties,
+      ProblemAggregator parentAggregator) {
+    // We just create the problem aggregator, which registers it in the hierarchy and will ensure
+    // the problems are
+    // summarized when the time comes. We don't need to store a reference to it.
+    new NamingProblemsSummarizingProblemAggregator(parentAggregator);
 
-  public NameDeduplicator(String invalidNameReplacement, NamingProperties namingProperties) {
     this.namingProperties = namingProperties;
     if (hasSizeLimit()) {
       if (namingProperties.encoded_size(invalidNameReplacement) > namingProperties.size_limit()) {
@@ -240,17 +243,6 @@ public class NameDeduplicator {
     return output;
   }
 
-  public List<Problem> getProblems() {
-    List<Problem> output = new ArrayList<>(2);
-    if (!this.invalidNames.isEmpty()) {
-      output.add(new InvalidNames(this.getInvalidNames()));
-    }
-    if (!this.duplicatedNames.isEmpty()) {
-      output.add(new DuplicateNames(this.getDuplicatedNames()));
-    }
-    return output;
-  }
-
   /**
    * Changes names from the second list so that they do not clash with names from the first list and
    * with each other.
@@ -285,5 +277,49 @@ public class NameDeduplicator {
 
   private boolean hasSizeLimit() {
     return namingProperties != null && namingProperties.size_limit() != null;
+  }
+
+  private class NamingProblemsSummarizingProblemAggregator extends ProblemAggregator {
+
+    protected NamingProblemsSummarizingProblemAggregator(ProblemAggregator parent) {
+      super(parent);
+    }
+
+    @Override
+    public ProblemSummary summarize() {
+      var summary = super.summarize();
+      if (!invalidNames.isEmpty()) {
+        summary.add(new InvalidNames(getInvalidNames()));
+      }
+      if (!duplicatedNames.isEmpty()) {
+        summary.add(new DuplicateNames(getDuplicatedNames()));
+      }
+      return summary;
+    }
+  }
+
+  private static class DefaultNamingProperties implements NamingProperties {
+
+    @Override
+    public Long size_limit() {
+      return null;
+    }
+
+    @Override
+    public long encoded_size(String name) {
+      throw new IllegalStateException(
+          "`DefaultNamingProperties.encoded_size` called but no limit is set.");
+    }
+
+    @Override
+    public String truncate(String name, long max_encoded_size) {
+      throw new IllegalStateException(
+          "`DefaultNamingProperties.encoded_size` called but no limit is set.");
+    }
+
+    @Override
+    public boolean is_case_sensitive() {
+      return true;
+    }
   }
 }

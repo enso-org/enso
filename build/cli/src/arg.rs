@@ -185,7 +185,8 @@ pub struct Cli {
 /// Describe where to get a target artifacts from.
 ///
 /// This is the CLI representation of a [crate::source::Source] for a given target.
-#[derive(Args, Clone, Debug, PartialEq)]
+#[derive(Args, Clone, Debug, Derivative)]
+#[derivative(PartialEq)]
 pub struct Source<Target: IsTargetSource> {
     /// How the given target should be acquired.
     #[clap(name = Target::SOURCE_NAME, arg_enum, long, default_value_t= SourceKind::Build,
@@ -219,9 +220,11 @@ pub struct Source<Target: IsTargetSource> {
     pub release: Option<String>,
 
     /// Used when `SourceKind::Build` is used.
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub build_args: BuildDescription<Target>,
 
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
 }
@@ -261,9 +264,10 @@ impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
     }
 }
 
-#[derive(Args, Clone, PartialEq, Derivative)]
-#[derivative(Debug)]
+#[derive(Args, Clone, Derivative)]
+#[derivative(Debug, PartialEq)]
 pub struct BuildDescription<Target: IsTargetSource> {
+    #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub input:           Target::BuildInput,
     #[clap(name = Target::UPLOAD_ARTIFACT_NAME, long, enso_env(), default_value_t = ide_ci::actions::workflow::is_in_env())]

@@ -1,12 +1,12 @@
-import type { ExecutionContext } from '@/stores/project.ts'
-import { reactive } from 'vue'
+import type { ExecutionContext } from '@/stores/project'
 import type {
   ExpressionId,
   ExpressionUpdate,
   ExpressionUpdatePayload,
   MethodCall,
   ProfilingInfo,
-} from '../../shared/languageServerTypes.ts'
+} from 'shared/languageServerTypes'
+import { reactive } from 'vue'
 
 export interface ExpressionInfo {
   typename: string | undefined
@@ -15,7 +15,7 @@ export interface ExpressionInfo {
   profilingInfo: ProfilingInfo[]
 }
 
-//* This class holds the computed values that have been received from the language server. */
+/** This class holds the computed values that have been received from the language server. */
 export class ComputedValueRegistry {
   private expressionMap: Map<ExpressionId, ExpressionInfo>
   private _updateHandler = this.processUpdates.bind(this)
