@@ -9,7 +9,7 @@ polyglot java import org.enso.table.data.index.OrderedMultiValueKey
 polyglot java import org.enso.table.data.index.UnorderedMultiValueKey
 polyglot java import org.enso.base.text.TextFoldingStrategy
 
-options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 2 3)
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 2)
 
 type My_Pair
     Value x1 x2
