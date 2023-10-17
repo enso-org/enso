@@ -10,7 +10,7 @@ const emit = defineEmits<{}>()
   <div class="sectionContent">
     <div v-for="section in props.sections">
       <p v-if="'Paragraph' in section" class="paragraph">
-        <span v-html="section.Paragraph.body"></span>
+        <span v-html="section.Paragraph.body ?? 'Invalid body'"></span>
       </p>
       <p v-if="'Keyed' in section" class="paragraph">
         {{ section.Keyed.key + ': ' + section.Keyed.body }}
@@ -29,16 +29,16 @@ const emit = defineEmits<{}>()
           <SvgIcon :name="section.Marked.mark == 'Info' ? 'doc_info' : 'doc_important'" />
           {{ ' ' + section.Marked.header }}
         </div>
-        <p class="paragraph" v-html="section.Marked.body" />
+        <p class="paragraph" v-html="section.Marked.body ?? 'Invalid body'" />
       </div>
       <ul v-if="'List' in section">
-        <li v-for="item in section.List.items" v-html="item"></li>
+        <li v-for="item in section.List.items" v-html="item ?? 'Invalid item'"></li>
       </ul>
       <ul v-if="'Arguments' in section">
         <li v-for="arg in section.Arguments.args">
           <span class="argument">{{ arg.name }}</span
           >:&nbsp
-          <span v-html="arg.description"></span>
+          <span v-html="arg.description ?? 'Invalid description'"></span>
         </li>
       </ul>
     </div>
@@ -96,12 +96,6 @@ div .markedIconInfo {
   background-color: var(--enso-docs-code-background-color);
   border-radius: 4px;
   padding: 2px;
-}
-
-/* TODO: move */
-.sectionContent {
-  padding-left: 8px;
-  padding-right: 8px;
 }
 
 ul {

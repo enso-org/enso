@@ -7,9 +7,10 @@ import { Doc } from '@/util/ffi'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
  import { computed, ref } from 'vue'
  import { type SuggestionDb, type SuggestionEntry, useSuggestionDbStore } from '@/stores/suggestionDatabase'
- import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
+ import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
+ import { default as Types } from '@/components/documentation/Types.vue'
 
-const props = defineProps<{ selectedEntry: SuggestionEntry }>()
+const props = defineProps<{ selectedEntry: Opt<SuggestionEntry> }>()
 const emit = defineEmits<{}>()
 
 export interface Sections {
@@ -41,13 +42,52 @@ export interface Sections {
    | { Placeholder: string }
 
  function lookupDocumentation(db: SuggestionDb, entry: SuggestionEntry): Docs {
+   console.log('entry docs: ', entry.documentation)
    if (entry == undefined) return { Placeholder: 'entry not found in db' }
-   if (entry.kind == SuggestionKind.Function || entry.kind == SuggestionKind.Method) {
-     return { Function: {
-       name: entry.name,
-       arguments: entry.arguments,
-       sections: filterSections(entry.documentation)
-     }}
+   if (entry.kind == SuggestionKind.Function || entry.kind == SuggestionKind.Method || entry.kind == SuggestionKind.Constructor) {
+     return {
+       Function: {
+         name: entry.name,
+         arguments: entry.arguments,
+         sections: filterSections(entry.documentation)
+       }
+     }
+   } else if (entry.kind == SuggestionKind.Type) {
+     const [entryId] = db.nameToId.lookup(entryQn(entry))
+     const children = Array.from(db.parent.reverseLookup(entryId)).map((id) => db.get(id))
+     const methods = children
+       .filter((child) => child.kind == SuggestionKind.Method)
+       .map((child) => lookupDocumentation(db, child)?.Function)
+     const constructors = children
+       .filter((child) => child.kind == SuggestionKind.Constructor)
+       .map((child) => lookupDocumentation(db, child)?.Function)
+     return {
+       Type: {
+         name: entry.name,
+         arguments: entry.arguments,
+         sections: filterSections(entry.documentation),
+         methods,
+         constructors,
+       }
+     }
+   } else if (entry.kind == SuggestionKind.Module) {
+     const [entryId] = db.nameToId.lookup(entryQn(entry))
+     if (!entryId) return { Placeholder: 'entry kind not handled: ' + entry.kind }
+     const children = Array.from(db.parent.reverseLookup(entryId)).map((id) => db.get(id))
+     const methods = children
+       .filter((child) => child.kind == SuggestionKind.Method)
+       .map((child) => lookupDocumentation(db, child)?.Function)
+     const types = children
+       .filter((child) => child.kind == SuggestionKind.Type)
+       .map((child) => lookupDocumentation(db, child)?.Type)
+     return {
+       Module: {
+         name: entry.name,
+         sections: filterSections(entry.documentation),
+         types,
+         methods,
+       }
+     }
    } else {
      return { Placeholder: 'entry kind not handled: ' + entry.kind }
    }
@@ -104,7 +144,11 @@ const mockFunctions = ref([
  const documentation = computed(() => {
    const db = useSuggestionDbStore()
    const entry = props.selectedEntry
-   return lookupDocumentation(db, entry)
+   if (entry) {
+     return lookupDocumentation(db.entries, entry)
+   } else {
+     return { Placeholder: 'no docs' }
+   }
  })
  const sections = computed(() => {
    const docs = documentation.value
@@ -113,12 +157,42 @@ const mockFunctions = ref([
      return { tags: [ { Tag: { tag: 'Placeholder', body: '' }}], synopsis: [], examples: [] }
    } else if ('Function' in docs) {
      return docs.Function.sections
+   } else if ('Type' in docs) {
+     return docs.Type.sections
+   } else if ('Module' in docs) {
+     return docs.Module.sections
    } else {
      return { tags: [], synopsis: [], examples: [] }
    }
  })
-const fakeDocumentation = computed(() => {
-  const docs: Sections = {
+ const methods = computed(() => {
+   const docs = documentation.value
+   if ('Module' in docs) {
+     return docs.Module.methods
+   } else if ('Type' in docs) {
+     return docs.Type.methods
+   } else {
+     return []
+   }
+ })
+ const constructors = computed(() => {
+   const docs = documentation.value
+   if ('Type' in docs) {
+     return docs.Type.constructors
+   } else {
+     return []
+   }
+ })
+ const types = computed(() => {
+   const docs = documentation.value
+   if ('Module' in docs) {
+     return docs.Module.types
+   } else {
+     return []
+   }
+ })
+ const fakeDocumentation = computed(() => {
+   const docs: Sections = {
     tags: [
       { tag: 'Unstable', body: '' },
       { tag: 'Alias', body: 'bar' },
@@ -154,20 +228,41 @@ const fakeDocumentation = computed(() => {
     <div class="sectionContent">
       <div class="tagsContainer">
         <div v-for="tag in sections.tags" class="tag">
-          {{ tag.tag }}
-          {{ tag.body !== '' ? `= ${tag.body}` : '' }}
+          {{ tag.Tag.tag }}
+          {{ tag.Tag.body !== '' ? `= ${tag.Tag.body}` : '' }}
         </div>
       </div>
     </div>
-    <Functions :functions="mockFunctions" />
     <Synopsis :sections="sections.synopsis" />
-    <div class="headerContainer sectionHeader examplesHeader">
+    <div v-if="types.length > 0" class="headerContainer sectionHeader typesHeader">
+      <SvgIcon name="doc_methods" />
+      <div class="headerText">Types</div>
+    </div>
+    <div class="sectionContent">
+      <Functions :items="{ Types: types }" />
+    </div>
+    <div v-if="constructors.length > 0" class="headerContainer sectionHeader methodsHeader">
+      <SvgIcon name="doc_methods" />
+      <div class="headerText">Contructors</div>
+    </div>
+    <div class="sectionContent">
+      <Functions :items="{ Constructors: constructors }" />
+    </div>
+    <div v-if="methods.length > 0" class="headerContainer sectionHeader methodsHeader">
+      <SvgIcon name="doc_methods" />
+      <div class="headerText">Methods</div>
+    </div>
+    <div class="sectionContent">
+      <Functions :items="{ Methods: methods }" />
+    </div>
+    
+    <div v-if="sections.examples.length > 0" class="headerContainer sectionHeader examplesHeader">
       <SvgIcon name="doc_examples" />
       <div class="headerText">Examples</div>
     </div>
     <div class="sectionContent">
       <div v-for="example in sections.examples" class="exampleContainer">
-        <span v-html="example.Marked.body"></span>
+        <div v-html="example.Marked.body"></div>
       </div>
     </div>
   </div>
@@ -199,12 +294,12 @@ const fakeDocumentation = computed(() => {
   padding-right: 8px;
   padding-bottom: 4px;
   white-space: normal;
-}
+ }
 
-.type {
-  color: var(--enso-docs-type-name-color);
-  font-weight: 600;
-}
+ :deep(.sectionContent) {
+   padding-left: 8px;
+   padding-right: 8px;
+ }
 
 /* Headers. */
 
@@ -281,7 +376,7 @@ div.headerIcon {
   margin-bottom: 0.5rem;
 }
 
-.example {
+:deep(.example) {
   font-family: EnsoRegular;
   white-space: pre;
   overflow-x: auto;

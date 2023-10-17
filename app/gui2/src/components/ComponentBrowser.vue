@@ -156,8 +156,6 @@ const selectedSuggestion = computed(() => {
    return suggestionDbStore.entries.get(id) ?? null
  })
 
- watch(selectedSuggestion, (s) => console.log('selected:', s))
- 
  watch(selectedPosition, (newPos) => {
    if (newPos == null) return
    highlightPosition.value = newPos
@@ -320,7 +318,7 @@ const selectedSuggestion = computed(() => {
         </div>
       </div>
       <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop>
-        <DocumentationPanel selectedEntry="selectedSuggestion" />
+        <DocumentationPanel :selectedEntry="selectedSuggestion" />
       </div>
     </div>
     <div class="CBInput">
