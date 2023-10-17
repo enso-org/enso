@@ -52,6 +52,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 
 'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.flatbuffers.flatbuffers-java-1.12.0`.
 
 
@@ -177,6 +178,7 @@ Copyright notices related to this dependency can be found in the directory `comm
 
 'commons-codec', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `commons-codec.commons-codec-1.16.0`.
 
 
 'commons-io', licensed under the Apache-2.0, is distributed with the engine.
@@ -260,6 +262,7 @@ Copyright notices related to this dependency can be found in the directory `io.s
 
 
 'jna', licensed under the Apache License v2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `net.java.dev.jna.jna-5.5.0`.
 
 
