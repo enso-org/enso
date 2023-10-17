@@ -65,19 +65,13 @@ final class RepoInitialization(
     val initAction =
       for {
         _ <- Future {
-          logger.info(
-            "Initializing suggestions repo [{}]...",
-            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
-          )
+          logger.info("Initializing suggestions repo [{}]...", sqlDatabase)
         }
         _ <- suggestionsRepo.init.recoverWith { case NonFatal(error) =>
           recoverInitError(error, suggestionsRepo.db)
         }
         _ <- Future {
-          logger.info(
-            "Initialized Suggestions repo [{}].",
-            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
-          )
+          logger.info("Initialized Suggestions repo [{}].", sqlDatabase)
         }
       } yield ()
     initAction.onComplete {
@@ -86,7 +80,7 @@ final class RepoInitialization(
       case Failure(ex) =>
         logger.error(
           "Failed to initialize SQL suggestions repo [{}].",
-          MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
+          sqlDatabase,
           ex
         )
     }
@@ -101,7 +95,7 @@ final class RepoInitialization(
       _ <- Future {
         logger.warn(
           "Failed to initialize the suggestions database [{}].",
-          MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
+          db,
           error
         )
       }

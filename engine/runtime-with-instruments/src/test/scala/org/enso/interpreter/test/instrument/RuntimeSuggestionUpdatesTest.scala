@@ -1333,12 +1333,11 @@ class RuntimeSuggestionUpdatesTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None, None))
     )
-    val updates2 = context.receiveNIgnoreExpressionUpdates(4)
-    updates2.length shouldEqual 4
+    val updates2 = context.receiveNIgnoreExpressionUpdates(3)
+    updates2.length shouldEqual 3
     updates2 should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.executionComplete(contextId),
-      Api.Response(Api.BackgroundJobsStartedNotification())
+      context.executionComplete(contextId)
     )
     val indexedModules2 = updates1.collect {
       case Api.Response(

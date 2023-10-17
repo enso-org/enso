@@ -173,7 +173,11 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      logger.info("Initializing resources.")
+      logger.info(
+        "Initializing resources for [{}] [{}].",
+        clientId,
+        mainComponent
+      )
       mainComponent.init().pipeTo(self)
       context.become(initializing(webActor, clientId, req, sender()))
 

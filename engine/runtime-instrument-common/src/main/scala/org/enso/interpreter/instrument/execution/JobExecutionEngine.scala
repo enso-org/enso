@@ -69,6 +69,14 @@ final class JobExecutionEngine(
         cancelDuplicateJobs(job, backgroundJobsRef)
         runInternal(job, backgroundJobExecutor, backgroundJobsRef)
       } else {
+        job match {
+          case job: UniqueJob[_] =>
+            delayedBackgroundJobsQueue.removeIf {
+              case that: UniqueJob[_] => that.equalsTo(job)
+              case _                  => false
+            }
+          case _ =>
+        }
         delayedBackgroundJobsQueue.add(job)
       }
     }
@@ -167,6 +175,19 @@ final class JobExecutionEngine(
       .interruptThreads()
   }
 
+  override def abortBackgroundJobs(toAbort: Class[_ <: Job[_]]*): Unit = {
+    val allJobs =
+      backgroundJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
+    val cancellableJobs = allJobs
+      .filter { runningJob =>
+        runningJob.job.isCancellable &&
+        toAbort.contains(runningJob.job.getClass)
+      }
+    cancellableJobs.foreach { runningJob =>
+      runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+    }
+  }
+
   /** @inheritdoc */
   override def startBackgroundJobs(): Boolean =
     synchronized {
@@ -199,6 +220,14 @@ final class JobExecutionEngine(
     Collections.sort(
       delayedBackgroundJobsQueue,
       BackgroundJob.BACKGROUND_JOBS_QUEUE_ORDER
+    )
+    runtimeContext.executionService.getLogger.log(
+      Level.INFO,
+      "Submitting {0} background jobs [{1}]",
+      Array[AnyRef](
+        delayedBackgroundJobsQueue.size(): Integer,
+        delayedBackgroundJobsQueue
+      )
     )
     delayedBackgroundJobsQueue.forEach(job => runBackground(job))
     delayedBackgroundJobsQueue.clear()
