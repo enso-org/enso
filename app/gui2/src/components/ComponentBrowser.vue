@@ -36,10 +36,7 @@ onMounted(() => {
 const transform = computed(() => {
   const nav = props.navigator
   const translate = nav.translate
-  const position = {
-    x: Math.round((translate.x + props.position.x) * nav.scale),
-    y: Math.round((translate.y + props.position.y) * nav.scale),
-  }
+  const position = translate.add(props.position).scale(nav.scale)
 
   return `translate(${position.x}px, ${position.y}px) translateY(-100%)`
 })
