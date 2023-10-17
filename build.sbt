@@ -1611,6 +1611,13 @@ lazy val `engine-runner` = project
   .settings(
     frgaalJavaCompilerSetting,
     truffleDslSuppressWarnsSetting,
+    // Needed for the JPMS to work
+    compileOrder := CompileOrder.JavaThenScala,
+    moduleInfos := Seq(
+      JpmsModule(
+        "org.enso.runner"
+      )
+    ),
     javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
