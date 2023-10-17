@@ -1738,43 +1738,43 @@ class IrToTruffle(
         case err: errors.Syntax =>
           context.getBuiltins
             .error()
-            .makeSyntaxError(Text.create(err.message))
+            .makeSyntaxError(Text.create(err.message(source)))
         case err: errors.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Method =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Type =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.SelfArg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Resolution =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case _: errors.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
