@@ -230,6 +230,12 @@ const definedNamespaces = new Set<string>()
 
 export const DefaultHandler = Symbol('default handler')
 
+/**
+ *
+ * @param namespace
+ * @param bindings
+ * @returns
+ */
 export function defineKeybinds<
   T extends Record<BindingName, [] | string[]>,
   BindingName extends keyof T = keyof T,
