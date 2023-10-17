@@ -2,9 +2,9 @@ package org.enso.table.data.column.operation.cast;
 
 import java.util.ArrayList;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 
-public class CastProblemBuilder {
+public class CastProblemAggregator extends ProblemAggregator {
   private final String columnName;
   private final StorageType targetType;
   private int failedConversionsCount = 0;
@@ -15,9 +15,10 @@ public class CastProblemBuilder {
   private final ArrayList<Object> failedConversionExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
   private final ArrayList<Object> numberOutOfRangeExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
   private final ArrayList<String> textTooLongExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
-  private AggregatedProblems otherProblems = new AggregatedProblems();
 
-  public CastProblemBuilder(String columnName, StorageType targetType) {
+  public CastProblemAggregator(
+      ProblemAggregator parent, String columnName, StorageType targetType) {
+    super(parent);
     this.columnName = columnName;
     this.targetType = targetType;
   }
@@ -46,13 +47,9 @@ public class CastProblemBuilder {
     }
   }
 
-  public void aggregateOtherProblems(AggregatedProblems problems) {
-    otherProblems = AggregatedProblems.merge(otherProblems, problems);
-  }
-
-  private AggregatedProblems summarizeMyProblems() {
-    AggregatedProblems problems = new AggregatedProblems();
-
+  @Override
+  public ProblemSummary summarize() {
+    var problems = super.summarize();
     if (failedConversionsCount > 0) {
       problems.add(
           new ConversionFailure(
@@ -84,9 +81,5 @@ public class CastProblemBuilder {
     }
 
     return problems;
-  }
-
-  public AggregatedProblems getAggregatedProblems() {
-    return AggregatedProblems.merge(summarizeMyProblems(), otherProblems);
   }
 }

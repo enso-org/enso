@@ -11,6 +11,7 @@ import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
+import project.Internal.Java_Problems
 
 polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.table.read.ExcelReader
@@ -163,9 +164,11 @@ type Excel_Workbook
     read : Text -> Integer | Nothing -> Table
     read self query limit=Nothing =
         java_headers = Excel_Reader.make_java_headers self.headers
-        Excel_Reader.prepare_reader_table Report_Warning <| case query of
-            _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit
-            _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit
+        java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            case query of
+                _ : Excel_Range -> ExcelReader.readRange self.workbook query.java_range java_headers 0 limit java_problem_aggregator
+                _ : Text -> ExcelReader.readRangeByName self.workbook query java_headers 0 limit java_problem_aggregator
+        Table.Value java_table
 
     ## GROUP Standard.Base.Input
        Read an Excel_Section from the Workbook
@@ -187,12 +190,15 @@ type Excel_Workbook
                         if (sheet < 1 || sheet >= names.length) then Error.throw (Illegal_Argument.Error "Worksheet index out of range.") else
                             names.at (sheet - 1)
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
-                Excel_Reader.prepare_reader_table Report_Warning <|
-                    ExcelReader.readRangeByName self.workbook sheet_name java_headers skip_rows row_limit
+                java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                    ExcelReader.readRangeByName self.workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
+                Table.Value java_table
             Excel_Section.Cell_Range address skip_rows row_limit ->
-                Excel_Reader.prepare_reader_table Report_Warning <| case address of
-                    _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit
-                    _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit
+                java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                    case address of
+                        _ : Excel_Range -> ExcelReader.readRange self.workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
+                        _ : Text -> ExcelReader.readRangeByName self.workbook address java_headers skip_rows row_limit java_problem_aggregator
+                Table.Value java_table
 
     ## ALIAS worksheet, get
        GROUP Standard.Base.Input

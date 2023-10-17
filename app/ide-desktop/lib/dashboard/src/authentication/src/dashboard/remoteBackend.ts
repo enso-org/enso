@@ -103,7 +103,7 @@ export interface ListSecretsResponseBody {
 
 /** HTTP response body for the "list tag" endpoint. */
 export interface ListTagsResponseBody {
-    tags: backendModule.Tag[]
+    tags: backendModule.Label[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
@@ -242,14 +242,12 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.get<ListDirectoryResponseBody>(
             remoteBackendPaths.LIST_DIRECTORY_PATH +
                 '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.parentId != null ? { parent_id: query.parentId } : {}),
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.filterBy != null ? { filter_by: query.filterBy } : {}),
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.recentProjects ? { recent_projects: String(true) } : {}),
-                }).toString()
+                new URLSearchParams([
+                    ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+                    ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+                    ...(query.recentProjects ? [['recent_projects', String(true)]] : []),
+                    ...(query.labels != null ? query.labels.map(label => ['label', label]) : []),
+                ]).toString()
         )
         if (!responseIsSuccessful(response)) {
             if (response.status === STATUS_SERVER_ERROR) {
@@ -642,58 +640,70 @@ export class RemoteBackend extends backendModule.Backend {
         }
     }
 
-    /** Create a file tag or project tag.
+    /** Create a label used for categorizing assets.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
     override async createTag(
         body: backendModule.CreateTagRequestBody
-    ): Promise<backendModule.TagInfo> {
-        const response = await this.post<backendModule.TagInfo>(
+    ): Promise<backendModule.Label> {
+        const response = await this.post<backendModule.Label>(
             remoteBackendPaths.CREATE_TAG_PATH,
-            {
-                /* eslint-disable @typescript-eslint/naming-convention */
-                tag_name: body.name,
-                tag_value: body.value,
-                object_type: body.objectType,
-                object_id: body.objectId,
-                /* eslint-enable @typescript-eslint/naming-convention */
-            }
+            body
         )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not create create tag with name '${body.name}'.`)
+            return this.throw(`Could not create label '${body.value}'.`)
         } else {
             return await response.json()
         }
     }
 
-    /** Return file tags or project tags accessible by the user.
+    /** Return all labels accessible by the user.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    override async listTags(
-        params: backendModule.ListTagsRequestParams
-    ): Promise<backendModule.Tag[]> {
-        const response = await this.get<ListTagsResponseBody>(
-            remoteBackendPaths.LIST_TAGS_PATH +
-                '?' +
-                new URLSearchParams({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    tag_type: params.tagType,
-                }).toString()
-        )
+    override async listTags(): Promise<backendModule.Label[]> {
+        const response = await this.get<ListTagsResponseBody>(remoteBackendPaths.LIST_TAGS_PATH)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not list tags of type '${params.tagType}'.`)
+            return this.throw(`Could not list labels.`)
         } else {
             return (await response.json()).tags
         }
     }
 
-    /** Delete a secret environment variable.
+    /** Set the full list of labels for a specific asset.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    override async deleteTag(tagId: backendModule.TagId): Promise<void> {
+    override async associateTag(
+        assetId: backendModule.AssetId,
+        labels: backendModule.LabelName[],
+        title: string | null
+    ) {
+        const response = await this.patch<ListTagsResponseBody>(
+            remoteBackendPaths.associateTagPath(assetId),
+            {
+                labels,
+            }
+        )
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Could not set labels for asset ${
+                    title != null ? `'${title}'` : `with ID '${assetId}'`
+                }.`
+            )
+        } else {
+            return
+        }
+    }
+
+    /** Delete a label.
+     *
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    override async deleteTag(
+        tagId: backendModule.TagId,
+        value: backendModule.LabelName
+    ): Promise<void> {
         const response = await this.delete(remoteBackendPaths.deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Could not delete tag with ID '${tagId}'.`)
+            return this.throw(`Could not delete label '${value}'.`)
         } else {
             return
         }

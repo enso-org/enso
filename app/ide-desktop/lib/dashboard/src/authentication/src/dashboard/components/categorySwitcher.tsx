@@ -8,11 +8,11 @@ import TempIcon from 'enso-assets/temp.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as assetEvent from '../events/assetEvent'
+import * as drag from '../drag'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as modalProvider from '../../providers/modal'
 
-import * as assetsTable from './assetsTable'
 import SvgMask from '../../authentication/components/svgMask'
 
 // ============================
@@ -167,9 +167,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                             event.preventDefault()
                             event.stopPropagation()
                             unsetModal()
-                            const payload = assetsTable.tryGetAssetRowsDragPayload(
-                                event.dataTransfer
-                            )
+                            const payload = drag.tryGetAssetRowsDragPayload(event.dataTransfer)
                             if (payload != null) {
                                 dispatchAssetEvent({
                                     type:

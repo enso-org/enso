@@ -10,6 +10,7 @@ polyglot java import java.sql.ResultSet
 polyglot java import java.time.LocalTime as Java_Local_Time
 
 polyglot java import org.enso.database.JDBCUtils
+polyglot java import org.enso.table.problems.ProblemAggregator
 
 type Column_Fetcher
     ## PRIVATE
@@ -22,7 +23,9 @@ type Column_Fetcher
          It takes an initial size as an argument. That size is only a suggestion
          for initial capacity and the builder must be ready to accept more or
          less rows than that.
-    Value (fetch_value : ResultSet -> Integer -> Any) (make_builder : Integer -> Column_Fetcher_Builder)
+         It also takes a ProblemAggregator used for reporting problems. Care has
+         to be taken to ensure that the builder does not outlive the aggregator.
+    Value (fetch_value : ResultSet -> Integer -> Any) (make_builder : Integer -> ProblemAggregator -> Column_Fetcher_Builder)
 
 ## We could use `Storage.make_builder` here, but this builder allows us to pass
    raw Truffle values around (like `long`) instead of boxing them.
@@ -48,7 +51,7 @@ boolean_fetcher =
     fetch_value rs i =
         b = rs.getBoolean i
         if rs.wasNull then Nothing else b
-    make_builder _ =
+    make_builder _ _ =
         java_builder = Java_Exports.make_bool_builder
         append v =
             if v.is_nothing then java_builder.appendNulls 1 else
@@ -62,8 +65,8 @@ double_fetcher =
     fetch_value rs i =
         d = rs.getDouble i
         if rs.wasNull then Nothing else d
-    make_builder initial_size =
-        java_builder = Java_Exports.make_double_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_double_builder initial_size java_problem_aggregator
         append v =
             if v.is_nothing then java_builder.appendNulls 1 else
                 java_builder.appendDouble v
@@ -76,8 +79,8 @@ long_fetcher bits =
     fetch_value rs i =
         l = rs.getLong i
         if rs.wasNull then Nothing else l
-    make_builder initial_size =
-        java_builder = Java_Exports.make_long_builder initial_size bits=bits
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_long_builder initial_size bits java_problem_aggregator
         append v =
             if v.is_nothing then java_builder.appendNulls 1 else
                 java_builder.appendLong v
@@ -91,8 +94,8 @@ big_integer_fetcher =
         big_decimal = rs.getBigDecimal i
         if rs.wasNull then Nothing else
             big_decimal.toBigIntegerExact
-    make_builder initial_size =
-        java_builder = Java_Exports.make_biginteger_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_biginteger_builder initial_size java_problem_aggregator
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
@@ -102,7 +105,7 @@ text_fetcher value_type =
     fetch_value rs i =
         t = rs.getString i
         if rs.wasNull then Nothing else t
-    make_builder initial_size =
+    make_builder initial_size _ =
         java_builder = Java_Exports.make_string_builder initial_size value_type=value_type
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
@@ -119,8 +122,8 @@ fallback_fetcher =
     fetch_value rs i =
         v = rs.getObject i
         if rs.wasNull then Nothing else v
-    make_builder initial_size =
-        java_builder = Java_Exports.make_inferred_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_inferred_builder initial_size java_problem_aggregator
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
@@ -129,7 +132,7 @@ time_fetcher =
     fetch_value rs i =
         time = rs.getObject i Java_Local_Time.class
         if rs.wasNull then Nothing else time
-    make_builder initial_size =
+    make_builder initial_size _ =
         java_builder = Java_Exports.make_time_of_day_builder initial_size
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
@@ -137,7 +140,7 @@ time_fetcher =
 ## PRIVATE
 date_time_fetcher =
     fetch_value rs i = JDBCUtils.getZonedDateTime rs i
-    make_builder initial_size =
+    make_builder initial_size _ =
         java_builder = Java_Exports.make_date_time_builder initial_size
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder

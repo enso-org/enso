@@ -1,4 +1,4 @@
-import init, { parse, parse_doc_to_json } from '../../rust-ffi/pkg/rust_ffi'
+import init, { parse, parse_doc_to_json } from 'rust-ffi/pkg/rust_ffi'
 
 if (RUNNING_VITEST) {
   const fs = await import('node:fs/promises')
