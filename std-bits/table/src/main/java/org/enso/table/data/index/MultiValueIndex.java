@@ -17,7 +17,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
@@ -85,15 +84,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       Context context = Context.getCurrent();
       for (int i = 0; i < size; i++) {
         KeyType key = keyFactory.apply(i);
-
-        if (key.hasFloatValues()) {
-          final int row = i;
-          key.floatColumnPositions()
-              .forEach(
-                  columnIx ->
-                      groupingProblemAggregator.reportColumnAggregatedProblem(
-                          new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
-        }
+        key.checkAndReportFloatingEquality(
+            groupingProblemAggregator, columnIx -> keyColumns[columnIx].getName());
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
         ids.add(i);
