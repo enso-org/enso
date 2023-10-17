@@ -23,7 +23,7 @@ val scalacVersion = "2.13.11"
 val graalVersion  = "17.0.7"
 // Version used for the Graal/Truffle related Maven packages
 val graalMavenPackagesVersion = "23.0.0"
-val targetJavaVersion         = graalVersion.split("\\.")(0)
+val targetJavaVersion         = "11"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
