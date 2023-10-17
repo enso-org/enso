@@ -204,6 +204,11 @@ class Main implements AppRunner {
             const actualMetadata =
                 loggingMetadata == null ? metadata : { ...loggingMetadata, ...metadataObject }
             if (newApp.config.options.dataCollection.value && remoteLogger != null) {
+                // FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/735
+                // The current GUI sends a lot of logs (over 300) every time a project is opened.
+                // This severely degrades performance, and the logs generated do not appear to be
+                // useful. This should be re-enabled when the GUI no longer sends a large amount
+                // of logs.
                 // await remoteLogger.remoteLog(message, actualMetadata)
             } else {
                 const logMessage = [
