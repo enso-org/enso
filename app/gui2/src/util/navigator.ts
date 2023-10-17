@@ -70,6 +70,11 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     return { x: -x + w / 2, y: -y + h / 2 }
   })
 
+  const translate = computed(() => ({
+    x: transformValue.value.x,
+    y: transformValue.value.y,
+  }))
+
   const transform = computed(
     () =>
       `scale(${scale.value}) translate(${transformValue.value.x}px, ${transformValue.value.y}px)`,
@@ -126,6 +131,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         }
       },
     },
+    translate,
     scale,
     viewBox,
     transform,
