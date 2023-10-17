@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.ValueTypeMismatchException;
+import org.enso.table.problems.ProblemAggregator;
 
 import java.math.BigInteger;
 import java.util.BitSet;
@@ -20,7 +21,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   static InferringDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
     int currentSize = longBuilder.currentSize;
     InferringDoubleBuilder newBuilder =
-        new InferringDoubleBuilder(longBuilder.isMissing, longBuilder.data, currentSize);
+        new InferringDoubleBuilder(longBuilder.isMissing, longBuilder.data, currentSize, longBuilder.problemAggregator);
 
     // Invalidate the old builder.
     longBuilder.data = null;
@@ -39,7 +40,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
         if (isLossy) {
           // Save it raw for recovery.
           newBuilder.setRaw(i, currentIntegerValue);
-          newBuilder.reportPrecisionLoss(currentIntegerValue, convertedFloatValue);
+          newBuilder.precisionLossAggregator.reportPrecisionLoss(currentIntegerValue, convertedFloatValue);
           // Unmark the long that did not fit:
           newBuilder.isLongCompactedAsDouble.set(i, false);
         }
@@ -51,8 +52,8 @@ public class InferringDoubleBuilder extends DoubleBuilder {
     return newBuilder;
   }
 
-  InferringDoubleBuilder(BitSet isMissing, long[] doubleData, int currentSize) {
-    super(isMissing, doubleData, currentSize);
+  InferringDoubleBuilder(BitSet isMissing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
+    super(isMissing, doubleData, currentSize, problemAggregator);
     rawData = null;
     isLongCompactedAsDouble = new BitSet();
   }
@@ -95,8 +96,8 @@ public class InferringDoubleBuilder extends DoubleBuilder {
       }
     }
 
-    // Since we are retyping to Mixed, the precision loss warnings should not be inherited - thus we reset them.
-    precisionLoss = null;
+    // Since we are retyping to Mixed, the precision loss warnings should not be inherited - thus we discard them.
+    precisionLossAggregator.detachFromParent();
   }
 
   @Override
@@ -129,7 +130,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
     boolean isLossy = integer != (long) convertedFloatValue;
     if (isLossy) {
       setRaw(currentSize, integer);
-      reportPrecisionLoss(integer, convertedFloatValue);
+      precisionLossAggregator.reportPrecisionLoss(integer, convertedFloatValue);
     } else {
       isLongCompactedAsDouble.set(currentSize, true);
     }

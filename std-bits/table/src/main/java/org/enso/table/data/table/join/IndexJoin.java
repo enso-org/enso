@@ -8,7 +8,8 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.join.scan.Matcher;
 import org.enso.table.data.table.join.scan.MatcherFactory;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 import java.util.List;
@@ -20,7 +21,7 @@ public class IndexJoin implements JoinStrategy {
   }
 
   @Override
-  public JoinResult join(Table left, Table right, List<JoinCondition> conditions) {
+  public JoinResult join(Table left, Table right, List<JoinCondition> conditions, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     List<HashEqualityCondition> equalConditions =
         conditions.stream()
@@ -41,12 +42,14 @@ public class IndexJoin implements JoinStrategy {
             .collect(Collectors.toList());
 
     var leftIndex =
-        MultiValueIndex.makeUnorderedIndex(leftEquals, left.rowCount(), textFoldingStrategies);
+        MultiValueIndex.makeUnorderedIndex(leftEquals, left.rowCount(), textFoldingStrategies, problemAggregator);
     var rightIndex =
-        MultiValueIndex.makeUnorderedIndex(rightEquals, right.rowCount(), textFoldingStrategies);
+        MultiValueIndex.makeUnorderedIndex(rightEquals, right.rowCount(), textFoldingStrategies, problemAggregator);
 
     MatcherFactory factory = new MatcherFactory();
-    Matcher remainingMatcher = factory.create(remainingConditions);
+    Matcher remainingMatcher = factory.create(
+        remainingConditions, new ColumnAggregatedProblemAggregator(problemAggregator)
+    );
 
     JoinResult.Builder resultBuilder = new JoinResult.Builder();
     for (var leftKey : leftIndex.keys()) {
@@ -67,9 +70,7 @@ public class IndexJoin implements JoinStrategy {
       context.safepoint();
     }
 
-    AggregatedProblems problems =
-        AggregatedProblems.merge(leftIndex.getProblems(), rightIndex.getProblems(), remainingMatcher.getProblems());
-    return resultBuilder.build(problems);
+    return resultBuilder.build();
   }
 
   private static boolean isSupported(JoinCondition condition) {

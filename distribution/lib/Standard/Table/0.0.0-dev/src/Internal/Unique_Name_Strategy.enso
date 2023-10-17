@@ -40,7 +40,7 @@ type Unique_Name_Strategy
              invalid = unique_name_strategy.invalid_names
     new : Naming_Properties -> Unique_Name_Strategy
     new naming_properties =
-        deduplicator = NameDeduplicator.new naming_properties
+        deduplicator = NameDeduplicator.createIgnoringProblems naming_properties
         Unique_Name_Strategy.Value deduplicator
 
     ## PRIVATE

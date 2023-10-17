@@ -1,13 +1,35 @@
 <script setup lang="ts">
+import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import type { Highlighter } from '@/util/codemirror'
+import { colorFromString } from '@/util/colors'
 import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
 import { computed, onMounted, ref, watchEffect } from 'vue'
+import * as Y from 'yjs'
+import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
+import { unwrap } from '../util/result'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
-const { minimalSetup, EditorState, EditorView, yCollab } = await import('@/util/codemirror')
+const {
+  bracketMatching,
+  foldGutter,
+  highlightSelectionMatches,
+  minimalSetup,
+  EditorState,
+  EditorView,
+  yCollab,
+  syntaxHighlighting,
+  defaultHighlightStyle,
+  tooltips,
+  enso,
+  hoverTooltip,
+} = await import('@/util/codemirror')
 
 const projectStore = useProjectStore()
+const graphStore = useGraphStore()
+const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
 
 // == CodeMirror editor setup  ==
@@ -22,7 +44,65 @@ watchEffect(() => {
   editorView.setState(
     EditorState.create({
       doc: yText.toString(),
-      extensions: [minimalSetup, yCollab(yText, awareness, { undoManager })],
+      extensions: [
+        minimalSetup,
+        yCollab(yText, awareness, { undoManager }),
+        syntaxHighlighting(defaultHighlightStyle as Highlighter),
+        bracketMatching(),
+        foldGutter(),
+        highlightSelectionMatches(),
+        tooltips({ position: 'absolute' }),
+        hoverTooltip((ast) => {
+          const dom = document.createElement('div')
+          const ydoc = projectStore.module?.doc.ydoc
+          if (ydoc == null) return
+          const start = ast.whitespaceStartInCodeParsed + ast.whitespaceLengthInCodeParsed
+          const end = start + ast.childrenLengthInCodeParsed
+          let foundNode: Node | undefined
+          for (const node of graphStore.nodes.values()) {
+            const nodeStart = Y.createAbsolutePositionFromRelativePosition(node.docRange[0], ydoc)
+              ?.index
+            if (nodeStart == null || nodeStart > start) continue
+            const nodeEnd = Y.createAbsolutePositionFromRelativePosition(node.docRange[1], ydoc)
+              ?.index
+            if (nodeEnd == null || nodeEnd < end) continue
+            foundNode = node
+            break
+          }
+          if (foundNode == null) return
+          const expressionInfo = projectStore.computedValueRegistry.getExpressionInfo(
+            foundNode.rootSpan.id,
+          )
+          if (expressionInfo == null) return
+          dom
+            .appendChild(document.createElement('div'))
+            .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.id}`))
+          dom
+            .appendChild(document.createElement('div'))
+            .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+          const method = expressionInfo?.methodCall?.methodPointer
+          if (method != null) {
+            const moduleName = tryQualifiedName(method.module)
+            const methodName = tryQualifiedName(method.name)
+            const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+            const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
+            const suggestionEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
+            if (suggestionEntry != null) {
+              const groupNode = dom.appendChild(document.createElement('div'))
+              groupNode.appendChild(document.createTextNode('Group: '))
+              const groupNameNode = groupNode.appendChild(document.createElement('span'))
+              groupNameNode.appendChild(document.createTextNode(`${method.module}.${method.name}`))
+              groupNameNode.style.color =
+                suggestionEntry?.groupIndex != null
+                  ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.groupIndex]
+                      ?.name})`
+                  : colorFromString(expressionInfo?.typename ?? 'Unknown')
+            }
+          }
+          return { dom }
+        }),
+        enso(),
+      ],
     }),
   )
 })
@@ -89,7 +169,15 @@ const editorStyle = computed(() => {
   height: 30%;
   max-width: calc(100% - 10px);
   max-height: calc(100% - 10px);
-  backdrop-filter: blur(16px);
+
+  &::before {
+    content: '';
+    display: inline-block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(16px);
+  }
 
   &.v-enter-active,
   &.v-leave-active {
@@ -128,6 +216,7 @@ const editorStyle = computed(() => {
 }
 
 .CodeEditor :is(.cm-editor) {
+  position: relative;
   color: white;
   width: 100%;
   height: 100%;
@@ -142,7 +231,21 @@ const editorStyle = computed(() => {
   outline: 1px solid transparent;
   transition: outline 0.1s ease-in-out;
 }
+
 .CodeEditor :is(.cm-focused) {
   outline: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.CodeEditor :is(.cm-tooltip-hover) {
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+
+  &::before {
+    content: '';
+    background-color: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(64px);
+  }
 }
 </style>

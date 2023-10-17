@@ -583,3 +583,6 @@ type Empty_Error
 ## PRIVATE
 range_default_filter_condition_widget =
     Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False
+
+## PRIVATE
+Vector.from (that:Range) = that.to_vector

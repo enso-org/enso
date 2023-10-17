@@ -10,9 +10,9 @@ import * as eventModule from '../event'
 import * as fileIcon from '../../fileIcon'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
-import * as presence from '../presence'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
+import * as visibility from '../visibility'
 
 import type * as column from '../column'
 import EditableSpan from './editableSpan'
@@ -62,8 +62,11 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.closeProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple:
-            case assetEventModule.AssetEventType.restoreMultiple:
+            case assetEventModule.AssetEventType.cut:
+            case assetEventModule.AssetEventType.cancelCut:
+            case assetEventModule.AssetEventType.move:
+            case assetEventModule.AssetEventType.delete:
+            case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf:
             case assetEventModule.AssetEventType.deleteLabel: {
@@ -75,7 +78,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             case assetEventModule.AssetEventType.uploadFiles: {
                 const file = event.files.get(item.key)
                 if (file != null) {
-                    rowState.setPresence(presence.Presence.inserting)
+                    rowState.setVisibility(visibility.Visibility.faded)
                     try {
                         const createdFile = await backend.uploadFile(
                             {
@@ -85,7 +88,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                             },
                             file
                         )
-                        rowState.setPresence(presence.Presence.present)
+                        rowState.setVisibility(visibility.Visibility.visible)
                         setAsset({
                             ...asset,
                             id: createdFile.id,

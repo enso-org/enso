@@ -1678,19 +1678,28 @@ class IrToTruffle(
             module.unsafeAsModule().getScope.getAssociatedType
           )
         case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
-          ConstantObjectNode.build(
-            module
-              .unsafeAsModule()
-              .getScope
-              .getPolyglotSymbol(symbol.name)
-          )
+          val s = module
+            .unsafeAsModule()
+            .getScope
+            .getPolyglotSymbol(symbol.name)
+          if (s == null) {
+            throw new CompilerError(
+              s"No polyglot symbol for ${symbol.name}"
+            )
+          }
+          ConstantObjectNode.build(s)
         case BindingsMap.ResolvedPolyglotField(symbol, name) =>
-          ConstantObjectNode.build(
-            symbol.module
-              .unsafeAsModule()
-              .getScope
-              .getPolyglotSymbol(name)
-          )
+          val s = symbol.module
+            .unsafeAsModule()
+            .getScope
+            .getPolyglotSymbol(name)
+          if (s == null) {
+            throw new CompilerError(
+              s"No polyglot field for ${name}"
+            )
+          }
+
+          ConstantObjectNode.build(s)
         case BindingsMap.ResolvedMethod(_, method) =>
           throw new CompilerError(
             s"Impossible here, ${method.name} should be caught when translating application"

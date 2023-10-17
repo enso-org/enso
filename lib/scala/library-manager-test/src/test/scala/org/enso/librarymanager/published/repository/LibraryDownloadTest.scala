@@ -10,7 +10,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.slf4j.event.Level
 import org.enso.logger.TestLogger
 
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 class LibraryDownloadTest
     extends AnyWordSpec
@@ -22,7 +22,7 @@ class LibraryDownloadTest
 
   "DownloadingLibraryCache" should {
     "be able to download and install libraries from a repository" in {
-      val repo = new ExampleRepository
+      val repo = new ExampleRepository(Path.of("../../../"))
 
       val repoRoot = getTestDirectory.resolve("repo")
       repo.createRepository(repoRoot)

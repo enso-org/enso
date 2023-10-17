@@ -37,7 +37,7 @@ class RuntimeConnector(
         engine
       )
       unstashAll()
-      context.become(initialized(engine, Map()))
+      context.become(waitingOnEndpoint(engine))
     case _ => stash()
   }
 
@@ -45,6 +45,20 @@ class RuntimeConnector(
     eventsMonitor.registerEvent(event)
     event
   }
+
+  private def waitingOnEndpoint(engine: MessageEndpoint): Receive =
+    registerEvent.andThen(LoggingReceive {
+      case MessageFromRuntime(
+            Runtime.Api.Response(None, Api.InitializedNotification())
+          ) =>
+        logger.debug(
+          s"Message endpoint [{}] is initialized. Runtime connector can accept messages.",
+          engine
+        )
+        unstashAll()
+        context.become(initialized(engine, Map()))
+      case _ => stash()
+    })
 
   /** Performs communication between runtime and language server.
     *
