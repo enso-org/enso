@@ -29,14 +29,18 @@ object JPMSUtils {
    * dependencies. We care only about the one from the `runtime` project.
    * The following merge strategy ensures that all other module-info.class
    * files are discarded from the resulting uber Jar.
+   *
+   * @param projName Project name for which the module-info.class is retained.
    */
-  def moduleInfoMergeStrategy: MergeStrategy = {
+  def removeAllModuleInfoExcept(
+    projName: String
+  ): MergeStrategy = {
     CustomMergeStrategy(
-      strategyName = "Discard all module-info except for org.enso.runtime",
+      strategyName = s"Discard all module-info except for module-info from project $projName",
       notifyIfGTE = 1
     ) { conflictingDeps: Vector[Dependency] =>
       val runtimeModuleInfoOpt = conflictingDeps.collectFirst {
-        case project@Project(name, _, _, stream) if name == "runtime" =>
+        case project@Project(name, _, _, stream) if name == projName =>
           project
       }
       runtimeModuleInfoOpt match {
