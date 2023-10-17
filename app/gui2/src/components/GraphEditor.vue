@@ -270,30 +270,18 @@ function clearSelection() {
 /// Track play button presses
 function onPlayButtonPress() {
   projectStore.lsRpcConnection.then(async (rpc) => {
-    const ctxID = await executionCtx.value?.state.then((ctx) => ctx?.id)
-    if (ctxID == undefined) {
-      console.warn('No execution context available for setting the execution mode.')
-      return
-    }
-    const mode_value = mode.value
-    if (mode_value == undefined) {
+    const modeValue = mode.value
+    if (modeValue == undefined) {
       console.error('No execution mode available for setting the execution mode.')
       return
     }
-    await rpc.recomputeExecutionContext(ctxID, 'all', mode_value === 'live' ? 'Live' : 'Design')
+    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
   })
 }
 
 /// Observe execution mode changes
 watchEffect(async () => {
-  const ctxID = await executionCtx.value?.state.then((ctx) => ctx?.id)
-  projectStore.lsRpcConnection.then(async (rpc) => {
-    if (ctxID == undefined) {
-      console.warn('No execution context available for setting the execution mode.')
-      return
-    }
-    await rpc.setExecutionEnvironment(ctxID, mode.value === 'live' ? 'Live' : 'Design')
-  })
+  projectStore.executionContext.setExecutionEnvironment(mode.value === 'live' ? 'Live' : 'Design')
 })
 
 const groupColors = computed(() => {
