@@ -1,8 +1,5 @@
 /** @file Utilities for indenting elements. */
 
-// Although this file does not contain JSX, it must be a `.tsx` file for Tailwind to include its
-// strings as classes.
-
 // =================
 // === Constants ===
 // =================
