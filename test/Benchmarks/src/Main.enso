@@ -22,6 +22,7 @@ import project.Collections
 import project.Column_Numeric
 import project.Equality
 import project.Json_Bench
+import project.Map.Hash_Map
 import project.Natural_Order_Sort
 import project.Number_Parse
 import project.Numeric
@@ -38,6 +39,9 @@ all_benchmarks =
     builder.append Distinct.collect_benches
     builder.append Operations.collect_benches
     builder.append Sort.collect_benches
+
+    # Map
+    builder.append Hash_Map.collect_benches
 
     # Statistics
     builder.append Count_Min_Max.collect_benches

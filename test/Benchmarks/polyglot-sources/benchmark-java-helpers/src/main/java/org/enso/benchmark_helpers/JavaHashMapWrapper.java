@@ -18,4 +18,19 @@ public class JavaHashMapWrapper {
   public Object get(Object key) {
     return map.get(key);
   }
+
+  public long size() {
+    return map.size();
+  }
+
+  public Object[][] to_vector() {
+    Object[][] result = new Object[map.size()][2];
+    int i = 0;
+    for (var entry : map.entrySet()) {
+      result[i][0] = entry.getKey();
+      result[i][1] = entry.getValue();
+      i++;
+    }
+    return result;
+  }
 }
