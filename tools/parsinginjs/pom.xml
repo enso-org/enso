@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.enso</groupId>
+    <artifactId>parsinginjs</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <exec.mainClass>org.enso.parsinginjs.Parsinginjs</exec.mainClass>
+    </properties>
+    <dependencies>
+        <!--
+            $ sbt runtime-parser/assembly
+            $ mvn install:install-file
+                -Dfile=engine/runtime-parser/target/scala-2.13/runtime-parser-assembly-0.0.0-dev.jar
+                -DgroupId=org.enso.engine -DartifactId=runtime-parser
+                -Dpackaging=jar -Dversion=1.0-SNAPSHOT
+        -->
+        <dependency>
+            <groupId>org.enso.engine</groupId>
+            <artifactId>runtime-parser</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apidesign.bck2brwsr</groupId>
+            <artifactId>core</artifactId>
+            <version>0.54</version>
+            <type>jar</type>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apidesign.bck2brwsr</groupId>
+                <artifactId>bck2brwsr-maven-plugin</artifactId>
+                <version>0.54</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm</artifactId>
+                        <version>9.6</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.frgaal</groupId>
+                        <artifactId>compiler-maven-plugin</artifactId>
+                        <version>20.0.1</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <compilerId>frgaal</compilerId>
+                    <source>20</source>
+                    <target>8</target>
+                    <testTarget>8</testTarget>
+                    <compilerArgs>
+                        <arg>-Xlint:deprecation</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+</project>
