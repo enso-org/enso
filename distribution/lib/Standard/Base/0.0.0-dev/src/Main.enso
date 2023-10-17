@@ -69,7 +69,8 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Java
 import project.Polyglot.Polyglot
-import project.Random
+import project.Random.Random
+import project.Random.Random_Generator
 import project.Runtime
 import project.System
 import project.System.Environment
@@ -159,7 +160,8 @@ export project.Nothing.Nothing
 export project.Panic.Panic
 export project.Polyglot.Java
 export project.Polyglot.Polyglot
-export project.Random
+export project.Random.Random
+export project.Random.Random_Generator
 export project.Runtime
 export project.System
 export project.System.Environment

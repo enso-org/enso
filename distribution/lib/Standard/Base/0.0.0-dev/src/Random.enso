@@ -1,83 +1,128 @@
+import project.Any.Any
+import project.Data.Range.Range
+import project.Data.Text.Text
+import project.Data.Time.Date_Range.Date_Range
+import project.Data.Map.Map
+import project.Data.Set.Set
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+import project.Runtime.Ref.Ref
+import project.System
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Numbers import Float, Integer
+
+polyglot java import java.util.Random as Java_Random
+
 type Random
+    ## GROUP Random
+       Create a new `Random_Generator` with the specified seed.
+
+       Arguments:
+       - seed: The seed used to initialze the `Random_Generator`.
+    new_generator : Integer -> Random_Generator
+    new_generator seed = Random_Generator.new seed
+
     # Default Random instance
-    default_instance : Random
+    default_instance_ref : Ref Random_Generator
+    default_instance_ref = Ref.new (Random_Generator.new get_default_seed)
 
     # Set the seed of the default Random instance
     set_seed : Integer -> Nothing
+    set_seed seed =
+        rng = Random_Generator.new seed
+        Random.default_instance_ref.put rng
 
-    # Create a new Random with the specified seed
-    new : Int -> Random
-
-    # Static versions of methods from Random_Generator.
-    rand_int low=0 high = Random.default_instance.rand_int low high
-    rand_int_32 low=MIN_INT high=MIN_INT =
-    # ...
+    ##
+        # Static versions of methods from Random_Generator.
+        int low=0 high = Random.default_instance.int low high
+        int_32 low=MIN_INT high=MIN_INT =
+        # ...
 
 type Random_Generator
-    # Return a random `Integer`
-    rand_int low=0 high =
-    rand_int self ... =
+    ## PRVIATE
+       Create a new rng with the given seed.
+    new : Integer -> Random_Generator
+    new seed = Random_Generator.Value (Java_Random.new seed)
 
-    # Return a random 64-bit `Float`
-    rand_float low=0.0 high=1.0 =
-
-    # Return a random 32-bit `Integer` from the entire 32-bit range
-    rand_int_32 low=MIN_INT high=MIN_INT =
-
-    # Return a random 64-bit `Integer` from the entire 64-bit range
-    rand_int_64 low=MIN_LONG high=MIN_LONG =
-
-    # Return a random `Float` from the entire double precision range range
-    rand_double_precision low=MIN_DOUBLE high=MIN_DOUBLE =
+    ## PRIVATE
+    Value (java_random : Java_Random)
 
     # Return a random `Boolean`
-    rand_boolean : Boolean
+    boolean : Boolean
+    boolean self = self.java_random.nextBoolean
 
-    # Return a random Gaussian distribution float in the range 0..1
-    rand_gaussian : Float
+    ##
+        # Return a random `Integer`
+        int low=0 high =
+        int self ... =
 
-    # Return a random `Integer` in the range 0..255
-    rand_byte : Integer
+        # Return a random 64-bit `Float`
+        float low=0.0 high=1.0 =
 
-    # Return a random `Integer` from the range [0, n-1], sampled without replacement.
-    rand_index : Integer -> Integer -> Integer
+        # Return a random 32-bit `Integer` from the entire 32-bit range
+        int_32 low=MIN_INT high=MIN_INT =
 
-    # Return a random `Integer` in the given `Range` (respects `step`)
-    rand_in_range : Range -> Integer
+        # Return a random 64-bit `Integer` from the entire 64-bit range
+        int_64 low=MIN_LONG high=MIN_LONG =
 
-    # Return a random `Date` in the given `Date_Range`
-    rand_in_date_range : Date_Range -> DAte
+        # Return a random `Float` from the entire double precision range range
+        double_precision low=MIN_DOUBLE high=MIN_DOUBLE =
 
-    # Return a random UUID
-    rand_uuid : Text
+        # Return a random `Boolean`
+        boolean : Boolean
 
-    # Generate a string by selecting a random character from each element of the list.
-    # Previously `Faker.string_value`
-    rand_text_from_charsets : Vector (Text | Vector Char)
+        # Return a random Gaussian distribution float in the range 0..1
+        gaussian : Float
 
-    ## Generate a string based on a pattern.
-       (As seen in AlteryxAbacus.)
-       Pattern language TBD.
+        # Return a random `Integer` in the range 0..255
+        byte : Integer
 
-       Example:
-       rnd.rand_text_from_pattern "AAaaa###" -> "BZdje533"
-    rand_text_from_pattern pattern : Text -> Text
+        # Return a random `Integer` from the range [0, n-1], sampled without replacement.
+        index : Integer -> Integer -> Integer
 
-    ## GROUP Standard.Base.Random
-       Randomly converts some values to Nothing
-    make_some_nothing : Any -> Float -> Any
+        # Return a random `Integer` in the given `Range` (respects `step`)
+        in_range : Range -> Integer
 
-    ## Return a random value from the given collection.
-       If `with_replacement` is false, and `count` is equal to or greater than
-       the size of the collection, a random permutation of the collection is returned.
-    rand_sample : Vector | Set | Map | Range -> Integer -> Boolean -> Any
-    rand_sample collection count with_replacement=True =
+        # Return a random `Date` in the given `Date_Range`
+        in_date_range : Date_Range -> Date
 
-    rand_permutation : Vector | Set | Map | Range -> Any
-    rand_permutation collection = Random.rand_sample collection collection.length with_replacement=False
+        # Return a random UUID
+        uuid : Text
 
-    # Return a list of random `Integers`
-    rand_ints count=1 low=0 high count=Nothing
-    rand_int_32s ...
-    rand_int_64s ...
-    # etc.
+        # Generate a string by selecting a random character from each element of the list.
+        # Previously `Faker.string_value`
+        text_from_charsets : Vector (Text | Vector Text)
+
+        ## Generate a string based on a pattern.
+        (As seen in AlteryxAbacus.)
+        Pattern language TBD.
+
+        Example:
+        rnd.text_from_pattern "AAaaa###" -> "BZdje533"
+        text_from_pattern pattern : Text -> Text
+
+        ## GROUP Standard.Base.Random
+        Randomly converts some values to Nothing
+        make_some_nothing : Any -> Float -> Any
+
+        ## Return a random value from the given collection.
+        If `with_replacement` is false, and `count` is equal to or greater than
+        the size of the collection, a random permutation of the collection is returned.
+        sample : Vector | Set | Map | Range -> Integer -> Boolean -> Any
+        sample collection count with_replacement=True =
+
+        permutation : Vector | Set | Map | Range -> Any
+        permutation collection = Random.sample collection collection.length with_replacement=False
+
+        # Return a list of random `Integers`
+        ints count=1 low=0 high count=Nothing
+        int_32s ...
+        int_64s ...
+        # etc.
+
+## PRIVATE
+   Returns a default seed to use for random number generation.
+
+   The returned seed will likely differ between each call to this method.
+get_default_seed : Integer
+get_default_seed = System.nano_time
