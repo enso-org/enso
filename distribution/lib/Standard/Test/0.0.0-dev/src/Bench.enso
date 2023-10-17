@@ -211,8 +211,10 @@ type Bench
        computation.
     single_call ~act =
         start = System.nano_time
-        Runtime.no_inline act
+        r = Runtime.no_inline act
         end = System.nano_time
+        # If the computation returned a dataflow error, we raise it to a panic - we do not want silent failures in benchmarks.
+        Panic.rethrow r
         end - start
 
     ## Run a single phase of the benchmark.
