@@ -12,5 +12,4 @@ public record EnsoKeyValuePair(String key, String value, String secretId) {
   public static EnsoKeyValuePair ofSecret(String key, String secretId) {
     return new EnsoKeyValuePair(key, null, secretId);
   }
-
 }

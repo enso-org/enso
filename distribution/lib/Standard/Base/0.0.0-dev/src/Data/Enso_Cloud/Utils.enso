@@ -20,7 +20,6 @@ authorization_header =
             AuthenticationProvider.setToken (cred_file.read_text)
     Pair.new "Authorization" "Bearer "+result
 
-
 ## PRIVATE
    Root address for listing folders
 directory_api = cloud_root_uri + "directories"
