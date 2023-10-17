@@ -20,6 +20,23 @@ authorization_header =
             AuthenticationProvider.setToken (cred_file.read_text)
     Pair.new "Authorization" "Bearer "+result
 
+
+## PRIVATE
+   Root address for listing folders
+directory_api = cloud_root_uri + "directories"
+
+## PRIVATE
+   Root address for listing folders
+files_api = cloud_root_uri + "files"
+
+## PRIVATE
+   Root address for listing folders
+projects_api = cloud_root_uri + "projects"
+
+## PRIVATE
+   Root address for Secrets API
+secrets_api = cloud_root_uri + "secrets"
+
 ## PRIVATE
    Error if the user is not logged into Enso Cloud.
 type Not_Logged_In

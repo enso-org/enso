@@ -13,9 +13,8 @@ type Enso_User
     current : Enso_User
     current =
         auth_header = Utils.authorization_header
-        auth_header.if_not_error <|
-            user_api = Utils.cloud_root_uri + "users/me"
-            response = HTTP.fetch user_api HTTP_Method.Get [auth_header]
-            response.if_not_error <|
-                js_object = response.decode_as_json
-                js_object.into Enso_User
+        user_api = Utils.cloud_root_uri + "users/me"
+        response = HTTP.fetch user_api HTTP_Method.Get [auth_header]
+        response.if_not_error <|
+            js_object = response.decode_as_json
+            js_object.into Enso_User
