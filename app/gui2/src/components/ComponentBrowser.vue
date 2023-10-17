@@ -8,7 +8,7 @@ import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { useApproach } from '@/util/animation'
-import { useDocumentEvent, useResizeObserver } from '@/util/events'
+import { useEvent, useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
@@ -74,7 +74,7 @@ function readInputFieldSelection() {
 // BUT some operations like deleting does not emit 'selectionChange':
 // https://bugs.chromium.org/p/chromium/issues/detail?id=725890
 // Therefore we must also refresh selection after changing input.
-useDocumentEvent('selectionchange', readInputFieldSelection)
+useEvent(document, 'selectionchange', readInputFieldSelection)
 
 watch(
   input.selection,
