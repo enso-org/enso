@@ -11,6 +11,7 @@ import {
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { Rect } from '@/stores/rect'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,
@@ -27,7 +28,6 @@ import { unwrap } from '@/util/result'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
-import { useSuggestionDbStore } from '../stores/suggestionDatabase'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 
@@ -432,11 +432,8 @@ const suggestionEntry = computed(() => {
   if (!moduleName.ok || !methodName.ok) return undefined
   const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
   const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
-  if (id) {
-    return suggestionDbStore.entries.get(id)
-  } else {
-    return undefined
-  }
+  if (id == null) return undefined
+  return suggestionDbStore.entries.get(id)
 })
 const icon = computed(() => {
   if (suggestionEntry.value?.iconName) {

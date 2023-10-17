@@ -1,3 +1,6 @@
+import { useProjectStore } from '@/stores/project'
+import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
 import { type Opt } from '@/util/opt'
@@ -5,9 +8,6 @@ import { qnParent, type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import { reactive, ref, type Ref } from 'vue'
-import { useProjectStore } from '../project'
-import { entryQn, type SuggestionEntry, type SuggestionId } from './entry'
-import { applyUpdates, entryFromLs } from './lsUpdate'
 
 export class SuggestionDb {
   internal: ReactiveDb<SuggestionId, SuggestionEntry>

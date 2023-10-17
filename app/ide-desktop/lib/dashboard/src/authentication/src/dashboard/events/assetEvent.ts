@@ -32,6 +32,7 @@ export enum AssetEventType {
     restore = 'restore',
     downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
+    deleteLabel = 'delete-label',
 }
 
 /** Properties common to all asset state change events. */
@@ -55,6 +56,7 @@ interface AssetEvents {
     restore: AssetRestoreEvent
     downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
+    deleteLabel: AssetDeleteLabelEvent
 }
 
 /** A type to ensure that {@link AssetEvents} contains every {@link AssetLEventType}. */
@@ -141,6 +143,11 @@ export interface AssetDownloadSelectedEvent
 /** A signal to remove the current user's permissions for an asset.. */
 export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.removeSelf> {
     id: backendModule.AssetId
+}
+
+/** A signal to remove the current user's permissions for an asset.. */
+export interface AssetDeleteLabelEvent extends AssetBaseEvent<AssetEventType.deleteLabel> {
+    labelName: backendModule.LabelName
 }
 
 /** Every possible type of asset event. */

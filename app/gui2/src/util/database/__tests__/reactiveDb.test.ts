@@ -16,7 +16,7 @@ test('Basic add/remove', () => {
 })
 
 test('Indexing is efficient', () => {
-  const db = new ReactiveDb()
+  const db = new ReactiveDb<number, { name: string }>()
   const index = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])
   const adding = vi.spyOn(index, 'writeToIndex')
   const removing = vi.spyOn(index, 'removeFromIndex')
@@ -29,7 +29,7 @@ test('Indexing is efficient', () => {
   db.set(1, { name: 'qdr' })
   expect(adding).toHaveBeenCalledTimes(4)
   expect(removing).toHaveBeenCalledTimes(2)
-  db.get(3).name = 'xyz'
+  db.get(3)!.name = 'xyz'
   expect(adding).toHaveBeenCalledTimes(4)
   expect(removing).toHaveBeenCalledTimes(2)
   expect(index.lookup('qdr')).toEqual(new Set([1]))
@@ -49,7 +49,7 @@ test('Error reported when indexer implementation returns non-unique pairs', () =
 })
 
 test('Name to id index', () => {
-  const db = new ReactiveDb()
+  const db = new ReactiveDb<number, { name: string }>()
   const index = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])
   db.set(1, { name: 'abc' })
   db.set(2, { name: 'xyz' })
@@ -71,7 +71,7 @@ test('Name to id index', () => {
 })
 
 test('Parent index', async () => {
-  const db = new ReactiveDb()
+  const db = new ReactiveDb<number, { name: string; definedIn?: string }>()
   const qnIndex = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])
 
   const parent = new ReactiveIndex(db, (id, entry) => {

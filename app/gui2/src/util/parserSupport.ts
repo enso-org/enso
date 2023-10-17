@@ -1,8 +1,8 @@
 /** This file supports the module in `../generated/ast.ts` that is produced by `parser-codegen`. */
 
 export { type Result } from '@/util/result'
+import { bail } from '@/util/assert'
 import { Err, Error, Ok, type Result } from '@/util/result'
-import { bail } from './assert'
 
 export type Primitive = {
   type: 'primitive'

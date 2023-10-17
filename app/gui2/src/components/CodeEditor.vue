@@ -8,6 +8,8 @@ import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
 import { computed, onMounted, ref, watchEffect } from 'vue'
 import * as Y from 'yjs'
+import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
+import { unwrap } from '../util/result'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
@@ -80,9 +82,11 @@ watchEffect(() => {
             .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
           const method = expressionInfo?.methodCall?.methodPointer
           if (method != null) {
-            const suggestionEntry = suggestionDbStore.methodPointerToEntry
-              .get(method.module)
-              ?.get(method.name)
+            const moduleName = tryQualifiedName(method.module)
+            const methodName = tryQualifiedName(method.name)
+            const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+            const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
+            const suggestionEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
             if (suggestionEntry != null) {
               const groupNode = dom.appendChild(document.createElement('div'))
               groupNode.appendChild(document.createTextNode('Group: '))
