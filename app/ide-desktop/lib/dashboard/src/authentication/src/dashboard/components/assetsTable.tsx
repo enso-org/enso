@@ -9,6 +9,7 @@ import * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
+import * as drag from '../drag'
 import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
@@ -73,34 +74,6 @@ export const EMPTY_DIRECTORY_PLACEHOLDER = (
 const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
-
-// ============================
-// === AssetRowsDragPayload ===
-// ============================
-
-const ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE = 'application/x-enso-asset-list'
-const ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE_REGEX = new RegExp(
-    '^' + ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE + '; id=(.+)$'
-)
-const ASSET_ROWS_DRAG_PAYLOAD_MAP = new Map<string, AssetRowsDragPayload>()
-
-/** Resolve to an {@link AssetRowsDragPayload}, if any, else resolve to `null`. */
-export function tryGetAssetRowsDragPayload(dataTransfer: DataTransfer) {
-    const item = Array.from(dataTransfer.items).find(dataTransferItem =>
-        dataTransferItem.type.startsWith(ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE)
-    )
-    const id = item?.type.match(ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE_REGEX)?.[1] ?? null
-    return id != null ? ASSET_ROWS_DRAG_PAYLOAD_MAP.get(id) ?? null : null
-}
-
-/** Metadata for an asset row. */
-interface AssetRowsDragPayloadItem {
-    key: backendModule.AssetId
-    asset: backendModule.AnyAsset
-}
-
-/** Data for a {@link DragEvent} started from an {@link AssetsTable}. */
-export type AssetRowsDragPayload = AssetRowsDragPayloadItem[]
 
 // ===================================
 // === insertAssetTreeNodeChildren ===
@@ -1374,7 +1347,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         <div
                             className="grow"
                             onDragOver={event => {
-                                const payload = tryGetAssetRowsDragPayload(event.dataTransfer)
+                                const payload = drag.tryGetAssetRowsDragPayload(event.dataTransfer)
                                 const filtered = payload?.filter(
                                     item => item.asset.parentId !== rootDirectoryId
                                 )
@@ -1383,7 +1356,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 }
                             }}
                             onDrop={event => {
-                                const payload = tryGetAssetRowsDragPayload(event.dataTransfer)
+                                const payload = drag.tryGetAssetRowsDragPayload(event.dataTransfer)
                                 const filtered = payload?.filter(
                                     item => item.asset.parentId !== rootDirectoryId
                                 )
@@ -1441,16 +1414,16 @@ export default function AssetsTable(props: AssetsTableProps) {
                             const nodes = assetTreeNode
                                 .assetTreePreorderTraversal(assetTree)
                                 .filter(node => oldSelectedKeys.has(node.key))
-                            const data: AssetRowsDragPayload = nodes.map(node => ({
+                            const data: drag.AssetRowsDragPayload = nodes.map(node => ({
                                 key: node.key,
                                 asset: node.item,
                             }))
                             const id = uniqueString.uniqueString()
                             event.dataTransfer.setData(
-                                `${ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE}; id=${id}`,
+                                `${drag.ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE}; id=${id}`,
                                 JSON.stringify(data)
                             )
-                            ASSET_ROWS_DRAG_PAYLOAD_MAP.set(id, data)
+                            drag.ASSET_ROWS_DRAG_PAYLOAD_MAP.set(id, data)
                             const blankElement = document.createElement('div')
                             const image = new Image()
                             image.src =
@@ -1464,7 +1437,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         event={event}
                                         className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
                                         doCleanup={() => {
-                                            ASSET_ROWS_DRAG_PAYLOAD_MAP.delete(id)
+                                            drag.ASSET_ROWS_DRAG_PAYLOAD_MAP.delete(id)
                                         }}
                                     >
                                         {nodes.map(node => (
