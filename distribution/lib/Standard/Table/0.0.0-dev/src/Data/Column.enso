@@ -27,14 +27,15 @@ from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Column_Names, Invalid_Value_Type, No_Index_Set_Error
 from project.Internal.Column_Format import all
-from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
+from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
+polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
+polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type Column
     ## GROUP Standard.Base.Input
@@ -83,10 +84,10 @@ type Column
             java_exception = caught_panic.payload
             raise_invalid_value_type_error java_exception.getValue
         Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
-            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
+            java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                 case needs_polyglot_conversion of
-                    True -> Java_Column.fromItems name items expected_storage_type
-                    False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type
+                    True -> Java_Column.fromItems name items expected_storage_type java_problem_aggregator
+                    False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
             result = Column.Value java_column . throw_on_warning Conversion_Failure
             result.catch Conversion_Failure error->
                 if error.example_values.is_empty then result else
@@ -110,8 +111,8 @@ type Column
     from_vector_repeated : Text -> Vector -> Integer -> Column
     from_vector_repeated name items repeats =
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
-            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
-                Java_Column.fromRepeatedItems name items repeats
+            java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                Java_Column.fromRepeatedItems name items repeats java_problem_aggregator
             Column.Value java_column
 
     ## PRIVATE
@@ -788,8 +789,8 @@ type Column
                         error = Illegal_State.Error "`iif` got a storage "+s.to_display_text+" that does not support the `iif` operation. This is a bug in the Table library."
                         Panic.throw error
                 rs = Panic.catch No_Such_Method handler=handle_no_iif <|
-                    Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
-                        s.iif true_val false_val storage_type
+                    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                        s.iif true_val false_val storage_type java_problem_aggregator
                 Column.Value (Java_Column.new new_name rs)
 
     ## PRIVATE
@@ -1118,14 +1119,14 @@ type Column
         common_type.if_not_error <|
             storage = self.java_column.getStorage
             storage_type = Storage.from_value_type_strict common_type
-            new_st = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <| case default of
-                Column.Value java_col ->
-                    other_storage = java_col.getStorage
-                    storage.fillMissingFrom other_storage storage_type
-                _ ->
-                    storage.fillMissing default storage_type
-            col = Java_Column.new self.name new_st
-            Column.Value col
+            new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                case default of
+                    Column.Value java_col ->
+                        other_storage = java_col.getStorage
+                        storage.fillMissingFrom other_storage storage_type java_problem_aggregator
+                    _ ->
+                        storage.fillMissing default storage_type java_problem_aggregator
+            Column.Value (Java_Column.new self.name new_storage)
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
@@ -1610,8 +1611,9 @@ type Column
             parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
 
-            new_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
-                parser.parseColumn self.name storage
+            new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator self.name type
+                parser.parseColumn storage parse_problem_aggregator
             Column.Value (Java_Column.new self.name new_storage)
 
     ## GROUP Standard.Base.Conversions
@@ -1757,10 +1759,9 @@ type Column
     cast self value_type on_problems=Problem_Behavior.Report_Warning =
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
-            cast_problem_builder = Cast_Helpers.new_java_problem_builder self.name target_storage_type
-            new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder.to_java
-            problems = cast_problem_builder.get_problems
-            on_problems.attach_problems_before problems <|
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                cast_problem_builder = CastProblemAggregator.new java_problem_aggregator self.name target_storage_type
+                new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder
                 Column.from_storage self.name new_storage
 
     ## Change the value type of the column to a more specific one, based on its
@@ -2236,17 +2237,15 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
         naming_helper.function_name name all_operands
     common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
     common_type.if_not_error <|
-        problem_builder = MapOperationProblemBuilder.new effective_new_name
-        storage_type = resolve_storage_type common_type
-        folded = effective_operands.fold column.java_column.getStorage current-> operand->
-            case operand of
-                _ : Column -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
-                _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
-        result = Column.Value (Java_Column.new effective_new_name folded)
-        Problem_Behavior.Report_Warning.attach_problems_after result <|
-            Java_Problems.parse_aggregated_problems problem_builder.getProblems
+        Java_Problems.with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
+            storage_type = resolve_storage_type common_type
+            folded = effective_operands.fold column.java_column.getStorage current-> operand->
+                case operand of
+                    _ : Column -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                        current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
+                    _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                        current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
+            Column.Value (Java_Column.new effective_new_name folded)
 
 ## PRIVATE
 
@@ -2268,22 +2267,20 @@ run_vectorized_binary_op : Column -> Text -> Any -> Text|Nothing -> (Any -> Any 
 run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
     effective_new_name = new_name.if_nothing <|
         naming_helper.binary_operation_name name column operand
-    problem_builder = MapOperationProblemBuilder.new column.name
-    storage_type = resolve_storage_type expected_result_type
-    result = case operand of
-        Column.Value col2 ->
-            s1 = column.java_column.getStorage
-            s2 = col2.getStorage
-            rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
-            Column.Value (Java_Column.new effective_new_name rs)
-        _ ->
-            s1 = column.java_column.getStorage
-            rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
-            Column.Value (Java_Column.new effective_new_name rs)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
+        storage_type = resolve_storage_type expected_result_type
+        case operand of
+            Column.Value col2 ->
+                s1 = column.java_column.getStorage
+                s2 = col2.getStorage
+                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
+                Column.Value (Java_Column.new effective_new_name rs)
+            _ ->
+                s1 = column.java_column.getStorage
+                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
+                Column.Value (Java_Column.new effective_new_name rs)
 
 ## PRIVATE
 
@@ -2304,14 +2301,12 @@ run_vectorized_ternary_op : Column -> Text -> Any -> Any -> Text|Nothing -> Valu
 run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expected_result_type=Nothing skip_nulls=True =
     effective_new_name = new_name.if_nothing <|
         naming_helper.function_name name [column, operand0, operand1]
-    problem_builder = MapOperationProblemBuilder.new column.name
-    storage_type = resolve_storage_type expected_result_type
-    s1 = column.java_column.getStorage
-    rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
-    result = Column.Value (Java_Column.new effective_new_name rs)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
+        storage_type = resolve_storage_type expected_result_type
+        s1 = column.java_column.getStorage
+        rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+            s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
+        Column.Value (Java_Column.new effective_new_name rs)
 
 ## PRIVATE
    Runs a binary operation over the provided column and operand which may be
@@ -2331,14 +2326,15 @@ run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expecte
 run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
-    new_storage = case operand of
-        other_column : Column ->
-            Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.zip function other_column.java_column.getStorage skip_nulls storage_type
-        _ ->
-            Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.binaryMap function operand skip_nulls storage_type
-    Column.Value (Java_Column.new new_name new_storage)
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
+        new_storage = case operand of
+            other_column : Column ->
+                Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s.zip function other_column.java_column.getStorage skip_nulls storage_type problem_builder
+            _ ->
+                Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s.binaryMap function operand skip_nulls storage_type problem_builder
+        Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
    Runs a unary operation over the provided column.
@@ -2356,9 +2352,10 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
 run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
-    new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s.unaryMap function skip_nulls storage_type
-    Column.Value (Java_Column.new new_name new_storage)
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
+        new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+            s.unaryMap function skip_nulls storage_type problem_builder
+        Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
 
@@ -2369,11 +2366,11 @@ run_unary_op column function new_name skip_nulls=True expected_result_type=Nothi
    - name: The name of the vectorized operation.
    - operand: The operand to apply to the function after `column`.
    - fallback_fn: A function used if the vectorized operation isn't available.
-     It takes a `MapOperationProblemBuilder` as its first argument.
-     It should never raise dataflow errors and use the problem builder to report
-     problems. If fatal problems are expected, the fallback should be raising a
-     panic and the user-facing code should ensure such panic is caught and
-     converted to a dataflow error.
+     It takes a `MapOperationProblemAggregator` as its first argument.
+     It should never raise dataflow errors and use the aggregator builder to
+     report problems. If fatal problems are expected, the fallback should be
+     raising a panic and the user-facing code should ensure such panic is caught
+     and converted to a dataflow error.
    - expected_result_type: The expected result type of the operation.
    - new_name: The name of the column created as the result of this operation.
    - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
@@ -2381,25 +2378,23 @@ run_unary_op column function new_name skip_nulls=True expected_result_type=Nothi
      `False`, the null values are passed as any other value and can have custom
      handling logic.
 run_vectorized_binary_op_with_fallback_problem_handling column name operand fallback_fn new_name expected_result_type=Nothing skip_nulls=True =
-    problem_builder = MapOperationProblemBuilder.new new_name
-    applied_fn = case fallback_fn of
-        Nothing -> Nothing
-        _ -> fallback_fn problem_builder
-    storage_type = resolve_storage_type expected_result_type
-    result = case operand of
-        Column.Value col2 ->
-            s1 = column.java_column.getStorage
-            s2 = col2.getStorage
-            rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
-            Column.Value (Java_Column.new new_name rs)
-        _ ->
-            s1 = column.java_column.getStorage
-            rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn operand skip_nulls storage_type
-            Column.Value (Java_Column.new new_name rs)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning problem_builder->
+        applied_fn = case fallback_fn of
+            Nothing -> Nothing
+            _ -> fallback_fn problem_builder
+        storage_type = resolve_storage_type expected_result_type
+        case operand of
+            Column.Value col2 ->
+                s1 = column.java_column.getStorage
+                s2 = col2.getStorage
+                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
+                Column.Value (Java_Column.new new_name rs)
+            _ ->
+                s1 = column.java_column.getStorage
+                rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+                    s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn operand skip_nulls storage_type
+                Column.Value (Java_Column.new new_name rs)
 
 ## PRIVATE
 
@@ -2418,14 +2413,12 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
      handling logic.
 run_vectorized_unary_op : Column -> Text -> Text -> (Any -> Any) -> Value_Type -> Any -> Column
 run_vectorized_unary_op column name new_name fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
-    problem_builder = MapOperationProblemBuilder.new column.name
-    s = column.java_column.getStorage
-    storage_type = resolve_storage_type expected_result_type
-    rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s.vectorizedOrFallbackUnaryMap name problem_builder fallback_fn skip_nulls storage_type
-    result = Column.Value (Java_Column.new new_name rs)
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
+        s = column.java_column.getStorage
+        storage_type = resolve_storage_type expected_result_type
+        rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+            s.vectorizedOrFallbackUnaryMap name problem_builder fallback_fn skip_nulls storage_type
+        Column.Value (Java_Column.new new_name rs)
 
 ## PRIVATE
 
@@ -2467,9 +2460,9 @@ slice_ranges column ranges =
 
    If a value type is not supported, its closest match is selected and
    an `Inexact_Type_Coercion` problem is reported.
-make_storage_builder_for_type value_type on_problems initial_size=128 =
+make_storage_builder_for_type value_type on_problems initial_size java_problem_aggregator =
     closest_storage_type = Storage.from_value_type value_type on_problems
-    Storage.make_builder closest_storage_type initial_size
+    Storage.make_builder closest_storage_type initial_size java_problem_aggregator
 
 ## PRIVATE
    Helper for case case_sensitivity based text operations.

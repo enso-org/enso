@@ -18,7 +18,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -40,7 +40,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -74,7 +74,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -96,7 +96,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -132,7 +132,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -154,7 +154,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -190,7 +190,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -212,7 +212,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -247,7 +247,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -269,7 +269,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -306,7 +306,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -328,7 +328,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -362,7 +362,7 @@ jobs:
       - ubuntu-latest
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.1
+        uses: styfle/cancel-workflow-action@0.12.0
         with:
           access_token: ${{ github.token }}
     permissions:
@@ -376,7 +376,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -398,7 +398,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -434,7 +434,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -456,7 +456,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -492,7 +492,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -514,7 +514,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -548,7 +548,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -570,7 +570,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -606,7 +606,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -628,7 +628,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -664,7 +664,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -686,7 +686,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -724,7 +724,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -746,7 +746,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -782,7 +782,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -804,7 +804,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -847,7 +847,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -869,7 +869,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -910,7 +910,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -932,7 +932,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -969,7 +969,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -991,7 +991,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -1035,7 +1035,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -1057,7 +1057,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -1095,7 +1095,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.6
+        uses: s-weigand/setup-conda@v1.2.1
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -1117,7 +1117,7 @@ jobs:
         run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
         shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive

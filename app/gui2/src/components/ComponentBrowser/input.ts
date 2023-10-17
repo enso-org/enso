@@ -1,8 +1,8 @@
+import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { Ast, astContainingChar, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
-import type { Filter } from './filtering'
 
 /** Input's editing context.
  *

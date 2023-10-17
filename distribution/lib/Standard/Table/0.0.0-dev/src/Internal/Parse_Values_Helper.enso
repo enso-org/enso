@@ -1,19 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_State.Illegal_State
-
-import project.Internal.Java_Problems
-from project.Errors import Invalid_Format
-
-polyglot java import org.enso.table.parsing.problems.InvalidFormat
-
-## PRIVATE
-   Translates a parse related problem additionally enriching it with expected
-   datatype information that is not originally present on the Java side.
-translate_parsing_problem expected_value_type problem = case problem of
-    java_problem : InvalidFormat ->
-        Invalid_Format.Error java_problem.column expected_value_type (Vector.from_polyglot_array java_problem.cells)
-    _ ->
-        Java_Problems.translate_problem problem
 
 ## PRIVATE
 valid_parse_targets =

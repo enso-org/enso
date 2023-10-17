@@ -16,7 +16,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 
 /**
  * A builder performing type inference on the appended elements, choosing the best possible storage.
@@ -25,14 +25,16 @@ public class InferredBuilder extends Builder {
   private TypedBuilder currentBuilder = null;
   private int currentSize = 0;
   private final int initialSize;
+  private final ProblemAggregator problemAggregator;
 
   /**
    * Creates a new instance of this builder, with the given known result length.
    *
    * @param initialSize the result length
    */
-  public InferredBuilder(int initialSize) {
+  public InferredBuilder(int initialSize, ProblemAggregator problemAggregator) {
     this.initialSize = initialSize;
+    this.problemAggregator = problemAggregator;
   }
 
   @Override
@@ -100,13 +102,15 @@ public class InferredBuilder extends Builder {
       currentBuilder = new BoolBuilder();
     } else if (NumericConverter.isCoercibleToLong(o)) {
       // In inferred builder, we always default to 64-bits.
-      currentBuilder = NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64);
+      currentBuilder =
+          NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64, problemAggregator);
     } else if (NumericConverter.isFloatLike(o)) {
-      currentBuilder = NumericBuilder.createInferringDoubleBuilder(initialCapacity);
+      currentBuilder =
+          NumericBuilder.createInferringDoubleBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else if (o instanceof BigInteger) {
-      currentBuilder = new BigIntegerBuilder(initialCapacity);
+      currentBuilder = new BigIntegerBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {
@@ -164,7 +168,6 @@ public class InferredBuilder extends Builder {
     ObjectBuilder objectBuilder = new MixedBuilder(capacity);
     currentBuilder.retypeToMixed(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
-    objectBuilder.setPreExistingProblems(currentBuilder.getProblems());
     currentBuilder = objectBuilder;
   }
 
@@ -185,14 +188,5 @@ public class InferredBuilder extends Builder {
   public StorageType getType() {
     // The type of InferredBuilder can change over time, so we do not report any stable type here.
     return null;
-  }
-
-  @Override
-  public AggregatedProblems getProblems() {
-    if (currentBuilder == null) {
-      return AggregatedProblems.of();
-    } else {
-      return currentBuilder.getProblems();
-    }
   }
 }

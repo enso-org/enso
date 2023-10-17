@@ -3,8 +3,6 @@ package org.enso.table.data.column.operation.map.numeric.isin;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.SpecializedIsInOp;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.graalvm.polyglot.Context;
 
 import java.math.BigInteger;

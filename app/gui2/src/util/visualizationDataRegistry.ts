@@ -1,13 +1,13 @@
 import type { ExecutionContext } from '@/stores/project.ts'
 import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol.ts'
 import type { DataServer } from 'shared/dataServer.ts'
-import { reactive } from 'vue'
 import type {
   ExpressionUpdatePayload,
   MethodCall,
   ProfilingInfo,
   Uuid,
-} from '../../shared/languageServerTypes.ts'
+} from 'shared/languageServerTypes.ts'
+import { reactive } from 'vue'
 
 export interface ExpressionInfo {
   typename: string | undefined
@@ -16,7 +16,7 @@ export interface ExpressionInfo {
   profilingInfo: ProfilingInfo[]
 }
 
-//* This class holds the computed values that have been received from the language server. */
+/** This class holds the computed values that have been received from the language server. */
 export class VisualizationDataRegistry {
   private visualizationValues: Map<Uuid, string | null>
   private dataServer: Promise<DataServer>
