@@ -84,12 +84,13 @@ type Enso_File
        The created stream is automatically closed when `action` returns (even
        if it returns exceptionally).
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
-    with_input_stream self open_options action = if self.is_directory then Error.throw (Illegal_Argument.Error "Enso_File folders cannot be opened as a stream." self.uri) else
-        if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Enso_File files can only be opened for reading." self.uri) else
-            extension = if self.name.contains "." then "." + self.name.take (Text_Sub_Range.After_Last ".") else ""
-            url = "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/" + self.organisation + "/" + self.id + extension
-            response = HTTP.fetch url HTTP_Method.Get []
-            response.if_not_error <| response.with_stream action
+    with_input_stream self open_options action =
+        if self.is_directory then Error.throw (Illegal_Argument.Error "Enso_File folders cannot be opened as a stream." self.uri) else
+            if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Enso_File files can only be opened for reading." self.uri) else
+                extension = if self.name.contains "." then "." + self.name.take (Text_Sub_Range.After_Last ".") else ""
+                url = "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/" + self.organisation + "/" + self.id + extension
+                response = HTTP.fetch url HTTP_Method.Get []
+                response.if_not_error <| response.with_stream action
 
     ## ALIAS load, open
        GROUP Input
@@ -140,14 +141,6 @@ type Enso_File
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
     read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
         self.read (Plain_Text_Format.Plain_Text encoding) on_problems
-
-    ## GROUP Metadata
-       Returns the name of this file.
-    name : Text
-    name self =
-        trimmed = if self.name.ends_with "/" then self.name.drop (Index_Sub_Range.Last 1) else self.name
-        last_index = trimmed.lastIndexOf "/"
-        if last_index == Nothing then trimmed else trimmed.drop (Index_Sub_Range.First last_index+1)
 
     ## GROUP Metadata
        Returns the extension of the file.
