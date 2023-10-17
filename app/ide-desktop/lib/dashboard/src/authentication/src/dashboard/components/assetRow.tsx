@@ -10,6 +10,7 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as download from '../../download'
+import * as drag from '../drag'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as identity from '../identity'
@@ -343,9 +344,7 @@ export default function AssetRow(props: AssetRowProps) {
                         setRowState={setRowState}
                         onDragOver={event => {
                             if (item.item.type === backendModule.AssetType.directory) {
-                                const payload = assetsTable.tryGetAssetRowsDragPayload(
-                                    event.dataTransfer
-                                )
+                                const payload = drag.tryGetAssetRowsDragPayload(event.dataTransfer)
                                 if (
                                     payload != null &&
                                     payload.every(innerItem => innerItem.key !== item.key)
@@ -364,9 +363,7 @@ export default function AssetRow(props: AssetRowProps) {
                         onDrop={event => {
                             setIsDraggedOver(false)
                             if (item.item.type === backendModule.AssetType.directory) {
-                                const payload = assetsTable.tryGetAssetRowsDragPayload(
-                                    event.dataTransfer
-                                )
+                                const payload = drag.tryGetAssetRowsDragPayload(event.dataTransfer)
                                 if (
                                     payload != null &&
                                     payload.every(innerItem => innerItem.key !== item.key)
