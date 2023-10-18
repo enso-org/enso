@@ -274,7 +274,7 @@ type SQLite_Dialect
        Returns true if the `replace` parameters are suppoerted by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported "SQLite"
 
     ## PRIVATE
     value_type_for_upload_of_existing_column : Column -> Value_Type
@@ -450,7 +450,7 @@ replace args metadata =
                         replace_only_first True input pattern replacement
         False -> Nothing
     case expression of
-        Nothing -> replace_params.throw_unsupported
+        Nothing -> replace_params.throw_unsupported "SQLite"
         _ -> expression
 
 ## PRIVATE
