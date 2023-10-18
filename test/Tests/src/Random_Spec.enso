@@ -9,37 +9,7 @@ spec = Test.group "Random" <|
 
     Test.specify "should allow generating random booleans" <|
         Random.set_seed 0
-        IO.println (Random.boolean)
-        IO.println (Random.boolean)
-        IO.println (Random.boolean)
-        Random.set_seed 0
-        IO.println (Random.boolean)
-        IO.println (Random.boolean)
-        IO.println (Random.boolean)
-        Random.set_seed 0
-        IO.println (Random.boolean)
-        IO.println (Random.boolean)
-        IO.println (Random.boolean)
-        Random.set_seed 0
         0.up_to 3 . map _->Random.boolean . should_equal [True, True, False]
-
-    ##
-        Test.specify "can call an instance directly" <|
-            IO.println 'AAA'
-            rng = Random.new_generator 0
-            IO.println (rng.boolean)
-            IO.println (rng.boolean)
-            IO.println (rng.boolean)
-            rng2 = Random.new_generator 0
-            IO.println (rng2.boolean)
-            IO.println (rng2.boolean)
-            IO.println (rng2.boolean)
-            rng3 = Random.new_generator 0
-            IO.println (rng3.boolean)
-            IO.println (rng3.boolean)
-            IO.println (rng3.boolean)
-            rng4 = Random.new_generator 0
-            0.up_to 3 . map _->rng4.boolean . should_equal [True, True, False]
 
     ##
         Test.specify "should allow generating random integers" <|

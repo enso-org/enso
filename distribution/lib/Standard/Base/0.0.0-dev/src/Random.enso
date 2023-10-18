@@ -13,6 +13,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer
 
 polyglot java import java.util.Random as Java_Random
+polyglot java import org.enso.base.Random_Utils
 
 type Random
     ## GROUP Random
@@ -38,9 +39,7 @@ type Random
 
              Random.set_seed 42
     set_seed : Integer -> Nothing
-    set_seed seed =
-        rng = Random_Generator.new seed
-        Random.default_instance_ref.put rng
+    set_seed seed = Random_Utils.seedRandomsSingleton seed
 
     ## GROUP Random
        Return a random `Boolean` using the default instance of
@@ -54,7 +53,7 @@ type Random
 
              b = Random.boolean
     boolean : Boolean
-    boolean self = Random.default_instance.boolean
+    boolean = Random.default_instance.boolean
 
     ##
         # Static versions of methods from Random_Generator.
@@ -63,14 +62,9 @@ type Random
         # ...
 
     ## PRIVATE
-       Reference to the default instance.
-    default_instance_ref : Ref Random_Generator
-    default_instance_ref = Ref.new (Random_Generator.new 0) # get_default_seed)
-
-    ## PRIVATE
        Return the default instance.
     default_instance : Random_Generator
-    default_instance = Random.default_instance_ref.get
+    default_instance = Random_Generator.Value Random_Utils.getRandomSingleton
 
 type Random_Generator
     ## PRIVATE

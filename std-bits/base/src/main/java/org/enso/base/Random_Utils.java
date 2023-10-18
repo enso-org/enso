@@ -4,6 +4,20 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class Random_Utils {
+  /** Static singleton Random instance. This is modified by Random.enso. */
+  private static Random randomSingleton  = null;
+
+  public static Random getRandomSingleton() {
+    if (randomSingleton == null) {
+      seedRandomsSingleton(System.currentTimeMillis());
+    }
+    return randomSingleton;
+  }
+
+  public static void seedRandomsSingleton(long seed) {
+    randomSingleton = new Random(seed);
+  }
+
   /** Samples k random values from the input. */
   public static Object[] sample(Object[] array, int k, Random rng) {
     k = Math.min(k, array.length);
