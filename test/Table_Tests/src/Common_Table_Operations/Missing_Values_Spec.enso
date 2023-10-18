@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Value_Type, Column_Ref
+from Standard.Table import Value_Type, Column_Ref, Previous_Value
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
 from Standard.Table.Errors import all
 
@@ -271,10 +271,47 @@ spec setup =
                 e.value_type.variable_length.should_be_true
 
         Test.specify "should allow setting a default column by reference" <|
-            t = table_builder [["A", ["x", "", Nothing]], ["B", ["a", "b", "c"]]]
+            t = table_builder [["A", ["x", "", Nothing]], ["B", ["a", "b", "c"]], ["C", [Nothing, Nothing, "ZZZ"]], ["D", [Nothing, "2", "3"]]]
 
             t1 = t.fill_nothing "A" (Column_Ref.Name "B")
             t1.at "A" . to_vector . should_equal ["x", "", "c"]
 
             t2 = t.fill_empty "A" (Column_Ref.Name "B")
             t2.at "A" . to_vector . should_equal ["x", "b", "c"]
+
+            t3 = t.fill_nothing ["A", "C"] (Column_Ref.Name "D")
+            t3.at "A" . to_vector . should_equal ["x", "", "3"]
+            t3.at "B" . to_vector . should_equal ["a", "b", "c"]
+            t3.at "C" . to_vector . should_equal [Nothing, "2", "ZZZ"]
+            t3.at "D" . to_vector . should_equal [Nothing, "2", "3"]
+
+        if setup.is_database.not then Test.specify "should allow filling rows with previous value" <|
+            t = table_builder [["A", ["a", "", Nothing, Nothing, "", "b", "c", Nothing]]]
+
+            t1 = t.fill_nothing "A" Previous_Value
+            t1.at "A" . to_vector . should_equal ["a", "", "", "", "", "b", "c", "c"]
+
+            t2 = t.fill_empty "A" Previous_Value
+            t2.at "A" . to_vector . should_equal ["a", "a", "a", "a", "a", "b", "c", "c"]
+
+            # May still keep Nothing/empty if there is no previous value
+            t3 = table_builder [["B", [Nothing, Nothing, "", Nothing, "a", Nothing]]]
+            t3.fill_nothing "B" Previous_Value . at "B" . to_vector . should_equal [Nothing, Nothing, "", "", "a", "a"]
+            t3.fill_empty "B" Previous_Value . at "B" . to_vector . should_equal [Nothing, Nothing, "", Nothing, "a", "a"]
+
+            # Will work on multiple columns
+            t4 = table_builder [["A", ["a", "b", Nothing, Nothing]], ["B", [Nothing, 42, Nothing, 123]], ["C", ["", "foo", Nothing, "bar"]], ["D", [True, Nothing, False, Nothing]], ["E", [Nothing, Date.new 2001, Nothing, Nothing]], ["F", [2, Nothing, "a", Nothing]]]
+            t5 = t4.fill_nothing ["A", "B", "D", "E", "F"] Previous_Value
+            t5.at "A" . to_vector . should_equal ["a", "b", "b", "b"]
+            t5.at "B" . to_vector . should_equal [Nothing, 42, 42, 123]
+            t5.at "D" . to_vector . should_equal [True, True, False, False]
+            t5.at "E" . to_vector . should_equal [Nothing, Date.new 2001, Date.new 2001, Date.new 2001]
+            t5.at "F" . to_vector . should_equal [2, 2, "a", "a"]
+
+            # C is unchanged
+            t5.at "C" . to_vector . should_equal ["", "foo", Nothing, "bar"]
+
+        if setup.is_database then Test.specify "will for now report that Previous_Value is not supported" <|
+            t = table_builder [["A", ["a", "", Nothing, Nothing, "", "b", "c", Nothing]]]
+            t.fill_nothing "A" Previous_Value . should_fail_with Unsupported_Database_Operation
+            t.fill_empty "A" Previous_Value . should_fail_with Unsupported_Database_Operation
