@@ -536,7 +536,6 @@ function makeIsInstance(type: ts.TypeNode, baseIdent: ts.Identifier): ts.Functio
     undefined,
     tsf.createTypeReferenceNode('unknown'),
   )
-  const baseType = tsf.createTypeReferenceNode(baseIdent)
   const returnValue = tsf.createBinaryExpression(param, ts.SyntaxKind.InstanceOfKeyword, baseIdent)
   return tsf.createFunctionDeclaration(
     [modifiers.export],
