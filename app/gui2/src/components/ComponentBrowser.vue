@@ -216,16 +216,17 @@ const fullQualifiedNameQuery = computed(() => {
  * - the separator (`.` or `_`, or the empty string if this is the last segment) */
 const extractMatchesRegex = computed(() => {
   if (fullQualifiedNameQuery.value == null) return undefined
-  return new RegExp(
-    '^(.*?)' +
-      fullQualifiedNameQuery.value.replace(/(.+?)([._]|$)/g, (_m, text, sep) =>
-        sep === '_'
-          ? `(?:()(${text})([^_.]*)(_))?`
-          : `(?:([^.]*_)?(${text})([^.]*)(${sep === '.' ? '\\.' : ''}))?`,
-      ) +
-      '(.*)$',
-    'i',
-  )
+  let prefix = ''
+  let suffix = ''
+  for (const [, text, separator] of fullQualifiedNameQuery.value.matchAll(/(.+?)([._]|$)/g)) {
+    const segment =
+      separator === '_'
+        ? `()(${text})([^_.]*)(_)`
+        : `([^.]*_)?(${text})([^.]*)(${separator === '.' ? '\\.' : ''})`
+    prefix = '(?:' + prefix
+    suffix += segment + ')?'
+  }
+  return new RegExp('^(.*?)' + prefix + suffix + '(.*)$', 'i')
 })
 
 interface MatchHighlightSegment {
