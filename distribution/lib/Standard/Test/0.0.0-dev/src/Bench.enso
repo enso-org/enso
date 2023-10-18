@@ -159,10 +159,10 @@ type Bench
         count = self.total_specs
         IO.println <| "Found " + count.to_text + " cases to execute (ETA " + self.estimated_runtime.to_display_text + ")"
 
-        case Environment.get "ENSO_BENCHMARK_REPORT_PATH" of
+        case get_benchmark_report_path of
             Nothing -> Nothing
             path ->
-                line = 'Label,Phase,"Invocations count","Average time (ms)"'
+                line = 'Label,Phase,"Invocations count","Average time (ms)","Time Stdev"'
                 line.write path on_existing_file=Existing_File_Behavior.Backup
 
         self.fold Nothing _-> g-> s->
@@ -211,8 +211,10 @@ type Bench
        computation.
     single_call ~act =
         start = System.nano_time
-        Runtime.no_inline act
+        r = Runtime.no_inline act
         end = System.nano_time
+        # If the computation returned a dataflow error, we raise it to a panic - we do not want silent failures in benchmarks.
+        Panic.rethrow r
         end - start
 
     ## Run a single phase of the benchmark.
@@ -237,13 +239,15 @@ type Bench
                 durations_builder.append dur
                 @Tail_Call go (cur_ns + dur)
         go phase_start
-        durations = durations_builder.to_vector
-        sum = durations.reduce (_ + _)
+        nanos_in_ms = 1000000
+        durations = durations_builder.to_vector.map (x-> x / nanos_in_ms)
+        stats = durations.compute_bulk [Statistic.Mean, Statistic.Standard_Deviation]
+        avg = stats.first
+        stddev = stats.second
         run_iters = durations.length
-        avg = (sum / run_iters) / 1000000
         phase_end = System.nano_time
         phase_duration = Duration.new nanoseconds=(phase_end - phase_start)
-        Bench.summarize_phase label phase_name run_iters avg phase_duration
+        Bench.summarize_phase label phase_name run_iters avg stddev phase_duration
 
     ## PRIVATE
        This is a very simple implementation of summarizing the benchmark
@@ -251,16 +255,17 @@ type Bench
 
        We may want to improve it later, but it gets the job done to give us
        simple summary that can be analysed more easily than logs.
-    summarize_phase (label:Text) (phase_name:Text) (invocations:Integer) (average_time:Float) (phase_duration:Duration) =
-        fmt = average_time.format "#.###"
+    summarize_phase (label:Text) (phase_name:Text) (invocations:Integer) (average_time:Float) (time_stddev:Float) (phase_duration:Duration) =
+        avg_fmt = average_time.format "#.###"
+        stddev_fmt = time_stddev.format "#.###"
         IO.println <| phase_name + " duration:    " + (phase_duration.total_milliseconds.format "#.##") + " ms"
         IO.println <| phase_name + " invocations: " + invocations.to_text
-        IO.println <| phase_name + " avg time:    " + fmt + " ms"
+        IO.println <| phase_name + " avg time:    " + avg_fmt + " ms (+-" + stddev_fmt + "))"
 
-        case Environment.get "ENSO_BENCHMARK_REPORT_PATH" of
+        case get_benchmark_report_path of
             Nothing -> Nothing
             path ->
-                line = '\n"'+label+'","'+phase_name+'",'+invocations.to_text+','+fmt
+                line = '\n"'+label+'","'+phase_name+'",'+invocations.to_text+','+avg_fmt+','+stddev_fmt
                 line.write path on_existing_file=Existing_File_Behavior.Append
 
 ## PRIVATE
@@ -274,3 +279,7 @@ validate_name name =
     valid_java_identifier_regex = Regex.compile "[A-Za-z_$][a-zA-Z0-9_$]*"
     if valid_java_identifier_regex.matches name then Nothing else
         Panic.throw (Illegal_Argument.Error ("Invalid benchmark name: '" + name + "'"))
+
+## PRIVATE
+get_benchmark_report_path : Text | Nothing
+get_benchmark_report_path = Environment.get "ENSO_BENCHMARK_REPORT_PATH"
