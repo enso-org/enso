@@ -26,9 +26,11 @@ spec =
             "[[".parse_json . should_fail_with Invalid_JSON
 
         Test.specify "Date" <|
-            "1999-01-01".parse_date . should_equal <| Date.parse "1999-01-01"
-            "1999 1 1".parse_date "yyyy M d" . should_equal <| Date.parse "1999 1 1" "yyyy M d"
+            "1999-01-01".parse_date . should_equal <| Date.new 1999 1 1
+            "1999 1 1".parse_date "yyyy M d" . should_equal <| Date.new 1999 1 1
             "1999-01-01".parse_date "yyyy M d" . should_fail_with Time_Error
+            "13 Jan 2023".parse_date "d MMM yyyy" . should_equal <| Date.new 2023 1 13
+            "13 January 2023".parse_date "d MMMM yyyy" . should_equal <| Date.new 2023 1 13
 
         Test.specify "Date_Time" <|
             "2020-10-01T04:11:12-04:00".parse_date_time . should_equal <| Date_Time.parse "2020-10-01T04:11:12-04:00"

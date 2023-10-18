@@ -5,6 +5,7 @@ import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public class Last extends Aggregator {
@@ -37,7 +38,7 @@ public class Last extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
     if (orderByColumns.length == 0) {
       return lastByRowOrder(indexes);
     } else {

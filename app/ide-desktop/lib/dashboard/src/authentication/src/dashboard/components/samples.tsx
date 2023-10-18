@@ -98,7 +98,7 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
     return (
         <div className="flex flex-col gap-1.5 h-51">
             <button
-                className="relative grow cursor-pointer"
+                className="relative grow cursor-pointer before:absolute before:bg-frame before:rounded-2xl before:w-full before:h-full before:opacity-60"
                 onClick={() => {
                     setSpinnerState(spinner.SpinnerState.initial)
                     onTemplateClick(null, newSpinnerState => {
@@ -111,7 +111,6 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
                     })
                 }}
             >
-                <div className="absolute bg-frame rounded-2xl w-full h-full opacity-60" />
                 <div className="relative flex rounded-2xl w-full h-full">
                     <div className="flex flex-col text-center items-center gap-3 m-auto">
                         {spinnerState != null ? (

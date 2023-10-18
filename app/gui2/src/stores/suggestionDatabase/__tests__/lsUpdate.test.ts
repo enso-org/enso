@@ -1,11 +1,11 @@
+import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionKind, entryQn, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
 import { parseDocs } from '@/util/docParser'
-import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
+import { tryIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { expect, test } from 'vitest'
-import { SuggestionDb, type Group } from '..'
-import { SuggestionKind, entryQn, type SuggestionEntry } from '../entry'
-import { applyUpdates } from '../lsUpdate'
 
 test('Adding suggestion database entries', () => {
   const test = new Fixture()
@@ -17,13 +17,13 @@ test('Adding suggestion database entries', () => {
 test('Entry qualified names', () => {
   const test = new Fixture()
   const db = test.createDbWithExpected()
-  expect(entryQn(db.get(1))).toStrictEqual('Standard.Base')
-  expect(entryQn(db.get(2))).toStrictEqual('Standard.Base.Type')
-  expect(entryQn(db.get(3))).toStrictEqual('Standard.Base.Type.Con')
-  expect(entryQn(db.get(4))).toStrictEqual('Standard.Base.Type.method')
-  expect(entryQn(db.get(5))).toStrictEqual('Standard.Base.Type.static_method')
-  expect(entryQn(db.get(6))).toStrictEqual('Standard.Base.function')
-  expect(entryQn(db.get(7))).toStrictEqual('Standard.Base.local')
+  expect(entryQn(db.get(1)!)).toStrictEqual('Standard.Base')
+  expect(entryQn(db.get(2)!)).toStrictEqual('Standard.Base.Type')
+  expect(entryQn(db.get(3)!)).toStrictEqual('Standard.Base.Type.Con')
+  expect(entryQn(db.get(4)!)).toStrictEqual('Standard.Base.Type.method')
+  expect(entryQn(db.get(5)!)).toStrictEqual('Standard.Base.Type.static_method')
+  expect(entryQn(db.get(6)!)).toStrictEqual('Standard.Base.function')
+  expect(entryQn(db.get(7)!)).toStrictEqual('Standard.Base.local')
 })
 
 test('Qualified name indexing', () => {
@@ -31,7 +31,7 @@ test('Qualified name indexing', () => {
   const db = new SuggestionDb()
   applyUpdates(db, test.addUpdatesForExpected(), test.groups)
   for (let i = 1; i <= 7; i++) {
-    const qName = entryQn(db.get(i))
+    const qName = entryQn(db.get(i)!)
     expect(db.nameToId.lookup(qName)).toEqual(new Set([i]))
     expect(db.nameToId.reverseLookup(i)).toEqual(new Set([qName]))
   }
@@ -83,13 +83,13 @@ test('Parent-children indexing', () => {
   expect(db.parent.reverseLookup(2)).toEqual(new Set([3, 4, 5, 8]))
 
   // Remove entry.
-  const modifications2: lsTypes.SuggestionDatabaseUpdate[] = [{ type: 'Remove', id: 3 }]
+  const modifications2: lsTypes.SuggestionsDatabaseUpdate[] = [{ type: 'Remove', id: 3 }]
   applyUpdates(db, modifications2, test.groups)
   expect(db.parent.lookup(3)).toEqual(new Set([]))
   expect(db.parent.reverseLookup(2)).toEqual(new Set([4, 5, 8]))
 
   // Modify entry. Moving new method from `Standard.Base.Type` to `Standard.Base`.
-  db.get(8).memberOf = 'Standard.Base'
+  db.get(8)!.memberOf = 'Standard.Base' as QualifiedName
   expect(db.parent.reverseLookup(1)).toEqual(new Set([2, 6, 7, 8]))
   expect(db.parent.lookup(8)).toEqual(new Set([1]))
   expect(db.parent.reverseLookup(8)).toEqual(new Set([]))

@@ -1,15 +1,15 @@
 package org.enso.table.data.index;
 
+import org.enso.base.polyglot.EnsoObjectWrapper;
+import org.enso.base.polyglot.NumericConverter;
+import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.data.column.storage.Storage;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import org.enso.base.polyglot.EnsoObjectWrapper;
-import org.enso.base.polyglot.NumericConverter;
-import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.storage.Storage;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.

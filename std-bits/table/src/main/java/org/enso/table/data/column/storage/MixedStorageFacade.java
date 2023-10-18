@@ -2,9 +2,7 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.MixedBuilder;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -64,8 +62,9 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
-    return underlyingStorage.runVectorizedUnaryMap(name, problemBuilder);
+  public Storage<?> runVectorizedUnaryMap(
+      String name, MapOperationProblemAggregator problemAggregator) {
+    return underlyingStorage.runVectorizedUnaryMap(name, problemAggregator);
   }
 
   @Override
@@ -75,14 +74,14 @@ public class MixedStorageFacade extends Storage<Object> {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return underlyingStorage.runVectorizedBinaryMap(name, argument, problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return underlyingStorage.runVectorizedBinaryMap(name, argument, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
-    return underlyingStorage.runVectorizedZip(name, argument, problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return underlyingStorage.runVectorizedZip(name, argument, problemAggregator);
   }
 
   @Override
@@ -110,8 +109,9 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new MixedBuilder(capacity);
+  public Storage<?> appendNulls(int count) {
+    Storage<?> newStorage = underlyingStorage.appendNulls(count);
+    return new MixedStorageFacade(newStorage);
   }
 
   @Override

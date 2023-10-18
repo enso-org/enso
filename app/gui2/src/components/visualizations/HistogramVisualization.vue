@@ -111,10 +111,10 @@ import * as d3 from 'd3'
 
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
 
-import { useEvent, useEventConditional } from './events.ts'
-import { getTextWidth } from './measurement.ts'
+import { useEvent, useEventConditional } from '@/util/events'
+import { getTextWidth } from '@/util/measurement'
 
 const MARGIN = 25
 const AXIS_LABEL_HEIGHT = 10

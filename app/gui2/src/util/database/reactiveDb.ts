@@ -154,6 +154,14 @@ export class ReactiveIndex<K, V, IK, IV> {
    */
   writeToIndex(key: IK, value: IV): void {
     const forward = setIfUndefined(this.forward, key, () => new Set())
+    if (forward.has(value)) {
+      console.error(
+        `Attempt to repeatedly write the same key-value pair (${[
+          key,
+          value,
+        ]}) to the index. Please check your indexer implementation.`,
+      )
+    }
     forward.add(value)
     const reverse = setIfUndefined(this.reverse, value, () => new Set())
     reverse.add(key)
@@ -173,7 +181,7 @@ export class ReactiveIndex<K, V, IK, IV> {
     remove(this.reverse, value, key)
   }
 
-  /** Look for key in the forward index. */ /**
+  /** Look for key in the forward index.
    * Returns a set of values associated with the given index key.
    *
    * @param key - The index key to look up values for.

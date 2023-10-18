@@ -125,11 +125,12 @@ type Date_Time_Formatter
     @locale Locale.default_widget
     from_simple_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_simple_pattern pattern:Text locale:Locale=Locale.default =
-        FormatterCache.SIMPLE_FORMAT.get_or_set (FormatterCacheKey.new pattern locale.java_locale) _->
+        used_locale = if locale == Locale.default then Locale.us else locale
+        FormatterCache.SIMPLE_FORMAT.get_or_set (FormatterCacheKey.new pattern used_locale.java_locale) _->
             parsed = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern
             analyzer = Analyzer.new parsed
             java_formatter = analyzer.validate_after_parsing <|
-                As_Java_Formatter_Interpreter.interpret locale parsed
+                As_Java_Formatter_Interpreter.interpret used_locale parsed
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## Creates a formatter from a pattern for the ISO 8601 leap week calendar.
@@ -176,11 +177,12 @@ type Date_Time_Formatter
     @locale Locale.default_widget
     from_iso_week_date_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
     from_iso_week_date_pattern pattern:Text locale:Locale=Locale.default =
-        FormatterCache.ISO_WEEK_DATE_FORMAT.get_or_set (FormatterCacheKey.new pattern locale.java_locale) _->
+        used_locale = if locale == Locale.default then Locale.us else locale
+        FormatterCache.ISO_WEEK_DATE_FORMAT.get_or_set (FormatterCacheKey.new pattern used_locale.java_locale) _->
             parsed = Tokenizer.tokenize pattern |> Parser.parse_iso_week_year_pattern
             analyzer = Analyzer.new parsed
             java_formatter = analyzer.validate_after_parsing <|
-                As_Java_Formatter_Interpreter.interpret locale parsed
+                As_Java_Formatter_Interpreter.interpret used_locale parsed
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## ADVANCED
@@ -205,7 +207,8 @@ type Date_Time_Formatter
                 _ : Locale -> java_formatter.withLocale locale.java_locale
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new amended_formatter Nothing FormatterKind.RAW_JAVA)
         _ : Text -> Illegal_Argument.handle_java_exception <|
-            java_locale = (locale.if_nothing Locale.default).java_locale
+            used_locale = if locale == Locale.default then Locale.us else locale
+            java_locale = (used_locale.if_nothing Locale.us).java_locale
             java_formatter = DateTimeFormatter.ofPattern pattern java_locale
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.RAW_JAVA)
         _ -> Error.throw (Illegal_Argument.Error "The pattern must either be a string or a Java DateTimeFormatter instance.")
