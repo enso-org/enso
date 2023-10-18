@@ -78,8 +78,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             text_2 = create_new_datetime 2020 12 21 11 23 45 . to_display_text
             text_2 . should_equal "2020-12-21 11:23:45"
 
-            text_3 = create_new_datetime 2020 12 21 11 23 45 (zone = (Time_Zone.parse "Europe/Madrid")) . to_display_text
-            text_3 . should_equal "2020-12-21 11:23:45[Europe/Madrid]"
+            text_3 = create_new_datetime 2020 12 21 11 23 45 (zone = (Time_Zone.parse "Europe/Moscow")) . to_display_text
+            text_3 . should_equal "2020-12-21 11:23:45[Europe/Moscow]"
 
         Test.specify "should format using provided pattern and locale" <|
             d = create_new_datetime 2020 6 21
