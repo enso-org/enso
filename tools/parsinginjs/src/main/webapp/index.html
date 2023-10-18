@@ -7,7 +7,7 @@
     <body>
         <textarea id="code" name="Code" rows="12" cols="80">main = 42</textarea>
         <p>
-        <button id="parse">Parse!</button>
+            <button id="parse" disabled>Parse!</button>
         <p>
         <pre id="ast"></pre>
 
@@ -20,6 +20,7 @@
                     var ir = clazz.invoke("parse", code.value);
                     ast.innerHTML = ir;
                 };
+                button.removeAttribute("disabled");
             }
         </script>
 
