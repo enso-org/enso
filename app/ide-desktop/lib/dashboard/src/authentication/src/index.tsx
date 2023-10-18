@@ -38,8 +38,8 @@ function run(props: app.AppProps) {
     const { logger, supportsDeepLinks } = props
     logger.log('Starting authentication/dashboard UI.')
     sentry.init({
-        // dsn: '',
-        // tunnel: `${config.ACTIVE_CONFIG.apiUrl}/logs`,
+        dsn: 'https://0dc7cb80371f466ab88ed01739a7822f@o4504446218338304.ingest.sentry.io/4506070404300800',
+        environment: config.ENVIRONMENT,
         integrations: [
             new sentry.BrowserTracing({
                 routingInstrumentation: sentry.reactRouterV6Instrumentation(
