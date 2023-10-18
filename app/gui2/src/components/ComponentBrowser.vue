@@ -209,17 +209,21 @@ const fullQualifiedNameQuery = computed(() => {
 
 /** The first and last match are the parts of the string that are outside of the match.
  * The middle matches come in groups of three, and contain respectively:
+ * - the unmatched prefix (must end with a `_`)
+ *   (an empty string if the entire qualified name segment was matched)
  * - the matched text
- * - the unmatched text (an empty string if the entire qualified name segment was matched)
+ * - the unmatched suffix (an empty string if the entire qualified name segment was matched)
  * - the separator (`.` or `_`, or the empty string if this is the last segment) */
 const extractMatchesRegex = computed(() => {
   if (fullQualifiedNameQuery.value == null) return undefined
   return new RegExp(
-    '(^|.*)' +
+    '^(.*?)' +
       fullQualifiedNameQuery.value.replace(/(.+?)([._]|$)/g, (_m, text, sep) =>
-        sep === '.' ? `(${text})([^.]*)(\\.)` : `(${text})([^_.]*)(${sep})`,
+        sep === '_'
+          ? `(?:()(${text})([^_.]*)(_))?`
+          : `(?:([^.]*_)?(${text})([^.]*)(${sep === '.' ? '\\.' : ''}))?`,
       ) +
-      '(.*|$)',
+      '(.*)$',
     'i',
   )
 })
@@ -238,13 +242,15 @@ function* highlightMatches(name: QualifiedName): Generator<MatchHighlightSegment
   }
   const prefix = match[1]
   if (prefix) yield { text: prefix, type: 'no-match' }
-  const end = match.length - 3
-  for (let i = 2; i < end; i += 3) {
-    const matched = match[i]
+  const end = match.length - 4
+  for (let i = 2; i < end; i += 4) {
+    const prefix = match[i]
+    if (prefix) yield { text: prefix, type: 'no-match' }
+    const matched = match[i + 1]
     if (matched) yield { text: matched, type: 'match' }
-    const unmatched = match[i + 1]
-    if (unmatched) yield { text: unmatched, type: 'no-match' }
-    const separator = match[i + 2]
+    const suffix = match[i + 2]
+    if (suffix) yield { text: suffix, type: 'no-match' }
+    const separator = match[i + 3]
     if (separator) yield { text: separator, type: 'no-match' }
   }
   const suffix = match[match.length - 1]
@@ -388,6 +394,7 @@ function handleKeydown(e: KeyboardEvent) {
         ref="inputField"
         v-model="input.code.value"
         name="cb-input"
+        autocomplete="off"
         @keyup="readInputFieldSelection"
       />
     </div>
