@@ -7,12 +7,12 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/opt'
-import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
+import { qnIsTopElement, qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 
 export interface Component {
   suggestionId: SuggestionId
   icon: string
-  label: string
+  label: QualifiedName
   match: MatchResult
   group?: number | undefined
 }
@@ -21,7 +21,7 @@ export function labelOfEntry(entry: SuggestionEntry, filtering: Filtering) {
   const isTopModule = entry.kind == SuggestionKind.Module && qnIsTopElement(entry.definedIn)
   if (filtering.isMainView() && isTopModule) return entry.definedIn
   else if (entry.memberOf && entry.selfType == null)
-    return `${qnLastSegment(entry.memberOf)}.${entry.name}`
+    return `${qnLastSegment(entry.memberOf)}.${entry.name}` as QualifiedName
   else return entry.name
 }
 
