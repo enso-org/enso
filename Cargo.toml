@@ -22,6 +22,7 @@ members = [
   "lib/rust/parser/doc-parser",
   "lib/rust/parser/src/syntax/tree/visitor",
   "lib/rust/parser/jni",
+  "lib/rust/parser/jni-js",
   "lib/rust/parser/generate-java",
   "lib/rust/parser/schema",
   "lib/rust/parser/debug",

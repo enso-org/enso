@@ -1,0 +1,17 @@
+[package]
+name = "enso-parser-jni-js"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+description = "Enso Parser JNI API for JavaScript."
+
+[lib]
+crate-type = ["cdylib"]
+name = "enso_parser"
+
+[dependencies]
+enso-prelude = { path = "../../prelude" }
+enso-parser = { path = "../" }
+bincode = { workspace = true }
+wasm-bindgen = { workspace = true }
+console_error_panic_hook = { workspace = true }
