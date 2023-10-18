@@ -5,7 +5,7 @@ import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import DocsIcon from 'enso-assets/docs.svg'
 import PeopleIcon from 'enso-assets/people.svg'
-import PlusIcon from 'enso-assets/plus.svg'
+import Plus2Icon from 'enso-assets/plus2.svg'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
@@ -14,7 +14,8 @@ import TimeIcon from 'enso-assets/time.svg'
 import * as assetEvent from './events/assetEvent'
 import type * as assetTreeNode from './assetTreeNode'
 import * as authProvider from '../authentication/providers/auth'
-import * as backend from './backend'
+import * as backendModule from './backend'
+import * as backendProvider from '../providers/backend'
 import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
 import * as permissions from './permissions'
@@ -24,7 +25,9 @@ import * as uniqueString from '../uniqueString'
 
 import type * as assetsTable from './components/assetsTable'
 import * as categorySwitcher from './components/categorySwitcher'
+import Label, * as labelModule from './components/label'
 import AssetNameColumn from './components/assetNameColumn'
+import ManageLabelsModal from './components/manageLabelsModal'
 import ManagePermissionsModal from './components/managePermissionsModal'
 import PermissionDisplay from './components/permissionDisplay'
 import SvgMask from '../authentication/components/svgMask'
@@ -52,7 +55,7 @@ export enum Column {
     name = 'name',
     modified = 'modified',
     sharedWith = 'shared-with',
-    tags = 'tags',
+    labels = 'tags',
     accessedByProjects = 'accessed-by-projects',
     accessedData = 'accessed-data',
     docs = 'docs',
@@ -72,14 +75,14 @@ export type SortableColumn = Column.modified | Column.name
 // This MUST be `as const`, to generate the `ExtraColumn` type above.
 // eslint-disable-next-line no-restricted-syntax
 export const EXTRA_COLUMNS = [
-    Column.tags,
+    Column.labels,
     Column.accessedByProjects,
     Column.accessedData,
     Column.docs,
 ] as const
 
 export const EXTRA_COLUMN_IMAGES: Record<ExtraColumn, string> = {
-    [Column.tags]: TagIcon,
+    [Column.labels]: TagIcon,
     [Column.accessedByProjects]: AccessedByProjectsIcon,
     [Column.accessedData]: AccessedDataIcon,
     [Column.docs]: DocsIcon,
@@ -90,7 +93,7 @@ export const COLUMN_NAME: Record<Column, string> = {
     [Column.name]: 'Name',
     [Column.modified]: 'Modified',
     [Column.sharedWith]: 'Shared with',
-    [Column.tags]: 'Tags',
+    [Column.labels]: 'Labels',
     [Column.accessedByProjects]: 'Accessed by projects',
     [Column.accessedData]: 'Accessed data',
     [Column.docs]: 'Docs',
@@ -105,18 +108,18 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 border-l-0 ${COLUMN_CSS_CLASSES}`,
     [Column.modified]: `min-w-33.25 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.sharedWith]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
-    [Column.tags]: `min-w-80 ${NORMAL_COLUMN_CSS_CLASSES}`,
+    [Column.labels]: `min-w-80 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.accessedByProjects]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.accessedData]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
     [Column.docs]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
 } as const
 
-/** {@link tableColumn.TableColumnProps} for an unknown variant of {@link backend.Asset}. */
+/** {@link tableColumn.TableColumnProps} for an unknown variant of {@link backendModule.Asset}. */
 export type AssetColumnProps = tableColumn.TableColumnProps<
     assetTreeNode.AssetTreeNode,
     assetsTable.AssetsTableState,
     assetsTable.AssetRowState,
-    backend.AssetId
+    backendModule.AssetId
 >
 
 // =====================
@@ -124,12 +127,15 @@ export type AssetColumnProps = tableColumn.TableColumnProps<
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(backendType: backend.BackendType, extraColumns: Set<ExtraColumn>) {
+export function getColumnList(
+    backendType: backendModule.BackendType,
+    extraColumns: Set<ExtraColumn>
+) {
     switch (backendType) {
-        case backend.BackendType.local: {
+        case backendModule.BackendType.local: {
             return [Column.name, Column.modified]
         }
-        case backend.BackendType.remote: {
+        case backendModule.BackendType.remote: {
             return [
                 Column.name,
                 Column.modified,
@@ -156,14 +162,14 @@ function LastModifiedColumn(props: AssetColumnProps) {
 /** A column listing the users with which this asset is shared. */
 function SharedWithColumn(props: AssetColumnProps) {
     const {
-        item: { item },
+        item: { item: asset },
         setItem,
         state: { category, dispatchAssetEvent },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
     const [isHovered, setIsHovered] = React.useState(false)
-    const self = item.permissions?.find(
+    const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
     )
     const managesThisAsset =
@@ -171,7 +177,7 @@ function SharedWithColumn(props: AssetColumnProps) {
         (self?.permission === permissions.PermissionAction.own ||
             self?.permission === permissions.PermissionAction.admin)
     const setAsset = React.useCallback(
-        (valueOrUpdater: React.SetStateAction<backend.AnyAsset>) => {
+        (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
             if (typeof valueOrUpdater === 'function') {
                 setItem(oldItem => ({
                     ...oldItem,
@@ -193,7 +199,7 @@ function SharedWithColumn(props: AssetColumnProps) {
                 setIsHovered(false)
             }}
         >
-            {(item.permissions ?? []).map(user => (
+            {(asset.permissions ?? []).map(user => (
                 <PermissionDisplay key={user.user.pk} action={user.permission}>
                     {user.user.user_name}
                 </PermissionDisplay>
@@ -206,21 +212,125 @@ function SharedWithColumn(props: AssetColumnProps) {
                         setModal(
                             <ManagePermissionsModal
                                 key={uniqueString.uniqueString()}
-                                item={item}
+                                item={asset}
                                 setItem={setAsset}
                                 self={self}
                                 eventTarget={event.currentTarget}
                                 doRemoveSelf={() => {
                                     dispatchAssetEvent({
                                         type: assetEvent.AssetEventType.removeSelf,
-                                        id: item.id,
+                                        id: asset.id,
                                     })
                                 }}
                             />
                         )
                     }}
                 >
-                    <img className="w-4.5 h-4.5" src={PlusIcon} />
+                    <img className="w-4.5 h-4.5" src={Plus2Icon} />
+                </button>
+            )}
+        </div>
+    )
+}
+
+// ====================
+// === LabelsColumn ===
+// ====================
+
+/** A column listing the labels on this asset. */
+function LabelsColumn(props: AssetColumnProps) {
+    const {
+        item: { item: asset },
+        setItem,
+        state: { category, labels, deletedLabelNames, doCreateLabel },
+    } = props
+    const session = authProvider.useNonPartialUserSession()
+    const { setModal } = modalProvider.useSetModal()
+    const { backend } = backendProvider.useBackend()
+    const [isHovered, setIsHovered] = React.useState(false)
+    const self = asset.permissions?.find(
+        permission => permission.user.user_email === session.organization?.email
+    )
+    const managesThisAsset =
+        category !== categorySwitcher.Category.trash &&
+        (self?.permission === permissions.PermissionAction.own ||
+            self?.permission === permissions.PermissionAction.admin)
+    const setAsset = React.useCallback(
+        (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
+            if (typeof valueOrUpdater === 'function') {
+                setItem(oldItem => ({
+                    ...oldItem,
+                    item: valueOrUpdater(oldItem.item),
+                }))
+            } else {
+                setItem(oldItem => ({ ...oldItem, item: valueOrUpdater }))
+            }
+        },
+        [/* should never change */ setItem]
+    )
+    return (
+        <div
+            className="flex items-center gap-1"
+            onMouseEnter={() => {
+                setIsHovered(true)
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+            }}
+        >
+            {(asset.labels ?? [])
+                .filter(label => !deletedLabelNames.has(label))
+                .map(label => (
+                    <Label
+                        active
+                        key={label}
+                        color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
+                        onClick={() => {
+                            setAsset(oldAsset => {
+                                const newLabels =
+                                    oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
+                                void backend
+                                    .associateTag(asset.id, newLabels, asset.title)
+                                    .catch(() => {
+                                        setAsset(oldAsset2 =>
+                                            oldAsset2.labels?.some(
+                                                oldLabel => oldLabel === label
+                                            ) === true
+                                                ? oldAsset2
+                                                : {
+                                                      ...oldAsset2,
+                                                      labels: [...(oldAsset2.labels ?? []), label],
+                                                  }
+                                        )
+                                    })
+                                return {
+                                    ...oldAsset,
+                                    labels: newLabels,
+                                }
+                            })
+                        }}
+                    >
+                        {label}
+                    </Label>
+                ))}
+            {managesThisAsset && (
+                <button
+                    className={`h-4 w-4 ${isHovered ? '' : 'invisible'}`}
+                    onClick={event => {
+                        event.stopPropagation()
+                        setModal(
+                            <ManageLabelsModal
+                                key={uniqueString.uniqueString()}
+                                item={asset}
+                                setItem={setAsset}
+                                allLabels={labels}
+                                doCreateLabel={doCreateLabel}
+                                eventTarget={event.currentTarget}
+                            />
+                        )
+                    }}
+                >
+                    <img className="w-4.5 h-4.5" src={Plus2Icon} />
                 </button>
             )}
         </div>
@@ -321,10 +431,10 @@ export const COLUMN_HEADING: Record<
             <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.sharedWith]}</span>
         </div>
     ),
-    [Column.tags]: () => (
+    [Column.labels]: () => (
         <div className="flex items-center gap-2">
             <SvgMask src={TagIcon} className="h-4 w-4" />
-            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.tags]}</span>
+            <span className="leading-144.5 h-6 py-0.5">{COLUMN_NAME[Column.labels]}</span>
         </div>
     ),
     [Column.accessedByProjects]: () => (
@@ -356,7 +466,7 @@ export const COLUMN_RENDERER: Record<Column, (props: AssetColumnProps) => JSX.El
     [Column.name]: AssetNameColumn,
     [Column.modified]: LastModifiedColumn,
     [Column.sharedWith]: SharedWithColumn,
-    [Column.tags]: PlaceholderColumn,
+    [Column.labels]: LabelsColumn,
     [Column.accessedByProjects]: PlaceholderColumn,
     [Column.accessedData]: PlaceholderColumn,
     [Column.docs]: PlaceholderColumn,

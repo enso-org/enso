@@ -11,7 +11,7 @@ import { useProjectStore } from '@/stores/project'
 import type { Rect } from '@/stores/rect'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { keyboardBusy, keyboardBusyExceptIn, usePointer, useWindowEvent } from '@/util/events'
+import { keyboardBusy, keyboardBusyExceptIn, useEvent, usePointer } from '@/util/events'
 import { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
@@ -44,7 +44,7 @@ function updateExprRect(id: ExprId, rect: Rect) {
   exprRects.set(id, rect)
 }
 
-useWindowEvent('keydown', (event) => {
+useEvent(window, 'keydown', (event) => {
   graphBindingsHandler(event) || nodeSelectionHandler(event) || codeEditorHandler(event)
 })
 

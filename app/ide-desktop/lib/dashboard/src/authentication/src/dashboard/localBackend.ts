@@ -67,6 +67,7 @@ export class LocalBackend extends backend.Backend {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 volume_id: '',
             },
+            labels: [],
         }))
     }
 
@@ -323,7 +324,9 @@ export class LocalBackend extends backend.Backend {
     /** @throws An error stating that the operation is intentionally unavailable on the local
      * backend. */
     invalidOperation(): never {
-        throw new Error('Cannot manage users, folders, files, and secrets on the local backend.')
+        throw new Error(
+            'Cannot manage users, folders, files, tags, and secrets on the local backend.'
+        )
     }
 
     /** Do nothing. This function should never need to be called. */
@@ -366,6 +369,11 @@ export class LocalBackend extends backend.Backend {
         return this.invalidOperation()
     }
 
+    /** Return `void`. This function should never need to be called. */
+    override updateAsset() {
+        return Promise.resolve()
+    }
+
     /** Invalid operation. */
     override checkResources() {
         return this.invalidOperation()
@@ -405,6 +413,11 @@ export class LocalBackend extends backend.Backend {
     /** Return an empty array. This function should never need to be called. */
     override listTags() {
         return Promise.resolve([])
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override associateTag() {
+        return Promise.resolve()
     }
 
     /** Do nothing. This function should never need to be called. */

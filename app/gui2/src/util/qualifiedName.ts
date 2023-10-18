@@ -1,5 +1,5 @@
-import type { Opt } from './opt'
-import { Err, Ok, unwrap, type Result } from './result'
+import type { Opt } from '@/util/opt'
+import { Err, Ok, unwrap, type Result } from '@/util/result'
 
 declare const identifierBrand: unique symbol
 declare const qualifiedNameBrand: unique symbol

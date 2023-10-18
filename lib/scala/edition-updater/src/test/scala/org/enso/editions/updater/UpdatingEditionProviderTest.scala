@@ -7,7 +7,7 @@ import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 class UpdatingEditionProviderTest
     extends AnyWordSpec
@@ -15,7 +15,7 @@ class UpdatingEditionProviderTest
     with Inside
     with WithTemporaryDirectory {
 
-  val repo      = new ExampleRepository
+  val repo      = new ExampleRepository(Path.of("."))
   def port: Int = 47309
   def repoPath  = getTestDirectory.resolve("repo")
   def cachePath = getTestDirectory.resolve("cache")

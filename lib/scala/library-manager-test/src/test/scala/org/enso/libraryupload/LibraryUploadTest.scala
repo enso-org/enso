@@ -14,13 +14,15 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.io.File
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 class LibraryUploadTest
     extends AnyWordSpec
     with Matchers
     with WithTemporaryDirectory
     with DownloaderTest {
+
+  val emptyRepository = new EmptyRepository(Path.of("../../../"))
 
   def port: Int = 47305
 
@@ -38,7 +40,7 @@ class LibraryUploadTest
         version   = libraryVersion.toString
       )
 
-      EmptyRepository.withServer(port, repoRoot, uploads = true) {
+      emptyRepository.withServer(port, repoRoot, uploads = true) {
         val uploadUrl = s"http://localhost:$port/upload"
         val token     = SimpleHeaderToken("TODO")
         val dependencyExtractor = new DependencyExtractor[File] {

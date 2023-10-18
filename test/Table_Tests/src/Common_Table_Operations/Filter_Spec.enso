@@ -5,9 +5,9 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
-import Standard.Table.Data.Expression.Expression_Error
+from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
+import Standard.Table.Data.Expression.Expression_Error
 
 from Standard.Database.Errors import SQL_Error
 
@@ -58,12 +58,20 @@ spec setup =
             t.filter "X" (Filter_Condition.Greater than=(t.at "Y")) . at "X" . to_vector . should_equal [12]
             t.filter "Y" (Filter_Condition.Between (t.at "ix") 100) . at "Y" . to_vector . should_equal [100, 4, 11]
 
+            t.filter "X" (Filter_Condition.Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (Filter_Condition.Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [3]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100, 3]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100, 12]
+            t.filter "X" (Filter_Condition.Greater than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [12]
+            t.filter "Y" (Filter_Condition.Between (Column_Ref.Name "ix") 100) . at "Y" . to_vector . should_equal [100, 4, 11]
+
         Test.specify "Not_Equal test cases" pending="Specification needs clarifying, see: https://github.com/enso-org/enso/issues/5241#issuecomment-1480167927" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t3 = t.filter "X" (Filter_Condition.Not_Equal to=100)
             t3 . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
             t3 . at "ix" . to_vector . should_equal [2, 3, 4, 5]
             t.filter "X" (Filter_Condition.Not_Equal to=(t.at "Y")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
+            t.filter "X" (Filter_Condition.Not_Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [3, Nothing, 4, 12]
 
         Test.specify "by text comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "b", Nothing, "c"]], ["Y", ["a", "b", "b", "c", "c"]]]
@@ -86,6 +94,13 @@ spec setup =
             t.filter "X" (Filter_Condition.Less than=(t.at "Y")) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Equal to=(t.at "Y")) . at "X" . to_vector . should_equal ["b", "c"]
             t.filter "X" (Filter_Condition.Between (t.at "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
+
+            t.filter "X" (Filter_Condition.Greater than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["abb", "baca"]
+            t.filter "X" (Filter_Condition.Equal_Or_Greater than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["abb", "baca", "b", "c"]
+            t.filter "X" (Filter_Condition.Equal_Or_Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["b", "c"]
+            t.filter "X" (Filter_Condition.Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal []
+            t.filter "X" (Filter_Condition.Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["b", "c"]
+            t.filter "X" (Filter_Condition.Between (Column_Ref.Name "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
 
         Test.specify "by text search (contains, starts_with, ends_with, not_contains)" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
@@ -115,6 +130,11 @@ spec setup =
             t.filter "X" (Filter_Condition.Not_Contains (t.at "Y")) . at "X" . to_vector . should_equal ["bacb", "banana"]
             t.filter "X" (Filter_Condition.Not_Contains (t.at "Y") Case_Sensitivity.Sensitive) . at "X" . to_vector . should_equal ["bacb", "banana"]
             t.filter "X" (Filter_Condition.Not_Contains (t.at "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["banana"]
+
+            t.filter "X" (Filter_Condition.Starts_With (Column_Ref.Name "Y")) . at "X" . to_vector . should_equal ["abb"]
+            t.filter "X" (Filter_Condition.Ends_With (Column_Ref.Name "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["bacb", "nana"]
+            t.filter "X" (Filter_Condition.Contains (Column_Ref.Name "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["abb", "bacb", "nana"]
+            t.filter "X" (Filter_Condition.Not_Contains (Column_Ref.Name "Y") Case_Sensitivity.Insensitive) . at "X" . to_vector . should_equal ["banana"]
 
         Test.specify "by text search (like, not_like)" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "bacb", "banana", Nothing, "nana"]], ["Y", ["a", "B", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
@@ -174,6 +194,13 @@ spec setup =
             check_problem (t.filter "X" (Filter_Condition.Like (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Not_Like (t.at "ix")))
             check_problem (t.filter "X" (Filter_Condition.Not_Contains (t.at "ix")))
+
+            check_problem (t.filter "X" (Filter_Condition.Starts_With (Column_Ref.Name "ix")))
+            check_problem (t.filter "X" (Filter_Condition.Ends_With (Column_Ref.Name "ix")))
+            check_problem (t.filter "X" (Filter_Condition.Contains (Column_Ref.Name "ix")))
+            check_problem (t.filter "X" (Filter_Condition.Like (Column_Ref.Name "ix")))
+            check_problem (t.filter "X" (Filter_Condition.Not_Like (Column_Ref.Name "ix")))
+            check_problem (t.filter "X" (Filter_Condition.Not_Contains (Column_Ref.Name "ix")))
 
             check_problem (t.filter "ix" (Filter_Condition.Starts_With "A"))
             check_problem (t.filter "ix" (Filter_Condition.Ends_With "A"))
@@ -246,6 +273,18 @@ spec setup =
             t2.filter "A" (Filter_Condition.Is_In [False]) . at "A" . to_vector . should_equal [False]
             t2.filter "B" (Filter_Condition.Is_In [False]) . at "B" . to_vector . should_equal [False, False, False]
             t2.filter "C" (Filter_Condition.Is_In [False, False]) . at "C" . to_vector . should_equal [False]
+
+        Test.specify "does not allow Column_Ref in Is_In/Not_In because that would be confusing" <|
+            ## Is In and Not In check if a value is contained anywhere in a provided collection (e.g. column),
+               NOT on a row-by-row basis like all other operations. Column_Ref is used with row-by-row ops,
+               so this would only cause confusion. Very rarely someone wants to filter a column by Is_In
+               within the same table - and that's the only approach Column_Ref would support.
+            t = table_builder [["A", [1, 2, 3]], ["B", [2, 3, 4]]]
+
+            t.filter "A" (Filter_Condition.Is_In (Column_Ref.Name "B")) . should_fail_with Illegal_Argument
+
+            # If the user really wants this, they pass it as a raw column:
+            t.filter "A" (Filter_Condition.Is_In (t.at "B")) . at "A" . to_vector . should_equal [2, 3]
 
         Test.specify "by a boolean mask" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]

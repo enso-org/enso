@@ -13,7 +13,7 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 import java.math.BigDecimal;
@@ -25,8 +25,9 @@ import java.util.Objects;
  * A builder for floating point columns.
  */
 public class DoubleBuilder extends NumericBuilder {
-  DoubleBuilder(BitSet isMissing, long[] data, int currentSize) {
+  DoubleBuilder(BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
     super(isMissing, data, currentSize);
+    precisionLossAggregator = new PrecisionLossAggregator(problemAggregator);
   }
 
   @Override
@@ -194,7 +195,7 @@ public class DoubleBuilder extends NumericBuilder {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
-      reportPrecisionLoss(integer, floatingPointValue);
+      precisionLossAggregator.reportPrecisionLoss(integer, floatingPointValue);
     }
     return floatingPointValue;
   }
@@ -204,27 +205,35 @@ public class DoubleBuilder extends NumericBuilder {
     BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
     if (isLosingPrecision) {
-      reportPrecisionLoss(bigInteger, floatingPointValue);
+      precisionLossAggregator.reportPrecisionLoss(bigInteger, floatingPointValue);
     }
     return floatingPointValue;
   }
 
-  protected final void reportPrecisionLoss(Number number, double approximation) {
-    if (precisionLoss == null) {
-      precisionLoss = new LossOfIntegerPrecision(number, approximation);
-    } else {
-      precisionLoss.incrementAffectedRows();
+  protected static class PrecisionLossAggregator extends ProblemAggregator {
+    protected PrecisionLossAggregator(ProblemAggregator parent) {
+      super(parent);
+    }
+
+    private LossOfIntegerPrecision instance = null;
+
+    @Override
+    public ProblemSummary summarize() {
+      ProblemSummary summary = super.summarize();
+      if (instance != null) {
+        summary.add(instance);
+      }
+      return summary;
+    }
+
+    final void reportPrecisionLoss(Number number, double approximation) {
+      if (instance == null) {
+        instance = new LossOfIntegerPrecision(number, approximation);
+      } else {
+        instance.incrementAffectedRows();
+      }
     }
   }
 
-  protected LossOfIntegerPrecision precisionLoss = null;
-
-  @Override
-  public AggregatedProblems getProblems() {
-    AggregatedProblems problems = new AggregatedProblems(1);
-    if (precisionLoss != null) {
-      problems.add(precisionLoss);
-    }
-    return problems;
-  }
+  protected final PrecisionLossAggregator precisionLossAggregator;
 }

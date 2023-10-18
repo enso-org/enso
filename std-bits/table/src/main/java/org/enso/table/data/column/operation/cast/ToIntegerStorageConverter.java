@@ -4,11 +4,11 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.util.BitSets;
@@ -24,29 +24,30 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     this.targetType = targetType;
   }
 
-  public Storage<Long> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  @Override
+  public Storage<Long> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof AbstractLongStorage longStorage) {
       if (longStorage.getType().equals(targetType)) {
         return longStorage;
       } else {
-        return convertLongStorage(longStorage, problemBuilder);
+        return convertLongStorage(longStorage, problemAggregator);
       }
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      return convertDoubleStorage(doubleStorage, problemBuilder);
+      return convertDoubleStorage(doubleStorage, problemAggregator);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return convertBoolStorage(boolStorage, problemBuilder);
+      return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-      return convertBigIntegerStorage(bigIntegerStorage, problemBuilder);
+      return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException("No known strategy for casting storage " + storage + " to Integer.");
     }
   }
 
-  public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+  public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size(), targetType);
+    LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size(), targetType, problemAggregator);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -58,7 +59,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         if (targetType.fits(x)) {
           builder.appendLongUnchecked(x);
         } else {
-          problemBuilder.reportNumberOutOfRange(x);
+          problemAggregator.reportNumberOutOfRange(x);
           builder.appendNulls(1);
         }
       } else if (NumericConverter.isFloatLike(o)) {
@@ -67,32 +68,31 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           long converted = (long) x;
           builder.appendLongUnchecked(converted);
         } else {
-          problemBuilder.reportNumberOutOfRange(x);
+          problemAggregator.reportNumberOutOfRange(x);
           builder.appendNulls(1);
         }
       } else if (o instanceof BigInteger bigInteger) {
         if (targetType.fits(bigInteger)) {
           builder.appendLongUnchecked(bigInteger.longValue());
         } else {
-          problemBuilder.reportNumberOutOfRange(bigInteger);
+          problemAggregator.reportNumberOutOfRange(bigInteger);
           builder.appendNulls(1);
         }
       } else {
-        problemBuilder.reportConversionFailure(o);
+        problemAggregator.reportConversionFailure(o);
         builder.appendNulls(1);
       }
 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<Long> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
+  private Storage<Long> convertBoolStorage(BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = boolStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -104,14 +104,13 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<Long> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
+  private Storage<Long> convertDoubleStorage(DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = doubleStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType);
+    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
@@ -122,18 +121,17 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           builder.appendLong(converted);
         } else {
           builder.appendNulls(1);
-          problemBuilder.reportConversionFailure(value);
+          problemAggregator.reportConversionFailure(value);
         }
       }
 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<Long> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
+  private Storage<Long> convertLongStorage(AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     boolean isWidening = targetType.fits(longStorage.getType());
     if (isWidening) {
       // If the target type is larger than the source type, we can just widen the storage without doing any checks.
@@ -151,7 +149,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
             data[i] = value;
           } else {
             isMissing.set(i);
-            problemBuilder.reportNumberOutOfRange(value);
+            problemAggregator.reportNumberOutOfRange(value);
           }
         }
 
@@ -162,7 +160,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     }
   }
 
-  private Storage<Long> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemBuilder problemBuilder) {
+  private Storage<Long> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = storage.size();
     long[] data = new long[n];
@@ -175,7 +173,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         data[i] = value.longValue();
       } else {
         isMissing.set(i);
-        problemBuilder.reportNumberOutOfRange(value);
+        problemAggregator.reportNumberOutOfRange(value);
       }
 
       context.safepoint();

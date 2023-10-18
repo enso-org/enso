@@ -27,6 +27,8 @@
   "dependencies": {
     "@babel/parser": "^7.22.16",
     "@fast-check/vitest": "^0.0.8",
+    "@lezer/common": "^1.1.0",
+    "@lezer/highlight": "^1.1.6",
     "@open-rpc/client-js": "^1.8.1",
     "@vueuse/core": "^10.4.1",
     "codemirror": "^6.0.1",

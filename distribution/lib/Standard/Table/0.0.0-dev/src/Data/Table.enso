@@ -14,6 +14,7 @@ from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
+import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Data_Formatter.Data_Formatter
@@ -28,11 +29,12 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
-import project.Data.Table_Conversions
 import project.Delimited.Delimited_Format.Delimited_Format
+import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Constant_Column.Constant_Column
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Internal.Expand_Objects_Helpers
@@ -49,6 +51,7 @@ import project.Internal.Widget_Helpers
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
+from project.Extensions.Table_Conversions import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
@@ -68,6 +71,7 @@ polyglot java import org.enso.table.error.NullValuesInKeyColumns
 polyglot java import org.enso.table.error.UnmatchedRow
 polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.operations.OrderBuilder
+polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -691,16 +695,11 @@ type Table
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns
-
-            new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
-
-            java_table = index.makeTable new_columns
-            new_table = Table.Value java_table
-
-            on_problems.attach_problems_after new_table <|
-                problems = java_table.getProblems
-                Java_Problems.parse_aggregated_problems problems
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
+                java_table = index.makeTable new_columns
+                Table.Value java_table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
@@ -784,7 +783,8 @@ type Table
                     Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                self.java_table.orderBy java_columns directions comparator
+                Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.orderBy java_columns directions comparator java_aggregator
             Table.Value java_table
 
     ## GROUP Standard.Base.Selections
@@ -831,10 +831,9 @@ type Table
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
-            self.java_table.distinct java_columns text_folding_strategy
-        on_problems.attach_problems_after (Table.Value java_table) <|
-            problems = java_table.getProblems
-            Java_Problems.parse_aggregated_problems problems
+            Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.distinct java_columns text_folding_strategy java_aggregator
+        Table.Value java_table
 
     ## GROUP Standard.Base.Conversions
        Parses columns within a Table to a specific value type.
@@ -951,8 +950,9 @@ type Table
             new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
                 Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
-                    new_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
-                        parser.parseColumn column.name storage
+                    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                        parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
+                        parser.parseColumn storage parse_problem_aggregator
                     Column.Value (Java_Column.new column.name new_storage)
             Table.new new_columns
 
@@ -1186,6 +1186,42 @@ type Table
     expand_column self (column : Text | Integer) (fields : Vector | Nothing = Nothing) (prefix : Text | Nothing = Nothing) =
         Expand_Objects_Helpers.expand_column self column fields prefix
 
+    ## GROUP Standard.Base.Conversions
+      Expand aggregate values in a column to separate rows.
+
+      For each value in the specified column, if it is an aggregate (`Vector`,
+      `Range`, etc.), expand it to multiple rows, duplicating the values in the
+      other columns.
+
+      Arguments:
+      - column: The column to expand.
+      - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
+        true, a single row is output with `Nothing` for the aggregates column; if
+        false, no row is output at all.
+
+      The following aggregate values are supported:
+      - `Array`
+      - `Vector`
+      - `List`
+      - `Range`
+      - `Date_Range`
+      - `Pair
+
+      Any other values are treated as non-aggregate values, and their rows are kept
+      unchanged.
+
+      In in-memory tables, it is permitted to mix values of different types.
+
+      > Example
+        Expand a column of integer `Vectors` to a column of `Integer`
+
+        table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
+        # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
+    @column Widget_Helpers.make_column_name_selector
+    expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+    expand_to_rows self column at_least_one_row=False =
+        Expand_Objects_Helpers.expand_to_rows self column at_least_one_row
+
     ## ALIAS filter rows
        GROUP Standard.Base.Selections
 
@@ -1235,12 +1271,15 @@ type Table
 
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
+    @filter Widget_Helpers.make_filter_condition_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
-                _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
+                _ : Filter_Condition ->
+                    resolved = (self:Table_Ref).resolve_condition filter
+                    mask (make_filter_column column resolved on_problems)
                 _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
                     mask (column.map filter)
         _ ->
@@ -1429,17 +1468,17 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    @new_name Widget_Helpers.make_column_name_selector
-    set : Text | Column -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column:(Text | Column) new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    @column Column_Operation.default_widget
+    set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column:(Text | Column | Constant_Column | Column_Operation) new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column -> column
+            _ : Constant_Column -> self.make_constant_column column.value
+            _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        renamed = case new_name of
-           Nothing -> resolved
-           _ : Text -> resolved.rename new_name
+        renamed = if new_name == "" then resolved else resolved.rename new_name
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
             check_add_mode = case set_mode of
                 Set_Mode.Add_Or_Update -> True
@@ -1642,11 +1681,9 @@ type Table
             right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
 
             java_conditions = join_resolution.conditions
-            new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
-
-            on_problems.attach_problems_after (Table.Value new_java_table) <|
-                problems = new_java_table.getProblems
-                Java_Problems.parse_aggregated_problems problems
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+            Table.Value new_java_table
 
     ## ALIAS cartesian join
        GROUP Standard.Base.Calculations
@@ -1691,9 +1728,9 @@ type Table
                     [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
                 False -> []
             on_problems.attach_problems_before limit_problems <|
-                new_java_table = self.java_table.crossJoin right.java_table right_prefix
-                renaming_problems = new_java_table.getProblems |> Java_Problems.parse_aggregated_problems
-                on_problems.attach_problems_before renaming_problems (Table.Value new_java_table)
+                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.crossJoin right.java_table right_prefix java_aggregator
+                Table.Value new_java_table
 
     ## Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
@@ -1777,8 +1814,9 @@ type Table
                     Panic.catch NullValuesInKeyColumns handler=translate_null_values_exception <|
                         action
         handle_java_errors <|
-            java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows
-            Table.Value java_table
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
+                Table.Value java_table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1843,9 +1881,9 @@ type Table
             problems = if (left_row_count == right_row_count) || report_mismatch.not then [] else
                 [Row_Count_Mismatch.Error left_row_count right_row_count]
             on_problems.attach_problems_before problems <|
-                new_java_table = self.java_table.zip right.java_table keep_unmatched_bool right_prefix
-                renaming_problems = new_java_table.getProblems |> Java_Problems.parse_aggregated_problems
-                on_problems.attach_problems_before renaming_problems (Table.Value new_java_table)
+                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
+                Table.Value new_java_table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
@@ -2081,7 +2119,9 @@ type Table
         java_id = id_columns.map .java_column
 
         unique.mark_used (id_columns.map .name)
-        result = Table.Value (Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name))
+        java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name) java_problem_aggregator
+        result = Table.Value java_table
         problem_builder.report_unique_name_strategy unique
 
         problem_builder.attach_problems_after on_problems result
@@ -2184,25 +2224,24 @@ type Table
                     Aggregate_Column_Helper.default_aggregate_column_name c
                 Aggregate_Column_Helper.java_aggregator col_name c
 
-            result = case matched_name.is_empty of
-                True ->
-                    group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
-                    index = self.java_table.indexFromColumns java_key_columns
-                    index.makeTable (group_by + data_columns)
-                False ->
-                    aggregate_names = validated_values.map c->
-                        if c.new_name != "" then c.new_name else (name_mapper c)
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                case matched_name.is_empty of
+                    True ->
+                        group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
+                        index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                        new_java_table = index.makeTable (group_by + data_columns)
+                        Table.Value new_java_table
+                    False ->
+                        aggregate_names = validated_values.map c->
+                            if c.new_name != "" then c.new_name else (name_mapper c)
 
-                    too_many_columns caught_panic =
-                        inner_panic = caught_panic.payload
-                        Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
-                    Panic.catch TooManyColumnsException handler=too_many_columns <|
-                        Invalid_Column_Names.handle_java_exception <|
-                            self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
-
-            on_problems.attach_problems_after (Table.Value result) <|
-                problems = result.getProblems
-                Java_Problems.parse_aggregated_problems problems
+                        too_many_columns caught_panic =
+                            inner_panic = caught_panic.payload
+                            Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
+                        Panic.catch TooManyColumnsException handler=too_many_columns <|
+                            Invalid_Column_Names.handle_java_exception <|
+                                new_java_table = self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names java_problem_aggregator
+                                Table.Value new_java_table
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.
@@ -2488,18 +2527,18 @@ check_table arg_name table =
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.
 concat_columns column_set all_tables result_type result_row_count on_problems =
-    storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count
-    column_set.column_indices.zip all_tables i-> parent_table->
-        case i of
-            Nothing ->
-                null_row_count = parent_table.row_count
-                storage_builder.appendNulls null_row_count
-            _ : Integer ->
-                storage = parent_table.at i . java_column . getStorage
-                storage_builder.appendBulkStorage storage
-    sealed_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems <|
-        storage_builder.sealWithProblems
-    Column.from_storage column_set.name sealed_storage
+    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
+        column_set.column_indices.zip all_tables i-> parent_table->
+            case i of
+                Nothing ->
+                    null_row_count = parent_table.row_count
+                    storage_builder.appendNulls null_row_count
+                _ : Integer ->
+                    storage = parent_table.at i . java_column . getStorage
+                    storage_builder.appendBulkStorage storage
+        sealed_storage = storage_builder.seal
+        Column.from_storage column_set.name sealed_storage
 
 ## PRIVATE
    Conversion method to a Table from a Column.
