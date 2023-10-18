@@ -2440,9 +2440,14 @@ type Table
 
              column.replace '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
-    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
-        transformer col = col.replace term new_text case_sensitivity only_first
+    @term Widget_Helpers.make_column_ref_by_name_selector
+    @new_text Widget_Helpers.make_column_ref_by_name_selector
+    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
+    replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        table_ref = Table_Ref.from self
+        resolved_term = table_ref.resolve term
+        resolved_new_text = table_ref.resolve new_text
+        transformer col = col.replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## PRIVATE
