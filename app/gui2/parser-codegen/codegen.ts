@@ -479,6 +479,7 @@ function makeAbstractType(
   const ty = schema.types[id]!
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
+  const type = tsf.createTypeReferenceNode(ident)
   const baseIdent = tsf.createIdentifier('AbstractBase')
   const childTypes = Array.from(Object.entries(discriminants), ([discrim, id]: [string, string]) =>
     makeChildType(baseIdent, id, discrim, schema),
@@ -514,6 +515,7 @@ function makeAbstractType(
         viewIdent,
         abstractTypeDeserializer(ident, viewIdent, addressIdent),
       ),
+      makeIsInstance(type, baseIdent),
     ]),
   )
   const abstractTypeExport = tsf.createTypeAliasDeclaration(
@@ -523,4 +525,26 @@ function makeAbstractType(
     tsf.createTypeReferenceNode(tsf.createQualifiedName(tsf.createIdentifier(name), name)),
   )
   return { module: moduleDecl, export: abstractTypeExport }
+}
+
+function makeIsInstance(type: ts.TypeNode, baseIdent: ts.Identifier): ts.FunctionDeclaration {
+  const param = tsf.createIdentifier('obj')
+  const paramDecl = tsf.createParameterDeclaration(
+    undefined,
+    undefined,
+    param,
+    undefined,
+    tsf.createTypeReferenceNode('unknown'),
+  )
+  const baseType = tsf.createTypeReferenceNode(baseIdent)
+  const returnValue = tsf.createBinaryExpression(param, ts.SyntaxKind.InstanceOfKeyword, baseIdent)
+  return tsf.createFunctionDeclaration(
+    [modifiers.export],
+    undefined,
+    'isInstance',
+    undefined,
+    [paramDecl],
+    tsf.createTypePredicateNode(undefined, param, type),
+    tsf.createBlock([tsf.createReturnStatement(returnValue)]),
+  )
 }

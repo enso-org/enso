@@ -56,7 +56,7 @@ export function readTokenSpan(token: Token, code: string): string {
 export function childrenAstNodes(obj: LazyObject): Tree[] {
   const children: Tree[] = []
   const visitor = (obj: LazyObject) => {
-    if (isTree(obj)) {
+    if (Tree.isInstance(obj)) {
       children.push(obj)
     } else {
       obj.visitChildren(visitor)
@@ -64,16 +64,6 @@ export function childrenAstNodes(obj: LazyObject): Tree[] {
   }
   obj.visitChildren(visitor)
   return children
-}
-
-function isTree(obj: LazyObject): obj is Tree {
-  // Every descendant of `Tree.AbstractBase` is a member of the `Tree` union.
-  return obj instanceof Tree.AbstractBase
-}
-
-function isToken(obj: LazyObject): obj is Token {
-  // Every descendant of `Token.AbstractBase` is a member of the `Token` union.
-  return obj instanceof Token.AbstractBase
 }
 
 /** Returns all AST nodes from `root` tree containing given char, starting from the most nested. */
@@ -90,7 +80,7 @@ export function astContainingChar(charIndex: number, root: Tree): Tree[] {
 function treePath(obj: LazyObject, pred: (node: Tree) => boolean): Tree[] {
   const path: Tree[] = []
   const visitor = (obj: LazyObject) => {
-    if (isTree(obj)) {
+    if (Tree.isInstance(obj)) {
       const isMatch = pred(obj)
       if (isMatch) path.push(obj)
       return obj.visitChildren(visitor) || isMatch
@@ -261,12 +251,15 @@ if (import.meta.vitest) {
 function validateSpans(obj: LazyObject, initialPos?: number): number {
   const state = { pos: initialPos ?? 0 }
   const visitor = (value: LazyObject) => {
-    if (isToken(value) && !(value.whitespaceLengthInCodeBuffer + value.lengthInCodeBuffer === 0)) {
+    if (
+      Token.isInstance(value) &&
+      !(value.whitespaceLengthInCodeBuffer + value.lengthInCodeBuffer === 0)
+    ) {
       assert(value.whitespaceStartInCodeBuffer === state.pos)
       state.pos += value.whitespaceLengthInCodeBuffer
       assert(value.startInCodeBuffer === state.pos)
       state.pos += value.lengthInCodeBuffer
-    } else if (isTree(value)) {
+    } else if (Tree.isInstance(value)) {
       assert(value.whitespaceStartInCodeParsed === state.pos)
       state.pos += value.whitespaceLengthInCodeParsed
       const end = state.pos + value.childrenLengthInCodeParsed
