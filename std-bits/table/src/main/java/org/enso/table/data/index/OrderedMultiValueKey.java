@@ -73,4 +73,9 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
         "Currently no hash_code implementation consistent with the ObjectComparator is exposed, so"
             + " OrderedMultiValueKey is not hashable.");
   }
+
+  @Override
+  public String toString() {
+    return "OrderedMultiValueKey{row="+rowIndex+"}";
+  }
 }
