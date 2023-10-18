@@ -1,6 +1,6 @@
 package org.enso.syntax2;
 
-import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
 
 final class Message {
   private final java.nio.ByteBuffer buffer;
@@ -39,7 +39,11 @@ final class Message {
     int len = (int) get64();
     byte[] dst = new byte[len];
     buffer.get(dst);
-    return new String(dst, StandardCharsets.UTF_8);
+    try {
+        return new String(dst, "UTF-8");
+    } catch (UnsupportedEncodingException ex) {
+        throw new IllegalStateException(ex);
+    }
   }
 
   CharSequence context() {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>run</actionName>
+            <packagings>
+                <packaging>jar</packaging>
+            </packagings>
+            <goals>
+                <goal>package</goal>
+                <goal>bck2brwsr:aot</goal>
+                <goal>bck2brwsr:show</goal>
+            </goals>
+        </action>
+    </actions>

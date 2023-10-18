@@ -625,7 +625,10 @@ lazy val `syntax-rust-definition` = project
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
-    frgaalJavaCompilerSetting
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "org.netbeans.html" % "net.java.html.boot" % "1.8.1" % "provided"
+    )
   )
 
 lazy val pkg = (project in file("lib/scala/pkg"))

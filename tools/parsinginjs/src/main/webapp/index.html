@@ -1,0 +1,45 @@
+<html>
+    <head>
+        <title>Enso Parser Demo</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <textarea id="code" name="Code" rows="12" cols="80">main = 42</textarea>
+        <p>
+        <button id="parse">Parse!</button>
+        <p>
+        <pre id="ast"></pre>
+
+        <script>
+            function initializeGUI(clazz) {
+                var button = document.getElementById("parse")
+                var code = document.getElementById("code")
+                var ast = document.getElementById("ast")
+                button.onclick = function() {
+                    var ir = clazz.invoke("parse", code.value);
+                    ast.innerHTML = ir;
+                };
+            }
+        </script>
+
+
+        <script src='bck2brwsr.js'></script>
+        <script type="module">
+            import init from "./enso_parser.js"
+            import * as parser from "./enso_parser.js"
+
+            var vm = bck2brwsr('parsinginjs-1.0-SNAPSHOT.js');
+            fetch("./enso_parser_bg.wasm").then(r => {
+                init(r.arrayBuffer()).then(initOutput => {
+                    vm.loadClass('org.enso.syntax2.Parser', function(Parser) {
+                        Parser.invoke("init", parser);
+                        vm.loadClass('org.enso.parsinginjs.Parsinginjs', function(mainClass) {
+                          initializeGUI(mainClass);
+                        });
+                    });
+                });
+            })
+          </script>
+    </body>
+</html>
