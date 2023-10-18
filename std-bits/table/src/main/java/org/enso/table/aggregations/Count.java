@@ -2,6 +2,7 @@ package org.enso.table.aggregations;
 
 import java.util.List;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.problems.ProblemAggregator;
 
 /** Aggregate Column counting the number of entries in a group. */
 public class Count extends Aggregator {
@@ -10,12 +11,7 @@ public class Count extends Aggregator {
   }
 
   @Override
-  public Object aggregate(int[] indexes) {
-    return indexes.length;
-  }
-
-  @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
     return indexes.size();
   }
 }

@@ -91,13 +91,13 @@ read_stream format stream on_problems max_columns=default_max_columns related_fi
 read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
     Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <| Empty_File_Error.handle_java_exception <|
-        reader = prepare_reader format max_columns on_problems
-        java_table = Java_Problems.unpack_value_with_aggregated_problems on_problems <|
-            reader.read java_reader
-        Table.Value java_table
+        Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            reader = prepare_reader format max_columns on_problems java_problem_aggregator
+            java_table = reader.read java_reader
+            Table.Value java_table
 
 ## PRIVATE
-prepare_reader format max_columns on_problems newline_override=Nothing =
+prepare_reader format max_columns on_problems java_problem_aggregator newline_override=Nothing =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> DelimitedReader.HeaderBehavior.INFER
@@ -107,7 +107,6 @@ prepare_reader format max_columns on_problems newline_override=Nothing =
         _ : Integer -> format.row_limit
         _ ->
             Error.throw (Illegal_Argument.Error "`row_limit` should be Integer or Nothing.")
-    warnings_as_errors = on_problems == Problem_Behavior.Report_Error
     quote_characters = case format.quote_style of
         Quote_Style.No_Quotes -> Pair.new Nothing Nothing
         Quote_Style.With_Quotes _ quote quote_escape -> Pair.new quote quote_escape
@@ -124,7 +123,9 @@ prepare_reader format max_columns on_problems newline_override=Nothing =
     newline = newline_override.if_nothing <| case format.line_endings of
         Infer -> Nothing
         endings -> endings.to_text
-    DelimitedReader.new format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
+
+    warnings_as_errors = on_problems == Problem_Behavior.Report_Error
+    DelimitedReader.new format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors java_problem_aggregator
 
 ## PRIVATE
    An internal type representing columns deduced from an existing file.
@@ -167,8 +168,9 @@ detect_metadata file format =
                    read files with unlimited column limits (risking OutOfMemory
                    exceptions), we can catch the exception indicating the limit has been
                    reached and restart parsing with an increased limit.
-                reader = prepare_reader format max_columns=default_max_columns on_problems newline_override=trailing_line_separator
-                metadata = reader.readMetadata newline_detecting_reader
+                metadata = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                    reader = prepare_reader format max_columns=default_max_columns on_problems java_problem_aggregator newline_override=trailing_line_separator
+                    reader.readMetadata newline_detecting_reader
                 defined_columns = metadata.definedColumnNames
                 headers = case defined_columns of
                     Nothing ->

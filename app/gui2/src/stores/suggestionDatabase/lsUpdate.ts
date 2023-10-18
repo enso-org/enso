@@ -1,5 +1,9 @@
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import {
+  documentationData,
+  type DocumentationData,
+} from '@/stores/suggestionDatabase/documentation'
+import {
   SuggestionKind,
   type SuggestionEntry,
   type SuggestionEntryArgument,
@@ -19,7 +23,6 @@ import {
 } from '@/util/qualifiedName'
 import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
-import { documentationData, type DocumentationData } from './documentation'
 
 interface UnfinishedEntry {
   kind: SuggestionKind

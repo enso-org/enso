@@ -50,7 +50,7 @@ pub fn setup_conda() -> Step {
     // use crate::actions::workflow::definition::step::CondaChannel;
     Step {
         name: Some("Setup conda (GH runners only)".into()),
-        uses: Some("s-weigand/setup-conda@v1.0.6".into()),
+        uses: Some("s-weigand/setup-conda@v1.2.1".into()),
         r#if: Some(is_github_hosted()),
         with: Some(step::Argument::SetupConda {
             update_conda:   Some(false),
@@ -122,7 +122,7 @@ pub fn run(run_args: impl AsRef<str>) -> Step {
 pub fn cancel_workflow_action() -> Step {
     Step {
         name: Some("Cancel Previous Runs".into()),
-        uses: Some("styfle/cancel-workflow-action@0.9.1".into()),
+        uses: Some("styfle/cancel-workflow-action@0.12.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "access_token".into(),
             "${{ github.token }}".into(),
@@ -1040,9 +1040,7 @@ pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> 
     };
     let actual_checkout = Step {
         name: Some("Checking out the repository".into()),
-        // FIXME: Check what is wrong with v3. Seemingly Engine Tests fail because there's only a
-        //        shallow copy of the repo.
-        uses: Some("actions/checkout@v2".into()),
+        uses: Some("actions/checkout@v4".into()),
         with: Some(step::Argument::Checkout {
             repository: None,
             clean:      Some(false),

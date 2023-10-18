@@ -68,7 +68,8 @@ export default function ConnectorNameColumn(props: ConnectorNameColumnProps) {
             case assetEventModule.AssetEventType.delete:
             case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
-            case assetEventModule.AssetEventType.removeSelf: {
+            case assetEventModule.AssetEventType.removeSelf:
+            case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. These events should all be unrelated to secrets.
                 // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
                 // `AssetRow`.

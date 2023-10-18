@@ -2,23 +2,30 @@ package org.enso.table.data.column.builder;
 
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.operation.cast.CastProblemBuilder;
+import org.enso.table.data.column.operation.cast.CastProblemAggregator;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.ValueTypeMismatchException;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 
 /** A LongBuilder that ensures values it is given fit the target type. */
 public class LongBuilderChecked extends LongBuilder {
   private final IntegerType type;
-  private final CastProblemBuilder castProblemBuilder;
+  private final CastProblemAggregator castProblemAggregator;
 
-  protected LongBuilderChecked(BitSet isMissing, long[] data, int currentSize, IntegerType type) {
-    super(isMissing, data, currentSize);
+  protected LongBuilderChecked(
+      BitSet isMissing,
+      long[] data,
+      int currentSize,
+      IntegerType type,
+      ProblemAggregator problemAggregator) {
+    super(isMissing, data, currentSize, problemAggregator);
     this.type = type;
 
     // Currently we have no correlation with column name, and it may not be necessary for now.
+    // TODO ideally we want to pass the column through a problem aggregator context
     String relatedColumnName = null;
-    this.castProblemBuilder = new CastProblemBuilder(relatedColumnName, type);
+    this.castProblemAggregator =
+        new CastProblemAggregator(problemAggregator, relatedColumnName, type);
   }
 
   @Override
@@ -46,12 +53,7 @@ public class LongBuilderChecked extends LongBuilder {
       data[currentSize++] = x;
     } else {
       isMissing.set(currentSize++);
-      castProblemBuilder.reportNumberOutOfRange(x);
+      castProblemAggregator.reportNumberOutOfRange(x);
     }
-  }
-
-  @Override
-  public AggregatedProblems getProblems() {
-    return castProblemBuilder.getAggregatedProblems();
   }
 }

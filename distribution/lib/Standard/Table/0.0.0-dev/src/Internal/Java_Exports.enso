@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Required_Argument
 
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Bits
@@ -13,24 +14,27 @@ polyglot java import org.enso.table.data.column.builder.NumericBuilder
 polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.builder.TimeOfDayBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## PRIVATE
 make_bool_builder : BoolBuilder
 make_bool_builder = BoolBuilder.new
 
 ## PRIVATE
-make_double_builder : Integer -> NumericBuilder
-make_double_builder initial_size = NumericBuilder.createDoubleBuilder initial_size
+make_double_builder : Integer -> ProblemAggregator -> NumericBuilder
+make_double_builder initial_size java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
+    NumericBuilder.createDoubleBuilder initial_size java_problem_aggregator
 
 ## PRIVATE
 make_long_builder : Integer -> Bits -> NumericBuilder
-make_long_builder initial_size bits=Bits.Bits_64 =
+make_long_builder initial_size bits java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
-    NumericBuilder.createLongBuilder initial_size integer_type
+    NumericBuilder.createLongBuilder initial_size integer_type java_problem_aggregator
 
 ## PRIVATE
-make_biginteger_builder : Integer -> BigIntegerBuilder
-make_biginteger_builder initial_size = BigIntegerBuilder.new initial_size
+make_biginteger_builder : Integer -> ProblemAggregator -> BigIntegerBuilder
+make_biginteger_builder initial_size java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
+    BigIntegerBuilder.new initial_size java_problem_aggregator
 
 ## PRIVATE
 make_string_builder : Integer -> Value_Type -> StringBuilder
@@ -51,8 +55,9 @@ make_date_builder : Integer -> DateBuilder
 make_date_builder initial_size = DateBuilder.new initial_size
 
 ## PRIVATE
-make_inferred_builder : Integer -> InferredBuilder
-make_inferred_builder initial_size = InferredBuilder.new initial_size
+make_inferred_builder : Integer -> ProblemAggregator -> InferredBuilder
+make_inferred_builder initial_size java_problem_aggregator=(Missing_Required_Argument.ensure_present "java_problem_aggregator") =
+    InferredBuilder.new initial_size java_problem_aggregator
 
 ## PRIVATE
    Wrapper around a DateBuilder that uses DateBuilder.appendDate() to append a

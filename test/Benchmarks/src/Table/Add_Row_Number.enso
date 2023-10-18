@@ -1,0 +1,55 @@
+from Standard.Base import all
+
+from Standard.Table import Table, Value_Type, Aggregate_Column
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 2) . set_measure (Bench.phase_conf 3 2)
+
+create_table : Integer -> Table
+create_table num_rows =
+    rng = Random.new 42
+    x = Vector.new num_rows _-> rng.integer min=0 max=50
+    y = Vector.new num_rows _-> rng.integer min=0 max=10000
+    t = Table.new [["X", x], ["Y", y]]
+
+    assert condition =
+        if condition.not then Panic.throw "Assertion failed"
+
+    assert ((t.at "X" . value_type) == Value_Type.Integer)
+    assert ((t.at "Y" . value_type) == Value_Type.Integer)
+    t
+
+
+type Data
+    Value ~table
+
+    create num_rows = Data.Value (create_table num_rows)
+
+## A flag enabling additional tests that can be used as a 'baseline' for the
+   measurements. Usually there is no need to enable this on the CI.
+extended_tests = False
+
+collect_benches = Bench.build builder->
+    num_rows = 50000
+    data = Data.create num_rows
+
+    builder.group ("Add_Row_Number_" + num_rows.to_text) options group_builder->
+        # Various parameter settings of `Table.add_row_number`
+        group_builder.specify "Simple" <|
+            data.table.add_row_number
+        group_builder.specify "Grouped" <|
+            data.table.add_row_number group_by="X"
+        group_builder.specify "Ordered" <|
+            data.table.add_row_number order_by="Y"
+        group_builder.specify "Grouped_And_Ordered" <|
+            data.table.add_row_number group_by="X" order_by="Y"
+
+        if extended_tests then
+            # Comparing `add_row_number` to similar table ops
+            group_builder.specify "Sort_Table" <|
+                data.table.order_by "X"
+            group_builder.specify "Group_And_Sort" <|
+                data.table.aggregate [Aggregate_Column.Group_By "X", Aggregate_Column.Last "Y" order_by="Y"]
+
+main = collect_benches . run_main
