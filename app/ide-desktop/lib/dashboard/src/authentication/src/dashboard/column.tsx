@@ -206,7 +206,7 @@ function SharedWithColumn(props: AssetColumnProps) {
             ))}
             {managesThisAsset && (
                 <button
-                    className={`h-4 w-4 ${isHovered ? '' : 'invisible'}`}
+                    className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
@@ -243,6 +243,7 @@ function LabelsColumn(props: AssetColumnProps) {
         item: { item: asset },
         setItem,
         state: { category, labels, deletedLabelNames, doCreateLabel },
+        rowState: { temporaryLabels },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -313,9 +314,22 @@ function LabelsColumn(props: AssetColumnProps) {
                         {label}
                     </Label>
                 ))}
+            {...temporaryLabels
+                .filter(label => asset.labels?.includes(label) !== true)
+                .map(label => (
+                    <Label
+                        disabled
+                        key={label}
+                        color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
+                        className="pointer-events-none"
+                        onClick={() => {}}
+                    >
+                        {label}
+                    </Label>
+                ))}
             {managesThisAsset && (
                 <button
-                    className={`h-4 w-4 ${isHovered ? '' : 'invisible'}`}
+                    className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
                     onClick={event => {
                         event.stopPropagation()
                         setModal(

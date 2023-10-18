@@ -32,6 +32,8 @@ export enum AssetEventType {
     restore = 'restore',
     downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
+    addTemporaryLabels = 'add-temporary-labels',
+    addLabels = 'add-labels',
     deleteLabel = 'delete-label',
 }
 
@@ -56,6 +58,8 @@ interface AssetEvents {
     restore: AssetRestoreEvent
     downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
+    addTemporaryLabels: AssetAddTemporaryLabelsEvent
+    addLabels: AssetAddLabelsEvent
     deleteLabel: AssetDeleteLabelEvent
 }
 
@@ -140,12 +144,25 @@ export interface AssetRestoreEvent extends AssetBaseEvent<AssetEventType.restore
 export interface AssetDownloadSelectedEvent
     extends AssetBaseEvent<AssetEventType.downloadSelected> {}
 
-/** A signal to remove the current user's permissions for an asset.. */
+/** A signal to remove the current user's permissions for an asset. */
 export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.removeSelf> {
     id: backendModule.AssetId
 }
 
-/** A signal to remove the current user's permissions for an asset.. */
+/** A signal to add temporary labels to the selected assetss. */
+export interface AssetAddTemporaryLabelsEvent
+    extends AssetBaseEvent<AssetEventType.addTemporaryLabels> {
+    ids: Set<backendModule.AssetId>
+    labelNames: readonly backendModule.LabelName[]
+}
+
+/** A signal to add labels to the selected assetss. */
+export interface AssetAddLabelsEvent extends AssetBaseEvent<AssetEventType.addLabels> {
+    ids: Set<backendModule.AssetId>
+    labelNames: readonly backendModule.LabelName[]
+}
+
+/** A signal to remove a label from all assets. */
 export interface AssetDeleteLabelEvent extends AssetBaseEvent<AssetEventType.deleteLabel> {
     labelName: backendModule.LabelName
 }
