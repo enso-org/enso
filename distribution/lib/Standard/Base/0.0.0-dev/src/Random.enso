@@ -5,6 +5,8 @@ import project.Data.Time.Date_Range.Date_Range
 import project.Data.Map.Map
 import project.Data.Set.Set
 import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.IO
 import project.Nothing.Nothing
 import project.Runtime.Ref.Ref
@@ -12,6 +14,7 @@ import project.System
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer
 
+polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base.Random_Utils
 
@@ -25,7 +28,8 @@ type Random
     new_generator : Integer -> Random_Generator
     new_generator seed = Random_Generator.new seed
 
-    ## GROUP Random
+    ## TEXT_ONLY
+       GROUP Random
 
        Set the seed of the default `Random_Generator` instance.
 
@@ -40,6 +44,31 @@ type Random
              Random.set_seed 42
     set_seed : Integer -> Nothing
     set_seed seed = Random_Utils.seedRandomsSingleton seed
+
+    ## GROUP Random
+       Return a random `Integer` between `min` (inclusive) and `max`
+       (exclusive).
+
+       > Example
+         Return an integer between 1 and 10
+
+              import Standard.Base.Random.Random
+
+              i = Random.integer 1 11
+    integer : Integer -> Integer -> Integer
+    integer min max = Random.default_instance.integer min max
+
+    ## GROUP Random
+       Return a random `Float` in the specified range.
+
+       > Example
+         Return an integer between 2.3 and 3.4
+
+              import Standard.Base.Random.Random
+
+              i = Random.float 2.3 3.4
+    float : Float -> Float -> Float
+    float min=0.0 max=1.0 = Random.default_instance.float min max
 
     ## GROUP Random
        Return a random `Boolean` using the default instance of
@@ -66,6 +95,7 @@ type Random
     default_instance : Random_Generator
     default_instance = Random_Generator.Value Random_Utils.getRandomSingleton
 
+# PRIVATE
 type Random_Generator
     ## PRIVATE
        Create a new rng with the given seed.
@@ -75,58 +105,31 @@ type Random_Generator
     ## PRIVATE
     Value (java_random : Java_Random)
 
-    ## GROUP Random
+    integer : Integer -> Integer -> Integer
+    integer self min max =
+        range = max - min
+        if range >= Java_Integer.MAX_VALUE then Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.") else
+          min + (self.java_random.nextInt range)
 
-       Return a random `Boolean`.
+    float : Float -> Float -> Float
+    float self min=0.0 max=1.0 =
+        range = max - min
+        (self.java_random.nextDouble * range) + min
 
-       > Example
-         Generate a random boolean.
-             import Standard.Base.Random.Random
-
-             rng = Random.new 42
-             b = rng.boolean
     boolean : Boolean
     boolean self =
-        IO.println 'BBB'
-        IO.println self.java_random
-        n = self.java_random.nextBoolean
-        IO.println self.java_random
-        n
+        self.java_random.nextBoolean
 
     ##
-        # Return a random `Integer`
-        int low=0 high =
-        int self ... =
-
-        # Return a random 64-bit `Float`
-        float low=0.0 high=1.0 =
-
-        # Return a random 32-bit `Integer` from the entire 32-bit range
-        int_32 low=MIN_INT high=MIN_INT =
-
-        # Return a random 64-bit `Integer` from the entire 64-bit range
-        int_64 low=MIN_LONG high=MIN_LONG =
-
-        # Return a random `Float` from the entire double precision range range
-        double_precision low=MIN_DOUBLE high=MIN_DOUBLE =
-
-        # Return a random `Boolean`
-        boolean : Boolean
-
         # Return a random Gaussian distribution float in the range 0..1
-        gaussian : Float
-
-        # Return a random `Integer` in the range 0..255
-        byte : Integer
-
-        # Return a random `Integer` from the range [0, n-1], sampled without replacement.
-        index : Integer -> Integer -> Integer
-
-        # Return a random `Integer` in the given `Range` (respects `step`)
-        in_range : Range -> Integer
+        gaussian : Float -> Float -> Float
+        gaussian mean stddev
 
         # Return a random `Date` in the given `Date_Range`
-        in_date_range : Date_Range -> Date
+        date : Date_Range -> Date
+
+        # Return a random `Time_Of_Day` in the given range
+        time : ? -> Date
 
         # Return a random UUID
         uuid : Text
@@ -135,32 +138,14 @@ type Random_Generator
         # Previously `Faker.string_value`
         text_from_charsets : Vector (Text | Vector Text)
 
-        ## Generate a string based on a pattern.
-        (As seen in AlteryxAbacus.)
-        Pattern language TBD.
-
-        Example:
-        rnd.text_from_pattern "AAaaa###" -> "BZdje533"
-        text_from_pattern pattern : Text -> Text
-
-        ## GROUP Standard.Base.Random
-        Randomly converts some values to Nothing
-        make_some_nothing : Any -> Float -> Any
-
         ## Return a random value from the given collection.
-        If `with_replacement` is false, and `count` is equal to or greater than
-        the size of the collection, a random permutation of the collection is returned.
-        sample : Vector | Set | Map | Range -> Integer -> Boolean -> Any
-        sample collection count with_replacement=True =
+            If `with_replacement` is false, and `count` is equal to or greater than
+            the size of the collection, a random permutation of the collection is returned.
+        item : Vector -> Integer -> Boolean -> Any
+        item v count with_replacement=True =
 
         permutation : Vector | Set | Map | Range -> Any
         permutation collection = Random.sample collection collection.length with_replacement=False
-
-        # Return a list of random `Integers`
-        ints count=1 low=0 high count=Nothing
-        int_32s ...
-        int_64s ...
-        # etc.
 
 ## PRIVATE
    Returns a default seed to use for random number generation.
