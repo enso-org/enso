@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Value_Type
+from Standard.Table import Value_Type, Column_Ref
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
 from Standard.Table.Errors import all
 
@@ -269,3 +269,12 @@ spec setup =
             e.to_vector . should_equal ["a", "abc", "c"]
             Test.with_clue "e.value_type="+e.value_type.to_display_text+": " <|
                 e.value_type.variable_length.should_be_true
+
+        Test.specify "should allow setting a default column by reference" <|
+            t = table_builder [["A", ["x", "", Nothing]], ["B", ["a", "b", "c"]]]
+
+            t1 = t.fill_nothing "A" (Column_Ref.Name "B")
+            t1.at "A" . to_vector . should_equal ["x", "", "c"]
+
+            t2 = t.fill_empty "A" (Column_Ref.Name "B")
+            t2.at "A" . to_vector . should_equal ["x", "b", "c"]
