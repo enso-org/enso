@@ -1120,18 +1120,19 @@ type Column
     @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=False)
     fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
-        common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
-        common_type.if_not_error <|
-            storage = self.java_column.getStorage
-            storage_type = Storage.from_value_type_strict common_type
-            new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                case default of
-                    Column.Value java_col ->
-                        other_storage = java_col.getStorage
-                        storage.fillMissingFrom other_storage storage_type java_problem_aggregator
-                    _ ->
-                        storage.fillMissing default storage_type java_problem_aggregator
-            Column.Value (Java_Column.new self.name new_storage)
+        if Previous_Value == default then fill_previous self self.is_nothing else
+            common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
+            common_type.if_not_error <|
+                storage = self.java_column.getStorage
+                storage_type = Storage.from_value_type_strict common_type
+                new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                    case default of
+                        Column.Value java_col ->
+                            other_storage = java_col.getStorage
+                            storage.fillMissingFrom other_storage storage_type java_problem_aggregator
+                        _ ->
+                            storage.fillMissing default storage_type java_problem_aggregator
+                Column.Value (Java_Column.new self.name new_storage)
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
@@ -1156,9 +1157,10 @@ type Column
     fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
-            Value_Type.expect_text default <|
-                result = self.is_empty.iif default self
-                result.rename self.name
+            if Previous_Value == default then fill_previous self self.is_empty else
+                Value_Type.expect_text default <|
+                    result = self.is_empty.iif default self
+                    result.rename self.name
 
     ## GROUP Standard.Base.Text
        Checks for each element of the column if it starts with `other`.
@@ -2534,6 +2536,17 @@ naming_helper = Column_Naming_Helper.in_memory
 ## PRIVATE
    Resolves the default date period for `date_add` depending on the source column value type.
 default_date_period column = if column.value_type.has_date then Date_Period.Day else Time_Period.Hour
+
+## PRIVATE
+   Fills the missing values in a provided column with the previous non-missing value.
+
+   Arguments:
+   - column: The column to fill.
+   - is_missing: A boolean column specifying which elements are deemed missing.
+     This allows to re-use the implementation between `fill_nothing` and `fill_empty`.
+fill_previous column is_missing =
+    new_storage = column.java_column.getStorage.fillMissingFromPrevious is_missing.java_column.getStorage
+    Column.from_storage column.name new_storage
 
 ## PRIVATE
    Conversion method to a Column from a Vector.

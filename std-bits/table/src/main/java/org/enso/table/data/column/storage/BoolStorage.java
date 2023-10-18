@@ -142,6 +142,35 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
+  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+    Boolean previousValue = null;
+    BitSet newMissing = new BitSet();
+    BitSet newValues = new BitSet();
+
+    if (!missingIndicator.isMissing.isEmpty()) {
+      throw new IllegalStateException("The missingIndicator is not expected to have missing values!");
+    }
+
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size; i++) {
+      boolean isCurrentValueMissing = missingIndicator.getItem(i);
+      if (!isCurrentValueMissing) {
+        previousValue = getItem(i);
+      }
+
+      if (previousValue == null) {
+        newMissing.set(i);
+      } else {
+        newValues.set(i, previousValue);
+      }
+
+      context.safepoint();
+    }
+
+    return new BoolStorage(newValues, newMissing, size, false);
+  }
+
+  @Override
   public BoolStorage mask(BitSet mask, int cardinality) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();

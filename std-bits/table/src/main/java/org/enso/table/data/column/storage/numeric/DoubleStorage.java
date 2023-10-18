@@ -214,6 +214,41 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   }
 
   @Override
+  public DoubleStorage fillMissingFromPrevious(BoolStorage missingIndicator) {
+    if (missingIndicator.countMissing() > 0) {
+      throw new IllegalArgumentException("Missing indicator must not contain missing values itself.");
+    }
+
+    int n = size();
+    long[] newData = new long[n];
+    BitSet newMissing = new BitSet();
+    long previousValue = 0;
+    boolean isPreviousNull = true;
+    Context context = Context.getCurrent();
+    for (int i = 0; i < n; i++) {
+      boolean isCurrentValueMissing = missingIndicator.getItem(i);
+      if (!isCurrentValueMissing) {
+        if (isNa(i)) {
+          isPreviousNull = true;
+        } else {
+          previousValue = data[i];
+          isPreviousNull = false;
+        }
+      }
+
+      if (isPreviousNull) {
+        newMissing.set(i);
+      } else {
+        newData[i] = previousValue;
+      }
+
+      context.safepoint();
+    }
+
+    return new DoubleStorage(newData, n, newMissing);
+  }
+
+  @Override
   public Storage<Double> mask(BitSet mask, int cardinality) {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];

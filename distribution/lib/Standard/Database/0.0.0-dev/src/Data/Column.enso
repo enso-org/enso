@@ -1023,7 +1023,7 @@ type Column
     @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=False)
     fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
-        if default == Previous_Value then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
+        if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
             common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
             common_type.if_not_error <|
                 op_result = self.make_binary_op "FILL_NULL" default self.name
@@ -1051,7 +1051,7 @@ type Column
     @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=True)
     fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
-        if default == Previous_Value then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
+        if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument is currently not supported in the database backend.") else
             Value_Type.expect_text self <| Value_Type.expect_text default <|
                 result = self.is_empty.iif default self
                 result.rename self.name

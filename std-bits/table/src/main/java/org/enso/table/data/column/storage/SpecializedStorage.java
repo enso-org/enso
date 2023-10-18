@@ -185,6 +185,28 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
+  public Storage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
+    if (missingIndicator.countMissing() > 0) {
+      throw new IllegalArgumentException("Missing indicator must not contain missing values itself.");
+    }
+
+    T[] newData = newUnderlyingArray(size);
+    T previous = null;
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size; i++) {
+      boolean isCurrentValueMissing = missingIndicator.getItem(i);
+      if (!isCurrentValueMissing) {
+        previous = data[i];
+      }
+
+      newData[i] = previous;
+      context.safepoint();
+    }
+
+    return newInstance(newData, size);
+  }
+
+  @Override
   public List<Object> toList() {
     return new ReadOnlyList<>(this);
   }

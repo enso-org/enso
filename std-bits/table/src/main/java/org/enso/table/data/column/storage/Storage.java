@@ -452,6 +452,13 @@ public abstract class Storage<T> {
   }
 
   /**
+   * Fills missing values with a previous non-missing value.
+   * <p>
+   * Which values are considered missing is defined by the `missingIndicator`.
+   */
+  public abstract Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator);
+
+  /**
    * Return a new storage, containing only the items marked true in the mask.
    *
    * @param mask the mask to use
