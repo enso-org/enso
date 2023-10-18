@@ -132,7 +132,9 @@ class GatherDiagnosticsTest extends CompilerTest {
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
       diagnostics should have size 2
-      diagnostics.map(_.message).toSet shouldEqual Set(
+      diagnostics
+        .map(_.message(null))
+        .toSet shouldEqual Set(
         "Unused variable unused.",
         "Unused function argument x."
       )

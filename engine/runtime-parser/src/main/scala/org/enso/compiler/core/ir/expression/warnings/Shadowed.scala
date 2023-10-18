@@ -2,6 +2,7 @@ package org.enso.compiler.core.ir
 package expression
 package warnings
 
+import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.IR
 
 /** Warnings about shadowing names. */
@@ -25,7 +26,7 @@ object Shadowed {
     override val shadower: IR,
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
-    override def message: String =
+    override def message(source: Source): String =
       s"The argument $shadowedName is shadowed by $shadower"
 
     override def diagnosticKeys(): Array[Any] =
@@ -44,7 +45,7 @@ object Shadowed {
     override val shadower: IR,
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
-    override def message: String =
+    override def message(source: Source): String =
       s"The pattern field $shadowedName is shadowed by $shadower."
 
     override def diagnosticKeys(): Array[Any] =
@@ -65,7 +66,7 @@ object Shadowed {
     override val shadower: IR,
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
-    override def message: String =
+    override def message(source: Source): String =
       s"""Declaration of type $typeName shadows module ${moduleName.name} making it inaccessible via a qualified name."""
 
     override def diagnosticKeys(): Array[Any] =
@@ -88,7 +89,7 @@ object Shadowed {
     override val shadower: IR,
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
-    override def message: String =
+    override def message(source: Source): String =
       s"The exported type `$tpeName` in `$name` module will cause name conflict " +
       s"when attempting to use a fully qualified name of the `$firstConflict` module."
 
