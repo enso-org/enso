@@ -19,9 +19,19 @@ export enum MatchTypeScore {
   AliasInitialMatch = 5000,
 }
 
-export type MatchResult = {
+export interface MatchRange {
+  start: number
+  end: number
+  isMatch: boolean
+}
+
+export interface PartialMatchResult {
   matchedAlias?: string
   score: number
+}
+
+export interface MatchResult extends PartialMatchResult {
+  matchedRanges?: MatchRange[]
 }
 
 class FilteringWithPattern {
@@ -67,7 +77,7 @@ class FilteringWithPattern {
     return null
   }
 
-  tryMatch(entry: SuggestionEntry): Opt<MatchResult> {
+  tryMatch(entry: SuggestionEntry): Opt<PartialMatchResult> {
     const nameWordsMatch = this.wordMatchRegex?.exec(entry.name)
     if (nameWordsMatch?.index === 0) {
       return {
@@ -185,17 +195,44 @@ export class Filtering {
   pattern?: FilteringWithPattern
   selfType?: QualifiedName | undefined
   qualifiedName?: FilteringQualifiedName
+  fullPattern: string | undefined
+  /** The first and last match are the parts of the string that are outside of the match.
+   * The middle matches come in groups of three, and contain respectively:
+   * - the unmatched prefix (must end with a `_`)
+   *   (an empty string if the entire qualified name segment was matched)
+   * - the matched text
+   * - the unmatched suffix (an empty string if the entire qualified name segment was matched)
+   * - the separator (`.` or `_`, or the empty string if this is the last segment) */
+  extractMatchesRegex: RegExp | undefined
   showUnstable: boolean = false
   showLocal: boolean = false
 
   constructor(filter: Filter) {
     const { pattern, selfType, qualifiedNamePattern, showUnstable, showLocal } = filter
-    if (pattern != null && pattern !== '') {
+    if (pattern) {
       this.pattern = new FilteringWithPattern(pattern)
     }
     this.selfType = selfType
-    if (qualifiedNamePattern != null && qualifiedNamePattern !== '') {
+    if (qualifiedNamePattern) {
       this.qualifiedName = new FilteringQualifiedName(qualifiedNamePattern)
+    }
+    if (qualifiedNamePattern) {
+      this.fullPattern = pattern ? `${qualifiedNamePattern}.${pattern}` : qualifiedNamePattern
+    } else {
+      this.fullPattern = pattern
+    }
+    if (this.fullPattern) {
+      let prefix = ''
+      let suffix = ''
+      for (const [, text, separator] of this.fullPattern.matchAll(/(.+?)([._]|$)/g)) {
+        const segment =
+          separator === '_'
+            ? `()(${text})([^_.]*)(_)`
+            : `([^.]*_)?(${text})([^.]*)(${separator === '.' ? '\\.' : ''})`
+        prefix = '(?:' + prefix
+        suffix += segment + ')?'
+      }
+      this.extractMatchesRegex = new RegExp('^(.*?)' + prefix + suffix + '(.*)$', 'i')
     }
     this.showUnstable = showUnstable ?? false
     this.showLocal = showLocal ?? false
@@ -224,20 +261,55 @@ export class Filtering {
     const hasGroup = entry.groupIndex != null
     const isModule = entry.kind === SuggestionKind.Module
     const isTopElement = (entry.definedIn.match(/\./g)?.length ?? 0) <= 2
-    if (hasGroup || (isModule && isTopElement)) {
-      return { score: 0 }
+    if (!hasGroup && (!isModule || !isTopElement)) return
+    else return { score: 0 }
+  }
+
+  private partialFilter(entry: SuggestionEntry): Opt<PartialMatchResult> {
+    if (entry.isPrivate) return
+    else if (!this.selfTypeMatches(entry)) return
+    else if (!this.qualifiedNameMatches(entry)) return
+    else if (!this.showUnstable && entry.isUnstable) return
+    else if (this.pattern) return this.pattern.tryMatch(entry)
+    else if (this.isMainView()) return this.mainViewFilter(entry)
+    else return { score: 0 }
+  }
+
+  private static addMatchRange(ranges: MatchRange[], length: number | undefined, isMatch: boolean) {
+    if (!length) return
+    const lastRange = ranges[ranges.length - 1]
+    if (lastRange == null) {
+      ranges.push({ start: 0, end: length, isMatch })
+      return
+    }
+    if (lastRange.isMatch === isMatch) {
+      lastRange.end += length
     } else {
-      return null
+      ranges.push({ start: lastRange.end, end: lastRange.end + length, isMatch })
     }
   }
 
   filter(entry: SuggestionEntry): Opt<MatchResult> {
-    if (entry.isPrivate) return null
-    else if (!this.selfTypeMatches(entry)) return null
-    else if (!this.qualifiedNameMatches(entry)) return null
-    else if (!this.showUnstable && entry.isUnstable) return null
-    else if (this.pattern) return this.pattern.tryMatch(entry)
-    else if (this.isMainView()) return this.mainViewFilter(entry)
-    else return { score: 0 }
+    const partialResult = this.partialFilter(entry)
+    if (partialResult == null) return
+    if (this.extractMatchesRegex == null) return partialResult
+    const match = (partialResult.matchedAlias ?? entry.name).match(this.extractMatchesRegex)
+    if (match == null) return partialResult
+    const ranges: MatchRange[] = []
+    Filtering.addMatchRange(ranges, match[1]?.length, false)
+    const end = match.length - 4
+    for (let i = 2; i < end; i += 4) {
+      // Unmatched prefix
+      Filtering.addMatchRange(ranges, match[i]?.length, false)
+      // Match
+      Filtering.addMatchRange(ranges, match[i + 1]?.length, true)
+      // Unmatched suffix
+      Filtering.addMatchRange(ranges, match[i + 2]?.length, false)
+      // Separator
+      Filtering.addMatchRange(ranges, match[i + 3]?.length, true)
+    }
+    Filtering.addMatchRange(ranges, match[match.length - 1]?.length, false)
+    console.log(match, ranges, ranges[ranges.length - 1]?.end)
+    return { ...partialResult, matchedRanges: ranges }
   }
 }

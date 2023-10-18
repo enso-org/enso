@@ -10,7 +10,6 @@ import { useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { type QualifiedName } from '../util/qualifiedName'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -195,69 +194,6 @@ function selectLastAfterRefresh() {
   })
 }
 
-// === Highlight matches ===
-
-const fullQualifiedNameQuery = computed(() => {
-  if (input.filter.value.qualifiedNamePattern != null) {
-    return input.filter.value.pattern != null
-      ? `${input.filter.value.qualifiedNamePattern}.${input.filter.value.pattern}`
-      : input.filter.value.qualifiedNamePattern
-  } else {
-    return input.filter.value.pattern
-  }
-})
-
-/** The first and last match are the parts of the string that are outside of the match.
- * The middle matches come in groups of three, and contain respectively:
- * - the unmatched prefix (must end with a `_`)
- *   (an empty string if the entire qualified name segment was matched)
- * - the matched text
- * - the unmatched suffix (an empty string if the entire qualified name segment was matched)
- * - the separator (`.` or `_`, or the empty string if this is the last segment) */
-const extractMatchesRegex = computed(() => {
-  if (fullQualifiedNameQuery.value == null) return undefined
-  let prefix = ''
-  let suffix = ''
-  for (const [, text, separator] of fullQualifiedNameQuery.value.matchAll(/(.+?)([._]|$)/g)) {
-    const segment =
-      separator === '_'
-        ? `()(${text})([^_.]*)(_)`
-        : `([^.]*_)?(${text})([^.]*)(${separator === '.' ? '\\.' : ''})`
-    prefix = '(?:' + prefix
-    suffix += segment + ')?'
-  }
-  return new RegExp('^(.*?)' + prefix + suffix + '(.*)$', 'i')
-})
-
-interface MatchHighlightSegment {
-  text: string
-  type: 'no-match' | 'match'
-}
-
-function* highlightMatches(name: QualifiedName): Generator<MatchHighlightSegment> {
-  const match =
-    extractMatchesRegex.value != null ? name.match(extractMatchesRegex.value) : undefined
-  if (match == undefined) {
-    yield { text: name, type: 'no-match' }
-    return
-  }
-  const prefix = match[1]
-  if (prefix) yield { text: prefix, type: 'no-match' }
-  const end = match.length - 4
-  for (let i = 2; i < end; i += 4) {
-    const prefix = match[i]
-    if (prefix) yield { text: prefix, type: 'no-match' }
-    const matched = match[i + 1]
-    if (matched) yield { text: matched, type: 'match' }
-    const suffix = match[i + 2]
-    if (suffix) yield { text: suffix, type: 'no-match' }
-    const separator = match[i + 3]
-    if (separator) yield { text: separator, type: 'no-match' }
-  }
-  const suffix = match[match.length - 1]
-  if (suffix) yield { text: suffix, type: 'no-match' }
-}
-
 // === Scrolling ===
 
 const scroller = ref<HTMLElement>()
@@ -354,11 +290,16 @@ function handleKeydown(e: KeyboardEvent) {
                 />
                 <span>
                   <span
-                    v-for="segment in highlightMatches(item.component.label)"
-                    :key="segment.text"
+                    v-if="!item.component.match.matchedRanges"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in item.component.match.matchedRanges"
+                    v-else
+                    :key="`${range.start},${range.end}`"
                     class="component-label-segment"
-                    :class="{ match: segment.type === 'match' }"
-                    v-text="segment.text"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
                   ></span>
                 </span>
               </div>
@@ -376,11 +317,16 @@ function handleKeydown(e: KeyboardEvent) {
                 <SvgIcon :name="item.component.icon" />
                 <span>
                   <span
-                    v-for="segment in highlightMatches(item.component.label)"
-                    :key="segment.text"
+                    v-if="!item.component.match.matchedRanges"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in item.component.match.matchedRanges"
+                    v-else
+                    :key="`${range.start},${range.end}`"
                     class="component-label-segment"
-                    :class="{ match: segment.type === 'match' }"
-                    v-text="segment.text"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
                   ></span>
                 </span>
               </div>
