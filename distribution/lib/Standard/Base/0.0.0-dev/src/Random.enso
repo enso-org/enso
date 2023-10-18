@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Range.Range
 import project.Data.Text.Text
+import project.Data.Time.Date.Date
 import project.Data.Time.Date_Range.Date_Range
 import project.Data.Map.Map
 import project.Data.Set.Set
@@ -50,7 +51,7 @@ type Random
        (exclusive).
 
        > Example
-         Return an integer between 1 and 10
+         Generate an integer between 1 and 10.
 
               import Standard.Base.Random.Random
 
@@ -62,7 +63,7 @@ type Random
        Return a random `Float` in the specified range.
 
        > Example
-         Return an integer between 2.3 and 3.4
+         Generate a float between 2.3 and 3.4.
 
               import Standard.Base.Random.Random
 
@@ -75,8 +76,7 @@ type Random
        `Random_Generator`.
 
        > Example
-         Generate a random boolean using the default instance of
-         `Random_Generator`.
+         Generate a random boolean.
 
              import Standard.Base.Random.Random
 
@@ -84,11 +84,51 @@ type Random
     boolean : Boolean
     boolean = Random.default_instance.boolean
 
+    ## GROUP Random
+       Return a random Gaussian-distributed `Float` with mean 0.00 and standard
+       deviation 1.0.
+
+       > Example
+         Generate an gaussian float.
+
+              import Standard.Base.Random.Random
+
+              f = Random.gaussian
+    gaussian : Float -> Float -> Float
+    gaussian = Random.default_instance.gaussian
+
+    ## GROUP Random
+       Return a date within the specified `Date_Range`.
+
+       > Example
+         Generate a random date.
+
+             import Standard.Base.Random.Random
+
+             range = Date_Range.new (Date.new 2023 03 01) (Date.new 2023 10 15)
+             d = Random.date range
+    date : Date_Range -> Date
+    date date_range = Random.default_instance.date date_range
+
     ##
-        # Static versions of methods from Random_Generator.
-        int low=0 high = Random.default_instance.int low high
-        int_32 low=MIN_INT high=MIN_INT =
-        # ...
+        # Return a random `Time_Of_Day` in the given range
+        time : ? -> Date
+
+        # Return a random UUID
+        uuid : Text
+
+        # Generate a string by selecting a random character from each element of the list.
+        # Previously `Faker.string_value`
+        text_from_charsets : Vector (Text | Vector Text)
+
+        ## Return a random value from the given collection.
+            If `with_replacement` is false, and `count` is equal to or greater than
+            the size of the collection, a random permutation of the collection is returned.
+        item : Vector -> Integer -> Boolean -> Any
+        item v count with_replacement=True =
+
+        permutation : Vector | Set | Map | Range -> Any
+        permutation collection = Random.sample collection collection.length with_replacement=False
 
     ## PRIVATE
        Return the default instance.
@@ -120,32 +160,11 @@ type Random_Generator
     boolean self =
         self.java_random.nextBoolean
 
-    ##
-        # Return a random Gaussian distribution float in the range 0..1
-        gaussian : Float -> Float -> Float
-        gaussian mean stddev
+    gaussian : Float -> Float -> Float
+    gaussian self = self.java_random.nextGaussian
 
-        # Return a random `Date` in the given `Date_Range`
-        date : Date_Range -> Date
-
-        # Return a random `Time_Of_Day` in the given range
-        time : ? -> Date
-
-        # Return a random UUID
-        uuid : Text
-
-        # Generate a string by selecting a random character from each element of the list.
-        # Previously `Faker.string_value`
-        text_from_charsets : Vector (Text | Vector Text)
-
-        ## Return a random value from the given collection.
-            If `with_replacement` is false, and `count` is equal to or greater than
-            the size of the collection, a random permutation of the collection is returned.
-        item : Vector -> Integer -> Boolean -> Any
-        item v count with_replacement=True =
-
-        permutation : Vector | Set | Map | Range -> Any
-        permutation collection = Random.sample collection collection.length with_replacement=False
+    date : Date_Range -> Date
+    date self date_range = date_range.at (self.integer 0 date_range.length)
 
 ## PRIVATE
    Returns a default seed to use for random number generation.
