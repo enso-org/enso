@@ -11,6 +11,7 @@ import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Widget_Helpers import make_regex_text_widget
 
+import project.Data.Constants.Previous_Value
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
 import project.Data.Type.Enso_Types
@@ -1105,7 +1106,10 @@ type Column
        Arguments:
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
-         will be used.
+         will be used. If this argument is `Previous_Value`, the missing values
+         will be replaced with the previous value in the column. Note that the
+         first rows may stay `Nothing` if they do not have a previous value to
+         use.
 
        > Example
          Fill missing values in a column with the value 20.5.
@@ -1113,7 +1117,7 @@ type Column
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
-    fill_nothing : Column | Any -> Column
+    fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
         common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
         common_type.if_not_error <|
@@ -1137,7 +1141,9 @@ type Column
        Arguments:
        - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
-         will be used.
+         will be used. If this argument is `Previous_Value`, the empty values
+         will be replaced with the previous value in the column. Note that the
+         first rows may stay empty if they do not have a previous value to use.
 
        > Example
          Fill empty values in a column with the value "hello".
@@ -1145,7 +1151,7 @@ type Column
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
-    fill_empty : Column | Any -> Column
+    fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
             Value_Type.expect_text default <|
