@@ -17,6 +17,7 @@ import * as authProvider from '../authentication/providers/auth'
 import * as backendModule from './backend'
 import * as backendProvider from '../providers/backend'
 import * as dateTime from './dateTime'
+import * as hooks from '../hooks'
 import * as modalProvider from '../providers/modal'
 import * as permissions from './permissions'
 import * as sorting from './sorting'
@@ -248,6 +249,7 @@ function LabelsColumn(props: AssetColumnProps) {
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
     const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
@@ -292,7 +294,8 @@ function LabelsColumn(props: AssetColumnProps) {
                                     oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
                                 void backend
                                     .associateTag(asset.id, newLabels, asset.title)
-                                    .catch(() => {
+                                    .catch(error => {
+                                        toastAndLog(null, error)
                                         setAsset(oldAsset2 =>
                                             oldAsset2.labels?.some(
                                                 oldLabel => oldLabel === label
