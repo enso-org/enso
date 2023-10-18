@@ -171,10 +171,12 @@ class TableVisualization extends Visualization {
         let dataTruncated = false
 
         if (parsedData.error !== undefined) {
-            columnDefs = [{
+            columnDefs = [
+                {
                     field: 'Error',
                     cellStyle: { 'white-space': 'normal' },
-                }]
+                },
+            ]
             rowData = [{ Error: parsedData.error }]
         } else if (parsedData.type === 'Matrix') {
             let defs = [{ field: '#' }]
@@ -341,7 +343,7 @@ class TableVisualization extends Visualization {
         // If the user manually resized a column, we don't want to auto-size it on a resize.
         const manuallySized = e.source !== 'autosizeColumns'
         for (const column of e.columns) {
-            const field = column.colDef.field;
+            const field = column.colDef.field
             this.widths[field] = manuallySized ? column.actualWidth : undefined
         }
     }
