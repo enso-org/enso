@@ -182,7 +182,7 @@ export function visitSequence(
 ): boolean {
   const data = readPointer(view, address)
   let offset = 4
-  let end = offset + size * readU32(data, 0)
+  const end = offset + size * readU32(data, 0)
   while (offset != end) {
     if (visitor(data, offset) === true) return true
     offset += size
