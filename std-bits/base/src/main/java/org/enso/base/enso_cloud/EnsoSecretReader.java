@@ -55,28 +55,13 @@ class EnsoSecretReader {
   }
 
   private static String readValueFromString(String json) {
-    int idx = json.indexOf("\"value\"");
-    if (idx == -1) {
-      throw new IllegalArgumentException("Unable to read secret.");
-    }
-
-    int startIdx = json.indexOf("\"", idx + 7);
-    if (startIdx == -1) {
-      throw new IllegalArgumentException("Unable to read secret.");
-    }
-
-    int endIdx = startIdx + 1;
-    while (endIdx < json.length() && json.charAt(endIdx) != '"') {
-      if (json.charAt(endIdx) == '\\') {
-        endIdx++;
-      }
-      endIdx++;
-    }
-
-    if (endIdx == json.length()) {
-      throw new IllegalArgumentException("Unable to read secret.");
-    }
-
-    return json.substring(startIdx + 1, endIdx);
+    return json.substring(1, json.length() - 1)
+        .replace("\\\"", "\"")
+        .replace("\\n", "\n")
+        .replace("\\t", "\t")
+        .replace("\\r", "\r")
+        .replace("\\b", "\b")
+        .replace("\\f", "\f")
+        .replace("\\\\", "\\");
   }
 }
