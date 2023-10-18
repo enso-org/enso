@@ -1120,7 +1120,7 @@ type Column
     @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=False)
     fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
-        if Previous_Value == default then fill_previous self self.is_nothing else
+        if Previous_Value == default then fill_previous self Nothing else
             common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
             common_type.if_not_error <|
                 storage = self.java_column.getStorage
@@ -2543,9 +2543,11 @@ default_date_period column = if column.value_type.has_date then Date_Period.Day 
    Arguments:
    - column: The column to fill.
    - is_missing: A boolean column specifying which elements are deemed missing.
-     This allows to re-use the implementation between `fill_nothing` and `fill_empty`.
+     If set to `Nothing`, this will rely on the default missing value semantics
+     (`is_nothing`).
 fill_previous column is_missing =
-    new_storage = column.java_column.getStorage.fillMissingFromPrevious is_missing.java_column.getStorage
+    missing_storage = if Nothing == is_missing then Nothing else is_missing.java_column.getStorage
+    new_storage = column.java_column.getStorage.fillMissingFromPrevious missing_storage
     Column.from_storage column.name new_storage
 
 ## PRIVATE
