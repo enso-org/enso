@@ -61,25 +61,21 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     return `${v.pos.x} ${v.pos.y} ${v.size.x} ${v.size.y}`
   })
 
-  const transformValue = computed(() => {
+  const translate = computed<Vec2>(() => {
     const nodeSize = size.value
     const { x, y } = center.value
     const s = scale.value
     const w = nodeSize.x / s
     const h = nodeSize.y / s
-    return { x: -x + w / 2, y: -y + h / 2 }
+    return new Vec2(-x + w / 2, -y + h / 2)
   })
 
   const transform = computed(
-    () =>
-      `scale(${scale.value}) translate(${transformValue.value.x}px, ${transformValue.value.y}px)`,
+    () => `scale(${scale.value}) translate(${translate.value.x}px, ${translate.value.y}px)`,
   )
 
   const prescaledTransform = computed(
-    () =>
-      `translate(${transformValue.value.x * scale.value}px, ${
-        transformValue.value.y * scale.value
-      }px)`,
+    () => `translate(${translate.value.x * scale.value}px, ${translate.value.y * scale.value}px)`,
   )
 
   useEvent(
@@ -126,6 +122,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         }
       },
     },
+    translate,
     scale,
     viewBox,
     transform,
