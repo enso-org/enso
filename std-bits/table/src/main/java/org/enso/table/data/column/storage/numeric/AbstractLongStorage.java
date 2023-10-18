@@ -184,7 +184,8 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
   @Override
   public AbstractLongStorage fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
-      throw new IllegalStateException("Custom missing value semantics are not supported by AbstractLongStorage.");
+      throw new IllegalStateException(
+          "Custom missing value semantics are not supported by AbstractLongStorage.");
     }
 
     int n = size();

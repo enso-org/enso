@@ -216,7 +216,8 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   @Override
   public DoubleStorage fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
-      throw new IllegalStateException("Custom missing value semantics are not supported by DoubleStorage.");
+      throw new IllegalStateException(
+          "Custom missing value semantics are not supported by DoubleStorage.");
     }
 
     int n = size();
