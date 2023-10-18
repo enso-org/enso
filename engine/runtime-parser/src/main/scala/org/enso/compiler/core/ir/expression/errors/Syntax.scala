@@ -2,6 +2,7 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
+import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 
@@ -89,10 +90,10 @@ sealed case class Syntax(
   override def children: List[IR] = List()
 
   /** @inheritdoc */
-  override def message: String = reason.explanation
+  override def message(source: Source): String = reason.explanation
 
   /** @inheritdoc */
-  override def formattedMessage: String = s"${message}."
+  override def formattedMessage(source: Source): String = s"${message(source)}."
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
 

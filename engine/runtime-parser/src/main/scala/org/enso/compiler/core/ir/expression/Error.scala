@@ -1,6 +1,7 @@
 package org.enso.compiler.core.ir
 package expression
 
+import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.{ir, IR}
@@ -107,7 +108,7 @@ object Error {
     override def children: List[IR] = List(ir)
 
     /** @inheritdoc */
-    override def message: String =
+    override def message(source: Source): String =
       "InvalidIR: Please report this as a compiler bug."
 
     override def diagnosticKeys(): Array[Any] = Array()

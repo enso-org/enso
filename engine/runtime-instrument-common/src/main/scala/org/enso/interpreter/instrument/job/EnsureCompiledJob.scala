@@ -199,14 +199,15 @@ final class EnsureCompiledJob(
     module: Module,
     diagnostic: Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
+    val source = module.getSource
     Api.ExecutionResult.Diagnostic(
       kind,
-      Option(diagnostic.formattedMessage),
+      Option(diagnostic.formattedMessage(source)),
       Option(module.getPath).map(new File(_)),
       diagnostic.location
         .map(loc =>
           LocationResolver
-            .locationToRange(loc.location, module.getSource.getCharacters)
+            .locationToRange(loc.location, source.getCharacters)
         ),
       diagnostic.location
         .flatMap(LocationResolver.getExpressionId(module.getIr, _))
