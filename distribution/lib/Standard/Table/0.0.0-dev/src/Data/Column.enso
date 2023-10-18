@@ -1117,6 +1117,7 @@ type Column
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
+    @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=False)
     fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
         common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
@@ -1151,6 +1152,7 @@ type Column
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
+    @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=True)
     fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
