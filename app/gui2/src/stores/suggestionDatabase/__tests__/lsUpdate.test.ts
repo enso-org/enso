@@ -375,7 +375,7 @@ class Fixture {
     scope: this.scope,
   }
   expectedLocal: SuggestionEntry = {
-    kind: SuggestionKind.Function,
+    kind: SuggestionKind.Local,
     name: unwrap(tryIdentifier('local')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
     arguments: [],
