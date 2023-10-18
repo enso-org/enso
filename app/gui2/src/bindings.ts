@@ -20,6 +20,11 @@ export const graphBindings = defineKeybinds('graph-editor', {
   newNode: ['N'],
 })
 
+export const interactionBindings = defineKeybinds('current-interaction', {
+  cancel: ['Escape'],
+  click: ['PointerMain'],
+})
+
 export const nodeSelectionBindings = defineKeybinds('node-selection', {
   deleteSelected: ['Delete'],
   selectAll: ['Mod+A'],

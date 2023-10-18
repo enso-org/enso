@@ -42,6 +42,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
+  updateHoveredExpr: [ExprId | undefined]
   updateContent: [updates: [range: ContentRange, content: string][]]
   movePosition: [delta: Vec2]
   setVisualizationId: [id: Opt<VisualizationIdentifier>]
@@ -49,6 +50,7 @@ const emit = defineEmits<{
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
+  outputPortAction: []
 }>()
 
 const visualizationStore = useVisualizationStore()
@@ -508,10 +510,11 @@ watchEffect(() => {
           :span="node.rootSpan"
           :offset="0"
           @updateExprRect="updateExprRect"
+          @updateHoveredExpr="emit('updateHoveredExpr', $event)"
         />
       </div>
     </div>
-    <div class="outputTypeName">{{ outputTypeName }}</div>
+    <div class="outputTypeName" @pointerdown="emit('outputPortAction')">{{ outputTypeName }}</div>
   </div>
 </template>
 
@@ -641,7 +644,8 @@ watchEffect(() => {
   transform: translateX(-50%);
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
-  pointer-events: none;
+  /*pointer-events: none;*/
+  z-index: 10;
   color: var(--node-color-primary);
 }
 

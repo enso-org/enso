@@ -14,6 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updateExprRect: [expr: ExprId, rect: Rect]
+  updateHoveredExpr: [ExprId | undefined]
 }>()
 
 const spanClass = computed(() => spanKindName(props.span.kind))
@@ -73,8 +74,15 @@ watch(exprRect, (rect) => {
         :content="props.content"
         :span="child"
         :offset="childOffsets[index]!"
-        @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)" /></template
-    ><template v-else>{{ exprPart }}</template></span
+        @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)"
+        @updateHoveredExpr="emit('updateHoveredExpr', $event)" /></template
+    ><template v-else
+      ><span
+        @pointerenter="emit('updateHoveredExpr', $props.span.id)"
+        @pointerleave="emit('updateHoveredExpr', undefined)"
+        >{{ exprPart }}</span
+      ></template
+    ></span
   >
 </template>
 

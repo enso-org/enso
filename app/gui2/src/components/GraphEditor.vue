@@ -1,12 +1,17 @@
 <script lang="ts">
-import { codeEditorBindings, graphBindings, nodeSelectionBindings } from '@/bindings'
+import {
+  codeEditorBindings,
+  graphBindings,
+  interactionBindings,
+  nodeSelectionBindings,
+} from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import GraphEdge from '@/components/GraphEdge.vue'
 import GraphNode from '@/components/GraphNode.vue'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type Edge } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
@@ -45,7 +50,10 @@ function updateExprRect(id: ExprId, rect: Rect) {
 }
 
 useEvent(window, 'keydown', (event) => {
-  graphBindingsHandler(event) || nodeSelectionHandler(event) || codeEditorHandler(event)
+  interactionBindingsHandler(event) ||
+    graphBindingsHandler(event) ||
+    nodeSelectionHandler(event) ||
+    codeEditorHandler(event)
 })
 
 onMounted(() => viewportNode.value?.focus())
@@ -166,6 +174,17 @@ const graphBindingsHandler = graphBindings.handler({
   },
 })
 
+const interactionBindingsHandler = interactionBindings.handler({
+  cancel() {
+    cancelCurrentInteraction()
+  },
+  click(e) {
+    if (e instanceof MouseEvent) return currentInteraction.value?.click(e) ?? false
+    return false
+  },
+})
+useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
+
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
@@ -276,6 +295,110 @@ const groupColors = computed(() => {
   }
   return styles
 })
+
+function outputPortAction(id: ExprId) {
+  graphStore.createEdgeFromOutput(id)
+}
+
+abstract class Interaction {
+  id: number
+  static nextId: number = 0
+  constructor() {
+    this.id = Interaction.nextId
+    Interaction.nextId += 1
+  }
+
+  abstract cancel(): void
+  click(_e: MouseEvent): boolean {
+    return false
+  }
+}
+const currentInteraction = ref<Interaction>()
+class EditingEdge extends Interaction {
+  cancel() {
+    graphStore.clearUnconnected()
+  }
+  click(_e: MouseEvent): boolean {
+    if (graphStore.unconnectedEdge == null) return false
+    const source = graphStore.unconnectedEdge.source ?? hoveredNode.value
+    const target = graphStore.unconnectedEdge.target ?? hoveredExpr.value
+    graphStore.transact(() => {
+      if (target == null && graphStore.unconnectedEdge?.disconnectedEdgeTarget != null) {
+        disconnectEdge(graphStore.unconnectedEdge.disconnectedEdgeTarget)
+      }
+      if (source == null || target == null) {
+        createNodeFromEdgeDrop({ source, target })
+      } else {
+        createEdge(source, target)
+      }
+    })
+    graphStore.clearUnconnected()
+    return true
+  }
+}
+const editingEdge = new EditingEdge()
+class EditingNode extends Interaction {
+  cancel() {
+    componentBrowserVisible.value = false
+  }
+}
+const editingNode = new EditingNode()
+
+function setCurrentInteraction(interaction: Interaction | undefined) {
+  if (currentInteraction.value?.id === interaction?.id) return
+  currentInteraction.value?.cancel()
+  currentInteraction.value = interaction
+}
+
+function cancelCurrentInteraction() {
+  setCurrentInteraction(undefined)
+}
+
+/** Unset the current interaction, if it is the specified instance. */
+function forgetInteraction(interaction: Interaction) {
+  if (currentInteraction.value?.id === interaction?.id) currentInteraction.value = undefined
+}
+
+watch(
+  () => graphStore.unconnectedEdge,
+  (edge) => {
+    if (edge != null) {
+      setCurrentInteraction(editingEdge)
+    } else {
+      forgetInteraction(editingEdge)
+    }
+  },
+)
+watch(componentBrowserVisible, (visible) => {
+  if (visible) {
+    setCurrentInteraction(editingNode)
+  } else {
+    forgetInteraction(editingNode)
+  }
+})
+
+function disconnectEdge(target: ExprId) {
+  graphStore.setExpressionContent(target, '_')
+}
+function createNodeFromEdgeDrop(edge: Edge) {
+  console.log(`TODO: createNodeFromEdgeDrop(${JSON.stringify(edge)})`)
+}
+function createEdge(source: ExprId, target: ExprId) {
+  const sourceNode = graphStore.nodes.get(source)
+  if (sourceNode == null) return
+  // TODO: Check alias analysis to see if the binding is shadowed.
+  graphStore.setExpressionContent(target, sourceNode.binding)
+  // TODO: Use alias analysis to ensure declarations are in a dependency order.
+}
+
+const hoveredNode = ref<ExprId>()
+const hoveredExpr = ref<ExprId>()
+function updateHoveredNode(expr?: ExprId) {
+  hoveredNode.value = expr
+}
+function updateHoveredExpr(expr?: ExprId) {
+  hoveredExpr.value = expr
+}
 </script>
 
 <template>
@@ -296,6 +419,11 @@ const groupColors = computed(() => {
         :nodeRects="nodeRects"
         :exprRects="exprRects"
         :exprNodes="graphStore.exprNodes"
+        :hoveredNode="hoveredNode"
+        :hoveredExpr="hoveredExpr"
+        :sceneMousePos="navigator.sceneMousePos"
+        @disconnectSource="graphStore.disconnectSource(edge)"
+        @disconnectTarget="graphStore.disconnectTarget(edge)"
       />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
@@ -313,10 +441,14 @@ const groupColors = computed(() => {
         @updateRect="updateNodeRect(id, $event)"
         @delete="graphStore.deleteNode(id)"
         @updateExprRect="updateExprRect"
+        @mouseenter="updateHoveredNode(id)"
+        @mouseleave="updateHoveredNode(undefined)"
+        @updateHoveredExpr="updateHoveredExpr"
         @updateContent="updateNodeContent(id, $event)"
         @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
         @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
         @movePosition="moveNode(id, $event)"
+        @outputPortAction="outputPortAction(id)"
       />
     </div>
     <ComponentBrowser
