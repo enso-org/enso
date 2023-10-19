@@ -158,6 +158,19 @@ test.each(['bar', 'barfoo', 'fo', 'bar_fo_bar'])("%s is not matched by pattern '
   expect(filtering.filter(entry)).toBeNull()
 })
 
+function matchedText(text: string, matchResult: MatchResult) {
+  text = matchResult.matchedAlias ?? text
+  const parts: string[] = []
+  for (const range of [
+    ...(matchResult.definedInRanges ?? []),
+    ...(matchResult.memberOfRanges ?? []),
+    ...(matchResult.nameRanges ?? []),
+  ]) {
+    parts.push(text.slice(range.start, range.end))
+  }
+  return parts.join('')
+}
+
 test('Matching pattern without underscores', () => {
   const pattern = 'foo'
   const filtering = new Filtering({ pattern })
@@ -178,6 +191,10 @@ test('Matching pattern without underscores', () => {
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
+  expect(
+    matchedText(matchedSorted[0]!.name, matchResults[0]!),
+    `matchedText('${matchedSorted[0]!.name}')`,
+  ).toEqual(pattern)
   for (let i = 1; i < matchResults.length; i++) {
     expect(
       matchResults[i],
@@ -187,6 +204,10 @@ test('Matching pattern without underscores', () => {
       matchResults[i]!.score,
       `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
     ).toBeGreaterThan(matchResults[i - 1]!.score)
+    expect(
+      matchedText(matchedSorted[i]!.name, matchResults[i]!),
+      `matchedText('${matchedSorted[i]!.name}')`,
+    ).toEqual(pattern)
   }
 })
 
@@ -210,6 +231,10 @@ test('Matching pattern with underscores', () => {
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
+  expect(
+    matchedText(matchedSorted[0]!.name, matchResults[0]!),
+    `matchedText('${matchedSorted[0]!.name}')`,
+  ).toEqual(pattern)
   for (let i = 1; i < matchResults.length; i++) {
     expect(
       matchResults[i],
@@ -219,6 +244,10 @@ test('Matching pattern with underscores', () => {
       matchResults[i]!.score,
       `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
     ).toBeGreaterThan(matchResults[i - 1]!.score)
+    expect(
+      matchedText(matchedSorted[i]!.name, matchResults[i]!),
+      `matchedText('${matchedSorted[i]!.name}')`,
+    ).toEqual(pattern)
   }
 })
 
@@ -237,44 +266,4 @@ test('Unstable filtering', () => {
   })
   expect(unstableFiltering.filter(stableEntry)).not.toBeNull()
   expect(unstableFiltering.filter(unstableEntry)).not.toBeNull()
-})
-
-test('Match ranges', () => {
-  function matchedText(text: string, matchResult: MatchResult) {
-    text = matchResult.matchedAlias ?? text
-    const parts: string[] = []
-    for (const range of [
-      ...(matchResult.definedInRanges ?? []),
-      ...(matchResult.memberOfRanges ?? []),
-      ...(matchResult.nameRanges ?? []),
-    ]) {
-      parts.push(text.slice(range.start, range.end))
-    }
-    return parts.join('')
-  }
-
-  const pattern = 'foo_bar'
-  const filtering = new Filtering({ pattern })
-  const matchedSorted = [
-    { name: 'foo_bar' }, // exact match
-    { name: 'foo_xyz_barabc' }, // first word exact match
-    { name: 'fooabc_barabc' }, // first word match
-    { name: 'bar', aliases: ['foo_bar', 'foo'] }, // exact alias match
-    { name: 'bar', aliases: ['foo', 'foo_xyz_barabc'] }, // alias first word exact match
-    { name: 'bar', aliases: ['foo', 'fooabc_barabc'] }, // alias first word match
-    { name: 'xyz_foo_abc_bar_xyz' }, // exact word match
-    { name: 'xyz_fooabc_abc_barabc_xyz' }, // non-exact word match
-    { name: 'bar', aliases: ['xyz_foo_abc_bar_xyz'] }, // alias word exact match
-    { name: 'bar', aliases: ['xyz_fooabc_abc_barabc_xyz'] }, // alias word start match
-  ]
-  const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
-    const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
-    return filtering.filter(entry)
-  })
-  for (let i = 0; i < matchResults.length; i++) {
-    expect(
-      matchedText(matchedSorted[i]!.name, matchResults[i]!),
-      `matchedText('${matchedSorted[i]!.name}')`,
-    ).toEqual(pattern)
-  }
 })

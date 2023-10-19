@@ -109,19 +109,54 @@ test('Matched ranges are correct', () => {
     return parts.join('')
   }
 
+  function replaceAliasMatches(component: Component) {
+    if (!component.matchedRanges || !component.matchedAlias) return
+    const parts: string[] = []
+    for (const range of allRanges(component.matchedAlias, component.matchedRanges)) {
+      const text = component.matchedAlias.slice(range.start, range.end)
+      parts.push(range.isMatch ? `<${text}>` : text)
+    }
+    return parts.join('')
+  }
+
   const pattern = 'foo_bar'
   const filtering = new Filtering({ pattern })
   const matchedSorted = [
     { name: 'foo_bar', highlighted: 'Project.<foo><_bar>' }, // exact match
     { name: 'foo_xyz_barabc', highlighted: 'Project.<foo>_xyz<_bar>abc' }, // first word exact match
     { name: 'fooabc_barabc', highlighted: 'Project.<foo>abc<_bar>abc' }, // first word match
-    { name: 'bar', aliases: ['foo_bar', 'foo'], highlighted: 'Project.bar' }, // exact alias match
-    { name: 'bar', aliases: ['foo', 'foo_xyz_barabc'], highlighted: 'Project.bar' }, // alias first word exact match
-    { name: 'bar', aliases: ['foo', 'fooabc_barabc'], highlighted: 'Project.bar' }, // alias first word match
+    {
+      name: 'bar',
+      aliases: ['foo_bar', 'foo'],
+      highlighted: 'Project.bar',
+      highlightedAlias: '<foo><_bar>',
+    }, // exact alias match
+    {
+      name: 'bar',
+      aliases: ['foo', 'foo_xyz_barabc'],
+      highlighted: 'Project.bar',
+      highlightedAlias: '<foo>_xyz<_bar>abc',
+    }, // alias first word exact match
+    {
+      name: 'bar',
+      aliases: ['foo', 'fooabc_barabc'],
+      highlighted: 'Project.bar',
+      highlightedAlias: '<foo>abc<_bar>abc',
+    }, // alias first word match
     { name: 'xyz_foo_abc_bar_xyz', highlighted: 'Project.xyz_<foo>_abc<_bar>_xyz' }, // exact word match
     { name: 'xyz_fooabc_abc_barabc_xyz', highlighted: 'Project.xyz_<foo>abc_abc<_bar>abc_xyz' }, // non-exact word match
-    { name: 'bar', aliases: ['xyz_foo_abc_bar_xyz'], highlighted: 'Project.bar' }, // alias word exact match
-    { name: 'bar', aliases: ['xyz_fooabc_abc_barabc_xyz'], highlighted: 'Project.bar' }, // alias word start match
+    {
+      name: 'bar',
+      aliases: ['xyz_foo_abc_bar_xyz'],
+      highlighted: 'Project.bar',
+      highlightedAlias: 'xyz_<foo>_abc<_bar>_xyz',
+    }, // alias word exact match
+    {
+      name: 'bar',
+      aliases: ['xyz_fooabc_abc_barabc_xyz'],
+      highlighted: 'Project.bar',
+      highlightedAlias: 'xyz_<foo>abc_abc<_bar>abc_xyz',
+    }, // alias word start match
   ]
   const entries = Array.from(matchedSorted, ({ name, aliases }, id) => {
     const entry: SuggestionEntry = {
@@ -135,5 +170,9 @@ test('Matched ranges are correct', () => {
       replaceMatches(makeComponent(entries[i]!, filtering)),
       `replaceMatches(${JSON.stringify(matchedSorted[i])})`,
     ).toEqual(matchedSorted[i]!.highlighted)
+    expect(
+      replaceAliasMatches(makeComponent(entries[i]!, filtering)),
+      `replaceAliasMatches(${JSON.stringify(matchedSorted[i])})`,
+    ).toEqual(matchedSorted[i]!.highlightedAlias)
   }
 })

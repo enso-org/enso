@@ -10,13 +10,13 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
-import { isSome, type Opt } from '@/util/opt'
+import { isSome } from '@/util/opt'
 import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
 
 interface ComponentLabel {
   label: string
-  matchedAlias?: Opt<string>
-  matchedRanges?: MatchRange[]
+  matchedAlias?: string | undefined
+  matchedRanges?: MatchRange[] | undefined
 }
 
 export interface Component extends ComponentLabel {
@@ -36,8 +36,15 @@ export function labelOfEntry(
     const lastSegmentStart = qnLastSegmentIndex(entry.memberOf) + 1
     const parentModule = entry.memberOf.substring(lastSegmentStart)
     const nameOffset = parentModule.length + 1
-    if (!match.memberOfRanges && !match.definedInRanges && !match.nameRanges)
-      return { label: `${parentModule}.${entry.name}`, matchedAlias: match.matchedAlias }
+    if (
+      (!match.memberOfRanges && !match.definedInRanges && !match.nameRanges) ||
+      match.matchedAlias
+    )
+      return {
+        label: `${parentModule}.${entry.name}`,
+        matchedAlias: match.matchedAlias,
+        matchedRanges: match.nameRanges,
+      }
     return {
       label: `${parentModule}.${entry.name}`,
       matchedAlias: match.matchedAlias,
