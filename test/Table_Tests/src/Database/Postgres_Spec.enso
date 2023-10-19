@@ -359,6 +359,7 @@ postgres_specific_spec connection db_name setup =
         Test.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
             table_name = Name_Generator.random_name "Timestamp"
             table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
+            Problems.assume_no_problems table
 
             dt1 = Date_Time.new 2022 05 04 15 30
             dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
@@ -378,7 +379,11 @@ postgres_specific_spec connection db_name setup =
             table.at "A" . cast Value_Type.Char . to_vector . should_equal [local_dt, local_dt, local_dt, local_dt]
 
             # Then when downloaded, it should be interpreted at the 'system default' timezone.
-            table.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+            materialized_table = table.read
+            materialized_table.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+
+            # The Inexact_Type_Coercion warning is silenced for this case:
+            Problems.assume_no_problems materialized_table
 
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
