@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import {
   makeCon,
   makeFunction,
@@ -158,6 +158,19 @@ test.each(['bar', 'barfoo', 'fo', 'bar_fo_bar'])("%s is not matched by pattern '
   expect(filtering.filter(entry)).toBeNull()
 })
 
+function matchedText(text: string, matchResult: MatchResult) {
+  text = matchResult.matchedAlias ?? text
+  const parts: string[] = []
+  for (const range of [
+    ...(matchResult.definedInRanges ?? []),
+    ...(matchResult.memberOfRanges ?? []),
+    ...(matchResult.nameRanges ?? []),
+  ]) {
+    parts.push(text.slice(range.start, range.end))
+  }
+  return parts.join('')
+}
+
 test('Matching pattern without underscores', () => {
   const pattern = 'foo'
   const filtering = new Filtering({ pattern })
@@ -178,9 +191,23 @@ test('Matching pattern without underscores', () => {
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
+  expect(
+    matchedText(matchedSorted[0]!.name, matchResults[0]!),
+    `matchedText('${matchedSorted[0]!.name}')`,
+  ).toEqual(pattern)
   for (let i = 1; i < matchResults.length; i++) {
-    expect(matchResults[i]).not.toBeNull()
-    expect(matchResults[i]?.score).toBeGreaterThan(matchResults[i - 1]?.score ?? Infinity)
+    expect(
+      matchResults[i],
+      `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
+    ).not.toBeNull()
+    expect(
+      matchResults[i]!.score,
+      `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
+    ).toBeGreaterThan(matchResults[i - 1]!.score)
+    expect(
+      matchedText(matchedSorted[i]!.name, matchResults[i]!),
+      `matchedText('${matchedSorted[i]!.name}')`,
+    ).toEqual(pattern)
   }
 })
 
@@ -204,9 +231,23 @@ test('Matching pattern with underscores', () => {
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
+  expect(
+    matchedText(matchedSorted[0]!.name, matchResults[0]!),
+    `matchedText('${matchedSorted[0]!.name}')`,
+  ).toEqual(pattern)
   for (let i = 1; i < matchResults.length; i++) {
-    expect(matchResults[i]).not.toBeNull()
-    expect(matchResults[i]?.score).toBeGreaterThan(matchResults[i - 1]?.score ?? Infinity)
+    expect(
+      matchResults[i],
+      `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
+    ).not.toBeNull()
+    expect(
+      matchResults[i]!.score,
+      `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
+    ).toBeGreaterThan(matchResults[i - 1]!.score)
+    expect(
+      matchedText(matchedSorted[i]!.name, matchResults[i]!),
+      `matchedText('${matchedSorted[i]!.name}')`,
+    ).toEqual(pattern)
   }
 })
 
