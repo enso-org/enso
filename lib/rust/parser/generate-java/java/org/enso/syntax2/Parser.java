@@ -1,7 +1,6 @@
 package org.enso.syntax2;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import net.java.html.js.JavaScriptBody;
 
 public final class Parser implements AutoCloseable {
@@ -18,14 +17,13 @@ public final class Parser implements AutoCloseable {
   }
 
   @JavaScriptBody(args = {"result"}, body = """
-  result.free();
+  result["free"]();
   """)
   private static void freeState(Object result) {
   }
 
   @JavaScriptBody(args = { "parser", "input" }, body = """
-  debugger;
-  var result = parser.parse_input(input);
+  var result = parser["parse_input"](input);
   return result;
   """)
   private static Object parseInput(Object parser, String input) {
@@ -33,7 +31,7 @@ public final class Parser implements AutoCloseable {
   }
 
   @JavaScriptBody(args = { "parser", "result" }, body = """
-  return parser.base(result).toString();
+  return parser["base"](result).toString();
   """)
   private static String getLastInputBase(Object parser, Object result) {
     throw new IllegalStateException("getLastInputBase");
@@ -44,7 +42,7 @@ public final class Parser implements AutoCloseable {
   }
 
   @JavaScriptBody(args = { "parser", "result" }, body = """
-  return parser.ast(result);
+  return parser["ast"](result);
   """)
   private static Object ast(Object parser, Object result) {
     throw new IllegalStateException("ast");

@@ -46,6 +46,11 @@
                     </dependency>
                 </dependencies>
                 <configuration>
+                    <exports>
+                        <export>org.enso.syntax2.Parser</export>
+                        <export>org.enso.parsinginjs.Parsinginjs</export>
+                    </exports>
+                    <obfuscation>MINIMAL</obfuscation>
                     <directory>${basedir}/target</directory>
                     <startpage>index.html</startpage>
                 </configuration>
@@ -110,7 +115,6 @@
                     </arguments>
                 </configuration>
             </plugin>
-
         </plugins>
     </build>
 </project>
