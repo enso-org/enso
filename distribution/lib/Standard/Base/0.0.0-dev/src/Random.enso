@@ -214,7 +214,7 @@ type Random_Generator
     float : Float -> Float -> Float
     float self min=0.0 max=1.0 =
         range = max - min
-        (self.java_random.nextDouble * range) + min
+        self.java_random.nextDouble * range + min
 
     boolean : Boolean
     boolean self =
