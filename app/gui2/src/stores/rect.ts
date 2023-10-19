@@ -15,6 +15,15 @@ export class Rect {
     return this.pos.equals(other.pos) && this.size.equals(other.size)
   }
 
+  within(other: Rect): boolean {
+    return (
+      this.left >= other.left &&
+      this.right <= other.right &&
+      this.top >= other.top &&
+      this.bottom <= other.bottom
+    )
+  }
+
   static Zero(): Rect {
     return new Rect(Vec2.Zero(), Vec2.Zero())
   }
@@ -25,5 +34,33 @@ export class Rect {
 
   rangeX(): [number, number] {
     return [this.pos.x, this.pos.x + this.size.x]
+  }
+
+  intersectsX(other: Rect) {
+    return this.left <= other.right && this.right >= other.left
+  }
+
+  intersectsY(other: Rect) {
+    return this.top <= other.bottom && this.bottom >= other.top
+  }
+
+  intersects(other: Rect) {
+    return this.intersectsX(other) && this.intersectsY(other)
+  }
+
+  get left() {
+    return this.pos.x
+  }
+
+  get top() {
+    return this.pos.y
+  }
+
+  get bottom() {
+    return this.pos.y + this.size.y
+  }
+
+  get right() {
+    return this.pos.x + this.size.x
   }
 }

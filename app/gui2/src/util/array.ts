@@ -6,3 +6,20 @@ export function findIndexOpt<T>(arr: T[], pred: (elem: T) => boolean): number | 
   const index = arr.findIndex(pred)
   return index >= 0 ? index : null
 }
+
+/** Binary search, using a predicate `pred` that returns `false` for elements ordered before the
+ * target, and `true` for elements ordered after the target. Returns the index of the first element
+ * for which the predicate returns `true`.
+ *
+ * The array MUST be sorted. */
+export function binarySearch<T>(array: T[], pred: (elem: T) => boolean): number {
+  let start = 0
+  let end = array.length
+  while (start !== end) {
+    // Shift right by one to halve and round down in the same step.
+    const middle = (start + end) >> 1
+    if (pred(array[middle]!)) end = middle
+    else start = middle
+  }
+  return start
+}
