@@ -30,7 +30,9 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
+import project.Extensions.Table_Conversions
 import project.Delimited.Delimited_Format.Delimited_Format
+import project.Extensions.Prefix_Name.Prefix_Name
 import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
@@ -52,7 +54,7 @@ import project.Internal.Widget_Helpers
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
-from project.Extensions.Table_Conversions import all
+#from project.Extensions.Table_Conversions import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
@@ -1183,8 +1185,8 @@ type Table
         - prefix: Prefix to add to the column names. If `Nothing` then the column
           name is used.
     @column Widget_Helpers.make_column_name_selector
-    expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
-    expand_column self (column : Text | Integer) (fields : Vector | Nothing = Nothing) (prefix : Text | Nothing = Nothing) =
+    expand_column : Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+    expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
         Expand_Objects_Helpers.expand_column self column fields prefix
 
     ## GROUP Standard.Base.Conversions
@@ -2582,3 +2584,41 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
 ## PRIVATE
    Conversion method to a Table from a Vector.
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
+
+## Convert an `XML_Element` into a `Table`
+
+   Generates a single-row table with columns for the tag's contents.
+
+   Arguments:
+   - that: The XML_Element to convert
+
+   The columns generated are:
+   - Name: the root tag name
+   - @[attribute name]: the attribute with that name.
+   - Children: the children of the tag, including `XML_Element`s and text
+     elements. This is only generated if the tag has `XML_Element` children
+   - Value: the text content of the tag. This is only generated if the tag does
+     not have `XML_Element` children
+
+   Either `Children` or `Value` will be generated, but not both.
+Table.from (that:XML_Element) =
+    # Generating a table from an `XML_Element` is the same logic as `expand_column`
+    Table.new [["x", [that]]] . expand_column 'x' prefix=Prefix_Name.None
+
+## Convert an `XML_Document` into a `Table`
+
+   Generates a single-row table with columns for the root tag's contents.
+
+   Arguments:
+   - that: The XML_Document to convert
+
+   The columns generated are:
+   - Name: the root tag name
+   - @[attribute name]: the attribute with that name
+   - Children: the children of the tag, including `XML_Element`s and text
+     elements. This is only generated if the tag has `XML_Element` children
+   - Value: the text content of the tag. This is only generated if the tag does
+     not have `XML_Element` children
+
+   Either `Children` or `Value` will be generated, but not both.
+Table.from (that:XML_Document) = Table.from that.root_element
