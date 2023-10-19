@@ -1433,7 +1433,15 @@ lazy val `runtime-parser` =
         "junit"          % "junit"           % junitVersion     % Test,
         "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
         "org.scalatest" %% "scalatest"       % scalatestVersion % Test
-      )
+      ),
+      assembly / assemblyMergeStrategy := {
+        case PathList(file, xs @ _*) if file.contains("enso_parser") => MergeStrategy.discard
+        case PathList(file, xs @ _*) if file.contains("LICENSE_scala") => MergeStrategy.discard
+        case x =>
+          val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
+          val r = oldStrategy(x)
+          r
+      }
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
