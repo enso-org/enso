@@ -10,12 +10,12 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
-import { isSome } from '@/util/opt'
+import { isSome, type Opt } from '@/util/opt'
 import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
 
 interface ComponentLabel {
   label: string
-  matchedAlias?: string
+  matchedAlias?: Opt<string>
   matchedRanges?: MatchRange[]
 }
 
@@ -37,9 +37,10 @@ export function labelOfEntry(
     const parentModule = entry.memberOf.substring(lastSegmentStart)
     const nameOffset = parentModule.length + 1
     if (!match.memberOfRanges && !match.definedInRanges && !match.nameRanges)
-      return { label: `${parentModule}.${entry.name}` }
+      return { label: `${parentModule}.${entry.name}`, matchedAlias: match.matchedAlias }
     return {
       label: `${parentModule}.${entry.name}`,
+      matchedAlias: match.matchedAlias,
       matchedRanges: [
         ...(match.memberOfRanges ?? match.definedInRanges ?? []).flatMap((range) =>
           range.end <= lastSegmentStart
@@ -59,8 +60,8 @@ export function labelOfEntry(
     }
   } else
     return match.nameRanges
-      ? { label: entry.name, matchedRanges: match.nameRanges }
-      : { label: entry.name }
+      ? { label: entry.name, matchedAlias: match.matchedAlias, matchedRanges: match.nameRanges }
+      : { label: entry.name, matchedAlias: match.matchedAlias }
 }
 
 export interface MatchedSuggestion {
@@ -82,6 +83,24 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
   return a.id - b.id
 }
 
+export interface ComponentInfo {
+  id: number
+  entry: SuggestionEntry
+  match: MatchResult
+}
+
+export function makeComponent(
+  { id, entry, match }: ComponentInfo,
+  filtering: Filtering,
+): Component {
+  return {
+    ...labelOfEntry(entry, filtering, match),
+    suggestionId: id,
+    icon: entry.iconName ?? 'marketplace',
+    group: entry.groupIndex,
+  }
+}
+
 export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
   function* matchSuggestions() {
     for (const [id, entry] of db.entries()) {
@@ -91,14 +110,6 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
       }
     }
   }
-  const matched: MatchedSuggestion[] = Array.from(matchSuggestions())
-  matched.sort(compareSuggestions)
-  return Array.from(matched, ({ id, entry, match }): Component => {
-    return {
-      ...labelOfEntry(entry, filtering, match),
-      suggestionId: id,
-      icon: entry.iconName ?? 'marketplace',
-      group: entry.groupIndex,
-    }
-  })
+  const matched = Array.from(matchSuggestions()).sort()
+  return Array.from(matched, (info) => makeComponent(info, filtering))
 }

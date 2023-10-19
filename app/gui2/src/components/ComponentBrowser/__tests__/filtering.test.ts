@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import {
   makeCon,
   makeFunction,
@@ -237,4 +237,44 @@ test('Unstable filtering', () => {
   })
   expect(unstableFiltering.filter(stableEntry)).not.toBeUndefined()
   expect(unstableFiltering.filter(unstableEntry)).not.toBeUndefined()
+})
+
+test('Match ranges', () => {
+  function matchedText(text: string, matchResult: MatchResult) {
+    text = matchResult.matchedAlias ?? text
+    const parts: string[] = []
+    for (const range of [
+      ...(matchResult.definedInRanges ?? []),
+      ...(matchResult.memberOfRanges ?? []),
+      ...(matchResult.nameRanges ?? []),
+    ]) {
+      parts.push(text.slice(range.start, range.end))
+    }
+    return parts.join('')
+  }
+
+  const pattern = 'foo_bar'
+  const filtering = new Filtering({ pattern })
+  const matchedSorted = [
+    { name: 'foo_bar' }, // exact match
+    { name: 'foo_xyz_barabc' }, // first word exact match
+    { name: 'fooabc_barabc' }, // first word match
+    { name: 'bar', aliases: ['foo_bar', 'foo'] }, // exact alias match
+    { name: 'bar', aliases: ['foo', 'foo_xyz_barabc'] }, // alias first word exact match
+    { name: 'bar', aliases: ['foo', 'fooabc_barabc'] }, // alias first word match
+    { name: 'xyz_foo_abc_bar_xyz' }, // exact word match
+    { name: 'xyz_fooabc_abc_barabc_xyz' }, // non-exact word match
+    { name: 'bar', aliases: ['xyz_foo_abc_bar_xyz'] }, // alias word exact match
+    { name: 'bar', aliases: ['xyz_fooabc_abc_barabc_xyz'] }, // alias word start match
+  ]
+  const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
+    const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
+    return filtering.filter(entry)
+  })
+  for (let i = 0; i < matchResults.length; i++) {
+    expect(
+      matchedText(matchedSorted[i]!.name, matchResults[i]!),
+      `matchedText('${matchedSorted[i]!.name}')`,
+    ).toEqual(pattern)
+  }
 })

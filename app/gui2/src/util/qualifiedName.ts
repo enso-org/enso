@@ -143,7 +143,6 @@ if (import.meta.vitest) {
     ['local.Project.Module.elem', false],
   ])('qnIsTopElement(%s) returns %s', (name, result) => {
     const qn = unwrap(tryQualifiedName(name))
-    console.log('qn', qn)
     expect(qnIsTopElement(qn)).toBe(result)
   })
 }

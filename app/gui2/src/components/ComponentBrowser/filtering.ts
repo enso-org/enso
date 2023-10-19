@@ -149,7 +149,6 @@ class FilteringWithPattern {
       }
     }
     if (matchedAlias) {
-      const start = this.wordMatchRegex.lastIndex
       return {
         matchedAlias: matchedAlias.alias,
         score: this.matchedWordsScore(
@@ -157,7 +156,7 @@ class FilteringWithPattern {
           matchedAlias.alias,
           matchedAlias.match,
         ),
-        nameRanges: [{ start, end: start + matchedAlias.match[0].length }],
+        nameRanges: FilteringWithPattern.wordMatchRanges(matchedAlias.match),
       }
     }
     if (this.initialsMatchRegex) {
