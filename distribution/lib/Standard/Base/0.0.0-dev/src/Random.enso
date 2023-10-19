@@ -93,6 +93,10 @@ type Random
        Return a random Gaussian-distributed `Float` with mean 0.00 and standard
        deviation 1.0.
 
+       Arguments:
+       - standard_deviation: the standard deviation of the sampled distribution
+       - mean: the mean of the sampled distribution
+
        > Example
          Generate an gaussian float.
 
@@ -100,7 +104,7 @@ type Random
 
               f = Random.gaussian
     gaussian : Float -> Float -> Float
-    gaussian = Random.default_instance.gaussian
+    gaussian standard_deviation=1.0 mean=0.0 = Random.default_instance.gaussian standard_deviation mean
 
     ## GROUP Random
        Return a `Date` within the specified `Date_Range`.
@@ -221,7 +225,8 @@ type Random_Generator
         self.java_random.nextBoolean
 
     gaussian : Float -> Float -> Float
-    gaussian self = self.java_random.nextGaussian
+    gaussian self standard_deviation=1.0 mean=0.0 =
+        self.java_random.nextGaussian * standard_deviation + mean
 
     date : Date_Range -> Date
     date self date_range = date_range.at (self.integer 0 date_range.length)

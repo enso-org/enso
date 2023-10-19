@@ -32,6 +32,13 @@ spec = Test.group "Random" <|
         Random.set_seed 12345
         Random.gaussian . should_equal -0.187808989658912 epsilon=0.00000001
         Random.gaussian . should_equal 0.5884363051154796 epsilon=0.00000001
+        Random.gaussian standard_deviation=2 . should_equal 1.8976095608800851
+        Random.gaussian mean=5 . should_equal 4.505719279373956
+        Random.gaussian standard_deviation=2 mean=5 . should_equal 2.55317612563977
+
+        0.up_to 100 . map (_-> Random.gaussian standard_deviation=10) . any (_ > 1.0) . should_be_true
+        0.up_to 100 . map (_-> Random.gaussian mean=1000000) . any (_ > 1000000) . should_be_true
+        0.up_to 100 . map (_-> Random.gaussian) . any (_ > 1000000) . should_be_false
 
     Test.specify "should allow generating random dates" <|
         Random.set_seed 4000
