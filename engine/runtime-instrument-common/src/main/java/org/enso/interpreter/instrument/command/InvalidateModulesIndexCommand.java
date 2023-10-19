@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.DeserializeLibrarySuggestionsJob;
+import org.enso.interpreter.instrument.job.StartBackgroundProcessingJob;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.runtime.Runtime$Api$InvalidateModulesIndexResponse;
 import scala.Option;
@@ -47,6 +48,7 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
                       return BoxedUnit.UNIT;
                     });
 
+            StartBackgroundProcessingJob.startBackgroundJobs(ctx);
             reply(new Runtime$Api$InvalidateModulesIndexResponse(), ctx);
           } finally {
             ctx.locking().releaseWriteCompilationLock();
