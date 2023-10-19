@@ -14,6 +14,8 @@ const POINTER_SIZE: number = 4
 // Symbols exported by the `parserSupport` module.
 export const supportImports = {
   LazyObject: false,
+  ObjectVisitor: true,
+  ObjectAddressVisitor: true,
   Result: true,
   DynValue: true,
   Dyn: false,
@@ -30,9 +32,14 @@ export const supportImports = {
   readEnum: false,
   readSequence: false,
   readString: false,
+  visitSequence: false,
+  visitOption: false,
+  visitResult: false,
 } as const
 export const support = {
   LazyObject: tsf.createIdentifier('LazyObject'),
+  ObjectVisitor: tsf.createTypeReferenceNode(tsf.createIdentifier('ObjectVisitor')),
+  ObjectAddressVisitor: tsf.createTypeReferenceNode(tsf.createIdentifier('ObjectAddressVisitor')),
   DataView: tsf.createTypeReferenceNode(tsf.createIdentifier('DataView')),
   Result: (t0: ts.TypeNode, t1: ts.TypeNode) =>
     tsf.createTypeReferenceNode(tsf.createIdentifier('Result'), [t0, t1]),
@@ -51,6 +58,9 @@ export const support = {
   readEnum: tsf.createIdentifier('readEnum'),
   readSequence: tsf.createIdentifier('readSequence'),
   readString: tsf.createIdentifier('readString'),
+  visitSequence: tsf.createIdentifier('visitSequence'),
+  visitOption: tsf.createIdentifier('visitOption'),
+  visitResult: tsf.createIdentifier('visitResult'),
 } as const
 
 const baseReaders = {
@@ -74,6 +84,7 @@ const dynBuilders = {
 } as const
 
 type ReadApplicator = (cursor: ts.Expression, offset: AccessOffset) => ts.Expression
+type VisitorApplicator = (cursor: ts.Expression, offset: AccessOffset) => ts.Expression
 
 // === Public API ===
 
@@ -81,17 +92,20 @@ export class Type {
   readonly type: ts.TypeNode
   readonly reader: ReadApplicator
   readonly dynReader: ReadApplicator
+  readonly visitor: VisitorApplicator | undefined | 'visitValue'
   readonly size: number
 
   private constructor(
     type: ts.TypeNode,
     reader: ReadApplicator,
     dynReader: ReadApplicator,
+    visitor: VisitorApplicator | undefined | 'visitValue',
     size: number,
   ) {
     this.type = type
     this.reader = reader
     this.dynReader = dynReader
+    this.visitor = visitor
     this.size = size
   }
 
@@ -101,6 +115,7 @@ export class Type {
       tsf.createTypeReferenceNode(name),
       valueReader,
       dynBuilders.Object(valueReader),
+      'visitValue',
       POINTER_SIZE,
     )
   }
@@ -111,6 +126,7 @@ export class Type {
       tsf.createTypeReferenceNode(name),
       valueReader,
       dynBuilders.Object(valueReader),
+      'visitValue',
       size,
     )
   }
@@ -120,6 +136,7 @@ export class Type {
       tsf.createTypeReferenceNode('Iterable', [element.type]),
       createSequenceReader(element.size, element.reader),
       dynBuilders.Sequence(createSequenceReader(element.size, element.dynReader)),
+      createSequenceVisitor(element.size, visitorClosure(element.visitor, element.reader)),
       POINTER_SIZE,
     )
   }
@@ -129,6 +146,7 @@ export class Type {
       tsf.createUnionTypeNode([element.type, noneType]),
       baseReaders.readOption(element.reader),
       dynBuilders.Option(baseReaders.readOption(element.dynReader)),
+      createOptionVisitor(visitorClosure(element.visitor, element.reader)),
       POINTER_SIZE + 1,
     )
   }
@@ -138,6 +156,10 @@ export class Type {
       support.Result(ok.type, err.type),
       baseReaders.readResult(ok.reader, err.reader),
       dynBuilders.Result(baseReaders.readResult(ok.dynReader, err.dynReader)),
+      createResultVisitor(
+        visitorClosure(ok.visitor, ok.reader),
+        visitorClosure(err.visitor, err.reader),
+      ),
       POINTER_SIZE,
     )
   }
@@ -146,42 +168,49 @@ export class Type {
     tsf.createTypeReferenceNode('boolean'),
     baseReaders.readBool,
     dynBuilders.Primitive(baseReaders.readBool),
+    undefined,
     1,
   )
   static UInt32: Type = new Type(
     tsf.createTypeReferenceNode('number'),
     baseReaders.readU32,
     dynBuilders.Primitive(baseReaders.readU32),
+    undefined,
     4,
   )
   static Int32: Type = new Type(
     tsf.createTypeReferenceNode('number'),
     baseReaders.readI32,
     dynBuilders.Primitive(baseReaders.readI32),
+    undefined,
     4,
   )
   static UInt64: Type = new Type(
     tsf.createTypeReferenceNode('bigint'),
     baseReaders.readU64,
     dynBuilders.Primitive(baseReaders.readU64),
+    undefined,
     8,
   )
   static Int64: Type = new Type(
     tsf.createTypeReferenceNode('bigint'),
     baseReaders.readI64,
     dynBuilders.Primitive(baseReaders.readI64),
+    undefined,
     8,
   )
   static Char: Type = new Type(
     tsf.createTypeReferenceNode('number'),
     baseReaders.readU32,
     dynBuilders.Primitive(baseReaders.readU32),
+    undefined,
     4,
   )
   static String: Type = new Type(
     tsf.createTypeReferenceNode('string'),
     baseReaders.readString,
     dynBuilders.Primitive(baseReaders.readString),
+    undefined,
     POINTER_SIZE,
   )
 }
@@ -243,6 +272,34 @@ export function fieldDeserializer(
         type.reader(thisAccess(viewFieldIdent), makeConstantAddress(address)),
       ),
     ]),
+  )
+}
+
+export function fieldVisitor(
+  ident: ts.Identifier,
+  type: Type,
+  address: number,
+): ts.ClassElement | undefined {
+  if (type.visitor == null || type.visitor === 'visitValue') return undefined
+  const value = type.visitor(thisAccess(viewFieldIdent), makeConstantAddress(address))
+  return tsf.createMethodDeclaration(
+    undefined,
+    undefined,
+    ident,
+    undefined,
+    undefined,
+    [
+      tsf.createParameterDeclaration(
+        undefined,
+        undefined,
+        'visitor',
+        undefined,
+        support.ObjectVisitor,
+        undefined,
+      ),
+    ],
+    tsf.createTypeReferenceNode('boolean'),
+    tsf.createBlock([tsf.createReturnStatement(value)]),
   )
 }
 
@@ -347,6 +404,57 @@ export function createSequenceReader(size: number, reader: ReadApplicator): Read
       [],
       [view, materializeAddress(address), sizeLiteral, closure],
     )
+}
+
+function createSequenceVisitor(
+  size: number,
+  closure: ts.Expression | undefined,
+): VisitorApplicator | undefined {
+  if (closure == null) return undefined
+  const sizeLiteral = tsf.createNumericLiteral(size)
+  return (view, address) =>
+    tsf.createCallExpression(
+      support.visitSequence,
+      [],
+      [thisAccess(viewFieldIdent), materializeAddress(address), sizeLiteral, closure],
+    )
+}
+
+function createOptionVisitor(closure: ts.Expression | undefined): VisitorApplicator | undefined {
+  if (closure == null) return undefined
+  return (view, address) =>
+    tsf.createCallExpression(support.visitOption, [], [view, materializeAddress(address), closure])
+}
+
+function createResultVisitor(
+  ok: ts.Expression | undefined,
+  err: ts.Expression | undefined,
+): VisitorApplicator | undefined {
+  if (ok == null && err == null) return undefined
+  const none = tsf.createNull()
+  return (view, address) =>
+    tsf.createCallExpression(
+      support.visitResult,
+      [],
+      [view, materializeAddress(address), ok ?? none, err ?? none],
+    )
+}
+
+export function visitorClosure(
+  visitor: VisitorApplicator | 'visitValue' | undefined,
+  reader: ReadApplicator,
+): ts.Expression | undefined {
+  if (visitor == null) return undefined
+  const view = tsf.createIdentifier('view')
+  const address = tsf.createIdentifier('address')
+  const addressValue = makeDynAddress(address)
+  if (visitor === 'visitValue') {
+    const read = reader(view, addressValue)
+    const readAndVisit = tsf.createCallExpression(tsf.createIdentifier('visitor'), [], [read])
+    return makeArrow([view, address], readAndVisit)
+  } else {
+    return makeArrow([view, address], visitor(view, addressValue))
+  }
 }
 
 export function readerClosure(reader: ReadApplicator): ts.Expression {

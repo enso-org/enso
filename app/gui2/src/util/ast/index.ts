@@ -2,20 +2,20 @@ import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import { parse } from '@/util/ffi'
-import { LazyObject, debug, validateSpans } from '@/util/parserSupport'
+import { LazyObject, debug } from '@/util/parserSupport'
 
 export { Ast }
 
-export function parseEnso(code: string): Ast.Tree {
+export function parseEnso(code: string): Tree {
   const blob = parse(code)
-  return Ast.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
+  return Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
 }
 
 /** Read a single line of code
  *
  * Is meant to be a helper for tests. If the code is multilined, an exception is raised.
  */
-export function parseEnsoLine(code: string): Ast.Tree {
+export function parseEnsoLine(code: string): Tree {
   const block = parseEnso(code)
   assert(block.type === Tree.Type.BodyBlock)
   const statemets = block.statements[Symbol.iterator]()
@@ -53,47 +53,43 @@ export function readTokenSpan(token: Token, code: string): string {
 /**
  * Read direct AST children.
  */
-// TODO[ao] This is a very hacky way of implementing this. The better solution would be to generate
-// such a function from parser types schema. See parser-codegen package.
-export function* childrenAstNodes(obj: unknown): Generator<Tree> {
-  function* astNodeOrChildren(obj: unknown) {
-    if (obj instanceof Tree.AbstractBase) {
-      yield obj as Tree
+export function childrenAstNodes(obj: LazyObject): Tree[] {
+  const children: Tree[] = []
+  const visitor = (obj: LazyObject) => {
+    if (Tree.isInstance(obj)) {
+      children.push(obj)
     } else {
-      yield* childrenAstNodes(obj)
+      obj.visitChildren(visitor)
     }
   }
-  if (obj == null) return
-  const maybeIterable = obj as Record<symbol, unknown>
-  const isIterator = typeof maybeIterable[Symbol.iterator] == 'function'
-  if (obj instanceof LazyObject) {
-    const prototype = Object.getPrototypeOf(obj)
-    const descriptors = Object.getOwnPropertyDescriptors(prototype)
-    const objWithProp = obj as unknown as Record<string, unknown>
-
-    for (const prop in descriptors) {
-      if (descriptors[prop]?.get == null) continue
-      const value = objWithProp[prop]
-      yield* astNodeOrChildren(value)
-    }
-  } else if (isIterator) {
-    const iterable = obj as Iterable<unknown>
-    for (const element of iterable) {
-      yield* astNodeOrChildren(element)
-    }
-  }
+  obj.visitChildren(visitor)
+  return children
 }
 
 /** Returns all AST nodes from `root` tree containing given char, starting from the most nested. */
-export function* astContainingChar(charIndex: number, root: Tree): Generator<Tree> {
-  for (const child of childrenAstNodes(root)) {
-    const begin = child.whitespaceStartInCodeParsed + child.whitespaceLengthInCodeParsed
-    const end = begin + child.childrenLengthInCodeParsed
-    if (charIndex >= begin && charIndex < end) {
-      yield* astContainingChar(charIndex, child)
+export function astContainingChar(charIndex: number, root: Tree): Tree[] {
+  return treePath(root, (node) => {
+    const begin = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
+    const end = begin + node.childrenLengthInCodeParsed
+    return charIndex >= begin && charIndex < end
+  }).reverse()
+}
+
+/** Given a predicate, return a path from the root down the tree containing the
+ *  first node at each level found to satisfy the predicate. */
+function treePath(obj: LazyObject, pred: (node: Tree) => boolean): Tree[] {
+  const path: Tree[] = []
+  const visitor = (obj: LazyObject) => {
+    if (Tree.isInstance(obj)) {
+      const isMatch = pred(obj)
+      if (isMatch) path.push(obj)
+      return obj.visitChildren(visitor) || isMatch
+    } else {
+      return obj.visitChildren(visitor)
     }
   }
-  yield root
+  obj.visitChildren(visitor)
+  return path
 }
 
 if (import.meta.vitest) {
@@ -241,7 +237,7 @@ if (import.meta.vitest) {
     ],
   ])("Reading AST from code '%s' and position %i", (code, position, expected) => {
     const ast = parseEnso(code)
-    const astAtPosition = Array.from(astContainingChar(position, ast))
+    const astAtPosition = astContainingChar(position, ast)
     const resultWithExpected = astAtPosition.map((ast, i) => {
       return { ast, expected: expected[i] }
     })
@@ -250,4 +246,29 @@ if (import.meta.vitest) {
       expect(readAstSpan(ast, code)).toBe(expected?.repr)
     }
   })
+}
+
+function validateSpans(obj: LazyObject, initialPos?: number): number {
+  const state = { pos: initialPos ?? 0 }
+  const visitor = (value: LazyObject) => {
+    if (
+      Token.isInstance(value) &&
+      !(value.whitespaceLengthInCodeBuffer + value.lengthInCodeBuffer === 0)
+    ) {
+      assert(value.whitespaceStartInCodeBuffer === state.pos)
+      state.pos += value.whitespaceLengthInCodeBuffer
+      assert(value.startInCodeBuffer === state.pos)
+      state.pos += value.lengthInCodeBuffer
+    } else if (Tree.isInstance(value)) {
+      assert(value.whitespaceStartInCodeParsed === state.pos)
+      state.pos += value.whitespaceLengthInCodeParsed
+      const end = state.pos + value.childrenLengthInCodeParsed
+      value.visitChildren(visitor)
+      assert(state.pos === end)
+    } else {
+      value.visitChildren(visitor)
+    }
+  }
+  visitor(obj)
+  return state.pos
 }
