@@ -45,18 +45,24 @@ spec = Test.group "Random" <|
         dates = 0.up_to 100 . map (_-> Random.date small_range)
         dates.should_contain_the_same_elements_as all_from_small_range
 
-    ##
-        Test.specify "should allow generating random times" <|
-            Random.set_seed 12345
-            start = Time_Of_Day.new 8 12 15
-            end = Time_Of_Day.new 19 40 2
-            Random.time start end . should_equal (Time_Of_Day.new 8 12 15)
-            Random.time start end . should_equal (Time_Of_Day.new 8 12 15)
-            Random.time start end . should_equal (Time_Of_Day.new 8 12 15)
-            Random.time . should_equal (Time_Of_Day.new 8 12 15)
-            Random.time . should_equal (Time_Of_Day.new 8 12 15)
-            Random.time . should_equal (Time_Of_Day.new 8 12 15)
+    Test.specify "should allow generating random times" <|
+        Random.set_seed 12345
+        start = Time_Of_Day.new 8 12 15
+        end = Time_Of_Day.new 9 40 2
+        Random.time start end . should_equal (Time_Of_Day.new 9 31 10)
+        Random.time start end . should_equal (Time_Of_Day.new 8 34 31)
+        Random.time start end . should_equal (Time_Of_Day.new 9 27 48)
+        Random.time . should_equal (Time_Of_Day.new 0 13 48)
+        Random.time . should_equal (Time_Of_Day.new 14 20 55)
+        Random.time . should_equal (Time_Of_Day.new 8 48 4)
 
+        small_range_start = Time_Of_Day.new 8 12 15
+        small_range_end = Time_Of_Day.new 8 12 18
+        all_from_small_range = [Time_Of_Day.new 8 12 15, Time_Of_Day.new 8 12 16, Time_Of_Day.new 8 12 17, Time_Of_Day.new 8 12 18]
+        times = 0.up_to 100 . map (_-> Random.time small_range_start small_range_end)
+        times.should_contain_the_same_elements_as all_from_small_range
+
+    ##
         Test.specify "should allow generating random UUIDs" <|
             Random.uuid . should_equal ""
 
