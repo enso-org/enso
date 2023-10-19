@@ -22,7 +22,8 @@ polyglot java import java.util.Random as Java_Random
 polyglot java import org.enso.base.Random_Utils
 
 type Random
-    ## GROUP Random
+    ## PRIVATE
+       GROUP Random
 
        Create a new `Random_Generator` with the specified seed.
 
