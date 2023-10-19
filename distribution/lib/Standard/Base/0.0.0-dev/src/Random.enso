@@ -19,6 +19,7 @@ from project.Data.Numbers import Float, Integer
 
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.util.Random as Java_Random
+polyglot java import java.util.UUID
 polyglot java import org.enso.base.Random_Utils
 
 type Random
@@ -133,13 +134,22 @@ type Random
     time start_time=(Time_Of_Day.new 0 0 0) end_time=(Time_Of_Day.new 23 59 59) =
         Random.default_instance.time start_time end_time
 
+    ## GROUP Random
+       Return a new UUID.
+
+       ! `uuid` does not use the underlying `java.util.Random` instance, and is
+       therefore not affected by the seed.
+
+       > Example
+         Generate a uuid.
+
+             import Standard.Base.Random.Random
+
+             uuid = Random.uuid
+    uuid : Text
+    uuid = Random.default_instance.uuid
+
     ##
-        # Return a random `Time_Of_Day` in the given range
-        time : ? -> Date
-
-        # Return a random UUID
-        uuid : Text
-
         # Generate a string by selecting a random character from each element of the list.
         # Previously `Faker.string_value`
         text_from_charsets : Vector (Text | Vector Text)
@@ -195,6 +205,9 @@ type Random_Generator
            an end time after the last second of the day.
         seconds = self.integer 0 (end_time.to_seconds - start_time.to_seconds + 1)
         start_time.date_add seconds Time_Period.Second
+
+    uuid : Text
+    uuid self = UUID.randomUUID.to_text
 
 ## PRIVATE
    Returns a default seed to use for random number generation.

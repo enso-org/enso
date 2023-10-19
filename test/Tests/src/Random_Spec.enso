@@ -62,10 +62,10 @@ spec = Test.group "Random" <|
         times = 0.up_to 100 . map (_-> Random.time small_range_start small_range_end)
         times.should_contain_the_same_elements_as all_from_small_range
 
-    ##
-        Test.specify "should allow generating random UUIDs" <|
-            Random.uuid . should_equal ""
+    Test.specify "should allow generating random UUIDs" <|
+        Random.uuid . should_only_contain_elements_in "0123456789abcdef-"
 
+    ##
         Test.specify "should allow generating random strings from character sets" <|
             Random.set_seed 12345
             l = "ABCEGHJKLMNOPRSTWXYZ".char_vector
