@@ -26,6 +26,7 @@ import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
 import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Common_Table_Operations
+from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 postgres_specific_spec connection db_name setup =
@@ -338,6 +339,22 @@ postgres_specific_spec connection db_name setup =
             w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w4.actual_type . should_equal Value_Type.Float
 
+        Test.specify "should round-trip timestamptz column" <|
+            table_name = Name_Generator.random_name "TimestampTZ"
+            table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
+
+            dt1 = Date_Time.new 2022 05 04 15 30
+            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+            dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+            v = [dt1, dt2, dt3, dt4]
+
+            Problems.assume_no_problems <| table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
+
+            tz_zero = Time_Zone.parse "Z"
+            v_at_z = v.map dt-> dt.at_zone tz_zero
+            table.at "A" . to_vector . should_equal v_at_z
+            table.at "A" . to_vector . should_equal_tz_agnostic v
 
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
