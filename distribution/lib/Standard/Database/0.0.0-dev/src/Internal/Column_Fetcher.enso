@@ -171,9 +171,8 @@ default_fetcher_for_value_type value_type =
         Value_Type.Boolean -> boolean_fetcher
         Value_Type.Time -> time_fetcher
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
-        Value_Type.Date_Time has_timezone -> case has_timezone of
-            True  -> date_time_fetcher
-            False -> local_date_time_fetcher
+        Value_Type.Date_Time has_timezone ->
+            if has_timezone then date_time_fetcher else local_date_time_fetcher
         # If we can determine that scale = 0
         Value_Type.Decimal _ scale ->
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
