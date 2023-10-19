@@ -55,6 +55,10 @@ type Random
        Return a random `Integer` between `min` (inclusive) and `max`
        (exclusive).
 
+       Arguments:
+       - min: The minimum value of the range to pick from (inclusive).
+       - max: The maximum value of the range to pick from (exclusive).
+
        > Example
          Generate an integer between 1 and 10.
 
@@ -66,6 +70,10 @@ type Random
 
     ## GROUP Random
        Return a random `Float` in the specified range.
+
+       Arguments:
+       - min: The minimum value of the range to pick from (inclusive).
+       - max: The maximum value of the range to pick from (exclusive).
 
        > Example
          Generate a float between 2.3 and 3.4.
@@ -90,12 +98,12 @@ type Random
     boolean = Random.default_instance.boolean
 
     ## GROUP Random
-       Return a random Gaussian-distributed `Float` with mean 0.00 and standard
-       deviation 1.0.
+       Return a random Gaussian-distributed `Float` with the specified mean and
+       standard deviation.
 
        Arguments:
-       - standard_deviation: the standard deviation of the sampled distribution
-       - mean: the mean of the sampled distribution
+       - standard_deviation: The standard deviation of the sampled distribution.
+       - mean: The mean of the sampled distribution.
 
        > Example
          Generate an gaussian float.
@@ -109,6 +117,10 @@ type Random
     ## GROUP Random
        Return a `Date` within the specified `Date_Range`.
 
+       Arguments:
+       - date_range: The `Date_Range` that specifies the range to pick from. The
+         range is inclusve at the lower bound, and exclusive at the upper bound.
+
        > Example
          Generate a random date.
 
@@ -121,6 +133,10 @@ type Random
 
     ## GROUP Random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
+
+       Arguments:
+       - start_time: The lower bound of the range to pick from (inclusive).
+       - end_time: The upper bound of the range to pick from (inclusive).
 
        The generated time is at a granularity of 1 second.
 
@@ -159,9 +175,9 @@ type Random
        without replacement.
 
        Arguments:
-       - vector: the `Vector` to take items from.
-       - count: the number of items to return.
-       - with_replacement: if false, each value in the `Vector` can only be
+       - vector: The `Vector` to take items from.
+       - count: The number of items to return.
+       - with_replacement: If false, each value in the `Vector` can only be
          selected once during a single call; the returned values will contain no
          duplicates. If true, values from the `Vector` can be returned multiple
          times.
@@ -183,7 +199,7 @@ type Random
        Returns a random permutation of the input `Vector`.
 
        Arguments:
-       - vector: the `Vector` to permute.
+       - vector: The `Vector` to permute.
 
        > Example
          Permute a vector.
