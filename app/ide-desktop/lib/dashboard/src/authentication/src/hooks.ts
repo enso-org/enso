@@ -19,7 +19,7 @@ import * as loggerProvider from './providers/logger'
 export function useToastAndLog() {
     const logger = loggerProvider.useLogger()
     return React.useCallback(
-        <T,>(
+        <T>(
             messagePrefix: string | null,
             error?: errorModule.MustNotBeKnown<T>,
             options?: toastify.ToastOptions
