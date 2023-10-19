@@ -1,4 +1,8 @@
-import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
+import {
+  Filtering,
+  type MatchRange,
+  type MatchResult,
+} from '@/components/ComponentBrowser/filtering'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
@@ -7,22 +11,56 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/opt'
-import { qnIsTopElement, qnLastSegment } from '@/util/qualifiedName'
+import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
 
-export interface Component {
+interface ComponentLabel {
+  label: string
+  matchedAlias?: string
+  matchedRanges?: MatchRange[]
+}
+
+export interface Component extends ComponentLabel {
   suggestionId: SuggestionId
   icon: string
-  label: string
-  match: MatchResult
   group?: number | undefined
 }
 
-export function labelOfEntry(entry: SuggestionEntry, filtering: Filtering) {
+export function labelOfEntry(
+  entry: SuggestionEntry,
+  filtering: Filtering,
+  match: MatchResult,
+): ComponentLabel {
   const isTopModule = entry.kind == SuggestionKind.Module && qnIsTopElement(entry.definedIn)
-  if (filtering.isMainView() && isTopModule) return entry.definedIn
-  else if (entry.memberOf && entry.selfType == null)
-    return `${qnLastSegment(entry.memberOf)}.${entry.name}`
-  else return entry.name
+  if (filtering.isMainView() && isTopModule) return { label: entry.definedIn }
+  else if (entry.memberOf && entry.selfType == null) {
+    const lastSegmentStart = qnLastSegmentIndex(entry.memberOf) + 1
+    const parentModule = entry.memberOf.substring(lastSegmentStart)
+    const nameOffset = parentModule.length + 1
+    if (!match.memberOfRanges && !match.definedInRanges && !match.nameRanges)
+      return { label: `${parentModule}.${entry.name}` }
+    return {
+      label: `${parentModule}.${entry.name}`,
+      matchedRanges: [
+        ...(match.memberOfRanges ?? match.definedInRanges ?? []).flatMap((range) =>
+          range.end <= lastSegmentStart
+            ? []
+            : [
+                {
+                  start: Math.max(0, range.start - lastSegmentStart),
+                  end: range.end - lastSegmentStart,
+                },
+              ],
+        ),
+        ...(match.nameRanges ?? []).map((range) => ({
+          start: range.start + nameOffset,
+          end: range.end + nameOffset,
+        })),
+      ],
+    }
+  } else
+    return match.nameRanges
+      ? { label: entry.name, matchedRanges: match.nameRanges }
+      : { label: entry.name }
 }
 
 export interface MatchedSuggestion {
@@ -57,10 +95,9 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
   matched.sort(compareSuggestions)
   return Array.from(matched, ({ id, entry, match }): Component => {
     return {
+      ...labelOfEntry(entry, filtering, match),
       suggestionId: id,
       icon: entry.iconName ?? 'marketplace',
-      label: labelOfEntry(entry, filtering),
-      match,
       group: entry.groupIndex,
     }
   })

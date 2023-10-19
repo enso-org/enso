@@ -1,6 +1,6 @@
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import type { Opt } from '@/util/opt'
-import { qnParent, type QualifiedName } from '@/util/qualifiedName'
+import { qnIsTopElement, qnParent, type QualifiedName } from '@/util/qualifiedName'
 
 export interface Filter {
   pattern?: string
@@ -22,16 +22,17 @@ export enum MatchTypeScore {
 export interface MatchRange {
   start: number
   end: number
-  isMatch: boolean
 }
 
-export interface PartialMatchResult {
+interface PartialMatchResult {
   matchedAlias?: string
-  score: number
+  nameRanges?: MatchRange[]
+  definedInRanges?: MatchRange[]
+  memberOfRanges?: MatchRange[]
 }
 
 export interface MatchResult extends PartialMatchResult {
-  matchedRanges?: MatchRange[]
+  score: number
 }
 
 class FilteringWithPattern {
@@ -42,25 +43,42 @@ class FilteringWithPattern {
   constructor(pattern: string) {
     this.pattern = pattern
     // Each word in pattern should try to match a beginning of a word in the name.  Each matched
-    // word is put to regex group - this is used to compute score (details in matchedWordsScore
+    // word is put to regex group - this is used to compute score (details in `matchedWordsScore`
     // method). See `Filtering` docs for full algorithm description.
+    // The first match (`match[1]`) is the part before the first matched input.
+    // The rest of the matches come in groups of three:
+    // - The matched part of the word (including a leading underscore for all but the first match)
+    // - The unmatched rest of the word, up to, but excluding, the next underscore
+    // - The unmatched words before the next matched word, including any underscores
     this.wordMatchRegex = new RegExp(
-      '(?:^|_)(' + pattern.replace(/_/g, '[^_]*).*?_(') + '[^_]*).*',
+      '(^|.*?_)(' + pattern.replace(/_/g, ')([^_]*)(.*?)(_') + ')([^_]*)(.*)',
       'i',
     )
-    if (pattern.length > 1 && pattern.indexOf('_') < 0) {
-      // Similar to wordMatchRegex, but each letter in pattern is considered a word (and we don't
-      // specify any groups).
-      this.initialsMatchRegex = new RegExp('(^|_)' + pattern.split('').join('.*_'), 'i')
+    if (pattern.length > 1 && !/_/.test(pattern)) {
+      // Similar to `wordMatchRegex`, but each letter in the pattern is considered a word (and we
+      // don't specify any groups).
+      // The first match (`match[1]`) is the part before the first matched letter.
+      // The rest of the matches come in groups of two:
+      // - The matched letter
+      // - The unmatched part up to the next matched letter
+      const regex = pattern
+        .split('')
+        .map((c) => `(${c})`)
+        .join('(.*?_)')
+      this.initialsMatchRegex = new RegExp('(^|.*?_)' + regex + '(.*)', 'i')
     }
   }
 
   private matchedWordsScore(
     matchType: MatchTypeScore,
     matchedString: string,
-    words: RegExpExecArray,
+    matches: RegExpExecArray,
   ): number {
-    words.shift()
+    const words: string[] = []
+    const end = matches.length - 1
+    for (let i = 2; i < end; i += 3) {
+      words.push(matches[i]!, matches[i + 1]!)
+    }
     const matchedWords = words.join('_')
     const nonexactMatchPenalty = this.pattern === matchedString ? 0 : 50
     const nonexactWordMatchPenalty = Math.floor(
@@ -77,7 +95,31 @@ class FilteringWithPattern {
     return null
   }
 
-  tryMatch(entry: SuggestionEntry): Opt<PartialMatchResult> {
+  private static wordMatchRanges(wordMatch: RegExpExecArray) {
+    const result: MatchRange[] = []
+    for (let i = 1, pos = 0; i < wordMatch.length; i += 1) {
+      // Matches come in groups of three, and the first matched part is `match[2]`.
+      if (i % 3 === 2) {
+        result.push({ start: pos, end: pos + wordMatch[i]!.length })
+      }
+      pos += wordMatch[i]!.length
+    }
+    return result
+  }
+
+  private static initialsMatchRanges(initialsMatch: RegExpExecArray) {
+    const result: MatchRange[] = []
+    for (let i = 1, pos = 0; i < initialsMatch.length; i += 1) {
+      // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
+      if (i % 2 === 0) {
+        result.push({ start: pos, end: pos + initialsMatch[i]!.length })
+      }
+      pos += initialsMatch[i]!.length
+    }
+    return result
+  }
+
+  tryMatch(entry: SuggestionEntry): Opt<MatchResult> {
     const nameWordsMatch = this.wordMatchRegex?.exec(entry.name)
     if (nameWordsMatch?.index === 0) {
       return {
@@ -86,6 +128,7 @@ class FilteringWithPattern {
           entry.name,
           nameWordsMatch,
         ),
+        nameRanges: FilteringWithPattern.wordMatchRanges(nameWordsMatch),
       }
     }
     const matchedAlias = this.firstMatchingAlias(entry)
@@ -97,14 +140,17 @@ class FilteringWithPattern {
           matchedAlias.alias,
           matchedAlias.match,
         ),
+        nameRanges: FilteringWithPattern.wordMatchRanges(matchedAlias.match),
       }
     }
     if (nameWordsMatch) {
       return {
         score: this.matchedWordsScore(MatchTypeScore.NameWordMatch, entry.name, nameWordsMatch),
+        nameRanges: FilteringWithPattern.wordMatchRanges(nameWordsMatch),
       }
     }
     if (matchedAlias) {
+      const start = this.wordMatchRegex.lastIndex
       return {
         matchedAlias: matchedAlias.alias,
         score: this.matchedWordsScore(
@@ -112,21 +158,29 @@ class FilteringWithPattern {
           matchedAlias.alias,
           matchedAlias.match,
         ),
+        nameRanges: [{ start, end: start + matchedAlias.match[0].length }],
       }
     }
     if (this.initialsMatchRegex) {
-      if (this.initialsMatchRegex.test(entry.name)) {
-        return { score: MatchTypeScore.NameInitialMatch }
+      const initialsMatch = this.initialsMatchRegex.exec(entry.name)
+      if (initialsMatch) {
+        return {
+          score: MatchTypeScore.NameInitialMatch,
+          nameRanges: FilteringWithPattern.initialsMatchRanges(initialsMatch),
+        }
       }
-      const matchedAliasInitials = entry.aliases.find(
-        (alias) => this.initialsMatchRegex?.test(alias),
-      )
-      if (matchedAliasInitials) {
-        return { matchedAlias: matchedAliasInitials, score: MatchTypeScore.AliasInitialMatch }
+      for (const alias of entry.aliases) {
+        const initialsMatch = this.initialsMatchRegex.exec(entry.name)
+        if (initialsMatch) {
+          return {
+            matchedAlias: alias,
+            score: MatchTypeScore.AliasInitialMatch,
+            nameRanges: FilteringWithPattern.initialsMatchRanges(initialsMatch),
+          }
+        }
       }
     }
-
-    return null
+    return
   }
 }
 
@@ -139,20 +193,38 @@ class FilteringQualifiedName {
     this.pattern = pattern
     // Starting at some segment, each segment should start with the respective
     // pattern's segment. See `Filtering` docs for full algorithm description.
-    const segmentsMatch = '(^|\\.)' + pattern.replace(/\./g, '[^\\.]*\\.')
+    // For both regexes below:
+    // The first match (`match[1]`) is the part before the first matched input.
+    // The rest of the matches come in pairs:
+    // - The matched segment
+    // - The unmatched part before the next matched segment
+    const segmentsMatch = '(^|.*?[.])(' + pattern.replace(/[.]/g, ')([^.]*)([.]') + ')'
     // The direct members must have no more segments in their path.
-    this.memberRegex = new RegExp(segmentsMatch + '[^\\.]*$', 'i')
-    this.memberOfAnyDescendantRegex = new RegExp(segmentsMatch, 'i')
+    this.memberRegex = new RegExp(segmentsMatch + '([^.]*$)', 'i')
+    this.memberOfAnyDescendantRegex = new RegExp(segmentsMatch + '(.*)', 'i')
   }
 
-  matches(entry: SuggestionEntry, alsoFilteringByPattern: boolean): boolean {
+  private static matchRanges(match: RegExpExecArray) {
+    const result: MatchRange[] = []
+    for (let i = 1, pos = 0; i < match.length; i += 1) {
+      // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
+      if (i % 2 === 0) {
+        result.push({ start: pos, end: pos + match[i]!.length })
+      }
+      pos += match[i]!.length
+    }
+    return result
+  }
+
+  matches(entry: SuggestionEntry, alsoFilteringByPattern: boolean): Opt<PartialMatchResult> {
     const entryOwner =
       entry.kind == SuggestionKind.Module ? qnParent(entry.definedIn) : entry.definedIn
     const regex = alsoFilteringByPattern ? this.memberOfAnyDescendantRegex : this.memberRegex
-    return (
-      (entryOwner != null && regex.test(entryOwner)) ||
-      (entry.memberOf != null && regex.test(entry.memberOf))
-    )
+    const ownerMatch = entryOwner && regex.exec(entryOwner)
+    if (ownerMatch) return { definedInRanges: FilteringQualifiedName.matchRanges(ownerMatch) }
+    const memberOfMatch = entry.memberOf && regex.exec(entry.memberOf)
+    if (memberOfMatch) return { definedInRanges: FilteringQualifiedName.matchRanges(memberOfMatch) }
+    return
   }
 }
 
@@ -246,9 +318,9 @@ export class Filtering {
     }
   }
 
-  private qualifiedNameMatches(entry: SuggestionEntry): boolean {
-    if (this.qualifiedName == null) return true
-    return this.qualifiedName.matches(entry, this.pattern != null)
+  private qualifiedNameMatches(entry: SuggestionEntry): Opt<PartialMatchResult> {
+    if (this.qualifiedName == null) return {}
+    else return this.qualifiedName.matches(entry, this.pattern != null)
   }
 
   isMainView() {
@@ -257,59 +329,25 @@ export class Filtering {
     )
   }
 
-  private mainViewFilter(entry: SuggestionEntry) {
+  private mainViewFilter(entry: SuggestionEntry): Opt<MatchResult> {
     const hasGroup = entry.groupIndex != null
     const isModule = entry.kind === SuggestionKind.Module
-    const isTopElement = (entry.definedIn.match(/\./g)?.length ?? 0) <= 2
+    const isTopElement = qnIsTopElement(entry.definedIn)
     if (!hasGroup && (!isModule || !isTopElement)) return
     else return { score: 0 }
   }
 
-  private partialFilter(entry: SuggestionEntry): Opt<PartialMatchResult> {
+  filter(entry: SuggestionEntry): Opt<MatchResult> {
+    let qualifiedNameMatch: Opt<PartialMatchResult>
     if (entry.isPrivate) return
     else if (!this.selfTypeMatches(entry)) return
-    else if (!this.qualifiedNameMatches(entry)) return
+    else if (!(qualifiedNameMatch = this.qualifiedNameMatches(entry))) return
     else if (!this.showUnstable && entry.isUnstable) return
-    else if (this.pattern) return this.pattern.tryMatch(entry)
-    else if (this.isMainView()) return this.mainViewFilter(entry)
+    else if (this.pattern) {
+      const patternMatch = this.pattern.tryMatch(entry)
+      if (!patternMatch || !qualifiedNameMatch) return patternMatch
+      else return { ...qualifiedNameMatch, ...patternMatch }
+    } else if (this.isMainView()) return this.mainViewFilter(entry)
     else return { score: 0 }
-  }
-
-  private static addMatchRange(ranges: MatchRange[], length: number | undefined, isMatch: boolean) {
-    if (!length) return
-    const lastRange = ranges[ranges.length - 1]
-    if (lastRange == null) {
-      ranges.push({ start: 0, end: length, isMatch })
-      return
-    }
-    if (lastRange.isMatch === isMatch) {
-      lastRange.end += length
-    } else {
-      ranges.push({ start: lastRange.end, end: lastRange.end + length, isMatch })
-    }
-  }
-
-  filter(entry: SuggestionEntry): Opt<MatchResult> {
-    const partialResult = this.partialFilter(entry)
-    if (partialResult == null) return
-    if (this.extractMatchesRegex == null) return partialResult
-    const match = (partialResult.matchedAlias ?? entry.name).match(this.extractMatchesRegex)
-    if (match == null) return partialResult
-    const ranges: MatchRange[] = []
-    Filtering.addMatchRange(ranges, match[1]?.length, false)
-    const end = match.length - 4
-    for (let i = 2; i < end; i += 4) {
-      // Unmatched prefix
-      Filtering.addMatchRange(ranges, match[i]?.length, false)
-      // Match
-      Filtering.addMatchRange(ranges, match[i + 1]?.length, true)
-      // Unmatched suffix
-      Filtering.addMatchRange(ranges, match[i + 2]?.length, false)
-      // Separator
-      Filtering.addMatchRange(ranges, match[i + 3]?.length, true)
-    }
-    Filtering.addMatchRange(ranges, match[match.length - 1]?.length, false)
-    console.log(match, ranges, ranges[ranges.length - 1]?.end)
-    return { ...partialResult, matchedRanges: ranges }
   }
 }

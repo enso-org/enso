@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
-import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { Filtering, type MatchRange } from '@/components/ComponentBrowser/filtering'
 import { Input } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
@@ -87,6 +87,20 @@ function handleDefocus(e: FocusEvent) {
     }
   } else {
     emit('finished')
+  }
+}
+
+// === Highlighting selected text ===
+
+function* allRanges(text: string, ranges: MatchRange[]) {
+  let lastEndIndex = 0
+  for (const range of ranges) {
+    yield { start: lastEndIndex, end: range.start, isMatch: false }
+    yield { ...range, isMatch: true }
+    lastEndIndex = range.end
+  }
+  if (lastEndIndex !== text.length) {
+    yield { start: lastEndIndex, end: text.length, isMatch: false }
   }
 }
 
@@ -289,12 +303,9 @@ function handleKeydown(e: KeyboardEvent) {
                   :style="{ color: componentColor(item.component) }"
                 />
                 <span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
-                    v-if="!item.component.match.matchedRanges"
-                    v-text="item.component.label"
-                  ></span>
-                  <span
-                    v-for="range in item.component.match.matchedRanges"
+                    v-for="range in allRanges(item.component.label, item.component.matchedRanges)"
                     v-else
                     :key="`${range.start},${range.end}`"
                     class="component-label-segment"
@@ -316,12 +327,9 @@ function handleKeydown(e: KeyboardEvent) {
               >
                 <SvgIcon :name="item.component.icon" />
                 <span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
-                    v-if="!item.component.match.matchedRanges"
-                    v-text="item.component.label"
-                  ></span>
-                  <span
-                    v-for="range in item.component.match.matchedRanges"
+                    v-for="range in allRanges(item.component.label, item.component.matchedRanges)"
                     v-else
                     :key="`${range.start},${range.end}`"
                     class="component-label-segment"
