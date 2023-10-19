@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
@@ -29,6 +30,13 @@ public class JDBCUtils {
   public static void setZonedDateTime(
       PreparedStatement stmt, int columnIndex, ZonedDateTime zonedDateTime) throws SQLException {
     stmt.setObject(columnIndex, zonedDateTime.toOffsetDateTime(), Types.TIMESTAMP_WITH_TIMEZONE);
+  }
+
+  /** Sets a ZonedDateTime converting it to LocalDateTime in a PreparedStatement. */
+  public static void setLocalDateTime(
+      PreparedStatement stmt, int columnIndex, ZonedDateTime zonedDateTime) throws SQLException {
+    LocalDateTime localDateTime = zonedDateTime.toLocalDateTime();
+    stmt.setObject(columnIndex, localDateTime, Types.TIMESTAMP);
   }
 
   /** Sets a LocalTime in a PreparedStatement. */
