@@ -11,6 +11,7 @@ import project.Table.Arithmetic
 import project.Table.Column_From_Vector
 import project.Table.Cross_Tab
 import project.Table.Sorting
+import project.Table.Internal.Multi_Value_Key
 import project.Text.Build
 import project.Text.Compare
 import project.Text.Contains
@@ -22,6 +23,7 @@ import project.Collections
 import project.Column_Numeric
 import project.Equality
 import project.Json_Bench
+import project.Map.Hash_Map
 import project.Natural_Order_Sort
 import project.Number_Parse
 import project.Numeric
@@ -39,6 +41,9 @@ all_benchmarks =
     builder.append Operations.collect_benches
     builder.append Sort.collect_benches
 
+    # Map
+    builder.append Hash_Map.collect_benches
+
     # Statistics
     builder.append Count_Min_Max.collect_benches
 
@@ -49,6 +54,7 @@ all_benchmarks =
     builder.append Column_From_Vector.collect_benches
     builder.append Cross_Tab.collect_benches
     builder.append Sorting.collect_benches
+    builder.append Multi_Value_Key.collect_benches
 
     # Text
     builder.append Build.collect_benches

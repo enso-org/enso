@@ -49,6 +49,7 @@ import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Data.XML.XML_Document
+import project.Data.XML.XML_Element
 import project.Data.XML.XML_Error
 import project.Data.XML.XML_Format.XML_Format
 import project.Error.Error
@@ -140,6 +141,7 @@ export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
 export project.Data.Vector.Vector
 export project.Data.XML.XML_Document
+export project.Data.XML.XML_Element
 export project.Data.XML.XML_Error
 export project.Data.XML.XML_Format.XML_Format
 export project.Error.Error

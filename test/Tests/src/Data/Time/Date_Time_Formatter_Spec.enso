@@ -199,7 +199,7 @@ spec =
             zone = time.zone
             zone.offset time . should_equal 3600
             zone.zone_id . should_equal "Europe/Paris"
-            time.to_display_text . should_equal "1970-01-01 00:00:01 Europe/Paris"
+            time.to_display_text . should_equal "1970-01-01 00:00:01[Europe/Paris]"
 
         Test.specify "should throw error when parsing invalid time" <|
             case Date_Time.parse "2008-1-1" . catch of

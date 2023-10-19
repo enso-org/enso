@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+type Prefix_Name
+     None
+     Column_Name
+     Custom value:Text
+
+Prefix_Name.from (that:Text) = Prefix_Name.Custom that

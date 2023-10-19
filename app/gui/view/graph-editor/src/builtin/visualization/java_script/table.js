@@ -27,13 +27,13 @@ class TableVisualization extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setRowLimitAndPage(1000, 0)
+        this.setRowLimitAndPage(1000)
+        this.widths = {}
     }
 
-    setRowLimitAndPage(row_limit, page) {
-        if (this.row_limit !== row_limit || this.page !== page) {
+    setRowLimitAndPage(row_limit) {
+        if (this.row_limit !== row_limit) {
             this.row_limit = row_limit
-            this.page = page
             this.setPreprocessor(
                 'Standard.Visualization.Table.Visualization',
                 'prepare_visualization',
@@ -114,7 +114,6 @@ class TableVisualization extends Visualization {
             const style =
                 '.ag-theme-alpine { --ag-grid-size: 3px; --ag-list-item-height: 20px; display: inline; }\n' +
                 '.vis-status-bar { height: 20px; background-color: white; font-size:14px; white-space:nowrap; padding: 0 5px; overflow:hidden; border-radius: 16px 16px 0 0 }\n' +
-                '.vis-status-bar > button { width: 12px; margin: 0 2px; display: none }\n' +
                 '.vis-tbl-grid { height: calc(100% - 20px); width: 100%; }\n'
             const styleElem = document.createElement('style')
             styleElem.innerHTML = style
@@ -149,8 +148,11 @@ class TableVisualization extends Visualization {
                     headerValueGetter: params => params.colDef.field,
                     cellRenderer: cellRenderer,
                 },
+                onFirstDataRendered: () => this.updateColumnWidths(),
+                onRowDataUpdated: () => this.updateColumnWidths(),
                 onColumnResized: e => this.lockColumnSize(e),
                 suppressFieldDotNotation: true,
+                enableRangeSelection: true,
             }
 
             if (typeof AG_GRID_LICENSE_KEY !== 'undefined') {
@@ -169,13 +171,13 @@ class TableVisualization extends Visualization {
         let dataTruncated = false
 
         if (parsedData.error !== undefined) {
-            this.agGridOptions.api.setColumnDefs([
+            columnDefs = [
                 {
                     field: 'Error',
                     cellStyle: { 'white-space': 'normal' },
                 },
-            ])
-            this.agGridOptions.api.setRowData([{ Error: parsedData.error }])
+            ]
+            rowData = [{ Error: parsedData.error }]
         } else if (parsedData.type === 'Matrix') {
             let defs = [{ field: '#' }]
             for (let i = 0; i < parsedData.column_count; i++) {
@@ -254,12 +256,22 @@ class TableVisualization extends Visualization {
             dataTruncated
         )
 
+        // If an existing grid, merge width from manually sized columns.
+        var newWidths = {}
+        var mergedColumnDefs = columnDefs.map(columnDef => {
+            if (this.widths[columnDef.field]) {
+                columnDef.width = this.widths[columnDef.field]
+                newWidths[columnDef.field] = columnDef.width
+            }
+            return columnDef
+        })
+        this.widths = newWidths
+
         // If data is truncated, we cannot rely on sorting/filtering so will disable.
         this.agGridOptions.defaultColDef.filter = !dataTruncated
         this.agGridOptions.defaultColDef.sortable = !dataTruncated
-        this.agGridOptions.api.setColumnDefs(columnDefs)
+        this.agGridOptions.api.setColumnDefs(mergedColumnDefs)
         this.agGridOptions.api.setRowData(rowData)
-        this.updateTableSize(this.dom.getAttributeNS(null, 'width'))
     }
 
     makeOption(value, label) {
@@ -269,54 +281,21 @@ class TableVisualization extends Visualization {
         return optionElem
     }
 
-    makeButton(label, onclick) {
-        const buttonElem = document.createElement('button')
-        buttonElem.name = label
-        buttonElem.appendChild(document.createTextNode(label))
-        buttonElem.addEventListener('click', onclick)
-        return buttonElem
-    }
-
-    // Updates the status bar to reflect the current row limit and page, shown at top of the visualization.
-    // - Creates the row dropdown and page buttons.
+    // Updates the status bar to reflect the current row limit, shown at top of the visualization.
+    // - Creates the row dropdown.
     // - Updated the row counts and filter available options.
     updateStatusBarControls(all_rows_count, dataTruncated) {
-        const pageLimit = Math.ceil(all_rows_count / this.row_limit)
-        if (this.page > pageLimit) {
-            this.page = pageLimit
-        }
-
         if (this.statusElem.childElementCount === 0) {
-            this.statusElem.appendChild(
-                this.makeButton('«', () => this.setRowLimitAndPage(this.row_limit, 0))
-            )
-            this.statusElem.appendChild(
-                this.makeButton('‹', () => this.setRowLimitAndPage(this.row_limit, this.page - 1))
-            )
-
             const selectElem = document.createElement('select')
             selectElem.name = 'row-limit'
             selectElem.addEventListener('change', e => {
-                this.setRowLimitAndPage(e.target.value, this.page)
+                this.setRowLimitAndPage(e.target.value)
             })
             this.statusElem.appendChild(selectElem)
 
             const rowCountSpanElem = document.createElement('span')
             this.statusElem.appendChild(rowCountSpanElem)
-
-            this.statusElem.appendChild(
-                this.makeButton('›', () => this.setRowLimitAndPage(this.row_limit, this.page + 1))
-            )
-            this.statusElem.appendChild(
-                this.makeButton('»', () => this.setRowLimitAndPage(this.row_limit, pageLimit - 1))
-            )
         }
-
-        // Enable/Disable Page buttons
-        this.statusElem.children.namedItem('«').disabled = this.page === 0
-        this.statusElem.children.namedItem('‹').disabled = this.page === 0
-        this.statusElem.children.namedItem('›').disabled = this.page === pageLimit - 1
-        this.statusElem.children.namedItem('»').disabled = this.page === pageLimit - 1
 
         // Update row limit dropdown and row count
         const rowCountElem = this.statusElem.getElementsByTagName('span')[0]
@@ -345,26 +324,14 @@ class TableVisualization extends Visualization {
         }
     }
 
-    updateTableSize(clientWidth) {
-        // Check the grid has been initialised and return if not.
-        if (!this.agGridOptions) {
-            return
-        }
-
+    updateColumnWidths() {
         // Resize columns to fit the table width unless the user manually resized them.
         const cols = this.agGridOptions.columnApi
             .getAllGridColumns()
-            .filter(c => !c.colDef.manuallySized)
-
-        // Compute the maximum width of a column: the client width minus a small margin.
-        const maxWidth = clientWidth - SIDE_MARGIN
+            .filter(c => !this.widths[c.colDef.field])
 
         // Resize based on the data and then shrink any columns that are too wide.
-        this.agGridOptions.columnApi.autoSizeColumns(cols, true)
-        const bigCols = cols
-            .filter(c => c.getActualWidth() > maxWidth)
-            .map(c => ({ key: c, newWidth: maxWidth }))
-        this.agGridOptions.columnApi.setColumnWidths(bigCols)
+        this.agGridOptions.columnApi.autoSizeColumns(cols)
     }
 
     lockColumnSize(e) {
@@ -376,14 +343,14 @@ class TableVisualization extends Visualization {
         // If the user manually resized a column, we don't want to auto-size it on a resize.
         const manuallySized = e.source !== 'autosizeColumns'
         for (const column of e.columns) {
-            column.colDef.manuallySized = manuallySized
+            const field = column.colDef.field
+            this.widths[field] = manuallySized ? column.actualWidth : undefined
         }
     }
 
     setSize(size) {
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
-        this.updateTableSize(size[0])
     }
 }
 

@@ -40,6 +40,9 @@ export const Dyn = {
   }),
 } as const
 
+export type ObjectVisitor = (object: LazyObject) => boolean | void
+export type ObjectAddressVisitor = (view: DataView, address: number) => boolean | void
+
 /** Base class for objects that lazily deserialize fields when accessed. */
 export abstract class LazyObject {
   protected readonly _v: DataView
@@ -50,6 +53,18 @@ export abstract class LazyObject {
 
   fields(): [string, DynValue][] {
     return []
+  }
+
+  visitChildren(_visitor: ObjectVisitor): boolean {
+    return false
+  }
+
+  children(): LazyObject[] {
+    const children: LazyObject[] = []
+    this.visitChildren((child) => {
+      children.push(child)
+    })
+    return children
   }
 }
 
@@ -98,12 +113,24 @@ export function readOption<T>(
   address: number,
   readElement: Reader<T>,
 ): T | undefined {
+  let result = undefined
+  visitOption(view, address, (view, address) => {
+    result = readElement(view, address)
+  })
+  return result
+}
+
+export function visitOption(
+  view: DataView,
+  address: number,
+  visitor: ObjectAddressVisitor,
+): boolean {
   const discriminant = readU8(view, address)
   switch (discriminant) {
     case 0:
-      return undefined
+      return false
     case 1:
-      return readElement(readPointer(view, address + 1), 0)
+      return !!visitor(readPointer(view, address + 1), 0)
     default:
       throw new Error(`Invalid Option discriminant: 0x${discriminant.toString(16)}.`)
   }
@@ -126,14 +153,79 @@ export function readResult<Ok, Err>(
       throw new Error(`Invalid Result discriminant: 0x${discriminant.toString(16)}.`)
   }
 }
-export function* readSequence<T>(view: DataView, address: number, size: number, reader: Reader<T>) {
+
+export function visitResult(
+  view: DataView,
+  address: number,
+  visitOk: ObjectAddressVisitor | null,
+  visitErr: ObjectAddressVisitor | null,
+): boolean {
   const data = readPointer(view, address)
-  let count = readU32(data, 0)
+  const discriminant = readU32(data, 0)
+  switch (discriminant) {
+    case 0:
+      if (visitOk?.(data, 4)) return true
+      return false
+    case 1:
+      if (visitErr?.(data, 4)) return true
+      return false
+    default:
+      throw new Error(`Invalid Result discriminant: 0x${discriminant.toString(16)}.`)
+  }
+}
+
+export function visitSequence(
+  view: DataView,
+  address: number,
+  size: number,
+  visitor: ObjectAddressVisitor,
+): boolean {
+  const data = readPointer(view, address)
   let offset = 4
-  while (count > 0) {
-    yield reader(data, offset)
-    count--
+  const end = offset + size * readU32(data, 0)
+  while (offset != end) {
+    if (visitor(data, offset) === true) return true
     offset += size
+  }
+  return false
+}
+
+export function readSequence<T>(
+  view: DataView,
+  address: number,
+  size: number,
+  reader: Reader<T>,
+): Iterable<T> {
+  const data = readPointer(view, address)
+  const offset = 4
+  const end = offset + size * readU32(data, 0)
+  return new LazySequence(offset, size, end, (offset: number) => reader(data, offset))
+}
+
+class LazySequence<T> implements Iterator<T> {
+  private offset: number
+  private readonly step: number
+  private readonly end: number
+  private readonly read: (address: number) => T
+
+  constructor(offset: number, step: number, end: number, read: (address: number) => T) {
+    this.read = read
+    this.offset = offset
+    this.step = step
+    this.end = end
+  }
+
+  [Symbol.iterator]() {
+    return this
+  }
+
+  public next(): IteratorResult<T> {
+    if (this.offset >= this.end) {
+      return { done: true, value: undefined }
+    }
+    const value = this.read(this.offset)
+    this.offset += this.step
+    return { done: false, value: value }
   }
 }
 
@@ -188,63 +280,4 @@ function debug_(value: DynValue): any {
     case 'primitive':
       return value.value
   }
-}
-
-export function validateSpans(obj: LazyObject, initialPos?: number): number {
-  const state = { pos: initialPos ?? 0 }
-  validateSpans_(Dyn.Object(obj), state)
-  return state.pos
-}
-
-function validateSpans_(value: DynValue, state: { pos: number }) {
-  switch (value.type) {
-    case 'sequence':
-      for (const elem of value.value) validateSpans_(elem, state)
-      break
-    case 'result':
-      if (value.value.ok) validateSpans_(value.value.value, state)
-      else validateSpans_(value.value.error.payload, state)
-      break
-    case 'option':
-      if (value.value != null) validateSpans_(value.value, state)
-      break
-    case 'object':
-      return validateObjectSpans(value, state)
-    case 'primitive':
-      break
-  }
-}
-
-function validateObjectSpans(value: DynObject, state: { pos: number }) {
-  const fields = new Map(value.getFields())
-  const whitespaceStart =
-    fields.get('whitespaceStartInCodeParsed') ?? fields.get('whitespaceStartInCodeBuffer')
-  const whitespaceLength =
-    fields.get('whitespaceLengthInCodeParsed') ?? fields.get('whitespaceLengthInCodeBuffer')
-  const codeStart = fields.get('startInCodeBuffer')
-  const codeLength = fields.get('lengthInCodeBuffer')
-  const childrenCodeLength = fields.get('childrenLengthInCodeParsed')
-  if (
-    !(
-      whitespaceLength?.type === 'primitive' &&
-      whitespaceLength.value === 0 &&
-      codeLength?.type === 'primitive' &&
-      codeLength?.value === 0
-    )
-  ) {
-    if (whitespaceStart?.type === 'primitive' && whitespaceStart.value !== state.pos)
-      throw new Error(`Span error (whitespace) in: ${JSON.stringify(debug_(value))}.`)
-    if (whitespaceLength?.type === 'primitive') state.pos += whitespaceLength.value as number
-    if (codeStart?.type === 'primitive' && codeStart.value !== state.pos)
-      throw new Error('Span error (code).')
-    if (codeLength?.type === 'primitive') state.pos += codeLength.value as number
-  }
-  let endPos: number | undefined
-  if (childrenCodeLength?.type === 'primitive')
-    endPos = state.pos + (childrenCodeLength.value as number)
-  for (const entry of fields) {
-    const [_name, value] = entry
-    validateSpans_(value, state)
-  }
-  if (endPos != null && state.pos !== endPos) throw new Error('Span error (children).')
 }
