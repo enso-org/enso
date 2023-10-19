@@ -4,10 +4,10 @@ import akka.event.EventStream
 import org.enso.jsonrpc.ProtocolFactory
 import org.enso.languageserver.boot.resource.{
   AsyncResourcesInitialization,
-  BlockingResourcesInitialization,
+  BlockingInitialization,
   DirectoriesInitialization,
   InitializationComponent,
-  JsonRpcInitializationComponent,
+  JsonRpcInitialization,
   RepoInitialization,
   SequentialResourcesInitialization,
   TruffleContextInitialization,
@@ -18,7 +18,7 @@ import org.enso.languageserver.effect
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.graalvm.polyglot.Context
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContextExecutor
 
 /** Helper object for the initialization of the Language Server resources.
   * Creates the directories, initializes the databases, and the Truffle context.
@@ -44,20 +44,22 @@ object ResourcesInitialization {
     suggestionsRepo: SqlSuggestionsRepo,
     truffleContext: Context,
     runtime: effect.Runtime
-  )(implicit ec: ExecutionContext): InitializationComponent = {
-    new BlockingResourcesInitialization(
-      SequentialResourcesInitialization(
-        new DirectoriesInitialization(directoriesConfig),
-        AsyncResourcesInitialization(
-          new JsonRpcInitializationComponent(protocolFactory),
-          new ZioRuntimeInitialization(runtime, eventStream),
+  )(implicit ec: ExecutionContextExecutor): InitializationComponent = {
+    new BlockingInitialization(
+      new SequentialResourcesInitialization(
+        ec,
+        new DirectoriesInitialization(ec, directoriesConfig),
+        new AsyncResourcesInitialization(
+          new JsonRpcInitialization(ec, protocolFactory),
+          new ZioRuntimeInitialization(ec, runtime, eventStream),
           new RepoInitialization(
+            ec,
             directoriesConfig,
             eventStream,
             sqlDatabase,
             suggestionsRepo
           ),
-          new TruffleContextInitialization(eventStream, truffleContext)
+          new TruffleContextInitialization(ec, truffleContext, eventStream)
         )
       )
     )
