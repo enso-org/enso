@@ -356,6 +356,22 @@ postgres_specific_spec connection db_name setup =
             table.at "A" . to_vector . should_equal v_at_z
             table.at "A" . to_vector . should_equal_tz_agnostic v
 
+        Test.specify "will round-trip timestamp column ?" <|
+            table_name = Name_Generator.random_name "Timestamp"
+            table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
+
+            dt1 = Date_Time.new 2022 05 04 15 30
+            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+            dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+            v = [dt1, dt2, dt3, dt4]
+
+            IO.println <| table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
+            table.print
+
+            v_at_system = v.map dt-> dt.at_zone Time_Zone.system
+            table.at "A" . to_vector . should_equal v_at_system
+
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
             col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"

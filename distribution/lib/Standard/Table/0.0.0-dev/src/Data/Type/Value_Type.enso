@@ -285,6 +285,9 @@ type Value_Type
                 fits_variability = if target_variable_length then True else self_variable_length == target_variable_length
                 fits_variability && (target_size >= self_size)
             _ -> False
+        Value_Type.Date_Time _ -> case target_type of
+            Value_Type.Date_Time _ -> True
+            _ -> False
         _ -> False
 
     ## PRIVATE
