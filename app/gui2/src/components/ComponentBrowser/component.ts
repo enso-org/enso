@@ -1,8 +1,4 @@
-import {
-  Filtering,
-  type MatchRange,
-  type MatchResult,
-} from '@/components/ComponentBrowser/filtering'
+import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
@@ -12,11 +8,12 @@ import {
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/opt'
 import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
+import type { Range } from '@/util/range'
 
 interface ComponentLabel {
   label: string
   matchedAlias?: string | undefined
-  matchedRanges?: MatchRange[] | undefined
+  matchedRanges?: Range[] | undefined
 }
 
 export interface Component extends ComponentLabel {

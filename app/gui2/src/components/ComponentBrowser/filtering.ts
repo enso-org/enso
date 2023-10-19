@@ -1,6 +1,7 @@
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import type { Opt } from '@/util/opt'
 import { qnIsTopElement, qnParent, type QualifiedName } from '@/util/qualifiedName'
+import type { Range } from '@/util/range'
 
 export interface Filter {
   pattern?: string
@@ -19,16 +20,11 @@ export enum MatchTypeScore {
   AliasInitialMatch = 5000,
 }
 
-export interface MatchRange {
-  start: number
-  end: number
-}
-
 interface MatchedParts {
   matchedAlias?: string
-  nameRanges?: MatchRange[]
-  definedInRanges?: MatchRange[]
-  memberOfRanges?: MatchRange[]
+  nameRanges?: Range[]
+  definedInRanges?: Range[]
+  memberOfRanges?: Range[]
 }
 
 export interface MatchResult extends MatchedParts {
@@ -94,7 +90,7 @@ class FilteringWithPattern {
   }
 
   private static wordMatchRanges(wordMatch: RegExpExecArray) {
-    const result: MatchRange[] = []
+    const result: Range[] = []
     for (let i = 1, pos = 0; i < wordMatch.length; i += 1) {
       // Matches come in groups of three, and the first matched part is `match[2]`.
       if (i % 3 === 2) {
@@ -106,7 +102,7 @@ class FilteringWithPattern {
   }
 
   private static initialsMatchRanges(initialsMatch: RegExpExecArray) {
-    const result: MatchRange[] = []
+    const result: Range[] = []
     for (let i = 1, pos = 0; i < initialsMatch.length; i += 1) {
       // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
       if (i % 2 === 0) {
@@ -202,7 +198,7 @@ class FilteringQualifiedName {
   }
 
   private static matchRanges(match: RegExpExecArray) {
-    const result: MatchRange[] = []
+    const result: Range[] = []
     for (let i = 1, pos = 0; i < match.length; i += 1) {
       // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
       if (i % 2 === 0) {

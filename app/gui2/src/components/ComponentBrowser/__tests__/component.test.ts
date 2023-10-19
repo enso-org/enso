@@ -7,7 +7,7 @@ import {
   type Component,
   type MatchedSuggestion,
 } from '@/components/ComponentBrowser/component'
-import { Filtering, type MatchRange } from '@/components/ComponentBrowser/filtering'
+import { Filtering } from '@/components/ComponentBrowser/filtering'
 import {
   makeCon,
   makeMethod,
@@ -16,6 +16,7 @@ import {
   makeStaticMethod,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
+import { allRanges } from '@/util/range'
 import shuffleSeed from 'shuffle-seed'
 
 test.each([
@@ -87,22 +88,10 @@ test('Suggestions are ordered properly', () => {
 })
 
 test('Matched ranges are correct', () => {
-  function* allRanges(text: string, ranges: MatchRange[]) {
-    let lastEndIndex = 0
-    for (const range of ranges) {
-      yield { start: lastEndIndex, end: range.start, isMatch: false }
-      yield { ...range, isMatch: true }
-      lastEndIndex = range.end
-    }
-    if (lastEndIndex !== text.length) {
-      yield { start: lastEndIndex, end: text.length, isMatch: false }
-    }
-  }
-
   function replaceMatches(component: Component) {
     if (!component.matchedRanges || component.matchedAlias) return component.label
     const parts: string[] = []
-    for (const range of allRanges(component.label, component.matchedRanges)) {
+    for (const range of allRanges(component.matchedRanges, component.label.length)) {
       const text = component.label.slice(range.start, range.end)
       parts.push(range.isMatch ? `<${text}>` : text)
     }
@@ -112,7 +101,7 @@ test('Matched ranges are correct', () => {
   function replaceAliasMatches(component: Component) {
     if (!component.matchedRanges || !component.matchedAlias) return
     const parts: string[] = []
-    for (const range of allRanges(component.matchedAlias, component.matchedRanges)) {
+    for (const range of allRanges(component.matchedRanges, component.matchedAlias.length)) {
       const text = component.matchedAlias.slice(range.start, range.end)
       parts.push(range.isMatch ? `<${text}>` : text)
     }
