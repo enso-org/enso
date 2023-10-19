@@ -244,7 +244,7 @@ function LabelsColumn(props: AssetColumnProps) {
         item: { item: asset },
         setItem,
         state: { category, labels, deletedLabelNames, doCreateLabel },
-        rowState: { temporaryLabels },
+        rowState: { temporarilyAddedLabels, temporarilyRemovedLabels },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -285,9 +285,15 @@ function LabelsColumn(props: AssetColumnProps) {
                 .filter(label => !deletedLabelNames.has(label))
                 .map(label => (
                     <Label
-                        active
                         key={label}
                         color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
+                        active={!temporarilyRemovedLabels.has(label)}
+                        disabled={temporarilyRemovedLabels.has(label)}
+                        className={
+                            temporarilyRemovedLabels.has(label)
+                                ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
+                                : ''
+                        }
                         onClick={() => {
                             setAsset(oldAsset => {
                                 const newLabels =
@@ -317,7 +323,7 @@ function LabelsColumn(props: AssetColumnProps) {
                         {label}
                     </Label>
                 ))}
-            {...temporaryLabels
+            {...[...temporarilyAddedLabels]
                 .filter(label => asset.labels?.includes(label) !== true)
                 .map(label => (
                     <Label

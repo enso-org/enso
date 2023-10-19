@@ -32,8 +32,10 @@ export enum AssetEventType {
     restore = 'restore',
     downloadSelected = 'download-selected',
     removeSelf = 'remove-self',
-    addTemporaryLabels = 'add-temporary-labels',
+    temporarilyAddLabels = 'temporarily-add-labels',
+    temporarilyRemoveLabels = 'temporarily-remove-labels',
     addLabels = 'add-labels',
+    removeLabels = 'remove-labels',
     deleteLabel = 'delete-label',
 }
 
@@ -58,8 +60,10 @@ interface AssetEvents {
     restore: AssetRestoreEvent
     downloadSelected: AssetDownloadSelectedEvent
     removeSelf: AssetRemoveSelfEvent
-    addTemporaryLabels: AssetAddTemporaryLabelsEvent
+    temporarilyAddLabels: AssetTemporarilyAddLabelsEvent
+    temporarilyRemoveLabels: AssetTemporarilyRemoveLabelsEvent
     addLabels: AssetAddLabelsEvent
+    removeLabels: AssetRemoveLabelsEvent
     deleteLabel: AssetDeleteLabelEvent
 }
 
@@ -149,17 +153,30 @@ export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.remo
     id: backendModule.AssetId
 }
 
-/** A signal to add temporary labels to the selected assetss. */
-export interface AssetAddTemporaryLabelsEvent
-    extends AssetBaseEvent<AssetEventType.addTemporaryLabels> {
+/** A signal to temporarily add labels to the selected assetss. */
+export interface AssetTemporarilyAddLabelsEvent
+    extends AssetBaseEvent<AssetEventType.temporarilyAddLabels> {
     ids: Set<backendModule.AssetId>
-    labelNames: readonly backendModule.LabelName[]
+    labelNames: ReadonlySet<backendModule.LabelName>
+}
+
+/** A signal to temporarily remove labels from the selected assetss. */
+export interface AssetTemporarilyRemoveLabelsEvent
+    extends AssetBaseEvent<AssetEventType.temporarilyRemoveLabels> {
+    ids: Set<backendModule.AssetId>
+    labelNames: ReadonlySet<backendModule.LabelName>
 }
 
 /** A signal to add labels to the selected assetss. */
 export interface AssetAddLabelsEvent extends AssetBaseEvent<AssetEventType.addLabels> {
     ids: Set<backendModule.AssetId>
-    labelNames: readonly backendModule.LabelName[]
+    labelNames: ReadonlySet<backendModule.LabelName>
+}
+
+/** A signal to remove labels from the selected assetss. */
+export interface AssetRemoveLabelsEvent extends AssetBaseEvent<AssetEventType.removeLabels> {
+    ids: Set<backendModule.AssetId>
+    labelNames: ReadonlySet<backendModule.LabelName>
 }
 
 /** A signal to remove a label from all assets. */

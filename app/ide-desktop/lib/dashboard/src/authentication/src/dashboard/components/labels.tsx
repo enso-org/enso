@@ -75,7 +75,7 @@ export default function Labels(props: LabelsProps) {
                                 }}
                                 onDragStart={event => {
                                     drag.setDragImageToBlank(event)
-                                    const payload: drag.LabelsDragPayload = [label.value]
+                                    const payload: drag.LabelsDragPayload = new Set([label.value])
                                     drag.LABELS.bind(event, payload)
                                     setModal(
                                         <DragModal

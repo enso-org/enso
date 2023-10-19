@@ -1,12 +1,5 @@
 /** @file Utilities for manipulating arrays. */
 
-// =================
-// === Constants ===
-// =================
-
-/** A singleton empty array. Useful when comparing by reference equality. */
-export const EMPTY: readonly never[] = Object.freeze([])
-
 // =========================
 // === includesPredicate ===
 // =========================

@@ -14,6 +14,7 @@ import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as permissions from '../permissions'
+import * as set from '../set'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as sorting from '../sorting'
@@ -180,7 +181,8 @@ export interface AssetsTableState {
 export interface AssetRowState {
     setVisibility: (visibility: visibilityModule.Visibility) => void
     isEditingName: boolean
-    temporaryLabels: readonly backendModule.LabelName[]
+    temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
+    temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
 
 /** The default {@link AssetRowState} associated with a {@link AssetRow}. */
@@ -189,7 +191,8 @@ export const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
         // Ignored. This MUST be replaced by the row component. It should also update `visibility`.
     },
     isEditingName: false,
-    temporaryLabels: array.EMPTY,
+    temporarilyAddedLabels: set.EMPTY,
+    temporarilyRemovedLabels: set.EMPTY,
 })
 
 /** Props for a {@link AssetsTable}. */
@@ -1458,11 +1461,26 @@ export default function AssetsTable(props: AssetsTableProps) {
                             if (payload != null) {
                                 event.preventDefault()
                                 event.stopPropagation()
+                                const ids = oldSelectedKeys.has(key)
+                                    ? oldSelectedKeys
+                                    : new Set([key])
+                                let labelsPresent = 0
+                                for (const selectedKey of ids) {
+                                    const labels = nodeMapRef.current.get(selectedKey)?.item.labels
+                                    if (labels != null) {
+                                        for (const label of labels) {
+                                            if (payload.has(label)) {
+                                                labelsPresent += 1
+                                            }
+                                        }
+                                    }
+                                }
+                                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
                                 dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.addTemporaryLabels,
-                                    ids: oldSelectedKeys.has(key)
-                                        ? oldSelectedKeys
-                                        : new Set([key]),
+                                    type: shouldAdd
+                                        ? assetEventModule.AssetEventType.temporarilyAddLabels
+                                        : assetEventModule.AssetEventType.temporarilyRemoveLabels,
+                                    ids,
                                     labelNames: payload,
                                 })
                             }
@@ -1472,9 +1490,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     onRowDragEnd={() => {
                         setSelectedKeys(oldSelectedKeys => {
                             dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.addTemporaryLabels,
+                                type: assetEventModule.AssetEventType.temporarilyAddLabels,
                                 ids: oldSelectedKeys,
-                                labelNames: array.EMPTY,
+                                labelNames: set.EMPTY,
                             })
                             return oldSelectedKeys
                         })
@@ -1486,16 +1504,30 @@ export default function AssetsTable(props: AssetsTableProps) {
                             if (payload != null) {
                                 event.preventDefault()
                                 event.stopPropagation()
+                                let labelsPresent = 0
+                                for (const selectedKey of ids) {
+                                    const labels = nodeMapRef.current.get(selectedKey)?.item.labels
+                                    if (labels != null) {
+                                        for (const label of labels) {
+                                            if (payload.has(label)) {
+                                                labelsPresent += 1
+                                            }
+                                        }
+                                    }
+                                }
+                                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
                                 dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.addLabels,
+                                    type: shouldAdd
+                                        ? assetEventModule.AssetEventType.addLabels
+                                        : assetEventModule.AssetEventType.removeLabels,
                                     ids,
                                     labelNames: payload,
                                 })
                             } else {
                                 dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.addTemporaryLabels,
+                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
                                     ids,
-                                    labelNames: array.EMPTY,
+                                    labelNames: set.EMPTY,
                                 })
                             }
                             return oldSelectedKeys
@@ -1508,9 +1540,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                         ) {
                             setSelectedKeys(oldSelectedKeys => {
                                 dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.addTemporaryLabels,
+                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
                                     ids: oldSelectedKeys,
-                                    labelNames: array.EMPTY,
+                                    labelNames: set.EMPTY,
                                 })
                                 return oldSelectedKeys
                             })

@@ -69,12 +69,12 @@ export const ASSET_ROWS = new DragPayloadManager<AssetRowsDragPayload>(
 
 /** Metadata for an asset row. */
 interface AssetRowsDragPayloadItem {
-    key: backend.AssetId
-    asset: backend.AnyAsset
+    readonly key: backend.AssetId
+    readonly asset: backend.AnyAsset
 }
 
 /** Data for a {@link DragEvent} started from an {@link AssetsTable}. */
-export type AssetRowsDragPayload = AssetRowsDragPayloadItem[]
+export type AssetRowsDragPayload = readonly AssetRowsDragPayloadItem[]
 
 // ========================
 // === LabelDragPayload ===
@@ -83,4 +83,4 @@ export type AssetRowsDragPayload = AssetRowsDragPayloadItem[]
 export const LABELS = new DragPayloadManager<LabelsDragPayload>('application/x-enso-label')
 
 /** Data for a {@link DragEvent} started from an {@link backend.LabelName}. */
-export type LabelsDragPayload = backend.LabelName[]
+export type LabelsDragPayload = ReadonlySet<backend.LabelName>
