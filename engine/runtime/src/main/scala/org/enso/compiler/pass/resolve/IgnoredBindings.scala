@@ -271,9 +271,9 @@ case object IgnoredBindings extends IRPass {
     */
   def isIgnore(ir: Name): Boolean = {
     ir match {
-      case _: Name.Blank                  => true
-      case Name.Literal(name, _, _, _, _) => name == "_"
-      case _                              => false
+      case _: Name.Blank         => true
+      case literal: Name.Literal => literal.name == "_"
+      case _                     => false
     }
   }
 

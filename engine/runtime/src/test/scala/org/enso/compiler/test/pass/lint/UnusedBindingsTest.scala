@@ -207,5 +207,28 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       lintMeta2 shouldBe empty
     }
+
+    "report human-readable names for shadowed arguments" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |f a a = 10
+          |main =
+          |    f 0 1
+          |""".stripMargin.preprocessModule.lint
+
+      inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
+        inside(definition.body) { case f: Function.Lambda =>
+          val lintMeta = f.arguments(1).diagnostics.collect {
+            case u: warnings.Unused.FunctionArgument => u
+          }
+
+          lintMeta should not be empty
+          lintMeta.head shouldBe an[warnings.Unused.FunctionArgument]
+          lintMeta.head.name.name shouldEqual "a"
+        }
+      }
+    }
   }
 }

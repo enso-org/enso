@@ -420,10 +420,11 @@ case object LambdaConsolidate extends IRPass {
             freshNameSupply
               .newName()
               .copy(
-                location    = name.location,
-                passData    = name.passData,
-                diagnostics = name.diagnostics,
-                id          = name.getId
+                location     = name.location,
+                originalName = Some(name),
+                passData     = name.passData,
+                diagnostics  = name.diagnostics,
+                id           = name.getId
               )
           } else name
 
