@@ -253,18 +253,15 @@ function acceptSuggestion(index: Opt<Component> = null) {
 const handler = componentBrowserBindings.handler({
   applySuggestion() {
     applySuggestion()
-    return true
   },
   acceptSuggestion() {
     acceptSuggestion()
-    return true
   },
   moveUp() {
     if (selected.value != null && selected.value < components.value.length - 1) {
       selected.value += 1
     }
     scrollToSelected()
-    return true
   },
   moveDown() {
     if (selected.value == null) {
@@ -273,7 +270,6 @@ const handler = componentBrowserBindings.handler({
       selected.value -= 1
     }
     scrollToSelected()
-    return true
   },
 })
 </script>
