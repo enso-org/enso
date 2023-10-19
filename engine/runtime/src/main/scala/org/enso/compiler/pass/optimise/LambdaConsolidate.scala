@@ -406,7 +406,7 @@ case object LambdaConsolidate extends IRPass {
     * @param argsWithShadowed the args with whether or not they are shadowed
     * @return a set of argument names, with shadowed arguments replaced
     */
-  def generateNewNames(
+  private def generateNewNames(
     argsWithShadowed: List[(DefinitionArgument, Boolean)],
     freshNameSupply: FreshNameSupply
   ): List[DefinitionArgument] = {
@@ -418,13 +418,12 @@ case object LambdaConsolidate extends IRPass {
         val newName =
           if (isShadowed) {
             freshNameSupply
-              .newName()
+              .newName(from = Some(name))
               .copy(
-                location     = name.location,
-                originalName = Some(name),
-                passData     = name.passData,
-                diagnostics  = name.diagnostics,
-                id           = name.getId
+                location    = name.location,
+                passData    = name.passData,
+                diagnostics = name.diagnostics,
+                id          = name.getId
               )
           } else name
 
