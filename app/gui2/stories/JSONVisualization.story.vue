@@ -8,11 +8,10 @@ const data = ref<any>({
     x: { label: 'x-axis label', scale: 'linear' },
     y: { label: 'y-axis label', scale: 'logarithmic' },
   },
-  focus: { x: 1.7, y: 2.1, zoom: 3.0 },
   points: { labels: 'visible' },
   data: [
-    { x: 0.1, y: 0.7, label: 'foo', color: 'FF0000', shape: 'circle', size: 0.2 },
-    { x: 0.4, y: 0.2, label: 'baz', color: '0000FF', shape: 'square', size: 0.3 },
+    { x: 0.1, y: 0.7, label: 'foo', color: '#FF0000', shape: 'circle', size: 0.2 },
+    { x: 0.4, y: 0.2, label: 'baz', color: '#0000FF', shape: 'square', size: 0.3 },
   ],
 })
 </script>
