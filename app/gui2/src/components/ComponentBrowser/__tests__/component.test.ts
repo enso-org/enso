@@ -26,8 +26,8 @@ test.each([
 ])("$name Component's label is valid", (suggestion, expected, mainExpected?) => {
   const mainView = new Filtering({})
   const filteredView = new Filtering({ pattern: 'e' })
-  expect(labelOfEntry(suggestion, filteredView)).toBe(expected)
-  expect(labelOfEntry(suggestion, mainView)).toBe(mainExpected ?? expected)
+  expect(labelOfEntry(suggestion, filteredView, { score: 0 }).label).toBe(expected)
+  expect(labelOfEntry(suggestion, mainView, { score: 0 }).label).toBe(mainExpected ?? expected)
 })
 
 test('Suggestions are ordered properly', () => {

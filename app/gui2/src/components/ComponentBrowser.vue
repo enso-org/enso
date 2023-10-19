@@ -303,7 +303,10 @@ function handleKeydown(e: KeyboardEvent) {
                   :style="{ color: componentColor(item.component) }"
                 />
                 <span>
-                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
                   <span
                     v-for="range in allRanges(item.component.label, item.component.matchedRanges)"
                     v-else
@@ -327,7 +330,10 @@ function handleKeydown(e: KeyboardEvent) {
               >
                 <SvgIcon :name="item.component.icon" />
                 <span>
-                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
                   <span
                     v-for="range in allRanges(item.component.label, item.component.matchedRanges)"
                     v-else

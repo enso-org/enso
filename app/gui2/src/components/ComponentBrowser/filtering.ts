@@ -75,8 +75,7 @@ class FilteringWithPattern {
     matches: RegExpExecArray,
   ): number {
     const words: string[] = []
-    const end = matches.length - 1
-    for (let i = 2; i < end; i += 3) {
+    for (let i = 2; i < matches.length; i += 3) {
       words.push(matches[i]!, matches[i + 1]!)
     }
     const matchedWords = words.join('_')
@@ -121,7 +120,7 @@ class FilteringWithPattern {
 
   tryMatch(entry: SuggestionEntry): Opt<MatchResult> {
     const nameWordsMatch = this.wordMatchRegex?.exec(entry.name)
-    if (nameWordsMatch?.index === 0) {
+    if (nameWordsMatch?.[1]?.length === 0) {
       return {
         score: this.matchedWordsScore(
           MatchTypeScore.NameWordMatchFirst,
@@ -132,7 +131,7 @@ class FilteringWithPattern {
       }
     }
     const matchedAlias = this.firstMatchingAlias(entry)
-    if (matchedAlias?.match.index === 0) {
+    if (matchedAlias?.match?.[1]?.length === 0) {
       return {
         matchedAlias: matchedAlias.alias,
         score: this.matchedWordsScore(
@@ -170,7 +169,7 @@ class FilteringWithPattern {
         }
       }
       for (const alias of entry.aliases) {
-        const initialsMatch = this.initialsMatchRegex.exec(entry.name)
+        const initialsMatch = this.initialsMatchRegex.exec(alias)
         if (initialsMatch) {
           return {
             matchedAlias: alias,

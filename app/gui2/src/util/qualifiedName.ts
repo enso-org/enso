@@ -70,7 +70,7 @@ export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName
  * The element is considered a top element if there is max 1 segment in the path.
  */
 export function qnIsTopElement(name: QualifiedName): boolean {
-  return !/[.].*?[.]/.test(name)
+  return !/[.].*?[.].*?[.]/.test(name)
 }
 
 if (import.meta.vitest) {
@@ -143,6 +143,7 @@ if (import.meta.vitest) {
     ['local.Project.Module.elem', false],
   ])('qnIsTopElement(%s) returns %s', (name, result) => {
     const qn = unwrap(tryQualifiedName(name))
+    console.log('qn', qn)
     expect(qnIsTopElement(qn)).toBe(result)
   })
 }
