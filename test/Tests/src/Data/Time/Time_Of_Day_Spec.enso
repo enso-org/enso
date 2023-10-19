@@ -37,6 +37,16 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             text = create_new_time 12 20 44 . format "HHmmss"
             text . should_equal "122044"
 
+        Test.specify "should support display_text" <|
+            text = create_new_time 12 20 44 . to_display_text
+            text . should_equal "12:20:44"
+
+            text_2 = create_new_time 12 20 44 123456789 . to_display_text
+            text_2 . should_equal "12:20:44.123456"
+
+            text_3 = create_new_time 12 20 44 123000000 . to_display_text
+            text_3 . should_equal "12:20:44.123"
+
         Test.specify "should format using provided pattern and locale" <|
             d = create_new_time 12 20 44
             # Note that the results are all the same.
