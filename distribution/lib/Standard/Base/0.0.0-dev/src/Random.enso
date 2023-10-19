@@ -16,6 +16,7 @@ import project.Runtime.Ref.Ref
 import project.System
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer
+from project.Data.Range.Extensions import all
 
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.util.Random as Java_Random
@@ -149,19 +150,45 @@ type Random
     uuid : Text
     uuid = Random.default_instance.uuid
 
-    ##
-        # Generate a string by selecting a random character from each element of the list.
-        # Previously `Faker.string_value`
-        text_from_charsets : Vector (Text | Vector Text)
+    ## GROUP Random
+       Returns a new `Vector` containing a random sample of the input vector,
+       without replacement.
 
-        ## Return a random value from the given collection.
-            If `with_replacement` is false, and `count` is equal to or greater than
-            the size of the collection, a random permutation of the collection is returned.
-        item : Vector -> Integer -> Boolean -> Any
-        item v count with_replacement=True =
+       Arguments:
+       - vector: the `Vector` to take items from.
+       - count: the number of items to return.
+       - with_replacement: if false, each value in the `Vector` can only be
+         selected once during a single call; the returned values will contain no
+         duplicates. If true, values from the `Vector` can be returned multiple
+         times.
 
-        permutation : Vector | Set | Map | Range -> Any
-        permutation collection = Random.sample collection collection.length with_replacement=False
+       If `with_replacement` is false, and `count` is equal to or greater than
+       the size of the collection, a random permutation of the collection is
+       returned.
+
+       > Example
+         Sample a vector.
+
+             import Standard.Base.Random.Random
+
+             items = Random.items [1, 2, 3, 4]
+    item : Vector Any -> Integer -> Boolean -> Any
+    item v count=1 with_replacement=False = Random.default_instance.item v count with_replacement
+
+    ## GROUP Random
+       Returns a random permutation of the input `Vector`.
+
+       Arguments:
+       - vector: the `Vector` to permute.
+
+       > Example
+         Permute a vector.
+
+             import Standard.Base.Random.Random
+
+             permuted = Random.permute [1, 2, 3, 4]
+    permute : Vector Any -> Vector Any
+    permute v = Random.default_instance.permute v
 
     ## PRIVATE
        Return the default instance.
@@ -208,6 +235,19 @@ type Random_Generator
 
     uuid : Text
     uuid self = UUID.randomUUID.to_text
+
+    item : Vector Any -> Integer -> Boolean -> Any
+    item self v count=1 with_replacement=False =
+        case with_replacement of
+            True ->
+                len = v.length
+                0.up_to 1 . map _-> v.at (self.integer 0 len)
+            False ->
+                new_array = Random_Utils.sample v count self.java_random
+                Vector.from_polyglot_array new_array
+
+    permute : Vector Any -> Vector Any
+    permute self v = self.item v v.length False
 
 ## PRIVATE
    Returns a default seed to use for random number generation.

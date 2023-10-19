@@ -65,51 +65,52 @@ spec = Test.group "Random" <|
     Test.specify "should allow generating random UUIDs" <|
         Random.uuid . should_only_contain_elements_in "0123456789abcdef-"
 
-    ##
-        Test.specify "should allow generating random strings from character sets" <|
-            Random.set_seed 12345
-            l = "ABCEGHJKLMNOPRSTWXYZ".char_vector
-            n = "0123456789".char_vector
-            s = "ABCDFMP ".char_vector
-            template = [l, l, n, n, n, n, n, s]
-            Random.text_from_charsets template . should_equal ""
-            Random.text_from_charsets template . should_equal ""
-            Random.text_from_charsets template . should_equal ""
+    Test.specify "should allow to select a random item from a vector, without replacement" <|
+        Random.set_seed 0
+        vector = ["A", "B", "C"]
+        shuffles = 0.up_to 100 . map _->
+            Random.item vector 2
+        shuffles . should_contain_the_same_elements_as [["A", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["C", "A"], ["C", "B"]]
 
-        Test.specify "should allow to select a random item from a vector" <|
-            Random.set_seed 0
-            vector = ["A", "B", "C"]
-            shuffles = 0.up_to 100 . map _->
-                Random.item vector 2
-            shuffles . should_contain_the_same_elements_as [["A", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["C", "A"], ["C", "B"]]
+        overflow = Random.item vector 100
+        overflow.length . should_equal 3
+        overflow.should_contain_the_same_elements_as vector
 
-            overflow = Random.item vector 100
-            overflow.length . should_equal 3
-            overflow.should_contain_the_same_elements_as vector
+        Random.item ["A", "A", "A"] 2 . should_equal ["A", "A"]
+        Random.item ["A", "A", "A"] 0 . should_equal []
+        Random.item ["A", "A", "A"] 3 . should_equal ["A", "A", "A"]
+        Random.item ["A", "A", "A"] 100 . should_equal ["A", "A", "A"]
 
-            Random.item ["A", "A", "A"] 2 . should_equal ["A", "A"]
-            Random.item ["A", "A", "A"] 0 . should_equal []
-            Random.item ["A", "A", "A"] 3 . should_equal ["A", "A", "A"]
-            Random.item ["A", "A", "A"] 100 . should_equal ["A", "A", "A"]
+    Test.specify "should allow to select a random item from a vector, with replacement" <|
+        Random.set_seed 0
+        vector = 0.up_to 10 . to_vector
 
-        Test.specify "should allow to generate random permutations" <|
-            Random.set_seed 0
-            permutations = 0.up_to 100 . map _->
-                Random.permutation 3 3
-            permutations_2 = 0.up_to 100 . map _->
-                Random.permutation 3 100
+        Random.item vector . length . should_equal 1
+        Random.item vector 4 . length . should_equal 4
 
-            all_permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
-            permutations . should_contain_the_same_elements_as all_permutations
-            permutations_2 . should_contain_the_same_elements_as all_permutations
+        0.up_to 20 . map _->
+            items = Random.item vector 5 with_replacement=True
+            items.should_only_contain_elements_in vector
 
-        Test.specify "should not allow using a too-large integer range" <|
-            high = 9223372036854775807000
-            Random.integer 0 high . should_fail_with Illegal_Argument
+    Test.specify "should allow to generate random permutations" <|
+        Random.set_seed 0
+        list = [0, 1, 2]
+        permutations = 0.up_to 100 . map _->
+            Random.permute list
+        permutations_2 = 0.up_to 100 . map _->
+            Random.permute list
 
-        Test.specify "Can call an instance directly" <|
-            Random.new_generator 12345 . integer 0 100 . should_equal 51
-            Random.new_generator 12345 . float . should_equal 0.3618031071604718 epsilon=0.00000001
-            Random.new_generator 12345 . gaussian . should_equal -0.187808989658912 epsilon=0.00000001
+        all_permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
+        permutations . should_contain_the_same_elements_as all_permutations
+        permutations_2 . should_contain_the_same_elements_as all_permutations
+
+    Test.specify "should not allow using a too-large integer range" <|
+        high = 9223372036854775807000
+        Random.integer 0 high . should_fail_with Illegal_Argument
+
+    Test.specify "Can call an instance directly" <|
+        Random.new_generator 12345 . integer 0 100 . should_equal 51
+        Random.new_generator 12345 . float . should_equal 0.3618031071604718 epsilon=0.00000001
+        Random.new_generator 12345 . gaussian . should_equal -0.187808989658912 epsilon=0.00000001
 
 main = Test_Suite.run_main spec
