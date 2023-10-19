@@ -18,10 +18,10 @@ export function parseEnso(code: string): Tree {
 export function parseEnsoLine(code: string): Tree {
   const block = parseEnso(code)
   assert(block.type === Tree.Type.BodyBlock)
-  const statemets = block.statements[Symbol.iterator]()
-  const firstLine = statemets.next()
+  const statements = block.statements[Symbol.iterator]()
+  const firstLine = statements.next()
   assert(!firstLine.done)
-  assert(!!statemets.next().done)
+  assert(!!statements.next().done)
   assert(firstLine.value.expression != null)
   return firstLine.value.expression
 }
@@ -95,14 +95,13 @@ function treePath(obj: LazyObject, pred: (node: Tree) => boolean): Tree[] {
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
-  // Not working cases commented.
   const parseCases = [
-    ' foo bar\n',
+    'foo bar\n',
     'Data.read\n2 + 2',
     'Data.read File\n2 + 3',
-    // 'Data.read "File"\n2 + 3',
+    'Data.read "File"\n2 + 3',
     'foo bar=baz',
-    // '2\n + 3\n + 4',
+    '2\n + 3\n + 4',
   ]
 
   test.each(parseCases)("Parsing '%s'", (code) => {

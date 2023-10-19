@@ -201,7 +201,6 @@ impl Default for Parser {
 /// interpreted as a variable assignment or method definition.
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    let mut left_offset = tree.span.left_offset.position_before();
     if let Tree { variant: box Variant::Annotated(annotated), .. } = &mut tree {
         annotated.expression = annotated.expression.take().map(expression_to_statement);
         return tree;
@@ -214,14 +213,22 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         documented.expression = documented.expression.take().map(expression_to_statement);
         return tree;
     }
-    if let Tree { variant: box Variant::TypeAnnotated(annotated), span } = tree {
-        let colon = annotated.operator;
-        let type_ = annotated.type_;
-        let variable = annotated.expression;
-        let mut tree = Tree::type_signature(variable, colon, type_);
-        tree.span.left_offset += span.left_offset;
+    if let Tree { variant: box Variant::TypeAnnotated(annotated), .. } = tree {
+        let TypeAnnotated { expression, operator, type_ } = annotated;
+        tree.variant = Box::new(Variant::TypeSignature(TypeSignature {
+            variable: expression,
+            operator,
+            type_,
+        }));
         return tree;
     }
+    if matches!(&tree, Tree {
+        variant: box Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, .. }),
+        ..
+    }) {
+        return tree.with_error("Expected expression before indented block.");
+    }
+    let mut left_offset = tree.span.left_offset.position_before();
     let tree_ = &mut tree;
     let opr_app = match tree_ {
         Tree { variant: box Variant::OprApp(opr_app), span } => {
