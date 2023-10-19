@@ -82,11 +82,7 @@ public class RepoInitialization implements InitializationComponent {
             () -> logger.info("Initializing suggestions repo [{}]...", sqlDatabase), executor)
         .thenComposeAsync(
             v ->
-                CompletableFuture.runAsync(
-                    () ->
-                        doInitSuggestionsRepo()
-                            .exceptionallyComposeAsync(this::recoverInitializationError),
-                    executor),
+                doInitSuggestionsRepo().exceptionallyComposeAsync(this::recoverInitializationError),
             executor)
         .thenRunAsync(
             () -> logger.info("Initialized Suggestions repo [{}].", sqlDatabase), executor)
@@ -101,7 +97,7 @@ public class RepoInitialization implements InitializationComponent {
   }
 
   private CompletableFuture<Void> recoverInitializationError(Throwable error) {
-    CompletableFuture.runAsync(
+    return CompletableFuture.runAsync(
             () ->
                 logger.warn(
                     "Failed to initialize the suggestions database [{}].", sqlDatabase, error),
@@ -111,7 +107,6 @@ public class RepoInitialization implements InitializationComponent {
         .thenRunAsync(sqlDatabase::open, executor)
         .thenRunAsync(() -> logger.info("Retrying database initialization."), executor)
         .thenComposeAsync(v -> doInitSuggestionsRepo(), executor);
-    return CompletableFuture.failedFuture(error);
   }
 
   private CompletableFuture<Void> clearDatabaseFile(int retries) {
