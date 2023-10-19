@@ -17,12 +17,14 @@ public class FailedToApplyEditsException extends RuntimeException implements Ser
    * @param source the source text.
    */
   public FailedToApplyEditsException(
-          QualifiedName module, Seq<model.TextEdit> edits, Object failure, Object source) {
+      QualifiedName module, Seq<model.TextEdit> edits, Object failure, Object source) {
     super(
         "Failed to apply edits for "
             + module
             + ", edits="
-            + edits.map(edit -> edit.copy(edit.range(), new MaskedString(edit.text()).applyMasking())).toString()
+            + edits
+                .map(edit -> edit.copy(edit.range(), new MaskedString(edit.text()).applyMasking()))
+                .toString()
             + ", failure="
             + failure
             + ", source='"
