@@ -174,25 +174,23 @@ const insideInfixCases = makeComplexCase('333 + ', ' + 444')
 const insideBracketsCases = makeComplexCase('(', ')')
 const insideListCases = makeComplexCase('[foo, ', ', bar]')
 
-test.each(
-  baseCases
-    .concat(insideInfixCases)
-    .concat(insideBracketsCases)
-    .concat(insideListCases)
-    .concat([
-      // space is added to operands if needed.
-      {
-        code: '2+',
-        suggestion: makeLocal('local.Project.Main', 'operator2'),
-        expected: '2+operator2 ',
-      },
-      {
-        code: '2 +',
-        suggestion: makeLocal('local.Project.Main', 'operator2'),
-        expected: '2 + operator2 ',
-      },
-    ]),
-)(
+test.each([
+  ...baseCases,
+  ...insideInfixCases,
+  ...insideBracketsCases,
+  ...insideListCases,
+  // space is added to operands if needed.
+  {
+    code: '2+',
+    suggestion: makeLocal('local.Project.Main', 'operator2'),
+    expected: '2+operator2 ',
+  },
+  {
+    code: '2 +',
+    suggestion: makeLocal('local.Project.Main', 'operator2'),
+    expected: '2 + operator2 ',
+  },
+])(
   'Applying suggestion $suggestion.name to $code',
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
