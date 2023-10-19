@@ -328,7 +328,6 @@ type ChildType = {
   definition: ts.ClassDeclaration
   name: ts.Identifier
   enumMember: ts.EnumMember
-  case: ts.CaseClause
 }
 
 function makeChildType(
@@ -395,8 +394,7 @@ function makeChildType(
       ],
     ),
     name: tsf.createIdentifier(name),
-    enumMember: tsf.createEnumMember(toPascal(ty.name), discriminantInt),
-    case: tsf.createCaseClause(discriminantInt, [tsf.createReturnStatement(viewIdent)]),
+    enumMember: tsf.createEnumMember(name, discriminantInt),
   }
 }
 
@@ -434,6 +432,12 @@ function makeAbstractType(
         'Type',
         childTypes.map((child) => child.enumMember),
       ),
+      makeExportConstVariable(
+        'typeNames',
+        tsf.createArrayLiteralExpression(
+          childTypes.map((child) => tsf.createStringLiteralFromNode(child.name)),
+        ),
+      ),
       ...childTypes.map((child) => child.definition),
       tsf.createTypeAliasDeclaration(
         [modifiers.export],
@@ -454,7 +458,27 @@ function makeAbstractType(
     [modifiers.export],
     ident,
     undefined,
-    tsf.createTypeReferenceNode(tsf.createQualifiedName(tsf.createIdentifier(name), name)),
+    tsf.createTypeReferenceNode(tsf.createQualifiedName(ident, ident)),
   )
   return { module: moduleDecl, export: abstractTypeExport }
+}
+
+function makeExportConstVariable(
+  varName: string,
+  initializer: ts.Expression,
+): ts.VariableStatement {
+  return tsf.createVariableStatement(
+    [modifiers.export],
+    tsf.createVariableDeclarationList(
+      [
+        tsf.createVariableDeclaration(
+          varName,
+          undefined,
+          undefined,
+          tsf.createAsExpression(initializer, tsf.createTypeReferenceNode('const')),
+        ),
+      ],
+      ts.NodeFlags.Const,
+    ),
+  )
 }

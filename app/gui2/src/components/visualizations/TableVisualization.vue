@@ -394,7 +394,7 @@ onMounted(() => {
 })
 
 watch(
-  () => config.value.fullscreen,
+  () => config.fullscreen,
   () => queueMicrotask(() => updateTableSize(undefined)),
 )
 
@@ -405,10 +405,8 @@ const debouncedUpdateTableSize = useDebounceFn((...args: Parameters<typeof updat
 }, 500)
 
 watch(
-  () => [props.data, config.value.width],
-  () => {
-    debouncedUpdateTableSize(undefined)
-  },
+  () => [props.data, config.width],
+  () => debouncedUpdateTableSize(undefined),
 )
 </script>
 

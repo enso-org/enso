@@ -1,4 +1,4 @@
-import { Ast, astContainingChar, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
+import { Ast, astContainingChar, parseEnso, readAstOrTokenSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
@@ -95,7 +95,7 @@ export class Input {
         const end = this.selection.value.end
         filter.pattern = code.substring(start, end)
       } else if (ctx.type === 'changeLiteral') {
-        filter.pattern = readAstSpan(ctx.literal, code)
+        filter.pattern = readAstOrTokenSpan(ctx.literal, code)
       }
       return filter
     })
@@ -143,7 +143,7 @@ export class Input {
         operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
     ).slice(0, -1)
     if (operandsAsIdents.some((optIdent) => optIdent == null)) return null
-    const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
+    const segments = operandsAsIdents.map((ident) => readAstOrTokenSpan(ident!, code))
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
@@ -204,7 +204,7 @@ if (import.meta.vitest) {
           ).toStrictEqual(expContext.accessorChain)
           break
         case 'changeIdentifier':
-          expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
+          expect(readAstOrTokenSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
           expect(
             context.accessOpr != null
               ? Array.from(context.accessOpr.componentsReprs(code))
@@ -212,7 +212,7 @@ if (import.meta.vitest) {
           ).toStrictEqual(expContext.accessorChain)
           break
         case 'changeLiteral':
-          expect(readAstSpan(context.literal, code)).toStrictEqual(expContext.literal)
+          expect(readAstOrTokenSpan(context.literal, code)).toStrictEqual(expContext.literal)
       }
       expect(filter.pattern).toStrictEqual(expFiltering.pattern)
       expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)

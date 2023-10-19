@@ -1,6 +1,7 @@
 import type { Vec2 } from '@/util/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { inject, provide, type InjectionKey, type Ref } from 'vue'
+import { reactive } from 'vue'
+import { createProvidable } from '.'
 
 export interface VisualizationConfig {
   /** Possible visualization types that can be switched to. */
@@ -16,14 +17,5 @@ export interface VisualizationConfig {
   updateType: (type: VisualizationIdentifier) => void
 }
 
-const provideKey = Symbol('visualizationConfig') as InjectionKey<Ref<VisualizationConfig>>
-
-export function useVisualizationConfig(): Ref<VisualizationConfig> {
-  const injected = inject(provideKey)
-  if (injected == null) throw new Error('AppConfig not provided')
-  return injected
-}
-
-export function provideVisualizationConfig(visualizationConfig: Ref<VisualizationConfig>) {
-  provide(provideKey, visualizationConfig)
-}
+const { provideFn, useFn } = createProvidable(reactive<VisualizationConfig>)
+export { provideFn as provideVisualizationConfig, useFn as useVisualizationConfig }

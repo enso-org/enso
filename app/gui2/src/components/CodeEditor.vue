@@ -89,7 +89,7 @@ const editorStyle = computed(() => {
   height: 30%;
   max-width: calc(100% - 10px);
   max-height: calc(100% - 10px);
-  backdrop-filter: blur(16px);
+  backdrop-filter: var(--blur-app-bg);
 
   &.v-enter-active,
   &.v-leave-active {

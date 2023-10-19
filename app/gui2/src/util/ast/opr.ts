@@ -1,5 +1,5 @@
 import { Tree, type MultipleOperatorError, type Token } from '@/generated/ast'
-import { parseEnsoLine, readAstSpan, readTokenSpan } from '@/util/ast'
+import { parseEnsoLine, readAstOrTokenSpan, readTokenSpan } from '@/util/ast'
 import type { Result } from '@/util/result'
 import { assert } from '../assert'
 
@@ -40,10 +40,10 @@ export class GeneralOprApp {
 
   /** Returns representation of all operands interleaved with appropriate operators */
   *componentsReprs(code: string): Generator<string | null> {
-    yield this.lhs != null ? readAstSpan(this.lhs, code) : null
+    yield this.lhs != null ? readAstOrTokenSpan(this.lhs, code) : null
     for (const app of this.apps) {
       yield app.opr.ok ? readTokenSpan(app.opr.value, code) : null
-      yield app.expr != null ? readAstSpan(app.expr, code) : null
+      yield app.expr != null ? readAstOrTokenSpan(app.expr, code) : null
     }
   }
 
@@ -254,10 +254,10 @@ if (import.meta.vitest) {
         } else {
           expect(actual?.type).toStrictEqual(expected?.type)
           if (actual?.type === 'ast') {
-            expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
+            expect(readAstOrTokenSpan(actual.ast, code)).toStrictEqual(expected?.repr)
           } else {
             assert(actual?.type == 'partOfOprBlockApp')
-            expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
+            expect(readAstOrTokenSpan(actual.ast, code)).toStrictEqual(expected?.repr)
             expect(actual.statements).toStrictEqual(expected?.statemets)
           }
         }

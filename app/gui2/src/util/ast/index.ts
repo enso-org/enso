@@ -1,8 +1,12 @@
 import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { parse } from '@/util/ffi'
-import { LazyObject, debug, validateSpans } from '@/util/parserSupport'
+import { debug, validateSpans } from '@/util/parserSupport'
+import type { ExprId, IdMap } from 'shared/yjsModel'
+import { markRaw } from 'vue'
 import { assert } from '../assert'
+import type { Opt } from '../opt'
+import { isResult } from '../result'
 
 export { Ast }
 
@@ -32,11 +36,16 @@ export function parseEnsoLine(code: string): Ast.Tree {
  * The AST is assumed to be generated from `code` and not modified sice then.
  * Otherwise an unspecified fragment of `code` may be returned.
  */
-export function readAstSpan(node: Tree, code: string): string {
+export function readAstOrTokenSpan(node: Tree | Token, code: string): string {
+  const range = parsedTreeOrTokenRange(node)
+  return code.substring(range[0], range[1])
+}
+
+export function getAstSpan(node: Tree): [number, number] {
   const leftOffsetbegin = node.whitespaceStartInCodeParsed
   const leftOffsetEnd = leftOffsetbegin + node.whitespaceLengthInCodeParsed
   const end = leftOffsetEnd + node.childrenLengthInCodeParsed
-  return code.substring(leftOffsetEnd, end)
+  return [leftOffsetEnd, end]
 }
 
 /**
@@ -55,45 +64,107 @@ export function readTokenSpan(token: Token, code: string): string {
  */
 // TODO[ao] This is a very hacky way of implementing this. The better solution would be to generate
 // such a function from parser types schema. See parser-codegen package.
-export function* childrenAstNodes(obj: unknown): Generator<Tree> {
-  function* astNodeOrChildren(obj: unknown) {
-    if (obj instanceof Tree.AbstractBase) {
-      yield obj as Tree
-    } else {
-      yield* childrenAstNodes(obj)
-    }
-  }
-  if (obj == null) return
-  const maybeIterable = obj as Record<symbol, unknown>
-  const isIterator = typeof maybeIterable[Symbol.iterator] == 'function'
-  if (obj instanceof LazyObject) {
+export function* childrenAstNodes(obj: Tree | Token): Generator<Tree | Token> {
+  if (obj instanceof Tree.AbstractBase) {
     const prototype = Object.getPrototypeOf(obj)
     const descriptors = Object.getOwnPropertyDescriptors(prototype)
     const objWithProp = obj as unknown as Record<string, unknown>
-
     for (const prop in descriptors) {
       if (descriptors[prop]?.get == null) continue
       const value = objWithProp[prop]
-      yield* astNodeOrChildren(value)
+      yield* astNodesOfField(value)
     }
-  } else if (isIterator) {
-    const iterable = obj as Iterable<unknown>
-    for (const element of iterable) {
-      yield* astNodeOrChildren(element)
+  }
+}
+
+function* astNodesOfField(obj: unknown): Generator<Tree | Token> {
+  if (obj instanceof Tree.AbstractBase) {
+    yield obj as Tree
+  } else if (obj instanceof Token.AbstractBase) {
+    yield obj as Token
+  } else if (isResult(obj)) {
+    if (obj.ok) {
+      yield* astNodesOfField(obj.value)
+    }
+  } else {
+    const maybeIterable = obj as Record<symbol, unknown>
+    const isIterator = typeof maybeIterable[Symbol.iterator] == 'function'
+    if (isIterator) {
+      const iterable = obj as Iterable<unknown>
+      for (const element of iterable) {
+        yield* astNodesOfField(element)
+      }
+    } else {
+      console.error('unknown ast:', obj)
     }
   }
 }
 
 /** Returns all AST nodes from `root` tree containing given char, starting from the most nested. */
-export function* astContainingChar(charIndex: number, root: Tree): Generator<Tree> {
+export function* astContainingChar(charIndex: number, root: Tree | Token): Generator<Tree | Token> {
   for (const child of childrenAstNodes(root)) {
-    const begin = child.whitespaceStartInCodeParsed + child.whitespaceLengthInCodeParsed
-    const end = begin + child.childrenLengthInCodeParsed
+    const [begin, end] = parsedTreeOrTokenRange(child)
     if (charIndex >= begin && charIndex < end) {
       yield* astContainingChar(charIndex, child)
     }
   }
   yield root
+}
+
+export function findAstWithRange(
+  root: Tree | Token,
+  range: [number, number],
+): Tree | Token | undefined {
+  for (const child of childrenAstNodes(root)) {
+    const [begin, end] = parsedTreeOrTokenRange(child)
+    if (begin === range[0] && end === range[1]) return child
+    if (begin <= range[0] && end >= range[1]) return findAstWithRange(child, range)
+  }
+}
+
+export function* walkRecursive(node: Tree | Token): Generator<Tree | Token, void, boolean | void> {
+  if (false === (yield node)) return
+  const stack: Generator<Tree | Token>[] = [childrenAstNodes(node)]
+  while (stack.length > 0) {
+    const next = stack[stack.length - 1]!.next()
+    if (next.done) stack.pop()
+    else if (false !== (yield next.value)) stack.push(childrenAstNodes(next.value))
+  }
+}
+
+function visitGenerator<T, N, R>(generator: Generator<T, R, N>, visit: (value: T) => N): R {
+  let next = generator.next()
+  while (!next.done) next = generator.next(visit(next.value))
+  return next.value
+}
+
+/**
+ * Recursively visit AST nodes in depth-first order. The children of a node will be skipped when
+ * `visit` callback returns `false`.
+ *
+ * @param node Root node of the tree to walk. It will be visited first.
+ * @param visit Callback that is called for each node. If it returns `false`, the children of that
+ * node will be skipped, and the walk will continue to the next sibling.
+ */
+export function visitRecursive(node: Tree | Token, visit: (node: Tree | Token) => boolean) {
+  visitGenerator(walkRecursive(node), visit)
+}
+
+export function parsedTreeRange(tree: Tree): [number, number] {
+  const start = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
+  const end = start + tree.childrenLengthInCodeParsed
+  return [start, end]
+}
+
+export function parsedTokenRange(token: Token): [number, number] {
+  const start = token.startInCodeBuffer
+  const end = start + token.lengthInCodeBuffer
+  return [start, end]
+}
+
+export function parsedTreeOrTokenRange(node: Tree | Token): [number, number] {
+  if (node instanceof Tree.AbstractBase) return parsedTreeRange(node)
+  else return parsedTokenRange(node)
 }
 
 if (import.meta.vitest) {
@@ -122,25 +193,25 @@ if (import.meta.vitest) {
   test("Reading AST node's code", () => {
     const code = 'Data.read File\n2 + 3'
     const ast = parseEnso(code)
-    expect(readAstSpan(ast, code)).toStrictEqual(code)
+    expect(readAstOrTokenSpan(ast, code)).toStrictEqual(code)
     assert(ast.type === Tree.Type.BodyBlock)
     const statements = Array.from(ast.statements)
 
     assert(statements[0]?.expression != null)
-    expect(readAstSpan(statements[0].expression, code)).toStrictEqual('Data.read File')
+    expect(readAstOrTokenSpan(statements[0].expression, code)).toStrictEqual('Data.read File')
     assert(statements[0].expression.type === Tree.Type.App)
-    expect(readAstSpan(statements[0].expression.func, code)).toStrictEqual('Data.read')
-    expect(readAstSpan(statements[0].expression.arg, code)).toStrictEqual('File')
+    expect(readAstOrTokenSpan(statements[0].expression.func, code)).toStrictEqual('Data.read')
+    expect(readAstOrTokenSpan(statements[0].expression.arg, code)).toStrictEqual('File')
 
     assert(statements[1]?.expression != null)
-    expect(readAstSpan(statements[1].expression, code)).toStrictEqual('2 + 3')
+    expect(readAstOrTokenSpan(statements[1].expression, code)).toStrictEqual('2 + 3')
     assert(statements[1].expression.type === Tree.Type.OprApp)
     assert(statements[1].expression.lhs != null)
     assert(statements[1].expression.rhs != null)
     assert(statements[1].expression.opr.ok)
-    expect(readAstSpan(statements[1].expression.lhs, code)).toStrictEqual('2')
+    expect(readAstOrTokenSpan(statements[1].expression.lhs, code)).toStrictEqual('2')
     expect(readTokenSpan(statements[1].expression.opr.value, code)).toStrictEqual('+')
-    expect(readAstSpan(statements[1].expression.rhs, code)).toStrictEqual('3')
+    expect(readAstOrTokenSpan(statements[1].expression.rhs, code)).toStrictEqual('3')
   })
 
   test.each([
@@ -189,9 +260,23 @@ if (import.meta.vitest) {
     })
     for (const { child, expected } of childrenWithExpected) {
       expect(child.type).toBe(expected?.type)
-      expect(readAstSpan(child, code)).toBe(expected?.repr)
+      expect(readAstOrTokenSpan(child, code)).toBe(expected?.repr)
     }
   })
+
+  // test.each([
+  //   [
+  //     '2 + a',
+  //     [
+  //       { type: Tree.Type.Number, repr: '2' },
+  //       { type: Tree.Type.Ident, repr: 'a' },
+  //     ],
+  //   ],
+  // ])("Walking AST of '%s'", (code, expected) => {
+  //   const ast = parseEnsoLine(code)
+  //   const visited = [...walkRecursive(ast)]
+  //   expect(visited).toStrictEqual(expected)
+  // })
 
   test.each([
     [
@@ -247,7 +332,107 @@ if (import.meta.vitest) {
     })
     for (const { ast, expected } of resultWithExpected) {
       expect(ast.type).toBe(expected?.type)
-      expect(readAstSpan(ast, code)).toBe(expected?.repr)
+      expect(readAstOrTokenSpan(ast, code)).toBe(expected?.repr)
     }
   })
+}
+
+/**
+ * AST with additional metadata containing AST IDs and original code reference. Can only be
+ * constructed by parsing a full module code.
+ */
+export class AstExtended<T extends Tree | Token = Tree | Token> {
+  inner: T
+  private ctx: AstExtendedCtx
+
+  public static parse(moduleCode: string, idMap: IdMap): AstExtended {
+    const ast = parseEnso(moduleCode)
+
+    visitRecursive(ast, (node) => {
+      const range = parsedTreeOrTokenRange(node)
+      idMap.getOrInsertUniqueId(range)
+      return true
+    })
+
+    const ctx = new AstExtendedCtx(moduleCode, idMap)
+
+    return new AstExtended(ast, ctx)
+  }
+
+  isToken<T extends Ast.Token.Type>(
+    type?: T,
+  ): this is AstExtended<Extract<Ast.Token, { type: T }>> {
+    return this.inner instanceof Token.AbstractBase && (type == null || this.inner.type === type)
+  }
+
+  isTree<T extends Ast.Tree.Type>(type?: T): this is AstExtended<Extract<Ast.Tree, { type: T }>> {
+    return this.inner instanceof Tree.AbstractBase && (type == null || this.inner.type === type)
+  }
+
+  private constructor(tree: T, ctx: AstExtendedCtx) {
+    markRaw(this)
+    this.inner = tree
+    this.ctx = ctx
+  }
+
+  get astId(): ExprId {
+    const id = this.ctx.idMap.getIfExist(parsedTreeOrTokenRange(this.inner))
+    assert(id != null, 'All AST nodes should have an assigned ID')
+    return id
+  }
+
+  debug(): any {
+    return debug(this.inner)
+  }
+
+  tryMap<T2 extends Tree>(mapper: (t: T) => Opt<T2>): AstExtended<T2> | undefined {
+    const mapped = mapper(this.inner)
+    if (mapped == null) return
+    return new AstExtended(mapped, this.ctx)
+  }
+
+  map<T2 extends Tree | Token>(mapper: (t: T) => T2): AstExtended<T2> {
+    return new AstExtended(mapper(this.inner), this.ctx)
+  }
+
+  *visit<T2 extends Tree | Token>(visitor: (t: T) => Generator<T2>): Generator<AstExtended<T2>> {
+    for (const child of visitor(this.inner)) {
+      yield new AstExtended(child, this.ctx)
+    }
+  }
+
+  repr() {
+    return readAstOrTokenSpan(this.inner, this.ctx.parsedCode)
+  }
+
+  spanRange(): [number, number] {
+    return parsedTreeOrTokenRange(this.inner)
+  }
+
+  children(): Generator<AstExtended> {
+    return this.visit(childrenAstNodes)
+  }
+
+  walkRecursive(): Generator<AstExtended> {
+    return this.visit(walkRecursive)
+  }
+
+  whitespaceLength() {
+    return 'whitespaceLengthInCodeBuffer' in this.inner
+      ? this.inner.whitespaceLengthInCodeBuffer
+      : this.inner.whitespaceLengthInCodeParsed
+  }
+
+  visitRecursive(visitor: (t: AstExtended) => boolean) {
+    visitGenerator(this.walkRecursive(), visitor)
+  }
+}
+
+class AstExtendedCtx {
+  parsedCode: string
+  idMap: IdMap
+  constructor(parsedCode: string, idMap: IdMap) {
+    this.parsedCode = parsedCode
+    this.idMap = idMap
+  }
 }

@@ -230,7 +230,7 @@ export class IdMap {
     this.finished = false
   }
 
-  private static keyForRange(range: [number, number]): string {
+  private static keyForRange(range: readonly [number, number]): string {
     return `${range[0].toString(16)}:${range[1].toString(16)}`
   }
 
@@ -256,7 +256,12 @@ export class IdMap {
     this.accessed.add(id)
   }
 
-  getOrInsertUniqueId(range: [number, number]): ExprId {
+  getIfExist(range: readonly [number, number]): ExprId | undefined {
+    const key = IdMap.keyForRange(range)
+    return this.rangeToExpr.get(key)
+  }
+
+  getOrInsertUniqueId(range: readonly [number, number]): ExprId {
     if (this.finished) {
       throw new Error('IdMap already finished')
     }
@@ -292,7 +297,7 @@ export class IdMap {
    *
    * Can be called at most once. After calling this method, the ID map is no longer usable.
    */
-  finishAndSynchronize(): void {
+  finishAndSynchronize(): typeof this.yMap {
     if (this.finished) {
       throw new Error('IdMap already finished')
     }
@@ -320,6 +325,7 @@ export class IdMap {
         this.yMap.set(expr, encoded)
       })
     })
+    return this.yMap
   }
 }
 

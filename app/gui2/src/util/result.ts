@@ -27,6 +27,16 @@ export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result
   else return result
 }
 
+export function isResult(v: unknown): v is Result {
+  return (
+    v != null &&
+    typeof v === 'object' &&
+    'ok' in v &&
+    typeof v.ok === 'boolean' &&
+    ('value' in v || ('error' in v && v.error instanceof Error))
+  )
+}
+
 export class Error<E = string> {
   payload: E
   context: (() => string)[]
