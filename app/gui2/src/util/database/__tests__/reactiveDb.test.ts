@@ -38,21 +38,16 @@ test('Indexing is efficient', () => {
 
 test('Error reported when indexer implementation returns non-unique pairs', () => {
   const db = new ReactiveDb()
-  const actualConsoleError = console.error
   console.error = () => {}
-  try {
-    const consoleError = vi.spyOn(console, 'error')
-    // Invalid index
-    new ReactiveIndex(db, (_id, _entry) => [[1, 1]])
-    db.set(1, 1)
-    db.set(2, 2)
-    expect(consoleError).toHaveBeenCalledOnce()
-    expect(consoleError).toHaveBeenCalledWith(
-      'Attempt to repeatedly write the same key-value pair (1,1) to the index. Please check your indexer implementation.',
-    )
-  } finally {
-    console.error = actualConsoleError
-  }
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+  // Invalid index
+  new ReactiveIndex(db, (_id, _entry) => [[1, 1]])
+  db.set(1, 1)
+  db.set(2, 2)
+  expect(consoleError).toHaveBeenCalledOnce()
+  expect(consoleError).toHaveBeenCalledWith(
+    'Attempt to repeatedly write the same key-value pair (1,1) to the index. Please check your indexer implementation.',
+  )
 })
 
 test('Name to id index', () => {
