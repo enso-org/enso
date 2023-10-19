@@ -1,0 +1,103 @@
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
+import project.Data.Json.JS_Object
+import project.Data.Pair.Pair
+import project.Data.Text.Text
+import project.Data.Text.Encoding.Encoding
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Network.URI.URI
+import project.Nothing.Nothing
+
+polyglot java import java.net.URI as Java_URI
+polyglot java import java.net.URLEncoder
+
+## Represents a URI with a set of query parameters
+type URI_With_Query
+    ## PRIVATE
+    Value uri:URI parameters:Vector
+
+    ## PRIVATE
+       Convert this to URI.
+       Materialize the URI_With_Query into a URI, but will error if any secrets
+       are used.
+    to_uri : URI ! Enso_Secret_Error
+    to_uri self =
+        java_uri = Java_URI.new self.uri.scheme self.uri.user_info self.uri.host self.uri.port self.uri.path self.query self.uri.fragment
+        URI.Value java_uri
+
+    ## GROUP Metadata
+       Get the query part of this URI, but will error if any secrets are used.
+    query : Text | Nothing ! Enso_Secret_Error
+    query self =
+        base_query = self.uri.query.if_nothing ""
+        query_params = self.parameters.map p->
+            if p.second.is_a Enso_Secret then Error.throw Enso_Secret_Error.Access_Denied else
+                p.first + "=" + (URLEncoder.encode p.second Encoding.utf_8.to_java_charset)
+        (if base_query == "" then "" else base_query + "&") + query_params.join "&"
+
+    ## Adds a query parameter to the URI
+
+       Arguments:
+       - key: The key of the query parameter.
+       - value: The value of the query parameter.
+    add_query_argument : Text -> Text | Enso_Secret -> URI
+    add_query_argument self key:Text value:(Text|Enso_Secret) =
+        URI_With_Query.Value self.uri self.parameters+[Pair.new key value]
+
+    ## PRIVATE
+       Convert this URI to text.
+    to_text : Text
+    to_text self =
+        base_query = self.uri.query.if_nothing ""
+        query_params = self.parameters.map p->
+            if p.second.is_a Enso_Secret then p.first + "=__SECRET__" else
+                p.first + "=" + (URLEncoder.encode p.second Encoding.utf_8.to_java_charset)
+        new_query = (if base_query == "" then "" else base_query + "&") + query_params.join "&"
+        java_uri = Java_URI.new self.uri.scheme self.uri.user_info self.uri.host self.uri.port self.uri.path new_query self.uri.fragment
+        java_uri.toString
+
+    ## PRIVATE
+       Convert to a display representation of this URI.
+    to_display_text : Text
+    to_display_text self = self.to_text.to_display_text
+
+    ## PRIVATE
+       Convert to a JavaScript Object representing this URI.
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "URI_With_Query"]
+        cons_pair = ["constructor", "parse"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.uri.to_text], ["parameters", self.parameters.to_js_object]]
+
+    ## GROUP Metadata
+       Get the scheme part of this URI.
+    scheme : Text | Nothing
+    scheme self = self.uri.scheme
+
+    ## GROUP Metadata
+       Get the user info part of this URI.
+    user_info : Text | Nothing
+    user_info self = self.uri.user_info
+
+    ## GROUP Metadata
+       Get the host part of this URI.
+    host : Text | Nothing
+    host self = self.uri.host
+
+    ## Get the authority (user info and host) part of this URI.
+    authority : Text | Nothing
+    authority self = self.uri.authority
+
+    ## Get the port part of this URI.
+    port : Text | Nothing
+    port self = self.uri.port
+
+    ## GROUP Metadata
+       Get the path part of this URI.
+    path : Text | Nothing
+    path self = self.uri.path
+
+    ## Get the fragment part of this URI.
+    fragment : Text | Nothing
+    fragment self = self.uri.fragment
