@@ -165,7 +165,8 @@ class FilteringQualifiedName {
  *
  * - Without `showUnstable` flag, unstable entries will be filtered out.
  *
- * - 'showLocal' flag is not implemented yet.
+ * - If 'showLocal' flag is set, only entries defined in currentModule (passed as constructor
+ *   argument) are accepted.
  *
  * - Finally, if `pattern` is specified, the entry name or any alias must match the pattern:
  *   there must exists a subsequence of words in name/alias (words are separated by `_`), so each
