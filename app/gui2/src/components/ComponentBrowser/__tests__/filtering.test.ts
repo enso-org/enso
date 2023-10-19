@@ -21,7 +21,7 @@ test.each([
   makeModule('Standard.Base.Data'),
 ])('$name entry is in the CB main view', (entry) => {
   const filtering = new Filtering({})
-  expect(filtering.filter(entry)).not.toBeUndefined()
+  expect(filtering.filter(entry)).not.toBeNull()
 })
 
 test.each([
@@ -30,7 +30,7 @@ test.each([
   makeModule('Standard.Base.Data.Vector'), // Not top module
 ])('$name entry is not in the CB main view', (entry) => {
   const filtering = new Filtering({})
-  expect(filtering.filter(entry)).toBeUndefined()
+  expect(filtering.filter(entry)).toBeNull()
 })
 
 test.each([
@@ -43,8 +43,8 @@ test.each([
 ])('$name entry is in the local.Project.Module content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module' })
   const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
-  expect(filtering.filter(entry)).not.toBeUndefined()
-  expect(substringFiltering.filter(entry)).not.toBeUndefined()
+  expect(filtering.filter(entry)).not.toBeNull()
+  expect(substringFiltering.filter(entry)).not.toBeNull()
 })
 
 test.each([
@@ -58,8 +58,8 @@ test.each([
 ])('$name entry is not in the local.Project.Module content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module' })
   const substringFiltering = new Filtering({ qualifiedNamePattern: 'local.Proj.Mod' })
-  expect(filtering.filter(entry)).toBeUndefined()
-  expect(substringFiltering.filter(entry)).toBeUndefined()
+  expect(filtering.filter(entry)).toBeNull()
+  expect(substringFiltering.filter(entry)).toBeNull()
 })
 
 test.each([
@@ -79,7 +79,7 @@ test.each([
       pattern: 'foo',
       qualifiedNamePattern: 'local.Project.Module',
     })
-    expect(filtering.filter(entry)).not.toBeUndefined()
+    expect(filtering.filter(entry)).not.toBeNull()
   },
 )
 
@@ -95,7 +95,7 @@ test.each([
       pattern: 'foo',
       qualifiedNamePattern: 'local.Project.Module',
     })
-    expect(filtering.filter(entry)).toBeUndefined()
+    expect(filtering.filter(entry)).toBeNull()
   },
 )
 
@@ -112,8 +112,8 @@ test.each([
     pattern: 'foo',
     qualifiedNamePattern: 'local.Project.Module.Type',
   })
-  expect(filtering.filter(entry)).not.toBeUndefined()
-  expect(filteringWithPattern.filter(entry)).not.toBeUndefined()
+  expect(filtering.filter(entry)).not.toBeNull()
+  expect(filteringWithPattern.filter(entry)).not.toBeNull()
 })
 
 test.each([
@@ -123,7 +123,7 @@ test.each([
   makeStaticMethod('local.Project.Another_Module.Type.another_module_type_method'),
 ])('$name entry is not in the local.Project.Module.Type content', (entry) => {
   const filtering = new Filtering({ qualifiedNamePattern: 'local.Project.Module.Type' })
-  expect(filtering.filter(entry)).toBeUndefined()
+  expect(filtering.filter(entry)).toBeNull()
 })
 
 test('An Instance method is shown when self type matches', () => {
@@ -131,9 +131,9 @@ test('An Instance method is shown when self type matches', () => {
   const filteringWithSelfType = new Filtering({
     selfType: 'Standard.Base.Data.Vector.Vector' as QualifiedName,
   })
-  expect(filteringWithSelfType.filter(entry)).not.toBeUndefined()
+  expect(filteringWithSelfType.filter(entry)).not.toBeNull()
   const filteringWithoutSelfType = new Filtering({ pattern: 'get' })
-  expect(filteringWithoutSelfType.filter(entry)).toBeUndefined()
+  expect(filteringWithoutSelfType.filter(entry)).toBeNull()
 })
 
 test.each([
@@ -148,14 +148,14 @@ test.each([
   const filtering = new Filtering({
     selfType: 'Standard.Base.Data.Vector.Vector' as QualifiedName,
   })
-  expect(filtering.filter(entry)).toBeUndefined()
+  expect(filtering.filter(entry)).toBeNull()
 })
 
 test.each(['bar', 'barfoo', 'fo', 'bar_fo_bar'])("%s is not matched by pattern 'foo'", (name) => {
   const pattern = 'foo'
   const entry = makeModuleMethod(`local.Project.${name}`)
   const filtering = new Filtering({ pattern })
-  expect(filtering.filter(entry)).toBeUndefined()
+  expect(filtering.filter(entry)).toBeNull()
 })
 
 test('Matching pattern without underscores', () => {
@@ -177,12 +177,12 @@ test('Matching pattern without underscores', () => {
     const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
     return filtering.filter(entry)
   })
-  expect(matchResults[0]).not.toBeUndefined()
+  expect(matchResults[0]).not.toBeNull()
   for (let i = 1; i < matchResults.length; i++) {
     expect(
       matchResults[i],
       `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
-    ).not.toBeUndefined()
+    ).not.toBeNull()
     expect(
       matchResults[i]!.score,
       `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
@@ -209,12 +209,12 @@ test('Matching pattern with underscores', () => {
     const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
     return filtering.filter(entry)
   })
-  expect(matchResults[0]).not.toBeUndefined()
+  expect(matchResults[0]).not.toBeNull()
   for (let i = 1; i < matchResults.length; i++) {
     expect(
       matchResults[i],
       `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
-    ).not.toBeUndefined()
+    ).not.toBeNull()
     expect(
       matchResults[i]!.score,
       `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
@@ -229,14 +229,14 @@ test('Unstable filtering', () => {
     isUnstable: true,
   }
   const stableFiltering = new Filtering({ qualifiedNamePattern: 'local.Project.Type' })
-  expect(stableFiltering.filter(stableEntry)).not.toBeUndefined()
-  expect(stableFiltering.filter(unstableEntry)).toBeUndefined()
+  expect(stableFiltering.filter(stableEntry)).not.toBeNull()
+  expect(stableFiltering.filter(unstableEntry)).toBeNull()
   const unstableFiltering = new Filtering({
     qualifiedNamePattern: 'local.Project.Type',
     showUnstable: true,
   })
-  expect(unstableFiltering.filter(stableEntry)).not.toBeUndefined()
-  expect(unstableFiltering.filter(unstableEntry)).not.toBeUndefined()
+  expect(unstableFiltering.filter(stableEntry)).not.toBeNull()
+  expect(unstableFiltering.filter(unstableEntry)).not.toBeNull()
 })
 
 test('Match ranges', () => {

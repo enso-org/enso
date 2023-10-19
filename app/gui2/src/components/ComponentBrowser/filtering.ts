@@ -24,14 +24,14 @@ export interface MatchRange {
   end: number
 }
 
-interface PartialMatchResult {
+interface MatchedParts {
   matchedAlias?: string
   nameRanges?: MatchRange[]
   definedInRanges?: MatchRange[]
   memberOfRanges?: MatchRange[]
 }
 
-export interface MatchResult extends PartialMatchResult {
+export interface MatchResult extends MatchedParts {
   score: number
 }
 
@@ -55,8 +55,7 @@ class FilteringWithPattern {
       'i',
     )
     if (pattern.length > 1 && !/_/.test(pattern)) {
-      // Similar to `wordMatchRegex`, but each letter in the pattern is considered a word (and we
-      // don't specify any groups).
+      // Similar to `wordMatchRegex`, but each letter in the pattern is considered a word.
       // The first match (`match[1]`) is the part before the first matched letter.
       // The rest of the matches come in groups of two:
       // - The matched letter
@@ -118,7 +117,7 @@ class FilteringWithPattern {
     return result
   }
 
-  tryMatch(entry: SuggestionEntry): Opt<MatchResult> {
+  tryMatch(entry: SuggestionEntry): MatchResult | null {
     const nameWordsMatch = this.wordMatchRegex?.exec(entry.name)
     if (nameWordsMatch?.[1]?.length === 0) {
       return {
@@ -178,7 +177,7 @@ class FilteringWithPattern {
         }
       }
     }
-    return
+    return null
   }
 }
 
@@ -214,7 +213,7 @@ class FilteringQualifiedName {
     return result
   }
 
-  matches(entry: SuggestionEntry, alsoFilteringByPattern: boolean): Opt<PartialMatchResult> {
+  matches(entry: SuggestionEntry, alsoFilteringByPattern: boolean): MatchedParts | null {
     const entryOwner =
       entry.kind == SuggestionKind.Module ? qnParent(entry.definedIn) : entry.definedIn
     const regex = alsoFilteringByPattern ? this.memberOfAnyDescendantRegex : this.memberRegex
@@ -222,7 +221,7 @@ class FilteringQualifiedName {
     if (ownerMatch) return { definedInRanges: FilteringQualifiedName.matchRanges(ownerMatch) }
     const memberOfMatch = entry.memberOf && regex.exec(entry.memberOf)
     if (memberOfMatch) return { definedInRanges: FilteringQualifiedName.matchRanges(memberOfMatch) }
-    return
+    return null
   }
 }
 
@@ -285,12 +284,8 @@ export class Filtering {
     this.selfType = selfType
     if (qualifiedNamePattern) {
       this.qualifiedName = new FilteringQualifiedName(qualifiedNamePattern)
-    }
-    if (qualifiedNamePattern) {
       this.fullPattern = pattern ? `${qualifiedNamePattern}.${pattern}` : qualifiedNamePattern
-    } else {
-      this.fullPattern = pattern
-    }
+    } else if (pattern) this.fullPattern = pattern
     if (this.fullPattern) {
       let prefix = ''
       let suffix = ''
@@ -316,7 +311,7 @@ export class Filtering {
     }
   }
 
-  private qualifiedNameMatches(entry: SuggestionEntry): Opt<PartialMatchResult> {
+  private qualifiedNameMatches(entry: SuggestionEntry): MatchedParts | null {
     if (this.qualifiedName == null) return {}
     else return this.qualifiedName.matches(entry, this.pattern != null)
   }
@@ -327,20 +322,20 @@ export class Filtering {
     )
   }
 
-  private mainViewFilter(entry: SuggestionEntry): Opt<MatchResult> {
+  private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
     const isModule = entry.kind === SuggestionKind.Module
     const isTopElement = qnIsTopElement(entry.definedIn)
-    if (!hasGroup && (!isModule || !isTopElement)) return
+    if (!hasGroup && (!isModule || !isTopElement)) return null
     else return { score: 0 }
   }
 
-  filter(entry: SuggestionEntry): Opt<MatchResult> {
-    let qualifiedNameMatch: Opt<PartialMatchResult>
-    if (entry.isPrivate) return
-    else if (!this.selfTypeMatches(entry)) return
-    else if (!(qualifiedNameMatch = this.qualifiedNameMatches(entry))) return
-    else if (!this.showUnstable && entry.isUnstable) return
+  filter(entry: SuggestionEntry): MatchResult | null {
+    let qualifiedNameMatch: Opt<MatchedParts>
+    if (entry.isPrivate) return null
+    else if (!this.selfTypeMatches(entry)) return null
+    else if (!(qualifiedNameMatch = this.qualifiedNameMatches(entry))) return null
+    else if (!this.showUnstable && entry.isUnstable) return null
     else if (this.pattern) {
       const patternMatch = this.pattern.tryMatch(entry)
       if (!patternMatch || !qualifiedNameMatch) return patternMatch
