@@ -101,7 +101,7 @@ impl<'s> Offset<'s> {
 
     /// Return a 0-length `Span` representing the position after the end of this `Span`.
     pub fn position_after(&self) -> Self {
-        Self { visible: default(), code: self.code.position_before() }
+        Self { visible: default(), code: self.code.position_after() }
     }
 
     /// Return this value with its start position removed (set to 0). This can be used to compare
@@ -184,6 +184,18 @@ impl<'s> Span<'s> {
     pub fn add<T: Builder<'s>>(self, elem: &mut T) -> Self {
         Builder::add_to_span(elem, self)
     }
+
+    /// Return the start and end of the UTF-16 source code for this element.
+    pub fn range_utf16(&self) -> Range<u32> {
+        let start = self.left_offset.position_after().code.range_utf16().start;
+        let end = start + self.code_length.utf16_len();
+        start..end
+    }
+
+    /// Return the sum of the whitespace length and the code length.
+    pub fn length_including_whitespace(&self) -> code::Length {
+        self.left_offset.code.length() + self.code_length
+    }
 }
 
 impl<'s> AsRef<Span<'s>> for Span<'s> {
@@ -204,6 +216,11 @@ where
             self.left_offset += other.left_offset;
             self.code_length = other.code_length;
         } else {
+            debug_assert_eq!(
+                self.left_offset.code.position_after().range_utf16().end
+                    + self.code_length.utf16_len(),
+                other.left_offset.code.position_before().range_utf16().start
+            );
             self.code_length += other.left_offset.code.length() + other.code_length;
         }
     }

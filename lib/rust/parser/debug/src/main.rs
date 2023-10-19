@@ -40,6 +40,8 @@ fn check_file(path: &str, mut code: &str) {
         code = code_;
     }
     let ast = enso_parser::Parser::new().run(code);
+    let expected_span = 0..(code.encode_utf16().count() as u32);
+    enso_parser_debug::validate_spans(&ast, expected_span);
     for (parsed, original) in ast.code().lines().zip(code.lines()) {
         assert_eq!(parsed, original, "Bug: dropped tokens, while parsing: {path}");
     }

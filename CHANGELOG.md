@@ -586,6 +586,7 @@
 - [Added `Column_Operation` to `Table.set` allowing for more streamlined flow of
   deriving column values in the GUI.][8005]
 - [Implemented `Table.expand_to_rows` for the in-memory backend.][8029]
+- [Added XML support for `.to Table` and `.expand_column`.][8083]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -835,6 +836,7 @@
 [7979]: https://github.com/enso-org/enso/pull/7979
 [8005]: https://github.com/enso-org/enso/pull/8005
 [8029]: https://github.com/enso-org/enso/pull/8029
+[8083]: https://github.com/enso-org/enso/pull/8083
 
 #### Enso Compiler
 

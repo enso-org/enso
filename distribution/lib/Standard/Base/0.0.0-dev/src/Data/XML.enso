@@ -339,14 +339,14 @@ type XML_Element
     Value (java_element:Element) (~children_cache:(Vector (XML_Element | Text)))
 
 type XML_Error
-    # An error that indicates that the XML data could not be parsed.
+    ## An error that indicates that the XML data could not be parsed.
 
-      Arguments:
-      - line_number: the line on which the parse failed.
-      - column_number: the column at which the parse failed.
+       Arguments:
+       - line_number: the line on which the parse failed.
+       - column_number: the column at which the parse failed.
     Parse_Error (line_number : Integer) (column_number : Integer)
 
-    # Any other XML-related Java exception.
+    ## Any other XML-related Java exception.
     Other (error : Text)
 
     ## PRIVATE

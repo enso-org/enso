@@ -608,7 +608,7 @@ impl<'s> span::Builder<'s> for ArgumentType<'s> {
 
 // === CaseOf ===
 
-/// A that may contain a case-expression in a case-of expression.
+/// A line that may contain a case-expression in a case-of expression.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 pub struct CaseLine<'s> {
     /// The token beginning the line. This will always be present, unless the first case-expression
@@ -661,7 +661,10 @@ impl<'s> Case<'s> {
 
 impl<'s> span::Builder<'s> for Case<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.pattern).add(&mut self.arrow).add(&mut self.expression)
+        span.add(&mut self.documentation)
+            .add(&mut self.pattern)
+            .add(&mut self.arrow)
+            .add(&mut self.expression)
     }
 }
 
@@ -755,20 +758,23 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
 pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     match (&mut *func.variant, &mut *arg.variant) {
         (Variant::Annotated(func_ @ Annotated { argument: None, .. }), _) => {
+            func.span.code_length += arg.span.length_including_whitespace();
             func_.argument = maybe_apply(mem::take(&mut func_.argument), arg).into();
             func
         }
         (Variant::AnnotatedBuiltin(func_), _) => {
+            func.span.code_length += arg.span.length_including_whitespace();
             func_.expression = maybe_apply(mem::take(&mut func_.expression), arg).into();
             func
         }
-        (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs }),
-                Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments }))
-        if rhs.is_none() => {
+        (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs: rhs @ None }),
+                Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments })) => {
+            func.span.code_length += arg.span.length_including_whitespace();
             *rhs = block::body_from_lines(mem::take(arguments)).into();
             func
         }
         (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
+            arg.span.code_length += arg.span.left_offset.code.length() + func.span.code_length;
             let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.arguments.first_mut() {
@@ -778,6 +784,7 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OperatorBlockApplication(block)) if block.lhs.is_none() => {
+            arg.span.code_length += arg.span.left_offset.code.length() + func.span.code_length;
             let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
             if let Some(first) = block.expressions.first_mut() {
@@ -822,8 +829,10 @@ fn maybe_apply<'s>(f: Option<Tree<'s>>, x: Tree<'s>) -> Tree<'s> {
 pub fn join_text_literals<'s>(
     lhs: &mut TextLiteral<'s>,
     rhs: &mut TextLiteral<'s>,
+    lhs_span: &mut Span<'s>,
     rhs_span: Span<'s>,
 ) {
+    lhs_span.code_length += rhs_span.length_including_whitespace();
     match rhs.elements.first_mut() {
         Some(TextElement::Section { text }) => text.left_offset += rhs_span.left_offset,
         Some(TextElement::Escape { token }) => token.left_offset += rhs_span.left_offset,
@@ -863,6 +872,7 @@ pub fn apply_operator<'s>(
                 Variant::Number(Number { base: None, integer, fractional_digits })) => {
                 func_.integer = mem::take(integer);
                 func_.fractional_digits = mem::take(fractional_digits);
+                lhs_.span.code_length += rhs_.span.code_length;
                 lhs.take().unwrap()
             }
             _ => {
@@ -901,6 +911,7 @@ pub fn apply_operator<'s>(
     {
         let dot = opr.clone();
         let digits = digits.clone();
+        lhs.span.code_length += dot.code.length() + rhs.span.code_length;
         lhs_.fractional_digits = Some(FractionalDigits { dot, digits });
         return lhs.clone();
     }
@@ -912,8 +923,7 @@ pub fn apply_operator<'s>(
                 }
                 let ArgumentBlockApplication { lhs: _, arguments } = block;
                 let arguments = mem::take(arguments);
-                let rhs_ = block::body_from_lines(arguments);
-                rhs = Some(rhs_);
+                *rhs_ = block::body_from_lines(arguments);
             }
         }
     }
