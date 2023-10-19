@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.constant;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.Objects;
 import org.enso.interpreter.node.ExpressionNode;
 
 /** Represents a compile-time constant. */
@@ -10,7 +11,7 @@ public class ConstantObjectNode extends ExpressionNode {
   private final Object object;
 
   private ConstantObjectNode(Object object) {
-    this.object = object;
+    this.object = Objects.requireNonNull(object);
   }
 
   /**

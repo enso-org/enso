@@ -1085,7 +1085,7 @@ class Compiler(
               .Str(srcPath + ":" + lineNumber + ":" + startColumn + ": ")
               .overlay(fansi.Bold.On)
             str ++= fansi.Str(subject).overlay(textAttrs)
-            str ++= diagnostic.formattedMessage
+            str ++= diagnostic.formattedMessage(source)
             str ++= "\n"
             str ++= oneLineFromSourceColored(lineNumber, startColumn, endColumn)
             str ++= "\n"
@@ -1103,7 +1103,7 @@ class Compiler(
               )
               .overlay(fansi.Bold.On)
             str ++= fansi.Str(subject).overlay(textAttrs)
-            str ++= diagnostic.formattedMessage
+            str ++= diagnostic.formattedMessage(source)
             str ++= "\n"
             val printAllSourceLines =
               section.getEndLine - section.getStartLine <= maxSourceLinesToPrint
@@ -1138,7 +1138,7 @@ class Compiler(
             .overlay(fansi.Bold.On)
           str ++= ": "
           str ++= fansi.Str(subject).overlay(textAttrs)
-          str ++= diagnostic.formattedMessage
+          str ++= diagnostic.formattedMessage(source)
           if (outSupportsAnsiColors) {
             str.render.stripLineEnd
           } else {

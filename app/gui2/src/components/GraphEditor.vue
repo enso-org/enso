@@ -10,7 +10,7 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
-import { keyboardBusy, keyboardBusyExceptIn, useWindowEvent } from '@/util/events'
+import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
 import type { ExprId } from 'shared/yjsModel'
@@ -41,7 +41,7 @@ const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
   },
 })
 
-useWindowEvent('keydown', (event) => {
+useEvent(window, 'keydown', (event) => {
   graphBindingsHandler(event) || codeEditorHandler(event)
 })
 

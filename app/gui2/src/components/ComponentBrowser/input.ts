@@ -1,8 +1,8 @@
-import { Ast, astContainingChar, parseEnso, readAstOrTokenSpan, readTokenSpan } from '@/util/ast'
+import type { Filter } from '@/components/ComponentBrowser/filtering'
+import { Ast, astContainingChar, parseEnso, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
-import type { Filter } from './filtering'
 
 /** Input's editing context.
  *
@@ -49,7 +49,7 @@ export class Input {
       if (cursorPosition === 0) return { type: 'insert', position: 0 }
       const editedPart = cursorPosition - 1
       const inputAst = parseEnso(input)
-      const editedAst = astContainingChar(editedPart, inputAst)
+      const editedAst = astContainingChar(editedPart, inputAst).values()
       const leaf = editedAst.next()
       if (leaf.done) return { type: 'insert', position: cursorPosition }
       switch (leaf.value.type) {

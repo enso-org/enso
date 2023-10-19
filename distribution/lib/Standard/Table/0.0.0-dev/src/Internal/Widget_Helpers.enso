@@ -88,6 +88,15 @@ make_column_ref_by_name_selector table display=Display.Always =
     Single_Choice values=col_names_options display=display
 
 ## PRIVATE
+   Same as `make_column_ref_by_name_selector` but also highlights an option for
+   custom text.
+make_column_ref_or_text_value_selector : Table -> Display -> Widget
+make_column_ref_or_text_value_selector table display=Display.Always =
+    col_names_options = table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
+    custom_text_option = Option "'custom text'" "''"
+    Single_Choice values=(col_names_options+[custom_text_option]) display=display
+
+## PRIVATE
    Make a filter condition selector.
 make_filter_condition_selector : Table -> Display -> Widget
 make_filter_condition_selector table display=Display.Always =

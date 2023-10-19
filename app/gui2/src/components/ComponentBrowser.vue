@@ -9,6 +9,7 @@ import { useApproach } from '@/util/animation'
 import { useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import { Vec2 } from '@/util/vec2'
+import { LoremIpsum } from 'lorem-ipsum'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const ITEM_SIZE = 32
@@ -34,10 +35,10 @@ onMounted(() => {
 
 const transform = computed(() => {
   const nav = props.navigator
-  const pos = props.position
-  return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
-    1 / nav.scale
-  }) translateY(-100%)`
+  const translate = nav.translate
+  const position = translate.add(props.position).scale(nav.scale)
+
+  return `translate(${position.x}px, ${position.y}px) translateY(-100%)`
 })
 
 // === Input and Filtering ===
@@ -223,6 +224,7 @@ function updateScroll() {
 // === Documentation Panel ===
 
 const docsVisible = ref(true)
+const docs = new LoremIpsum().generateParagraphs(6)
 
 // === Key Events Handler ===
 
@@ -308,7 +310,9 @@ function handleKeydown(e: KeyboardEvent) {
           </div>
         </div>
       </div>
-      <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
+      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop.passive>
+        {{ docs }}
+      </div>
     </div>
     <div class="CBInput">
       <input ref="inputField" v-model="input.code.value" @keyup="readInputFieldSelection" />
@@ -357,6 +361,7 @@ function handleKeydown(e: KeyboardEvent) {
   width: 406px;
   clip-path: inset(0 0 0 0 round 20px);
   transition: clip-path 0.2s;
+  overflow-y: auto;
 }
 .docs.hidden {
   clip-path: inset(0 100% 0 0 round 20px);

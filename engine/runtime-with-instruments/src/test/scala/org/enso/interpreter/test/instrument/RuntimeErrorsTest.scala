@@ -18,6 +18,9 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import java.util.logging.ConsoleHandler
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeErrorsTest
@@ -44,13 +47,16 @@ class RuntimeErrorsTest
         namespace = "Enso_Test"
       )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val logHandler                 = new ConsoleHandler()
+    val defaultLogLevel            = java.util.logging.Level.WARNING;
+    logHandler.setLevel(defaultLogLevel)
+
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
@@ -69,6 +75,8 @@ class RuntimeErrorsTest
             .getAbsolutePath
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+        .logHandler(logHandler)
+        .option(RuntimeOptions.LOG_LEVEL, defaultLogLevel.getName)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -108,7 +116,7 @@ class RuntimeErrorsTest
 
   override protected def afterEach(): Unit = {
     context.executionContext.context.close()
-    context.runtimeServerEmulator.terminate()
+    Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
   }
 
   it should "return panic sentinels in method body" in {

@@ -30,8 +30,6 @@ import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Errors import Integrity_Error, Unsupported_Database_Operation
 
-polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
-
 type Column
     ## PRIVATE
 
@@ -1730,19 +1728,17 @@ make_equality_check_with_floating_point_handling column other op =
         other_column : Column -> "["+other_column.name+"]"
         _ -> other.to_text
     location = "["+column.name+"] "+op+" "+other_name
-    problem_builder = MapOperationProblemBuilder.new location
-    if column.value_type.is_floating_point then
-        problem_builder.reportFloatingPointEquality -1
-    case other of
-        other_column : Column ->
-            if other_column.value_type.is_floating_point then
-                problem_builder.reportFloatingPointEquality -1
-        _ : Float ->
+    Java_Problems.with_map_operation_problem_aggregator location Problem_Behavior.Report_Warning problem_builder->
+        if column.value_type.is_floating_point then
             problem_builder.reportFloatingPointEquality -1
-        _ -> Nothing
-    result = column.make_binary_op op other
-    Problem_Behavior.Report_Warning.attach_problems_after result <|
-        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+        case other of
+            other_column : Column ->
+                if other_column.value_type.is_floating_point then
+                    problem_builder.reportFloatingPointEquality -1
+            _ : Float ->
+                problem_builder.reportFloatingPointEquality -1
+            _ -> Nothing
+        column.make_binary_op op other
 
 ## PRIVATE
 adapt_unified_column : Column -> Value_Type -> Column

@@ -27,6 +27,8 @@
   "dependencies": {
     "@babel/parser": "^7.22.16",
     "@fast-check/vitest": "^0.0.8",
+    "@lezer/common": "^1.1.0",
+    "@lezer/highlight": "^1.1.6",
     "@open-rpc/client-js": "^1.8.1",
     "@vueuse/core": "^10.4.1",
     "codemirror": "^6.0.1",
@@ -37,6 +39,7 @@
     "hash-sum": "^2.0.0",
     "isomorphic-ws": "^5.0.0",
     "lib0": "^0.2.85",
+    "lorem-ipsum": "^2.0.8",
     "magic-string": "^0.30.3",
     "murmurhash": "^2.0.1",
     "pinia": "^2.1.6",

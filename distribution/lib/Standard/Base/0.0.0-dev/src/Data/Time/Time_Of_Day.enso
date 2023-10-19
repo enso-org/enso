@@ -411,7 +411,7 @@ type Time_Of_Day
     to_display_text : Text
     to_display_text self =
         if self.nanosecond include_milliseconds=True == 0 then self.format "HH:mm:ss" else
-            self.format "HH:mm:ss.n"
+            self.format "HH:mm:ss.ffffff"
 
     ## GROUP Conversions
        Format this time of day using the provided formatter pattern.

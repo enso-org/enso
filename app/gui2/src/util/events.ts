@@ -1,3 +1,4 @@
+import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
 import {
   computed,
@@ -11,7 +12,94 @@ import {
   type Ref,
   type WatchSource,
 } from 'vue'
-import type { Opt } from './opt'
+
+/**
+ * Add an event listener for the duration of the component's lifetime.
+ * @param target element on which to register the event
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useEvent<K extends keyof DocumentEventMap>(
+  target: Document,
+  event: K,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent<K extends keyof WindowEventMap>(
+  target: Window,
+  event: K,
+  handler: (e: WindowEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  handler: (event: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent(
+  target: EventTarget,
+  event: string,
+  handler: (event: unknown) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  onMounted(() => {
+    target.addEventListener(event, handler, options)
+  })
+  onUnmounted(() => {
+    target.removeEventListener(event, handler, options)
+  })
+}
+
+/**
+ * Add an event listener for the duration of condition being true.
+ * @param target element on which to register the event
+ * @param condition the condition that determines if event is bound
+ * @param event name of event to register
+ * @param handler event handler
+ */
+export function useEventConditional<K extends keyof DocumentEventMap>(
+  target: Document,
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (e: DocumentEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional<K extends keyof WindowEventMap>(
+  target: Window,
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (e: WindowEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional<K extends keyof ElementEventMap>(
+  target: Element,
+  event: K,
+  condition: WatchSource<boolean>,
+  handler: (event: ElementEventMap[K]) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional(
+  target: EventTarget,
+  event: string,
+  condition: WatchSource<boolean>,
+  handler: (event: unknown) => void,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEventConditional(
+  target: EventTarget,
+  event: string,
+  condition: WatchSource<boolean>,
+  handler: (event: unknown) => void,
+  options?: boolean | AddEventListenerOptions,
+): void {
+  watch(condition, (conditionMet, _, onCleanup) => {
+    if (conditionMet) {
+      target.addEventListener(event, handler, options)
+      onCleanup(() => target.removeEventListener(event, handler, options))
+    }
+  })
+}
 
 /** Whether any element currently has keyboard focus. */
 export function keyboardBusy() {
@@ -29,102 +117,6 @@ export function focusIsIn(el: Element) {
  */
 export function keyboardBusyExceptIn(el: Opt<Element>) {
   return keyboardBusy() && (el == null || !focusIsIn(el))
-}
-
-/**
- * Add an event listener on an {@link HTMLElement} for the duration of the component's lifetime.
- * @param target element on which to register the event
- * @param event name of event to register
- * @param handler event handler
- */
-export function useElementEvent<K extends keyof HTMLElementEventMap>(
-  target: HTMLElement,
-  event: K,
-  handler: (e: HTMLElementEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  onMounted(() => {
-    target.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
-    target.removeEventListener(event, handler, options)
-  })
-}
-
-/**
- * Add an event listener on window for the duration of component lifetime.
- * @param event name of event to register
- * @param handler event handler
- */
-export function useWindowEvent<K extends keyof WindowEventMap>(
-  event: K,
-  handler: (e: WindowEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  onMounted(() => {
-    window.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
-    window.removeEventListener(event, handler, options)
-  })
-}
-
-/**
- * Add an event listener on document for the duration of component lifetime.
- * @param event name of event to register
- * @param handler event handler
- */
-export function useDocumentEvent<K extends keyof DocumentEventMap>(
-  event: K,
-  handler: (e: DocumentEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  onMounted(() => {
-    document.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
-    document.removeEventListener(event, handler, options)
-  })
-}
-
-/**
- * Add an event listener on window for the duration of condition being true.
- * @param condition the condition that determines if event is bound
- * @param event name of event to register
- * @param handler event handler
- */
-export function useWindowEventConditional<K extends keyof WindowEventMap>(
-  event: K,
-  condition: WatchSource<boolean>,
-  handler: (e: WindowEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  watch(condition, (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      window.addEventListener(event, handler, options)
-      onCleanup(() => window.removeEventListener(event, handler, options))
-    }
-  })
-}
-
-/**
- * Add an event listener on document for the duration of condition being true.
- * @param condition the condition that determines if event is bound
- * @param event name of event to register
- * @param handler event handler
- */
-export function useDocumentEventConditional<K extends keyof DocumentEventMap>(
-  event: K,
-  condition: WatchSource<boolean>,
-  handler: (e: DocumentEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-): void {
-  watch(condition, (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      document.addEventListener(event, handler, options)
-      onCleanup(() => document.removeEventListener(event, handler, options))
-    }
-  })
 }
 
 const hasWindow = typeof window !== 'undefined'
