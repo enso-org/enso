@@ -128,6 +128,40 @@ spec connection =
             t2.at "b" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             Problems.expect_warning Inexact_Type_Coercion t2
 
+    Test.group "[PostgreSQL] Type Edge Cases" <|
+        Test.specify "will fail to read a BigDecimal column and suggest to cast it to Float" <|
+            table_name = Name_Generator.random_name "BigDecimal"
+            table = connection.create_table table_name [Column_Description.Value "B" (Value_Type.Decimal scale=5)] primary_key=[]
+
+            Problems.expect_only_warning Inexact_Type_Coercion <|
+                table.update_rows (Table.new [["B", [1.5, 2.5]]]) update_action=Update_Action.Insert
+
+            r1 = table.read
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "You may cast the column to Float"
+
+            t2 = table.cast "B" Value_Type.Float
+            m2 = t2.read
+            m2.at "B" . value_type . should_equal Value_Type.Float
+            m2.at "B" . to_vector . should_equal [1.5, 2.5]
+
+        Test.specify "should warn when fetching a Binary column and coercing it to Mixed because in-memory does not support Binary" <|
+            table_name = Name_Generator.random_name "Bin"
+            table = connection.create_table table_name [Column_Description.Value "B" (Value_Type.Binary size=10)] primary_key=[]
+            Problems.assume_no_problems table
+
+            Problems.expect_only_warning Inexact_Type_Coercion <|
+                table.update_rows (Table.new [["B", [1, 2, 3]]]) update_action=Update_Action.Insert
+
+            table.print
+            materialized_table = table.read
+            materialized_table.print
+            materialized_table.at "B" . value_type . should_equal Value_Type.Mixed
+            w = Problems.expect_only_warning Inexact_Type_Coercion materialized_table
+            w.requested_type . should_equal (Value_Type.Binary size=10)
+            w.actual_type . should_equal Value_Type.Mixed
+
+
 main = Test_Suite.run_main <|
     connection = create_connection_builder Nothing
     spec connection
