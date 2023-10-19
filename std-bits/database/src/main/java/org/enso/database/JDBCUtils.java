@@ -1,5 +1,7 @@
 package org.enso.database;
 
+import org.enso.polyglot.common_utils.Core_Date_Utils;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,6 +26,17 @@ public class JDBCUtils {
       return null;
     }
     return offsetDateTime.toZonedDateTime();
+  }
+
+  /**
+   * Gets a ZonedDateTime from a ResultSet, interpreting the result as LocalDateTime and then adding the system default timezone.
+   */
+  public static ZonedDateTime getLocalDateTimeAsZoned(ResultSet rs, int columnIndex) throws SQLException {
+    LocalDateTime localDateTime = rs.getObject(columnIndex, LocalDateTime.class);
+    if (localDateTime == null) {
+      return null;
+    }
+    return localDateTime.atZone(Core_Date_Utils.defaultSystemZone());
   }
 
   /** Sets a ZonedDateTime in a PreparedStatement. */

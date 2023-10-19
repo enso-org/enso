@@ -146,6 +146,17 @@ date_time_fetcher =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
+   A column fetcher that fetches the database column without timezone,
+   interpreting it as LocalDateTime and then converting to Enso Date_Time by
+   adding the default system timezone.
+local_date_time_fetcher =
+    fetch_value rs i = JDBCUtils.getLocalDateTimeAsZoned rs i
+    make_builder initial_size _ =
+        java_builder = Java_Exports.make_date_time_builder initial_size
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
    A default implementation that will assign specialized fetchers for the
    Integer, Float, Char and Boolean value types and a fallback for any other
    type.
@@ -160,7 +171,9 @@ default_fetcher_for_value_type value_type =
         Value_Type.Boolean -> boolean_fetcher
         Value_Type.Time -> time_fetcher
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
-        Value_Type.Date_Time _ -> date_time_fetcher
+        Value_Type.Date_Time has_timezone -> case has_timezone of
+            True  -> date_time_fetcher
+            False -> local_date_time_fetcher
         # If we can determine that scale = 0
         Value_Type.Decimal _ scale ->
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
