@@ -71,6 +71,127 @@ exports[`Parsing ' foo bar
 }
 `;
 
+exports[`Parsing '2
+ + 3
+ + 4' 1`] = `
+{
+  "childrenLengthInCodeParsed": 11,
+  "statements": [
+    {
+      "expression": {
+        "childrenLengthInCodeParsed": 11,
+        "excess": [],
+        "expressions": [
+          {
+            "expression": {
+              "expression": {
+                "base": undefined,
+                "childrenLengthInCodeParsed": 1,
+                "fractionalDigits": undefined,
+                "integer": {
+                  "base": undefined,
+                  "lengthInCodeBuffer": 1,
+                  "startInCodeBuffer": 5,
+                  "type": "Digits",
+                  "whitespaceLengthInCodeBuffer": 0,
+                  "whitespaceStartInCodeBuffer": 5,
+                },
+                "type": "Number",
+                "whitespaceLengthInCodeParsed": 1,
+                "whitespaceStartInCodeParsed": 4,
+              },
+              "operator": {
+                "ok": true,
+                "value": {
+                  "lengthInCodeBuffer": 1,
+                  "startInCodeBuffer": 3,
+                  "type": "Operator",
+                  "whitespaceLengthInCodeBuffer": 1,
+                  "whitespaceStartInCodeBuffer": 2,
+                },
+              },
+            },
+            "newline": {
+              "lengthInCodeBuffer": 1,
+              "startInCodeBuffer": 1,
+              "type": "Newline",
+              "whitespaceLengthInCodeBuffer": 0,
+              "whitespaceStartInCodeBuffer": 1,
+            },
+          },
+          {
+            "expression": {
+              "expression": {
+                "base": undefined,
+                "childrenLengthInCodeParsed": 1,
+                "fractionalDigits": undefined,
+                "integer": {
+                  "base": undefined,
+                  "lengthInCodeBuffer": 1,
+                  "startInCodeBuffer": 10,
+                  "type": "Digits",
+                  "whitespaceLengthInCodeBuffer": 0,
+                  "whitespaceStartInCodeBuffer": 10,
+                },
+                "type": "Number",
+                "whitespaceLengthInCodeParsed": 1,
+                "whitespaceStartInCodeParsed": 9,
+              },
+              "operator": {
+                "ok": true,
+                "value": {
+                  "lengthInCodeBuffer": 1,
+                  "startInCodeBuffer": 8,
+                  "type": "Operator",
+                  "whitespaceLengthInCodeBuffer": 1,
+                  "whitespaceStartInCodeBuffer": 7,
+                },
+              },
+            },
+            "newline": {
+              "lengthInCodeBuffer": 1,
+              "startInCodeBuffer": 6,
+              "type": "Newline",
+              "whitespaceLengthInCodeBuffer": 0,
+              "whitespaceStartInCodeBuffer": 6,
+            },
+          },
+        ],
+        "lhs": {
+          "base": undefined,
+          "childrenLengthInCodeParsed": 1,
+          "fractionalDigits": undefined,
+          "integer": {
+            "base": undefined,
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 0,
+            "type": "Digits",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 0,
+          },
+          "type": "Number",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 0,
+        },
+        "type": "OperatorBlockApplication",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 0,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 0,
+        "startInCodeBuffer": 0,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 0,
+      },
+    },
+  ],
+  "type": "BodyBlock",
+  "whitespaceLengthInCodeParsed": 0,
+  "whitespaceStartInCodeParsed": 0,
+}
+`;
+
 exports[`Parsing 'Data.read
 2 + 2' 1`] = `
 {
@@ -190,6 +311,173 @@ exports[`Parsing 'Data.read
         "type": "Newline",
         "whitespaceLengthInCodeBuffer": 0,
         "whitespaceStartInCodeBuffer": 9,
+      },
+    },
+  ],
+  "type": "BodyBlock",
+  "whitespaceLengthInCodeParsed": 0,
+  "whitespaceStartInCodeParsed": 0,
+}
+`;
+
+exports[`Parsing 'Data.read "File"
+2 + 3' 1`] = `
+{
+  "childrenLengthInCodeParsed": 22,
+  "statements": [
+    {
+      "expression": {
+        "arg": {
+          "childrenLengthInCodeParsed": 6,
+          "close": {
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 15,
+            "type": "TextEnd",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 15,
+          },
+          "elements": [
+            {
+              "text": {
+                "lengthInCodeBuffer": 4,
+                "startInCodeBuffer": 11,
+                "type": "TextSection",
+                "whitespaceLengthInCodeBuffer": 0,
+                "whitespaceStartInCodeBuffer": 11,
+              },
+              "type": "Section",
+            },
+          ],
+          "newline": undefined,
+          "open": {
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 10,
+            "type": "TextStart",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 10,
+          },
+          "type": "TextLiteral",
+          "whitespaceLengthInCodeParsed": 1,
+          "whitespaceStartInCodeParsed": 9,
+        },
+        "childrenLengthInCodeParsed": 16,
+        "func": {
+          "childrenLengthInCodeParsed": 9,
+          "lhs": {
+            "childrenLengthInCodeParsed": 4,
+            "token": {
+              "isFree": false,
+              "isOperatorLexically": false,
+              "isTypeOrConstructor": true,
+              "lengthInCodeBuffer": 4,
+              "liftLevel": 0,
+              "startInCodeBuffer": 0,
+              "type": "Ident",
+              "whitespaceLengthInCodeBuffer": 0,
+              "whitespaceStartInCodeBuffer": 0,
+            },
+            "type": "Ident",
+            "whitespaceLengthInCodeParsed": 0,
+            "whitespaceStartInCodeParsed": 0,
+          },
+          "opr": {
+            "ok": true,
+            "value": {
+              "lengthInCodeBuffer": 1,
+              "startInCodeBuffer": 4,
+              "type": "Operator",
+              "whitespaceLengthInCodeBuffer": 0,
+              "whitespaceStartInCodeBuffer": 4,
+            },
+          },
+          "rhs": {
+            "childrenLengthInCodeParsed": 4,
+            "token": {
+              "isFree": false,
+              "isOperatorLexically": false,
+              "isTypeOrConstructor": false,
+              "lengthInCodeBuffer": 4,
+              "liftLevel": 0,
+              "startInCodeBuffer": 5,
+              "type": "Ident",
+              "whitespaceLengthInCodeBuffer": 0,
+              "whitespaceStartInCodeBuffer": 5,
+            },
+            "type": "Ident",
+            "whitespaceLengthInCodeParsed": 0,
+            "whitespaceStartInCodeParsed": 5,
+          },
+          "type": "OprApp",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 0,
+        },
+        "type": "App",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 0,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 0,
+        "startInCodeBuffer": 0,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 0,
+      },
+    },
+    {
+      "expression": {
+        "childrenLengthInCodeParsed": 5,
+        "lhs": {
+          "base": undefined,
+          "childrenLengthInCodeParsed": 1,
+          "fractionalDigits": undefined,
+          "integer": {
+            "base": undefined,
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 17,
+            "type": "Digits",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 17,
+          },
+          "type": "Number",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 17,
+        },
+        "opr": {
+          "ok": true,
+          "value": {
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 19,
+            "type": "Operator",
+            "whitespaceLengthInCodeBuffer": 1,
+            "whitespaceStartInCodeBuffer": 18,
+          },
+        },
+        "rhs": {
+          "base": undefined,
+          "childrenLengthInCodeParsed": 1,
+          "fractionalDigits": undefined,
+          "integer": {
+            "base": undefined,
+            "lengthInCodeBuffer": 1,
+            "startInCodeBuffer": 21,
+            "type": "Digits",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 21,
+          },
+          "type": "Number",
+          "whitespaceLengthInCodeParsed": 1,
+          "whitespaceStartInCodeParsed": 20,
+        },
+        "type": "OprApp",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 17,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 1,
+        "startInCodeBuffer": 16,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 16,
       },
     },
   ],
@@ -341,6 +629,77 @@ exports[`Parsing 'Data.read File
         "type": "Newline",
         "whitespaceLengthInCodeBuffer": 0,
         "whitespaceStartInCodeBuffer": 14,
+      },
+    },
+  ],
+  "type": "BodyBlock",
+  "whitespaceLengthInCodeParsed": 0,
+  "whitespaceStartInCodeParsed": 0,
+}
+`;
+
+exports[`Parsing 'foo bar
+' 1`] = `
+{
+  "childrenLengthInCodeParsed": 8,
+  "statements": [
+    {
+      "expression": {
+        "arg": {
+          "childrenLengthInCodeParsed": 3,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": false,
+            "lengthInCodeBuffer": 3,
+            "liftLevel": 0,
+            "startInCodeBuffer": 4,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 4,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 1,
+          "whitespaceStartInCodeParsed": 3,
+        },
+        "childrenLengthInCodeParsed": 7,
+        "func": {
+          "childrenLengthInCodeParsed": 3,
+          "token": {
+            "isFree": false,
+            "isOperatorLexically": false,
+            "isTypeOrConstructor": false,
+            "lengthInCodeBuffer": 3,
+            "liftLevel": 0,
+            "startInCodeBuffer": 0,
+            "type": "Ident",
+            "whitespaceLengthInCodeBuffer": 0,
+            "whitespaceStartInCodeBuffer": 0,
+          },
+          "type": "Ident",
+          "whitespaceLengthInCodeParsed": 0,
+          "whitespaceStartInCodeParsed": 0,
+        },
+        "type": "App",
+        "whitespaceLengthInCodeParsed": 0,
+        "whitespaceStartInCodeParsed": 0,
+      },
+      "newline": {
+        "lengthInCodeBuffer": 0,
+        "startInCodeBuffer": 0,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 0,
+      },
+    },
+    {
+      "expression": undefined,
+      "newline": {
+        "lengthInCodeBuffer": 1,
+        "startInCodeBuffer": 7,
+        "type": "Newline",
+        "whitespaceLengthInCodeBuffer": 0,
+        "whitespaceStartInCodeBuffer": 7,
       },
     },
   ],

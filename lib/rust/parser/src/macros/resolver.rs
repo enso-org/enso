@@ -142,24 +142,14 @@ pub struct Resolver<'s> {
 impl<'s> Resolver<'s> {
     /// Create a new resolver, in statement context.
     pub fn new_statement() -> Self {
-        let scopes = default();
-        let open_blocks = vec![syntax::item::Line {
-            newline: token::newline(Code::empty(0), Code::empty(0)),
-            items:   default(),
-        }];
-        let macro_stack = default();
-        let segments = default();
-        let items = default();
-        let context = Context::Statement;
-        let precedence = syntax::operator::Precedence::new();
         Self {
-            blocks: scopes,
-            lines: open_blocks,
-            macros: macro_stack,
-            segments,
-            items,
-            context,
-            precedence,
+            context:    Context::Statement,
+            precedence: syntax::operator::Precedence::new(),
+            blocks:     default(),
+            lines:      default(),
+            macros:     default(),
+            segments:   default(),
+            items:      default(),
         }
     }
 
@@ -169,6 +159,10 @@ impl<'s> Resolver<'s> {
         root_macro_map: &MacroMap,
         tokens: impl IntoIterator<Item = Token<'s>>,
     ) -> syntax::Tree<'s> {
+        self.lines.push(syntax::item::Line {
+            newline: token::newline(Code::empty(0), Code::empty(0)),
+            items:   default(),
+        });
         tokens.into_iter().for_each(|t| self.push(root_macro_map, t));
         self.finish_current_line();
         let lines = self.lines.drain(..).map(|syntax::item::Line { newline, items }| {
@@ -233,9 +227,11 @@ impl<'s> Resolver<'s> {
     /// Append a token to the state.
     fn push(&mut self, root_macro_map: &MacroMap, token: Token<'s>) {
         match token.variant {
-            token::Variant::Newline(_) => {
-                self.finish_current_line();
-                let newline = token::newline(token.left_offset, token.code);
+            token::Variant::Newline(newline) => {
+                if !self.lines.is_empty() {
+                    self.finish_current_line();
+                }
+                let newline = token.with_variant(newline);
                 self.lines.push(syntax::item::Line { newline, items: default() });
                 self.context = Context::Statement;
             }
