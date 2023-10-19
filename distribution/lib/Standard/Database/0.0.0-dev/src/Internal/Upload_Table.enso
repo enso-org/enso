@@ -440,7 +440,7 @@ check_update_arguments_structure_match source_table target_table key_columns upd
         source_type = source_column.value_type
         target_type = target_column.value_type
         if source_type == target_type then [] else
-            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type] else
+            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type unavailable=False] else
                 Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
 
     source_columns = Set.from_vector source_table.column_names
