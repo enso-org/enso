@@ -4,12 +4,12 @@ import { Vec2 } from '@/util/vec2'
  * Axis-aligned rectangle. Defined in terms of a top-left point and a size.
  */
 export class Rect {
-  pos: Vec2
-  size: Vec2
-  constructor(pos: Vec2, size: Vec2) {
-    this.pos = pos
-    this.size = size
-  }
+  constructor(
+    readonly pos: Vec2,
+    readonly size: Vec2,
+  ) {}
+
+  static Zero = new Rect(Vec2.Zero, Vec2.Zero)
 
   equals(other: Rect): boolean {
     return this.pos.equals(other.pos) && this.size.equals(other.size)
@@ -24,10 +24,6 @@ export class Rect {
     )
   }
 
-  static Zero(): Rect {
-    return new Rect(Vec2.Zero(), Vec2.Zero())
-  }
-
   center(): Vec2 {
     return this.pos.addScaled(this.size, 0.5)
   }
@@ -37,11 +33,11 @@ export class Rect {
   }
 
   intersectsX(other: Rect) {
-    return this.left <= other.right && this.right >= other.left
+    return this.left < other.right && this.right > other.left
   }
 
   intersectsY(other: Rect) {
-    return this.top <= other.bottom && this.bottom >= other.top
+    return this.top < other.bottom && this.bottom > other.top
   }
 
   intersects(other: Rect) {

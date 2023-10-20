@@ -30,22 +30,34 @@ export function nonDictatedPlacement(
   const initialPosition = screenBounds.center().sub(nodeSize.scale(0.5))
   const initialRect = new Rect(initialPosition, nodeSize)
   let top = initialPosition.y
+  const height = nodeSize.y
+  const minimumVerticalSpace = height + gap * 2
+  const bottom = () => top + height
   const occupiedYRanges: { top: number; bottom: number }[] = []
-  const pred = (range: (typeof occupiedYRanges)[number]) => range.top - top >= gap
+  const pred = (range: (typeof occupiedYRanges)[number]) => range.top - bottom() >= gap
   for (const rect of nodeRects) {
-    if (initialRect.intersectsX(rect) && rect.bottom > top) {
-      if (rect.top - top > gap) {
-        occupiedYRanges.splice(
-          binarySearch(occupiedYRanges, (range) => range.top >= rect.top),
-          0,
-          {
-            top: rect.top,
-            bottom: rect.bottom,
-          },
-        )
+    if (initialRect.intersectsX(rect) && rect.bottom + gap > top) {
+      if (rect.top - bottom() >= gap) {
+        const index = binarySearch(occupiedYRanges, (range) => range.top >= rect.top)
+        const range = occupiedYRanges[index]
+        if (range && range.top - rect.bottom < minimumVerticalSpace) {
+          range.top = rect.top
+        } else if (
+          !range &&
+          rect.top - (occupiedYRanges.at(-1)?.bottom ?? -Infinity) < minimumVerticalSpace
+        ) {
+          occupiedYRanges.at(-1)!.bottom = rect.bottom
+        } else {
+          occupiedYRanges.splice(index, 0, { top: rect.top, bottom: rect.bottom })
+        }
       } else {
         top = rect.bottom + gap
-        occupiedYRanges.splice(0, binarySearch(occupiedYRanges, pred))
+        const lastDeletedElement = occupiedYRanges
+          .splice(0, binarySearch(occupiedYRanges, pred))
+          .at(-1)
+        if (lastDeletedElement) {
+          top = lastDeletedElement.bottom + gap
+        }
       }
     }
   }
@@ -55,39 +67,50 @@ export function nonDictatedPlacement(
 }
 
 export function previousNodeDictatedPlacement(
-  previousNode: Rect,
   nodeSize: Vec2,
   { screenBounds, selectedNodeRects, nodeRects }: Environment,
   { gap = defaultGap }: PlacementOptions = {},
 ): Placement {
-  let firstSelectedNodeRect: Rect | undefined
+  let initialLeft: number | undefined
   let top = -Infinity
   for (const rect of selectedNodeRects) {
-    firstSelectedNodeRect ??= rect
+    initialLeft ??= rect.left
     const newTop = rect.bottom + gap
     if (newTop > top) top = newTop
   }
-  if (firstSelectedNodeRect == null)
+  if (initialLeft == null)
     bail('There are no selected nodes, so placement cannot be dictated by the previous node.')
-  let left = firstSelectedNodeRect.left
+  let left = initialLeft
+  const width = nodeSize.x
+  const right = () => left + width
+  const minimumHorizontalSpace = width + gap * 2
   const initialPosition = new Vec2(left, top)
   const initialRect = new Rect(initialPosition, nodeSize)
   const occupiedXRanges: { left: number; right: number }[] = []
-  const pred = (range: (typeof occupiedXRanges)[number]) => range.left - left >= gap
+  const pred = (range: (typeof occupiedXRanges)[number]) => range.left - right() >= gap
   for (const rect of nodeRects) {
-    if (initialRect.intersectsY(rect) && rect.right > left) {
-      if (rect.left - left > gap) {
-        occupiedXRanges.splice(
-          binarySearch(occupiedXRanges, (range) => range.left > rect.left),
-          0,
-          {
-            left: rect.left,
-            right: rect.right,
-          },
-        )
+    if (initialRect.intersectsY(rect) && rect.right + gap > left) {
+      if (rect.left - right() >= gap) {
+        const index = binarySearch(occupiedXRanges, (range) => range.right >= rect.right)
+        const range = occupiedXRanges[index]
+        if (range && range.left - rect.right < minimumHorizontalSpace) {
+          range.left = rect.right
+        } else if (
+          !range &&
+          rect.left - (occupiedXRanges.at(-1)?.right ?? -Infinity) < minimumHorizontalSpace
+        ) {
+          occupiedXRanges.at(-1)!.right = rect.right
+        } else {
+          occupiedXRanges.splice(index, 0, { left: rect.left, right: rect.right })
+        }
       } else {
         left = rect.right + gap
-        occupiedXRanges.splice(0, binarySearch(occupiedXRanges, pred))
+        const lastDeletedElement = occupiedXRanges
+          .splice(0, binarySearch(occupiedXRanges, pred))
+          .at(-1)
+        if (lastDeletedElement) {
+          left = lastDeletedElement.right + gap
+        }
       }
     }
   }

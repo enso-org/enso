@@ -28,7 +28,7 @@ const navigator = useNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
-const componentBrowserPosition = ref(Vec2.Zero())
+const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
 
 const nodeRects = reactive(new Map<ExprId, Rect>())

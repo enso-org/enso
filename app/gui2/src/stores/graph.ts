@@ -150,7 +150,7 @@ export const useGraphStore = defineStore('graph', () => {
       content,
       binding: stmt.binding ?? '',
       rootSpan: stmt.expression,
-      position: Vec2.Zero(),
+      position: Vec2.Zero,
       vis: undefined,
       docRange: [
         Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset, -1),

@@ -19,7 +19,7 @@ export function binarySearch<T>(array: T[], pred: (elem: T) => boolean): number 
     // Shift right by one to halve and round down in the same step.
     const middle = (start + end) >> 1
     if (pred(array[middle]!)) end = middle
-    else start = middle
+    else start = middle + 1
   }
   return start
 }
