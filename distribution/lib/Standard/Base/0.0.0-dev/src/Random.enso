@@ -32,7 +32,7 @@ type Random
        Arguments:
        - seed: The seed used to initialze the `Random_Generator`.
     new_generator : Integer -> Random_Generator
-    new_generator seed = Random_Generator.new seed
+    new_generator seed=get_default_seed = Random_Generator.new seed
 
     ## TEXT_ONLY
        GROUP Random

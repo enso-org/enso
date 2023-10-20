@@ -22,7 +22,7 @@ import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Random
+import project.Random.Random
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
@@ -824,8 +824,8 @@ type Vector a
            collection) generates a random set of indices and then selects these
            indices, but we can sample the vector directly.
         Index_Sub_Range.Sample count seed ->
-            rng = Random.new seed
-            Random.sample self count rng
+            Random.set_seed seed
+            Random.item self count
         _ ->
             take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
