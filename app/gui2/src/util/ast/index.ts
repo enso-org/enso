@@ -32,7 +32,7 @@ export function parseEnsoLine(code: string): Tree {
 }
 
 /**
- * Read span of code reprsented by given AST node.
+ * Read span of code reprsented by given AST node, not including left whitespace offset.
  *
  * The AST is assumed to be generated from `code` and not modified sice then.
  * Otherwise an unspecified fragment of `code` may be returned.
@@ -42,11 +42,14 @@ export function readAstOrTokenSpan(node: Tree | Token, code: string): string {
   return code.substring(range[0], range[1])
 }
 
-export function getAstSpan(node: Tree): ContentRange {
-  const leftOffsetbegin = node.whitespaceStartInCodeParsed
-  const leftOffsetEnd = leftOffsetbegin + node.whitespaceLengthInCodeParsed
-  const end = leftOffsetEnd + node.childrenLengthInCodeParsed
-  return [leftOffsetEnd, end]
+/**
+ * Read span of code reprsented by given Tree.
+ *
+ * The Tree is assumed to be a part of AST generated from `code`.
+ */
+export function readAstSpan(node: Tree, code: string): string {
+  const range = parsedTreeRange(node)
+  return code.substring(range[0], range[1])
 }
 
 /**
@@ -55,9 +58,8 @@ export function getAstSpan(node: Tree): ContentRange {
  * The Token is assumed to be a part of AST generated from `code`.
  */
 export function readTokenSpan(token: Token, code: string): string {
-  const begin = token.startInCodeBuffer
-  const end = begin + token.lengthInCodeBuffer
-  return code.substring(begin, end)
+  const range = parsedTokenRange(token)
+  return code.substring(range[0], range[1])
 }
 
 /**
@@ -150,6 +152,13 @@ export function visitRecursive(node: Tree | Token, visit: (node: Tree | Token) =
   visitGenerator(walkRecursive(node), visit)
 }
 
+/**
+ * Read ast span information in `String.substring` compatible way. The returned span does not
+ * include left whitespace offset.
+ *
+ * @returns Object with `start` and `end` properties; index of first character in the `node`
+ *   and first character _not_ being in the `node`.
+ */
 export function parsedTreeRange(tree: Tree): ContentRange {
   const start = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
   const end = start + tree.childrenLengthInCodeParsed
@@ -300,6 +309,14 @@ if (import.meta.vitest) {
       'Data.read file=foo',
       [
         { type: Tree.Type.OprApp, repr: 'Data.read' },
+        { type: Tree.Type.Ident, repr: 'foo' },
+      ],
+    ],
+    ['(', [{ type: Tree.Type.Invalid, repr: '(' }]],
+    [
+      '(foo',
+      [
+        { type: Tree.Type.Invalid, repr: '(' },
         { type: Tree.Type.Ident, repr: 'foo' },
       ],
     ],

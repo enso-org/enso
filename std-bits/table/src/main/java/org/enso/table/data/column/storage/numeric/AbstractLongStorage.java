@@ -181,6 +181,41 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
     return ops;
   }
 
+  @Override
+  public AbstractLongStorage fillMissingFromPrevious(BoolStorage missingIndicator) {
+    if (missingIndicator != null) {
+      throw new IllegalStateException(
+          "Custom missing value semantics are not supported by AbstractLongStorage.");
+    }
+
+    int n = size();
+    long[] newData = new long[n];
+    BitSet newMissing = new BitSet();
+    long previousValue = 0;
+    boolean hasPrevious = false;
+
+    Context context = Context.getCurrent();
+    for (int i = 0; i < n; i++) {
+      boolean isCurrentMissing = isNa(i);
+      if (isCurrentMissing) {
+        if (hasPrevious) {
+          newData[i] = previousValue;
+        } else {
+          newMissing.set(i);
+        }
+      } else {
+        long currentValue = getItem(i);
+        newData[i] = currentValue;
+        previousValue = currentValue;
+        hasPrevious = true;
+      }
+
+      context.safepoint();
+    }
+
+    return new LongStorage(newData, n, newMissing, getType());
+  }
+
   /**
    * Return an instance of storage containing the same data but with a wider type.
    *

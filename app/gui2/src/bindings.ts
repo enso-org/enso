@@ -4,6 +4,14 @@ export const codeEditorBindings = defineKeybinds('code-editor', {
   toggle: ['`'],
 })
 
+export const componentBrowserBindings = defineKeybinds('component-browser', {
+  applySuggestion: ['Tab'],
+  acceptSuggestion: ['Enter'],
+  cancelEditing: ['Escape'],
+  moveUp: ['ArrowUp'],
+  moveDown: ['ArrowDown'],
+})
+
 export const graphBindings = defineKeybinds('graph-editor', {
   undo: ['Mod+Z'],
   redo: ['Mod+Y', 'Mod+Shift+Z'],
