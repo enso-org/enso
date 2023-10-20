@@ -65,7 +65,7 @@ public class NestedPatternCompilationBenchmarks {
 
             list_of_6 =
                 List.Cons 1 (List.Cons 2 (List.Cons 3 (List.Cons 4 (List.Cons 5 (List.Cons 6 List.Nil)))))
-        """;
+            """;
     }
 
     @Benchmark

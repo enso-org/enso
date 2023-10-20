@@ -203,9 +203,14 @@ case object UnusedBindings extends IRPass {
         s
       case s @ DefinitionArgument.Specified(name, _, default, _, _, _, _) =>
         if (!isIgnored && !isUsed) {
+          val nameToReport = name match {
+            case literal: Name.Literal =>
+              literal.originalName.getOrElse(literal)
+            case _ => name
+          }
           s.copy(
             defaultValue = default.map(runExpression(_, context))
-          ).addDiagnostic(warnings.Unused.FunctionArgument(name))
+          ).addDiagnostic(warnings.Unused.FunctionArgument(nameToReport))
         } else s
     }
   }
