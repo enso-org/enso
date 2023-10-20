@@ -30,6 +30,14 @@ type Random
 
        Arguments:
        - seed: The seed used to initialze the `Random_Generator`.
+
+       > Example
+         Create a new `Random_Generator` and use it.
+
+             import Standard.Base.Random.Random
+
+             rng = Random.new_generator 42
+             i = rng.integer 0 10
     new_generator : Integer -> Random_Generator
     new_generator (seed:Integer=get_default_seed) = Random_Generator.new seed
 
@@ -64,7 +72,7 @@ type Random
               import Standard.Base.Random.Random
 
               i = Random.integer 1 11
-    integer : Integer -> Integer -> Integer
+    integer : Integer -> Integer -> Integer ! Illegal_Argument
     integer (min:Integer) (max:Integer) = Random.default_instance.integer min max
 
     ## GROUP Random
@@ -114,15 +122,15 @@ type Random
     gaussian (standard_deviation:Float=1.0) (mean:Float=0.0) = Random.default_instance.gaussian standard_deviation mean
 
     ## GROUP Random
-       Returns `count` indices sampled from the range [0, n-1] (inclusive)
-       without replacement.
+       Returns `count` indices sampled from the range 0 (inclusive) to n
+       (exclusive) without replacement.
        
        Arguments:
        - n: The end of the range to sample from (exclusive).
        - count: The number of samples to take.
 
        > Example
-         Generate random indices
+         Generate 10 random indices between 0 and 100.
 
               import Standard.Base.Random.Random
 
@@ -188,7 +196,7 @@ type Random
 
     ## GROUP Random
        Returns a new `Vector` containing a random sample of the input vector,
-       without replacement.
+       with or without replacement.
 
        Arguments:
        - vector: The `Vector` to take items from.
@@ -196,7 +204,7 @@ type Random
        - with_replacement: If false, each value in the `Vector` can only be
          selected once during a single call; the returned values will contain no
          duplicates. If true, values from the `Vector` can be returned multiple
-         times.
+         times and duplicates are possible.
 
        If `with_replacement` is false, and `count` is equal to or greater than
        the size of the collection, a random permutation of the collection is
@@ -239,9 +247,9 @@ type Random_Generator
     new (seed:Integer) = Random_Generator.Value (Java_Random.new seed)
 
     ## PRIVATE
-    Value (java_random : Java_Random)
+    Value (java_random:Java_Random)
 
-    integer : Integer -> Integer -> Integer
+    integer : Integer -> Integer -> Integer ! Illegal_Argument
     integer self (min:Integer) (max:Integer) =
         range = max - min
         if range >= Java_Integer.MAX_VALUE then Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.") else

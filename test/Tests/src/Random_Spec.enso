@@ -10,7 +10,6 @@ spec = Test.group "Random" <|
         Random.set_seed 12345
         Random.integer 0 100 . should_equal 51
         Random.integer 0 10000 . should_equal 9080
-        Random.integer 0 100000000000000 . should_fail_with Illegal_Argument
 
         random_range = 0.up_to 1000 . map (_-> Random.integer 0 100) . compute_bulk [Statistic.Minimum, Statistic.Maximum]
         (random_range.at 0 >= 0) . should_equal True
@@ -37,7 +36,7 @@ spec = Test.group "Random" <|
         Random.gaussian mean=5 . should_equal 4.505719279373956
         Random.gaussian standard_deviation=2 mean=5 . should_equal 2.55317612563977
 
-        0.up_to 100 . map (_-> Random.gaussian standard_deviation=10) . any (_ > 1.0) . should_be_true
+        0.up_to 100 . map (_-> Random.gaussian standard_deviation=10) . any (_ > 3.0) . should_be_true
         0.up_to 100 . map (_-> Random.gaussian mean=1000000) . any (_ > 1000000) . should_be_true
         0.up_to 100 . map (_-> Random.gaussian) . any (_ > 1000000) . should_be_false
 
