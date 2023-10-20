@@ -88,9 +88,6 @@ function makeSimpleEntry(
   returnType: QualifiedName,
 ): SuggestionEntry {
   return {
-    parent: computed(() => {
-      0
-    }),
     kind,
     definedIn,
     name,

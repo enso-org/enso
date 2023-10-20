@@ -1270,48 +1270,4 @@
                 fill="black" fill-opacity="0.6" />
         </svg>
     </g>
-	<g id="doc_info" fill="none">
-	  <svg width="16" height="16" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-		<path fill="#3B88C3" d="M0 4c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v28c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V4z"/><path fill="#FFF" d="M20.512 8.071c0 1.395-1.115 2.573-2.511 2.573-1.333 0-2.511-1.209-2.511-2.573 0-1.271 1.178-2.45 2.511-2.45 1.333.001 2.511 1.148 2.511 2.45zm-4.744 6.728c0-1.488.931-2.481 2.232-2.481 1.302 0 2.232.992 2.232 2.481v11.906c0 1.488-.93 2.48-2.232 2.48s-2.232-.992-2.232-2.48V14.799z"/>
-	  </svg>
-	</g>
-	<g id="doc_methods" fill="none">
-	  <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-		<mask id="path-1-inside-1_7717_245722" fill="white">
-		  <rect x="2" y="2" width="13" height="13" rx="2"/>
-		</mask>
-		<rect x="2" y="2" width="13" height="13" rx="2" stroke="#1F71D3" stroke-width="13" mask="url(#path-1-inside-1_7717_245722)"/>
-		<mask id="path-2-inside-2_7717_245722" fill="white">
-		  <rect x="17" y="2" width="13" height="13" rx="2"/>
-		</mask>
-		<rect x="17" y="2" width="13" height="13" rx="2" stroke="#1F71D3" stroke-opacity="0.4" stroke-width="13" mask="url(#path-2-inside-2_7717_245722)"/>
-		<mask id="path-3-inside-3_7717_245722" fill="white">
-		  <rect x="2" y="17" width="13" height="13" rx="2"/>
-		</mask>
-		<rect x="2" y="17" width="13" height="13" rx="2" stroke="#1F71D3" stroke-opacity="0.7" stroke-width="13" mask="url(#path-3-inside-3_7717_245722)"/>
-		<mask id="path-4-inside-4_7717_245722" fill="white">
-		  <rect x="17" y="17" width="13" height="13" rx="2"/>
-		</mask>
-		<rect x="17" y="17" width="13" height="13" rx="2" stroke="#1F71D3" stroke-opacity="0.6" stroke-width="13" mask="url(#path-4-inside-4_7717_245722)"/>
-	  </svg>
-	</g>
-	<g id="doc_examples">
-	  <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-		<path d="M21.1981 14.1473L27.3799 22.6473C29.3027 25.2912 27.4141 29 24.1449 29H7.85509C4.58595 29 2.69733 25.2912 4.62015 22.6473L10.802 14.1473C11.1273 13.7 11.5367 13.3316 12 13.0575V6H11.5C10.6716 6 10 5.32843 10 4.5C10 3.67157 10.6716 3 11.5 3H20.5C21.3284 3 22 3.67157 22 4.5C22 5.32843 21.3284 6 20.5 6H20V13.0575C20.4633 13.3316 20.8727 13.7 21.1981 14.1473Z" fill="#6DA85E" fill-opacity="0.7"/>
-		<g clip-path="url(#clip0_7717_245736)">
-		  <path d="M21.1981 14.1473L27.3799 22.6473C29.3027 25.2912 27.4141 29 24.1449 29H7.85509C4.58595 29 2.69733 25.2912 4.62015 22.6473L10.802 14.1473C11.1273 13.7 11.5367 13.3316 12 13.0575V6H11.5C10.6716 6 10 5.32843 10 4.5C10 3.67157 10.6716 3 11.5 3H20.5C21.3284 3 22 3.67157 22 4.5C22 5.32843 21.3284 6 20.5 6H20V13.0575C20.4633 13.3316 20.8727 13.7 21.1981 14.1473Z" fill="#6DA85E"/>
-		</g>
-		<defs>
-		  <clipPath id="clip0_7717_245736">
-			<rect width="32" height="12" fill="white" transform="translate(0 20)"/>
-		  </clipPath>
-		</defs>
-	  </svg>
-	</g>
-	<g id="doc_important" fill="none">
-	  <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-		<circle fill="#BE1931" cx="18" cy="32" r="3"/>
-		<path fill="#BE1931" d="M21 24c0 1.657-1.344 3-3 3-1.657 0-3-1.343-3-3V5c0-1.657 1.343-3 3-3 1.656 0 3 1.343 3 3v19z"/>
-	  </svg>
-	</g>
 </svg>

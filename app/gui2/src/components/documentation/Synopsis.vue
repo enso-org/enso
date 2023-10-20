@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { Sections } from '@/components/DocumentationPanel.vue'
-import { default as SvgIcon } from '@/components/SvgIcon.vue'
-import { Doc } from '@/util/ffi'
+import type { Sections } from '@/components/DocumentationPanel.vue'
+ import type { Doc } from '@/util/docParser'
+ import iconImportant from '@/assets/icon-important.svg'
+ import iconInfo from '@/assets/icon-info.svg'
+ 
 const props = defineProps<{ sections: Doc.Section[] }>()
-const emit = defineEmits<{}>()
+
 </script>
 
 <template>
-  <div class="sectionContent">
+  <div v-if="props.sections.length > 0" class="sectionContent">
     <div v-for="section in props.sections">
       <p v-if="'Paragraph' in section" class="paragraph">
         <span v-html="section.Paragraph.body ?? 'Invalid body'"></span>
@@ -26,8 +28,8 @@ const emit = defineEmits<{}>()
         ]"
       >
         <div v-if="'header' in section.Marked" class="markedHeader">
-          <SvgIcon :name="section.Marked.mark == 'Info' ? 'doc_info' : 'doc_important'" />
-          {{ ' ' + section.Marked.header }}
+          <img :src="section.Marked.mark == 'Info' ? iconInfo : iconImportant" class="markedIcon" />
+          {{ section.Marked.header }}
         </div>
         <p class="paragraph" v-html="section.Marked.body ?? 'Invalid body'" />
       </div>
@@ -36,8 +38,7 @@ const emit = defineEmits<{}>()
       </ul>
       <ul v-if="'Arguments' in section">
         <li v-for="arg in section.Arguments.args">
-          <span class="argument">{{ arg.name }}</span
-          >:&nbsp
+          <span class="argument">{{ arg.name }}</span>:&nbsp
           <span v-html="arg.description ?? 'Invalid description'"></span>
         </li>
       </ul>
@@ -63,16 +64,14 @@ const emit = defineEmits<{}>()
 }
 
 .markedHeader {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   margin: 0;
   display: flex;
-}
-
-div.markedIcon {
-  align-self: start;
-}
-
+  align-items: center;
+  gap: 0.25em;
+ }
+ 
 div .markedIconImportant {
   margin: 0 0 0 0;
 }
@@ -81,7 +80,7 @@ div .markedIconInfo {
   margin: 0 0.25em 0 0;
 }
 
-.markedIcon svg {
+.markedIcon {
   pointer-events: none;
   width: 1em;
   height: 1em;
@@ -95,7 +94,7 @@ div .markedIconInfo {
 :deep(code) {
   background-color: var(--enso-docs-code-background-color);
   border-radius: 4px;
-  padding: 2px;
+  padding: 3px;
 }
 
 ul {
@@ -106,16 +105,17 @@ ul {
 }
 ul li:before {
   content: '•';
-  font-size: 13px;
-  font-weight: 700;
-  margin-right: 3px;
+  font-size: 10px;
+  font-weight: 800;
+  margin-right: 6px;
 }
 
 .paragraph {
   margin: 0;
+  padding: 1px 0;
 }
 
 .argument {
-  font-weight: 600;
+  font-weight: 800;
 }
 </style>
