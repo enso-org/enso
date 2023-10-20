@@ -1,7 +1,0 @@
-import project.Any.Any
-import project.Data.Interval.Interval
-import project.Data.Interval.Interval_Type
-import project.Data.Numbers.Number
-
-polyglot java import java.lang.Long
-polyglot java import java.util.Random
