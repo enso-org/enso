@@ -11,6 +11,22 @@ export class Rect {
 
   static Zero = new Rect(Vec2.Zero, Vec2.Zero)
 
+  get left() {
+    return this.pos.x
+  }
+
+  get top() {
+    return this.pos.y
+  }
+
+  get bottom() {
+    return this.pos.y + this.size.y
+  }
+
+  get right() {
+    return this.pos.x + this.size.x
+  }
+
   equals(other: Rect): boolean {
     return this.pos.equals(other.pos) && this.size.equals(other.size)
   }
@@ -42,21 +58,5 @@ export class Rect {
 
   intersects(other: Rect) {
     return this.intersectsX(other) && this.intersectsY(other)
-  }
-
-  get left() {
-    return this.pos.x
-  }
-
-  get top() {
-    return this.pos.y
-  }
-
-  get bottom() {
-    return this.pos.y + this.size.y
-  }
-
-  get right() {
-    return this.pos.x + this.size.x
   }
 }

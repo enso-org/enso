@@ -1,6 +1,6 @@
 import { Rect } from '@/stores/rect'
 import { binarySearch } from '@/util/array'
-import { bail } from '@/util/assert'
+import { assertFn, bail } from '@/util/assert'
 import { Vec2 } from '@/util/vec2'
 
 export interface Environment {
@@ -41,12 +41,16 @@ export function nonDictatedPlacement(
         const index = binarySearch(occupiedYRanges, (range) => range.top >= rect.top)
         const range = occupiedYRanges[index]
         if (range && range.top - rect.bottom < minimumVerticalSpace) {
+          // TODO: fuzz case for range.top = rect.bottom
+          assertFn(() => range.top >= rect.top)
           range.top = rect.top
         } else if (
           !range &&
           rect.top - (occupiedYRanges.at(-1)?.bottom ?? -Infinity) < minimumVerticalSpace
         ) {
-          occupiedYRanges.at(-1)!.bottom = rect.bottom
+          assertFn(() => occupiedYRanges.at(-1)!.bottom <= rect.bottom)
+          // `rect.bottom` may be less if the new range is completely within the old range.
+          occupiedYRanges.at(-1)!.bottom = Math.max(occupiedYRanges.at(-1)!.bottom, rect.bottom)
         } else {
           occupiedYRanges.splice(index, 0, { top: rect.top, bottom: rect.bottom })
         }
@@ -56,7 +60,7 @@ export function nonDictatedPlacement(
           .splice(0, binarySearch(occupiedYRanges, pred))
           .at(-1)
         if (lastDeletedElement) {
-          top = lastDeletedElement.bottom + gap
+          top = Math.max(top, lastDeletedElement.bottom + gap)
         }
       }
     }
@@ -91,15 +95,16 @@ export function previousNodeDictatedPlacement(
   for (const rect of nodeRects) {
     if (initialRect.intersectsY(rect) && rect.right + gap > left) {
       if (rect.left - right() >= gap) {
-        const index = binarySearch(occupiedXRanges, (range) => range.right >= rect.right)
+        const index = binarySearch(occupiedXRanges, (range) => range.left >= rect.left)
         const range = occupiedXRanges[index]
         if (range && range.left - rect.right < minimumHorizontalSpace) {
-          range.left = rect.right
+          range.left = Math.min(range.left, rect.left)
         } else if (
           !range &&
           rect.left - (occupiedXRanges.at(-1)?.right ?? -Infinity) < minimumHorizontalSpace
         ) {
-          occupiedXRanges.at(-1)!.right = rect.right
+          // `rect.right` may be less if the new range is completely within the old range.
+          occupiedXRanges.at(-1)!.right = Math.max(occupiedXRanges.at(-1)!.right, rect.right)
         } else {
           occupiedXRanges.splice(index, 0, { left: rect.left, right: rect.right })
         }
@@ -109,7 +114,7 @@ export function previousNodeDictatedPlacement(
           .splice(0, binarySearch(occupiedXRanges, pred))
           .at(-1)
         if (lastDeletedElement) {
-          left = lastDeletedElement.right + gap
+          left = Math.max(left, lastDeletedElement.right + gap)
         }
       }
     }

@@ -6,6 +6,10 @@ export function assert(condition: boolean): asserts condition {
   if (!condition) bail('Assertion failed')
 }
 
+export function assertFn(pred: () => boolean) {
+  if (!pred()) bail('Assertion failed: ' + pred.toString().replace(/^\s*\([^)]*\)\s*=>\s*/, ''))
+}
+
 export function assertUnreachable(): never {
   bail('Unreachable code')
 }
