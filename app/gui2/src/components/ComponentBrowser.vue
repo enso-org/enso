@@ -8,6 +8,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useApproach } from '@/util/animation'
 import { useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
+import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import { LoremIpsum } from 'lorem-ipsum'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -290,7 +291,23 @@ function handleKeydown(e: KeyboardEvent) {
                   :name="item.component.icon"
                   :style="{ color: componentColor(item.component) }"
                 />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
             <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
@@ -304,7 +321,23 @@ function handleKeydown(e: KeyboardEvent) {
                 }"
               >
                 <SvgIcon :name="item.component.icon" />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
           </div>
@@ -315,7 +348,13 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
     <div class="CBInput">
-      <input ref="inputField" v-model="input.code.value" @keyup="readInputFieldSelection" />
+      <input
+        ref="inputField"
+        v-model="input.code.value"
+        name="cb-input"
+        autocomplete="off"
+        @keyup="readInputFieldSelection"
+      />
     </div>
   </div>
 </template>
@@ -399,6 +438,10 @@ function handleKeydown(e: KeyboardEvent) {
   & svg {
     color: white;
   }
+}
+
+.component-label-segment.match {
+  font-weight: bold;
 }
 
 .top-bar {

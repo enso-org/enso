@@ -26,7 +26,6 @@ const conf = [
           './tsconfig.server.json',
           './tsconfig.app.vitest.json',
           './tsconfig.server.vitest.json',
-          './parser-codegen/tsconfig.json',
         ],
       },
     },
