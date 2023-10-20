@@ -224,6 +224,13 @@ function scrollToSelected() {
   scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
 }
 
+function updateScroll() {
+  if (scroller.value && Math.abs(scroller.value.scrollTop - animatedScrollPosition.value) > 1.0) {
+    scrollPosition.value = scroller.value.scrollTop
+    animatedScrollPosition.skip()
+  }
+}
+
 // === Documentation Panel ===
 
 const docsVisible = ref(true)

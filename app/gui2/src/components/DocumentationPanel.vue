@@ -85,44 +85,38 @@ function filterSections(sections: Iterable<Doc.Section>): Sections {
 
 // === Lookup ===
 
-function getFunctionChildren(
-  db: SuggestionDb,
-  id: SuggestionId,
-  kind: SuggestionKind,
-): FunctionDocs[] {
+function getChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): Docs[] {
   if (!id) return []
   const children = Array.from(db.parent.reverseLookup(id)).map((id) => db.get(id))
-  return Array.from(
-    children
-      .filter((child) => child && child.kind === kind)
-      .flatMap((child) => {
-        if (!child) return []
-        const docs = lookupDocumentation(db, child)
-        if ('Function' in docs) {
-          return docs.Function
-        } else {
-          return []
-        }
-      }),
-  )
+  return children.reduce((acc: Docs[], child: SuggestionEntry | undefined) => {
+    if (child?.kind === kind) {
+      const docs = lookupDocumentation(db, child)
+      acc.push(docs)
+    }
+    return acc
+  }, [])
 }
 
-function getTypeChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): TypeDocs[] {
-  if (!id) return []
-  const children = Array.from(db.parent.reverseLookup(id)).map((id) => db.get(id))
-  return Array.from(
-    children
-      .filter((child) => child && child.kind === kind)
-      .flatMap((child) => {
-        if (!child) return []
-        const docs = lookupDocumentation(db, child)
-        if ('Type' in docs) {
-          return docs.Type
-        } else {
-          return []
-        }
-      }),
-  )
+function asFunctionDocs(docs: Docs[]): FunctionDocs[] {
+  return docs.flatMap((doc) => {
+    if ('Function' in doc) {
+      return [doc.Function]
+    } else {
+      console.error(`Unexpected docs type: ${docs}, expected Function`)
+      return []
+    }
+  })
+}
+
+function asTypeDocs(docs: Docs[]): TypeDocs[] {
+  return docs.flatMap((doc) => {
+    if ('Type' in doc) {
+      return [doc.Type]
+    } else {
+      console.error(`Unexpected docs type: ${docs}, expected Type`)
+      return []
+    }
+  })
 }
 
 type DocsHandle = (db: SuggestionDb, entry: SuggestionEntry) => Docs
@@ -153,8 +147,8 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
         name: entry.name,
         arguments: entry.arguments,
         sections: filterSections(entry.documentation),
-        methods: getFunctionChildren(db, entryId, SuggestionKind.Method),
-        constructors: getFunctionChildren(db, entryId, SuggestionKind.Constructor),
+        methods: asFunctionDocs(getChildren(db, entryId, SuggestionKind.Method)),
+        constructors: asFunctionDocs(getChildren(db, entryId, SuggestionKind.Constructor)),
       },
     }
   },
@@ -165,8 +159,8 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
       Module: {
         name: entry.name,
         sections: filterSections(entry.documentation),
-        types: getTypeChildren(db, entryId, SuggestionKind.Type),
-        methods: getFunctionChildren(db, entryId, SuggestionKind.Method),
+        types: asTypeDocs(getChildren(db, entryId, SuggestionKind.Type)),
+        methods: asFunctionDocs(getChildren(db, entryId, SuggestionKind.Method)),
       },
     }
   },

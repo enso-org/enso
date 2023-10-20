@@ -52,6 +52,33 @@ const props = defineProps<{ sections: Doc.Section[] }>()
 </template>
 
 <style scoped>
+/* Common parts. */
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  list-style-position: inside;
+
+  li {
+    &:before {
+      content: '•';
+      font-size: 13px;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+  }
+}
+
+.paragraph {
+  margin: 0;
+  padding: 1px 0;
+}
+
+.argument {
+  font-weight: 800;
+}
+
 /* Marked sections, such as `Info` and `Important` sections. */
 
 .backgroundInfo {
@@ -77,14 +104,6 @@ const props = defineProps<{ sections: Doc.Section[] }>()
   gap: 0.25em;
 }
 
-div .markedIconImportant {
-  margin: 0 0 0 0;
-}
-
-div .markedIconInfo {
-  margin: 0 0.25em 0 0;
-}
-
 .markedIcon {
   pointer-events: none;
   width: 1em;
@@ -100,27 +119,5 @@ div .markedIconInfo {
   background-color: var(--enso-docs-code-background-color);
   border-radius: 4px;
   padding: 3px;
-}
-
-ul {
-  margin: 0;
-  padding: 0;
-  list-style-type: none;
-  list-style-position: inside;
-}
-ul li:before {
-  content: '•';
-  font-size: 10px;
-  font-weight: 800;
-  margin-right: 6px;
-}
-
-.paragraph {
-  margin: 0;
-  padding: 1px 0;
-}
-
-.argument {
-  font-weight: 800;
 }
 </style>

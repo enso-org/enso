@@ -497,12 +497,12 @@ class Fixture {
   }
 
   check(db: SuggestionDb): void {
-    expect(db.get(1)).toMatchObject(this.expectedModule)
-    expect(db.get(2)).toMatchObject(this.expectedType)
-    expect(db.get(3)).toMatchObject(this.expectedCon)
-    expect(db.get(4)).toMatchObject(this.expectedMethod)
-    expect(db.get(5)).toMatchObject(this.expectedStaticMethod)
-    expect(db.get(6)).toMatchObject(this.expectedFunction)
-    expect(db.get(7)).toMatchObject(this.expectedLocal)
+    expect(db.get(1)).toStrictEqual(this.expectedModule)
+    expect(db.get(2)).toStrictEqual(this.expectedType)
+    expect(db.get(3)).toStrictEqual(this.expectedCon)
+    expect(db.get(4)).toStrictEqual(this.expectedMethod)
+    expect(db.get(5)).toStrictEqual(this.expectedStaticMethod)
+    expect(db.get(6)).toStrictEqual(this.expectedFunction)
+    expect(db.get(7)).toStrictEqual(this.expectedLocal)
   }
 }
