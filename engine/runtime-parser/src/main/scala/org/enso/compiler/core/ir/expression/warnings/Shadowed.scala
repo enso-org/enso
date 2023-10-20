@@ -27,7 +27,7 @@ object Shadowed {
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
     override def message(source: Source): String =
-      s"The argument $shadowedName is shadowed by $shadower"
+      s"The argument '$shadowedName' is shadowed by another one with the same name."
 
     override def diagnosticKeys(): Array[Any] =
       Array(shadowedName, shadower)
@@ -46,7 +46,7 @@ object Shadowed {
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
     override def message(source: Source): String =
-      s"The pattern field $shadowedName is shadowed by $shadower."
+      s"The pattern field '$shadowedName' is shadowed by another one with the same name."
 
     override def diagnosticKeys(): Array[Any] =
       Array(shadowedName, shadower)
