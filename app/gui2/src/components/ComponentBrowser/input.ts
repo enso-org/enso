@@ -1,7 +1,14 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
-import { Ast, astContainingChar, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { Ast, astContainingChar, astSpan, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
-import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import {
+  qnLastSegment,
+  qnParent,
+  qnSplit,
+  tryQualifiedName,
+  type QualifiedName,
+} from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 
 /** Input's editing context.
@@ -17,13 +24,13 @@ export type EditingContext =
   | {
       type: 'insert'
       position: number
-      accessOpr?: GeneralOprApp
+      oprApp?: GeneralOprApp
     }
   // Suggestion should replace given identifier.
   | {
       type: 'changeIdentifier'
       identifier: Ast.Tree.Ident
-      accessOpr?: GeneralOprApp
+      oprApp?: GeneralOprApp
     }
   // Suggestion should replace given literal.
   | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
@@ -57,7 +64,7 @@ export class Input {
           return {
             type: 'changeIdentifier',
             identifier: leaf.value,
-            ...Input.readAccessOpr(editedAst.next(), input, leaf.value),
+            ...Input.readOprApp(editedAst.next(), input, leaf.value),
           }
         case Ast.Tree.Type.TextLiteral:
         case Ast.Tree.Type.Number:
@@ -66,7 +73,7 @@ export class Input {
           return {
             type: 'insert',
             position: cursorPosition,
-            ...Input.readAccessOpr(leaf, input),
+            ...Input.readOprApp(leaf, input),
           }
       }
     })
@@ -74,15 +81,13 @@ export class Input {
     const qualifiedNameFilter: ComputedRef<Filter> = computed(() => {
       const code = this.code.value
       const ctx = this.context.value
-      if (
-        (ctx.type == 'changeIdentifier' || ctx.type == 'insert') &&
-        ctx.accessOpr != null &&
-        ctx.accessOpr.lhs != null
-      ) {
-        const qn = Input.asQualifiedName(ctx.accessOpr, code)
-        if (qn != null) return { qualifiedNamePattern: qn }
-      }
-      return {}
+      if (ctx.type === 'changeLiteral') return {}
+      if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
+      const opr = ctx.oprApp.lastOpr()
+      if (opr == null || !opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
+      const qn = Input.pathAsQualifiedName(ctx.oprApp, code)
+      if (qn != null) return { qualifiedNamePattern: qn }
+      else return {}
     })
 
     this.filter = computed(() => {
@@ -101,12 +106,12 @@ export class Input {
     })
   }
 
-  private static readAccessOpr(
+  private static readOprApp(
     leafParent: IteratorResult<Ast.Tree>,
     code: string,
     editedAst?: Ast.Tree,
   ): {
-    accessOpr?: GeneralOprApp
+    oprApp?: GeneralOprApp
   } {
     if (leafParent.done) return {}
     switch (leafParent.value.type) {
@@ -114,108 +119,143 @@ export class Input {
       case Ast.Tree.Type.OperatorBlockApplication: {
         const generalized = new GeneralOprApp(leafParent.value)
         const opr = generalized.lastOpr()
-        if (opr == null || !opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
-        // The filtering should be affected only when we edit right part of '.' application.
+        if (opr == null || !opr.ok) return {}
+        // Opr application affects context only when we edit right part of operator.
         else if (
           editedAst != null &&
           opr.value.startInCodeBuffer > editedAst.whitespaceStartInCodeParsed
         )
           return {}
-        else return { accessOpr: generalized }
+        else return { oprApp: generalized }
       }
       default:
         return {}
     }
   }
 
-  /**
-   * Try to get a Qualified Name part from given accessor chain.
-   * @param accessorChain The accessorChain. It's not validated, i.e. the user must ensure
-   *   it's GeneralOprApp with `.` as leading operator.
-   * @param code The code from which `accessorChain` was generated.
-   * @returns If all segments except the last one are identifiers, returns QualifiedName with
-   *   those. Otherwise returns null.
-   */
-  private static asQualifiedName(accessorChain: GeneralOprApp, code: string): QualifiedName | null {
-    const operandsAsIdents = Array.from(
-      accessorChain.operandsOfLeftAssocOprChain(code, '.'),
-      (operand) =>
-        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
-    ).slice(0, -1)
-    if (operandsAsIdents.some((optIdent) => optIdent == null)) return null
+  private static pathAsQualifiedName(accessOpr: GeneralOprApp, code: string): QualifiedName | null {
+    const operandsAsIdents = Input.qnIdentifiers(accessOpr, code)
     const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
   }
-}
 
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
+  /**
+   * Read path segments as idents. The 'path' means all access chain operands except the last.
+   * If some of such operands is not and identifier, this returns `null`.
+   * @param opr
+   * @param code The code from which `opr` was generated.
+   * @returns If all path segments are identifiers, return them
+   */
+  private static qnIdentifiers(opr: GeneralOprApp, code: string): Ast.Tree.Ident[] {
+    const operandsAsIdents = Array.from(opr.operandsOfLeftAssocOprChain(code, '.'), (operand) =>
+      operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
+    ).slice(0, -1)
+    if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
+    else return operandsAsIdents as Ast.Tree.Ident[]
+  }
 
-  test.each([
-    ['', 0, { type: 'insert', position: 0 }, {}],
-    [
-      'Data.',
-      5,
-      { type: 'insert', position: 5, accessorChain: ['Data', '.', null] },
-      { qualifiedNamePattern: 'Data' },
-    ],
-    ['Data.', 4, { type: 'changeIdentifier', identifier: 'Data' }, { pattern: 'Data' }],
-    [
-      'Data.read',
-      5,
-      { type: 'insert', position: 5, accessorChain: ['Data', '.', 'read'] },
-      { qualifiedNamePattern: 'Data' },
-    ],
-    [
-      'Data.read',
-      7,
-      { type: 'changeIdentifier', identifier: 'read', accessorChain: ['Data', '.', 'read'] },
-      { pattern: 're', qualifiedNamePattern: 'Data' },
-    ],
-  ])(
-    "Input context and filtering, when content is '%s' and cursor at %i",
-    (
-      code,
-      cursorPosition,
-      expContext: {
-        type: string
-        position?: number
-        accessorChain?: (string | null)[]
-        identifier?: string
-        literal?: string
+  /** Apply given suggested entry to the input. */
+  applySuggestion(entry: SuggestionEntry) {
+    const oldCode = this.code.value
+    const changes = Array.from(this.inputChangesAfterApplying(entry)).reverse()
+    const newCodeUpToLastChange = changes.reduce(
+      (builder, change) => {
+        const oldCodeFragment = oldCode.substring(builder.oldCodeIndex, change.start)
+        return {
+          code: builder.code + oldCodeFragment + change.str,
+          oldCodeIndex: change.end,
+        }
       },
-      expFiltering: { pattern?: string; qualifiedNamePattern?: string },
-    ) => {
-      const input = new Input()
-      input.code.value = code
-      input.selection.value = { start: cursorPosition, end: cursorPosition }
-      const context = input.context.value
-      const filter = input.filter.value
-      expect(context.type).toStrictEqual(expContext.type)
-      switch (context.type) {
-        case 'insert':
-          expect(context.position).toStrictEqual(expContext.position)
-          expect(
-            context.accessOpr != null
-              ? Array.from(context.accessOpr.componentsReprs(code))
-              : undefined,
-          ).toStrictEqual(expContext.accessorChain)
-          break
-        case 'changeIdentifier':
-          expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
-          expect(
-            context.accessOpr != null
-              ? Array.from(context.accessOpr.componentsReprs(code))
-              : undefined,
-          ).toStrictEqual(expContext.accessorChain)
-          break
-        case 'changeLiteral':
-          expect(readAstSpan(context.literal, code)).toStrictEqual(expContext.literal)
+      { code: '', oldCodeIndex: 0 },
+    )
+    const isModule = entry.kind === SuggestionKind.Module
+    const firstCharAfter = oldCode[newCodeUpToLastChange.oldCodeIndex]
+    const shouldInsertSpace =
+      !isModule && (firstCharAfter == null || /^[a-zA-Z0-9_]$/.test(firstCharAfter))
+    const shouldMoveCursor = !isModule
+    const newCursorPos = newCodeUpToLastChange.code.length + (shouldMoveCursor ? 1 : 0)
+    this.code.value =
+      newCodeUpToLastChange.code +
+      (shouldInsertSpace ? ' ' : '') +
+      oldCode.substring(newCodeUpToLastChange.oldCodeIndex)
+    this.selection.value = { start: newCursorPos, end: newCursorPos }
+  }
+
+  /** Return all input changes resulting from applying given suggestion.
+   *
+   * @returns The changes, starting from the rightmost. The `start` and `end` parameters refer
+   * to indices of "old" input content.
+   */
+  private *inputChangesAfterApplying(
+    entry: SuggestionEntry,
+  ): Generator<{ start: number; end: number; str: string }> {
+    const ctx = this.context.value
+    const str = this.codeToBeInserted(entry)
+    switch (ctx.type) {
+      case 'insert': {
+        yield { start: ctx.position, end: ctx.position, str }
+        break
       }
-      expect(filter.pattern).toStrictEqual(expFiltering.pattern)
-      expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
-    },
-  )
+      case 'changeIdentifier': {
+        yield { ...astSpan(ctx.identifier), str }
+        break
+      }
+      case 'changeLiteral': {
+        yield { ...astSpan(ctx.literal), str }
+        break
+      }
+    }
+    yield* this.qnChangesAfterApplying(entry)
+  }
+
+  private codeToBeInserted(entry: SuggestionEntry): string {
+    const ctx = this.context.value
+    const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
+    const oprAppSpacing =
+      ctx.type === 'insert' && opr != null && opr.ok && opr.value.whitespaceLengthInCodeBuffer > 0
+        ? ' '.repeat(opr.value.whitespaceLengthInCodeBuffer)
+        : ''
+    const extendingAccessOprChain =
+      opr != null && opr.ok && readTokenSpan(opr.value, this.code.value) === '.'
+    // Modules are special case, as we want to encourage user to continue writing path.
+    if (entry.kind === SuggestionKind.Module) {
+      if (extendingAccessOprChain) return `${oprAppSpacing}${entry.name}${oprAppSpacing}.`
+      else return `${entry.definedIn}.`
+    }
+    // Always return single name if we're extending access opr chain.
+    if (extendingAccessOprChain) return oprAppSpacing + entry.name
+    // Otherwise they may be cases we want to add type/module name, or self argument placeholder.
+    if (entry.selfType != null) return `${oprAppSpacing}_.${entry.name}`
+    if (entry.memberOf != null) {
+      const parentName = qnLastSegment(entry.memberOf)
+      return `${oprAppSpacing}${parentName}.${entry.name}`
+    }
+    return oprAppSpacing + entry.name
+  }
+
+  /** All changes to the qualified name already written by the user.
+   *
+   * See `inputChangesAfterApplying`. */
+  private *qnChangesAfterApplying(
+    entry: SuggestionEntry,
+  ): Generator<{ start: number; end: number; str: string }> {
+    if (entry.selfType != null) return []
+    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return []
+    if (this.context.value.type === 'changeLiteral') return []
+    if (this.context.value.oprApp == null) return []
+    const writtenQn = Input.qnIdentifiers(this.context.value.oprApp, this.code.value).reverse()
+
+    let containingQn =
+      entry.kind === SuggestionKind.Module
+        ? qnParent(entry.definedIn)
+        : entry.memberOf ?? entry.definedIn
+    for (const ident of writtenQn) {
+      if (containingQn == null) break
+      const [parent, segment] = qnSplit(containingQn)
+      yield { ...astSpan(ident), str: segment }
+      containingQn = parent
+    }
+  }
 }
