@@ -16,7 +16,6 @@ import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
 } from 'shared/languageServerTypes/suggestions'
-import { computed } from 'vue'
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,

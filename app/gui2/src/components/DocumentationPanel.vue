@@ -1,236 +1,245 @@
 <script setup lang="ts">
- import { default as SvgIcon } from '@/components/SvgIcon.vue'
- import { default as List } from '@/components/documentation/List.vue'
- import { default as Synopsis } from '@/components/documentation/Synopsis.vue'
- import { makeMethod } from '@/stores/suggestionDatabase/entry'
- import type { Doc } from '@/util/docParser'
- import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
- import { computed, ref } from 'vue'
- import { type SuggestionDb, useSuggestionDbStore } from '@/stores/suggestionDatabase'
- import type { SuggestionId, SuggestionEntry } from '@/stores/suggestionDatabase/entry'
- import { type Opt } from '@/util/opt'
- import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
- import { default as Header, type Kind as HeaderKind } from '@/components/documentation/Header.vue'
- import { default as Tags } from '@/components/documentation/Tags.vue'
- import { default as Examples } from '@/components/documentation/Examples.vue'
+import { default as DocsExamples } from '@/components/documentation/DocsExamples.vue'
+import { default as DocsHeader } from '@/components/documentation/DocsHeader.vue'
+import { default as DocsList } from '@/components/documentation/DocsList.vue'
+import { default as DocsSynopsis } from '@/components/documentation/DocsSynopsis.vue'
+import { default as DocsTags } from '@/components/documentation/DocsTags.vue'
+import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
+import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
+import type { Doc } from '@/util/docParser'
+import { type Opt } from '@/util/opt'
+import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
+import { computed } from 'vue'
 
- const props = defineProps<{ selectedEntry: Opt<SuggestionEntry> }>()
+const props = defineProps<{ selectedEntry: Opt<SuggestionEntry> }>()
 
- 
- // === Types ===
- 
- /**
-  * Intermediate representation of the entries documentation.
-  */
- export type Docs =
-   | { Function: FunctionDocs }
-   | { Type: TypeDocs }
-   | { Module: ModuleDocs }
-   | { Local: LocalDocs }
-   | { Placeholder: string }
+// === Types ===
 
- export interface FunctionDocs {
-   name: string
-   arguments: SuggestionEntryArgument[]
-   sections: Sections
- }
+/**
+ * Intermediate representation of the entries documentation.
+ */
+export type Docs =
+  | { Function: FunctionDocs }
+  | { Type: TypeDocs }
+  | { Module: ModuleDocs }
+  | { Local: LocalDocs }
+  | { Placeholder: string }
 
- export interface TypeDocs {
-   name: string
-   arguments: SuggestionEntryArgument[]
-   sections: Sections
-   methods: FunctionDocs[]
-   constructors: FunctionDocs[]
- }
+export interface FunctionDocs {
+  name: string
+  arguments: SuggestionEntryArgument[]
+  sections: Sections
+}
 
- export interface ModuleDocs {
-   name: string
-   sections: Sections
-   types: TypeDocs[]
-   methods: FunctionDocs[]
- }
+export interface TypeDocs {
+  name: string
+  arguments: SuggestionEntryArgument[]
+  sections: Sections
+  methods: FunctionDocs[]
+  constructors: FunctionDocs[]
+}
 
- export interface LocalDocs {
-   name: string
-   sections: Sections
- }
+export interface ModuleDocs {
+  name: string
+  sections: Sections
+  types: TypeDocs[]
+  methods: FunctionDocs[]
+}
 
+export interface LocalDocs {
+  name: string
+  sections: Sections
+}
 
- // === Sections ===
+// === Sections ===
 
- /**
-  * Documentation sections split into three categories. These categories of sections are present in almost every documentation page.
-  */
- export interface Sections {
-   tags: Doc.Section.Tag[]
-   synopsis: Doc.Section[]
-   examples: Doc.Section.Marked[]
- }
+/**
+ * Documentation sections split into three categories. These categories of sections are present in almost every documentation page.
+ */
+export interface Sections {
+  tags: Doc.Section.Tag[]
+  synopsis: Doc.Section[]
+  examples: Doc.Section.Marked[]
+}
 
- // Split doc sections into categories.
- function filterSections(sections: Iterable<Doc.Section>): Sections {
-   const tags = []
-   const synopsis = []
-   const examples = []
-   
-   for (const section of sections) {
-     const isTag = 'Tag' in section
-     const isExample = 'Marked' in section && section.Marked.mark == 'Example'
-     if (isTag) {
-       tags.push(section.Tag)
-     } else if (isExample) {
-       examples.push(section.Marked)
-     } else {
-       synopsis.push(section)
-     }
-   }
-   return { tags, synopsis, examples }
- }
+// Split doc sections into categories.
+function filterSections(sections: Iterable<Doc.Section>): Sections {
+  const tags = []
+  const synopsis = []
+  const examples = []
 
+  for (const section of sections) {
+    const isTag = 'Tag' in section
+    const isExample = 'Marked' in section && section.Marked.mark == 'Example'
+    if (isTag) {
+      tags.push(section.Tag)
+    } else if (isExample) {
+      examples.push(section.Marked)
+    } else {
+      synopsis.push(section)
+    }
+  }
+  return { tags, synopsis, examples }
+}
 
- // === Lookup ===
+// === Lookup ===
 
- function getFunctionChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): FunctionDocs[] {
-   if (!id) return []
-   const children = Array.from(db.parent.reverseLookup(id)).map(id => db.get(id))
-   return Array.from(children
-     .filter(child => child && child.kind === kind)
-     .flatMap(child => {
-       if (!child) return []
-       const docs = lookupDocumentation(db, child)
-       if ('Function' in docs) {
-         return docs.Function
-       } else {
-         return []
-       }
-   }))
- }
- 
- function getTypeChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): TypeDocs[] {
-   if (!id) return []
-   const children = Array.from(db.parent.reverseLookup(id)).map(id => db.get(id))
-   return Array.from(children
-     .filter(child => child && child.kind === kind)
-     .flatMap(child => {
-       if (!child) return []
-       const docs = lookupDocumentation(db, child)
-       if ('Type' in docs) {
-         return docs.Type
-       } else {
-         return []
-       }
-   }))
- }
+function getFunctionChildren(
+  db: SuggestionDb,
+  id: SuggestionId,
+  kind: SuggestionKind,
+): FunctionDocs[] {
+  if (!id) return []
+  const children = Array.from(db.parent.reverseLookup(id)).map((id) => db.get(id))
+  return Array.from(
+    children
+      .filter((child) => child && child.kind === kind)
+      .flatMap((child) => {
+        if (!child) return []
+        const docs = lookupDocumentation(db, child)
+        if ('Function' in docs) {
+          return docs.Function
+        } else {
+          return []
+        }
+      }),
+  )
+}
 
- type DocsHandle = (db: SuggestionDb, entry: SuggestionEntry) => Docs
- 
- const handleFunction: DocsHandle = (db, entry) => ({ Function: {
-   name: entry.name,
-   arguments: entry.arguments,
-   sections: filterSections(entry.documentation),
- }})
+function getTypeChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): TypeDocs[] {
+  if (!id) return []
+  const children = Array.from(db.parent.reverseLookup(id)).map((id) => db.get(id))
+  return Array.from(
+    children
+      .filter((child) => child && child.kind === kind)
+      .flatMap((child) => {
+        if (!child) return []
+        const docs = lookupDocumentation(db, child)
+        if ('Type' in docs) {
+          return docs.Type
+        } else {
+          return []
+        }
+      }),
+  )
+}
 
- const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
-   [SuggestionKind.Function]: handleFunction,
-   [SuggestionKind.Method]: handleFunction,
-   [SuggestionKind.Constructor]: handleFunction,
-   [SuggestionKind.Local]: (db, entry) => ({ Local: {
-     name: entry.name,
-     sections: filterSections(entry.documentation),
-   }}),
-   [SuggestionKind.Type]: (db, entry) => {
-     const [entryId] = db.nameToId.lookup(entryQn(entry))
-     if (!entryId) return { Placeholder: 'No documentation available' }
-     return { Type: {
-       name: entry.name,
-       arguments: entry.arguments,
-       sections: filterSections(entry.documentation),
-       methods: getFunctionChildren(db, entryId, SuggestionKind.Method),
-       constructors: getFunctionChildren(db, entryId, SuggestionKind.Constructor),
-     }}
-   },
-   [SuggestionKind.Module]: (db, entry) => {
-     const [entryId] = db.nameToId.lookup(entryQn(entry))
-     if (!entryId) return { Placeholder: 'No documentation available' }
-     return { Module: {
-       name: entry.name,
-       sections: filterSections(entry.documentation),
-       types: getTypeChildren(db, entryId, SuggestionKind.Type),
-       methods: getFunctionChildren(db, entryId, SuggestionKind.Method),
-     }}
-   },
- }
- 
- function lookupDocumentation(db: SuggestionDb, entry: SuggestionEntry): Docs {
-   const handle = handleDocumentation[entry.kind]
-   return handle ? handle(db, entry) : { Placeholder: `Entry kind not handled: ${entry.kind}` }
- }
+type DocsHandle = (db: SuggestionDb, entry: SuggestionEntry) => Docs
 
+const handleFunction: DocsHandle = (db, entry) => ({
+  Function: {
+    name: entry.name,
+    arguments: entry.arguments,
+    sections: filterSections(entry.documentation),
+  },
+})
 
- // === Helper variables ===
+const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
+  [SuggestionKind.Function]: handleFunction,
+  [SuggestionKind.Method]: handleFunction,
+  [SuggestionKind.Constructor]: handleFunction,
+  [SuggestionKind.Local]: (db, entry) => ({
+    Local: {
+      name: entry.name,
+      sections: filterSections(entry.documentation),
+    },
+  }),
+  [SuggestionKind.Type]: (db, entry) => {
+    const [entryId] = db.nameToId.lookup(entryQn(entry))
+    if (!entryId) return { Placeholder: 'No documentation available' }
+    return {
+      Type: {
+        name: entry.name,
+        arguments: entry.arguments,
+        sections: filterSections(entry.documentation),
+        methods: getFunctionChildren(db, entryId, SuggestionKind.Method),
+        constructors: getFunctionChildren(db, entryId, SuggestionKind.Constructor),
+      },
+    }
+  },
+  [SuggestionKind.Module]: (db, entry) => {
+    const [entryId] = db.nameToId.lookup(entryQn(entry))
+    if (!entryId) return { Placeholder: 'No documentation available' }
+    return {
+      Module: {
+        name: entry.name,
+        sections: filterSections(entry.documentation),
+        types: getTypeChildren(db, entryId, SuggestionKind.Type),
+        methods: getFunctionChildren(db, entryId, SuggestionKind.Method),
+      },
+    }
+  },
+}
 
- const documentation = computed<Docs>(() => {
-   const db = useSuggestionDbStore()
-   const entry = props.selectedEntry
-   return entry ? lookupDocumentation(db.entries, entry) : { Placeholder: 'No entry selecter' }
- })
+function lookupDocumentation(db: SuggestionDb, entry: SuggestionEntry): Docs {
+  const handle = handleDocumentation[entry.kind]
+  return handle ? handle(db, entry) : { Placeholder: `Entry kind not handled: ${entry.kind}` }
+}
 
- const sections = computed<Sections>(() => {
-   const docs: Docs = documentation.value
-   const fallback = { tags: [], synopsis: [], examples: [] }
-   if ('Function' in docs) {
-     return docs.Function.sections
-   } else if ('Type' in docs) {
-     return docs.Type.sections
-   } else if ('Module' in docs) {
-      return docs.Module.sections
-   } else if ('Local' in docs) {
-     return docs.Local.sections
-   } else {
-     return fallback
-   }
- })
- const methods = computed<FunctionDocs[]>(() => {
-   const docs = documentation.value
-   if ('Module' in docs) {
-     return docs.Module.methods
-   } else if ('Type' in docs) {
-     return docs.Type.methods
-   } else {
-     return []
-   }
- })
- const constructors = computed<FunctionDocs[]>(() => {
-   const docs = documentation.value
-   if ('Type' in docs) {
-     return docs.Type.constructors
-   } else {
-     return []
-   }
- })
- const types = computed<TypeDocs[]>(() => {
-   const docs = documentation.value
-   if ('Module' in docs) {
-     return docs.Module.types
-   } else {
-     return []
-   }
- })
+// === Helper variables ===
 
+const documentation = computed<Docs>(() => {
+  const db = useSuggestionDbStore()
+  const entry = props.selectedEntry
+  return entry ? lookupDocumentation(db.entries, entry) : { Placeholder: 'No entry selecter' }
+})
+
+const sections = computed<Sections>(() => {
+  const docs: Docs = documentation.value
+  const fallback = { tags: [], synopsis: [], examples: [] }
+  if ('Function' in docs) {
+    return docs.Function.sections
+  } else if ('Type' in docs) {
+    return docs.Type.sections
+  } else if ('Module' in docs) {
+    return docs.Module.sections
+  } else if ('Local' in docs) {
+    return docs.Local.sections
+  } else {
+    return fallback
+  }
+})
+const methods = computed<FunctionDocs[]>(() => {
+  const docs = documentation.value
+  if ('Module' in docs) {
+    return docs.Module.methods
+  } else if ('Type' in docs) {
+    return docs.Type.methods
+  } else {
+    return []
+  }
+})
+const constructors = computed<FunctionDocs[]>(() => {
+  const docs = documentation.value
+  if ('Type' in docs) {
+    return docs.Type.constructors
+  } else {
+    return []
+  }
+})
+const types = computed<TypeDocs[]>(() => {
+  const docs = documentation.value
+  if ('Module' in docs) {
+    return docs.Module.types
+  } else {
+    return []
+  }
+})
 </script>
 
 <template>
   <div class="DocumentationPanel">
-    <Tags v-if="sections.tags.length > 0" :tags="sections.tags" />
-    <Synopsis :sections="sections.synopsis" />
-    <Header v-if="types.length > 0" kind="types" label="Types" />
-    <List :items="{ Types: types }" />
-    <Header v-if="constructors.length > 0" kind="methods" label="Constructors" />
-    <List :items="{ Constructors: constructors }" />
-    <Header v-if="methods.length > 0" kind="methods" label="Methods" />
-    <List :items="{ Methods: methods }" />
-    <Header v-if="sections.examples.length > 0" kind="examples" label="Examples" />
-    <Examples :examples="sections.examples" />
+    <DocsTags v-if="sections.tags.length > 0" :tags="sections.tags" />
+    <DocsSynopsis :sections="sections.synopsis" />
+    <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
+    <DocsList :items="{ Types: types }" />
+    <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
+    <DocsList :items="{ Constructors: constructors }" />
+    <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
+    <DocsList :items="{ Methods: methods }" />
+    <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
+    <DocsExamples :examples="sections.examples" />
   </div>
 </template>
 
@@ -255,9 +264,9 @@
   background-color: var(--enso-docs-background-color);
   padding: 8px 8px 4px;
   white-space: normal;
- }
+}
 
- :deep(.sectionContent) {
-   padding: 0 8px;
- }
+:deep(.sectionContent) {
+  padding: 0 8px;
+}
 </style>

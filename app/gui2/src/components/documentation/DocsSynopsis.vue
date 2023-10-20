@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import type { Sections } from '@/components/DocumentationPanel.vue'
- import type { Doc } from '@/util/docParser'
- import iconImportant from '@/assets/icon-important.svg'
- import iconInfo from '@/assets/icon-info.svg'
- 
-const props = defineProps<{ sections: Doc.Section[] }>()
+import iconImportant from '@/assets/icon-important.svg'
+import iconInfo from '@/assets/icon-info.svg'
+import type { Doc } from '@/util/docParser'
 
+const props = defineProps<{ sections: Doc.Section[] }>()
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-v-html -->
   <div v-if="props.sections.length > 0" class="sectionContent">
-    <div v-for="section in props.sections">
+    <div v-for="(section, i) in props.sections" :key="i">
       <p v-if="'Paragraph' in section" class="paragraph">
         <span v-html="section.Paragraph.body ?? 'Invalid body'"></span>
       </p>
@@ -34,16 +33,22 @@ const props = defineProps<{ sections: Doc.Section[] }>()
         <p class="paragraph" v-html="section.Marked.body ?? 'Invalid body'" />
       </div>
       <ul v-if="'List' in section">
-        <li v-for="item in section.List.items" v-html="item ?? 'Invalid item'"></li>
+        <li
+          v-for="(item, index) in section.List.items"
+          :key="index"
+          v-html="item ?? 'Invalid item'"
+        ></li>
       </ul>
       <ul v-if="'Arguments' in section">
-        <li v-for="arg in section.Arguments.args">
-          <span class="argument">{{ arg.name }}</span>:&nbsp
+        <li v-for="(arg, index) in section.Arguments.args" :key="index">
+          <span class="argument">{{ arg.name }}</span
+          >:&nbsp;
           <span v-html="arg.description ?? 'Invalid description'"></span>
         </li>
       </ul>
     </div>
   </div>
+  <!-- eslint-enable vue/no-v-html -->
 </template>
 
 <style scoped>
@@ -70,8 +75,8 @@ const props = defineProps<{ sections: Doc.Section[] }>()
   display: flex;
   align-items: center;
   gap: 0.25em;
- }
- 
+}
+
 div .markedIconImportant {
   margin: 0 0 0 0;
 }
