@@ -304,7 +304,9 @@ postgres_specific_spec connection db_name setup =
             # Unfortunately, performing operations on a Decimal column in postgres can lose information about it being an integer column.
             t2.at "Y" . value_type . scale . should_equal Nothing
             t2.at "X" . to_vector . should_equal [10, x]
+            # Only works by approximation:
             t2.at "Y" . to_vector . should_equal [20, x+10]
+            t2.at "Y" . cast Value_Type.Char . to_vector . should_equal ["20", (x+10).to_text]
 
             m2 = t2.remove_warnings.read
             m2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
