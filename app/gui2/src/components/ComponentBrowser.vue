@@ -38,9 +38,11 @@ import { default as DocumentationPanel } from '@/components/DocumentationPanel.v
 const transform = computed(() => {
   const nav = props.navigator
   const translate = nav.translate
-  const position = translate.add(props.position).scale(nav.scale)
+   const position = translate.add(props.position).scale(nav.scale)
+   const x = Math.round(position.x)
+   const y = Math.round(position.y)
 
-  return `translate(${position.x}px, ${position.y}px) translateY(-100%)`
+  return `translate(${x}px, ${y}px) translateY(-100%)`
 })
 
  // === Input and Filtering ===
@@ -89,7 +91,7 @@ const transform = computed(() => {
        inputField.value.focus({ preventScroll: true })
      }
    } else {
-     //emit('finished')
+     emit('finished')
    }
  }
 
