@@ -163,7 +163,7 @@ export function parsedTokenRange(token: Token): ContentRange {
 }
 
 export function parsedTreeOrTokenRange(node: Tree | Token): ContentRange {
-  if (node instanceof Tree.AbstractBase) return parsedTreeRange(node)
+  if (Tree.isInstance(node)) return parsedTreeRange(node)
   else return parsedTokenRange(node)
 }
 

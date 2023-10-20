@@ -46,38 +46,23 @@ export const useGraphStore = defineStore('graph', () => {
     const delta = event.changes.delta
     if (delta.length === 0) return
 
-    const affectedRanges: ContentRange[] = []
-    function addAffectedRange(range: ContentRange) {
-      const lastRange = affectedRanges[affectedRanges.length - 1]
-      if (lastRange?.[1] === range[0]) {
-        lastRange[1] = range[1]
-      } else {
-        affectedRanges.push(range)
-      }
-    }
-
     let newContent = ''
     let oldIdx = 0
-    let newIdx = 0
     for (const op of delta) {
       if (op.retain) {
         newContent += textContent.value.substring(oldIdx, oldIdx + op.retain)
         oldIdx += op.retain
-        newIdx += op.retain
       } else if (op.delete) {
-        addAffectedRange([newIdx, newIdx])
         oldIdx += op.delete
       } else if (op.insert && typeof op.insert === 'string') {
-        addAffectedRange([newIdx, newIdx + op.insert.length])
         newContent += op.insert
-        newIdx += op.insert.length
       } else {
         console.error('Unexpected Yjs operation:', op)
       }
     }
     newContent += textContent.value.substring(oldIdx)
     textContent.value = newContent
-    updateState(affectedRanges)
+    updateState()
   })
 
   watch(text, (value) => {
@@ -87,7 +72,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   const _ast = ref<Ast.Tree>()
 
-  function updateState(affectedRangesPostChange?: ContentRange[]) {
+  function updateState() {
     const module = proj.module
     if (module == null) return
     module.transact(() => {
@@ -118,16 +103,6 @@ export const useGraphStore = defineStore('graph', () => {
           if (node == null) {
             nodeInserted(newNode, meta.get(nodeId))
           } else {
-            // if (affectedRangesPostChange != null) {
-            //   const spanRange = nodeAst.spanRange()
-            //   const firstIdx = affectedRangesPostChange.findIndex(([_, e]) => e >= spanRange[0])
-            //   const lastIdx = affectedRangesPostChange.findIndex(([s, _]) => s <= spanRange[1])
-            //   if (firstIdx === -1 || lastIdx === -1) break
-            //   const rangesToCheck = affectedRangesPostChange.slice(firstIdx, lastIdx)
-            //   affectedRangesPostChange = affectedRangesPostChange.slice(firstIdx)
-            //   const nodeAffected = rangesToCheck.some((r) => rangeIntersects(spanRange, r))
-            //   if (!nodeAffected) continue
-            // }
             nodeUpdated(node, newNode, meta.get(nodeId))
           }
         }
