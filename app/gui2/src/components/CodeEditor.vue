@@ -52,7 +52,7 @@ watchEffect(() => {
         foldGutter(),
         highlightSelectionMatches(),
         tooltips({ position: 'absolute' }),
-        hoverTooltip((ast) => {
+        hoverTooltip((ast, syn) => {
           const dom = document.createElement('div')
           const astSpan = ast.span()
           let foundNode: Node | undefined
@@ -62,17 +62,24 @@ watchEffect(() => {
               break
             }
           }
-          if (foundNode == null) return
-          const expressionInfo = projectStore.computedValueRegistry.getExpressionInfo(
-            foundNode.rootSpan.astId,
-          )
-          if (expressionInfo == null) return
+          const expressionInfo = foundNode
+            ? projectStore.computedValueRegistry.getExpressionInfo(foundNode.rootSpan.astId)
+            : undefined
+
+          if (foundNode != null) {
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.astId}`))
+          }
+          if (expressionInfo != null) {
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+          }
+
           dom
             .appendChild(document.createElement('div'))
-            .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.astId}`))
-          dom
-            .appendChild(document.createElement('div'))
-            .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+            .appendChild(document.createTextNode(`Syntax: ${syn.toString()}`))
           const method = expressionInfo?.methodCall?.methodPointer
           if (method != null) {
             const moduleName = tryQualifiedName(method.module)

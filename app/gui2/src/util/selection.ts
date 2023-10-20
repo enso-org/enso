@@ -16,7 +16,7 @@ export function useSelection<T>(
   } = {},
 ) {
   const anchor = shallowRef<Vec2>()
-  let initiallySelected = new Set<T>()
+  const initiallySelected = new Set<T>()
   const selected = reactive(new Set<T>())
 
   function readInitiallySelected() {

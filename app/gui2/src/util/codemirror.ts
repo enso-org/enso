@@ -35,6 +35,7 @@ import {
   Tree,
   type Input,
   type PartialParse,
+  type SyntaxNode,
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
@@ -51,22 +52,24 @@ const nodeTypes: NodeType[] = [
 const nodeSet = new NodeSet(nodeTypes).extend(
   styleTags({
     Ident: tags.variableName,
-    Private: tags.variableName,
+    'Private!': tags.variableName,
     Number: tags.number,
-    Wildcard: tags.variableName,
-    TextLiteral: tags.string,
-    OprApp: tags.operator,
+    'Wildcard!': tags.variableName,
+    'TextLiteral!': tags.string,
+    'OprApp!': tags.operator,
+    TokenOperator: tags.operator,
+    'Assignment/TokenOperator': tags.definitionOperator,
     UnaryOprApp: tags.operator,
-    Function: tags.function(tags.variableName),
+    'Function/Ident': tags.function(tags.variableName),
     ForeignFunction: tags.function(tags.variableName),
-    Import: tags.function(tags.moduleKeyword),
+    'Import!': tags.function(tags.moduleKeyword),
     Export: tags.function(tags.moduleKeyword),
     Lambda: tags.function(tags.variableName),
     Documented: tags.docComment,
     ConstructorDefinition: tags.function(tags.variableName),
   }),
   foldNodeProp.add({
-    Function: (node) => node,
+    Function: (node) => node.lastChild,
     ArgumentBlockApplication: (node) => node,
     OperatorBlockApplication: (node) => node,
   }),
@@ -82,12 +85,9 @@ function astToCodeMirrorTree(
   const [start, end] = ast.span()
   const children = ast.children()
 
-  const hasSingleTokenChild =
-    ast.whitespaceLength() === 0 && children.length === 1 && children[0]!.isToken()
+  const hasSingleTokenChild = children.length === 1 && children[0]!.isToken()
   const childrenToConvert = hasSingleTokenChild ? [] : children
 
-  const t = nodeSet.types[ast.inner.type + (ast.isToken() ? Ast.Tree.typeNames.length : 0)]!
-  console.log(ast.treeTypeName(), t.name, hasSingleTokenChild)
   const tree = new Tree(
     nodeSet.types[ast.inner.type + (ast.isToken() ? Ast.Tree.typeNames.length : 0)]!,
     childrenToConvert.map((child) => astToCodeMirrorTree(nodeSet, child)),
@@ -95,7 +95,6 @@ function astToCodeMirrorTree(
     end - start,
     [...(props ?? []), [astProp, ast]],
   )
-  console.log(tree)
   return tree
 }
 
@@ -122,6 +121,7 @@ class EnsoParser extends Parser {
           const ast = AstExtended.parse(code)
           console.log(ast.debug())
           self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [[languageDataProp, facet]])
+          console.log(self.cachedTree)
         }
         return self.cachedTree
       },
@@ -142,18 +142,21 @@ export function enso() {
 }
 
 export function hoverTooltip(
-  create: (node: AstNode) => TooltipView | ((view: EditorView) => TooltipView) | null | undefined,
+  create: (
+    ast: AstNode,
+    syntax: SyntaxNode,
+  ) => TooltipView | ((view: EditorView) => TooltipView) | null | undefined,
 ) {
   return originalHoverTooltip((view, pos, side) => {
-    const node = syntaxTree(view.state).resolveInner(pos, side)
-    const ast = node.tree?.prop(astProp)
-    if (ast == null) return null
-    const domOrCreate = create(ast)
+    const syntaxNode = syntaxTree(view.state).resolveInner(pos, side)
+    const astNode = syntaxNode.tree?.prop(astProp)
+    if (astNode == null) return null
+    const domOrCreate = create(astNode, syntaxNode)
     if (domOrCreate == null) return null
 
     return {
-      pos: node.from,
-      end: node.to,
+      pos: syntaxNode.from,
+      end: syntaxNode.to,
       above: true,
       arrow: true,
       create: typeof domOrCreate !== 'function' ? () => domOrCreate : domOrCreate,
