@@ -358,6 +358,20 @@ postgres_specific_spec connection db_name setup =
             table.at "A" . to_vector . should_equal v_at_z
             table.at "A" . to_vector . should_equal_tz_agnostic v
 
+            ## We also check how the timestamp column behaves with interpolations:
+               (See analogous test showing a less nice behaviour without timezones below.)
+            v.each my_dt-> Test.with_clue my_dt.to_text+" " <|
+                # Depending on test runner's timezone, the `my_dt` may be equal to 1 or 2 entries in `v`.
+                equals_tz_agnostic dt1 dt2 =
+                    dt1.at_zone tz_zero == dt2.at_zone tz_zero
+                local_equals = v.filter (equals_tz_agnostic my_dt)
+                [1, 2].should_contain local_equals.length
+
+                Test.with_clue " == "+local_equals.to_text+": " <|
+                    t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                    t2.row_count . should_equal local_equals.length
+                    t2.at "A" . to_vector . should_equal_tz_agnostic local_equals
+
         Test.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
             table_name = Name_Generator.random_name "Timestamp"
             table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
@@ -388,11 +402,35 @@ postgres_specific_spec connection db_name setup =
             Problems.assume_no_problems materialized_table
 
             # We also check how the timestamp column behaves with interpolations:
-            v.each my_dt->
+            v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
                 t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
-                IO.println my_dt
-                t2.print
-                IO.println ""
+                is_in_system_tz = my_dt.at_zone Time_Zone.system . time_of_day == my_dt.time_of_day
+                ## Unfortunately, this will work in the following way:
+                   - if the date-time represented as local time in the current system default timezone is 15:30,
+                     then it will match _all_ entries (as they do not have a timezone).
+                   - otherwise, the date-time is converted into UTC before being passed to the Database,
+                     and only then the timezone is stripped - so the local time is actually shifted.
+
+                   This is not ideal - ideally we'd want the local date time to be extracted from the timestamp directly,
+                   before any date conversions happen - this way in _all_ 4 cases we would get 15:30 local time
+                   and all rows would always be matching.
+
+                   That logic is applied when uploading a table. However, in custom queries, we do not currently have
+                   enough metadata to infer that the Date_Time that is being passed to a given `?` hole in the query
+                   should be treated as a local date-time or a zoned date-time.
+                   Thus, we pass it as zoned by default to avoid losing information - and that triggers the conversion
+                   on the Database side. If we want to change that, we would need to add metadata within our operations,
+                   so that an operation like `==` will infer the expected type of the `?` hole based on the type of the
+                   second operand.
+                case is_in_system_tz of
+                    True ->
+                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_equal "15:30:00"
+                        t2.row_count . should_equal 4
+                        t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+                    False ->
+                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_not_equal "15:30:00"
+                        t2.row_count . should_equal 0
+                        t2.at "A" . to_vector . should_equal []
 
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
