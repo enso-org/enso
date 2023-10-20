@@ -385,6 +385,13 @@ postgres_specific_spec connection db_name setup =
             # The Inexact_Type_Coercion warning is silenced for this case:
             Problems.assume_no_problems materialized_table
 
+            # We also check how the timestamp column behaves with interpolations:
+            v.each my_dt->
+                t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                IO.println my_dt
+                t2.print
+                IO.println ""
+
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
             col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
