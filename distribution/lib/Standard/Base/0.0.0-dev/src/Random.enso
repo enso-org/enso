@@ -32,7 +32,7 @@ type Random
        Arguments:
        - seed: The seed used to initialze the `Random_Generator`.
     new_generator : Integer -> Random_Generator
-    new_generator seed=get_default_seed = Random_Generator.new seed
+    new_generator (seed:Integer=get_default_seed) = Random_Generator.new seed
 
     ## TEXT_ONLY
        GROUP Random
@@ -49,7 +49,7 @@ type Random
 
              Random.set_seed 42
     set_seed : Integer -> Nothing
-    set_seed seed = Random_Utils.seedRandomsSingleton seed
+    set_seed (seed:Integer=get_default_seed) = Random_Utils.seedRandomsSingleton seed
 
     ## GROUP Random
        Return a random `Integer` between `min` (inclusive) and `max`
@@ -66,7 +66,7 @@ type Random
 
               i = Random.integer 1 11
     integer : Integer -> Integer -> Integer
-    integer min max = Random.default_instance.integer min max
+    integer (min:Integer) (max:Integer) = Random.default_instance.integer min max
 
     ## GROUP Random
        Return a random `Float` in the specified range.
@@ -82,7 +82,7 @@ type Random
 
               i = Random.float 2.3 3.4
     float : Float -> Float -> Float
-    float min=0.0 max=1.0 = Random.default_instance.float min max
+    float (min:Float=0.0) (max:Float=1.0) = Random.default_instance.float min max
 
     ## GROUP Random
        Return a random `Boolean` using the default instance of
@@ -112,7 +112,7 @@ type Random
 
               f = Random.gaussian
     gaussian : Float -> Float -> Float
-    gaussian standard_deviation=1.0 mean=0.0 = Random.default_instance.gaussian standard_deviation mean
+    gaussian (standard_deviation:Float=1.0) (mean:Float=0.0) = Random.default_instance.gaussian standard_deviation mean
 
     ## GROUP Random
        Returns `count` indices sampled from the range [0, n-1] (inclusive)
@@ -129,7 +129,7 @@ type Random
 
               indices = Random.indices 100 10
     indices : Integer -> Integer -> Vector Integer
-    indices n count=1 = Random.default_instance.indices n count
+    indices (n:Integer) (count:Integer=1) = Random.default_instance.indices n count
 
     ## GROUP Random
        Return a `Date` within the specified `Date_Range`.
@@ -146,7 +146,7 @@ type Random
              range = Date_Range.new (Date.new 2023 03 01) (Date.new 2023 10 15)
              d = Random.date range
     date : Date_Range -> Date
-    date date_range = Random.default_instance.date date_range
+    date (date_range:Date_Range) = Random.default_instance.date date_range
 
     ## GROUP Random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
@@ -169,7 +169,7 @@ type Random
              end = Time_Of_Day.new 9 40 2
              t = Random.time start end
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
-    time start_time=(Time_Of_Day.new 0 0 0) end_time=(Time_Of_Day.new 23 59 59) =
+    time (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
         Random.default_instance.time start_time end_time
 
     ## GROUP Random
@@ -210,7 +210,7 @@ type Random
 
              items = Random.items [1, 2, 3, 4]
     item : Vector Any -> Integer -> Boolean -> Any
-    item v count=1 with_replacement=False = Random.default_instance.item v count with_replacement
+    item (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random.default_instance.item v count with_replacement
 
     ## GROUP Random
        Returns a random permutation of the input `Vector`.
@@ -225,7 +225,7 @@ type Random
 
              permuted = Random.permute [1, 2, 3, 4]
     permute : Vector Any -> Vector Any
-    permute v = Random.default_instance.permute v
+    permute (v:Vector) = Random.default_instance.permute v
 
     ## PRIVATE
        Return the default instance.
@@ -237,19 +237,19 @@ type Random_Generator
     ## PRIVATE
        Create a new rng with the given seed.
     new : Integer -> Random_Generator
-    new seed = Random_Generator.Value (Java_Random.new seed)
+    new (seed:Integer) = Random_Generator.Value (Java_Random.new seed)
 
     ## PRIVATE
     Value (java_random : Java_Random)
 
     integer : Integer -> Integer -> Integer
-    integer self min max =
+    integer self (min:Integer) (max:Integer) =
         range = max - min
         if range >= Java_Integer.MAX_VALUE then Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.") else
           min + (self.java_random.nextInt range)
 
     float : Float -> Float -> Float
-    float self min=0.0 max=1.0 =
+    float self (min:Float=0.0) (max:Float=1.0) =
         range = max - min
         self.java_random.nextDouble * range + min
 
@@ -258,19 +258,19 @@ type Random_Generator
         self.java_random.nextBoolean
 
     gaussian : Float -> Float -> Float
-    gaussian self standard_deviation=1.0 mean=0.0 =
+    gaussian self (standard_deviation:Float=1.0) (mean:Float=0.0) =
         self.java_random.nextGaussian * standard_deviation + mean
 
     indices : Integer -> Integer -> Vector Integer
-    indices self n count=1 =
+    indices self (n:Integer) (count:Integer=1) =
         array = Random_Utils.random_indices n count self.java_random
         Vector.from_polyglot_array array
 
     date : Date_Range -> Date
-    date self date_range = date_range.at (self.integer 0 date_range.length)
+    date self (date_range:Date_Range) = date_range.at (self.integer 0 date_range.length)
 
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
-    time self start_time=(Time_Of_Day.new 0 0 0) end_time=(Time_Of_Day.new 23 59 59) =
+    time self (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
         ## The time range end is inclusive because it is impossible to specify
            an end time after the last second of the day.
         seconds = self.integer 0 (end_time.to_seconds - start_time.to_seconds + 1)
@@ -280,7 +280,7 @@ type Random_Generator
     uuid self = UUID.randomUUID.to_text
 
     item : Vector Any -> Integer -> Boolean -> Any
-    item self v count=1 with_replacement=False =
+    item self (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) =
         case with_replacement of
             True ->
                 len = v.length
@@ -290,7 +290,7 @@ type Random_Generator
                 Vector.from_polyglot_array new_array
 
     permute : Vector Any -> Vector Any
-    permute self v = self.item v v.length False
+    permute self (v:Vector) = self.item v v.length False
 
 ## PRIVATE
    Returns a default seed to use for random number generation.
