@@ -6,6 +6,7 @@ import org.enso.languageserver.data.ProjectDirectoriesConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** Directories initialization. */
 public class DirectoriesInitialization implements InitializationComponent {
 
   private final Executor executor;
@@ -14,6 +15,12 @@ public class DirectoriesInitialization implements InitializationComponent {
 
   private volatile boolean isInitialized = false;
 
+  /**
+   * Creates the directories initialization component.
+   *
+   * @param executor the executor that runs the initialization
+   * @param projectDirectoriesConfig the directories config
+   */
   public DirectoriesInitialization(
       Executor executor, ProjectDirectoriesConfig projectDirectoriesConfig) {
     this.executor = executor;

@@ -9,6 +9,7 @@ import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** Initialize the Truffle context. */
 public class TruffleContextInitialization implements InitializationComponent {
 
   private final Executor executor;
@@ -19,6 +20,13 @@ public class TruffleContextInitialization implements InitializationComponent {
 
   private volatile boolean isInitialized = false;
 
+  /**
+   * Creates an instance of Truffle initialization component.
+   *
+   * @param executor the executor that runs the initialization
+   * @param eventStream the events stream
+   * @param truffleContext the Truffle context
+   */
   public TruffleContextInitialization(
       Executor executor, Context truffleContext, EventStream eventStream) {
     this.executor = executor;

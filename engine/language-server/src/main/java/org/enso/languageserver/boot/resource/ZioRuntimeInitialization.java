@@ -8,6 +8,7 @@ import org.enso.languageserver.event.InitializedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** Initialization of ZIO runtime. */
 public class ZioRuntimeInitialization implements InitializationComponent {
 
   private final Executor executor;
@@ -17,6 +18,13 @@ public class ZioRuntimeInitialization implements InitializationComponent {
 
   private volatile boolean isInitialized = false;
 
+  /**
+   * Create an instance of ZIO runtime initialization component.
+   *
+   * @param executor the executor that runs the initialization
+   * @param runtime the runtime to initialize
+   * @param eventStream the events stream
+   */
   public ZioRuntimeInitialization(Executor executor, Runtime runtime, EventStream eventStream) {
     this.executor = executor;
     this.runtime = runtime;

@@ -6,6 +6,7 @@ import org.enso.jsonrpc.ProtocolFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** Initialization of JSON-RPC protocol. */
 public class JsonRpcInitialization implements InitializationComponent {
 
   private final Executor executor;
@@ -14,6 +15,12 @@ public class JsonRpcInitialization implements InitializationComponent {
 
   private volatile boolean isInitialized = false;
 
+  /**
+   * Create an instance of JSON-RPC initialization component.
+   *
+   * @param executor the executor that runs the initialization
+   * @param protocolFactory the JSON-RPC protocol factory
+   */
   public JsonRpcInitialization(Executor executor, ProtocolFactory protocolFactory) {
     this.executor = executor;
     this.protocolFactory = protocolFactory;

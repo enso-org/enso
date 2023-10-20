@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.jdk.javaapi.FutureConverters;
 
+/** Initialization of the Language Server suggestions database. */
 public class RepoInitialization implements InitializationComponent {
 
   private static final int MAX_RETRIES = 3;
@@ -35,6 +36,15 @@ public class RepoInitialization implements InitializationComponent {
 
   private volatile boolean isInitialized = false;
 
+  /**
+   * Create an instance of repo initialization component.
+   *
+   * @param executor the executor that runs the initialization
+   * @param projectDirectoriesConfig configuration of language server directories
+   * @param eventStream the events stream
+   * @param sqlDatabase the sql database
+   * @param sqlSuggestionsRepo the suggestions repo
+   */
   public RepoInitialization(
       Executor executor,
       ProjectDirectoriesConfig projectDirectoriesConfig,
