@@ -1,2 +1,2 @@
-* text eol=lf
+*.enso text eol=lf
 *.png binary

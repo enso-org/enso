@@ -259,7 +259,7 @@ type Postgres_Dialect
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported "PostgreSQL"
 
 
     ## PRIVATE
@@ -596,7 +596,7 @@ replace args metadata =
                         Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> Nothing
     case expression of
-        Nothing -> replace_params.throw_unsupported
+        Nothing -> replace_params.throw_unsupported "PostgreSQL"
        _ -> expression
 
 ## PRIVATE

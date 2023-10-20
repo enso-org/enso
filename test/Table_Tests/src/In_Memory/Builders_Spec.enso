@@ -2,8 +2,9 @@ from Standard.Base import all
 
 from Standard.Table import Column
 from Standard.Table.Internal.Java_Exports import make_inferred_builder
+import Standard.Table.Internal.Java_Problems
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 type My
@@ -20,21 +21,25 @@ spec = Test.group "[In-Memory] Storage Builders" <|
            other ones, selecting the types automatically.
         elem = ['X', 42, 1.5, My.Data 1 2, Date.new 2022 8 27, Time_Of_Day.new 18 00, Date_Time.new 2022 8 27 11 22 25, "a", Nothing]
         elem.each e-> Test.with_clue "{"+e.to_text+"}: " <|
-            builder = make_inferred_builder 1
-            vector = Vector.fill 10 e + Vector.fill 1000 Nothing + Vector.fill 5 e
-            0.up_to 10 . each _->
-                builder.append e
-            builder.appendNulls 1000
-            0.up_to 5 . each _->
-                builder.append e
-            storage = builder.seal
-            column = Column.from_storage "X" storage
-            column.to_vector . should_equal vector
+            r = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+                builder = make_inferred_builder 1 java_problem_aggregator
+                vector = Vector.fill 10 e + Vector.fill 1000 Nothing + Vector.fill 5 e
+                0.up_to 10 . each _->
+                    builder.append e
+                builder.appendNulls 1000
+                0.up_to 5 . each _->
+                    builder.append e
+                storage = builder.seal
+                column = Column.from_storage "X" storage
+                column.to_vector . should_equal vector
+            Problems.assume_no_problems r
 
     Test.specify "Inferred Builder should correctly resize when retyping to a mixed column, with an underestimated initial size" <|
         mixed_values = [10, 11, 22, 23, 24, 25, '2020-02-28']
-        builder = make_inferred_builder 3
-        mixed_values.map v-> builder.append v
-        storage = builder.seal
-        column = Column.from_storage "X" storage
-        column.to_vector . should_equal mixed_values
+        r = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            builder = make_inferred_builder 3 java_problem_aggregator
+            mixed_values.map v-> builder.append v
+            storage = builder.seal
+            column = Column.from_storage "X" storage
+            column.to_vector . should_equal mixed_values
+        Problems.assume_no_problems r

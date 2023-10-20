@@ -218,7 +218,7 @@ spec =
 
             r5 = Column.from_vector "X" [12, Date_Time.new 2023 08 22 18 17 zone=Time_Zone.utc] Value_Type.Integer
             r5.should_fail_with Invalid_Value_Type
-            r5.catch.to_display_text.should_contain "Expected type Integer (64 bits), but got a value 2023-08-22 18:17:00 UTC of type Date_Time (with_timezone=True)"
+            r5.catch.to_display_text.should_contain "Expected type Integer (64 bits), but got a value 2023-08-22 18:17:00[UTC] of type Date_Time (with_timezone=True)"
 
             r6 = Column.from_vector "X" [12, Date.new 2023 08 22] Value_Type.Byte
             r6.should_fail_with Invalid_Value_Type

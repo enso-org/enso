@@ -436,6 +436,7 @@ object Name {
     * @param name        the literal text of the name
     * @param isMethod    is this a method call name
     * @param location    the source location that the node corresponds to
+    * @param originalName the name which this literal has replaced, if any
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
@@ -443,6 +444,7 @@ object Name {
     override val name: String,
     override val isMethod: Boolean,
     override val location: Option[IdentifiedLocation],
+    originalName: Option[Name]                  = None,
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name {
@@ -453,6 +455,7 @@ object Name {
       * @param name        the literal text of the name
       * @param isMethod    is this a method call name
       * @param location    the source location that the node corresponds to
+      * @param originalName the name which this literal has replaced, if any
       * @param passData    the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       * @param id          the identifier for the new node
@@ -462,12 +465,13 @@ object Name {
       name: String                         = name,
       isMethod: Boolean                    = isMethod,
       location: Option[IdentifiedLocation] = location,
+      originalName: Option[Name]           = originalName,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: Identifier                       = id
     ): Literal = {
       val res =
-        Literal(name, isMethod, location, passData, diagnostics)
+        Literal(name, isMethod, location, originalName, passData, diagnostics)
       res.id = id
       res
     }

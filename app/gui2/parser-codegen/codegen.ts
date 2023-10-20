@@ -15,6 +15,7 @@ import {
   abstractTypeVariants,
   fieldDeserializer,
   fieldDynValue,
+  fieldVisitor,
   seekViewDyn,
   support,
   supportImports,
@@ -28,7 +29,7 @@ import {
   toCamel,
   toPascal,
 } from './util.js'
-const tsf = ts.factory
+const tsf: ts.NodeFactory = ts.factory
 
 const addressIdent = tsf.createIdentifier('address')
 const viewIdent = tsf.createIdentifier('view')
@@ -292,6 +293,60 @@ function makeDebugFunction(fields: Field[], typeName?: string): ts.MethodDeclara
   )
 }
 
+function makeVisitFunction(fields: Field[]): ts.MethodDeclaration {
+  const ident = tsf.createIdentifier('visitChildren')
+  const visitorParam = tsf.createIdentifier('visitor')
+  const visitorParamDecl = tsf.createParameterDeclaration(
+    undefined,
+    undefined,
+    visitorParam,
+    undefined,
+    support.ObjectVisitor,
+  )
+  const visitSuperChildren = tsf.createCallExpression(
+    tsf.createPropertyAccessExpression(tsf.createSuper(), ident),
+    undefined,
+    [visitorParam],
+  )
+  const fieldVisitations: ts.Expression[] = []
+  for (const field of fields) {
+    if (field.type.visitor === 'visitValue') {
+      fieldVisitations.push(
+        tsf.createCallExpression(visitorParam, undefined, [
+          tsf.createPropertyAccessExpression(tsf.createThis(), field.name),
+        ]),
+      )
+    } else if (field.type.visitor != null) {
+      fieldVisitations.push(
+        tsf.createCallExpression(
+          tsf.createPropertyAccessExpression(tsf.createThis(), toCamel('visit_' + field.name)),
+          undefined,
+          [visitorParam],
+        ),
+      )
+    }
+  }
+  const toBool = (value: ts.Expression) =>
+    tsf.createPrefixUnaryExpression(
+      ts.SyntaxKind.ExclamationToken,
+      tsf.createPrefixUnaryExpression(ts.SyntaxKind.ExclamationToken, value),
+    )
+  const expression = fieldVisitations.reduce(
+    (lhs, rhs) => tsf.createBinaryExpression(lhs, ts.SyntaxKind.BarBarToken, toBool(rhs)),
+    visitSuperChildren,
+  )
+  return tsf.createMethodDeclaration(
+    undefined,
+    undefined,
+    ident,
+    undefined,
+    undefined,
+    [visitorParamDecl],
+    tsf.createTypeReferenceNode('boolean'),
+    tsf.createBlock([tsf.createReturnStatement(expression)]),
+  )
+}
+
 function makeGetters(id: string, schema: Schema.Schema, typeName?: string): ts.ClassElement[] {
   const serialization = schema.serialization[id]
   const type = schema.types[id]
@@ -301,7 +356,18 @@ function makeGetters(id: string, schema: Schema.Schema, typeName?: string): ts.C
     if (field == null) throw new Error(`Invalid field name '${name}' for type '${type.name}'`)
     return makeField(name, field, offset, schema)
   })
-  return [...fields.map(makeGetter), makeDebugFunction(fields, typeName)]
+  return [
+    ...fields.map(makeGetter),
+    ...fields.map(makeElementVisitor).filter((v): v is ts.ClassElement => v != null),
+    makeVisitFunction(fields),
+    makeDebugFunction(fields, typeName),
+  ]
+}
+
+function makeElementVisitor(field: Field): ts.ClassElement | undefined {
+  if (field.type.visitor == null) return undefined
+  const ident = tsf.createIdentifier(toCamel('visit_' + field.name))
+  return fieldVisitor(ident, field.type, field.offset)
 }
 
 function makeClass(
@@ -413,6 +479,7 @@ function makeAbstractType(
   const ty = schema.types[id]!
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
+  const type = tsf.createTypeReferenceNode(ident)
   const baseIdent = tsf.createIdentifier('AbstractBase')
   const childTypes = Array.from(Object.entries(discriminants), ([discrim, id]: [string, string]) =>
     makeChildType(baseIdent, id, discrim, schema),
@@ -448,6 +515,7 @@ function makeAbstractType(
         viewIdent,
         abstractTypeDeserializer(ident, viewIdent, addressIdent),
       ),
+      makeIsInstance(type, baseIdent),
     ]),
   )
   const abstractTypeExport = tsf.createTypeAliasDeclaration(
@@ -457,4 +525,25 @@ function makeAbstractType(
     tsf.createTypeReferenceNode(tsf.createQualifiedName(tsf.createIdentifier(name), name)),
   )
   return { module: moduleDecl, export: abstractTypeExport }
+}
+
+function makeIsInstance(type: ts.TypeNode, baseIdent: ts.Identifier): ts.FunctionDeclaration {
+  const param = tsf.createIdentifier('obj')
+  const paramDecl = tsf.createParameterDeclaration(
+    undefined,
+    undefined,
+    param,
+    undefined,
+    tsf.createTypeReferenceNode('unknown'),
+  )
+  const returnValue = tsf.createBinaryExpression(param, ts.SyntaxKind.InstanceOfKeyword, baseIdent)
+  return tsf.createFunctionDeclaration(
+    [modifiers.export],
+    undefined,
+    'isInstance',
+    undefined,
+    [paramDecl],
+    tsf.createTypePredicateNode(undefined, param, type),
+    tsf.createBlock([tsf.createReturnStatement(returnValue)]),
+  )
 }

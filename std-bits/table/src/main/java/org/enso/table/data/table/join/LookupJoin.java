@@ -12,6 +12,7 @@ import org.enso.table.data.table.Table;
 import org.enso.table.error.NonUniqueLookupKey;
 import org.enso.table.error.NullValuesInKeyColumns;
 import org.enso.table.error.UnmatchedRow;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 
 import java.util.Arrays;
@@ -22,18 +23,23 @@ import java.util.stream.IntStream;
 public class LookupJoin {
   private static final TextFoldingStrategy TEXT_FOLDING = TextFoldingStrategy.unicodeNormalizedFold;
 
-  public static Table lookupAndReplace(List<Equals> keys, List<LookupColumnDescription> columnDescriptions,
-                                       boolean allowUnmatchedRows) {
+  public static Table lookupAndReplace(
+      List<Equals> keys,
+      List<LookupColumnDescription> columnDescriptions,
+      boolean allowUnmatchedRows,
+      ProblemAggregator problemAggregator
+  ) {
     if (keys.isEmpty()) {
       throw new IllegalArgumentException("No join keys specified.");
     }
 
-    LookupJoin joiner = new LookupJoin(keys, columnDescriptions, allowUnmatchedRows);
+    LookupJoin joiner = new LookupJoin(keys, columnDescriptions, allowUnmatchedRows, problemAggregator);
     joiner.checkNullsInKey();
     joiner.verifyLookupUniqueness();
     return joiner.join();
   }
 
+  private final ProblemAggregator problemAggregator;
   private final List<LookupColumnDescription> columnDescriptions;
   private final List<String> keyColumnNames;
 
@@ -48,10 +54,12 @@ public class LookupJoin {
     return new UnorderedMultiValueKey(baseKeyStorages, ix, textFoldingStrategies);
   }
 
-  private LookupJoin(List<Equals> keys, List<LookupColumnDescription> columnDescriptions, boolean allowUnmatchedRows) {
+  private LookupJoin(List<Equals> keys, List<LookupColumnDescription> columnDescriptions, boolean allowUnmatchedRows,
+                     ProblemAggregator problemAggregator) {
     baseKeyStorages = keys.stream().map(Equals::left).map(Column::getStorage).toArray(Storage[]::new);
     this.columnDescriptions = columnDescriptions;
     this.allowUnmatchedRows = allowUnmatchedRows;
+    this.problemAggregator = problemAggregator;
     textFoldingStrategies = ConstantList.make(TEXT_FOLDING, baseKeyStorages.length);
 
     Column[] lookupKeyColumns = keys.stream().map(Equals::right).toArray(Column[]::new);
@@ -59,7 +67,7 @@ public class LookupJoin {
 
     assert lookupKeyColumns.length > 0;
     // tableSize parameter is only needed if there are no key columns, but that is not possible
-    lookupIndex = MultiValueIndex.makeUnorderedIndex(lookupKeyColumns, 0, textFoldingStrategies);
+    lookupIndex = MultiValueIndex.makeUnorderedIndex(lookupKeyColumns, 0, textFoldingStrategies, problemAggregator);
     baseTableRowCount = baseKeyStorages[0].size();
   }
 
@@ -151,7 +159,7 @@ public class LookupJoin {
         if (allowUnmatchedRows) {
           Storage<?> original = mergeColumns.original().getStorage();
           Storage<?> lookupReplacement = mergeColumns.lookupReplacement().getStorage();
-          Builder builder = Builder.getForType(mergeColumns.commonType(), baseTableRowCount);
+          Builder builder = Builder.getForType(mergeColumns.commonType(), baseTableRowCount, problemAggregator);
           yield new LookupOutputColumn.MergeColumns(name, original, lookupReplacement, builder);
         } else {
           // If we do not allow unmatched rows, we can rely on the OrderMask optimization also for 'merged' columns -

@@ -1,7 +1,7 @@
 import { useProjectStore } from '@/stores/project'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import { assert, assertNever } from '@/util/assert'
-import { Ast, parseEnso } from '@/util/ast'
+import { parseEnso, type Ast } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
@@ -341,7 +341,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   return {
     _parsed,
-    _parsedEnso: _parsedEnso,
+    _parsedEnso,
     transact,
     nodes,
     exprNodes,

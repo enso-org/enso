@@ -424,7 +424,7 @@ public class ErrorCompilerTest extends CompilerTest {
     var errors = assertIR(ir, Syntax.class, 1);
     assertEquals(type, errors.head().reason());
     if (msg != null) {
-      assertEquals(msg, errors.head().message());
+      assertEquals(msg, errors.head().message(null));
     }
     assertEquals(new Location(start, end), errors.head().location().get().location());
   }

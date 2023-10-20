@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { Input } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { useApproach } from '@/util/animation'
-import { useResizeObserver } from '@/util/events'
+import { useEvent, useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
+import type { Opt } from '@/util/opt'
+import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
+import { LoremIpsum } from 'lorem-ipsum'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const ITEM_SIZE = 32
@@ -34,10 +39,10 @@ onMounted(() => {
 
 const transform = computed(() => {
   const nav = props.navigator
-  const pos = props.position
-  return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
-    1 / nav.scale
-  }) translateY(-100%)`
+  const translate = nav.translate
+  const position = translate.add(props.position).scale(nav.scale)
+
+  return `translate(${position.x}px, ${position.y}px) translateY(-100%)`
 })
 
 // === Input and Filtering ===
@@ -57,24 +62,37 @@ const currentFiltering = computed(() => {
 watch(currentFiltering, selectLastAfterRefresh)
 
 function readInputFieldSelection() {
-  if (inputField.value != null) {
-    input.selection.value = {
-      start: inputField.value.selectionStart ?? 0,
-      end: inputField.value.selectionEnd ?? 0,
-    }
+  if (
+    inputField.value != null &&
+    inputField.value.selectionStart != null &&
+    inputField.value.selectionEnd != null
+  ) {
+    input.selection.value.start = inputField.value.selectionStart
+    input.selection.value.end = inputField.value.selectionEnd
   }
 }
+// HTMLInputElement's same event is not supported in chrome yet. We just react for any
+// selectionchange in the document and check if the input selection chagned.
+// BUT some operations like deleting does not emit 'selectionChange':
+// https://bugs.chromium.org/p/chromium/issues/detail?id=725890
+// Therefore we must also refresh selection after changing input.
+useEvent(document, 'selectionchange', readInputFieldSelection)
 
-watch(input.selection, (newPos) => {
-  if (inputField.value == null) return
-  // Do nothing if boundaries didn't change. We don't want to affect selection dir.
-  if (
-    inputField.value.selectionStart == newPos.start &&
-    inputField.value.selectionEnd == newPos.end
-  )
-    return
-  inputField.value.setSelectionRange(newPos.start, newPos.end)
-})
+watch(
+  input.selection,
+  (newPos) => {
+    if (inputField.value == null) return
+    // Do nothing if boundaries didn't change. We don't want to affect selection dir.
+    if (
+      inputField.value.selectionStart == newPos.start &&
+      inputField.value.selectionEnd == newPos.end
+    )
+      return
+    inputField.value.setSelectionRange(newPos.start, newPos.end)
+  },
+  // This update should be after any possible inputField content update.
+  { flush: 'post' },
+)
 
 function handleDefocus(e: FocusEvent) {
   const stillInside =
@@ -147,6 +165,13 @@ const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
 const animatedHighlightPosition = useApproach(highlightPosition)
 const animatedHighlightHeight = useApproach(highlightHeight)
 
+const selectedSuggestion = computed(() => {
+  if (selected.value === null) return null
+  const id = components.value[selected.value]?.suggestionId
+  if (id == null) return null
+  return suggestionDbStore.entries.get(id) ?? null
+})
+
 watch(selectedPosition, (newPos) => {
   if (newPos == null) return
   highlightPosition.value = newPos
@@ -162,22 +187,6 @@ const highlightClipPath = computed(() => {
   let bottom = listContentHeight.value - position - ITEM_SIZE
   return `inset(${top}px 0px ${bottom}px 0px round 16px)`
 })
-
-function navigateUp() {
-  if (selected.value != null && selected.value < components.value.length - 1) {
-    selected.value += 1
-  }
-  scrollToSelected()
-}
-
-function navigateDown() {
-  if (selected.value == null) {
-    selected.value = components.value.length - 1
-  } else if (selected.value > 0) {
-    selected.value -= 1
-  }
-  scrollToSelected()
-}
 
 /**
  * Select the last element after updating component list.
@@ -223,29 +232,49 @@ function updateScroll() {
 // === Documentation Panel ===
 
 const docsVisible = ref(true)
+const docs = new LoremIpsum().generateParagraphs(6)
+
+// === Accepting Entry ===
+
+function applySuggestion(component: Opt<Component> = null): SuggestionEntry | null {
+  const providedSuggestion =
+    component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
+  const suggestion = providedSuggestion ?? selectedSuggestion.value
+  if (suggestion == null) return null
+  input.applySuggestion(suggestion)
+  return suggestion
+}
+
+function acceptSuggestion(index: Opt<Component> = null) {
+  const applied = applySuggestion(index)
+  const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
+  if (shouldFinish) emit('finished')
+}
 
 // === Key Events Handler ===
 
-function handleKeydown(e: KeyboardEvent) {
-  switch (e.key) {
-    case 'Enter':
-      e.stopPropagation()
-      emit('finished')
-      break
-    case 'ArrowUp':
-      e.preventDefault()
-      navigateUp()
-      break
-    case 'ArrowDown':
-      e.preventDefault()
-      navigateDown()
-      break
-    case 'Escape':
-      e.preventDefault()
-      selected.value = null
-      break
-  }
-}
+const handler = componentBrowserBindings.handler({
+  applySuggestion() {
+    applySuggestion()
+  },
+  acceptSuggestion() {
+    acceptSuggestion()
+  },
+  moveUp() {
+    if (selected.value != null && selected.value < components.value.length - 1) {
+      selected.value += 1
+    }
+    scrollToSelected()
+  },
+  moveDown() {
+    if (selected.value == null) {
+      selected.value = components.value.length - 1
+    } else if (selected.value > 0) {
+      selected.value -= 1
+    }
+    scrollToSelected()
+  },
+})
 </script>
 
 <template>
@@ -255,7 +284,8 @@ function handleKeydown(e: KeyboardEvent) {
     :style="{ transform, '--list-height': listContentHeightPx }"
     tabindex="-1"
     @focusout="handleDefocus"
-    @keydown="handleKeydown"
+    @keydown="handler"
+    @pointerdown.stop
   >
     <div class="panels">
       <div class="panel components">
@@ -283,12 +313,29 @@ function handleKeydown(e: KeyboardEvent) {
                 class="component"
                 :style="componentStyle(item.index)"
                 @mousemove="selected = item.index"
+                @click="acceptSuggestion(item.component)"
               >
                 <SvgIcon
                   :name="item.component.icon"
                   :style="{ color: componentColor(item.component) }"
                 />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
             <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
@@ -300,18 +347,43 @@ function handleKeydown(e: KeyboardEvent) {
                   backgroundColor: componentColor(item.component),
                   ...componentStyle(item.index),
                 }"
+                @click="acceptSuggestion(item.component)"
               >
                 <SvgIcon :name="item.component.icon" />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="panel docs" :class="{ hidden: !docsVisible }">DOCS</div>
+      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop.passive>
+        {{ docs }}
+      </div>
     </div>
     <div class="CBInput">
-      <input ref="inputField" v-model="input.code.value" @keyup="readInputFieldSelection" />
+      <input
+        ref="inputField"
+        v-model="input.code.value"
+        name="cb-input"
+        autocomplete="off"
+        @keyup="readInputFieldSelection"
+      />
     </div>
   </div>
 </template>
@@ -357,6 +429,7 @@ function handleKeydown(e: KeyboardEvent) {
   width: 406px;
   clip-path: inset(0 0 0 0 round 20px);
   transition: clip-path 0.2s;
+  overflow-y: auto;
 }
 .docs.hidden {
   clip-path: inset(0 100% 0 0 round 20px);
@@ -394,6 +467,10 @@ function handleKeydown(e: KeyboardEvent) {
   & svg {
     color: white;
   }
+}
+
+.component-label-segment.match {
+  font-weight: bold;
 }
 
 .top-bar {

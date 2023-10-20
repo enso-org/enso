@@ -22,6 +22,7 @@ import project.Excel.Excel_Format.Excel_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 import project.Excel.Excel_Workbook.Excel_Workbook
+import project.Extensions.Prefix_Name.Prefix_Name
 from project.Delimited.Delimited_Format.Delimited_Format import Delimited
 from project.Excel.Excel_Format.Excel_Format import Excel
 from project.Excel.Excel_Section.Excel_Section import Cell_Range, Range_Names, Sheet_Names, Worksheet
@@ -49,6 +50,7 @@ export project.Excel.Excel_Format.Excel_Format
 export project.Excel.Excel_Range.Excel_Range
 export project.Excel.Excel_Section.Excel_Section
 export project.Excel.Excel_Workbook.Excel_Workbook
+export project.Extensions.Prefix_Name.Prefix_Name
 from project.Delimited.Delimited_Format.Delimited_Format export Delimited
 from project.Excel.Excel_Format.Excel_Format export Excel
 from project.Excel.Excel_Section.Excel_Section export Cell_Range, Range_Names, Sheet_Names, Worksheet

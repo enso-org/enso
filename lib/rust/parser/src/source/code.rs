@@ -75,21 +75,24 @@ impl<'s> Code<'s> {
         self.utf16
     }
 
-    /// Split the UTF-8 code at the given byte offset.
-    pub fn split_at(&self, offset: usize) -> (Self, Self) {
-        let (left, right) = self.repr.split_at(offset);
-        let left_utf16 = left.chars().map(|c| c.len_utf16() as u32).sum();
-        let right_utf16 = self.utf16 - left_utf16;
+    /// Return the start and end of the UTF-16 source code for this element.
+    pub fn range_utf16(&self) -> Range<u32> {
+        self.offset_utf16..(self.offset_utf16 + self.utf16)
+    }
+
+    /// Split the code at the given location.
+    pub fn split_at(&self, split: Length) -> (Self, Self) {
+        let (left, right) = self.repr.split_at(split.utf8);
         (
             Self {
                 repr:         StrRef(left),
                 offset_utf16: self.offset_utf16,
-                utf16:        left_utf16,
+                utf16:        split.utf16,
             },
             Self {
                 repr:         StrRef(right),
-                offset_utf16: self.offset_utf16 + left_utf16,
-                utf16:        right_utf16,
+                offset_utf16: self.offset_utf16 + split.utf16,
+                utf16:        self.utf16 - split.utf16,
             },
         )
     }
@@ -209,6 +212,12 @@ pub struct Length {
 }
 
 impl Length {
+    /// Returns the length of the given input.
+    #[inline(always)]
+    pub fn of(s: &str) -> Self {
+        Self { utf8: s.len(), utf16: s.encode_utf16().count() as u32 }
+    }
+
     /// Returns true if the code is empty.
     #[inline(always)]
     pub fn is_zero(&self) -> bool {
@@ -219,6 +228,12 @@ impl Length {
     #[inline(always)]
     pub fn utf8_bytes(&self) -> usize {
         self.utf8
+    }
+
+    /// Return the length in UTF-16 code units.
+    #[inline(always)]
+    pub fn utf16_len(&self) -> u32 {
+        self.utf16
     }
 }
 

@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import all
+import Standard.Table.Internal.Java_Problems
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
@@ -14,12 +15,13 @@ column_from_vector : Text -> Vector -> Boolean -> Column
 column_from_vector name items convert_polyglot_dates =
     expected_storage_type = Nothing
     Illegal_Argument.handle_java_exception <|
-        java_column = case convert_polyglot_dates of
-            True ->
-                Java_Column.fromItems name items expected_storage_type
-            False ->
-                Java_Column.fromItemsNoDateConversion name items expected_storage_type
-        Column.Value java_column
+        Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+            java_column = case convert_polyglot_dates of
+                True ->
+                    Java_Column.fromItems name items expected_storage_type
+                False ->
+                    Java_Column.fromItemsNoDateConversion name items expected_storage_type
+            Column.Value java_column
 
 check_results results =
     mapped = results.map x-> case x of

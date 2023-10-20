@@ -4,10 +4,9 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.parsing.problems.ProblemAggregator;
-import org.enso.table.parsing.problems.ProblemAggregatorImpl;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 import java.util.ArrayList;
@@ -224,7 +223,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     }
 
     @Override
-    protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+    public Object parseSingleValue(String text, ParseProblemAggregator problemAggregator) {
         int index = 0;
         var pattern = patternForIndex(index);
         while (pattern != null) {
@@ -242,18 +241,22 @@ public class NumberParser extends IncrementalDatatypeParser {
     }
 
     @Override
-    public WithAggregatedProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
+    public Storage<?> parseColumn(Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
         int index = 0;
         var pattern = patternForIndex(index);
 
         int bestIndex = 0;
         int bestCount = -1;
         while (pattern != null) {
-            Builder builder = makeBuilderWithCapacity(sourceStorage.size());
+            ProblemAggregator inner = problemAggregator.createSimpleChild();
+            Builder builder = makeBuilderWithCapacity(sourceStorage.size(), inner);
             int failedAt = parseColumnWithPattern(pattern, sourceStorage, builder, null);
             if (failedAt == -1) {
-                return sealBuilderAndMergeProblems(builder, null);
+                return builder.seal();
             }
+
+            // If there was a failure, we abandon this branch - thus we discard any problems that might have been reported by the inner aggregator.
+            inner.detachFromParent();
 
             if (failedAt > bestCount) {
                 bestCount = failedAt;
@@ -264,21 +267,13 @@ public class NumberParser extends IncrementalDatatypeParser {
             pattern = patternForIndex(index);
         }
 
-        Builder fallback = makeBuilderWithCapacity(sourceStorage.size());
-        ProblemAggregator aggregator = new ProblemAggregatorImpl(columnName);
+        CommonParseProblemAggregator aggregator = problemAggregator.createContextAwareChild();
+        Builder fallback = makeBuilderWithCapacity(sourceStorage.size(), aggregator);
         parseColumnWithPattern(patternForIndex(bestIndex), sourceStorage, fallback, aggregator);
-        return sealBuilderAndMergeProblems(fallback, aggregator);
+        return fallback.seal();
     }
 
-    private WithAggregatedProblems<Storage<?>> sealBuilderAndMergeProblems(Builder builder, ProblemAggregator aggregator) {
-        AggregatedProblems problems = builder.getProblems();
-        if (aggregator != null) {
-            problems = AggregatedProblems.merge(problems, aggregator.getAggregatedProblems());
-        }
-        return new WithAggregatedProblems<>(builder.seal(), problems);
-    }
-
-    private int parseColumnWithPattern(Pattern pattern, Storage<String> sourceStorage, Builder builder, ProblemAggregator aggregator) {
+    private int parseColumnWithPattern(Pattern pattern, Storage<String> sourceStorage, Builder builder, ParseProblemAggregator aggregator) {
         Context context = Context.getCurrent();
         for (int i = 0; i < sourceStorage.size(); i++) {
             var text = sourceStorage.getItemBoxed(i);
@@ -304,10 +299,10 @@ public class NumberParser extends IncrementalDatatypeParser {
     }
 
     @Override
-    protected Builder makeBuilderWithCapacity(int capacity) {
+    protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
         return allowDecimal
-                ? NumericBuilder.createDoubleBuilder(capacity)
-                : NumericBuilder.createLongBuilder(capacity, integerTargetType);
+                ? NumericBuilder.createDoubleBuilder(capacity, problemAggregator)
+                : NumericBuilder.createLongBuilder(capacity, integerTargetType, problemAggregator);
     }
 
     private Object innerParseSingleValue(String text, Pattern pattern) {

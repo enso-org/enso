@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch, type Ref } from 'vue'
-
 import { useApproach } from '@/util/animation'
-import { useDocumentEvent } from '@/util/events'
+import { useEvent } from '@/util/events'
 import type { Vec2 } from '@/util/vec2'
+import { computed, ref, watch, type Ref } from 'vue'
 
 const props = defineProps<{
   position: Vec2
@@ -20,7 +19,7 @@ watch(
 )
 
 let lastEventTarget: Element | null
-useDocumentEvent('mouseover', (event) => {
+useEvent(document, 'mouseover', (event) => {
   if (event.target instanceof Element) {
     if (event.target === lastEventTarget) {
       return

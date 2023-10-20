@@ -1,16 +1,16 @@
 package org.enso.table.data.column.operation.map.text;
 
-import java.util.BitSet;
-import java.util.regex.Pattern;
-
 import com.ibm.icu.impl.UnicodeRegex;
 import org.enso.base.Regex_Utils;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
+
+import java.util.BitSet;
+import java.util.regex.Pattern;
 
 public class LikeOp extends StringBooleanOp {
   public LikeOp() {
@@ -37,7 +37,7 @@ public class LikeOp extends StringBooleanOp {
   }
 
   @Override
-  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
