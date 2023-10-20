@@ -3,7 +3,7 @@ import type { Rect } from '@/stores/rect'
 import { usePointer } from '@/util/events'
 import type { NavigatorComposable } from '@/util/navigator'
 import type { Vec2 } from '@/util/vec2'
-import { computed, proxyRefs, reactive, shallowRef } from 'vue'
+import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
@@ -16,8 +16,13 @@ export function useSelection<T>(
   } = {},
 ) {
   const anchor = shallowRef<Vec2>()
-  const initiallySelected = new Set<T>()
+  let initiallySelected = new Set<T>()
   const selected = reactive(new Set<T>())
+
+  function readInitiallySelected() {
+    initiallySelected.clear()
+    for (const id of selected) initiallySelected.add(id)
+  }
 
   function setSelection(newSelection: Set<T>) {
     for (const id of newSelection)
@@ -33,30 +38,30 @@ export function useSelection<T>(
   }
 
   function execAdd() {
-    setSelection(new Set([...initiallySelected, ...intersectingElements.value]))
+    setSelection(new Set([...initiallySelected, ...elementsToSelect.value]))
   }
 
   function execRemove() {
     const newSelection = new Set([...initiallySelected])
-    for (const t of intersectingElements.value) newSelection.delete(t)
+    for (const t of elementsToSelect.value) newSelection.delete(t)
     setSelection(newSelection)
   }
 
   const selectionEventHandler = selectionMouseBindings.handler({
     replace() {
-      setSelection(intersectingElements.value)
+      setSelection(elementsToSelect.value)
     },
     add: execAdd,
     remove: execRemove,
     toggle() {
-      const numCommon = countCommonInSets(initiallySelected, intersectingElements.value)
-      const adding = numCommon * 2 <= intersectingElements.value.size
+      const numCommon = countCommonInSets(initiallySelected, elementsToSelect.value)
+      const adding = numCommon * 2 <= elementsToSelect.value.size
       if (adding) execAdd()
       else execRemove()
     },
     invert() {
       const newSelection = new Set(initiallySelected)
-      for (const id of intersectingElements.value) {
+      for (const id of elementsToSelect.value) {
         if (initiallySelected.has(id)) newSelection.delete(id)
         else newSelection.add(id)
       }
@@ -90,9 +95,19 @@ export function useSelection<T>(
     return intersectingElements
   })
 
+  const overrideElemsToSelect = ref<Set<T>>()
+  const elementsToSelect = computed(() => overrideElemsToSelect.value ?? intersectingElements.value)
+
+  function handleSelectionOf(event: MouseEvent, elements: Set<T>) {
+    readInitiallySelected()
+    overrideElemsToSelect.value = elements
+    selectionEventHandler(event)
+    overrideElemsToSelect.value = undefined
+  }
+
   const pointer = usePointer((pos, event, eventType) => {
     if (eventType === 'start') {
-      initiallySelected.clear()
+      readInitiallySelected()
     } else if (pointer.dragging && anchor.value == null) {
       anchor.value = navigator.sceneMousePos?.copy()
     } else if (eventType === 'stop') {
@@ -109,6 +124,7 @@ export function useSelection<T>(
     },
     deselectAll: () => selected.clear(),
     isSelected: (element: T) => selected.has(element),
+    handleSelectionOf,
     mouseHandler: selectionEventHandler,
     events: pointer.events,
   })

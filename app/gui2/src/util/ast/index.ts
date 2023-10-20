@@ -2,9 +2,12 @@ import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import { parse } from '@/util/ffi'
-import { LazyObject, debug } from '@/util/parserSupport'
+import { LazyObject, LazySequence } from '@/util/parserSupport'
+import * as map from 'lib0/map'
 import type { ContentRange, ExprId, IdMap } from 'shared/yjsModel'
 import { markRaw } from 'vue'
+import type { Opt } from '../opt'
+import { isResult, mapOk } from '../result'
 
 export { Ast }
 
@@ -63,7 +66,16 @@ export function readTokenSpan(token: Token, code: string): string {
 export function childrenAstNodes(obj: LazyObject): Tree[] {
   const children: Tree[] = []
   const visitor = (obj: LazyObject) => {
-    if (Tree.isInstance(obj)) {
+    if (Tree.isInstance(obj)) children.push(obj)
+    else if (!Token.isInstance(obj)) obj.visitChildren(visitor)
+  }
+  obj.visitChildren(visitor)
+  return children
+}
+export function childrenAstNodesOrTokens(obj: LazyObject): (Tree | Token)[] {
+  const children: (Tree | Token)[] = []
+  const visitor = (obj: LazyObject) => {
+    if (Tree.isInstance(obj) || Token.isInstance(obj)) {
       children.push(obj)
     } else {
       obj.visitChildren(visitor)
@@ -112,11 +124,11 @@ export function findAstWithRange(
 
 export function* walkRecursive(node: Tree | Token): Generator<Tree | Token, void, boolean | void> {
   if (false === (yield node)) return
-  const stack: Generator<Tree | Token>[] = [childrenAstNodes(node)]
+  const stack: Iterator<Tree | Token>[] = [childrenAstNodesOrTokens(node).values()]
   while (stack.length > 0) {
     const next = stack[stack.length - 1]!.next()
     if (next.done) stack.pop()
-    else if (false !== (yield next.value)) stack.push(childrenAstNodes(next.value))
+    else if (false !== (yield next.value)) stack.push(childrenAstNodesOrTokens(next.value).values())
   }
 }
 
@@ -154,6 +166,58 @@ export function parsedTreeOrTokenRange(node: Tree | Token): ContentRange {
   if (node instanceof Tree.AbstractBase) return parsedTreeRange(node)
   else return parsedTokenRange(node)
 }
+
+export function debug(obj: unknown): unknown {
+  if (obj instanceof LazyObject) {
+    const proto = Object.getPrototypeOf(obj)
+    const fields = Object.fromEntries(allGetterNames(obj).map((k) => [k, debug((obj as any)[k])]))
+    if (Object.hasOwnProperty.call(obj, 'type')) {
+      const className = proto?.constructor?.name
+      return { type: className, ...fields }
+    } else {
+      return fields
+    }
+  } else if (obj instanceof LazySequence) {
+    return Array.from(obj, debug)
+  } else if (isResult(obj)) {
+    return mapOk(obj, debug)
+  } else {
+    return obj
+  }
+}
+
+const protoGetters = new Map()
+function allGetterNames(obj: object): string[] {
+  let proto = Object.getPrototypeOf(obj)
+  return map.setIfUndefined(protoGetters, proto, () => {
+    const props = new Map<string, PropertyDescriptor>()
+    do {
+      for (const [name, prop] of Object.entries(Object.getOwnPropertyDescriptors(proto))) {
+        if (!props.has(name)) props.set(name, prop)
+      }
+    } while ((proto = Object.getPrototypeOf(proto)))
+    const getters = new Set<string>()
+    for (const [name, prop] of props.entries()) {
+      if (prop.get != null && prop.configurable && !debugHideFields.includes(name)) {
+        getters.add(name)
+      }
+    }
+    return [...getters]
+  })
+}
+
+const debugHideFields = [
+  '_v',
+  '__proto__',
+  'codeReprBegin',
+  'codeReprLen',
+  'leftOffsetCodeReprBegin',
+  'leftOffsetCodeReprLen',
+  'leftOffsetVisible',
+  'spanLeftOffsetCodeReprBegin',
+  'spanLeftOffsetCodeReprLen',
+  'spanLeftOffsetVisible',
+]
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
@@ -329,61 +393,75 @@ if (import.meta.vitest) {
  * AST with additional metadata containing AST IDs and original code reference. Can only be
  * constructed by parsing a full module code.
  */
-export class AstExtended<T extends Tree | Token = Tree | Token> {
+export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends boolean = true> {
   inner: T
-  private ctx: AstExtendedCtx
+  private ctx: AstExtendedCtx<HasIdMap>
 
-  public static parse(moduleCode: string, idMap: IdMap): AstExtended {
+  public static parse(moduleCode: string): AstExtended<Tree, false>
+  public static parse(moduleCode: string, idMap: IdMap): AstExtended<Tree, true>
+  public static parse(moduleCode: string, idMap?: IdMap): AstExtended<Tree, boolean> {
     const ast = parseEnso(moduleCode)
-
-    visitRecursive(ast, (node) => {
-      const range = parsedTreeOrTokenRange(node)
-      idMap.getOrInsertUniqueId(range)
-      return true
-    })
+    if (idMap != null) {
+      visitRecursive(ast, (node) => {
+        const range = parsedTreeOrTokenRange(node)
+        idMap.getOrInsertUniqueId(range)
+        return true
+      })
+    }
 
     const ctx = new AstExtendedCtx(moduleCode, idMap)
-
     return new AstExtended(ast, ctx)
+  }
+
+  treeTypeName(): (typeof Tree.typeNames)[number] | null {
+    return Tree.isInstance(this.inner) ? Tree.typeNames[this.inner.type] : null
   }
 
   isToken<T extends Ast.Token.Type>(
     type?: T,
-  ): this is AstExtended<Extract<Ast.Token, { type: T }>> {
-    return this.inner instanceof Token.AbstractBase && (type == null || this.inner.type === type)
+  ): this is AstExtended<Extract<Ast.Token, { type: T }>, HasIdMap> {
+    return Token.isInstance(this.inner) && (type == null || this.inner.type === type)
   }
 
-  isTree<T extends Ast.Tree.Type>(type?: T): this is AstExtended<Extract<Ast.Tree, { type: T }>> {
-    return this.inner instanceof Tree.AbstractBase && (type == null || this.inner.type === type)
+  isTree<T extends Ast.Tree.Type>(
+    type?: T,
+  ): this is AstExtended<Extract<Ast.Tree, { type: T }>, HasIdMap> {
+    return Tree.isInstance(this.inner) && (type == null || this.inner.type === type)
   }
 
-  private constructor(tree: T, ctx: AstExtendedCtx) {
+  private constructor(tree: T, ctx: AstExtendedCtx<HasIdMap>) {
     markRaw(this)
     this.inner = tree
     this.ctx = ctx
   }
 
-  get astId(): ExprId {
-    const id = this.ctx.idMap.getIfExist(parsedTreeOrTokenRange(this.inner))
-    assert(id != null, 'All AST nodes should have an assigned ID')
-    return id
+  get astId(): CondType<ExprId, HasIdMap> {
+    if (this.ctx.idMap != null) {
+      const id = this.ctx.idMap.getIfExist(parsedTreeOrTokenRange(this.inner))
+      assert(id != null, 'All AST nodes should have an assigned ID')
+      return id as CondType<ExprId, HasIdMap>
+    } else {
+      return undefined as CondType<ExprId, HasIdMap>
+    }
   }
 
-  debug(): any {
+  debug(): unknown {
     return debug(this.inner)
   }
 
-  tryMap<T2 extends Tree>(mapper: (t: T) => Opt<T2>): AstExtended<T2> | undefined {
+  tryMap<T2 extends Tree>(mapper: (t: T) => Opt<T2>): AstExtended<T2, HasIdMap> | undefined {
     const mapped = mapper(this.inner)
     if (mapped == null) return
     return new AstExtended(mapped, this.ctx)
   }
 
-  map<T2 extends Tree | Token>(mapper: (t: T) => T2): AstExtended<T2> {
+  map<T2 extends Tree | Token>(mapper: (t: T) => T2): AstExtended<T2, HasIdMap> {
     return new AstExtended(mapper(this.inner), this.ctx)
   }
 
-  *visit<T2 extends Tree | Token>(visitor: (t: T) => Generator<T2>): Generator<AstExtended<T2>> {
+  *visit<T2 extends Tree | Token>(
+    visitor: (t: T) => Generator<T2>,
+  ): Generator<AstExtended<T2, HasIdMap>> {
     for (const child of visitor(this.inner)) {
       yield new AstExtended(child, this.ctx)
     }
@@ -397,11 +475,11 @@ export class AstExtended<T extends Tree | Token = Tree | Token> {
     return parsedTreeOrTokenRange(this.inner)
   }
 
-  children(): Generator<AstExtended> {
-    return this.visit(childrenAstNodes)
+  children(): AstExtended<Tree | Token, HasIdMap>[] {
+    return childrenAstNodesOrTokens(this.inner).map((child) => new AstExtended(child, this.ctx))
   }
 
-  walkRecursive(): Generator<AstExtended> {
+  walkRecursive(): Generator<AstExtended<Tree | Token, HasIdMap>> {
     return this.visit(walkRecursive)
   }
 
@@ -411,15 +489,21 @@ export class AstExtended<T extends Tree | Token = Tree | Token> {
       : this.inner.whitespaceLengthInCodeParsed
   }
 
-  visitRecursive(visitor: (t: AstExtended) => boolean) {
+  visitRecursive(visitor: (t: AstExtended<Tree | Token, HasIdMap>) => boolean) {
     visitGenerator(this.walkRecursive(), visitor)
   }
 }
 
-class AstExtendedCtx {
+type CondType<T, Cond extends boolean> = Cond extends true
+  ? T
+  : Cond extends false
+  ? undefined
+  : T | undefined
+
+class AstExtendedCtx<HasIdMap extends boolean> {
   parsedCode: string
-  idMap: IdMap
-  constructor(parsedCode: string, idMap: IdMap) {
+  idMap: CondType<IdMap, HasIdMap>
+  constructor(parsedCode: string, idMap: CondType<IdMap, HasIdMap>) {
     this.parsedCode = parsedCode
     this.idMap = idMap
   }

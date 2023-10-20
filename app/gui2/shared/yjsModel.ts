@@ -164,7 +164,10 @@ export class DistributedModule {
     const start = range == null ? exprStart : exprStart + range[0]
     const end = range == null ? exprEnd : exprStart + range[1]
     if (start > end) throw new Error('Invalid range')
-    if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
+    if (start < exprStart || end > exprEnd)
+      throw new Error(
+        `Range out of bounds. Got [${start}, ${end}], bounds are [${exprStart}, ${exprEnd}]`,
+      )
     this.transact(() => {
       if (content.length > 0) {
         this.doc.contents.insert(start, content)

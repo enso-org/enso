@@ -1,5 +1,5 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
-import { Ast, astContainingChar, parseEnso, readTokenSpan } from '@/util/ast'
+import { Ast, astContainingChar, parseEnso, readAstOrTokenSpan, readTokenSpan } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computed, ref, type ComputedRef, type Ref } from 'vue'

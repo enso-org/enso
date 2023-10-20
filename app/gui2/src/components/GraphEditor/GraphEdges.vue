@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import { useGraphStore } from '@/stores/graph'
 const graphStore = useGraphStore()
 </script>

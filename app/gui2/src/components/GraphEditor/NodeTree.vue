@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import NodeToken from '@/components/NodeToken.vue'
+import NodeToken from '@/components/GraphEditor/NodeToken.vue'
 import { Rect } from '@/stores/rect'
 import { Ast, type AstExtended } from '@/util/ast'
 import { useResizeObserver } from '@/util/events'
@@ -17,13 +17,7 @@ const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode, false)
 const exprRect = shallowRef<Rect>()
 
-const spanClass = computed(() => {
-  if (props.ast.inner instanceof Ast.Tree.AbstractBase) {
-    return Ast.Tree.typeNames[props.ast.inner.type]
-  } else {
-    return 'Token'
-  }
-})
+const spanClass = computed(() => Ast.Tree.typeNames[props.ast.inner.type])
 const children = computed(() => [...props.ast.children()])
 const whitespace = computed(() => ' '.repeat(props.ast.inner.whitespaceLengthInCodeParsed))
 
@@ -61,7 +55,7 @@ watch(exprRect, (rect) => rect && emit('updateExprRect', props.ast.astId, rect))
     v-else
     ref="rootNode"
     :class="['Tree', spanClass]"
-    :data-span-start="props.ast.spanRange()[0] - nodeSpanStart"
+    :data-span-start="props.ast.span()[0] - nodeSpanStart"
     >{{ whitespace
     }}<template v-for="child in children" :key="child.astId">
       <NodeTree

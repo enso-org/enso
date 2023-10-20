@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import { useGraphNavigator } from '@/providers/graphNavigator'
 import { useGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import GraphNode from '../GraphNode.vue'
 
 const graphStore = useGraphStore()
 const selection = useGraphSelection(true)
@@ -44,8 +44,3 @@ function moveNode(movedId: ExprId, delta: Vec2) {
     @movePosition="moveNode(id, $event)"
   />
 </template>
-
-<style scoped>
-.Nodes {
-}
-</style>

@@ -98,16 +98,16 @@ export const useGraphStore = defineStore('graph', () => {
       const ast = AstExtended.parse(textContentLocal, idMap)
       const updatedMap = idMap.finishAndSynchronize()
 
-      const methodAst =
-        ast.isTree() &&
-        ast.tryMap((tree) =>
-          getExecutedMethodAst(
-            tree,
-            textContentLocal,
-            proj.executionContext.getStackTop(),
-            updatedMap,
-          ),
-        )
+      const methodAst = ast.isTree()
+        ? ast.tryMap((tree) =>
+            getExecutedMethodAst(
+              tree,
+              textContentLocal,
+              proj.executionContext.getStackTop(),
+              updatedMap,
+            ),
+          )
+        : undefined
       const nodeIds = new Set<ExprId>()
       if (methodAst) {
         for (const nodeAst of methodAst.visit(getFunctionNodeExpressions)) {
@@ -116,7 +116,6 @@ export const useGraphStore = defineStore('graph', () => {
           const node = nodes.get(nodeId)
           nodeIds.add(nodeId)
           if (node == null) {
-            console.log('nodeInserted', nodeAst)
             nodeInserted(newNode, meta.get(nodeId))
           } else {
             // if (affectedRangesPostChange != null) {
@@ -129,7 +128,6 @@ export const useGraphStore = defineStore('graph', () => {
             //   const nodeAffected = rangesToCheck.some((r) => rangeIntersects(spanRange, r))
             //   if (!nodeAffected) continue
             // }
-            console.log('nodeUpdated', nodeAst)
             nodeUpdated(node, newNode, meta.get(nodeId))
           }
         }
@@ -398,25 +396,24 @@ export interface Edge {
 }
 
 function getExecutedMethodAst(
-  tree: Ast.Tree,
+  ast: Ast.Tree,
   code: string,
   executionStackTop: StackItem,
   updatedIdMap: Y.Map<Uint8Array>,
 ): Opt<Ast.Tree.Function> {
   switch (executionStackTop.type) {
     case 'ExplicitCall': {
-      // Assume that the AST matches the module in the method pointer. There is no way to actually
-      // verify this assumption at this point.
+      // Assume that the provided AST matches the module in the method pointer. There is no way to
+      // actually verify this assumption at this point.
       const ptr = executionStackTop.methodPointer
-      console.log(ptr)
       const name = ptr.name
-      return findModuleMethod(tree, code, name)
+      return findModuleMethod(ast, code, name)
     }
     case 'LocalCall': {
       const exprId = executionStackTop.expressionId
       const range = lookupIdRange(updatedIdMap, exprId)
       if (range == null) return
-      const node = findAstWithRange(tree, range)
+      const node = findAstWithRange(ast, range)
       if (node?.type === Ast.Tree.Type.Function) return node
     }
   }

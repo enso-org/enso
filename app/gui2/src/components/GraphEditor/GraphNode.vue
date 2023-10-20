@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
-import NodeTree from '@/components/NodeTree.vue'
+import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { useGraphSelection } from '@/providers/graphSelection'
@@ -22,11 +22,12 @@ import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { unwrap } from '@/util/result'
-import type { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
+const MAXIMUM_CLICK_DISTANCE_SQ = 50
 
 const props = defineProps<{
   node: Node
@@ -368,25 +369,29 @@ const editableKeydownHandler = nodeEditBindings.handler({
 })
 
 const startEpochMs = ref(0)
-const startEvent = ref<PointerEvent>()
+let startEvent: PointerEvent | null = null
+let startPos = Vec2.Zero()
 
 const dragPointer = usePointer((pos, event, type) => {
   emit('movePosition', pos.delta)
   switch (type) {
     case 'start': {
       startEpochMs.value = Number(new Date())
-      startEvent.value = event
+      startEvent = event
+      startPos = pos.absolute
       event.stopImmediatePropagation()
       break
     }
     case 'stop': {
       if (
         Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
-        startEvent.value != null
+        startEvent != null &&
+        pos.absolute.distanceSquare(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
-        nodeSelection?.mouseHandler(startEvent.value)
+        nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
         menuVisible.value = true
       }
+      startEvent = null
       startEpochMs.value = 0
     }
   }
@@ -464,7 +469,7 @@ const color = computed(() =>
     />
     <div class="node" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <div
+      <span
         ref="editableRootNode"
         class="editable"
         contenteditable
@@ -473,13 +478,11 @@ const color = computed(() =>
         @keydown="editableKeydownHandler"
         @pointerdown.stop
         @blur="projectStore.stopCapturingUndo()"
-      >
-        <NodeTree
+        ><NodeTree
           :ast="node.rootSpan"
-          :nodeSpanStart="node.rootSpan.spanRange()[0]"
+          :nodeSpanStart="node.rootSpan.span()[0]"
           @updateExprRect="updateExprRect"
-        />
-      </div>
+      /></span>
     </div>
     <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>

@@ -14,7 +14,6 @@ import {
   abstractTypeDeserializer,
   abstractTypeVariants,
   fieldDeserializer,
-  fieldDynValue,
   fieldVisitor,
   seekViewDyn,
   support,
@@ -246,53 +245,6 @@ function makeReadFunction(
   )
 }
 
-function makeDebugFunction(fields: Field[], typeName?: string): ts.MethodDeclaration {
-  const ident = tsf.createIdentifier('fields')
-  const fieldAssignments = fields.map((field) =>
-    tsf.createArrayLiteralExpression([
-      tsf.createStringLiteral(field.name),
-      fieldDynValue(field.type, field.offset),
-    ]),
-  )
-  if (typeName != null) {
-    fieldAssignments.push(
-      tsf.createArrayLiteralExpression([
-        tsf.createStringLiteral('type'),
-        tsf.createObjectLiteralExpression([
-          tsf.createPropertyAssignment('type', tsf.createStringLiteral('primitive')),
-          tsf.createPropertyAssignment('value', tsf.createStringLiteral(typeName)),
-        ]),
-      ]),
-    )
-  }
-  return tsf.createMethodDeclaration(
-    [],
-    undefined,
-    ident,
-    undefined,
-    [],
-    [],
-    tsf.createTypeReferenceNode(`[string, ${support.DynValue}][]`),
-    tsf.createBlock([
-      tsf.createReturnStatement(
-        tsf.createArrayLiteralExpression(
-          [
-            tsf.createSpreadElement(
-              tsf.createCallExpression(
-                tsf.createPropertyAccessExpression(tsf.createSuper(), ident),
-                undefined,
-                undefined,
-              ),
-            ),
-            ...fieldAssignments,
-          ],
-          true,
-        ),
-      ),
-    ]),
-  )
-}
-
 function makeVisitFunction(fields: Field[]): ts.MethodDeclaration {
   const ident = tsf.createIdentifier('visitChildren')
   const visitorParam = tsf.createIdentifier('visitor')
@@ -347,7 +299,7 @@ function makeVisitFunction(fields: Field[]): ts.MethodDeclaration {
   )
 }
 
-function makeGetters(id: string, schema: Schema.Schema, typeName?: string): ts.ClassElement[] {
+function makeGetters(id: string, schema: Schema.Schema): ts.ClassElement[] {
   const serialization = schema.serialization[id]
   const type = schema.types[id]
   if (serialization == null || type == null) throw new Error(`Invalid type id: ${id}`)
@@ -360,7 +312,6 @@ function makeGetters(id: string, schema: Schema.Schema, typeName?: string): ts.C
     ...fields.map(makeGetter),
     ...fields.map(makeElementVisitor).filter((v): v is ts.ClassElement => v != null),
     makeVisitFunction(fields),
-    makeDebugFunction(fields, typeName),
   ]
 }
 
@@ -456,7 +407,7 @@ function makeChildType(
           viewIdent,
           tsf.createNewExpression(ident, [], [seekViewDyn(viewIdent, addressIdent)]),
         ),
-        ...makeGetters(id, schema, name),
+        ...makeGetters(id, schema),
       ],
     ),
     name: tsf.createIdentifier(name),

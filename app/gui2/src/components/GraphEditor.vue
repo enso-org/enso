@@ -80,6 +80,7 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deselectAll() {
     nodeSelection.deselectAll()
+    console.log('deselectAll')
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
@@ -123,12 +124,14 @@ const groupColors = computed(() => {
 </script>
 
 <template>
+  <!-- eslint-disable vue/attributes-order -->
   <div
     ref="viewportNode"
     class="viewport"
+    :style="groupColors"
+    @click="graphBindingsHandler"
     v-on.="navigator.events"
     v-on..="nodeSelection.events"
-    :style="groupColors"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdges />

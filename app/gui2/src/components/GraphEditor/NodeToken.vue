@@ -38,7 +38,7 @@ watch(exprRect, (rect) => rect && emit('updateExprRect', props.ast.astId, rect))
   <span
     ref="rootNode"
     :class="['Token', spanClass]"
-    :data-span-start="props.ast.spanRange()[0] - nodeSpanStart - whitespace.length"
+    :data-span-start="props.ast.span()[0] - nodeSpanStart - whitespace.length"
     >{{ whitespace }}{{ props.ast.repr() }}</span
   >
 </template>

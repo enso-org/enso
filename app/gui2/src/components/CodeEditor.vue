@@ -6,8 +6,8 @@ import type { Highlighter } from '@/util/codemirror'
 import { colorFromString } from '@/util/colors'
 import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
+import { rangeEncloses } from 'shared/yjsModel'
 import { computed, onMounted, ref, watchEffect } from 'vue'
-import * as Y from 'yjs'
 import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
 import { unwrap } from '../util/result'
 
@@ -54,29 +54,22 @@ watchEffect(() => {
         tooltips({ position: 'absolute' }),
         hoverTooltip((ast) => {
           const dom = document.createElement('div')
-          const ydoc = projectStore.module?.doc.ydoc
-          if (ydoc == null) return
-          const start = ast.whitespaceStartInCodeParsed + ast.whitespaceLengthInCodeParsed
-          const end = start + ast.childrenLengthInCodeParsed
+          const astSpan = ast.span()
           let foundNode: Node | undefined
           for (const node of graphStore.nodes.values()) {
-            const nodeStart = Y.createAbsolutePositionFromRelativePosition(node.docRange[0], ydoc)
-              ?.index
-            if (nodeStart == null || nodeStart > start) continue
-            const nodeEnd = Y.createAbsolutePositionFromRelativePosition(node.docRange[1], ydoc)
-              ?.index
-            if (nodeEnd == null || nodeEnd < end) continue
-            foundNode = node
-            break
+            if (rangeEncloses(node.rootSpan.span(), astSpan)) {
+              foundNode = node
+              break
+            }
           }
           if (foundNode == null) return
           const expressionInfo = projectStore.computedValueRegistry.getExpressionInfo(
-            foundNode.rootSpan.id,
+            foundNode.rootSpan.astId,
           )
           if (expressionInfo == null) return
           dom
             .appendChild(document.createElement('div'))
-            .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.id}`))
+            .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.astId}`))
           dom
             .appendChild(document.createElement('div'))
             .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
