@@ -1,8 +1,7 @@
 package org.enso.interpreter.instrument.job;
 
-import scala.collection.immutable.List$;
-
 import java.util.Comparator;
+import scala.collection.immutable.List$;
 
 /** The job that runs in the background. */
 public abstract class BackgroundJob<A> extends Job<A> {
