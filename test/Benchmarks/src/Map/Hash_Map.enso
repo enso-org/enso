@@ -1,0 +1,59 @@
+from Standard.Base import all
+
+from Standard.Table import Column, Value_Type, Auto
+import Standard.Table.Data.Type.Value_Type.Bits
+
+from Standard.Test import Bench
+
+polyglot java import org.enso.benchmark_helpers.JavaHashMapWrapper
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 2) . set_measure (Bench.phase_conf 2 3)
+
+type Data
+    Value ~ints
+
+    create n =
+        create_ints =
+            rng = Random.new
+            Vector.new n _->
+                rng.integer 0 (n.div 100)
+        Data.Value create_ints
+
+type Scenario
+    Instance map_constructor
+
+    # Counts distinct values in a vector
+    run_distinct self ints =
+        new_map = ints.fold (self.map_constructor Nothing) acc-> x->
+            if acc.get x . is_nothing . not then acc else
+                acc.insert x True
+        new_map.size
+
+    # Finds the most frequent value in a vector
+    run_count_keys self ints =
+        new_map = ints.fold (self.map_constructor Nothing) acc-> x->
+            current_count = (acc.get x . if_nothing 0) + 1
+            acc.insert x current_count
+        max_key = new_map.to_vector.fold (Pair.new Nothing 0) acc-> entry->
+            freq = entry.second
+            if freq > acc.second then Pair.new entry.first freq else acc
+        max_key
+
+collect_benches = Bench.build builder->
+    n = 100000
+    data = Data.create n
+
+    builder.group ("Enso_Hash_Map_" + n.to_text) options group_builder->
+        # Scenario similar to what is done in distinct
+        group_builder.specify "Enso_Incremental" <|
+            Scenario.Instance (_ -> Map.empty) . run_distinct data.ints
+        group_builder.specify "Java_Incremental" <|
+            Scenario.Instance (_ -> JavaHashMapWrapper.new) . run_distinct data.ints
+
+        # A scenario similar to what is done in add_row_number with grouping
+        group_builder.specify "Enso_Replacement" <|
+            Scenario.Instance (_ -> Map.empty) . run_count_keys data.ints
+        group_builder.specify "Java_Replacement" <|
+            Scenario.Instance (_ -> JavaHashMapWrapper.new) . run_count_keys data.ints
+
+main = collect_benches . run_main

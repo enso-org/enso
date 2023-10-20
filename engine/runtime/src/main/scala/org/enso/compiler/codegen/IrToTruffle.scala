@@ -1585,7 +1585,7 @@ class IrToTruffle(
       */
     def processName(name: Name): RuntimeExpression = {
       val nameExpr = name match {
-        case Name.Literal(nameStr, _, _, _, _) =>
+        case Name.Literal(nameStr, _, _, _, _, _) =>
           val useInfo = name
             .unsafeGetMetadata(
               AliasAnalysis,
@@ -1613,6 +1613,7 @@ class IrToTruffle(
               Constants.Names.SELF_ARGUMENT,
               isMethod = false,
               location,
+              None,
               passData
             )
           )
@@ -1738,43 +1739,43 @@ class IrToTruffle(
         case err: errors.Syntax =>
           context.getBuiltins
             .error()
-            .makeSyntaxError(Text.create(err.message))
+            .makeSyntaxError(Text.create(err.message(source)))
         case err: errors.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Method =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Type =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.SelfArg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Resolution =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case _: errors.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."

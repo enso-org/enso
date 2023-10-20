@@ -140,7 +140,7 @@ case object IgnoredBindings extends IRPass {
   ): Expression.Binding = {
     if (isIgnore(binding.name)) {
       val newName = supply
-        .newName()
+        .newName(from = Some(binding.name))
         .copy(
           location    = binding.name.location,
           passData    = binding.name.passData,
@@ -226,7 +226,7 @@ case object IgnoredBindings extends IRPass {
       case spec: DefinitionArgument.Specified =>
         if (isIgnored) {
           val newName = freshNameSupply
-            .newName()
+            .newName(from = Some(spec.name))
             .copy(
               location    = arg.name.location,
               passData    = arg.name.passData,
@@ -271,9 +271,9 @@ case object IgnoredBindings extends IRPass {
     */
   def isIgnore(ir: Name): Boolean = {
     ir match {
-      case _: Name.Blank                  => true
-      case Name.Literal(name, _, _, _, _) => name == "_"
-      case _                              => false
+      case _: Name.Blank         => true
+      case literal: Name.Literal => literal.name == "_"
+      case _                     => false
     }
   }
 
@@ -327,7 +327,7 @@ case object IgnoredBindings extends IRPass {
       case named @ Pattern.Name(name, _, _, _) =>
         if (isIgnore(name)) {
           val newName = supply
-            .newName()
+            .newName(from = Some(name))
             .copy(
               location    = name.location,
               passData    = name.passData,
@@ -351,7 +351,7 @@ case object IgnoredBindings extends IRPass {
       case typed @ Pattern.Type(name, _, _, _, _) =>
         if (isIgnore(name)) {
           val newName = supply
-            .newName()
+            .newName(from = Some(name))
             .copy(
               location    = name.location,
               passData    = name.passData,

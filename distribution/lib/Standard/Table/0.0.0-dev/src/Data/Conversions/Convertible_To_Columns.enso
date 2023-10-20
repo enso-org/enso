@@ -27,3 +27,14 @@ Convertible_To_Columns.from (that:Map) =
 Convertible_To_Columns.from (that:Any) =
     name = "Value"
     Convertible_To_Columns.Value [name] (k-> if k == name then that else Nothing)
+
+## PRIVATE
+Convertible_To_Columns.from (that:XML_Element) =
+    name = [["Name", that.name]]
+    tags = that.attributes.map_keys ("@"+_) . to_vector
+    that_children = that.children
+    has_child_nodes = that_children.any (_.is_a XML_Element)
+    children = if that_children.is_empty.not && has_child_nodes then [["Children", that_children]] else []
+    value = if that_children.is_empty.not && has_child_nodes.not then [["Value", that.text]] else []
+    as_map = Map.from_vector (name + tags + children + value)
+    Convertible_To_Columns.from as_map

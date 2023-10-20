@@ -168,8 +168,8 @@ case object ComplexType extends IRPass {
       val sig = lastSignature match {
         case Some(Type.Ascription(typed, _, _, _, _)) =>
           typed match {
-            case Name.Literal(nameStr, _, _, _, _) =>
-              if (name.name == nameStr) {
+            case literal: Name.Literal =>
+              if (name.name == literal.name) {
                 lastSignature
               } else {
                 unusedSig = lastSignature

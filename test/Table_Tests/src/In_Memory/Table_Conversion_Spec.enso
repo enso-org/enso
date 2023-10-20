@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Extensions.Prefix_Name.Prefix_Name
 from Standard.Table import Table, Column
 from Standard.Table.Errors import No_Such_Column
 from Standard.Table.Extensions.Table_Conversions import all
@@ -29,6 +30,14 @@ spec =
             { "first": "Mary", "last": "Smith", "age": 23 },
             { "height": 1.9, "weight": 70 }
         ]
+
+    library_test_file = enso_project.data / "xml" / "library.xml"
+    library_document = XML_Document.from_file library_test_file
+    library_root = library_document . root_element
+
+    trim_if_text x = case x of
+        _ : Text -> x.trim
+        _ -> x
 
     Test.group "from_objects with single values" <|
         Test.specify "Can create a table from a single value" <|
@@ -199,7 +208,22 @@ spec =
             r.should_fail_with Illegal_Argument
             r.catch.message . should_equal "The fields parameter cannot be empty."
 
-        Test.specify "Can expand with a prefix" <|
+        Test.specify "Can expand with no prefix" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["last", ["Smith", Nothing]], ["height", [Nothing, 1.9]], ["foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" ["last", "height", "foo"] Prefix_Name.None . should_equal expected
+
+        Test.specify "Can expand with an explicit column name prefix" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb last", ["Smith", Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" ["last", "height", "foo"] Prefix_Name.Column_Name . should_equal expected
+
+        Test.specify "Can expand with a custom prefix" <|
+            table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["expanded last", ["Smith", Nothing]], ["expanded height", [Nothing, 1.9]], ["expanded foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
+            table.expand_column "bbb" ["last", "height", "foo"] (Prefix_Name.Custom "expanded ") . should_equal expected
+
+        Test.specify "Can expand with a custom prefix, via from conversion" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", non_uniform_json], ["ccc", [5, 6]]]
             expected = Table.new [["aaa", [1, 2]], ["expanded last", ["Smith", Nothing]], ["expanded height", [Nothing, 1.9]], ["expanded foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
             table.expand_column "bbb" ["last", "height", "foo"] "expanded " . should_equal expected
@@ -273,7 +297,77 @@ spec =
             table.expand_to_rows "bbb" . should_equal expected
 
         Test.specify "Missing column" <|
-            table = Table.new [["aaa", [1, 2, 3]], ["notbbbb", [8, 8, 8]], ["ccc", [5, 6, 7]]]
+            table = Table.new [["aaa", [1, 2, 3]], ["notbbb", [8, 8, 8]], ["ccc", [5, 6, 7]]]
             table.expand_to_rows "bbb" . should_fail_with No_Such_Column
+
+    Test.group "XML" <|
+        Test.specify "Can convert XML_Document and XML_Element to a table" <|
+            [library_document, library_root].map x->
+                t = x.to Table
+                t.at "Name" . to_vector . should_equal ["Library"]
+                t.at "@catalog" . to_vector . should_equal ["Fiction"]
+                t.at "@letter" . to_vector . should_equal ["A"]
+                t.at "Children" . at 0 . at 0 . trim . should_equal "Hello"
+                t.at "Children" . at 0 . at 1 . name . should_equal "Book"
+                t.at "Children" . at 0 . at 2 . trim . should_equal "World"
+                t.at "Children" . at 0 . at 3 . name . should_equal "Book"
+                t.at "Children" . at 0 . at 4 . name . should_equal "Magazine"
+                t.column_names . should_not_contain "Value"
+
+        Test.specify "Can expand the Children column to rows" <|
+            t = library_root.to Table . expand_to_rows "Children"
+            t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
+            t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
+            t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
+            t.at "Children" . at 0 . trim . should_equal "Hello"
+            t.at "Children" . at 1 . name . should_equal "Book"
+            t.at "Children" . at 2 . trim . should_equal "World"
+            t.at "Children" . at 3 . name . should_equal "Book"
+            t.at "Children" . at 4 . name . should_equal "Magazine"
+            t.column_names . should_not_contain "Value"
+
+        Test.specify "Can expand the child nodes" <|
+            t = library_root.to Table . expand_to_rows "Children" . expand_column "Children"
+            t.at "Name" . to_vector . should_equal (Vector.fill 5 "Library")
+            t.at "@catalog" . to_vector . should_equal (Vector.fill 5 "Fiction")
+            t.at "@letter" . to_vector . should_equal (Vector.fill 5 "A")
+            t.at "Children Value" . to_vector . map trim_if_text . should_equal ["Hello", "My Book", "World", "Your Book", "Cheap Cars For You"]
+            t.at "Children Name" . to_vector . map trim_if_text . should_equal [Nothing, "Book", Nothing, "Book", "Magazine"]
+            t.at "Children @author" . to_vector . map trim_if_text . should_equal [Nothing, "An Author", Nothing, "Another Author", Nothing]
+            t.at "Children @month" . to_vector . map trim_if_text . should_equal [Nothing, Nothing, Nothing, Nothing, 'August-2023']
+            t.at "Children @series" . to_vector . map trim_if_text . should_equal [Nothing, Nothing, Nothing, Nothing, 'AutoCar']
+            t.column_names . should_not_contain "Children Children"
+
+        Test.specify "Can expand nested child nodes" <|
+            xml_string = '''
+                <a>
+                  <b>
+                    <c id="1"/>
+                    <c id="2"/>
+                  </b>
+                  <b>
+                    <c id="3"/>
+                    <c id="4"/>
+                  </b>
+                </a>
+            xml = XML_Document.from_text xml_string . root_element
+            t = xml.to Table . expand_to_rows "Children" . expand_column "Children" . expand_to_rows "Children Children" . expand_column "Children Children"
+            t.at "Children Children @id" . to_vector . should_equal ["1", "2", "3", "4"]
+
+        Test.specify "Converting a node without child nodes produces a Value column" <|
+            book = library_root . at 1
+            t = book.to Table
+            t.at "Name" . to_vector . should_equal ["Book"]
+            t.at "@author" . to_vector . should_equal ["An Author"]
+            t.column_names . should_not_contain "Children"
+            t.at "Value" . to_vector . should_equal ["My Book"]
+
+        Test.specify "Converting a node without any child nodes does not produce Value or Children columns" <|
+            xml = XML_Document.from_text '<foo id="10"></foo>'
+            t = xml.to Table
+            t.at "Name" . to_vector . should_equal ["foo"]
+            t.at "@id" . to_vector . should_equal ["10"]
+            t.column_names . should_not_contain "Children"
+            t.column_names . should_not_contain "Value"
 
 main = Test_Suite.run_main spec

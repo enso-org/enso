@@ -9,21 +9,25 @@ import project.Data.Column.Column
 import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Errors.No_Such_Column
+import project.Extensions.Prefix_Name.Prefix_Name
 import project.Internal.Fan_Out
 import project.Internal.Java_Exports
 import project.Internal.Java_Problems
 from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE
-expand_column : Table -> (Text | Integer) -> ((Vector Text) | Nothing) -> (Text | Nothing) -> Table
-expand_column table column fields prefix =
+expand_column : Table -> Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+expand_column (table : Table) (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
     column_object = table.at column
     expanded = create_table_from_objects column_object.to_vector fields
 
     output_builder = Vector.new_builder table.column_count+expanded.column_count-1
 
     ## Resolve names
-    resolved_prefix = if prefix.is_nothing then column_object.name+" " else prefix
+    resolved_prefix = case prefix of
+        Prefix_Name.None -> ""
+        Prefix_Name.Column_Name -> column_object.name+" "
+        Prefix_Name.Custom value -> value
     naming_strategy = table.column_naming_helper.create_unique_name_strategy
     naming_strategy.mark_used (table.column_names.filter (c->c!=column_object.name))
     new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> resolved_prefix+n)
@@ -73,7 +77,9 @@ expand_to_rows table column at_least_one_row=False =
     row_expander : Any -> Vector
     row_expander value:Convertible_To_Rows = value.to_vector
 
-    Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=make_inferred_builder
+    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+        builder size = make_inferred_builder size java_problem_aggregator
+        Fan_Out.fan_out_to_rows table column row_expander at_least_one_row column_builder=builder
 
 ## PRIVATE
 create_table_from_objects : Any -> ((Vector Text) | Nothing) -> Table

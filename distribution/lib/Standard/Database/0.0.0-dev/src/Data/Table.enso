@@ -12,6 +12,7 @@ from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
+import Standard.Table.Data.Column_Ref.Column_Ref
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
@@ -2374,9 +2375,11 @@ type Table
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
-    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Any -> Table
-    fill_nothing self columns default =
-        transformer col = col.fill_nothing default
+    @default Widget_Helpers.make_column_ref_by_name_selector
+    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Any -> Table
+    fill_nothing self (columns : Vector | Text | Integer | Regex) (default : Column | Column_Ref | Any) =
+        resolved_default = (self:Table_Ref).resolve default
+        transformer col = col.fill_nothing resolved_default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## ALIAS fill empty, if_empty
@@ -2397,9 +2400,11 @@ type Table
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
-    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Any -> Table
-    fill_empty self columns default =
-        transformer col = col.fill_empty default
+    @default Widget_Helpers.make_column_ref_or_text_value_selector
+    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Any -> Table
+    fill_empty self (columns : Vector | Text | Integer | Regex) (default : Column | Column_Ref | Any) =
+        resolved_default = (self:Table_Ref).resolve default
+        transformer col = col.fill_empty resolved_default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
@@ -2434,10 +2439,15 @@ type Table
 
              column.replace ["col0"] '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
-    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
-        _ = [columns, term, new_text, case_sensitivity, only_first]
-        Error.throw (Unsupported_Database_Operation.Error "Text replace is currently not supported in the database backend.")
+    @term Widget_Helpers.make_column_ref_or_text_value_selector
+    @new_text Widget_Helpers.make_column_ref_or_text_value_selector
+    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
+    replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        table_ref = Table_Ref.from self
+        resolved_term = table_ref.resolve term
+        resolved_new_text = table_ref.resolve new_text
+        transformer col = col.replace resolved_term resolved_new_text case_sensitivity only_first
+        Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
 ## PRIVATE
 

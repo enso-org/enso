@@ -1,16 +1,18 @@
 <script setup lang="ts">
- import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
- import { Filtering } from '@/components/ComponentBrowser/filtering'
- import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
- import { default as SvgIcon } from '@/components/SvgIcon.vue'
- import { default as ToggleIcon } from '@/components/ToggleIcon.vue'
- import { Input } from '@/components/ComponentBrowser/input'
- import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
- import { useApproach } from '@/util/animation'
- import { useResizeObserver } from '@/util/events'
- import type { useNavigator } from '@/util/navigator'
- import { Vec2 } from '@/util/vec2'
- import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { Input } from '@/components/ComponentBrowser/input'
+import SvgIcon from '@/components/SvgIcon.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useApproach } from '@/util/animation'
+import { useResizeObserver } from '@/util/events'
+import type { useNavigator } from '@/util/navigator'
+import { allRanges } from '@/util/range'
+import { Vec2 } from '@/util/vec2'
+import { LoremIpsum } from 'lorem-ipsum'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 
  const ITEM_SIZE = 32
  const TOP_BAR_HEIGHT = 32
@@ -33,13 +35,13 @@
 
  // === Position ===
 
- const transform = computed(() => {
-   const nav = props.navigator
-   const pos = props.position
-   return `${nav.transform} translate(${pos.x}px, ${pos.y}px) scale(${
-    1 / nav.scale
-  }) translateY(-100%)`
- })
+const transform = computed(() => {
+  const nav = props.navigator
+  const translate = nav.translate
+  const position = translate.add(props.position).scale(nav.scale)
+
+  return `translate(${position.x}px, ${position.y}px) translateY(-100%)`
+})
 
  // === Input and Filtering ===
 
@@ -222,13 +224,6 @@ const selectedSuggestion = computed(() => {
    scrollPosition.value = Math.max(selectedPosition.value - scrollerSize.value.y + ITEM_SIZE, 0)
  }
 
- function updateScroll() {
-   if (scroller.value && Math.abs(scroller.value.scrollTop - animatedScrollPosition.value) > 1.0) {
-     scrollPosition.value = scroller.value.scrollTop
-     animatedScrollPosition.skip()
-   }
- }
-
  // === Documentation Panel ===
 
  const docsVisible = ref(true)
@@ -297,7 +292,23 @@ const selectedSuggestion = computed(() => {
                   :name="item.component.icon"
                   :style="{ color: componentColor(item.component) }"
                 />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
             <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
@@ -311,18 +322,40 @@ const selectedSuggestion = computed(() => {
                 }"
               >
                 <SvgIcon :name="item.component.icon" />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop>
+      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop.passive>
         <DocumentationPanel :selectedEntry="selectedSuggestion" />
       </div>
     </div>
     <div class="CBInput">
-      <input ref="inputField" v-model="input.code.value" @keyup="readInputFieldSelection" />
+      <input
+        ref="inputField"
+        v-model="input.code.value"
+        name="cb-input"
+        autocomplete="off"
+        @keyup="readInputFieldSelection"
+      />
     </div>
   </div>
 </template>
@@ -406,6 +439,10 @@ const selectedSuggestion = computed(() => {
   & svg {
     color: white;
   }
+}
+
+.component-label-segment.match {
+  font-weight: bold;
 }
 
 .top-bar {
