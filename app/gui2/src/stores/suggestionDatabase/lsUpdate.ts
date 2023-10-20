@@ -193,7 +193,7 @@ export function entryFromLs(
           })
         }
         case 'local': {
-          const entry = { kind: SuggestionKind.Function, arguments: [] }
+          const entry = { kind: SuggestionKind.Local, arguments: [] }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)

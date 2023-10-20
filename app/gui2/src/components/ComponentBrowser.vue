@@ -11,6 +11,7 @@ import { useApproach } from '@/util/animation'
 import { useEvent, useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
+import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import { LoremIpsum } from 'lorem-ipsum'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -318,7 +319,23 @@ const handler = componentBrowserBindings.handler({
                   :name="item.component.icon"
                   :style="{ color: componentColor(item.component) }"
                 />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
             <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
@@ -333,7 +350,23 @@ const handler = componentBrowserBindings.handler({
                 @click="acceptSuggestion(item.component)"
               >
                 <SvgIcon :name="item.component.icon" />
-                {{ item.component.label }}
+                <span>
+                  <span
+                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
+                    v-text="item.component.label"
+                  ></span>
+                  <span
+                    v-for="range in allRanges(
+                      item.component.matchedRanges,
+                      item.component.label.length,
+                    )"
+                    v-else
+                    :key="`${range.start},${range.end}`"
+                    class="component-label-segment"
+                    :class="{ match: range.isMatch }"
+                    v-text="item.component.label.slice(range.start, range.end)"
+                  ></span>
+                </span>
               </div>
             </div>
           </div>
@@ -344,7 +377,13 @@ const handler = componentBrowserBindings.handler({
       </div>
     </div>
     <div class="CBInput">
-      <input ref="inputField" v-model="input.code.value" @input="readInputFieldSelection" />
+      <input
+        ref="inputField"
+        v-model="input.code.value"
+        name="cb-input"
+        autocomplete="off"
+        @keyup="readInputFieldSelection"
+      />
     </div>
   </div>
 </template>
@@ -428,6 +467,10 @@ const handler = componentBrowserBindings.handler({
   & svg {
     color: white;
   }
+}
+
+.component-label-segment.match {
+  font-weight: bold;
 }
 
 .top-bar {
