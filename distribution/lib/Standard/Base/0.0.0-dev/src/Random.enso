@@ -115,6 +115,23 @@ type Random
     gaussian standard_deviation=1.0 mean=0.0 = Random.default_instance.gaussian standard_deviation mean
 
     ## GROUP Random
+       Returns `count` indices sampled from the range [0, n-1] (inclusive)
+       without replacement.
+       
+       Arguments:
+       - n: The end of the range to sample from (exclusive).
+       - count: The number of samples to take.
+
+       > Example
+         Generate random indices
+
+              import Standard.Base.Random.Random
+
+              indices = Random.indices 100 10
+    indices : Integer -> Integer -> Vector Integer
+    indices n count=1 = Random.default_instance.indices n count
+
+    ## GROUP Random
        Return a `Date` within the specified `Date_Range`.
 
        Arguments:
@@ -243,6 +260,11 @@ type Random_Generator
     gaussian : Float -> Float -> Float
     gaussian self standard_deviation=1.0 mean=0.0 =
         self.java_random.nextGaussian * standard_deviation + mean
+
+    indices : Integer -> Integer -> Vector Integer
+    indices self n count=1 =
+        array = Random_Utils.random_indices n count self.java_random
+        Vector.from_polyglot_array array
 
     date : Date_Range -> Date
     date self date_range = date_range.at (self.integer 0 date_range.length)
