@@ -1,10 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Aggregate_Column, Value_Type
+from Standard.Table import Aggregate_Column, Value_Type, Table
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-from Standard.Database import SQL_Query
+from Standard.Database import all
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
