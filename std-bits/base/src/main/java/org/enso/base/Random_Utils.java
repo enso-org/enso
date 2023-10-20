@@ -5,7 +5,7 @@ import java.util.Random;
 
 public class Random_Utils {
   /** Static singleton Random instance. This is modified by Random.enso. */
-  private static Random randomSingleton  = null;
+  private static Random randomSingleton = null;
 
   public static Random getRandomSingleton() {
     if (randomSingleton == null) {
