@@ -57,7 +57,6 @@ const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
   const currentModule = projectStore.modulePath
-  console.log(currentModule)
   return new Filtering(
     {
       ...input.filter.value,

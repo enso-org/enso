@@ -288,7 +288,7 @@ test.each([
   makeModuleMethod('Standard.Base.Data.read'),
   makeLocal('local.Project.Another_Module', 'local_in_another_module'),
   makeFunction('local.Project.Another_Module', 'function_in_another_module'),
-])('$name entry i not in Local Scope View', (entry) => {
+])('$name entry is not in Local Scope View', (entry) => {
   const filtering = new Filtering(
     { showLocal: true },
     unwrap(tryQualifiedName('local.Project.Module')),
