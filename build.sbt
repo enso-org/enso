@@ -1529,7 +1529,7 @@ lazy val `runtime-with-instruments` =
           MergeStrategy.discard
         case PathList("META-INF", "services", xs @ _*) =>
           MergeStrategy.concat
-        case PathList(file, _*) if file.contains("module-info") =>
+        case PathList(xs @ _*) if xs.last.contains("module-info") =>
           JPMSUtils.removeAllModuleInfoExcept("runtime")
         case _ => MergeStrategy.first
       }
@@ -1648,7 +1648,7 @@ lazy val `engine-runner` = project
         MergeStrategy.concat
       case "reference.conf" =>
         MergeStrategy.concat
-      case PathList(file, _*) if file.contains("module-info") =>
+      case PathList(xs @ _*) if xs.last.contains("module-info") =>
         JPMSUtils.removeAllModuleInfoExcept("runner")
       case x =>
         MergeStrategy.first
