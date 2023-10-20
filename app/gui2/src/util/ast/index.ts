@@ -18,25 +18,36 @@ export function parseEnso(code: string): Tree {
 export function parseEnsoLine(code: string): Tree {
   const block = parseEnso(code)
   assert(block.type === Tree.Type.BodyBlock)
-  const statemets = block.statements[Symbol.iterator]()
-  const firstLine = statemets.next()
+  const statements = block.statements[Symbol.iterator]()
+  const firstLine = statements.next()
   assert(!firstLine.done)
-  assert(!!statemets.next().done)
+  assert(!!statements.next().done)
   assert(firstLine.value.expression != null)
   return firstLine.value.expression
 }
 
 /**
- * Read span of code reprsented by given AST node.
+ * Read ast span information in `String.substring` compatible way. The returned span does not
+ * include left whitespace offset.
+ *
+ * @returns Object with `start` and `end` properties; index of first character in the `node`
+ *   and first character _not_ being in the `node`.
+ */
+export function astSpan(node: Tree): { start: number; end: number } {
+  const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
+  const end = start + node.childrenLengthInCodeParsed
+  return { start, end }
+}
+
+/**
+ * Read span of code reprsented by given AST node, not including left whitespace offset.
  *
  * The AST is assumed to be generated from `code` and not modified sice then.
  * Otherwise an unspecified fragment of `code` may be returned.
  */
 export function readAstSpan(node: Tree, code: string): string {
-  const leftOffsetbegin = node.whitespaceStartInCodeParsed
-  const leftOffsetEnd = leftOffsetbegin + node.whitespaceLengthInCodeParsed
-  const end = leftOffsetEnd + node.childrenLengthInCodeParsed
-  return code.substring(leftOffsetEnd, end)
+  const { start, end } = astSpan(node)
+  return code.substring(start, end)
 }
 
 /**
@@ -95,14 +106,13 @@ function treePath(obj: LazyObject, pred: (node: Tree) => boolean): Tree[] {
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
 
-  // Not working cases commented.
   const parseCases = [
-    ' foo bar\n',
+    'foo bar\n',
     'Data.read\n2 + 2',
     'Data.read File\n2 + 3',
-    // 'Data.read "File"\n2 + 3',
+    'Data.read "File"\n2 + 3',
     'foo bar=baz',
-    // '2\n + 3\n + 4',
+    '2\n + 3\n + 4',
   ]
 
   test.each(parseCases)("Parsing '%s'", (code) => {
@@ -174,6 +184,14 @@ if (import.meta.vitest) {
       'Data.read file=foo',
       [
         { type: Tree.Type.OprApp, repr: 'Data.read' },
+        { type: Tree.Type.Ident, repr: 'foo' },
+      ],
+    ],
+    ['(', [{ type: Tree.Type.Invalid, repr: '(' }]],
+    [
+      '(foo',
+      [
+        { type: Tree.Type.Invalid, repr: '(' },
         { type: Tree.Type.Ident, repr: 'foo' },
       ],
     ],

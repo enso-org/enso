@@ -230,6 +230,66 @@ const definedNamespaces = new Set<string>()
 
 export const DefaultHandler = Symbol('default handler')
 
+/**
+ * Define key bindings for given namespace.
+ *
+ * This function takes list of actions with default bindings, and returns an object which allows
+ * making event handler which in turn may be added as an appropriate event listener. It may handle
+ * both keyboard and mouse events.
+ *
+ * The event handler assigns functions to the corresponding action. The function may return false
+ * if the event should be considered not handled (and thus propagated). Returning true or just
+ * nothing from the function will cause propagation of event stop.
+ *
+ * @param namespace should be unique among other `defineKebinds` calls.
+ * @param bindings is an object defining actions and their key bindings. Each property name is an
+ * action name, and value is list of default key bindings. See "Keybinds should be parsed
+ * correctly" test for examples of valid strings.
+ * @returns an object with defined `handler` function.
+ *
+ * Example:
+ *
+ * Define bindings:
+ * ```
+ * const graphBindings = defineKeybinds('graph-editor', {
+ *   undo: ['Mod+Z'],
+ *   redo: ['Mod+Y', 'Mod+Shift+Z'],
+ *   dragScene: ['PointerAux', 'Mod+PointerMain'],
+ *   openComponentBrowser: ['Enter'],
+ *   newNode: ['N'],
+ * })
+ * ```
+ *
+ * Then make a handler:
+ * ```
+ * const graphBindingsHandler = graphBindings.handler({
+ *   undo() {
+ *     projectStore.module?.undoManager.undo()
+ *   },
+ *   redo() {
+ *     projectStore.module?.undoManager.redo()
+ *   },
+ *   openComponentBrowser() {
+ *     if (keyboardBusy()) return false
+ *     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
+ *       componentBrowserPosition.value = navigator.sceneMousePos
+ *       componentBrowserVisible.value = true
+ *     }
+ *   },
+ *   newNode() {
+ *     if (keyboardBusy()) return false
+ *     if (navigator.sceneMousePos != null) {
+ *       graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
+ *     }
+ *   },
+ * })
+ * ```
+ *
+ * And then pass the handler to the event listener:
+ * ```
+ * useEvent(window, 'keydown', graphBindingsHandler)
+ * ```
+ */
 export function defineKeybinds<
   T extends Record<BindingName, [] | string[]>,
   BindingName extends keyof T = keyof T,

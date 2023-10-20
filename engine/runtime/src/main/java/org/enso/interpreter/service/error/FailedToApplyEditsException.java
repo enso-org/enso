@@ -2,6 +2,8 @@ package org.enso.interpreter.service.error;
 
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
+import org.enso.text.editing.model;
+import scala.collection.immutable.Seq;
 
 /** Thrown when the edits can not be applied to the source. */
 public class FailedToApplyEditsException extends RuntimeException implements ServiceException {
@@ -15,12 +17,14 @@ public class FailedToApplyEditsException extends RuntimeException implements Ser
    * @param source the source text.
    */
   public FailedToApplyEditsException(
-      QualifiedName module, Object edits, Object failure, Object source) {
+      QualifiedName module, Seq<model.TextEdit> edits, Object failure, Object source) {
     super(
         "Failed to apply edits for "
             + module
             + ", edits="
-            + new MaskedString(edits.toString()).applyMasking()
+            + edits
+                .map(edit -> edit.copy(edit.range(), new MaskedString(edit.text()).applyMasking()))
+                .toString()
             + ", failure="
             + failure
             + ", source='"

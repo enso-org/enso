@@ -82,9 +82,9 @@ case object BindingAnalysis extends IRPass {
             if (!shadowed && n.name == moduleContext.getName().item)
               Some(ref.methodName.name)
             else None
-          case Some(Name.Literal(n, _, _, _, _)) =>
-            val shadowed = definedSumTypes.exists(_.name == n)
-            if (!shadowed && n == moduleContext.getName().item)
+          case Some(literal: Name.Literal) =>
+            val shadowed = definedSumTypes.exists(_.name == literal.name)
+            if (!shadowed && literal.name == moduleContext.getName().item)
               Some(ref.methodName.name)
             else None
           case None => Some(ref.methodName.name)
