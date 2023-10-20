@@ -3,6 +3,7 @@ package org.enso.table_test_helpers;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -84,6 +85,11 @@ public class ExplodingStorage extends Storage<Long> {
   @Override
   public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return null;
+  }
+
+  @Override
+  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     return null;
   }
 
