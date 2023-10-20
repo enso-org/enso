@@ -341,7 +341,7 @@ postgres_specific_spec connection db_name setup =
             w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w4.actual_type . should_equal Value_Type.Float
 
-        Test.specify "should round-trip timestamptz column, preserving intsant but converting to UTC" <|
+        Test.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
             table_name = Name_Generator.random_name "TimestampTZ"
             table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
 
@@ -351,7 +351,8 @@ postgres_specific_spec connection db_name setup =
             dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
             v = [dt1, dt2, dt3, dt4]
 
-            Problems.assume_no_problems <| table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
+            Problems.assume_no_problems <|
+                table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
 
             tz_zero = Time_Zone.parse "Z"
             v_at_z = v.map dt-> dt.at_zone tz_zero
@@ -361,10 +362,11 @@ postgres_specific_spec connection db_name setup =
             ## We also check how the timestamp column behaves with interpolations:
                (See analogous test showing a less nice behaviour without timezones below.)
             v.each my_dt-> Test.with_clue my_dt.to_text+" " <|
-                # Depending on test runner's timezone, the `my_dt` may be equal to 1 or 2 entries in `v`.
-                equals_tz_agnostic dt1 dt2 =
+                # Checks if the two date-times represent the same instant in time.
+                is_same_time_instant dt1 dt2 =
                     dt1.at_zone tz_zero == dt2.at_zone tz_zero
-                local_equals = v.filter (equals_tz_agnostic my_dt)
+                local_equals = v.filter (is_same_time_instant my_dt)
+                # Depending on test runner's timezone, the `my_dt` may be equal to 1 or 2 entries in `v`.
                 [1, 2].should_contain local_equals.length
 
                 Test.with_clue " == "+local_equals.to_text+": " <|
@@ -383,10 +385,12 @@ postgres_specific_spec connection db_name setup =
             dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
             v = [dt1, dt2, dt3, dt4]
 
+            source_table = Table.new [["A", v]]
+            source_table.at "A" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
             w = Problems.expect_only_warning Inexact_Type_Coercion <|
-                table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
-            w.requested_type . should_equal (Value_Type.Date_Time with_timezone=True)
-            w.actual_type . should_equal (Value_Type.Date_Time with_timezone=False)
+                table.update_rows source_table update_action=Update_Action.Insert
+            w.requested_type . should_equal (source_table.at "A" . value_type)
+            w.actual_type . should_equal (table.at "A" . value_type)
             w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
 
             # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
