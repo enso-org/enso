@@ -17,9 +17,10 @@ object SPIHelpers {
     * @see https://github.com/enso-org/enso/pull/8129
     */
   def ensureSPIConsistency = Def.task {
-    val log        = streams.value.log
-    val classDir   = (Compile / compile / classDirectory).value
-    val serviceDir = classDir / "META-INF" / "services"
+    val log            = streams.value.log
+    val classDir       = (Compile / compile / classDirectory).value
+    val javaSourcesDir = (Compile / compile / javaSource).value
+    val serviceDir     = classDir / "META-INF" / "services"
     log.debug(s"Scanning $serviceDir for SPI definitions.")
 
     val files: Array[File] =
@@ -27,17 +28,26 @@ object SPIHelpers {
 
     files.foreach { serviceConfig =>
       log.debug(s"Processing service definitions: $serviceConfig")
-      val definedClasses = IO.readLines(serviceConfig).map { cls =>
-        val path = classDir / (cls.replace('.', '/') + ".class")
-        (path, path.exists())
-      }
+      val definedClasses =
+        IO.readLines(serviceConfig).map { qualifiedClassName =>
+          val subPath        = qualifiedClassName.replace('.', '/')
+          val classFilePath  = classDir / (subPath + ".class")
+          val sourceFilePath = javaSourcesDir / (subPath + ".java")
+
+          // We check existence of the source file - because at pre-compile the .class file may still be there even if the
+          // source is gone - it will only get deleted _after_ the compilation takes place - but that may be too late.
+          // However, we return the path to the class file - so that we will be able to delete it to trigger the
+          // recompilation for _existing_ sources.
+          val hasSource = sourceFilePath.exists()
+          (classFilePath, hasSource)
+        }
 
       val (kept, removed)     = definedClasses.partition(_._2)
       val needsForceRecompile = removed.nonEmpty
       if (needsForceRecompile) {
         val removedNames = removed.map(_._1).map(_.getName)
         val keptNames    = kept.map(_._1).map(_.getName)
-        log.warn(s"The classes $removedNames have been removed.")
+        log.warn(s"No Java sources detected for classes: $removedNames.")
         log.warn(
           s"Removing $serviceConfig and forcing recompilation of $keptNames " +
           s"to ensure that the SPI definition is up-to-date."
