@@ -2316,34 +2316,7 @@ lazy val `std-database` = project
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(
-        Def.task {
-          val log        = streams.value.log
-          val classDir   = (Compile / compile / classDirectory).value
-          val serviceDir = classDir / "META-INF" / "services"
-          println("Hello from hook!")
-          println(serviceDir)
-          IO.listFiles(serviceDir).foreach { serviceConfig =>
-            println(serviceConfig)
-            val definedClasses = IO.readLines(serviceConfig).map { cls =>
-              val path = classDir / (cls.replace('.', '/') + ".class")
-              (path, path.exists())
-            }
-
-            println(definedClasses)
-            val (kept, removed)     = definedClasses.partition(_._2)
-            val needsForceRecompile = removed.nonEmpty
-            if (needsForceRecompile) {
-              log.warn(s"The classes $removed have been removed.")
-              log.warn(
-                s"Removing $serviceConfig and forcing recompilation of $kept to ensure that the SPI definition is up-to-date."
-              )
-              IO.delete(serviceConfig)
-              kept.foreach { case (path, _) => IO.delete(path) }
-            }
-          }
-        }
-      )
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
       .value,
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
