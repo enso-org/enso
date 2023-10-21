@@ -285,6 +285,9 @@ type Value_Type
                 fits_variability = if target_variable_length then True else self_variable_length == target_variable_length
                 fits_variability && (target_size >= self_size)
             _ -> False
+        Value_Type.Date_Time _ -> case target_type of
+            Value_Type.Date_Time _ -> True
+            _ -> False
         _ -> False
 
     ## PRIVATE
@@ -402,7 +405,9 @@ type Value_Type
                 True  -> "Char (variable length, max_size=" + size_text + ")"
                 False -> "Char (fixed length, size=" + size_text + ")"
         Value_Type.Date -> "Date"
-        Value_Type.Date_Time with_timezone -> "Date_Time (with_timezone=" + with_timezone.to_text + ")"
+        Value_Type.Date_Time with_timezone ->
+            tz_suffix = if with_timezone then " (with timezone)" else " (without timezone)"
+            "Date_Time" + tz_suffix
         Value_Type.Time -> "Time"
         Value_Type.Binary size variable_length ->
             size_text = case size of
