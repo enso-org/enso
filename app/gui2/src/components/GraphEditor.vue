@@ -322,16 +322,19 @@ class EditingEdge extends Interaction {
     if (graphStore.unconnectedEdge == null) return false
     const source = graphStore.unconnectedEdge.source ?? hoveredNode.value
     const target = graphStore.unconnectedEdge.target ?? hoveredExpr.value
-    graphStore.transact(() => {
-      if (target == null && graphStore.unconnectedEdge?.disconnectedEdgeTarget != null) {
-        disconnectEdge(graphStore.unconnectedEdge.disconnectedEdgeTarget)
-      }
-      if (source == null || target == null) {
-        createNodeFromEdgeDrop({ source, target })
-      } else {
-        createEdge(source, target)
-      }
-    })
+    const targetNode = target != null ? graphStore.exprNodes.get(target) : undefined
+    if (source != targetNode) {
+      graphStore.transact(() => {
+        if (target == null && graphStore.unconnectedEdge?.disconnectedEdgeTarget != null) {
+          disconnectEdge(graphStore.unconnectedEdge.disconnectedEdgeTarget)
+        }
+        if (source == null || target == null) {
+          createNodeFromEdgeDrop({ source, target })
+        } else {
+          createEdge(source, target)
+        }
+      })
+    }
     graphStore.clearUnconnected()
     return true
   }

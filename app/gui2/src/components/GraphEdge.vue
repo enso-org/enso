@@ -4,7 +4,7 @@ import type { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { clamp } from '@vueuse/core'
 import type { ExprId } from 'shared/yjsModel'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
   edge: Edge
@@ -21,8 +21,12 @@ const emit = defineEmits<{
   disconnectTarget: []
 }>()
 
+const base = ref<SVGPathElement>()
+const active = ref<SVGPathElement>()
+
 function targetPos(): { targetPos: Vec2; targetSize?: Vec2 } | null {
-  const targetExpr = props.edge.target ?? props.hoveredExpr
+  const hovered = props.hoveredNode != props.edge.source ? props.hoveredExpr : undefined
+  const targetExpr = props.edge.target ?? hovered
   if (targetExpr != null) {
     const targetNodeId = props.exprNodes.get(targetExpr)
     if (targetNodeId == null) return null
@@ -37,7 +41,9 @@ function targetPos(): { targetPos: Vec2; targetSize?: Vec2 } | null {
   }
 }
 function sourcePos(): { sourcePos: Vec2; sourceSize?: Vec2 } | null {
-  const sourceNode = props.edge.source ?? props.hoveredNode
+  const targetNode = props.edge.target != null ? props.exprNodes.get(props.edge.target) : undefined
+  const hovered = props.hoveredNode != targetNode ? props.hoveredNode : undefined
+  const sourceNode = props.edge.source ?? hovered
   if (sourceNode != null) {
     const sourceNodeRect = props.nodeRects.get(sourceNode)
     if (sourceNodeRect == null) return null
@@ -114,6 +120,42 @@ function circleIntersection(x: number, r1: number, r2: number): number {
   let xNorm = clamp(x, -r2, r1)
   return Math.sqrt(r1 * r1 + r2 * r2 - xNorm * xNorm)
 }
+
+/** Edge layout calculation.
+ *
+ *  # Corners
+ *
+ *  ```text
+ *    ────╮
+ *  ```
+ *
+ *  The fundamental unit of edge layout is the [`Corner`]. A corner is a line segment attached to a
+ *  90° arc. The length of the straight segment, the radius of the arc, and the orientation of the
+ *  shape may vary. Any shape of edge is built from corners.
+ *
+ *  The shape of a corner can be fully-specified by two points: The horizontal end, and the vertical
+ *  end.
+ *
+ *  In special cases, a corner may be *trivial*: It may have a radius of zero, in which case either
+ *  the horizontal or vertical end will not be in the usual orientation. The layout algorithm only
+ *  produces trivial corners when the source is directly in line with the target, or in some cases
+ *  when subdividing a corner (see [Partial edges] below).
+ *
+ *  # Junction points
+ *
+ *  ```text
+ *               3
+ *    1         /
+ *     \    ╭─────╮
+ *      ────╯\     \
+ *            2     4
+ *  ```
+ *
+ *  The layout algorithm doesn't directly place corners. The layout algorithm places a sequence of
+ *  junction points--coordinates where two horizontal corner ends or two vertical corner ends meet
+ *  (or just one corner end, at an end of an edge). A series of junction points, always alternating
+ *  horizontal/vertical, has a one-to-one relationship with a sequence of corners.
+ */
 
 /** Calculate the start and end positions of each 1-corner section composing an edge to the
  *  given offset. Return the points, the maximum radius that should be used to draw the corners
@@ -192,14 +234,11 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
         : 0
     let attachmentY = inputs.targetOffset.y - attachmentHeight - (inputs.targetSize?.y ?? 0) / 2.0
     let targetAttachment = new Vec2(inputs.targetOffset.x, attachmentY)
-    return null
-    /*
     return {
       points: [source, targetAttachment],
       maxRadius,
       targetAttachment: attachment,
     }
-     */
   } else {
     const { RADIUS_MAX } = ThreeCorner
     // The edge originates from either side of the node.
@@ -317,7 +356,7 @@ function render(sourcePos: Vec2, elements: Element[]): string {
   return out
 }
 
-const edgePath = computed(() => {
+function makePath() {
   const target_ = targetPos()
   const source_ = sourcePos()
   if (target_ == null || source_ == null) return ''
@@ -328,11 +367,71 @@ const edgePath = computed(() => {
     targetSize: target_.targetSize,
   }
   const jp = junctionPoints(inputs)
-  if (jp != null) {
-    const { start, elements } = pathElements(jp)
-    return render(source_.sourcePos.add(start), elements)
-  }
+  if (jp == null) return ''
+  const { start, elements } = pathElements(jp)
+  return render(source_.sourcePos.add(start), elements)
+}
+
+const basePath = computed(() => {
+  if (props.edge.source != null && props.edge.target != null) return makePath()
   return ''
+})
+
+const activePath = computed(() => {
+  if (props.edge.source == null || props.edge.target == null || hovered.value) return makePath()
+  return ''
+})
+
+function lengthTo(pos: Vec2): number | undefined {
+  const path = base.value
+  if (path == null) return undefined
+  const totalLength = path.getTotalLength()
+  let precision = 16
+  let best: number | undefined
+  let bestDist: number | undefined = undefined
+  for (let i = 0; i < totalLength + precision; i += precision) {
+    const len = Math.min(i, totalLength)
+    const p = path.getPointAtLength(len)
+    const dist = pos.distanceSquared(new Vec2(p.x, p.y))
+    if (bestDist == null || dist < bestDist) {
+      best = len
+      bestDist = dist
+    }
+  }
+  if (best == null || bestDist == null) return undefined
+  const tryPos = (len: number) => {
+    const point = path.getPointAtLength(len)
+    const dist: number = pos.distanceSquared(new Vec2(point.x, point.y))
+    if (bestDist == null || dist < bestDist) {
+      best = len
+      bestDist = dist
+      return true
+    }
+    return false
+  }
+  for (; precision >= 0.5; precision /= 2) {
+    tryPos(best + precision) || tryPos(best - precision)
+  }
+  return best
+}
+
+const hovered = ref(false)
+const activeStyle = computed(() => {
+  if (!hovered.value) return {}
+  if (props.edge.source == null || props.edge.target == null) return {}
+  if (base.value == null) return {}
+  if (props.sceneMousePos == null) return {}
+  const length = base.value.getTotalLength()
+  let offset = lengthTo(props.sceneMousePos)
+  if (offset == null) return {}
+  offset = length - offset
+  if (offset < length / 2) {
+    offset += length
+  }
+  return {
+    'stroke-dasharray': length,
+    'stroke-dashoffset': offset,
+  }
 })
 
 function click(_e: PointerEvent) {
@@ -346,37 +445,28 @@ function click(_e: PointerEvent) {
     emit('disconnectTarget')
   else emit('disconnectSource')
 }
-
-const editing = computed(() => {
-  if (props.edge.source == null || props.edge.target == null) {
-    return 'editing'
-  } else {
-    return ''
-  }
-})
 </script>
 
 <template>
   <path
-    :d="edgePath"
-    stroke="black"
-    stroke-width="4"
-    fill="none"
+    :d="basePath"
+    ref="base"
     class="edge"
-    ref="path"
-    :class="{ editing }"
     @pointerdown="click"
+    @pointerenter="hovered = true"
+    @pointerleave="hovered = false"
   />
+  <path :d="activePath" ref="active" class="edge active" :style="activeStyle" />
 </template>
 
 <style scoped>
 .edge {
+  stroke-width: 4;
   stroke: tan;
+  fill: none;
 }
-.edge:hover {
-  stroke: red;
-}
-.edge.editing {
+.edge.active {
+  pointer-events: none;
   stroke: red;
 }
 </style>
