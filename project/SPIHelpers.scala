@@ -39,6 +39,13 @@ object SPIHelpers {
           // However, we return the path to the class file - so that we will be able to delete it to trigger the
           // recompilation for _existing_ sources.
           val hasSource = sourceFilePath.exists()
+
+          if (!hasSource) {
+            log.debug(
+              s"The source file [$sourceFilePath] for class [$qualifiedClassName] does not exist."
+            )
+          }
+
           (classFilePath, hasSource)
         }
 
