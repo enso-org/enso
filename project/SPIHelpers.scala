@@ -14,6 +14,9 @@ object SPIHelpers {
     * This was causing issues on the CI when switching between PRs that have some new SPI configurations - they were
     * leaking and crashing unrelated PRs.
     *
+    * This task is created with the `std-*` Java helper libraries in mind and is aimed primarily at Java-only projects.
+    * Additional tweaks may be needed to get it working for mixed Java/Scala projects, if ever needed.
+    *
     * @see https://github.com/enso-org/enso/pull/8129
     */
   def ensureSPIConsistency = Def.task {
