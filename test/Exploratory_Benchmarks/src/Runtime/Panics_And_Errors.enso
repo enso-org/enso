@@ -1,0 +1,73 @@
+from Standard.Base import all
+from Standard.Test import Bench
+
+polyglot java import org.enso.exploratory_benchmark_helpers.PanicsHelpers
+polyglot java import org.enso.exploratory_benchmark_helpers.PanicsHelpers.MyException
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
+
+type My_Error_Type
+    Error
+
+extend_enso_stack k ~action =
+    case k of
+        0 ->
+            action
+            0
+        _ ->
+            # Ensure that this is not tail recursive
+            r = extend_enso_stack (k - 1) action
+            r+1
+
+condition i = i % 3 == 0
+
+iterate_optional n =
+    0.up_to n . fold 0 acc-> i->
+        r = if condition i then 1 else Nothing
+        d = r.if_nothing -1
+        acc+d
+
+iterate_panicking n =
+    handler _ = -1
+    0.up_to n . fold 0 acc-> i->
+        r = Panic.catch My_Error_Type handler=handler <|
+            if condition i then 1 else Panic.throw My_Error_Type.Error
+        acc+r
+
+iterate_dataflow n =
+    0.up_to n . fold 0 acc-> i->
+        r = if condition i then 1 else
+            Error.throw My_Error_Type.Error
+        d = r.catch My_Error_Type _-> -1
+        acc+d
+
+iterate_java_interop n =
+    handler _ = -1
+    0.up_to n . fold 0 acc-> i->
+        r = Panic.catch MyException handler=handler <|
+            if condition i then 1 else PanicsHelpers.throwMyException
+        acc+r
+
+collect_benches = Bench.build builder->
+    n = 10000
+
+    builder.group ("Panics_And_Errors_" + n.to_text) options group_builder->
+        test_approaches suffix =
+            group_builder.specify "Panic"+suffix <|
+                iterate_panicking n
+            group_builder.specify "Java_Exception_Caught_In_Enso"+suffix <|
+                iterate_java_interop n
+            group_builder.specify "Java_Exception_In_Java"+suffix <|
+                PanicsHelpers.iteratePureJava n
+            group_builder.specify "Dataflow_Error"+suffix <|
+                iterate_dataflow n
+            group_builder.specify "Sum_Type"+suffix <|
+                iterate_optional n
+
+        test_approaches "_Shallow"
+
+        PanicsHelpers.extendJavaStack 100 _->
+            extend_enso_stack 100 <|
+                test_approaches "_Deep"
+
+main = collect_benches . run_main
