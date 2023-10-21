@@ -222,7 +222,7 @@ final class JobExecutionEngine(
       BackgroundJob.BACKGROUND_JOBS_QUEUE_ORDER
     )
     runtimeContext.executionService.getLogger.log(
-      Level.INFO,
+      Level.FINE,
       "Submitting {0} background jobs [{1}]",
       Array[AnyRef](
         delayedBackgroundJobsQueue.size(): Integer,
