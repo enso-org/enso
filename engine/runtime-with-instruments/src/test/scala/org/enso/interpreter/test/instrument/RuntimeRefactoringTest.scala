@@ -149,8 +149,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -233,8 +232,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -319,8 +317,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, exprOperator1, ConstantsGen.INTEGER),
       TestMessages.update(contextId, exprOperator2, ConstantsGen.INTEGER),
@@ -451,8 +448,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -537,8 +533,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -625,8 +620,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, exprOperator1, ConstantsGen.INTEGER),
       TestMessages.update(
@@ -764,8 +758,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -836,8 +829,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, exprOperator1, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
