@@ -314,9 +314,9 @@ final class SerializationManager(compiler: Compiler) {
             libraryName
           )
           result
-        case _ =>
+        case None =>
           compiler.context.logSerializationManager(
-            Level.FINEST,
+            Level.FINE,
             "Unable to load suggestions for library [{0}].",
             libraryName
           )
