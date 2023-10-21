@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Edge } from '@/stores/graph'
-import type { Rect } from '@/stores/rect'
+import type { Rect } from '@/util/rect'
 import { clamp } from '@vueuse/core'
 import type { ExprId } from 'shared/yjsModel'
 import { computed } from 'vue'
