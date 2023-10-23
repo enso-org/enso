@@ -191,8 +191,9 @@ type Random
     ## GROUP Random
        Return a new UUID.
 
-       ! `uuid` does not use the underlying `java.util.Random` instance, and is
-       therefore not affected by the seed.
+       ! Random Seed
+         `uuid` does not use the underlying `java.util.Random` instance, and is
+         therefore not affected by `set_seed`.
 
        > Example
          Generate a uuid.
