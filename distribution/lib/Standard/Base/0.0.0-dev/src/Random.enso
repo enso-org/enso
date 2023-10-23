@@ -236,6 +236,11 @@ type Random
 
     ## PRIVATE
        Return the default instance.
+
+       This method should never be public, since it has to create a
+       `Random_Generator` each time, and so it would be possible to use this to
+       create multiple such default instances at the same time, in which case
+       setting the seed for one would not affect the others.
     default_instance : Random_Generator
     default_instance = Random_Generator.Value Random_Utils.getRandomSingleton
 
