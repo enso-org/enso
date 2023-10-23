@@ -17,8 +17,7 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     materialize = setup.materialize
-    db_pending = if setup.is_database then "Not implemented yet. TODO: https://github.com/enso-org/enso/issues/7981"
-    Test.group prefix+"Table.lookup_and_replace" pending=db_pending <|
+    Test.group prefix+"Table.lookup_and_replace" <|
         Test.specify "should allow to simply update columns based on a lookup table" <|
             lookup = table_builder [["Y", ["A", "B", "A"]], ["X", [1, 2, 3]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
