@@ -2,7 +2,7 @@ import { inject, provide, type InjectionKey } from 'vue'
 
 const MISSING = Symbol('MISSING')
 
-export function createProvidable<F extends (...args: any[]) => any>(factory: F) {
+export function createContextStore<F extends (...args: any[]) => any>(factory: F) {
   const provideKey = Symbol() as InjectionKey<ReturnType<F>>
   function provideFn(...args: Parameters<F>): ReturnType<F> {
     const constructed = factory(...args)
@@ -10,9 +10,9 @@ export function createProvidable<F extends (...args: any[]) => any>(factory: F) 
     return constructed
   }
 
-  function useFn(allowMissing: true): ReturnType<F> | undefined
-  function useFn(allowMissing?: false): ReturnType<F>
-  function useFn(allowMissing = false): ReturnType<F> | undefined {
+  function injectFn(allowMissing: true): ReturnType<F> | undefined
+  function injectFn(allowMissing?: false): ReturnType<F>
+  function injectFn(allowMissing = false): ReturnType<F> | undefined {
     const injected = inject<ReturnType<F> | typeof MISSING>(provideKey, MISSING)
     if (injected === MISSING) {
       if (allowMissing) return
@@ -20,5 +20,5 @@ export function createProvidable<F extends (...args: any[]) => any>(factory: F) 
     }
     return injected
   }
-  return { provideFn: provideFn as F, useFn } as const
+  return { provideFn: provideFn as F, injectFn } as const
 }

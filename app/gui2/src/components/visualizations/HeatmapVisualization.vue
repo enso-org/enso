@@ -45,7 +45,7 @@ import { computed, ref, watchPostEffect } from 'vue'
 import * as d3 from 'd3'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
 
 const props = defineProps<{ data: Data }>()
 

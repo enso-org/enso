@@ -4,7 +4,7 @@ import CircularMenu from '@/components/CircularMenu.vue'
 import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
-import { useGraphSelection } from '@/providers/graphSelection'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -44,7 +44,7 @@ const emit = defineEmits<{
 }>()
 
 const visualizationStore = useVisualizationStore()
-const nodeSelection = useGraphSelection(true)
+const nodeSelection = injectGraphSelection(true)
 
 const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()

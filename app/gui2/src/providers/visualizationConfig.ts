@@ -1,7 +1,7 @@
 import type { Vec2 } from '@/util/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { reactive } from 'vue'
-import { createProvidable } from '.'
+import { createContextStore } from '.'
 
 export interface VisualizationConfig {
   /** Possible visualization types that can be switched to. */
@@ -17,5 +17,12 @@ export interface VisualizationConfig {
   updateType: (type: VisualizationIdentifier) => void
 }
 
-const { provideFn, useFn } = createProvidable(reactive<VisualizationConfig>)
-export { provideFn as provideVisualizationConfig, useFn as useVisualizationConfig }
+export { provideFn as provideVisualizationConfig }
+const { provideFn, injectFn } = createContextStore(reactive<VisualizationConfig>)
+
+// The visualization config public API should not expose the `allowMissing` parameter. It should
+// look like an ordinary vue composable.
+
+export function useVisualizationConfig() {
+  return injectFn()
+}

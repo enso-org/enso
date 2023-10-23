@@ -1,6 +1,6 @@
 import { useNavigator } from '@/util/navigator'
-import { createProvidable } from '.'
+import { createContextStore } from '.'
 
-export type GraphSelection = ReturnType<typeof useNavigator>
-const { provideFn, useFn } = createProvidable(useNavigator)
-export { provideFn as provideGraphNavigator, useFn as useGraphNavigator }
+export type GraphNavigator = ReturnType<typeof injectFn>
+export { injectFn as injectGraphNavigator, provideFn as provideGraphNavigator }
+const { provideFn, injectFn } = createContextStore(useNavigator)

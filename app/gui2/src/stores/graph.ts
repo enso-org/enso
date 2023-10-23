@@ -1,12 +1,6 @@
 import { useProjectStore } from '@/stores/project'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import {
-  Ast,
-  AstExtended,
-  childrenAstNodes,
-  findAstWithRange,
-  readAstOrTokenSpan,
-} from '@/util/ast'
+import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
@@ -398,7 +392,7 @@ function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tre
   if (func.body) {
     if (func.body.type === Ast.Tree.Type.BodyBlock) {
       for (const stmt of func.body.statements) {
-        if (stmt.expression) {
+        if (stmt.expression && stmt.expression.type !== Ast.Tree.Type.Function) {
           yield stmt.expression
         }
       }
@@ -425,7 +419,7 @@ function findModuleMethod(
   methodName: string,
 ): Opt<Ast.Tree.Function> {
   for (const node of childrenAstNodes(moduleAst)) {
-    if (node.type === Ast.Tree.Type.Function && readAstOrTokenSpan(node.name, code) === methodName)
+    if (node.type === Ast.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
       return node
   }
 }

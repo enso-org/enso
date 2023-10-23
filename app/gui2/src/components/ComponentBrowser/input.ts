@@ -5,7 +5,7 @@ import {
   astContainingChar,
   parseEnso,
   parsedTreeRange,
-  readAstOrTokenSpan,
+  readAstSpan,
   readTokenSpan,
 } from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
@@ -107,7 +107,7 @@ export class Input {
         const end = this.selection.value.end
         filter.pattern = code.substring(start, end)
       } else if (ctx.type === 'changeLiteral') {
-        filter.pattern = readAstOrTokenSpan(ctx.literal, code)
+        filter.pattern = readAstSpan(ctx.literal, code)
       }
       return filter
     })
@@ -142,7 +142,7 @@ export class Input {
 
   private static pathAsQualifiedName(accessOpr: GeneralOprApp, code: string): QualifiedName | null {
     const operandsAsIdents = Input.qnIdentifiers(accessOpr, code)
-    const segments = operandsAsIdents.map((ident) => readAstOrTokenSpan(ident, code))
+    const segments = operandsAsIdents.map((ident) => readAstSpan(ident, code))
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null

@@ -1,4 +1,4 @@
-import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider } from '@/util/crdt'
@@ -412,7 +412,7 @@ export const useProjectStore = defineStore('project', () => {
   const doc = new Y.Doc()
   const awareness = new Awareness(doc)
 
-  const config = useGuiConfig()
+  const config = injectGuiConfig()
   const projectName = config.value.startup?.project
   if (projectName == null) throw new Error('Missing project name.')
 

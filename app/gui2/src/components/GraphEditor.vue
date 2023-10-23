@@ -13,8 +13,7 @@ import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import type { ExprId } from 'shared/yjsModel'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
 
@@ -29,12 +28,12 @@ const componentBrowserVisible = ref(false)
 const componentBrowserPosition = ref(Vec2.Zero())
 const suggestionDb = useSuggestionDbStore()
 
-const selectedNodes = reactive(new Set<ExprId>())
-
 const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
   onSelected(id) {
     const node = graphStore.nodes.get(id)
     if (node) {
+      // When a node is selected, we want to reorder it to be visually at the top. This is done by
+      // reinserting it into the nodes map, which is later iterated over in the template.
       graphStore.nodes.delete(id)
       graphStore.nodes.set(id, node)
     }
@@ -80,7 +79,6 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deselectAll() {
     nodeSelection.deselectAll()
-    console.log('deselectAll')
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
@@ -89,12 +87,12 @@ const graphBindingsHandler = graphBindings.handler({
   toggleVisualization() {
     if (keyboardBusy()) return false
     graphStore.transact(() => {
-      const allHidden = set
-        .toArray(selectedNodes)
-        .every((id) => graphStore.nodes.get(id)?.vis?.visible !== true)
+      const allVisible = set
+        .toArray(nodeSelection.selected)
+        .every((id) => !(graphStore.nodes.get(id)?.vis?.visible !== true))
 
       for (const nodeId of nodeSelection.selected) {
-        graphStore.setNodeVisualizationVisible(nodeId, allHidden)
+        graphStore.setNodeVisualizationVisible(nodeId, !allVisible)
       }
     })
   },

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
-import { useGraphNavigator } from '@/providers/graphNavigator'
-import { useGraphSelection } from '@/providers/graphSelection'
+import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 
 const graphStore = useGraphStore()
-const selection = useGraphSelection(true)
-const navigator = useGraphNavigator(true)
+const selection = injectGraphSelection(true)
+const navigator = injectGraphNavigator(true)
 
 function updateNodeContent(id: ExprId, updates: [ContentRange, string][]) {
   graphStore.transact(() => {
