@@ -13,7 +13,8 @@ import scala.util.{Failure, Success}
 
 abstract class AsynchronousCommand(maybeRequestId: Option[RequestId])
     extends Command(maybeRequestId) {
-  type Result[T] = Future[T]
+
+  override type Result[T] = Future[T]
 
   final override def execute(implicit
     ctx: RuntimeContext,

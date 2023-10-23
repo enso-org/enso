@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { PointerButtonMask, usePointer } from '@/util/events'
-
 import { ref } from 'vue'
-import { useVisualizationConfig } from '../providers/visualizationConfig'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */

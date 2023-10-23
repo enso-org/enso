@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 
 /** The base class for keys used for sorting/grouping rows by a set of columns. */
 public abstract class MultiValueKeyBase {
@@ -59,7 +61,8 @@ public abstract class MultiValueKeyBase {
 
   /* Checks if any cell contains float values.
 
-   It takes value folding into account, i.e. a float value that can be coerced to an integer without loss of precision is not considered floating.
+   It takes value folding into account, i.e. a float value that can be coerced to an integer without loss of
+   precision is not considered floating.
   */
   public boolean hasFloatValues() {
     if (!floatsComputed) {
@@ -70,6 +73,23 @@ public abstract class MultiValueKeyBase {
     return hasFloatValues;
   }
 
+  public interface ColumnNameMapping {
+    String getColumnName(int columnIx);
+  }
+
+  public void checkAndReportFloatingEquality(
+      ColumnAggregatedProblemAggregator problemAggregator, ColumnNameMapping columnNameMapping) {
+    if (hasFloatValues()) {
+      for (int columnIx = 0; columnIx < storages.length; columnIx++) {
+        Object value = this.get(columnIx);
+        if (NumericConverter.isFloatLike(value)) {
+          problemAggregator.reportColumnAggregatedProblem(
+              new FloatingPointGrouping(columnNameMapping.getColumnName(columnIx), rowIndex));
+        }
+      }
+    }
+  }
+
   private boolean findFloats() {
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
@@ -78,20 +98,5 @@ public abstract class MultiValueKeyBase {
       }
     }
     return false;
-  }
-
-  /**
-   * Finds which columns contain a float value at this index position and returns their positions in
-   * this index.
-   */
-  public List<Integer> floatColumnPositions() {
-    List<Integer> result = new ArrayList<>();
-    for (int i = 0; i < storages.length; i++) {
-      Object value = this.get(i);
-      if (NumericConverter.isFloatLike(value)) {
-        result.add(i);
-      }
-    }
-    return result;
   }
 }

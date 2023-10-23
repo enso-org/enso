@@ -4,12 +4,15 @@ import type { Icon } from '@/util/iconName'
 import {
   isIdentifier,
   isQualifiedName,
+  qnJoin,
   qnLastSegment,
   qnParent,
   qnSplit,
+  tryQualifiedName,
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -39,30 +42,43 @@ export enum SuggestionKind {
 
 export interface SuggestionEntry {
   kind: SuggestionKind
-  /** The module in which the suggested object is defined. */
+  /** A module where the suggested object is defined. */
   definedIn: QualifiedName
-  /** The type or module this method or constructor belongs to. */
+  /** A type or module this method or constructor belongs to. */
   memberOf?: QualifiedName
   isPrivate: boolean
   isUnstable: boolean
   name: Identifier
   aliases: string[]
-  /** The type of the "self" argument. This field is present only for instance methods. */
+  /** A type of the "self" argument. This field is present only for instance methods. */
   selfType?: Typename
-  /** The argument list of the suggested object (atom or function). If the object does not take any
+  /** Argument lists of suggested object (atom or function). If the object does not take any
    * arguments, the list is empty. */
   arguments: SuggestionEntryArgument[]
-  /** The type returned by the suggested object. */
+  /** A type returned by the suggested object. */
   returnType: Typename
-  /** The least-nested module reexporting this entity. */
+  /** A least-nested module reexporting this entity. */
   reexportedIn?: QualifiedName
   documentation: Doc.Section[]
-  /** The scope in which this suggestion is visible. */
+  /** A scope where this suggestion is visible. */
   scope?: SuggestionEntryScope
-  /** The name of a custom icon to use when displaying the entry. */
+  /** A name of a custom icon to use when displaying the entry. */
   iconName?: Icon
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex?: number
+}
+
+/**
+ * Get the fully qualified name of the `SuggestionEntry`, disregarding reexports.
+ */
+export function entryQn(entry: SuggestionEntry): QualifiedName {
+  if (entry.kind == SuggestionKind.Module) {
+    return entry.definedIn
+  } else if (entry.memberOf) {
+    return qnJoin(entry.memberOf, entry.name)
+  } else {
+    return qnJoin(entry.definedIn, unwrap(tryQualifiedName(entry.name)))
+  }
 }
 
 function makeSimpleEntry(

@@ -19,6 +19,7 @@ export default defineConfig({
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
+      'rust-ffi': fileURLToPath(new URL('./rust-ffi', import.meta.url)),
       // These are required to be defined before `@` as they will be overridden by Histoire.
       '@/stores/project': fileURLToPath(new URL('./src/stores/project.ts', import.meta.url)),
       '@/stores/suggestionDatabase/documentation': fileURLToPath(
@@ -34,7 +35,6 @@ export default defineConfig({
         new URL('./src/stores/suggestionDatabase/index.ts', import.meta.url),
       ),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      events$: fileURLToPath(new URL('./shared/events.ts', import.meta.url)),
     },
   },
   define: {

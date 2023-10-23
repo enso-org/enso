@@ -322,7 +322,7 @@ case object FullyQualifiedNames extends IRPass {
               err => Some(err),
               _.map(resolvedMod =>
                 freshNameSupply
-                  .newName()
+                  .newName(from = Some(name))
                   .updateMetadata(this -->> resolvedMod)
                   .setLocation(name.location)
               )

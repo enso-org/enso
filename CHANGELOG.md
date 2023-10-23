@@ -583,6 +583,11 @@
 - [Implemented Text.substring to easily select part of a Text field][7913]
 - [Implemented basic XML support][7947]
 - [Implemented `Table.lookup_and_replace` for the in-memory backend.][7979]
+- [Added `Column_Operation` to `Table.set` allowing for more streamlined flow of
+  deriving column values in the GUI.][8005]
+- [Implemented `Table.expand_to_rows` for the in-memory backend.][8029]
+- [Added XML support for `.to Table` and `.expand_column`.][8083]
+- [Added `Previous_Value` option to `fill_nothing` and `fill_empty`.][8105]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -830,6 +835,10 @@
 [7913]: https://github.com/enso-org/enso/pull/7913
 [7947]: https://github.com/enso-org/enso/pull/7947
 [7979]: https://github.com/enso-org/enso/pull/7979
+[8005]: https://github.com/enso-org/enso/pull/8005
+[8029]: https://github.com/enso-org/enso/pull/8029
+[8083]: https://github.com/enso-org/enso/pull/8083
+[8105]: https://github.com/enso-org/enso/pull/8105
 
 #### Enso Compiler
 

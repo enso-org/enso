@@ -68,7 +68,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
         imports = ir.imports.flatMap(imp => {
           analyseAmbiguousSymbols(
             imp,
-            moduleContext,
             bindingMap,
             encounteredSymbols
           ).fold(identity, imp => List(imp))
@@ -86,7 +85,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
     */
   private def analyseAmbiguousSymbols(
     imp: Import,
-    module: ModuleContext,
     bindingMap: BindingsMap,
     encounteredSymbols: EncounteredSymbols
   ): Either[List[errors.ImportExport], Import] = {
@@ -114,7 +112,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
                   case Right(resolvedName) =>
                     val symbolPath = resolvedName.qualifiedName.toString
                     tryAddEncounteredSymbol(
-                      module,
                       encounteredSymbols,
                       imp,
                       symbolName,
@@ -176,7 +173,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
                       )
                     case Right(resolvedName) =>
                       tryAddEncounteredSymbol(
-                        module,
                         encounteredSymbols,
                         imp,
                         symbolName,
@@ -213,7 +209,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
           ) =>
         val symbolPath = importPath.name
         tryAddEncounteredSymbol(
-          module,
           encounteredSymbols,
           moduleImport,
           rename.name,
@@ -236,7 +231,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             _
           ) =>
         tryAddEncounteredSymbol(
-          module,
           encounteredSymbols,
           moduleImport,
           importPath.parts.last.name,
@@ -254,7 +248,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
             packageName + "." + className
         }
         tryAddEncounteredSymbol(
-          module,
           encounteredSymbols,
           polyImport,
           symbolName,
@@ -284,7 +277,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
     * in the map, checks whether the underlying entity path is the same as the original entity path.
     * Based on that, either attaches a warning for a duplicated import, or returns an [[errors.ImportExport]].
     *
-    * @param module Current module
     * @param encounteredSymbols Encountered symbols in the current module
     * @param currentImport Currently iterated import
     * @param symbolName Name of the symbol that is about to be processed
@@ -292,7 +284,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
     * @return
     */
   private def tryAddEncounteredSymbol(
-    module: ModuleContext,
     encounteredSymbols: EncounteredSymbols,
     currentImport: Import,
     symbolName: String,
@@ -306,7 +297,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
       if (symbolPath == encounteredFullName) {
         val warn =
           createWarningForDuplicatedImport(
-            module,
             originalImport,
             currentImport,
             symbolName
@@ -315,7 +305,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
       } else {
         Left(
           createErrorForAmbiguousImport(
-            module,
             originalImport,
             encounteredFullName,
             currentImport,
@@ -331,7 +320,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
   }
 
   private def createErrorForAmbiguousImport(
-    module: ModuleContext,
     originalImport: Import,
     originalSymbolPath: String,
     duplicatingImport: Import,
@@ -344,14 +332,12 @@ case object AmbiguousImportsAnalysis extends IRPass {
         originalImport,
         originalSymbolPath,
         ambiguousSymbol,
-        ambiguousSymbolPath,
-        module.getSource()
+        ambiguousSymbolPath
       )
     )
   }
 
   private def createWarningForDuplicatedImport(
-    module: ModuleContext,
     originalImport: Import,
     duplicatingImport: Import,
     duplicatedSymbol: String
@@ -359,8 +345,7 @@ case object AmbiguousImportsAnalysis extends IRPass {
     Warning.DuplicatedImport(
       duplicatingImport.location,
       originalImport,
-      duplicatedSymbol,
-      module.getSource()
+      duplicatedSymbol
     )
   }
 

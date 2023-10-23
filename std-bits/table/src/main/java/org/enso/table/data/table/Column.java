@@ -1,6 +1,5 @@
 package org.enso.table.data.table;
 
-import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -13,7 +12,7 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.error.UnexpectedColumnTypeException;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -121,10 +120,10 @@ public class Column {
   }
 
   /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
-  public static WithAggregatedProblems<Column> fromItems(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
+  public static Column fromItems(String name, List<Value> items, StorageType expectedType, ProblemAggregator problemAggregator) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
-    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+    Builder builder = expectedType == null ? new InferredBuilder(n, problemAggregator) : Builder.getForType(expectedType, n, problemAggregator);
 
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     for (Object item : items) {
@@ -138,8 +137,7 @@ public class Column {
       context.safepoint();
     }
 
-    var result = new Column(name, builder.seal());
-    return new WithAggregatedProblems<>(result, builder.getProblems());
+    return new Column(name, builder.seal());
   }
 
   /**
@@ -149,18 +147,17 @@ public class Column {
    * is only safe if we guarantee that the method will not get a Date value, or will reject it right after processing
    * it.
    */
-  public static WithAggregatedProblems<Column> fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
+  public static Column fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType, ProblemAggregator problemAggregator) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
-    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+    Builder builder = expectedType == null ? new InferredBuilder(n, problemAggregator) : Builder.getForType(expectedType, n, problemAggregator);
 
     for (Object item : items) {
       builder.appendNoGrow(item);
       context.safepoint();
     }
 
-    var result = new Column(name, builder.seal());
-    return new WithAggregatedProblems<>(result, builder.getProblems());
+    return new Column(name, builder.seal());
   }
 
   /**
@@ -170,13 +167,13 @@ public class Column {
    * @param items the items contained in the column
    * @return a column with given name and items
    */
-  public static WithAggregatedProblems<Column> fromRepeatedItems(String name, List<Value> items, int repeat) {
+  public static Column fromRepeatedItems(String name, List<Value> items, int repeat, ProblemAggregator problemAggregator) {
     if (repeat < 1) {
       throw new IllegalArgumentException("Repeat count must be positive.");
     }
 
     if (repeat == 1) {
-      return fromItems(name, items, null);
+      return fromItems(name, items, null, problemAggregator);
     }
 
     Context context = Context.getCurrent();
@@ -191,15 +188,14 @@ public class Column {
       context.safepoint();
     }
 
-    var builder = new InferredBuilder(totalSize);
+    var builder = new InferredBuilder(totalSize, problemAggregator);
     for (int i = 0; i < totalSize; i++) {
       var item = values.get(i % items.size());
       builder.appendNoGrow(item);
       context.safepoint();
     }
 
-    var result = new Column(name, builder.seal());
-    return new WithAggregatedProblems<>(result, builder.getProblems());
+    return new Column(name, builder.seal());
   }
 
   /** @return the index of this column */

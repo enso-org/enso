@@ -66,27 +66,38 @@ final class JobExecutionEngine(
   override def runBackground[A](job: BackgroundJob[A]): Unit =
     synchronized {
       if (isBackgroundJobsStarted) {
+        cancelDuplicateJobs(job, backgroundJobsRef)
         runInternal(job, backgroundJobExecutor, backgroundJobsRef)
       } else {
+        job match {
+          case job: UniqueJob[_] =>
+            delayedBackgroundJobsQueue.removeIf {
+              case that: UniqueJob[_] => that.equalsTo(job)
+              case _                  => false
+            }
+          case _ =>
+        }
         delayedBackgroundJobsQueue.add(job)
       }
     }
 
   /** @inheritdoc */
   override def run[A](job: Job[A]): Future[A] = {
-    cancelDuplicateJobs(job)
+    cancelDuplicateJobs(job, runningJobsRef)
     runInternal(job, jobExecutor, runningJobsRef)
   }
 
-  private def cancelDuplicateJobs[A](job: Job[A]): Unit = {
+  private def cancelDuplicateJobs[A](
+    job: Job[A],
+    runningJobsRef: AtomicReference[Vector[RunningJob]]
+  ): Unit = {
     job match {
       case job: UniqueJob[_] =>
         val allJobs =
           runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
         allJobs.foreach { runningJob =>
           runningJob.job match {
-            case jobRef: UniqueJob[_]
-                if jobRef.getClass == job.getClass && jobRef.key == job.key =>
+            case jobRef: UniqueJob[_] if jobRef.equalsTo(job) =>
               runtimeContext.executionService.getLogger
                 .log(Level.FINEST, s"Cancelling duplicate job [$jobRef].")
               runningJob.future.cancel(jobRef.mayInterruptIfRunning)
@@ -164,6 +175,19 @@ final class JobExecutionEngine(
       .interruptThreads()
   }
 
+  override def abortBackgroundJobs(toAbort: Class[_ <: Job[_]]*): Unit = {
+    val allJobs =
+      backgroundJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
+    val cancellableJobs = allJobs
+      .filter { runningJob =>
+        runningJob.job.isCancellable &&
+        toAbort.contains(runningJob.job.getClass)
+      }
+    cancellableJobs.foreach { runningJob =>
+      runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+    }
+  }
+
   /** @inheritdoc */
   override def startBackgroundJobs(): Boolean =
     synchronized {
@@ -193,7 +217,18 @@ final class JobExecutionEngine(
 
   /** Submit background jobs preserving the stable order. */
   private def submitBackgroundJobsOrdered(): Unit = {
-    Collections.sort(delayedBackgroundJobsQueue)
+    Collections.sort(
+      delayedBackgroundJobsQueue,
+      BackgroundJob.BACKGROUND_JOBS_QUEUE_ORDER
+    )
+    runtimeContext.executionService.getLogger.log(
+      Level.FINE,
+      "Submitting {0} background jobs [{1}]",
+      Array[AnyRef](
+        delayedBackgroundJobsQueue.size(): Integer,
+        delayedBackgroundJobsQueue
+      )
+    )
     delayedBackgroundJobsQueue.forEach(job => runBackground(job))
     delayedBackgroundJobsQueue.clear()
   }

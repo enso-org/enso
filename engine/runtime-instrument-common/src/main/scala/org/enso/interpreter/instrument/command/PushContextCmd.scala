@@ -15,13 +15,13 @@ import scala.concurrent.{ExecutionContext, Future}
 class PushContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.PushContextRequest
-) extends AsynchronousCommand(maybeRequestId) {
+) extends SynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
-  override def executeAsynchronously(implicit
+  override def executeSynchronously(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
-  ): Future[Unit] =
+  ): Unit =
     if (doesContextExist) {
       pushItemOntoStack() flatMap (scheduleExecutionIfNeeded(_))
     } else {

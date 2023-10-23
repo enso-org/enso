@@ -308,7 +308,8 @@ lazy val enso = (project in file("."))
     `std-aws`,
     `simple-httpbin`,
     `enso-test-java-helpers`,
-    `exploratory-benchmark-java-helpers`
+    `exploratory-benchmark-java-helpers`,
+    `benchmark-java-helpers`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -461,7 +462,7 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "32.0.0-jre"
 val jlineVersion            = "3.23.0"
-val jgitVersion             = "6.3.0.202209071007-r"
+val jgitVersion             = "6.7.0.202309050840-r"
 val diffsonVersion          = "4.4.0"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.14"
@@ -474,7 +475,7 @@ val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
 val scalatestVersion        = "3.3.0-SNAP4"
 val shapelessVersion        = "2.3.10"
-val slf4jVersion            = "1.7.36"
+val slf4jVersion            = "2.0.9"
 val slickVersion            = "3.4.1"
 val sqliteVersion           = "3.42.0.0"
 val tikaVersion             = "2.4.1"
@@ -756,9 +757,12 @@ lazy val filewatcher = project
       "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
       "commons-io"     % "commons-io"        % commonsIoVersion,
       "org.scalatest" %% "scalatest"         % scalatestVersion % Test
-    ) ++ logbackTest
+    ),
+    Test / fork := true,
+    Test / javaOptions ++= testLogProviderOptions
   )
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service-logback` % "test->test")
 
 lazy val `logging-truffle-connector` = project
   .in(file("lib/scala/logging-truffle-connector"))
@@ -766,8 +770,9 @@ lazy val `logging-truffle-connector` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.slf4j"           % "slf4j-api"   % slf4jVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion % "provided"
+      "org.slf4j"           % "slf4j-api"               % slf4jVersion,
+      "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
     )
   )
   .dependsOn(`logging-utils`)
@@ -1086,6 +1091,10 @@ val truffleRunOptionsSettings = Seq(
   javaOptions ++= truffleRunOptions
 )
 
+val testLogProviderOptions = Seq(
+  "-Dslf4j.provider=org.enso.logger.TestLogProvider"
+)
+
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
@@ -1191,7 +1200,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`profiling-utils`)
   .dependsOn(filewatcher)
   .dependsOn(testkit % Test)
-  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
@@ -1349,7 +1358,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,
     // Note [Classpath Separation]
-    Test / javaOptions ++= Seq(
+    Test / javaOptions ++= testLogProviderOptions ++ Seq(
       "-Dgraalvm.locatorDisabled=true",
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
@@ -1378,6 +1387,7 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
+      .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
@@ -1411,6 +1421,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(pkg)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service-logback` % "test->test")
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
@@ -1483,7 +1494,6 @@ lazy val `runtime-with-instruments` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      truffleDslSuppressWarnsSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
@@ -1492,7 +1502,7 @@ lazy val `runtime-with-instruments` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
-      Test / javaOptions ++= Seq(
+      Test / javaOptions ++= testLogProviderOptions ++ Seq(
         "-Dgraalvm.locatorDisabled=true",
         s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
       ),
@@ -1528,6 +1538,7 @@ lazy val `runtime-with-instruments` =
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
+    .dependsOn(`logging-service-logback` % "test->test")
 
 /* runtime-with-polyglot
  * ~~~~~~~~~~~~~~~~~~~~~
@@ -1543,7 +1554,6 @@ lazy val `runtime-with-polyglot` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      truffleDslSuppressWarnsSetting,
       inConfig(Compile)(truffleRunOptionsNoAssertSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
@@ -1598,7 +1608,6 @@ lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
     frgaalJavaCompilerSetting,
-    truffleDslSuppressWarnsSetting,
     javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
@@ -1760,6 +1769,8 @@ lazy val launcher = project
     }
   )
   .settings(
+    Test / fork := true,
+    Test / javaOptions ++= testLogProviderOptions,
     (Test / test) := (Test / test)
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare())
@@ -1777,8 +1788,7 @@ lazy val launcher = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils` % "test->test")
   .dependsOn(`logging-service`)
-  .dependsOn(`logging-service-logback` % Test)
-  .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`logging-service-logback` % "test->test;runtime->runtime")
   .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
@@ -2013,6 +2023,8 @@ lazy val `library-manager-test` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    Test / fork := true,
+    Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
@@ -2022,6 +2034,7 @@ lazy val `library-manager-test` = project
   .dependsOn(`library-manager`)
   .dependsOn(`logging-utils` % "test->test")
   .dependsOn(testkit)
+  .dependsOn(`logging-service-logback` % "test->test")
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
@@ -2181,6 +2194,26 @@ lazy val `exploratory-benchmark-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file(
         "test/Exploratory_Benchmarks/polyglot/java/exploratory-benchmark-java-helpers.jar"
+      ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
+    )
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
+lazy val `benchmark-java-helpers` = project
+  .in(
+    file(
+      "test/Benchmarks/polyglot-sources/benchmark-java-helpers"
+    )
+  )
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      file(
+        "test/Benchmarks/polyglot/java/benchmark-java-helpers.jar"
       ),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
@@ -2520,12 +2553,14 @@ pkgStdLibInternal := Def.inputTask {
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
+      (`benchmark-java-helpers` / Compile / packageBin).value
     case "AWS" =>
       (`std-aws` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
+      (`benchmark-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value

@@ -1,11 +1,10 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -15,8 +14,8 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.WithAggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -78,8 +77,8 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
-    return ops.runUnaryMap(name, this, problemBuilder);
+  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemAggregator problemAggregator) {
+    return ops.runUnaryMap(name, this, problemAggregator);
   }
 
   public boolean getItem(long idx) {
@@ -98,14 +97,14 @@ public final class BoolStorage extends Storage<Boolean> {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runBinaryMap(name, this, argument, problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runBinaryMap(name, this, argument, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runZip(name, this, argument, problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runZip(name, this, argument, problemAggregator);
   }
 
   public BitSet getValues() {
@@ -123,24 +122,56 @@ public final class BoolStorage extends Storage<Boolean> {
    * accordingly. If `arg` is true, new values are `values || isMissing` and if `arg` is false, new
    * values are `values && (~isMissing)`.
    */
-  private WithAggregatedProblems<Storage<?>> fillMissingBoolean(boolean arg) {
+  private Storage<?> fillMissingBoolean(boolean arg) {
     final var newValues = (BitSet) values.clone();
     if (arg) {
       newValues.or(isMissing);
     } else {
       newValues.andNot(isMissing);
     }
-    var storage = new BoolStorage(newValues, new BitSet(), size, negated);
-    return new WithAggregatedProblems<>(storage, AggregatedProblems.of());
+    return new BoolStorage(newValues, new BitSet(), size, negated);
   }
 
   @Override
-  public WithAggregatedProblems<Storage<?>> fillMissing(Value arg, StorageType commonType) {
+  public Storage<?> fillMissing(Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
     if (arg.isBoolean()) {
       return fillMissingBoolean(arg.asBoolean());
     } else {
-      return super.fillMissing(arg, commonType);
+      return super.fillMissing(arg, commonType, problemAggregator);
     }
+  }
+
+  @Override
+  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+    if (missingIndicator != null) {
+      throw new IllegalStateException("Custom missing value semantics are not supported by BoolStorage.");
+    }
+
+    boolean previousValue = false;
+    boolean hasPrevious = false;
+    BitSet newMissing = new BitSet();
+    BitSet newValues = new BitSet();
+
+    Context context = Context.getCurrent();
+    for (int i = 0; i < size; i++) {
+      boolean isCurrentValueMissing = isMissing.get(i);
+      if (isCurrentValueMissing) {
+        if (hasPrevious) {
+          newValues.set(i, previousValue);
+        } else {
+          newMissing.set(i);
+        }
+      } else {
+        boolean currentValue = getItem(i);
+        newValues.set(i, currentValue);
+        previousValue = currentValue;
+        hasPrevious = true;
+      }
+
+      context.safepoint();
+    }
+
+    return new BoolStorage(newValues, newMissing, size, false);
   }
 
   @Override
@@ -208,11 +239,11 @@ public final class BoolStorage extends Storage<Boolean> {
     return negated;
   }
 
-  public WithAggregatedProblems<Storage<?>> iif(Value when_true, Value when_false, StorageType resultStorageType) {
+  public Storage<?> iif(Value when_true, Value when_false, StorageType resultStorageType, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     var on_true = makeRowProvider(when_true);
     var on_false = makeRowProvider(when_false);
-    Builder builder = Builder.getForType(resultStorageType, size);
+    Builder builder = Builder.getForType(resultStorageType, size, problemAggregator);
     for (int i = 0; i < size; i++) {
       if (isMissing.get(i)) {
         builder.append(null);
@@ -225,8 +256,7 @@ public final class BoolStorage extends Storage<Boolean> {
       context.safepoint();
     }
 
-    Storage<?> result = builder.seal();
-    return new WithAggregatedProblems<>(result, builder.getProblems());
+    return builder.seal();
   }
 
   private static IntFunction<Object> makeRowProvider(Value value) {
@@ -242,7 +272,7 @@ public final class BoolStorage extends Storage<Boolean> {
     ops.add(
             new UnaryMapOperation<>(Maps.NOT) {
               @Override
-              protected BoolStorage runUnaryMap(BoolStorage storage, MapOperationProblemBuilder problemBuilder) {
+              protected BoolStorage runUnaryMap(BoolStorage storage, MapOperationProblemAggregator problemAggregator) {
                 return new BoolStorage(
                     storage.values, storage.isMissing, storage.size, !storage.negated);
               }
@@ -251,7 +281,7 @@ public final class BoolStorage extends Storage<Boolean> {
             new BinaryMapOperation<>(Maps.EQ) {
               @Override
               public BoolStorage runBinaryMap(
-                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+                  BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -268,7 +298,7 @@ public final class BoolStorage extends Storage<Boolean> {
 
               @Override
               public BoolStorage runZip(
-                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
                 Context context = Context.getCurrent();
                 BitSet out = new BitSet();
                 BitSet missing = new BitSet();
@@ -290,7 +320,7 @@ public final class BoolStorage extends Storage<Boolean> {
             new BinaryMapOperation<>(Maps.AND) {
               @Override
               public BoolStorage runBinaryMap(
-                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+                  BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -306,7 +336,7 @@ public final class BoolStorage extends Storage<Boolean> {
 
               @Override
               public BoolStorage runZip(
-                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
@@ -336,7 +366,7 @@ public final class BoolStorage extends Storage<Boolean> {
             new BinaryMapOperation<>(Maps.OR) {
               @Override
               public BoolStorage runBinaryMap(
-                  BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+                  BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
                 } else if (arg instanceof Boolean v) {
@@ -352,7 +382,7 @@ public final class BoolStorage extends Storage<Boolean> {
 
               @Override
               public BoolStorage runZip(
-                  BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+                  BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
                 if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
@@ -382,7 +412,7 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
-              public BoolStorage runUnaryMap(BoolStorage storage, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runUnaryMap(BoolStorage storage, MapOperationProblemAggregator problemAggregator) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
@@ -412,8 +442,10 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new BoolBuilder(capacity);
+  public Storage<?> appendNulls(int count) {
+    BitSet newMissing = BitSets.makeDuplicate(isMissing);
+    newMissing.set(size, size + count);
+    return new BoolStorage(values, newMissing, size + count, negated);
   }
 
   @Override

@@ -1,5 +1,5 @@
 import { IS_NODE } from '@/util/detect'
-import init, { parse, parse_doc_to_json } from '../../rust-ffi/pkg/rust_ffi'
+import init, { parse, parse_doc_to_json } from 'rust-ffi/pkg/rust_ffi'
 
 if (IS_NODE) {
   const fs = await import('node:fs/promises')

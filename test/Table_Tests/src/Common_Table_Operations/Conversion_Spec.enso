@@ -553,6 +553,12 @@ spec setup =
             table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
             table.expand_column "bbb" . should_fail_with Unsupported_Database_Operation
 
+    # The in-memory functionality of `expand_to_rows` is tested in test/Table_Tests/src/In_Memory/Table_Conversion_Spec.enso
+    if setup.is_database then Test.group prefix+"Table.expand_to_rows" <|
+        Test.specify "should report unsupported" <|
+            table = table_builder [["aaa", [1, 2]], ["bbb", [3, 4]], ["ccc", [5, 6]]]
+            table.expand_to_rows "bbb" . should_fail_with Unsupported_Database_Operation
+
     if setup.is_database.not then Test.group prefix+"Table/Column auto value type" <|
         Test.specify "should allow to narrow down types of a Mixed column" <|
             [True, False].each shrink_types->

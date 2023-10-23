@@ -45,7 +45,6 @@ import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
-import org.enso.logger.LoggerSetup
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -61,7 +60,6 @@ import org.slf4j.event.Level
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BaseServerTest
@@ -71,11 +69,7 @@ class BaseServerTest
     with WithTemporaryDirectory
     with FakeEnvironment {
 
-  import system.dispatcher
-
   val timeout: FiniteDuration = 10.seconds
-
-  LoggerSetup.get().setup()
 
   def isFileWatcherEnabled: Boolean = false
 
@@ -144,16 +138,23 @@ class BaseServerTest
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
 
-  val initializationComponent = SequentialResourcesInitialization(
-    new DirectoriesInitialization(config.directories),
-    new ZioRuntimeInitialization(zioRuntime, system.eventStream),
-    new RepoInitialization(
-      config.directories,
-      system.eventStream,
-      sqlDatabase,
-      suggestionsRepo
+  private def initializationComponent =
+    new SequentialResourcesInitialization(
+      system.dispatcher,
+      new DirectoriesInitialization(system.dispatcher, config.directories),
+      new ZioRuntimeInitialization(
+        system.dispatcher,
+        zioRuntime,
+        system.eventStream
+      ),
+      new RepoInitialization(
+        system.dispatcher,
+        config.directories,
+        system.eventStream,
+        sqlDatabase,
+        suggestionsRepo
+      )
     )
-  )
 
   val contentRootManagerActor =
     system.actorOf(ContentRootManagerActor.props(config))
@@ -265,7 +266,7 @@ class BaseServerTest
       UUID.randomUUID(),
       Api.GetTypeGraphResponse(typeGraph)
     )
-    Await.ready(initializationComponent.init(), timeout)
+    initializationComponent.init().get(timeout.length, timeout.unit)
     suggestionsHandler ! ProjectNameUpdated("Test")
 
     val environment         = fakeInstalledEnvironment()

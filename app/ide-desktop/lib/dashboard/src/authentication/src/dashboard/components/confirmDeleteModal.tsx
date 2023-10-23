@@ -44,14 +44,13 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                     element?.focus()
                 }}
                 tabIndex={-1}
-                className="relative rounded-2xl pointer-events-auto"
+                className="relative rounded-2xl pointer-events-auto before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') {
                         event.stopPropagation()
                     }
                 }}
             >
-                <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
                 <form
                     onClick={event => {
                         event.stopPropagation()
