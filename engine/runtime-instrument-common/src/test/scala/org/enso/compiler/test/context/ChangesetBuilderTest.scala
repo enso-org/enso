@@ -16,6 +16,7 @@ import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.text.buffer.Rope
+import org.enso.text.editing.JavaEditorAdapter
 import org.enso.text.editing.model.{Position, Range, TextEdit}
 
 import java.util.UUID
@@ -334,6 +335,22 @@ class ChangesetBuilderTest extends CompilerTest {
         y.getId,
         plus.getId
       )
+    }
+
+    "multiple last line" in {
+      val code =
+        """foo x =
+          |    z = 1
+          |    y = z
+          |    y + x""".stripMargin.linesIterator.mkString("\n")
+      val edits = Seq(
+        TextEdit(Range(Position(3, 4), Position(3, 9)), "y + x + y"),
+        TextEdit(Range(Position(3, 4), Position(3, 13)), "y + x + y + x"),
+        TextEdit(Range(Position(3, 4), Position(3, 17)), "y + x + y + x + 1")
+      )
+      val source = Rope(code)
+      val result = JavaEditorAdapter.applyEdits(source, edits)
+      result.isRight shouldBe true
     }
 
     "module with undefined literal" in {

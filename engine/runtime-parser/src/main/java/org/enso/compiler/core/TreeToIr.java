@@ -458,7 +458,8 @@ final class TreeToIr {
               l.copy$default$3(),
               l.copy$default$4(),
               l.copy$default$5(),
-              l.copy$default$6()
+              l.copy$default$6(),
+              l.copy$default$7()
             );
         } else {
             args = cons(typeArg, args);
@@ -471,7 +472,7 @@ final class TreeToIr {
         case 1 -> fullQualifiedNames.head();
         default -> {
           var name = fullQualifiedNames.head();
-          name = new Name.Literal(name.name(), true, name.location(), name.passData(), name.diagnostics());
+          name = new Name.Literal(name.name(), true, name.location(), Option.empty(), name.passData(), name.diagnostics());
           List<Name> tail = (List<Name>)fullQualifiedNames.tail();
           tail = tail.reverse();
           final Option<IdentifiedLocation> loc = getIdentifiedLocation(app);
@@ -746,7 +747,7 @@ final class TreeToIr {
             var lhs = unnamedCallArgument(app.getLhs());
             var rhs = unnamedCallArgument(app.getRhs());
             var name = new Name.Literal(
-              op.codeRepr(), true, getIdentifiedLocation(op), meta(), diag()
+              op.codeRepr(), true, getIdentifiedLocation(op), Option.empty(), meta(), diag()
             );
             var loc = getIdentifiedLocation(app);
             if (lhs == null && rhs == null) {
@@ -803,7 +804,7 @@ final class TreeToIr {
           var subexpression = Objects.requireNonNullElse(applySkip(body), body);
           yield translateExpression(subexpression, false);
         }
-        var fn = new Name.Literal(fullName, true, Option.empty(), meta(), diag());
+        var fn = new Name.Literal(fullName, true, Option.empty(), Option.empty(), meta(), diag());
         if (!checkArgs(args)) {
           yield translateSyntaxError(app, Syntax.UnexpectedExpression$.MODULE$);
         }
@@ -952,7 +953,7 @@ final class TreeToIr {
             n.copy$default$6()
           );
           case Expression expr -> {
-            var negate = new Name.Literal("negate", true, Option.empty(), meta(), diag());
+            var negate = new Name.Literal("negate", true, Option.empty(), Option.empty(), meta(), diag());
             var arg = new CallArgument.Specified(Option.empty(), expr, expr.location(), meta(), diag());
             yield new Application.Prefix(negate, cons(arg, nil()), false, expr.location(), meta(), diag());
           }
@@ -1104,6 +1105,7 @@ final class TreeToIr {
             var name = new Name.Literal(
                     op.codeRepr(), true,
                     getIdentifiedLocation(app),
+                    Option.empty(),
                     meta(), diag()
             );
             var loc = getIdentifiedLocation(app);
@@ -1144,7 +1146,7 @@ final class TreeToIr {
   Expression translateTypeAnnotated(Tree.TypeAnnotated anno) {
     var type = translateTypeCallArgument(anno.getType());
     var expr = translateCallArgument(anno.getExpression());
-    var opName = new Name.Literal(anno.getOperator().codeRepr(), true, Option.empty(), meta(), diag());
+    var opName = new Name.Literal(anno.getOperator().codeRepr(), true, Option.empty(), Option.empty(), meta(), diag());
     return new Operator.Binary(
             expr,
             opName,
@@ -1666,7 +1668,7 @@ final class TreeToIr {
 
   private Name.Literal buildName(Option<IdentifiedLocation> loc, Token id, boolean isMethod) {
     final String name = id.codeRepr();
-    return new Name.Literal(name, isMethod, loc, meta(), diag());
+    return new Name.Literal(name, isMethod, loc, Option.empty(), meta(), diag());
   }
 
   private Name sanitizeName(Name.Literal id) {

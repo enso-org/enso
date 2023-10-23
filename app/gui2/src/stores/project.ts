@@ -3,14 +3,17 @@ import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider } from '@/util/crdt'
 import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
 import { isSome, type Opt } from '@/util/opt'
+import { tryQualifiedName } from '@/util/qualifiedName'
 import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
+import { namespace } from 'd3'
 import * as array from 'lib0/array'
 import * as object from 'lib0/object'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
+import { mainModule } from 'process'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import type {
@@ -412,6 +415,30 @@ export const useProjectStore = defineStore('project', () => {
 
   const name = computed(() => config.value.startup?.project)
   const namespace = computed(() => config.value.engine?.namespace)
+  const fullName = computed(() => {
+    const ns = namespace.value
+    if (ns == null) {
+      console.warn(
+        'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
+      )
+    }
+    const projectName = name.value
+    if (projectName == null) {
+      console.error(
+        "Unknown project's name. Cannot specify opened module's qualified path; many things may not work",
+      )
+      return null
+    }
+    return `${ns ?? 'local'}.${projectName}`
+  })
+  const modulePath = computed(() => {
+    const filePath = observedFileName.value
+    console.log(filePath)
+    if (filePath == null) return undefined
+    const withoutFileExt = filePath.replace(/\.enso$/, '')
+    const withDotSeparators = withoutFileExt.replace(/\//g, '.')
+    return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
+  })
 
   watchEffect((onCleanup) => {
     // For now, let's assume that the websocket server is running on the same host as the web server.
@@ -453,15 +480,7 @@ export const useProjectStore = defineStore('project', () => {
   })
 
   function createExecutionContextForMain(): ExecutionContext {
-    if (name.value == null) {
-      throw new Error('Cannot create execution context. Unknown project name.')
-    }
-    if (namespace.value == null) {
-      console.warn(
-        'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
-      )
-    }
-    const projectName = `${namespace.value ?? 'local'}.${name.value}`
+    const projectName = fullName.value
     const mainModule = `${projectName}.Main`
     const entryPoint = { module: mainModule, definedOnType: mainModule, name: 'main' }
     return new ExecutionContext(lsRpcConnection, {
@@ -509,6 +528,7 @@ export const useProjectStore = defineStore('project', () => {
     name: projectName,
     executionContext,
     module,
+    modulePath,
     contentRoots,
     awareness,
     computedValueRegistry,

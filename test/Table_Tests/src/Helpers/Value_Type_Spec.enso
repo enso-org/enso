@@ -22,7 +22,7 @@ spec =
 
             Value_Type.Date.to_display_text . should_equal "Date"
             Value_Type.Time.to_display_text . should_equal "Time"
-            Value_Type.Date_Time.to_display_text . should_equal "Date_Time (with_timezone=True)"
+            Value_Type.Date_Time.to_display_text . should_equal "Date_Time (with timezone)"
 
             Value_Type.Mixed.to_display_text . should_equal "Mixed"
             Value_Type.Unsupported_Data_Type.to_display_text . should_equal "Unsupported_Data_Type"

@@ -13,8 +13,17 @@ import scala.jdk.CollectionConverters._
   * @param libraryName the name of loaded library
   */
 final class DeserializeLibrarySuggestionsJob(
-  libraryName: LibraryName
-) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority) {
+  val libraryName: LibraryName
+) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority)
+    with UniqueJob[Unit] {
+
+  /** @inheritdoc */
+  override def equalsTo(that: UniqueJob[_]): Boolean =
+    that match {
+      case that: DeserializeLibrarySuggestionsJob =>
+        this.libraryName == that.libraryName
+      case _ => false
+    }
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {

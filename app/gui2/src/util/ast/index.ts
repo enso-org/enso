@@ -27,16 +27,27 @@ export function parseEnsoLine(code: string): Tree {
 }
 
 /**
- * Read span of code reprsented by given AST node.
+ * Read ast span information in `String.substring` compatible way. The returned span does not
+ * include left whitespace offset.
+ *
+ * @returns Object with `start` and `end` properties; index of first character in the `node`
+ *   and first character _not_ being in the `node`.
+ */
+export function astSpan(node: Tree): { start: number; end: number } {
+  const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
+  const end = start + node.childrenLengthInCodeParsed
+  return { start, end }
+}
+
+/**
+ * Read span of code reprsented by given AST node, not including left whitespace offset.
  *
  * The AST is assumed to be generated from `code` and not modified sice then.
  * Otherwise an unspecified fragment of `code` may be returned.
  */
 export function readAstSpan(node: Tree, code: string): string {
-  const leftOffsetbegin = node.whitespaceStartInCodeParsed
-  const leftOffsetEnd = leftOffsetbegin + node.whitespaceLengthInCodeParsed
-  const end = leftOffsetEnd + node.childrenLengthInCodeParsed
-  return code.substring(leftOffsetEnd, end)
+  const { start, end } = astSpan(node)
+  return code.substring(start, end)
 }
 
 /**
@@ -173,6 +184,14 @@ if (import.meta.vitest) {
       'Data.read file=foo',
       [
         { type: Tree.Type.OprApp, repr: 'Data.read' },
+        { type: Tree.Type.Ident, repr: 'foo' },
+      ],
+    ],
+    ['(', [{ type: Tree.Type.Invalid, repr: '(' }]],
+    [
+      '(foo',
+      [
+        { type: Tree.Type.Invalid, repr: '(' },
         { type: Tree.Type.Ident, repr: 'foo' },
       ],
     ],
