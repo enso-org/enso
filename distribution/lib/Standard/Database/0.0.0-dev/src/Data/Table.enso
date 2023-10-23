@@ -1381,7 +1381,7 @@ type Table
             new_table_name = table_name_deduplicator.make_unique <|
                 self.name + "_" + lookup_table.name
 
-            column_naming_helper = connection.base_connection.column_naming_helper
+            column_naming_helper = self.connection.base_connection.column_naming_helper
             unique_name_strategy = column_naming_helper.create_unique_name_strategy
             unique_name_strategy.mark_used self.column_names
             unique_name_strategy.mark_used lookup_table.column_names
@@ -1415,7 +1415,7 @@ type Table
                 Lookup_Column.Key_Column _ _ ->
                     self_col = self_sub.new_columns.at ix . first
                     lookup_col = lookup_sub.new_columns.at ix . first
-                    on_expressions.append <|
+                    on_expressions_builder.append <|
                         SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]
                     self_col
                 Lookup_Column.Keep_Column _ ->
@@ -1428,7 +1428,7 @@ type Table
                 Lookup_Column.Add_Column _ ->
                     lookup_sub.new_columns.at ix . first
 
-            new_from = From_Spec.Join SQL_Join_Kind.Left self_sub.subquery lookup_sub.subquery on_expressions
+            new_from = From_Spec.Join SQL_Join_Kind.Left self_sub.subquery lookup_sub.subquery on_expressions_builder.to_vector
             new_ctx = Context.for_subquery new_from
             Table.Value new_table_name self.connection new_columns new_ctx
 
