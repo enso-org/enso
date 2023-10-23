@@ -1311,14 +1311,13 @@ type Table
 
          The ordering of rows in the resulting table is not specified.
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
-    cross_join self right right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
-        if check_db_table "right" right then
-            limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
-                True ->
-                    [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
-                False -> []
-            on_problems.attach_problems_before limit_problems <|
-                self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
+    cross_join self right:Table right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
+        limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
+            True ->
+                [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+            False -> []
+        on_problems.attach_problems_before limit_problems <|
+            self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
 
     ## Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
@@ -1577,9 +1576,9 @@ type Table
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
-            v : Vector -> [self] + v
-            single_table -> [self, single_table]
-        all_tables.all (check_db_table "tables") . if_not_error <|
+            v : Vector -> [self] + (v.map t-> Table.from t)
+            single_table -> [self, Table.from single_table]
+        all_tables.if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             dialect = self.connection.dialect
