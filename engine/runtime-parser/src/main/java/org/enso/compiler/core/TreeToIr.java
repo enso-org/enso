@@ -1712,8 +1712,8 @@ final class TreeToIr {
     return Option.apply(switch (ast) {
       case null -> null;
       default -> {
-        var begin = (int)(ast.getStartCode()) + b;
-        var end = (int)(ast.getEndCode()) + e;
+        var begin = castToInt(ast.getStartCode()) + b;
+        var end = castToInt(ast.getEndCode()) + e;
         yield new IdentifiedLocation(new Location(begin, end), someId);
       }
     });
@@ -1735,7 +1735,7 @@ final class TreeToIr {
     } else {
       begin = ast.getPattern().getStartCode();
     }
-    int begin_ = (int)(begin);
+    int begin_ = castToInt(begin);
     long end;
     if (ast.getClose() != null) {
       end = ast.getClose().getEndCode();
@@ -1748,7 +1748,7 @@ final class TreeToIr {
     } else {
       end = ast.getPattern().getEndCode();
     }
-    int end_ = (int)(end);
+    int end_ = castToInt(end);
     return Option.apply(new IdentifiedLocation(new Location(begin_, end_), Option.empty()));
   }
 
@@ -1759,8 +1759,8 @@ final class TreeToIr {
     return Option.apply(switch (ast) {
       case null -> null;
       default -> {
-        int begin = (int)(ast.getStartCode());
-        int end = (int)(ast.getEndCode());
+        int begin = castToInt(ast.getStartCode());
+        int end = castToInt(ast.getEndCode());
         var id = Option.apply(generateId ? UUID.randomUUID() : null);
         yield new IdentifiedLocation(new Location(begin, end), id);
       }
@@ -1771,6 +1771,13 @@ final class TreeToIr {
   }
   private DiagnosticStorage diag() {
     return DiagnosticStorage.apply(nil());
+  }
+  private static int castToInt(long presumablyInt) {
+    int value = (int)presumablyInt;
+    if (value != presumablyInt) {
+      throw new ClassCastException("Huge int: " + presumablyInt);
+    }
+    return value;
   }
   @SuppressWarnings("unchecked")
   private static final <T> scala.collection.immutable.List<T> nil() {
