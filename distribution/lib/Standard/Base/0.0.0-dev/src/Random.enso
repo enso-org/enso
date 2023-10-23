@@ -216,8 +216,8 @@ type Random
              import Standard.Base.Random.Random
 
              items = Random.items [1, 2, 3, 4]
-    item : Vector Any -> Integer -> Boolean -> Any
-    item (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random.default_instance.item v count with_replacement
+    items : Vector Any -> Integer -> Boolean -> Vector Any
+    items (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random.default_instance.item v count with_replacement
 
     ## GROUP Random
        Returns a random permutation of the input `Vector`.
