@@ -2158,11 +2158,18 @@ type Table
 
                 expected_types = self.columns.map .value_type
                 actual_types = materialized_table.columns.map .value_type
-                expected_types.zip actual_types . fold materialized_table acc-> types_pair->
-                    expected_type = types_pair.first
-                    actual_type = types_pair.second
-                    if expected_type == actual_type then acc else
-                        Warning.attach (Inexact_Type_Coercion.Warning expected_type actual_type) acc
+                warnings_builder = Vector.new_builder
+                expected_types.zip actual_types expected_type-> actual_type->
+                    if expected_type == actual_type then Nothing else
+                        expected_type_kind = Meta.meta expected_type . constructor
+                        actual_type_kind = Meta.meta actual_type . constructor
+                        ## We ignore simple approximations that our in-memory backend does - things like adding default
+                           timezone (because we do not have Date_Time without timezone in-memory),
+                           or changing Float32 to Float64 are silently ignored.
+                           However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
+                        if expected_type_kind == actual_type_kind then Nothing else
+                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+                Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector materialized_table
 
     ## PRIVATE
        Creates a query corresponding to this table.

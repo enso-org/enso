@@ -1,5 +1,5 @@
-import { Rect } from '@/stores/rect'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, ref, type Ref } from 'vue'
 

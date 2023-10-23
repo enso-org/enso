@@ -12,6 +12,7 @@ export interface GuiConfig {
   }
   startup?: {
     project?: string
+    displayedProjectName: string
   }
   window?: { topBarOffset?: string }
 }

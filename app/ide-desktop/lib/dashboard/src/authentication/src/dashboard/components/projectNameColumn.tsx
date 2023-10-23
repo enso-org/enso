@@ -112,6 +112,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf:
+            case assetEventModule.AssetEventType.temporarilyAddLabels:
+            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
+            case assetEventModule.AssetEventType.addLabels:
+            case assetEventModule.AssetEventType.removeLabels:
             case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
                 // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by

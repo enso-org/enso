@@ -72,12 +72,25 @@ internal_create_table_structure connection table_name structure primary_key temp
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_table source_table connection table_name primary_key temporary on_problems=Problem_Behavior.Report_Error row_limit=Nothing =
+
+   Arguments:
+   - source_table: the table to be uploaded.
+     If it's a `Database_Table`, the query will be materialized as a new table.
+     If it's an `In_Memory_Table`, the data will be uploaded to the newly created table.
+   - connection: the connection to the database.
+   - table_name: the name of the table to be created.
+   - primary_key: the primary key of the table to be created. Can be `Nothing` to set no key.
+   - temporary: if `True`, the table will be created as temporary.
+   - structure_hint: If set, it can be used to hint what types should be used for the columns of the table. Useful if the types slightly differ from the in-memory source types.
+   - on_problems: the behavior to be used when reporting problems.
+   - row_limit: if set, only the first `row_limit` rows will be uploaded.
+internal_upload_table : Database_Table | In_Memory_Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Vector Column_Description ->  Problem_Behavior -> Integer|Nothing -> Database_Table
+internal_upload_table source_table connection table_name primary_key temporary structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=Nothing =
     case source_table of
         _ : In_Memory_Table ->
-            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems row_limit
+            internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
         _ : Database_Table ->
-            internal_upload_database_table source_table connection table_name primary_key temporary on_problems row_limit
+            internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
@@ -110,9 +123,11 @@ select_into_table_implementation source_table connection table_name primary_key 
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems row_limit =
+internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit =
     In_Transaction.ensure_in_transaction <|
-        created_table_name = internal_create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary on_problems=on_problems
+        verify_structure_hint structure_hint source_table.column_names
+        structure = structure_hint.if_nothing source_table
+        created_table_name = internal_create_table_structure connection table_name structure=structure primary_key=primary_key temporary=temporary on_problems=on_problems
         column_names = source_table.column_names
 
         ## `created_table_name.if_not_error` is used to ensure that if there are
@@ -124,21 +139,24 @@ internal_upload_in_memory_table source_table connection table_name primary_key t
                 insert_template = make_batched_insert_template connection created_table_name column_names
                 statement_setter = connection.dialect.get_statement_setter
                 Panic.rethrow <|
-                    connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size row_limit=row_limit
+                    expected_type_hints = align_structure connection structure . map .value_type
+                    connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size expected_type_hints=expected_type_hints row_limit=row_limit
 
         upload_status.if_not_error <|
             connection.query (SQL_Query.Table_Name created_table_name)
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_database_table source_table connection table_name primary_key temporary on_problems row_limit =
+internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit =
     In_Transaction.ensure_in_transaction <|
         connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
             Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
 
+        verify_structure_hint structure_hint source_table.column_names
+        structure = structure_hint.if_nothing source_table
         connection_check.if_not_error <|
             # Warning: in some DBs, calling a DDL query in a transaction may commit it. We may have to have some special handling for this.
-            created_table_name = internal_create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary on_problems=on_problems
+            created_table_name = internal_create_table_structure connection table_name structure=structure primary_key=primary_key temporary=temporary on_problems=on_problems
             upload_status = created_table_name.if_not_error <|
                 internal_translate_known_upload_errors source_table connection primary_key <|
                     effective_source_table = case row_limit of
@@ -154,6 +172,13 @@ internal_upload_database_table source_table connection table_name primary_key te
 
             upload_status.if_not_error <|
                 connection.query (SQL_Query.Table_Name created_table_name)
+
+## PRIVATE
+verify_structure_hint structure_hint column_names =
+    if structure_hint.is_nothing.not then
+        column_names.zip structure_hint expected_name-> column_description->
+            if column_description.name != expected_name then
+                Panic.throw (Illegal_State.Error ("The provided structure hint does not match the column names of the source table. Expected: "+column_names.to_display_text+", got: "+(structure_hint.map .name . to_display_text)+". This is a bug in the Database library."))
 
 ## PRIVATE
    Ensures that provided primary key columns are present in the table and that
@@ -309,7 +334,9 @@ common_update_table (source_table : Database_Table | In_Memory_Table) (target_ta
                     dry_run = Context.Output.is_enabled.not
                     row_limit = if dry_run then dry_run_row_limit else Nothing
                     check_for_null_keys_if_any_keys_set source_table effective_key_columns <| Context.Output.with_enabled <|
-                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
+                        structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->
+                            Column_Description.Value c.name c.value_type
+                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns structure_hint=structure_hint temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
                         tmp_table.if_not_error <|
                             resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
                             ## We don't need to drop the table if append panics, because
@@ -440,7 +467,7 @@ check_update_arguments_structure_match source_table target_table key_columns upd
         source_type = source_column.value_type
         target_type = target_column.value_type
         if source_type == target_type then [] else
-            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type] else
+            if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type unavailable=False] else
                 Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
 
     source_columns = Set.from_vector source_table.column_names
@@ -544,7 +571,7 @@ prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table 
                     Delete_Rows_Source.Value prepared_table Nothing
                 _ : In_Memory_Table ->
                     tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
-                    uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
+                    uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
 
                     row_limit_exceeded = prepared_table.row_count > dry_run_row_limit
                     dry_run_message_suffix = case row_limit_exceeded of

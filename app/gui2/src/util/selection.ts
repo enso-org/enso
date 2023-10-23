@@ -1,7 +1,7 @@
 import { selectionMouseBindings } from '@/bindings'
-import type { Rect } from '@/stores/rect'
 import { usePointer } from '@/util/events'
 import type { NavigatorComposable } from '@/util/navigator'
+import type { Rect } from '@/util/rect'
 import type { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
 

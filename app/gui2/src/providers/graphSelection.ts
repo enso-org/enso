@@ -1,5 +1,5 @@
-import type { Rect } from '@/stores/rect'
 import type { NavigatorComposable } from '@/util/navigator'
+import type { Rect } from '@/util/rect'
 import { useSelection } from '@/util/selection'
 import type { ExprId } from 'shared/yjsModel'
 import { createContextStore } from '.'

@@ -26,6 +26,7 @@ import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
 import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Common_Table_Operations
+from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 postgres_specific_spec connection db_name setup =
@@ -303,7 +304,9 @@ postgres_specific_spec connection db_name setup =
             # Unfortunately, performing operations on a Decimal column in postgres can lose information about it being an integer column.
             t2.at "Y" . value_type . scale . should_equal Nothing
             t2.at "X" . to_vector . should_equal [10, x]
+            # Only works by approximation:
             t2.at "Y" . to_vector . should_equal [20, x+10]
+            t2.at "Y" . cast Value_Type.Char . to_vector . should_equal ["20", (x+10).to_text]
 
             m2 = t2.remove_warnings.read
             m2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
@@ -338,6 +341,100 @@ postgres_specific_spec connection db_name setup =
             w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w4.actual_type . should_equal Value_Type.Float
 
+        Test.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
+            table_name = Name_Generator.random_name "TimestampTZ"
+            table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
+
+            dt1 = Date_Time.new 2022 05 04 15 30
+            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+            dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+            v = [dt1, dt2, dt3, dt4]
+
+            Problems.assume_no_problems <|
+                table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
+
+            tz_zero = Time_Zone.parse "Z"
+            v_at_z = v.map dt-> dt.at_zone tz_zero
+            table.at "A" . to_vector . should_equal v_at_z
+            table.at "A" . to_vector . should_equal_tz_agnostic v
+
+            ## We also check how the timestamp column behaves with interpolations:
+               (See analogous test showing a less nice behaviour without timezones below.)
+            v.each my_dt-> Test.with_clue my_dt.to_text+" " <|
+                # Checks if the two date-times represent the same instant in time.
+                is_same_time_instant dt1 dt2 =
+                    dt1.at_zone tz_zero == dt2.at_zone tz_zero
+                local_equals = v.filter (is_same_time_instant my_dt)
+                # Depending on test runner's timezone, the `my_dt` may be equal to 1 or 2 entries in `v`.
+                [1, 2].should_contain local_equals.length
+
+                Test.with_clue " == "+local_equals.to_text+": " <|
+                    t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                    t2.row_count . should_equal local_equals.length
+                    t2.at "A" . to_vector . should_equal_tz_agnostic local_equals
+
+        Test.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
+            table_name = Name_Generator.random_name "Timestamp"
+            table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
+            Problems.assume_no_problems table
+
+            dt1 = Date_Time.new 2022 05 04 15 30
+            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+            dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+            v = [dt1, dt2, dt3, dt4]
+
+            source_table = Table.new [["A", v]]
+            source_table.at "A" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
+            w = Problems.expect_only_warning Inexact_Type_Coercion <|
+                table.update_rows source_table update_action=Update_Action.Insert
+            w.requested_type . should_equal (source_table.at "A" . value_type)
+            w.actual_type . should_equal (table.at "A" . value_type)
+            w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
+
+            # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
+            # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
+            local_dt = "2022-05-04 15:30:00"
+            table.at "A" . cast Value_Type.Char . to_vector . should_equal [local_dt, local_dt, local_dt, local_dt]
+
+            # Then when downloaded, it should be interpreted at the 'system default' timezone.
+            materialized_table = table.read
+            materialized_table.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+
+            # The Inexact_Type_Coercion warning is silenced for this case:
+            Problems.assume_no_problems materialized_table
+
+            # We also check how the timestamp column behaves with interpolations:
+            v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
+                t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                is_in_system_tz = my_dt.at_zone Time_Zone.system . time_of_day == my_dt.time_of_day
+                ## Unfortunately, this will work in the following way:
+                   - if the date-time represented as local time in the current system default timezone is 15:30,
+                     then it will match _all_ entries (as they do not have a timezone).
+                   - otherwise, the date-time is converted into UTC before being passed to the Database,
+                     and only then the timezone is stripped - so the local time is actually shifted.
+
+                   This is not ideal - ideally we'd want the local date time to be extracted from the timestamp directly,
+                   before any date conversions happen - this way in _all_ 4 cases we would get 15:30 local time
+                   and all rows would always be matching.
+
+                   That logic is applied when uploading a table. However, in custom queries, we do not currently have
+                   enough metadata to infer that the Date_Time that is being passed to a given `?` hole in the query
+                   should be treated as a local date-time or a zoned date-time.
+                   Thus, we pass it as zoned by default to avoid losing information - and that triggers the conversion
+                   on the Database side. If we want to change that, we would need to add metadata within our operations,
+                   so that an operation like `==` will infer the expected type of the `?` hole based on the type of the
+                   second operand.
+                case is_in_system_tz of
+                    True ->
+                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_equal "15:30:00"
+                        t2.row_count . should_equal 4
+                        t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+                    False ->
+                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_not_equal "15:30:00"
+                        t2.row_count . should_equal 0
+                        t2.at "A" . to_vector . should_equal []
 
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|

@@ -3,6 +3,7 @@ import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
 import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
+import type { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import * as map from 'lib0/map'
 import * as set from 'lib0/set'
@@ -19,7 +20,6 @@ import {
 } from 'shared/yjsModel'
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
-import type { Rect } from './rect'
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()

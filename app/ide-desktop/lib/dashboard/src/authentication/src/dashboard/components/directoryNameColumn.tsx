@@ -98,6 +98,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.restore:
             case assetEventModule.AssetEventType.downloadSelected:
             case assetEventModule.AssetEventType.removeSelf:
+            case assetEventModule.AssetEventType.temporarilyAddLabels:
+            case assetEventModule.AssetEventType.temporarilyRemoveLabels:
+            case assetEventModule.AssetEventType.addLabels:
+            case assetEventModule.AssetEventType.removeLabels:
             case assetEventModule.AssetEventType.deleteLabel: {
                 // Ignored. These events should all be unrelated to directories.
                 // `deleteMultiple`, `restoreMultiple` and `downloadSelected` are handled by
