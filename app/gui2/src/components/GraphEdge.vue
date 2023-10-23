@@ -22,9 +22,8 @@ const emit = defineEmits<{
 }>()
 
 const base = ref<SVGPathElement>()
-const active = ref<SVGPathElement>()
 
-function targetPos(): { targetPos: Vec2; targetSize?: Vec2 } | null {
+function targetPos(): { pos: Vec2; size?: Vec2 } | null {
   const hovered = props.hoveredNode != props.edge.source ? props.hoveredExpr : undefined
   const targetExpr = props.edge.target ?? hovered
   if (targetExpr != null) {
@@ -33,24 +32,24 @@ function targetPos(): { targetPos: Vec2; targetSize?: Vec2 } | null {
     const targetNodeRect = props.nodeRects.get(targetNodeId)
     const targetRect = props.exprRects.get(targetExpr)
     if (targetRect == null || targetNodeRect == null) return null
-    return { targetPos: targetRect.center().add(targetNodeRect.pos), targetSize: targetRect.size }
+    return { pos: targetRect.center().add(targetNodeRect.pos), size: targetRect.size }
   } else if (props.sceneMousePos != null) {
-    return { targetPos: props.sceneMousePos }
+    return { pos: props.sceneMousePos }
   } else {
     return null
   }
 }
-function sourcePos(): { sourcePos: Vec2; sourceSize?: Vec2 } | null {
+function sourcePos(): { pos: Vec2; size?: Vec2 } | null {
   const targetNode = props.edge.target != null ? props.exprNodes.get(props.edge.target) : undefined
   const hovered = props.hoveredNode != targetNode ? props.hoveredNode : undefined
   const sourceNode = props.edge.source ?? hovered
   if (sourceNode != null) {
     const sourceNodeRect = props.nodeRects.get(sourceNode)
     if (sourceNodeRect == null) return null
-    const sourcePos = sourceNodeRect.center()
-    return { sourcePos, sourceSize: sourceNodeRect.size }
+    const pos = sourceNodeRect.center()
+    return { pos, size: sourceNodeRect.size }
   } else if (props.sceneMousePos != null) {
-    return { sourcePos: props.sceneMousePos }
+    return { pos: props.sceneMousePos }
   } else {
     return null
   }
@@ -63,19 +62,9 @@ type Inputs = {
   sourceSize: Vec2 | undefined
   /** The width and height of the port that the edge is attached to, if any. */
   targetSize: Vec2 | undefined
-  /** The coordinates of the center of the node the edge originates from. */
-  sourcePos: Vec2
-  /** The coordinates of the node input port that is the edge's destination, relative to `sourcePos`.
+  /** The coordinates of the node input port that is the edge's destination, relative to the source position.
    *  The edge enters the port from above. */
   targetOffset: Vec2
-  /*
-  color:           string,
-  /** The location of the mouse over the edge. *
-  hover_position:  Vec2 | undefined,
-  disabled:        boolean,
-  /** Reset the hover position at next redraw. *
-  clear_focus:     boolean,
-  */
 }
 
 type JunctionPoints = {
@@ -356,20 +345,25 @@ function render(sourcePos: Vec2, elements: Element[]): string {
   return out
 }
 
-function makePath() {
+const currentJunctionPoints = computed(() => {
   const target_ = targetPos()
   const source_ = sourcePos()
-  if (target_ == null || source_ == null) return ''
+  if (target_ == null || source_ == null) return null
   const inputs = {
-    sourcePos: source_.sourcePos,
-    targetOffset: target_.targetPos.sub(source_.sourcePos),
-    sourceSize: source_.sourceSize,
-    targetSize: target_.targetSize,
+    targetOffset: target_.pos.sub(source_.pos),
+    sourceSize: source_.size,
+    targetSize: target_.size,
   }
-  const jp = junctionPoints(inputs)
+  return junctionPoints(inputs)
+})
+
+function makePath() {
+  const jp = currentJunctionPoints.value
   if (jp == null) return ''
   const { start, elements } = pathElements(jp)
-  return render(source_.sourcePos.add(start), elements)
+  const source_ = sourcePos()
+  if (source_ == null) return ''
+  return render(source_.pos.add(start), elements)
 }
 
 const basePath = computed(() => {
@@ -435,38 +429,73 @@ const activeStyle = computed(() => {
 })
 
 function click(_e: PointerEvent) {
+  if (base.value == null) return {}
+  if (props.sceneMousePos == null) return {}
+  const length = base.value.getTotalLength()
+  let offset = lengthTo(props.sceneMousePos)
+  if (offset == null) return {}
+  if (offset < length / 2) emit('disconnectTarget')
+  else emit('disconnectSource')
+}
+
+function arrowPosition(): Vec2 | undefined {
   if (props.edge.source == null || props.edge.target == null) return
-  const pos = props.sceneMousePos
-  if (pos == null) return
+  const points = currentJunctionPoints.value?.points
+  if (points == null || points.length < 3) return
   const target = targetPos()
   const source = sourcePos()
   if (target == null || source == null) return
-  if (pos.distanceSquared(source.sourcePos) < pos.distanceSquared(target.targetPos))
-    emit('disconnectTarget')
-  else emit('disconnectSource')
+  if (Math.abs(target.pos.y - source.pos.y) < ThreeCorner.BACKWARD_EDGE_ARROW_THRESHOLD) return
+  if (points[1] == null) return
+  return source.pos.add(points[1])
 }
+
+const arrowTransform = computed(() => {
+  const pos = arrowPosition()
+  if (pos != null) return `translate(${pos.x},${pos.y})`
+  else return `scale(0)`
+})
 </script>
 
 <template>
   <path
     :d="basePath"
-    ref="base"
-    class="edge"
+    class="edge io"
     @pointerdown="click"
     @pointerenter="hovered = true"
     @pointerleave="hovered = false"
   />
-  <path :d="activePath" ref="active" class="edge active" :style="activeStyle" />
+  <path :d="basePath" ref="base" class="edge visible base" />
+  <path :d="activePath" class="edge visible active" :style="activeStyle" />
+  <polygon
+    points="0,-9.375 -9.375,9.375 9.375,9.375"
+    class="arrow visible"
+    :transform="arrowTransform"
+  />
 </template>
 
 <style scoped>
+.visible {
+  pointer-events: none;
+}
+.arrow {
+  fill: tan;
+}
 .edge {
-  stroke-width: 4;
-  stroke: tan;
   fill: none;
 }
-.edge.active {
-  pointer-events: none;
+.edge.io {
+  stroke-width: 14;
+  stroke: transparent;
+}
+.edge.visible {
+  stroke-width: 4;
+}
+.edge.visible.base {
+  stroke: tan;
+}
+.edge.visible.active {
   stroke: red;
+  stroke-linecap: round;
 }
 </style>
