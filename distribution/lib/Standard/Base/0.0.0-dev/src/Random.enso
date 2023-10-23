@@ -142,8 +142,7 @@ type Random
        Return a `Date` within the specified `Date_Range`.
 
        Arguments:
-       - date_range: The `Date_Range` that specifies the range to pick from. The
-         range is inclusve at the lower bound, and exclusive at the upper bound.
+       - date_range: The `Date_Range` that specifies the range to pick from.
 
        > Example
          Generate a random date.
@@ -151,6 +150,14 @@ type Random
              import Standard.Base.Random.Random
 
              range = Date_Range.new (Date.new 2023 03 01) (Date.new 2023 10 15)
+             d = Random.date range
+
+       > Example
+         Generate a random date, with an inclusive end date.
+
+             import Standard.Base.Random.Random
+
+             range = my_first_day_of_vacation.up_to my_last_day_of_vacation include_end=True
              d = Random.date range
     date : Date_Range -> Date
     date (date_range:Date_Range) = Random.default_instance.date date_range
@@ -162,7 +169,9 @@ type Random
        - start_time: The lower bound of the range to pick from (inclusive).
        - end_time: The upper bound of the range to pick from (inclusive).
 
-       The generated time is at a granularity of 1 second.
+       The generated time is at a granularity of 1 second. Random values are
+       generated for hours, minutes and seconds. The `nanoseconds` field is
+       always 0.
 
        Note: the time range end is inclusive because it is impossible to specify
        an end time after the last second of the day.
@@ -217,7 +226,7 @@ type Random
 
              items = Random.items [1, 2, 3, 4]
     items : Vector Any -> Integer -> Boolean -> Vector Any
-    items (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random.default_instance.item v count with_replacement
+    items (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random.default_instance.items v count with_replacement
 
     ## GROUP Random
        Returns a random permutation of the input `Vector`.
@@ -291,8 +300,8 @@ type Random_Generator
     uuid : Text
     uuid self = UUID.randomUUID.to_text
 
-    item : Vector Any -> Integer -> Boolean -> Any
-    item self (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) =
+    items : Vector Any -> Integer -> Boolean -> Any
+    items self (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) =
         case with_replacement of
             True ->
                 len = v.length
