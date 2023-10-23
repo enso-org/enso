@@ -307,3 +307,13 @@ spec setup =
                 m2 = r1 |> materialize
                 # TODO maybe more specific exception
                 m2.should_fail_with SQL_Error
+
+        # This does not seem useful really, but there is no reason to disallow it, so we should ensure it does not crash.
+        Test.specify "(edge-case) should allow lookup with itself" <|
+            table = table_builder [["X", [1, 2, 3]], ["Y", ["A", "B", "C"]]]
+            t2 = table.lookup_and_replace table key_columns="X"
+            t2.column_names . should_equal ["X", "Y"]
+
+            m2 = t2 |> materialize |> _.order_by "X"
+            m2.at "X" . to_vector . should_equal [1, 2, 3]
+            m2.at "Y" . to_vector . should_equal ["A", "B", "C"]

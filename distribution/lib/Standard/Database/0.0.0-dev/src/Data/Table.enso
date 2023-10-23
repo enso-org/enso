@@ -30,6 +30,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Constant_Column.Constant_Column
 import Standard.Table.Internal.Lookup_Helpers
+import Standard.Table.Internal.Lookup_Helpers.Lookup_Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
@@ -1214,13 +1215,9 @@ type Table
     join_or_cross_join : Table -> Join_Kind | Join_Kind_Cross -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join_or_cross_join self right:Table join_kind on right_prefix on_problems =
         can_proceed =
-            same_backend = case right of
-                _ : Table -> True
-                _ -> False
             join_conditions_ok = join_kind != Join_Kind_Cross.Cross || on == []
-            if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. You need to upload the in-memory table before joining it with a database one, or materialize this table.") else
-                if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
-                    True
+            if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
+                True
         if can_proceed then
             left = self
             table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
@@ -1379,7 +1376,62 @@ type Table
     lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
         lookup_columns.if_not_error <|
-            "TODO"
+            table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+            self_alias = table_name_deduplicator.make_unique self.name
+            lookup_alias = table_name_deduplicator.make_unique lookup_table.name
+            new_table_name = table_name_deduplicator.make_unique <|
+                self.name + "_" + lookup_table.name
+
+            column_naming_helper = connection.base_connection.column_naming_helper
+            unique_name_strategy = column_naming_helper.create_unique_name_strategy
+            unique_name_strategy.mark_used self.column_names
+            unique_name_strategy.mark_used lookup_table.column_names
+
+            # First pass - no checking of invariants
+            lookup_indicator_base = Internal_Column.Value (unique_name_strategy.make_unique "lookup_indicator") SQL_Type_Reference.null (SQL_Expression.Literal "1")
+
+            self_requested_columns = Vector.new_builder
+            lookup_requested_columns = Vector.new_builder
+
+            lookup_columns.each c-> case c of
+                Lookup_Column.Key_Column base_column key_column ->
+                    self_requested_columns.append [base_column]
+                    lookup_requested_columns.append [key_column]
+                Lookup_Column.Keep_Column base_column ->
+                    self_requested_columns.append [base_column]
+                    lookup_requested_columns.append []
+                Lookup_Column.Replace_Column base_column lookup_column _ ->
+                    self_requested_columns.append [base_column]
+                    lookup_requested_columns.append [lookup_column]
+                Lookup_Column.Add_Column lookup_column ->
+                    self_requested_columns.append []
+                    lookup_requested_columns.append [lookup_column]
+
+            self_sub = self.context.as_subquery self_alias self_requested_columns.to_vector
+            lookup_sub = lookup_table.context.as_subquery lookup_alias lookup_requested_columns.to_vector+[[lookup_indicator_base]]
+            lookup_indicator = lookup_sub.new_columns.at -1 . first
+
+            on_expressions_builder = Vector.new_builder
+            new_columns = lookup_columns.map_with_index ix-> c-> case c of
+                Lookup_Column.Key_Column _ _ ->
+                    self_col = self_sub.new_columns.at ix . first
+                    lookup_col = lookup_sub.new_columns.at ix . first
+                    on_expressions.append <|
+                        SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]
+                    self_col
+                Lookup_Column.Keep_Column _ ->
+                    self_sub.new_columns.at ix . first
+                Lookup_Column.Replace_Column _ _ _ ->
+                    # TODO
+                    case allow_unmatched_rows of
+                        True -> lookup_sub.new_columns.at ix . first
+                        False -> lookup_sub.new_columns.at ix . first
+                Lookup_Column.Add_Column _ ->
+                    lookup_sub.new_columns.at ix . first
+
+            new_from = From_Spec.Join SQL_Join_Kind.Left self_sub.subquery lookup_sub.subquery on_expressions
+            new_ctx = Context.for_subquery new_from
+            Table.Value new_table_name self.connection new_columns new_ctx
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
