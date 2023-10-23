@@ -12,8 +12,7 @@ public class PanicsHelpers {
     }
   }
 
-  public static class MyException extends RuntimeException {
-  }
+  public static class MyException extends RuntimeException {}
 
   public static void throwMyException() {
     throw new MyException();
