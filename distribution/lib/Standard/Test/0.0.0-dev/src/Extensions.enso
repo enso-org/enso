@@ -513,8 +513,8 @@ Error.should_contain_the_same_elements_as self that frames_to_skip=0 =
 
    It checks that all elements from `self` are also present in `that`. It does
    not require that all elements of `that` are contained in `self`. Arities of
-   elements are not checked, so the collections can still differ in length by
-   containing duplicate elements.
+   elements are not checked, so `self` may still contain more elements than 
+   `that` by containing duplicates.
 
    It will work on any collection which supports the methods
    `each : (Any -> Nothing) -> Any` and `contains : Any -> Boolean`.
