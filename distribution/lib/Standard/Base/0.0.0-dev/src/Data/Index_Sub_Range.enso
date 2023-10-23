@@ -211,8 +211,8 @@ take_helper length at single_slice slice_ranges range = case range of
         trimmed = resolve_ranges indices length
         slice_ranges trimmed
     Index_Sub_Range.Sample count seed ->
-        Random.set_seed seed
-        indices_to_take = Random.indices length count
+        rng = Random.new_generator seed
+        indices_to_take = rng.indices length count
         take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index indices_to_take)
     Index_Sub_Range.Every step start ->
         if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
@@ -264,8 +264,8 @@ drop_helper length at single_slice slice_ranges range = case range of
         inverted = invert_range_selection normalized length needs_sorting=True
         slice_ranges inverted
     Index_Sub_Range.Sample count seed ->
-        Random.set_seed seed
-        indices_to_drop = Random.indices length count
+        rng = Random.new_generator seed
+        indices_to_drop = rng.indices length count
         drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index indices_to_drop)
     Index_Sub_Range.Every step start ->
         if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else

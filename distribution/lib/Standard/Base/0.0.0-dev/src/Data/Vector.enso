@@ -89,6 +89,7 @@ type Vector a
        > Example
          Turn a list into a vector.
              Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
+    collect : Any -> (Any -> Any) -> (Any -> Any) -> Integer | Nothing -> ((Any -> Boolean) | Nothing) -> Vector Any
     collect seq element:(Any -> Any) next:(Any->Any) limit:(Integer|Nothing)=Nothing stop_at:(Any->Boolean)=(_==Nothing) =
         b = Vector.new_builder (if limit.is_nothing then 10 else limit)
         iterate item remaining = if remaining == 0 || (stop_at item) then b.to_vector else
@@ -824,8 +825,8 @@ type Vector a
            collection) generates a random set of indices and then selects these
            indices, but we can sample the vector directly.
         Index_Sub_Range.Sample count seed ->
-            Random.set_seed seed
-            Random.item self count
+            rng = Random.new_generator seed
+            rng.item self count
         _ ->
             take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
