@@ -226,8 +226,8 @@ type JDBC_Connection
 
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
-    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Integer | Nothing -> Nothing
-    batch_insert self insert_template statement_setter table batch_size row_limit=Nothing =
+    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
+    batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing =
         In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                 log_sql_if_enabled self insert_template
@@ -244,7 +244,7 @@ type JDBC_Connection
                                 Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                 0.up_to num_rows . each row_id->
                     values = columns.map col-> col.at row_id
-                    set_statement_values stmt statement_setter values
+                    set_statement_values stmt statement_setter values expected_type_hints=expected_type_hints
                     stmt.addBatch
                     if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
                 if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
@@ -298,9 +298,17 @@ handle_sql_errors ~action related_query=Nothing =
 ## PRIVATE
    Uses the provided `Statement_Setter` strategy to fill holes in a
    provided `PreparedStatement`.
-set_statement_values stmt statement_setter values =
+
+   A list of expected value types can be passed as `expected_type_hints` to add
+   these hints to the `Statement_Setter` to customize the behaviour for some
+   specific target value types.
+set_statement_values : PreparedStatement -> Statement_Setter -> Vector -> Vector Value_Type | Nothing -> Nothing
+set_statement_values stmt statement_setter values expected_type_hints=Nothing =
     values.each_with_index ix-> value->
-        statement_setter.fill_hole stmt (ix + 1) value
+        type_hint = case expected_type_hints of
+            Nothing -> Nothing
+            hints : Vector -> hints.at ix
+        statement_setter.fill_hole stmt (ix + 1) type_hint value
 
 ## PRIVATE
    A helper that logs performed SQL queries/statements to a file, if an

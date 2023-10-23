@@ -1,6 +1,6 @@
-import { Rect } from '@/stores/rect'
 import { bail } from '@/util/assert'
 import { MultiRange, Range } from '@/util/range'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 
 export interface Environment {

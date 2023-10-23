@@ -3,7 +3,7 @@ import { assert } from '@/util/assert'
 import { parseEnsoLine, readAstSpan, readTokenSpan } from '@/util/ast'
 import type { Result } from '@/util/result'
 
-/** An operand of one of the applications inside `GenralOprApp` */
+/** An operand of one of the applications inside `GeneralOprApp` */
 export type GeneralOperand =
   | Operand
   // A part of `GeneralOprApp`, consisting of lhs and first `statements` of applications.
@@ -66,7 +66,7 @@ export class GeneralOprApp {
       expectedOpr = oprCode
     }
     if (matchingOprs === this.apps.length) {
-      // If all operatros matched, the lhs may be a continuation of this chain.
+      // If all operators matched, the lhs may be a continuation of this chain.
       if (this.lhs != null) yield* operandsOfLeftAssocOprChain(this.lhs, code, expectedOpr)
       else yield null
     } else {
@@ -203,15 +203,14 @@ if (import.meta.vitest) {
     {
       code: '2\n * 3\n + 44',
       result: [
-        { type: 'partOfOprBlockApp', repr: '2\n * 3\n + 4', statemets: 1 },
+        { type: 'partOfOprBlockApp', repr: '2\n * 3\n + 44', statements: 1 },
         { type: 'ast', repr: '44' },
       ],
     },
-    // There is a bug in AST spans in some OperatorBlockApplications. Fix this test once fixed
     {
       code: '2\n + 3\n * 4\n + 55',
       result: [
-        { type: 'partOfOprBlockApp', repr: '2\n + 3\n * 4\n + 5', statemets: 2 },
+        { type: 'partOfOprBlockApp', repr: '2\n + 3\n * 4\n + 55', statements: 2 },
         { type: 'ast', repr: '55' },
       ],
     },
@@ -241,7 +240,7 @@ if (import.meta.vitest) {
     }: {
       code: string
       opr?: string
-      result: { type: string; repr: string; statemets?: number }[]
+      result: { type: string; repr: string; statements?: number }[]
     }) => {
       const ast = parseEnsoLine(code)
       const actual = operandsOfLeftAssocOprChain(ast, code, opr)
@@ -258,7 +257,7 @@ if (import.meta.vitest) {
           } else {
             assert(actual?.type == 'partOfOprBlockApp')
             expect(readAstSpan(actual.ast, code)).toStrictEqual(expected?.repr)
-            expect(actual.statements).toStrictEqual(expected?.statemets)
+            expect(actual.statements).toStrictEqual(expected?.statements)
           }
         }
       }

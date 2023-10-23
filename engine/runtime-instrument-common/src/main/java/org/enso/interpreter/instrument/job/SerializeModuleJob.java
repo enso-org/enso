@@ -55,4 +55,9 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
     }
     return null;
   }
+
+  @Override
+  public String toString() {
+    return "SerializeModuleJob(" + moduleName.toString() + ")";
+  }
 }

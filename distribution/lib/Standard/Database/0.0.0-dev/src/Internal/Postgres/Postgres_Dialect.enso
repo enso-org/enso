@@ -280,7 +280,7 @@ type Postgres_Dialect
                                 True -> Value_Type.Decimal 1000 scale
                                 # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
                                 False -> Value_Type.Decimal Nothing Nothing
-                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type) new_type
+                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                         False -> base_type
                 _ -> base_type
 

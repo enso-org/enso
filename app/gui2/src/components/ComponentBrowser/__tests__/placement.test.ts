@@ -6,9 +6,9 @@ import {
   type Placement,
   type PlacementOptions,
 } from '@/components/ComponentBrowser/placement'
-import { Rect } from '@/stores/rect'
 import * as iterable from '@/util/iterable'
 import { chain, map, range } from '@/util/iterable'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { expect, test, vi } from 'vitest'
 
