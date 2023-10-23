@@ -5,4 +5,6 @@ module org.enso.runtime {
   provides com.oracle.truffle.api.provider.TruffleLanguageProvider with
       org.enso.interpreter.EnsoLanguageProvider,
       org.enso.interpreter.epb.EpbLanguageProvider;
+  provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider with
+    org.enso.interpreter.instrument.ReplDebuggerInstrumentProvider;
 }

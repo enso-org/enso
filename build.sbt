@@ -1500,6 +1500,10 @@ lazy val `runtime-with-instruments` =
             inProjects(
               LocalProject("runtime"),
               LocalProject("runtime-language-epb"),
+              LocalProject("runtime-instrument-common"),
+              LocalProject("runtime-instrument-id-execution"),
+              LocalProject("runtime-instrument-repl-debugger"),
+              LocalProject("runtime-instrument-runtime-server"),
             ),
             inConfigurations(Compile)
           )
