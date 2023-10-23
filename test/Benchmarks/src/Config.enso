@@ -1,3 +1,5 @@
+from Standard.Base import all
+
 ## A flag reading the environment variable enabling additional benchmarks.
 
    These additional benchmarks are not run on CI by default, to avoid inflating
@@ -6,4 +8,5 @@
    to a problem to be able to better understand differences between the
    approaches. If they are disabled, only the core benchmarks that measure the
    most important scenarios are run.
-extended_tests = Environment.get "ENSO_ENABLE_EXTRA_BENCHMARKS"
+extended_tests =
+    Environment.get "ENSO_ENABLE_EXTRA_BENCHMARKS" . is_nothing . not

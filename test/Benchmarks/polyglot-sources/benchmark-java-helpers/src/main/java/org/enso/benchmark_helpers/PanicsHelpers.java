@@ -1,4 +1,4 @@
-package org.enso.exploratory_benchmark_helpers;
+package org.enso.benchmark_helpers;
 
 import java.util.function.Function;
 

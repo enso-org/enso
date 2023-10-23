@@ -3,8 +3,8 @@ from Standard.Test import Bench
 
 from project.Config import extended_tests
 
-polyglot java import org.enso.exploratory_benchmark_helpers.PanicsHelpers
-polyglot java import org.enso.exploratory_benchmark_helpers.PanicsHelpers.MyException
+polyglot java import org.enso.benchmark_helpers.PanicsHelpers
+polyglot java import org.enso.benchmark_helpers.PanicsHelpers.MyException
 
 options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
 
