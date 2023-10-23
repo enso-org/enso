@@ -16,7 +16,6 @@
     "composite": true,
     "outDir": "../../node_modules/.cache/tsc",
     "baseUrl": ".",
-    "noEmit": true,
     "allowImportingTsExtensions": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,

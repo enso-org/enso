@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
@@ -12,6 +13,8 @@ import Standard.Test.Extensions
 
 import project.Database.Helpers.Name_Generator
 from project.Common_Table_Operations.Util import run_default_backend
+
+polyglot java import java.lang.Long as Java_Long
 
 main = run_default_backend spec
 
@@ -171,6 +174,26 @@ spec setup =
             t2 = table_builder [["X", ["a", "b", "a", "a"]], ["Y", [1, 2, 3, 4]]]
             t3 = t2.add_row_number order_by=["X", (Sort_Column.Name "Y" Sort_Direction.Descending)]
             t3.at "Row" . to_vector . should_equal [3, 4, 2, 1]
+
+        Test.specify "will fail if the row number exceeds Long range" <|
+            max_long = Java_Long.MAX_VALUE
+
+            t1 = table_builder [["X", [1, 2, 3, 4, 5]], ["Y", [1, 2, 2, 2, 2]], ["Z", [1, 5, 3, 4, 2]]]
+
+            Problems.assume_no_problems <| t1.add_row_number from=(max_long - 10)
+
+            r2 = t1.add_row_number from=(max_long - 1)
+            r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "The row number has exceeded the 64-bit integer range"
+
+            t1.add_row_number from=(max_long - 1) group_by=["Y"] . should_fail_with Illegal_Argument
+            t1.add_row_number from=(max_long - 1) order_by=["Z"] . should_fail_with Illegal_Argument
+            t1.add_row_number from=(max_long - 1) group_by=["Y"] order_by=["Z"] . should_fail_with Illegal_Argument
+
+            t1.add_row_number from=(max_long + 10) . should_fail_with Illegal_Argument
+            t1.add_row_number from=(max_long + 10) group_by=["Y"] . should_fail_with Illegal_Argument
+            t1.add_row_number from=(max_long + 10) order_by=["Z"] . should_fail_with Illegal_Argument
+            t1.add_row_number from=(max_long + 10) group_by=["Y"] order_by=["Z"] . should_fail_with Illegal_Argument
 
     if setup.is_database then Test.group prefix+"Table.add_row_number (Database specific)" <|
         Test.specify "will use the primary key by default" <|

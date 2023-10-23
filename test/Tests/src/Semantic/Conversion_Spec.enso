@@ -10,6 +10,10 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 polyglot java import java.lang.Object
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import java.time.chrono.ChronoPeriod
+polyglot java import java.time.temporal.TemporalAmount
+polyglot java import java.time.Period as JPeriod
 
 type Foo
     Value foo
@@ -421,6 +425,124 @@ spec =
 
             do_duration now
 
+    Test.group "Polyglot Argument" <|
+        f1 (x : DateTimeFormatter) = x.to_text
+        f2 (x : Text | DateTimeFormatter) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
+        f3 (x : DateTimeFormatter | Text) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
+        f4 (x) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
+
+        d = DateTimeFormatter.ISO_DATE
+
+        Test.specify "f1 d" <|
+            (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+
+        Test.specify "f1 42" <|
+            Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
+
+        Test.specify "f2 AAA" <|
+            (f2 "AAA").to_display_text . should_equal "TEXT: AAA"
+
+        Test.specify "f2 d" <|
+            (f2 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        Test.specify "f3 AAA" <|
+            (f3 "AAA").to_display_text . should_equal "TEXT: AAA"
+
+        Test.specify "f3 d" <|
+            (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        Test.specify "f4 d" <|
+            (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
+
+    Test.group "Polyglot Argument with Inheritance" <|
+        f1 (x : JPeriod) = x.to_text
+        f2 (x : ChronoPeriod) = x.negated.to_text
+        f3 (x : TemporalAmount) = x.getUnits.to_text
+
+        quarter = JPeriod.ofMonths 3
+
+        Test.specify "f1 quarter" <|
+            (f1 quarter) . should_equal "P3M"
+
+        Test.specify "f2 quarter" <|
+            (f2 quarter) . should_equal "P-3M"
+
+        Test.specify "f3 quarter" <|
+            (f3 quarter) . should_equal "[Years, Months, Days]"
+
+    Test.group "Polyglot Conversion" <|
+        f1 (x : DateTimeFormatter) = x.to_text
+        f2 (x : Hello | DateTimeFormatter) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+        f3 (x : DateTimeFormatter | Hello) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+        f4 (x) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+        f5 (x:Hello) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+
+        d = DateTimeFormatter.ISO_DATE
+
+        Test.specify "f1 d" <|
+            (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+
+        Test.specify "f1 42" <|
+            Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
+
+        Test.specify "f2 foo AAA" <|
+            (f2 <| Foo.Value "AAA").to_display_text . should_equal "HELLO: (Say 'AAA ')"
+
+        Test.specify "f2 hello AAA" <|
+            (f2 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        Test.specify "f2 d" <|
+            (f2 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        Test.specify "f3 bar AAA" <|
+            (f3 <| Bar.Value "AAA").to_display_text . should_equal "HELLO: (Say 'aaa!')"
+
+        Test.specify "f3 hello AAA" <|
+            (f3 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        Test.specify "f3 AAA" <|
+            (f3 'AAA').to_display_text . should_equal "HELLO: (Say 'Any fallback:AAA?')"
+
+        Test.specify "f3 d" <|
+            (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        Test.specify "f4 d" <|
+            (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
+
+        Test.specify "f4 AAA" <|
+            (f4 'AAA').to_display_text . should_equal "OTHER"
+
+        Test.specify "f5 AAA" <|
+            (f5 'AAA').to_display_text . should_equal "HELLO: (Say 'Any fallback:AAA?')"
+
+        Test.specify "f5 hello AAA" <|
+            (f5 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        Test.specify "f5 d" <|
+            (f5 d).to_display_text . should_contain "HELLO: (Say 'Any fallback:ParseCaseSensitive(false)(Value"
+
+Hello.from (that:Any) suffix="?" = Hello.Say <| ("Any fallback:"+that.to_text) + suffix
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
 

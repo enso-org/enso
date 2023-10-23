@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { spanKindName, type Span } from '@/stores/graph'
-import { Rect } from '@/stores/rect'
 import { useResizeObserver } from '@/util/events'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, onUpdated, ref, shallowRef, watch } from 'vue'
@@ -82,14 +82,11 @@ watch(exprRect, (rect) => {
 .Span {
   color: white;
   white-space: pre;
+  align-items: center;
+  transition: background 0.2s ease;
 
   &.Root {
-    display: inline-block;
     color: white;
-  }
-
-  &.Ident {
-    /* color: #f97; */
   }
 
   &.Token {
@@ -98,6 +95,13 @@ watch(exprRect, (rect) => {
 
   &.Literal {
     font-weight: bold;
+  }
+
+  &.Ident {
+    background-color: var(--node-color-port);
+    border-radius: var(--node-border-radius);
+    margin: -2px -4px;
+    padding: 2px 4px;
   }
 }
 </style>

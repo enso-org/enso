@@ -10,6 +10,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor14;
+import javax.lang.model.util.SimpleElementVisitor14;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
 import org.apache.commons.lang3.StringUtils;
@@ -21,8 +22,8 @@ public abstract class MethodGenerator {
   protected final boolean convertToGuestValue;
   protected final TypeWithKind returnTpe;
   protected final ProcessingEnvironment processingEnvironment;
-  private static final String FromElementName = "from";
-  private static final String ToElementName = "to";
+  private static final String FROM_ELEMENT_NAME = "from";
+  private static final String TO_ELEMENT_NAME = "to";
   private static final Class<? extends Annotation> wrapExceptionAnnotationClass = Builtin.WrapException.class;
   private static final Class<? extends Annotation> wrapExceptionsAnnotationClass = Builtin.WrapExceptions.class;
 
@@ -175,8 +176,8 @@ public abstract class MethodGenerator {
           Name key = entry.getKey().getSimpleName();
           var annotationVisitor = new AnnotationTypeVisitor();
           switch (key.toString()) {
-            case FromElementName -> valueFrom = entry.getValue().accept(annotationVisitor, null);
-            case ToElementName -> valueTo = entry.getValue().accept(annotationVisitor, null);
+            case FROM_ELEMENT_NAME -> valueFrom = entry.getValue().accept(annotationVisitor, null);
+            case TO_ELEMENT_NAME -> valueTo = entry.getValue().accept(annotationVisitor, null);
           }
         }
         if (valueFrom != null) {
@@ -226,8 +227,8 @@ public abstract class MethodGenerator {
       for (var entry : a.getElementValues().entrySet()) {
         var name = entry.getKey().getSimpleName().toString();
         switch (name) {
-          case "from" -> valueFrom = entry.getValue().accept(typeVisitor, null);
-          case "to" -> valueTo = entry.getValue().accept(typeVisitor, null);
+          case FROM_ELEMENT_NAME -> valueFrom = entry.getValue().accept(typeVisitor, null);
+          case TO_ELEMENT_NAME -> valueTo = entry.getValue().accept(typeVisitor, null);
           default -> processingEnvironment.getMessager().printMessage(
               Kind.ERROR,
               "Unknown annotation element name: " + name);
@@ -244,7 +245,14 @@ public abstract class MethodGenerator {
   private class AnnotationTypeVisitor extends SimpleAnnotationValueVisitor14<TypeElement, Object> {
     @Override
     public TypeElement visitType(TypeMirror t, Object o) {
-      var typeElement = processingEnvironment.getElementUtils().getTypeElement(t.toString());
+      var element = processingEnvironment.getTypeUtils().asElement(t);
+      var elementVisitor = new SimpleElementVisitor14<TypeElement, Object>() {
+        @Override
+        public TypeElement visitType(TypeElement e, Object o) {
+          return e;
+        }
+      };
+      var typeElement = element.accept(elementVisitor, null);
       if (typeElement == null) {
         processingEnvironment.getMessager().printMessage(Kind.ERROR, "Cannot find type element for " + t);
       }

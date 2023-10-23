@@ -3,6 +3,7 @@
 use crate::macros::pattern::*;
 use crate::macros::*;
 
+use crate::source::Code;
 use crate::syntax::operator;
 
 
@@ -81,7 +82,10 @@ fn import_body<'s>(
         let field = match header.code.as_ref() {
             "polyglot" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut polyglot
             }
@@ -90,7 +94,7 @@ fn import_body<'s>(
                     precedence
                         .resolve(tokens)
                         .map(expect_qualified)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut from
             }
@@ -111,14 +115,17 @@ fn import_body<'s>(
             }
             "as" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
                     sequence_tree(precedence, tokens, expect_ident)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
             }
@@ -174,7 +181,7 @@ fn export_body<'s>(
                     precedence
                         .resolve(tokens)
                         .map(expect_qualified)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut from
             }
@@ -195,14 +202,17 @@ fn export_body<'s>(
             }
             "as" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
                     sequence_tree(precedence, tokens, expect_ident)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
             }
@@ -339,7 +349,7 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
         return line_expression;
     }
     let mut last_argument_default = default();
-    let mut left_offset = crate::source::Offset::default();
+    let mut left_offset = line_expression.span.left_offset.position_before();
     let lhs = match &line_expression {
         Tree {
             variant: box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
@@ -438,7 +448,8 @@ fn case_body<'s>(
         }
     }
     if !initial_case.is_empty() {
-        let newline = syntax::token::newline("", "");
+        let location = of_.code.position_after();
+        let newline = syntax::token::newline(location.clone(), location);
         case_builder.push(syntax::item::Line { newline, items: initial_case });
     }
     block.into_iter().for_each(|line| case_builder.push(line));
@@ -822,7 +833,15 @@ fn expect_qualified(tree: syntax::Tree) -> syntax::Tree {
     }
 }
 
-fn expected_nonempty<'s>() -> syntax::Tree<'s> {
-    let empty = syntax::Tree::ident(syntax::token::ident("", "", false, 0, false, false, false));
+fn expected_nonempty(location: Code) -> syntax::Tree {
+    let empty = syntax::Tree::ident(syntax::token::ident(
+        location.clone(),
+        location,
+        false,
+        0,
+        false,
+        false,
+        false,
+    ));
     empty.with_error("Expected tokens.")
 }

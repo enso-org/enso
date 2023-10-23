@@ -2,6 +2,7 @@ package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
 import buildinfo.Info
+import com.typesafe.config.ConfigFactory
 import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
@@ -10,7 +11,7 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.filewatcher.WatcherAdapterFactory
-import org.enso.jsonrpc.JsonRpcServer
+import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
@@ -50,6 +51,7 @@ import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
@@ -319,7 +321,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         connection
       } else null
     })
-  if (RuntimeOptions.isEspressoEnabled()) {
+  if (
+    Engine
+      .newBuilder()
+      .allowExperimentalOptions(true)
+      .build
+      .getLanguages()
+      .containsKey("java")
+  ) {
     builder
       .option("java.ExposeNativeJavaVM", "true")
       .option("java.Polyglot", "true")
@@ -447,12 +456,23 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     jsonRpcControllerFactory
   )
 
+  val secureConfig = SecureConnectionConfig
+    .fromApplicationConfig(applicationConfig())
+    .fold(
+      v => v.flatMap(msg => { log.warn(s"invalid secure config: $msg"); None }),
+      Some(_)
+    )
+
   val jsonRpcServer =
     new JsonRpcServer(
       jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
-        .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
+        .Config(
+          outgoingBufferSize = 10000,
+          lazyMessageTimeout = 10.seconds,
+          secureConfig       = secureConfig
+        ),
       List(healthCheckEndpoint, idlenessEndpoint)
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
@@ -464,7 +484,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       new BinaryConnectionControllerFactory(fileManager),
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
-        lazyMessageTimeout = 10.seconds
+        lazyMessageTimeout = 10.seconds,
+        secureConfig       = secureConfig
       )
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
@@ -479,5 +500,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     suggestionsRepo.close()
     context.close()
     log.info("Closed Language Server main module.")
+  }
+
+  private def applicationConfig(): com.typesafe.config.Config = {
+    val empty = ConfigFactory.empty().atPath("akka.https")
+    ConfigFactory
+      .load()
+      .withFallback(empty)
+      .getConfig("akka")
+      .getConfig("https")
   }
 }

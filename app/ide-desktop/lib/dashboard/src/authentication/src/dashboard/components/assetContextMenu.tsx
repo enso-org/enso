@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
-import * as assetTreeNode from '../assetTreeNode'
+import type * as assetTreeNode from '../assetTreeNode'
 import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
@@ -16,9 +16,9 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
-import * as assetsTable from './assetsTable'
+import type * as assetsTable from './assetsTable'
 import * as categorySwitcher from './categorySwitcher'
-import * as tableRow from './tableRow'
+import type * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuSeparator from './contextMenuSeparator'
@@ -41,7 +41,12 @@ export interface AssetContextMenuProps {
     >
     event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
     eventTarget: HTMLElement | null
-    doDelete: () => Promise<void>
+    doDelete: () => void
+    doCut: () => void
+    doPaste: (
+        newParentKey: backendModule.AssetId | null,
+        newParentId: backendModule.DirectoryId | null
+    ) => void
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
@@ -51,11 +56,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         innerProps: {
             item,
             setItem,
-            state: { category, dispatchAssetEvent, dispatchAssetListEvent },
+            state: { category, hasCopyData, dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
         },
         event,
         eventTarget,
+        doCut,
+        doPaste,
         doDelete,
     } = props
     const logger = loggerProvider.useLogger()
@@ -108,7 +115,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         doAction={() => {
                             unsetModal()
                             dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.restoreMultiple,
+                                type: assetEventModule.AssetEventType.restore,
                                 ids: new Set([asset.id]),
                             })
                         }}
@@ -253,7 +260,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         doAction={() => {
                             if (backend.type === backendModule.BackendType.remote) {
                                 unsetModal()
-                                void doDelete()
+                                doDelete()
                             } else {
                                 setModal(
                                     <ConfirmDeleteModal
@@ -321,10 +328,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 {!isOtherUserUsingProject && (
                     <MenuEntry
                         hidden={hidden}
-                        disabled
                         action={shortcuts.KeyboardAction.cut}
                         doAction={() => {
-                            // No backend support yet.
+                            unsetModal()
+                            doCut()
                         }}
                     />
                 )}
@@ -336,9 +343,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                         // No backend support yet.
                     }}
                 />
+                {asset.type === backendModule.AssetType.directory && hasCopyData && (
+                    <MenuEntry
+                        hidden={hidden}
+                        action={shortcuts.KeyboardAction.paste}
+                        doAction={() => {
+                            unsetModal()
+                            doPaste(item.key, asset.id)
+                        }}
+                    />
+                )}
             </ContextMenu>
             <GlobalContextMenu
                 hidden={hidden}
+                hasCopyData={hasCopyData}
                 directoryKey={
                     // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
                     // eslint-disable-next-line no-restricted-syntax
@@ -350,6 +368,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     asset.type === backendModule.AssetType.directory ? asset.id : item.directoryId
                 }
                 dispatchAssetListEvent={dispatchAssetListEvent}
+                doPaste={doPaste}
             />
         </ContextMenus>
     )

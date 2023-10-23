@@ -1,15 +1,15 @@
 package org.enso.table.data.index;
 
+import org.enso.base.polyglot.EnsoObjectWrapper;
+import org.enso.base.polyglot.NumericConverter;
+import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.data.column.storage.Storage;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import org.enso.base.polyglot.EnsoObjectWrapper;
-import org.enso.base.polyglot.NumericConverter;
-import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.storage.Storage;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.
@@ -23,6 +23,12 @@ import org.enso.table.data.column.storage.Storage;
 public class UnorderedMultiValueKey extends MultiValueKeyBase {
   private final int hashCodeValue;
   private final List<TextFoldingStrategy> textFoldingStrategy;
+  private boolean hasAnyNulls = false;
+
+  @Override
+  public boolean hasAnyNulls() {
+    return hasAnyNulls;
+  }
 
   public UnorderedMultiValueKey(
       Storage<?>[] storages, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
@@ -35,7 +41,9 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
       h = 31 * h;
 
       Object value = this.get(i);
-      if (value != null) {
+      if (value == null) {
+        hasAnyNulls = true;
+      } else {
         hasFloatValues = hasFloatValues || NumericConverter.isFloatLike(value);
         Object folded = EnsoObjectWrapper.foldObject(value, textFoldingStrategy.get(i));
         h += folded.hashCode();

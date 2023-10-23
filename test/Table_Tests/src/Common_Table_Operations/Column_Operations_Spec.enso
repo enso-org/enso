@@ -7,7 +7,7 @@ import Standard.Base.Meta.Type
 import Standard.Database.Data.Column.Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
-from Standard.Table import Value_Type
+from Standard.Table import Value_Type, Column_Ref
 from Standard.Table.Data.Type.Value_Type import Bits
 from Standard.Table.Errors import all
 
@@ -333,25 +333,41 @@ spec setup =
             actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
 
     Test.group prefix+"Table.replace" <|
-        if setup.is_database.not then
-            Test.specify "should allow to replace values in a table" <|
-                with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]] t->
-                    actual = t.replace ["col0", "col1"] "ab" "xy"
-                    actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
-                    actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
+        Test.specify "should allow to replace values in a table" <|
+            with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]] t->
+                actual = t.replace ["col0", "col1"] "ab" "xy"
+                actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
+                actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
 
-            Test.specify "should allow to replace values in a table with a regex" <|
-                t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
-                actual = t.replace ["col0", "col1"] "[bdi]".to_regex "xy"
-                actual.at "col0" . to_vector . should_equal ["axyc", "xyef", "ghxy"]
-                actual.at "col1" . to_vector . should_equal ["naxyc", "nxyef", "asxyf"]
+        Test.specify "should allow to replace values in a table with a regex" <|
+            t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
+            actual = t.replace ["col0", "col1"] "[bdi]".to_regex "xy"
+            case actual.is_error && setup.is_database of
+                True ->
+                    actual.should_fail_with Unsupported_Database_Operation
+                False ->
+                    actual.at "col0" . to_vector . should_equal ["axyc", "xyef", "ghxy"]
+                    actual.at "col1" . to_vector . should_equal ["naxyc", "nxyef", "asxyf"]
 
-            Test.specify "should allow to replace values in a table with a column" <|
-                t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["col2", ["xy", "yx", "zz"]]]
-                actual = t.replace ["col0", "col1"] "[bdi]".to_regex (t.at "col2")
-                actual.at "col0" . to_vector . should_equal ["axyc", "yxef", "ghzz"]
-                actual.at "col1" . to_vector . should_equal ["naxyc", "nyxef", "aszzf"]
-                actual.at "col2" . to_vector . should_equal ["xy", "yx", "zz"]
+        Test.specify "should allow to replace values in a table with a column" <|
+            t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["col2", ["xy", "yx", "zz"]]]
+            actual = t.replace ["col0", "col1"] "[bdi]".to_regex (t.at "col2")
+            case actual.is_error && setup.is_database of
+                True ->
+                    actual.should_fail_with Unsupported_Database_Operation
+                False ->
+                    actual.at "col0" . to_vector . should_equal ["axyc", "yxef", "ghzz"]
+                    actual.at "col1" . to_vector . should_equal ["naxyc", "nyxef", "aszzf"]
+                    actual.at "col2" . to_vector . should_equal ["xy", "yx", "zz"]
+
+        Test.specify "should allow to use Column_Ref in replace" <|
+            t = table_builder [["txt", ["abc", "def", "ghi"]], ["term", ["b", "d", "i"]], ["new", ["X", "Y", "Z"]]]
+            t1 = t.replace "txt" (Column_Ref.Name "term") (Column_Ref.Name "new")
+            case t1.is_error && setup.is_database of
+                True ->
+                    t1.should_fail_with Unsupported_Database_Operation
+                False ->
+                    t1.at "txt" . to_vector . should_equal ["aXc", "Yef", "ghZ"]
 
     Test.group prefix+"Column Comparisons" <|
         Test.specify "should allow to compare numbers" <|

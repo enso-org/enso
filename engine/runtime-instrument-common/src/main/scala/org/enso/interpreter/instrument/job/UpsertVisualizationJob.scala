@@ -38,13 +38,22 @@ import java.util.logging.Level
 class UpsertVisualizationJob(
   requestId: Option[Api.RequestId],
   val visualizationId: Api.VisualizationId,
-  expressionId: Api.ExpressionId,
+  val expressionId: Api.ExpressionId,
   config: Api.VisualizationConfiguration
-) extends UniqueJob[Option[Executable]](
-      expressionId,
+) extends Job[Option[Executable]](
       List(config.executionContextId),
+      false,
       false
-    ) {
+    )
+    with UniqueJob[Option[Executable]] {
+
+  /** @inheritdoc */
+  override def equalsTo(that: UniqueJob[_]): Boolean =
+    that match {
+      case that: UpsertVisualizationJob =>
+        this.expressionId == that.expressionId
+      case _ => false
+    }
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {

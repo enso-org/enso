@@ -286,10 +286,12 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       newProject("test", projectPath, version)
 
       val options = LanguageServerOptions(
-        rootId    = UUID.randomUUID(),
-        interface = "127.0.0.2",
-        rpcPort   = 1234,
-        dataPort  = 4321
+        rootId         = UUID.randomUUID(),
+        interface      = "127.0.0.2",
+        rpcPort        = 1234,
+        secureRpcPort  = None,
+        dataPort       = 4321,
+        secureDataPort = None
       )
       val runSettings = runner
         .languageServer(

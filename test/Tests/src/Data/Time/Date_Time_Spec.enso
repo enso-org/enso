@@ -71,6 +71,13 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             text = create_new_datetime 1970 (zone = Time_Zone.utc) . format "yyyy-MM-dd'T'HH:mm:ss"
             text . should_equal "1970-01-01T00:00:00"
 
+        Test.specify "should support to_display_text" <|
+            text = create_new_datetime 2020 12 21 11 23 45 nanosecond=123456789 . to_display_text
+            text . should_equal "2020-12-21 11:23:45.123"
+
+            text_2 = create_new_datetime 2020 12 21 11 23 45 . to_display_text
+            text_2 . should_equal "2020-12-21 11:23:45"
+
         Test.specify "should format using provided pattern and locale" <|
             d = create_new_datetime 2020 6 21
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "gb")) . should_equal "21. Jun 2020"
@@ -109,7 +116,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal tz.zone_id
-            time.to_display_text . should_equal "1970-01-01 01:01:01 +01:01:01"
+            time.to_display_text . should_equal "1970-01-01 01:01:01[+01:01:01]"
 
         Test.specify "should set id-based timezone" <|
             tz = Time_Zone.parse "Europe/Moscow"
@@ -124,7 +131,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time . microsecond . should_equal 0
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal tz.zone_id
-            time.to_display_text . should_equal "1970-01-01 03:00:00 Europe/Moscow"
+            time.to_display_text . should_equal "1970-01-01 03:00:00[Europe/Moscow]"
 
         Test.specify "should allow to set an interop timezone" <|
             interop_tz = ZoneOffset.ofTotalSeconds 3600
@@ -132,7 +139,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             dt1 = dt0.at_zone interop_tz
 
             dt1.zone . zone_id . should_equal interop_tz.zone_id
-            dt1.to_display_text . should_equal "2020-01-01 01:00:00 +01:00"
+            dt1.to_display_text . should_equal "2020-01-01 01:00:00[+01:00]"
 
         Test.specify "should get time of day from offsed-based time" <|
             time = parse_datetime "1970-01-01T00:00:01+01:00" . time_of_day

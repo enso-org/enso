@@ -84,14 +84,14 @@ object BuildInfo {
 
   private def getGitInformation(log: ManagedLogger): Option[GitInformation] =
     try {
-      val hash = ("git rev-parse HEAD" !!).trim
+      val hash = "git rev-parse HEAD".!!.trim
       val ref =
         try {
           val branchCommand = "git symbolic-ref -q --short HEAD"
           val tagCommand    = "git describe --tags --exact-match"
           val refCommand =
             branchCommand #|| tagCommand
-          (refCommand !!).trim
+          refCommand.!!.trim
         } catch {
           case e: Exception =>
             log.warn(
@@ -100,8 +100,8 @@ object BuildInfo {
             )
             "HEAD"
         }
-      val isDirty          = !("git status --porcelain" !!).trim.isEmpty
-      val latestCommitDate = ("git log HEAD -1 --format=%cd" !!).trim
+      val isDirty          = "git status --porcelain".!!.trim.nonEmpty
+      val latestCommitDate = "git log HEAD -1 --format=%cd".!!.trim
       Some(
         GitInformation(
           ref              = ref,

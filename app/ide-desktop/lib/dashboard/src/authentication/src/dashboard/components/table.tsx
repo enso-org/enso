@@ -7,9 +7,10 @@ import * as set from '../../set'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
-import * as tableColumn from './tableColumn'
+import type * as tableColumn from './tableColumn'
+import type * as tableRow from './tableRow'
 import Spinner, * as spinner from './spinner'
-import TableRow, * as tableRow from './tableRow'
+import TableRow from './tableRow'
 
 // =================
 // === Constants ===
@@ -53,6 +54,7 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element | null
     scrollContainerRef?: React.RefObject<HTMLDivElement>
     headerRowRef?: React.RefObject<HTMLTableRowElement>
+    footer?: React.ReactNode
     items: T[]
     filter?: ((item: T) => boolean) | null
     state?: State
@@ -69,6 +71,13 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
         event: React.MouseEvent<HTMLDivElement>,
         setSelectedKeys: (items: Set<Key>) => void
     ) => void
+    draggableRows?: boolean
+    onDragLeave?: React.DragEventHandler
+    onRowDragStart?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDrag?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDragOver?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDragEnd?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDrop?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
 }
 
 /** Props for a {@link Table}. */
@@ -90,6 +99,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
         rowComponent: RowComponent = TableRow,
         scrollContainerRef,
         headerRowRef,
+        footer,
         items,
         filter,
         getKey,
@@ -99,6 +109,13 @@ export default function Table<T, State = never, RowState = never, Key extends st
         isLoading,
         placeholder,
         onContextMenu,
+        draggableRows,
+        onDragLeave,
+        onRowDragStart,
+        onRowDrag,
+        onRowDragOver,
+        onRowDragEnd,
+        onRowDrop,
         ...rowProps
     } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -301,6 +318,28 @@ export default function Table<T, State = never, RowState = never, Key extends st
                             setSelectedKeys(new Set([key]))
                         }
                     }}
+                    draggable={draggableRows}
+                    onDragStart={event => {
+                        if (onRowDragStart != null) {
+                            if (!selectedKeys.has(key)) {
+                                setPreviouslySelectedKey(key)
+                                setSelectedKeys(new Set([key]))
+                            }
+                            onRowDragStart(event, item, key)
+                        }
+                    }}
+                    onDrag={event => {
+                        onRowDrag?.(event, item, key)
+                    }}
+                    onDragOver={event => {
+                        onRowDragOver?.(event, item, key)
+                    }}
+                    onDragEnd={event => {
+                        onRowDragEnd?.(event, item, key)
+                    }}
+                    onDrop={event => {
+                        onRowDrop?.(event, item, key)
+                    }}
                 />
             )
         })
@@ -308,10 +347,11 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     return (
         <div
-            className="grow"
+            className="grow flex flex-col"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
+            onDragLeave={onDragLeave}
         >
             <table className="rounded-rows table-fixed border-collapse">
                 <thead>{headerRow}</thead>
@@ -326,6 +366,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     )}
                 </tbody>
             </table>
+            {footer}
         </div>
     )
 }

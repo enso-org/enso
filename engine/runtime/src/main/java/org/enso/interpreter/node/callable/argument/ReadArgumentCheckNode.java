@@ -42,6 +42,8 @@ import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
@@ -77,6 +79,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     return result;
   }
 
+  abstract Object findDirectMatch(VirtualFrame frame, Object value);
   abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
   abstract String expectedTypeMessage();
 
@@ -116,11 +119,20 @@ public abstract class ReadArgumentCheckNode extends Node {
     return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(n, expectedType);
   }
 
+  public static ReadArgumentCheckNode meta(Name argumentName, Object metaObject) {
+    var n = argumentName == null ? null : argumentName.name();
+    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(n, metaObject);
+  }
+
   public static boolean isWrappedThunk(Function fn) {
     if (fn.getSchema() == LazyCheckRootNode.SCHEMA) {
       return fn.getPreAppliedArguments()[0] instanceof Function wrappedFn && wrappedFn.isThunk();
     }
     return false;
+  }
+
+  private static boolean isAllFitValue(Object v) {
+    return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
   }
 
   private static ReadArgumentCheckNode[] toArray(List<ReadArgumentCheckNode> list) {
@@ -149,6 +161,11 @@ public abstract class ReadArgumentCheckNode extends Node {
       super(name);
       this.checks = checks;
       this.types = TypesLibrary.getFactory().createDispatched(checks.length);
+    }
+
+    @Override
+    Object findDirectMatch(VirtualFrame frame, Object value) {
+      return null;
     }
 
     @Override
@@ -186,14 +203,22 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Override
     @ExplodeLoop
-    Object executeCheckOrConversion(VirtualFrame frame, Object value) {
+    final Object findDirectMatch(VirtualFrame frame, Object value) {
       for (var n : checks) {
-        if (n instanceof TypeCheckNode typeCheck) {
-          var result = typeCheck.findAmongTypes(value);
-          if (result != null) {
-            return result;
-          }
+        var result = n.findDirectMatch(frame, value);
+        if (result != null) {
+          return result;
         }
+      }
+      return null;
+    }
+
+    @Override
+    @ExplodeLoop
+    Object executeCheckOrConversion(VirtualFrame frame, Object value) {
+      var direct = findDirectMatch(frame, value);
+      if (direct != null) {
+        return direct;
       }
       for (var n : checks) {
         var result = n.executeCheckOrConversion(frame, value);
@@ -232,7 +257,7 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Specialization(rewriteOn = InvalidAssumptionException.class)
     Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {
-      var ret = findAmongTypes(v);
+      var ret = findDirectMatch(frame, v);
       if (ret != null) {
         return ret;
       } else {
@@ -264,12 +289,8 @@ public abstract class ReadArgumentCheckNode extends Node {
       return doWithConversionUncachedBoundary(frame == null ? null : frame.materialize(), v, type);
     }
 
-    private static boolean isAllFitValue(Object v) {
-      return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
-    }
-
     @ExplodeLoop
-    private Object findAmongTypes(Object v) {
+    final Object findDirectMatch(VirtualFrame frame, Object v) {
       if (isAllFitValue(v)) {
         return v;
       }
@@ -351,7 +372,7 @@ public abstract class ReadArgumentCheckNode extends Node {
             VirtualFrame frame, Object v, ApplicationNode convertNode
     ) throws PanicException {
       if (convertNode == null) {
-        var ret = findAmongTypes(v);
+        var ret = findDirectMatch(frame, v);
         if (ret != null) {
           return ret;
         }
@@ -375,6 +396,51 @@ public abstract class ReadArgumentCheckNode extends Node {
       }
       CompilerDirectives.transferToInterpreterAndInvalidate();
       expectedTypeMessage = expectedType.toString();
+      return expectedTypeMessage;
+    }
+  }
+
+  static abstract class MetaCheckNode extends ReadArgumentCheckNode {
+    private final Object expectedMeta;
+    @CompilerDirectives.CompilationFinal
+    private String expectedTypeMessage;
+
+    MetaCheckNode(String name, Object expectedMeta) {
+      super(name);
+      this.expectedMeta = expectedMeta;
+    }
+
+    @Override
+    Object findDirectMatch(VirtualFrame frame, Object value) {
+      return executeCheckOrConversion(frame, value);
+    }
+
+    @Specialization()
+    Object verifyMetaObject(
+      VirtualFrame frame, Object v,
+      @Cached IsValueOfTypeNode isA
+    ) {
+      if (isAllFitValue(v)) {
+        return v;
+      }
+      if (isA.execute(expectedMeta, v)) {
+        return v;
+      } else {
+        return null;
+      }
+    }
+    @Override
+    String expectedTypeMessage() {
+      if (expectedTypeMessage != null) {
+        return expectedTypeMessage;
+      }
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      var iop = InteropLibrary.getUncached();
+      try {
+        expectedTypeMessage = iop.asString(iop.getMetaQualifiedName(expectedMeta));
+      } catch (UnsupportedMessageException ex) {
+        expectedTypeMessage = expectedMeta.toString();
+      }
       return expectedTypeMessage;
     }
   }

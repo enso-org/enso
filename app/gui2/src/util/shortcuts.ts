@@ -1,4 +1,4 @@
-import { isMacLike } from './events'
+import { isMacLike } from '@/util/events'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
@@ -92,7 +92,7 @@ const allKeys = [
   'PageUp',
   'PageDown',
   'Insert',
-  ' ',
+  'Space',
   'A',
   'B',
   'C',
@@ -177,10 +177,11 @@ const allKeys = [
 type Key = (typeof allKeys)[number]
 type LowercaseKey = Lowercase<Key>
 type KeybindSegment = Modifier | Pointer | Key
-const normalizedKeyboardSegmentLookup = Object.fromEntries<KeybindSegment | undefined>(
+const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
   [...allModifiers, ...allPointers, ...allKeys].map((entry) => [entry.toLowerCase(), entry]),
 )
 normalizedKeyboardSegmentLookup[''] = '+'
+normalizedKeyboardSegmentLookup['space'] = ' '
 normalizedKeyboardSegmentLookup['osdelete'] = isMacLike ? 'Delete' : 'Backspace'
 type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
@@ -229,12 +230,72 @@ const definedNamespaces = new Set<string>()
 
 export const DefaultHandler = Symbol('default handler')
 
+/**
+ * Define key bindings for given namespace.
+ *
+ * This function takes list of actions with default bindings, and returns an object which allows
+ * making event handler which in turn may be added as an appropriate event listener. It may handle
+ * both keyboard and mouse events.
+ *
+ * The event handler assigns functions to the corresponding action. The function may return false
+ * if the event should be considered not handled (and thus propagated). Returning true or just
+ * nothing from the function will cause propagation of event stop.
+ *
+ * @param namespace should be unique among other `defineKebinds` calls.
+ * @param bindings is an object defining actions and their key bindings. Each property name is an
+ * action name, and value is list of default key bindings. See "Keybinds should be parsed
+ * correctly" test for examples of valid strings.
+ * @returns an object with defined `handler` function.
+ *
+ * Example:
+ *
+ * Define bindings:
+ * ```
+ * const graphBindings = defineKeybinds('graph-editor', {
+ *   undo: ['Mod+Z'],
+ *   redo: ['Mod+Y', 'Mod+Shift+Z'],
+ *   dragScene: ['PointerAux', 'Mod+PointerMain'],
+ *   openComponentBrowser: ['Enter'],
+ *   newNode: ['N'],
+ * })
+ * ```
+ *
+ * Then make a handler:
+ * ```
+ * const graphBindingsHandler = graphBindings.handler({
+ *   undo() {
+ *     projectStore.module?.undoManager.undo()
+ *   },
+ *   redo() {
+ *     projectStore.module?.undoManager.redo()
+ *   },
+ *   openComponentBrowser() {
+ *     if (keyboardBusy()) return false
+ *     if (navigator.sceneMousePos != null && !componentBrowserVisible.value) {
+ *       componentBrowserPosition.value = navigator.sceneMousePos
+ *       componentBrowserVisible.value = true
+ *     }
+ *   },
+ *   newNode() {
+ *     if (keyboardBusy()) return false
+ *     if (navigator.sceneMousePos != null) {
+ *       graphStore.createNode(navigator.sceneMousePos, 'hello "world"! 123 + x')
+ *     }
+ *   },
+ * })
+ * ```
+ *
+ * And then pass the handler to the event listener:
+ * ```
+ * useEvent(window, 'keydown', graphBindingsHandler)
+ * ```
+ */
 export function defineKeybinds<
   T extends Record<BindingName, [] | string[]>,
   BindingName extends keyof T = keyof T,
 >(namespace: string, bindings: Keybinds<T>) {
   if (definedNamespaces.has(namespace)) {
-    console.error(`The keybind namespace '${namespace}' has already been defined.`)
+    console.warn(`The keybind namespace '${namespace}' has already been defined.`)
   } else {
     definedNamespaces.add(namespace)
   }
@@ -263,7 +324,9 @@ export function defineKeybinds<
   }
 
   function handler<Event_ extends KeyboardEvent | MouseEvent | PointerEvent>(
-    handlers: Partial<Record<BindingName | typeof DefaultHandler, (event: Event_) => void>>,
+    handlers: Partial<
+      Record<BindingName | typeof DefaultHandler, (event: Event_) => boolean | void>
+    >,
   ): (event: Event_) => boolean {
     return (event) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
@@ -283,7 +346,9 @@ export function defineKeybinds<
       if (handle == null) {
         return false
       }
-      handle(event)
+      if (handle(event) === false) {
+        return false
+      }
       event.stopImmediatePropagation()
       event.preventDefault()
       return true
@@ -317,13 +382,6 @@ function decomposeKeybindString(string: string): ModifierStringDecomposition {
 
 function parseKeybindString(string: string): Keybind | Mousebind {
   const decomposed = decomposeKeybindString(string)
-  const normalized =
-    decomposed.modifiers.length === 0
-      ? decomposed.key
-      : `${decomposed.modifiers.join('+')}+${decomposed.key}`
-  if (normalized !== string) {
-    console.warn(`Modifier string '${string}' should be '${normalized}'`)
-  }
   if (isPointer(decomposed.key)) {
     return {
       type: 'mousebind',
@@ -359,6 +417,10 @@ interface Mousebind {
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
   test.each([
+    { keybind: 'A', expected: { modifiers: [], key: 'A' } },
+    { keybind: 'b', expected: { modifiers: [], key: 'B' } },
+    { keybind: 'Space', expected: { modifiers: [], key: ' ' } },
+    { keybind: 'Mod+Space', expected: { modifiers: ['Mod'], key: ' ' } },
     // `+`
     { keybind: 'Mod++', expected: { modifiers: ['Mod'], key: '+' } },
     // `+` and capitalization

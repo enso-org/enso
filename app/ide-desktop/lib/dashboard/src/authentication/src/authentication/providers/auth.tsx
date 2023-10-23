@@ -8,9 +8,10 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
 import * as app from '../../components/app'
-import * as authServiceModule from '../service'
+import type * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
+import * as cognitoModule from '../cognito'
 import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
@@ -400,7 +401,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.confirmSignUp(email, code)
         if (result.err) {
             switch (result.val.kind) {
-                case 'UserAlreadyConfirmed':
+                case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
                     break
                 default:
                     throw new errorModule.UnreachableCaseError(result.val.kind)
@@ -416,7 +417,7 @@ export function AuthProvider(props: AuthProviderProps) {
         if (result.ok) {
             toastSuccess(MESSAGES.signInWithPasswordSuccess)
         } else {
-            if (result.val.kind === 'UserNotFound') {
+            if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
                 navigate(app.REGISTRATION_PATH)
             }
             toastError(result.val.message)

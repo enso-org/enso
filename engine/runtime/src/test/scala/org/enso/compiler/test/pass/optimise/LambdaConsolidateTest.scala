@@ -297,6 +297,9 @@ class LambdaConsolidateTest extends CompilerTest {
       ws should not be empty
       ws.head.shadowedName shouldEqual "x"
       ws.head.shadower shouldBe ir.arguments(1)
+      ws.head.message(
+        null
+      ) shouldBe "The argument 'x' is shadowed by another one with the same name."
     }
 
     "consolidate chained lambdas if the chaining occurs via a single-lined block" in {

@@ -82,6 +82,14 @@ type Postgres_Dialect
                 Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
+       Wraps and possibly escapes the identifier so that it can be used in a
+       generated query regardless of what characters it contains.
+       The quotes used will depend on the dialect.
+    wrap_identifier : Text -> Text
+    wrap_identifier self identifier =
+        self.internal_generator_dialect.wrap_identifier_raw identifier
+
+    ## PRIVATE
        Prepares an ordering descriptor.
 
        One of the purposes of this method is to verify if the expected ordering
@@ -251,7 +259,7 @@ type Postgres_Dialect
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported "PostgreSQL"
 
 
     ## PRIVATE
@@ -272,7 +280,7 @@ type Postgres_Dialect
                                 True -> Value_Type.Decimal 1000 scale
                                 # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
                                 False -> Value_Type.Decimal Nothing Nothing
-                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type) new_type
+                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                         False -> base_type
                 _ -> base_type
 
@@ -588,7 +596,7 @@ replace args metadata =
                         Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> Nothing
     case expression of
-        Nothing -> replace_params.throw_unsupported
+        Nothing -> replace_params.throw_unsupported "PostgreSQL"
        _ -> expression
 
 ## PRIVATE

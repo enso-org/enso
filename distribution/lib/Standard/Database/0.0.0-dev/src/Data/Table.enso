@@ -11,6 +11,9 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
+import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
+import Standard.Table.Data.Column_Ref.Column_Ref
+import Standard.Table.Data.Constants.Previous_Value
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
@@ -21,9 +24,12 @@ import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
+import Standard.Table.Extensions.Table_Ref.Table_Ref
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
+import Standard.Table.Internal.Constant_Column.Constant_Column
+import Standard.Table.Internal.Lookup_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
@@ -548,6 +554,7 @@ type Table
 
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
+    @filter Widget_Helpers.make_filter_condition_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
        _ : Column ->
@@ -559,7 +566,9 @@ type Table
                    new_ctx = self.context.set_where_filters new_filters
                    self.updated_context new_ctx
            case filter of
-               _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
+               _ : Filter_Condition ->
+                   resolved = (self:Table_Ref).resolve_condition filter
+                   mask (make_filter_column column resolved on_problems)
                ## We check the `filter` predicate before reporting unsupported
                   operation, because it may just be a Filter_Condition with
                   missing arguments and then another error is more appropriate.
@@ -606,7 +615,8 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Standard.Base.Selections
        Creates a new Table with the specified range of rows from the input
        Table.
 
@@ -823,22 +833,22 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @new_name Widget_Helpers.make_column_name_selector
-    set : Column | Text | Array | Vector | Range | Date_Range -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    set : Column | Text | Array | Vector | Range | Date_Range | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column ->
                 if Helpers.check_integrity self column then column else
                     Error.throw (Integrity_Error.Error "Column "+column.name)
+            _ : Constant_Column -> self.make_constant_column column
+            _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Vector` for `set` in the database.")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Date_Range` for `set` in the database.")
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
-        renamed = case new_name of
-           Nothing -> resolved
-           _ : Text -> resolved.rename new_name
 
+        renamed = if new_name == "" then resolved else resolved.rename new_name
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
             check_add = case set_mode of
@@ -1312,6 +1322,63 @@ type Table
                 False -> []
             on_problems.attach_problems_before limit_problems <|
                 self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
+
+    ## Replaces values in this table by values from a lookup table.
+       New values are looked up in the lookup table based on the `key_columns`.
+       Columns found in the lookup table values are replaced by values from the
+       lookup. Columns not found are left unchanged.
+       This operation is similar to `Table.update_rows`, but just returns a new
+       `Table` instance, instead of updating the table in-place (which is only
+       possible for Database tables).
+
+       Arguments:
+       - lookup_table: The table to use for looking up values.
+       - key_columns: Specifies the columns to use for correlating rows between
+         the two tables. Must identify values uniquely within `lookup_table`.
+       - add_new_columns: Specifies if new columns from the lookup table should
+         be added to the result. If `False`, an `Unexpected_Extra_Columns`
+         problem is reported.
+       - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
+         If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
+         If `True`, the unmatched rows are left unchanged. Any new columns will
+         be filled with `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
+
+       ? Error Conditions
+
+         - If this table or the lookup table is lacking any of the columns
+           specified in `key_columns`, a `Missing_Input_Columns` error is raised.
+         - If an empty vector is provided for `key_columns`, a
+           `No_Input_Columns_Selected` error is raised.
+         - If the lookup table contains multiple rows with the same values in
+           the `key_columns`, an `Non_Unique_Key` error is raised.
+         - If a column that is being updated from the lookup table has a type
+           that is not compatible with the type of the corresponding column in
+           this table, a `No_Common_Type` error is raised.
+         - If a key column contains `Nothing` values, either in the lookup table,
+           a `Null_Values_In_Key_Columns` error is raised.
+         - If `allow_unmatched_rows` is `False` and there are rows in this table
+           that do not have a matching row in the lookup table, an
+           `Unmatched_Rows_In_Lookup` error is raised.
+         - The following problems may be reported according to the `on_problems`
+           setting:
+           - If any of the `key_columns` is a floating-point type,
+             a `Floating_Point_Equality`.
+           - If `add_new_columns` is `False` and the lookup table has columns
+             that are not present in this table, an `Unexpected_Extra_Columns`.
+    @key_columns Widget_Helpers.make_column_name_vector_selector
+    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        _ = [lookup_table, key_columns, add_new_columns, allow_unmatched_rows, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.lookup_and_replace is not implemented yet for the Database backends.")
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1921,6 +1988,57 @@ type Table
         Error.throw (Unsupported_Database_Operation.Error "Table.parse_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
+       Expand a column of objects to a new set of columns.
+
+        Arguments:
+        - column: The column to expand.
+        - fields: The set fields to expand. If `Nothing` then all fields are added.
+        - prefix: Prefix to add to the column names. If `Nothing` then the column
+          name is used.
+    @column Widget_Helpers.make_column_name_selector
+    expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Table ! Type_Error
+    expand_column self column fields=Nothing prefix=Nothing =
+            _ = [column, fields, prefix]
+            Error.throw (Unsupported_Database_Operation.Error "Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+
+    ## GROUP Standard.Base.Conversions
+      Expand aggregate values in a column to separate rows.
+
+      For each value in the specified column, if it is an aggregate (`Vector`,
+      `Range`, etc.), expand it to multiple rows, duplicating the values in the
+      other columns.
+
+      Arguments:
+      - column: The column to expand.
+      - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
+        true, a single row is output with `Nothing` for the aggregates column; if
+        false, no row is output at all.
+
+      The following aggregate values are supported:
+      - `Array`
+      - `Vector`
+      - `List`
+      - `Range`
+      - `Date_Range`
+      - `Pair
+
+      Any other values are treated as non-aggregate values, and their rows are kept
+      unchanged.
+
+      In in-memory tables, it is permitted to mix values of different types.
+
+      > Example
+        Expand a column of integer `Vectors` to a column of `Integer`
+
+        table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
+        # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
+    @column Widget_Helpers.make_column_name_selector
+    expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+    expand_to_rows self column at_least_one_row=False =
+        _ = [column, at_least_one_row]
+        Error.throw (Unsupported_Database_Operation.Error "Table.expand_to_rows is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+
+    ## GROUP Standard.Base.Conversions
        Cast the selected columns to a specific type.
 
        Returns a new table in which the selected columns are replaced with
@@ -2040,11 +2158,18 @@ type Table
 
                 expected_types = self.columns.map .value_type
                 actual_types = materialized_table.columns.map .value_type
-                expected_types.zip actual_types . fold materialized_table acc-> types_pair->
-                    expected_type = types_pair.first
-                    actual_type = types_pair.second
-                    if expected_type == actual_type then acc else
-                        Warning.attach (Inexact_Type_Coercion.Warning expected_type actual_type) acc
+                warnings_builder = Vector.new_builder
+                expected_types.zip actual_types expected_type-> actual_type->
+                    if expected_type == actual_type then Nothing else
+                        expected_type_kind = Meta.meta expected_type . constructor
+                        actual_type_kind = Meta.meta actual_type . constructor
+                        ## We ignore simple approximations that our in-memory backend does - things like adding default
+                           timezone (because we do not have Date_Time without timezone in-memory),
+                           or changing Float32 to Float64 are silently ignored.
+                           However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
+                        if expected_type_kind == actual_type_kind then Nothing else
+                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+                Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector materialized_table
 
     ## PRIVATE
        Creates a query corresponding to this table.
@@ -2251,16 +2376,21 @@ type Table
          match names, or a Vector of these.
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
-         will be used.
+         will be used. If this argument is `Previous_Value`, the missing values
+         will be replaced with the previous value in the column. Note that the
+         first rows may stay `Nothing` if they do not have a previous value to
+         use.
 
        > Example
          Fill missing values in two columns with the value 20.5.
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
-    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Any -> Table
-    fill_nothing self columns default =
-        transformer col = col.fill_nothing default
+    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self include_custom_text=False)
+    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
+    fill_nothing self (columns : Vector | Text | Integer | Regex) default =
+        resolved_default = (self:Table_Ref).resolve default
+        transformer col = col.fill_nothing resolved_default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## ALIAS fill empty, if_empty
@@ -2274,16 +2404,20 @@ type Table
          match names, or a Vector of these.
        - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
-         will be used.
+         will be used. If this argument is `Previous_Value`, the empty values
+         will be replaced with the previous value in the column. Note that the
+         first rows may stay empty if they do not have a previous value to use.
 
        > Example
          Fill empty values in two columns with the value "hello".
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
-    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Any -> Table
-    fill_empty self columns default =
-        transformer col = col.fill_empty default
+    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self include_custom_text=True)
+    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
+    fill_empty self (columns : Vector | Text | Integer | Regex) default =
+        resolved_default = (self:Table_Ref).resolve default
+        transformer col = col.fill_empty resolved_default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
@@ -2318,10 +2452,15 @@ type Table
 
              column.replace ["col0"] '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
-    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
-        _ = [columns, term, new_text, case_sensitivity, only_first]
-        Error.throw (Unsupported_Database_Operation.Error "Text replace is currently not supported in the database backend.")
+    @term Widget_Helpers.make_column_ref_or_text_value_selector
+    @new_text Widget_Helpers.make_column_ref_or_text_value_selector
+    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
+    replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        table_ref = Table_Ref.from self
+        resolved_term = table_ref.resolve term
+        resolved_new_text = table_ref.resolve new_text
+        transformer col = col.replace resolved_term resolved_new_text case_sensitivity only_first
+        Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
 ## PRIVATE
 
@@ -2413,3 +2552,6 @@ default_join_condition table join_kind = case join_kind of
 Materialized_Table.from (that:Table) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+
+## PRIVATE
+Table_Ref.from (that:Table) = Table_Ref.Value that

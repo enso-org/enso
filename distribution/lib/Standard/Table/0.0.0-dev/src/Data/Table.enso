@@ -14,8 +14,11 @@ from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
+import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
+import project.Data.Column_Ref.Column_Ref
+import project.Data.Constants.Previous_Value
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
@@ -28,15 +31,21 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
-import project.Data.Table_Conversions
+import project.Extensions.Table_Conversions
 import project.Delimited.Delimited_Format.Delimited_Format
+import project.Extensions.Prefix_Name.Prefix_Name
+import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Constant_Column.Constant_Column
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
+import project.Internal.Expand_Objects_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
+import project.Internal.Lookup_Helpers
+import project.Internal.Lookup_Helpers.Lookup_Column
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Split_Tokenize
@@ -46,7 +55,9 @@ import project.Internal.Widget_Helpers
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
+#from project.Extensions.Table_Conversions import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
+from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
 
 polyglot java import java.util.UUID
@@ -57,9 +68,14 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
+polyglot java import org.enso.table.data.table.join.LookupJoin
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.error.TooManyColumnsException
+polyglot java import org.enso.table.error.NullValuesInKeyColumns
+polyglot java import org.enso.table.error.UnmatchedRow
+polyglot java import org.enso.table.error.NonUniqueLookupKey
 polyglot java import org.enso.table.operations.OrderBuilder
+polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -683,16 +699,11 @@ type Table
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns
-
-            new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
-
-            java_table = index.makeTable new_columns
-            new_table = Table.Value java_table
-
-            on_problems.attach_problems_after new_table <|
-                problems = java_table.getProblems
-                Java_Problems.parse_aggregated_problems problems
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
+                java_table = index.makeTable new_columns
+                Table.Value java_table
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
@@ -776,7 +787,8 @@ type Table
                     Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                self.java_table.orderBy java_columns directions comparator
+                Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.orderBy java_columns directions comparator java_aggregator
             Table.Value java_table
 
     ## GROUP Standard.Base.Selections
@@ -823,10 +835,9 @@ type Table
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
-            self.java_table.distinct java_columns text_folding_strategy
-        on_problems.attach_problems_after (Table.Value java_table) <|
-            problems = java_table.getProblems
-            Java_Problems.parse_aggregated_problems problems
+            Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.distinct java_columns text_folding_strategy java_aggregator
+        Table.Value java_table
 
     ## GROUP Standard.Base.Conversions
        Parses columns within a Table to a specific value type.
@@ -943,8 +954,9 @@ type Table
             new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
                 Value_Type.expect_text column <|
                     storage = column.java_column.getStorage
-                    new_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems problem_mapping=(Parse_Values_Helper.translate_parsing_problem type) <|
-                        parser.parseColumn column.name storage
+                    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                        parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
+                        parser.parseColumn storage parse_problem_aggregator
                     Column.Value (Java_Column.new column.name new_storage)
             Table.new new_columns
 
@@ -1165,6 +1177,55 @@ type Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
+    ## GROUP Standard.Base.Conversions
+       Expand a column of objects to a new set of columns.
+
+        Arguments:
+        - column: The column to expand.
+        - fields: The set fields to expand. If `Nothing` then all fields are added.
+        - prefix: Prefix to add to the column names. If `Nothing` then the column
+          name is used.
+    @column Widget_Helpers.make_column_name_selector
+    expand_column : Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+    expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
+        Expand_Objects_Helpers.expand_column self column fields prefix
+
+    ## GROUP Standard.Base.Conversions
+      Expand aggregate values in a column to separate rows.
+
+      For each value in the specified column, if it is an aggregate (`Vector`,
+      `Range`, etc.), expand it to multiple rows, duplicating the values in the
+      other columns.
+
+      Arguments:
+      - column: The column to expand.
+      - at_least_one_row: for an empty aggregate value, if `at_least_one_row` is
+        true, a single row is output with `Nothing` for the aggregates column; if
+        false, no row is output at all.
+
+      The following aggregate values are supported:
+      - `Array`
+      - `Vector`
+      - `List`
+      - `Range`
+      - `Date_Range`
+      - `Pair
+
+      Any other values are treated as non-aggregate values, and their rows are kept
+      unchanged.
+
+      In in-memory tables, it is permitted to mix values of different types.
+
+      > Example
+        Expand a column of integer `Vectors` to a column of `Integer`
+
+        table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
+        # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
+    @column Widget_Helpers.make_column_name_selector
+    expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+    expand_to_rows self column at_least_one_row=False =
+        Expand_Objects_Helpers.expand_to_rows self column at_least_one_row
+
     ## ALIAS filter rows
        GROUP Standard.Base.Selections
 
@@ -1214,12 +1275,15 @@ type Table
 
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
+    @filter Widget_Helpers.make_filter_condition_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
-                _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
+                _ : Filter_Condition ->
+                    resolved = (self:Table_Ref).resolve_condition filter
+                    mask (make_filter_column column resolved on_problems)
                 _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
                     mask (column.map filter)
         _ ->
@@ -1263,7 +1327,8 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first, last, slice, sample
+       GROUP Standard.Base.Selections
        Creates a new Table with the specified range of rows from the input
        Table.
 
@@ -1407,17 +1472,17 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
-    @new_name Widget_Helpers.make_column_name_selector
-    set : Text | Column -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column:(Text | Column) new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+    @column Column_Operation.default_widget
+    set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column:(Text | Column | Constant_Column | Column_Operation) new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column -> column
+            _ : Constant_Column -> self.make_constant_column column.value
+            _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        renamed = case new_name of
-           Nothing -> resolved
-           _ : Text -> resolved.rename new_name
+        renamed = if new_name == "" then resolved else resolved.rename new_name
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
             check_add_mode = case set_mode of
                 Set_Mode.Add_Or_Update -> True
@@ -1620,11 +1685,9 @@ type Table
             right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
 
             java_conditions = join_resolution.conditions
-            new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
-
-            on_problems.attach_problems_after (Table.Value new_java_table) <|
-                problems = new_java_table.getProblems
-                Java_Problems.parse_aggregated_problems problems
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+            Table.Value new_java_table
 
     ## ALIAS cartesian join
        GROUP Standard.Base.Calculations
@@ -1669,9 +1732,95 @@ type Table
                     [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
                 False -> []
             on_problems.attach_problems_before limit_problems <|
-                new_java_table = self.java_table.crossJoin right.java_table right_prefix
-                renaming_problems = new_java_table.getProblems |> Java_Problems.parse_aggregated_problems
-                on_problems.attach_problems_before renaming_problems (Table.Value new_java_table)
+                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.crossJoin right.java_table right_prefix java_aggregator
+                Table.Value new_java_table
+
+    ## Replaces values in this table by values from a lookup table.
+       New values are looked up in the lookup table based on the `key_columns`.
+       Columns found in the lookup table values are replaced by values from the
+       lookup. Columns not found are left unchanged.
+       This operation is similar to `Table.update_rows`, but just returns a new
+       `Table` instance, instead of updating the table in-place (which is only
+       possible for Database tables).
+
+       Arguments:
+       - lookup_table: The table to use for looking up values.
+       - key_columns: Specifies the columns to use for correlating rows between
+         the two tables. Must identify values uniquely within `lookup_table`.
+       - add_new_columns: Specifies if new columns from the lookup table should
+         be added to the result. If `False`, an `Unexpected_Extra_Columns`
+         problem is reported.
+       - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
+         If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
+         If `True`, the unmatched rows are left unchanged. Any new columns will
+         be filled with `Nothing`.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+       ? Result Ordering
+
+         When operating in-memory, this operation preserves the order of rows
+         from this table (unlike `join`).
+         In the Database backend, there are no guarantees related to ordering of
+         results.
+
+       ? Error Conditions
+
+         - If this table or the lookup table is lacking any of the columns
+           specified in `key_columns`, a `Missing_Input_Columns` error is raised.
+         - If an empty vector is provided for `key_columns`, a
+           `No_Input_Columns_Selected` error is raised.
+         - If the lookup table contains multiple rows with the same values in
+           the `key_columns`, an `Non_Unique_Key` error is raised.
+         - If a column that is being updated from the lookup table has a type
+           that is not compatible with the type of the corresponding column in
+           this table, a `No_Common_Type` error is raised.
+         - If a key column contains `Nothing` values, either in the lookup table,
+           a `Null_Values_In_Key_Columns` error is raised.
+         - If `allow_unmatched_rows` is `False` and there are rows in this table
+           that do not have a matching row in the lookup table, an
+           `Unmatched_Rows_In_Lookup` error is raised.
+         - The following problems may be reported according to the `on_problems`
+           setting:
+           - If any of the `key_columns` is a floating-point type,
+             a `Floating_Point_Equality`.
+           - If `add_new_columns` is `False` and the lookup table has columns
+             that are not present in this table, an `Unexpected_Extra_Columns`.
+    @key_columns Widget_Helpers.make_column_name_vector_selector
+    lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+
+        java_descriptions = lookup_columns.map make_java_lookup_column_description
+
+        keys = lookup_columns.filter .is_key
+        java_keys = keys.map key_column->
+            Java_Join_Equals.new key_column.base_column.java_column key_column.lookup_column.java_column
+
+        handle_java_errors ~action =
+            translate_null_values_exception caught_panic =
+                exception = caught_panic.payload
+                example_values = Vector.from_polyglot_array exception.exampleValues
+                Error.throw (Null_Values_In_Key_Columns.Error example_values)
+            translate_unmatched_row_exception caught_panic =
+                exception = caught_panic.payload
+                example_key_values = Vector.from_polyglot_array exception.exampleKeyValues
+                Error.throw (Unmatched_Rows_In_Lookup.Error example_key_values)
+            translate_non_unique_lookup_key_exception caught_panic =
+                exception = caught_panic.payload
+                key_column_names = Vector.from_polyglot_array exception.keyColumns
+                example_values = Vector.from_polyglot_array exception.exampleValues
+                example_count = exception.exampleCount
+                Error.throw (Non_Unique_Key.Error key_column_names example_values example_count)
+            Panic.catch NonUniqueLookupKey handler=translate_non_unique_lookup_key_exception <|
+                Panic.catch UnmatchedRow handler=translate_unmatched_row_exception <|
+                    Panic.catch NullValuesInKeyColumns handler=translate_null_values_exception <|
+                        action
+        handle_java_errors <|
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
+                Table.Value java_table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1736,9 +1885,9 @@ type Table
             problems = if (left_row_count == right_row_count) || report_mismatch.not then [] else
                 [Row_Count_Mismatch.Error left_row_count right_row_count]
             on_problems.attach_problems_before problems <|
-                new_java_table = self.java_table.zip right.java_table keep_unmatched_bool right_prefix
-                renaming_problems = new_java_table.getProblems |> Java_Problems.parse_aggregated_problems
-                on_problems.attach_problems_before renaming_problems (Table.Value new_java_table)
+                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                    self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
+                Table.Value new_java_table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
@@ -1974,7 +2123,9 @@ type Table
         java_id = id_columns.map .java_column
 
         unique.mark_used (id_columns.map .name)
-        result = Table.Value (Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name))
+        java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name) java_problem_aggregator
+        result = Table.Value java_table
         problem_builder.report_unique_name_strategy unique
 
         problem_builder.attach_problems_after on_problems result
@@ -2077,25 +2228,24 @@ type Table
                     Aggregate_Column_Helper.default_aggregate_column_name c
                 Aggregate_Column_Helper.java_aggregator col_name c
 
-            result = case matched_name.is_empty of
-                True ->
-                    group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
-                    index = self.java_table.indexFromColumns java_key_columns
-                    index.makeTable (group_by + data_columns)
-                False ->
-                    aggregate_names = validated_values.map c->
-                        if c.new_name != "" then c.new_name else (name_mapper c)
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                case matched_name.is_empty of
+                    True ->
+                        group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
+                        index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
+                        new_java_table = index.makeTable (group_by + data_columns)
+                        Table.Value new_java_table
+                    False ->
+                        aggregate_names = validated_values.map c->
+                            if c.new_name != "" then c.new_name else (name_mapper c)
 
-                    too_many_columns caught_panic =
-                        inner_panic = caught_panic.payload
-                        Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
-                    Panic.catch TooManyColumnsException handler=too_many_columns <|
-                        Invalid_Column_Names.handle_java_exception <|
-                            self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
-
-            on_problems.attach_problems_after (Table.Value result) <|
-                problems = result.getProblems
-                Java_Problems.parse_aggregated_problems problems
+                        too_many_columns caught_panic =
+                            inner_panic = caught_panic.payload
+                            Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
+                        Panic.catch TooManyColumnsException handler=too_many_columns <|
+                            Invalid_Column_Names.handle_java_exception <|
+                                new_java_table = self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names java_problem_aggregator
+                                Table.Value new_java_table
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.
@@ -2222,16 +2372,21 @@ type Table
          match names, or a Vector of these.
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
-         will be used.
+         will be used. If this argument is `Previous_Value`, the missing values
+         will be replaced with the previous value in the column. Note that the
+         first rows may stay `Nothing` if they do not have a previous value to
+         use.
 
        > Example
          Fill missing values in two columns with the value 20.5.
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
-    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Any -> Table
-    fill_nothing self columns default =
-        transformer col = col.fill_nothing default
+    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self include_custom_text=False)
+    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
+    fill_nothing self (columns : Vector | Text | Integer | Regex) default =
+        resolved_default = (self:Table_Ref).resolve default
+        transformer col = col.fill_nothing resolved_default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## ALIAS fill empty, if_empty
@@ -2245,16 +2400,20 @@ type Table
          match names, or a Vector of these.
        - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
-         will be used.
+         will be used. If this argument is `Previous_Value`, the empty values
+         will be replaced with the previous value in the column. Note that the
+         first rows may stay empty if they do not have a previous value to use.
 
        > Example
          Fill empty values in two columns with the value "hello".
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
-    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Any -> Table
-    fill_empty self columns default =
-        transformer col = col.fill_empty default
+    @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self include_custom_text=True)
+    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
+    fill_empty self (columns : Vector | Text | Integer | Regex) default =
+        resolved_default = (self:Table_Ref).resolve default
+        transformer col = col.fill_empty resolved_default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
@@ -2289,9 +2448,14 @@ type Table
 
              column.replace '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
-    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
-        transformer col = col.replace term new_text case_sensitivity only_first
+    @term Widget_Helpers.make_column_ref_or_text_value_selector
+    @new_text Widget_Helpers.make_column_ref_or_text_value_selector
+    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
+    replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        table_ref = Table_Ref.from self
+        resolved_term = table_ref.resolve term
+        resolved_new_text = table_ref.resolve new_text
+        transformer col = col.replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## PRIVATE
@@ -2381,18 +2545,18 @@ check_table arg_name table =
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.
 concat_columns column_set all_tables result_type result_row_count on_problems =
-    storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count
-    column_set.column_indices.zip all_tables i-> parent_table->
-        case i of
-            Nothing ->
-                null_row_count = parent_table.row_count
-                storage_builder.appendNulls null_row_count
-            _ : Integer ->
-                storage = parent_table.at i . java_column . getStorage
-                storage_builder.appendBulkStorage storage
-    sealed_storage = Java_Problems.unpack_value_with_aggregated_problems on_problems <|
-        storage_builder.sealWithProblems
-    Column.from_storage column_set.name sealed_storage
+    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
+        column_set.column_indices.zip all_tables i-> parent_table->
+            case i of
+                Nothing ->
+                    null_row_count = parent_table.row_count
+                    storage_builder.appendNulls null_row_count
+                _ : Integer ->
+                    storage = parent_table.at i . java_column . getStorage
+                    storage_builder.appendBulkStorage storage
+        sealed_storage = storage_builder.seal
+        Column.from_storage column_set.name sealed_storage
 
 ## PRIVATE
    Conversion method to a Table from a Column.
@@ -2426,3 +2590,41 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
 ## PRIVATE
    Conversion method to a Table from a Vector.
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
+
+## Convert an `XML_Element` into a `Table`
+
+   Generates a single-row table with columns for the tag's contents.
+
+   Arguments:
+   - that: The XML_Element to convert
+
+   The columns generated are:
+   - Name: the root tag name
+   - @[attribute name]: the attribute with that name.
+   - Children: the children of the tag, including `XML_Element`s and text
+     elements. This is only generated if the tag has `XML_Element` children
+   - Value: the text content of the tag. This is only generated if the tag does
+     not have `XML_Element` children
+
+   Either `Children` or `Value` will be generated, but not both.
+Table.from (that:XML_Element) =
+    # Generating a table from an `XML_Element` is the same logic as `expand_column`
+    Table.new [["x", [that]]] . expand_column 'x' prefix=Prefix_Name.None
+
+## Convert an `XML_Document` into a `Table`
+
+   Generates a single-row table with columns for the root tag's contents.
+
+   Arguments:
+   - that: The XML_Document to convert
+
+   The columns generated are:
+   - Name: the root tag name
+   - @[attribute name]: the attribute with that name
+   - Children: the children of the tag, including `XML_Element`s and text
+     elements. This is only generated if the tag has `XML_Element` children
+   - Value: the text content of the tag. This is only generated if the tag does
+     not have `XML_Element` children
+
+   Either `Children` or `Value` will be generated, but not both.
+Table.from (that:XML_Document) = Table.from that.root_element

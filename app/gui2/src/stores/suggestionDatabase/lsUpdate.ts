@@ -1,13 +1,17 @@
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import {
+  documentationData,
+  type DocumentationData,
+} from '@/stores/suggestionDatabase/documentation'
+import {
   SuggestionKind,
-  type Doc,
   type SuggestionEntry,
   type SuggestionEntryArgument,
   type SuggestionEntryScope,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
+import type { Doc } from '@/util/docParser'
 import { type Opt } from '@/util/opt'
 import {
   qnJoin,
@@ -19,7 +23,6 @@ import {
 } from '@/util/qualifiedName'
 import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
-import { documentationData, type DocumentationData } from './documentation'
 
 interface UnfinishedEntry {
   kind: SuggestionKind
@@ -190,7 +193,7 @@ export function entryFromLs(
           })
         }
         case 'local': {
-          const entry = { kind: SuggestionKind.Function, arguments: [] }
+          const entry = { kind: SuggestionKind.Local, arguments: [] }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)

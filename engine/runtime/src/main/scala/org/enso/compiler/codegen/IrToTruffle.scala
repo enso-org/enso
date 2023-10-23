@@ -711,6 +711,14 @@ class IrToTruffle(
             name,
             mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
           )
+        case Some(
+              BindingsMap
+                .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
+            ) =>
+          ReadArgumentCheckNode.meta(
+            name,
+            mod.unsafeAsModule().getScope.getPolyglotSymbol(symbol.name)
+          )
         case _ => null
       }
     }
@@ -1577,7 +1585,7 @@ class IrToTruffle(
       */
     def processName(name: Name): RuntimeExpression = {
       val nameExpr = name match {
-        case Name.Literal(nameStr, _, _, _, _) =>
+        case Name.Literal(nameStr, _, _, _, _, _) =>
           val useInfo = name
             .unsafeGetMetadata(
               AliasAnalysis,
@@ -1605,6 +1613,7 @@ class IrToTruffle(
               Constants.Names.SELF_ARGUMENT,
               isMethod = false,
               location,
+              None,
               passData
             )
           )
@@ -1670,19 +1679,28 @@ class IrToTruffle(
             module.unsafeAsModule().getScope.getAssociatedType
           )
         case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
-          ConstantObjectNode.build(
-            module
-              .unsafeAsModule()
-              .getScope
-              .getPolyglotSymbol(symbol.name)
-          )
+          val s = module
+            .unsafeAsModule()
+            .getScope
+            .getPolyglotSymbol(symbol.name)
+          if (s == null) {
+            throw new CompilerError(
+              s"No polyglot symbol for ${symbol.name}"
+            )
+          }
+          ConstantObjectNode.build(s)
         case BindingsMap.ResolvedPolyglotField(symbol, name) =>
-          ConstantObjectNode.build(
-            symbol.module
-              .unsafeAsModule()
-              .getScope
-              .getPolyglotSymbol(name)
-          )
+          val s = symbol.module
+            .unsafeAsModule()
+            .getScope
+            .getPolyglotSymbol(name)
+          if (s == null) {
+            throw new CompilerError(
+              s"No polyglot field for ${name}"
+            )
+          }
+
+          ConstantObjectNode.build(s)
         case BindingsMap.ResolvedMethod(_, method) =>
           throw new CompilerError(
             s"Impossible here, ${method.name} should be caught when translating application"
@@ -1721,43 +1739,43 @@ class IrToTruffle(
         case err: errors.Syntax =>
           context.getBuiltins
             .error()
-            .makeSyntaxError(Text.create(err.message))
+            .makeSyntaxError(Text.create(err.message(source)))
         case err: errors.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Method =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.Type =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Redefined.SelfArg =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Resolution =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case err: errors.Conversion =>
           context.getBuiltins
             .error()
-            .makeCompileError(Text.create(err.message))
+            .makeCompileError(Text.create(err.message(source)))
         case _: errors.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
