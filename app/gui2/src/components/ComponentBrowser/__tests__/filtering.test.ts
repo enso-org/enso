@@ -11,7 +11,8 @@ import {
   makeStaticMethod,
   makeType,
 } from '@/stores/suggestionDatabase/entry'
-import type { QualifiedName } from '@/util/qualifiedName'
+import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { unwrap } from '@/util/result'
 
 test.each([
   { ...makeModuleMethod('Standard.Base.Data.read'), groupIndex: 0 },
@@ -266,4 +267,31 @@ test('Unstable filtering', () => {
   })
   expect(unstableFiltering.filter(stableEntry)).not.toBeNull()
   expect(unstableFiltering.filter(unstableEntry)).not.toBeNull()
+})
+
+test.each([
+  makeModuleMethod('local.Project.Module.func1'),
+  makeType('local.Project.Module.Type'),
+  makeCon('local.Project.Module.Type.Con'),
+  makeStaticMethod('local.Project.Module.Type.method'),
+  makeLocal('local.Project.Module', 'operator1'),
+  makeFunction('local.Project.Module', 'func2'),
+])('$name entry is in Local Scope view', (entry) => {
+  const filtering = new Filtering(
+    { showLocal: true },
+    unwrap(tryQualifiedName('local.Project.Module')),
+  )
+  expect(filtering.filter(entry)).not.toBeNull()
+})
+
+test.each([
+  makeModuleMethod('Standard.Base.Data.read'),
+  makeLocal('local.Project.Another_Module', 'local_in_another_module'),
+  makeFunction('local.Project.Another_Module', 'function_in_another_module'),
+])('$name entry is not in Local Scope View', (entry) => {
+  const filtering = new Filtering(
+    { showLocal: true },
+    unwrap(tryQualifiedName('local.Project.Module')),
+  )
+  expect(filtering.filter(entry)).toBeNull()
 })

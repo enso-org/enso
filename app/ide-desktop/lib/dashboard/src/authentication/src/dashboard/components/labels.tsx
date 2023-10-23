@@ -5,10 +5,12 @@ import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as backend from '../backend'
+import * as drag from '../drag'
 import * as modalProvider from '../../providers/modal'
 
 import Label, * as labelModule from './label'
 import ConfirmDeleteModal from './confirmDeleteModal'
+import DragModal from './dragModal'
 import NewLabelModal from './newLabelModal'
 import SvgMask from '../../authentication/components/svgMask'
 
@@ -53,6 +55,7 @@ export default function Labels(props: LabelsProps) {
                     .map(label => (
                         <li key={label.id} className="group flex items-center gap-1">
                             <Label
+                                draggable
                                 color={label.color}
                                 active={currentLabels?.includes(label.value) ?? false}
                                 disabled={newLabelNames.has(label.value)}
@@ -69,6 +72,23 @@ export default function Labels(props: LabelsProps) {
                                             return newLabels.length === 0 ? null : newLabels
                                         }
                                     })
+                                }}
+                                onDragStart={event => {
+                                    drag.setDragImageToBlank(event)
+                                    const payload: drag.LabelsDragPayload = new Set([label.value])
+                                    drag.LABELS.bind(event, payload)
+                                    setModal(
+                                        <DragModal
+                                            event={event}
+                                            doCleanup={() => {
+                                                drag.LABELS.unbind(payload)
+                                            }}
+                                        >
+                                            <Label active color={label.color} onClick={() => {}}>
+                                                {label.value}
+                                            </Label>
+                                        </DragModal>
+                                    )
                                 }}
                             >
                                 {label.value}
