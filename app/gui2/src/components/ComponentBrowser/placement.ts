@@ -96,7 +96,10 @@ export function previousNodeDictatedPlacement(
   }
   const finalPosition = new Vec2(left, top)
   if (new Rect(finalPosition, nodeSize).within(screenBounds)) return { position: finalPosition }
-  else return { position: finalPosition, pan: finalPosition.sub(initialPosition) }
+  else {
+    const screenCenter = screenBounds.center().sub(nodeSize.scale(0.5))
+    return { position: finalPosition, pan: finalPosition.sub(screenCenter) }
+  }
 }
 
 export function mouseDictatedPlacement(

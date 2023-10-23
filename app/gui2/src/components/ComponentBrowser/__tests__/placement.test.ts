@@ -79,11 +79,11 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
   expect(
     nonDictatedPlacement(nodeSize, environment([new Rect(new Vec2(1150, 690), defaultNodeSize)])),
   ).toEqual<Placement>({ position: new Vec2(1050, 690) })
-  // Single node (barely overlaps on the left)
+  // Single node (overlaps on the left by 1px)
   expect(
     nonDictatedPlacement(nodeSize, environment([new Rect(new Vec2(951, 690), defaultNodeSize)])),
   ).toEqual<Placement>({ position: new Vec2(1050, 734) })
-  // Single node (barely overlaps on the right)
+  // Single node (overlaps on the right by 1px)
   expect(
     nonDictatedPlacement(nodeSize, environment([new Rect(new Vec2(1149, 690), defaultNodeSize)])),
   ).toEqual<Placement>({ position: new Vec2(1050, 734) })
@@ -100,20 +100,15 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
       nodeSize,
       environment(map(range(0, 1001, 20), (y) => new Rect(new Vec2(1050, y), defaultNodeSize))),
     ),
-  ).toEqual<Placement>({
-    // The bottom-most node ends at 1020, and there should be a 24px gap.
-    position: new Vec2(1050, 1044),
-  })
+    // The bottom-most node ends at y=1020, and there should be a 24px gap.
+  ).toEqual<Placement>({ position: new Vec2(1050, 1044) })
   // Multiple nodes (reverse)
   expect(
     nonDictatedPlacement(
       nodeSize,
       environment(map(range(1000, -1, -20), (y) => new Rect(new Vec2(1050, y), defaultNodeSize))),
     ),
-  ).toEqual<Placement>({
-    // Same as above, but with node rects reversed
-    position: new Vec2(1050, 1044),
-  })
+  ).toEqual<Placement>({ position: new Vec2(1050, 1044) })
   // Multiple nodes with gap
   expect(
     nonDictatedPlacement(
@@ -125,19 +120,16 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
         ),
       ),
     ),
-  ).toEqual<Placement>({
-    // There is a 100px gap between y = 900 and y = 1000, which is more than large enough for this node.
-    position: new Vec2(1050, 944),
-  })
+    // There is a 80x gap between y=920 and y=1000, which is more than large enough for this node.
+  ).toEqual<Placement>({ position: new Vec2(1050, 944) })
   // Multiple nodes with gap (just big enough)
   expect(
     nonDictatedPlacement(
       nodeSize,
+      // 20px height*2 nodes + 24px*2 gap
       environment(map(range(690, 1500, 88), (y) => new Rect(new Vec2(1050, y), defaultNodeSize))),
     ),
-  ).toEqual<Placement>({
-    position: new Vec2(1050, 734),
-  })
+  ).toEqual<Placement>({ position: new Vec2(1050, 734) })
   // Multiple nodes with gap (slightly too small)
   expect(
     nonDictatedPlacement(
@@ -145,10 +137,8 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
       // 500 + 87 * 4 === 848
       environment(map(range(500, 849, 87), (y) => new Rect(new Vec2(1050, y), defaultNodeSize))),
     ),
-  ).toEqual<Placement>({
     // 848 + 20 + 24
-    position: new Vec2(1050, 892),
-  })
+  ).toEqual<Placement>({ position: new Vec2(1050, 892) })
   // Multiple nodes with smallest gap
   expect(
     nonDictatedPlacement(
@@ -160,11 +150,9 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
         ),
       ),
     ),
-  ).toEqual<Placement>({
-    // There is a 68px gap (20px height + 24px gap * 2) between y = 920 (the bottom of the previous node)
-    // and y = 988 (the top of the next node), which is exactly large enough for this node.
-    position: new Vec2(1050, 944),
-  })
+    // The smallest gap between the top of adjacent nodes this can fit into, is
+    // 20px height * 2 nodes + 24px gap * 2.
+  ).toEqual<Placement>({ position: new Vec2(1050, 944) })
   // Multiple nodes with smallest gap (reverse)
   expect(
     nonDictatedPlacement(
@@ -176,11 +164,7 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
         ),
       ),
     ),
-  ).toEqual<Placement>({
-    // There is a 68px gap (20px height + 24px gap * 2) between y = 920 (the bottom of the previous node)
-    // and y = 988 (the top of the next node), which is exactly large enough for this node.
-    position: new Vec2(1050, 944),
-  })
+  ).toEqual<Placement>({ position: new Vec2(1050, 944) })
   // Multiple nodes with gap that is too small
   expect(
     nonDictatedPlacement(
@@ -192,12 +176,9 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
         ),
       ),
     ),
-  ).toEqual<Placement>({
     // This gap is 1px smaller than the previous test - so, 1px too small.
-    position: new Vec2(1050, 1531),
     // This position is offscreen (y >= 1000), so we pan so that the new node is centered (1531 - 690).
-    pan: new Vec2(0, 841),
-  })
+  ).toEqual<Placement>({ position: new Vec2(1050, 1531), pan: new Vec2(0, 841) })
   // Multiple nodes with gap that is too small (each range reversed)
   expect(
     nonDictatedPlacement(
@@ -209,12 +190,7 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
         ),
       ),
     ),
-  ).toEqual<Placement>({
-    // This gap is 1px smaller than the previous test - so, 1px too small.
-    position: new Vec2(1050, 1531),
-    // This position is offscreen (y >= 1000), so we pan so that the new node is centered (1531 - 690).
-    pan: new Vec2(0, 841),
-  })
+  ).toEqual<Placement>({ position: new Vec2(1050, 1531), pan: new Vec2(0, 841) })
   // If fuzzing fails, then a new test case should be added above.
   for (let i = 0; i < 100; i += 1) {
     const nodes = Array.from(
@@ -294,36 +270,313 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
       },
     }
   }
-  // Found by fuzzing.
-  {
-    const rects = [
-      new Rect(new Vec2(756, 86), new Vec2(1609 - 756, 1001 - 86)),
-      new Rect(new Vec2(485, 998), new Vec2(851 - 485, 1495 - 998)),
-      new Rect(new Vec2(320, 419), new Vec2(981 - 320, 1354 - 419)),
-      new Rect(new Vec2(312, 945), new Vec2(1100 - 312, 1643 - 945)),
-      new Rect(new Vec2(779, 726), new Vec2(878 - 779, 1094 - 726)),
-      new Rect(new Vec2(365, 50), new Vec2(1123 - 365, 299 - 50)),
-      new Rect(new Vec2(267, 292), new Vec2(562 - 267, 1124 - 292)),
-      new Rect(new Vec2(843, 884), new Vec2(1390 - 843, 1375 - 884)),
-      new Rect(new Vec2(123, 957), new Vec2(200 - 123, 1542 - 957)),
-      new Rect(new Vec2(953, 104), new Vec2(1506 - 953, 1032 - 104)),
-
-      new Rect(new Vec2(23, 152), new Vec2(282 - 23, 1054 - 152)),
-      new Rect(new Vec2(454, 589), new Vec2(571 - 454, 833 - 589)),
-      new Rect(new Vec2(497, 203), new Vec2(1087 - 497, 641 - 203)),
-      new Rect(new Vec2(176, 980), new Vec2(303 - 176, 1054 - 980)),
-      new Rect(new Vec2(139, 886), new Vec2(425 - 139, 1139 - 886)),
-      new Rect(new Vec2(191, 446), new Vec2(789 - 191, 1033 - 446)),
-      new Rect(new Vec2(793, 306), new Vec2(1284 - 793, 650 - 306)),
-      new Rect(new Vec2(241, 273), new Vec2(395 - 241, 996 - 273)),
-      new Rect(new Vec2(389, 907), new Vec2(721 - 389, 1169 - 907)),
-      new Rect(new Vec2(480, 998), new Vec2(576 - 480, 1242 - 998)),
-    ]
-    const selectedRects = rects.slice(10)
-    expect(
-      previousNodeDictatedPlacement(nodeSize, environment(rects, selectedRects)).position,
-    ).toEqual(new Vec2(1414, 1266))
+  function environment2(nodeRects: Rect[], selectedNodeRectsStart: number): Environment {
+    return {
+      screenBounds,
+      nodeRects,
+      selectedNodeRects: nodeRects.slice(selectedNodeRectsStart),
+      get mousePosition() {
+        return getMousePosition()
+      },
+    }
   }
+  // Previous node dictated placement MUST fail if there is no previous node.
+  expect(() => previousNodeDictatedPlacement(nodeSize, environment([], []))).toThrow()
+  // Single node
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2([new Rect(new Vec2(1050, 690), defaultNodeSize)], -1),
+    ),
+    // 20px existing node height + 24px gap
+  ).toEqual<Placement>({ position: new Vec2(1050, 734) })
+  // Single node (far enough up that it does not overlap)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(1150, 714), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1050, 734) })
+  // Single node (far enough down that it does not overlap)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(1150, 754), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1050, 734) })
+  // Single node (far enough left that it does not overlap)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(926, 734), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1050, 734) })
+  // Single node (overlapping on the left by 1px)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(927, 734), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1051, 734) })
+  // Single node (blocking initial position)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(1050, 734), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+    // 1050 + 100 (width) + 24 (gap)
+  ).toEqual<Placement>({ position: new Vec2(1174, 734) })
+  // Single node (far enough right that it does not overlap)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(1174, 690), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1050, 734) })
+  // Single node (overlapping on the right by 1px)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(1173, 734), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+    // 1173 + 100 (width) + 24
+  ).toEqual<Placement>({ position: new Vec2(1297, 734) })
+  // Single node (overlaps on the top by 1px)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(1050, 715), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1174, 734) })
+  // Single node (overlaps on the bottom by 1px)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(1050, 753), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1174, 734) })
+  // Single node (BIG gap)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2([new Rect(new Vec2(1050, 690), defaultNodeSize)], -1),
+      {
+        gap: 1000,
+      },
+    ),
+    // 20px existing node height + 1000px gap
+  ).toEqual<Placement>({ position: new Vec2(1050, 1710), pan: new Vec2(0, 1020) })
+  // Single node (BIG gap, overlapping on the left by 1px)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          new Rect(new Vec2(927, 1710), defaultNodeSize),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+      {
+        gap: 1000,
+      },
+    ),
+    // 927 + 100 (width) + 1000 (gap) = 2027
+  ).toEqual<Placement>({ position: new Vec2(2027, 1710), pan: new Vec2(977, 1020) })
+  // Multiple nodes
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          ...map(range(1000, 2001, 100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+    // The bottom-most node ends at y=500, and there should be a 24px gap.
+  ).toEqual<Placement>({ position: new Vec2(2124, 734), pan: new Vec2(1074, 44) })
+  // Multiple nodes (reverse)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          ...map(range(2000, 999, -100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(2124, 734), pan: new Vec2(1074, 44) })
+  // Multiple nodes with gap
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          ...chain(
+            map(range(1000, 1401, 100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+            map(range(1700, 2001, 100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          ),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+    // There is a 200px gap between x=1500 and x=1700, which is more than large enough for this node.
+  ).toEqual<Placement>({ position: new Vec2(1524, 734) })
+  // Multiple nodes with gap (just big enough)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        // 100px width*2 nodes + 24px*2 gap
+        [
+          ...map(range(1050, 2000, 248), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1174, 734) })
+  // Multiple nodes with gap (slightly too small)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      // 1050 + 247 * 3 === 1791
+      environment2(
+        [
+          ...map(range(1050, 1792, 247), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+    // 1791 + 100 + 24
+  ).toEqual<Placement>({ position: new Vec2(1915, 734) })
+  // Multiple nodes with smallest gap
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          ...chain(
+            map(range(1000, 1401, 100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+            map(range(1648, 1949, 100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          ),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+    // The smallest gap between the top of adjacent nodes this can fit into, is
+    // 100px width * 2 nodes + 24px gap * 2.
+  ).toEqual<Placement>({ position: new Vec2(1524, 734) })
+  // Multiple nodes with smallest gap (reverse)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          ...chain(
+            map(range(1948, 1647, -100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+            map(range(1400, 999, -100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          ),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(1524, 734) })
+  // Multiple nodes with gap that is too small
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          ...chain(
+            map(range(1000, 1401, 100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+            map(range(1647, 1948, 100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          ),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+    // This gap is 1px smaller than the previous test - so, 1px too small.
+  ).toEqual<Placement>({ position: new Vec2(2071, 734), pan: new Vec2(1021, 44) })
+  // Multiple nodes with gap that is too small (each range reversed)
+  expect(
+    previousNodeDictatedPlacement(
+      nodeSize,
+      environment2(
+        [
+          ...chain(
+            map(range(1400, 999, -100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+            map(range(1947, 1646, -100), (x) => new Rect(new Vec2(x, 734), defaultNodeSize)),
+          ),
+          new Rect(new Vec2(1050, 690), defaultNodeSize),
+        ],
+        -1,
+      ),
+    ),
+  ).toEqual<Placement>({ position: new Vec2(2071, 734), pan: new Vec2(1021, 44) })
   // If fuzzing fails, then a new test case should be added above.
   for (let i = 0; i < 100; i += 1) {
     const nodes = Array.from(
@@ -339,6 +592,11 @@ const rect = { left: ${newNode.pos.x}, top: ${newNode.pos.y}, width: ${newNode.s
       previousNodeDictatedPlacement(nodeSize, environment(nodes, selectedNodes)).position,
       nodeSize,
     )
+    expect(newNodeRect.top, {
+      toString() {
+        return generateVueCode(newNodeRect, nodes, selectedNodes)
+      },
+    } as string).toBeGreaterThanOrEqual(Math.max(...selectedNodes.map((node) => node.bottom)))
     for (const node of nodes) {
       expect(node.intersects(newNodeRect), {
         toString() {
