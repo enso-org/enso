@@ -1,6 +1,4 @@
 import project.Table.Main as Table_Main
-import project.Runtime.Panics_And_Errors
 
 main =
-    Panics_And_Errors.collect_benches . run_main
     Table_Main.spec
