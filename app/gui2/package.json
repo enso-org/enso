@@ -86,7 +86,7 @@
     "@vue/tsconfig": "^0.4.0",
     "ag-grid-community": "^30.1.0",
     "ag-grid-enterprise": "^30.1.0",
-    "change-case": "^5.0.2",
+    "change-case": "^4.1.2",
     "d3": "^7.4.0",
     "esbuild": "^0.19.3",
     "eslint": "^8.49.0",
