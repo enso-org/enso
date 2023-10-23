@@ -65,8 +65,8 @@ export default defineConfig({
         './icons/geo_map_distance.svg': 'src/assets/icons/geo_map_distance.svg',
         './icons/geo_map_pin.svg': 'src/assets/icons/geo_map_pin.svg',
         './icons/path2.svg': 'src/assets/icons/path2.svg',
-        './measurement.ts': 'src/components/visualizations/measurement.ts',
-        './events.ts': 'src/components/visualizations/events.ts',
+        './measurement.ts': 'src/util/measurement.ts',
+        './events.ts': 'src/util/events.ts',
         '../public/visualizations/ScatterplotVisualization.vue':
           'public/visualizations/ScatterplotVisualization.vue',
         '../public/visualizations/GeoMapVisualization.vue':
