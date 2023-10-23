@@ -306,13 +306,13 @@ type Random_Generator
         case with_replacement of
             True ->
                 len = v.length
-                0.up_to 1 . map _-> v.at (self.integer 0 len)
+                0.up_to count . map _-> v.at (self.integer 0 len)
             False ->
                 new_array = Random_Utils.sample v count self.java_random
                 Vector.from_polyglot_array new_array
 
     permute : Vector Any -> Vector Any
-    permute self (v:Vector) = self.item v v.length False
+    permute self (v:Vector) = self.items v v.length False
 
 ## PRIVATE
    Returns a default seed to use for random number generation.
