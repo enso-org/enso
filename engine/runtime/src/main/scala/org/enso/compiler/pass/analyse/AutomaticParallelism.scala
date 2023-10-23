@@ -285,7 +285,7 @@ object AutomaticParallelism extends IRPass {
     val refVars = threadBlocks.values.flatten
       .map(_.ir)
       .collect { case bind: Expression.Binding =>
-        bind.name -> freshNameSupply.newName()
+        bind.name -> freshNameSupply.newName(from = Some(bind.name))
       }
       .toMap
 

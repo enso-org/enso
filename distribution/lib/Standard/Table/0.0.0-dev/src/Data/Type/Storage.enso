@@ -61,7 +61,10 @@ closest_storage_type value_type = case value_type of
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE
     Value_Type.Time -> TimeOfDayType.INSTANCE
     Value_Type.Mixed -> AnyObjectType.INSTANCE
-    Value_Type.Decimal _ _ -> BigIntegerType.INSTANCE
+    Value_Type.Decimal _ scale ->
+        is_integer = scale.is_nothing || scale <= 0
+        if is_integer then BigIntegerType.INSTANCE else
+            Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend - only Decimal of integer type (scale <= 0) is supported. You may cast the column to Float first (lossy conversion).")
     _ ->
         Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
 

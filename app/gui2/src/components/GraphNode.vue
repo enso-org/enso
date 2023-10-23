@@ -10,7 +10,6 @@ import {
 } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { Rect } from '@/stores/rect'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
@@ -24,6 +23,7 @@ import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
 import type { UnsafeMutable } from '@/util/mutable'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
+import { Rect } from '@/util/rect'
 import { unwrap } from '@/util/result'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
