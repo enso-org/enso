@@ -236,3 +236,73 @@ spec setup =
             t2.at "Y" . to_vector . should_equal ys
             vs = xs.map x-> if (x%2) == 1 then "TRUE" else "FALSE"
             t2.at "V" . to_vector . should_equal vs
+
+        if setup.is_database then Test.specify "(database-only) will fail if pre-checked invariants get invalidated between the query is constructed and then materialized" <|
+            Test.with_clue "(lookup is unique check) " <|
+                lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
+                table = table_builder [["X", [1, 2, 2]], ["Y", ["Z", "ZZ", "ZZZ"]], ["Z", [10, 20, 30]]]
+
+                r1 = table.lookup_and_replace lookup key_columns="X"
+                # Immediately, the query is all good.
+                Problems.assume_no_problems r1
+
+                m1 = r1 |> materialize |> _.order_by "Z"
+                m1.at "X" . to_vector . should_equal [1, 2, 2]
+                m1.at "Y" . to_vector . should_equal ["A", "B", "B"]
+                m1.at "Z" . to_vector . should_equal [10, 20, 30]
+
+                # Now, we change the table, so that the lookup is no longer unique - even if the values are the same - we care about row uniqueness.
+                Problems.assume_no_problems <|
+                    lookup.update_rows (Table.new [["X", [2]], ["Y", ["B"]]]) key_columns=[] update_action=Update_Action.Insert
+                lookup.filter "X" (Filter_Condition.Equal to=2) . row_count . should_equal 2
+
+                # Now, the query is no longer valid:
+                m2 = r1 |> materialize
+                # TODO maybe more specific exception
+                m2.should_fail_with SQL_Error
+
+            Test.with_clue "(no unmatched rows check - added a row in source) " <|
+                lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
+                table = table_builder [["X", [1, 2, 2]], ["Y", ["Z", "ZZ", "ZZZ"]], ["Z", [10, 20, 30]]]
+
+                r1 = table.lookup_and_replace lookup key_columns="X" allow_unmatched_rows=False
+                # Immediately, the query is all good.
+                Problems.assume_no_problems r1
+
+                m1 = r1 |> materialize |> _.order_by "Z"
+                m1.at "X" . to_vector . should_equal [1, 2, 2]
+                m1.at "Y" . to_vector . should_equal ["A", "B", "B"]
+                m1.at "Z" . to_vector . should_equal [10, 20, 30]
+
+                # Now, we change the source table, so that there are unmatched rows:
+                Problems.assume_no_problems <|
+                    table.update_rows (Table.new [["X", [33]], ["Y", ["F"]], ["Z", [40]]]) key_columns=[] update_action=Update_Action.Insert
+                table.row_count . should_equal 4
+
+                # Now, the query is no longer valid:
+                m2 = r1 |> materialize
+                # TODO maybe more specific exception
+                m2.should_fail_with SQL_Error
+
+            Test.with_clue "(no unmatched rows check - removed a row in lookup) " <|
+                lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
+                table = table_builder [["X", [1, 2, 2]], ["Y", ["Z", "ZZ", "ZZZ"]], ["Z", [10, 20, 30]]]
+
+                r1 = table.lookup_and_replace lookup key_columns="X" allow_unmatched_rows=False
+                # Immediately, the query is all good.
+                Problems.assume_no_problems r1
+
+                m1 = r1 |> materialize |> _.order_by "Z"
+                m1.at "X" . to_vector . should_equal [1, 2, 2]
+                m1.at "Y" . to_vector . should_equal ["A", "B", "B"]
+                m1.at "Z" . to_vector . should_equal [10, 20, 30]
+
+                # Now, we change the lookup table, so that there are unmatched rows:
+                Problems.assume_no_problems <|
+                    lookup.delete_rows (Table.new [["X", [1]]]) key_columns=["X"]
+                lookup.row_count . should_equal 1
+
+                # Now, the query is no longer valid:
+                m2 = r1 |> materialize
+                # TODO maybe more specific exception
+                m2.should_fail_with SQL_Error
