@@ -3,5 +3,6 @@ module org.enso.runtime {
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   provides com.oracle.truffle.api.provider.TruffleLanguageProvider with
-      org.enso.interpreter.EnsoLanguageProvider;
+      org.enso.interpreter.EnsoLanguageProvider,
+      org.enso.interpreter.epb.EpbLanguageProvider;
 }

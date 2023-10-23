@@ -2,9 +2,14 @@ import sbt.*
 import sbt.Keys.*
 import sbtassembly.Assembly.{Dependency, JarEntry, Library, Project}
 import sbtassembly.MergeStrategy
+
+import java.io.{File, FilenameFilter}
 import sbtassembly.CustomMergeStrategy
 import xsbti.compile.IncToolOptionsUtil
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
+
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{FileVisitResult, FileVisitor, Files, Path, SimpleFileVisitor}
 
 /**
  * Collection of utility methods dealing with JPMS modules.
@@ -55,32 +60,88 @@ object JPMSUtils {
   }
 
   /**
-   * Compiles a single `module-info.java` source file with the defined java compiler.
+   * Compiles a single `module-info.java` source file with the default java compiler (
+   * the one that is defined for the project). Before the module-info is compiled, all the
+   * class files from `scopeFilter` are copied into the `target` directory of the current project.
+   * This is because we want the `module-info.java` to be an *Uber module-info* that is defined for
+   * multiple sbt projects, like `runtime` and `runtime-with-instruments`, so before the `module-info.java`
+   * is passed to the compiler, we need to copy all the classes from the sbt projects into a single directory
+   * so that the compiler has an illusion that all these projects are in fact a single project.
+   *
    * Note that sbt is not able to correctly handle `module-info.java` files when
    * compilation order is defined to mixed order.
+   *
+   * @param scopeFilter The filter of scopes of the projects from which the class files are first
+   *                    copied into the `target` directory before `module-info.java` is compiled.
+   *
    * @see https://users.scala-lang.org/t/scala-jdk-11-and-jpms/6102/19
    */
-  def compileModuleInfo: Def.Initialize[Task[Unit]] =
+  def compileModuleInfo(
+    scopeFilter: ScopeFilter
+  ): Def.Initialize[Task[Unit]] =
     Def.task {
       val moduleInfo = (Compile / javaSource).value / "module-info.java"
       val log = streams.value.log
       val incToolOpts = IncToolOptionsUtil.defaultIncToolOptions()
       val reporter = (Compile / compile / bspReporter).value
       val output = CompileOutput((Compile / classDirectory).value.toPath)
-      log.info("Compiling module-info.java with javac")
-      val outputAbsPath: String = output
+      // Target directory where all the classes from all the dependencies will be
+      // copied to.
+      val outputPath: Path = output
         .getSingleOutputAsPath
         .get()
-        .toAbsolutePath
-        .toString
-      val opts: List[String] =
-        (Compile / javacOptions).value.toList ++
-          List("-d", outputAbsPath)
+
+      /** Copy classes into the target directory from all the dependencies */
+      log.info(s"Copying classes to $output")
+      val sourceProducts = products.all(scopeFilter).value.flatten
+
+      if (!(outputPath.toFile.exists())) {
+        Files.createDirectory(outputPath)
+      }
+
+      val outputLangProvider = outputPath / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
+      sourceProducts.foreach { sourceProduct =>
+        log.info(s"Copying ${sourceProduct} to ${output}")
+        val sourceLangProvider = sourceProduct / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
+        if (outputLangProvider.toFile.exists() && sourceLangProvider.exists()) {
+          log.info(s"Merging ${sourceLangProvider} into ${outputLangProvider}")
+          val sourceLines = IO.readLines(sourceLangProvider)
+          val destLines = IO.readLines(outputLangProvider.toFile)
+          val outLines = (sourceLines ++ destLines).distinct
+          IO.writeLines(outputLangProvider.toFile, outLines)
+        }
+        // Copy the rest of the directory - don't override META-INF.
+        IO.copyDirectory(
+          sourceProduct,
+          outputPath.toFile,
+          CopyOptions(
+            overwrite = false,
+            preserveLastModified = true,
+            preserveExecutable = true
+          )
+        )
+      }
+
+      log.info("Compiling module-info.java with javac")
+      val baseJavacOpts = (Compile / javacOptions).value
+      val fullCp = (Compile / fullClasspath).value.map(_.data)
+      val truffleCp = fullCp.filter(file => {
+        file.getAbsolutePath.contains("graalvm") || file.getAbsolutePath.contains("truffle")
+      })
+      val restCp = fullCp.filterNot(truffleCp.contains(_))
+      val allOpts = baseJavacOpts ++ Seq(
+        "--class-path",
+        restCp.map(_.getAbsolutePath).mkString(File.pathSeparator),
+        "--module-path",
+        truffleCp.map(_.getAbsolutePath).mkString(File.pathSeparator),
+        "-d",
+        outputPath.toAbsolutePath().toString(),
+        )
       val javaCompiler =
         (Compile / compile / compilers).value.javaTools.javac()
       val succ = javaCompiler.run(
         Array(PlainVirtualFile(moduleInfo.toPath)),
-        opts.toArray,
+        allOpts.toArray,
         output,
         incToolOpts,
         reporter,

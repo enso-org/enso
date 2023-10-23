@@ -1322,33 +1322,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
     ),
   )
-  // JPMS related compilation settings
-  // Note that runtime needs to be an explicit JPMS module.
-  .settings(
-    moduleInfos := Seq(
-      JpmsModule(
-        "org.enso.runtime"
-      )
-    ),
-    Compile / javacOptions ++= {
-      // Put everything from class-path into module-path
-      val managedCp = (Compile / managedClasspath).value
-      val allCp = managedCp
-        .map(_.data.getAbsolutePath)
-        .mkString(File.pathSeparator)
-      Seq(
-        "--module-path",
-        allCp,
-      )
-    },
-    // Filter module-info.java from the compilation
-    excludeFilter := excludeFilter.value || "module-info.java",
-    // Manual compilation of module-info.java before packageBin task, i.e.,
-    // before classes are packaged into Jar.
-    (Compile / packageBin) := (Compile / packageBin)
-      .dependsOn(JPMSUtils.compileModuleInfo)
-      .value
-  )
   .settings(
     (Compile / javacOptions) ++= Seq(
       "-s",
@@ -1479,24 +1452,6 @@ lazy val `runtime-with-instruments` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
-      (Compile / compile) := (Compile / compile)
-        .dependsOn(runtime / Compile / packageBin)
-        .value,
-      // Add everything from class-path to module-path. Most of our projects have
-      // Automatic-Module-Name attribute in their MANIFEST in their Jar archive,
-      // which means that they are *automatic modules*. Note that we have to "convert"
-      // them to automati modules, because `runtime` projects are explicit modules that
-      // cannot depend on packages from an unnamed modules.
-      Compile / javacOptions ++= {
-        val managedCp = (Compile / managedClasspath).value.map(_.data)
-        val allCp = managedCp
-          .map(_.getAbsolutePath)
-          .mkString(File.pathSeparator)
-        Seq(
-          "--module-path",
-          allCp,
-        )
-      },
       Test / javaOptions ++= Seq(
         "-Dgraalvm.locatorDisabled=true",
         s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
@@ -1514,8 +1469,26 @@ lazy val `runtime-with-instruments` =
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
       // We need to package runtime into Jar, as it should behave as an explicit JPMS
       // module.
+      moduleInfos := Seq(
+        JpmsModule(
+          "org.enso.runtime"
+        )
+      ),
+      // Filter module-info.java from the compilation
+      excludeFilter := excludeFilter.value || "module-info.java",
+    )
+    /** Assembling Uber Jar */
+    .settings(
       assembly := assembly
-        .dependsOn(runtime / Compile / packageBin)
+        .dependsOn(JPMSUtils.compileModuleInfo(
+          ScopeFilter(
+            inProjects(
+              LocalProject("runtime"),
+              LocalProject("runtime-language-epb"),
+            ),
+            inConfigurations(Compile)
+          )
+        ))
         .value,
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
@@ -1622,6 +1595,19 @@ lazy val `engine-runner` = project
         "org.enso.runner"
       )
     ),
+    (Compile / javacOptions) ++= {
+      val truffleStuff =
+        JPMSUtils.filterTruffleAndGraalArtifacts((Compile / managedClasspath).value)
+          .map(_.data)
+      val runtimeWithInstrClasses =
+        (LocalProject("runtime-with-instruments") / Compile / classDirectory).value
+      val mp = (truffleStuff.map(_.getAbsolutePath) :+ runtimeWithInstrClasses.getAbsolutePath)
+        .mkString(File.pathSeparator)
+      Seq(
+        "--module-path",
+        mp
+      )
+    },
     javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
