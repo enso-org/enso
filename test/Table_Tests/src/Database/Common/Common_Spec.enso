@@ -138,7 +138,7 @@ run_tests prefix connection upload =
         Test.specify "will fail if the table is modified and a column gets removed" <|
             name = Name_Generator.random_name "removing-column"
             Problems.assume_no_problems <|
-                connection.create_table name (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]])
+                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table connection name temporary=True
 
             t1 = connection.query name
             m1 = t1.read
@@ -148,7 +148,7 @@ run_tests prefix connection upload =
 
             Problems.assume_no_problems <| connection.drop_table name
             Problems.assume_no_problems <|
-                connection.create_table name (Table.new [["a", [100, 200]]])
+                (Table.new [["a", [100, 200]]]).select_into_database_table connection name temporary=True
 
             # Reading a column that was kept will work OK
             t1.at "a" . to_vector . should_equal [100, 200]
@@ -160,7 +160,7 @@ run_tests prefix connection upload =
         Test.specify "will not fail if the table is modified and a column gets added" <|
             name = Name_Generator.random_name "adding-column"
             Problems.assume_no_problems <|
-                connection.create_table name (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]])
+                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table connection name temporary=True
 
             t1 = connection.query name
             m1 = t1.read
@@ -170,7 +170,7 @@ run_tests prefix connection upload =
 
             Problems.assume_no_problems <| connection.drop_table name
             Problems.assume_no_problems <|
-                connection.create_table name (Table.new [["a", [100, 200]], ["b", [300, 400]], ["c", [500, 600]]])
+                (Table.new [["a", [100, 200]], ["b", [300, 400]], ["c", [500, 600]]]).select_into_database_table connection name temporary=True
 
             m2 = t1.read
             Problems.assume_no_problems m2
