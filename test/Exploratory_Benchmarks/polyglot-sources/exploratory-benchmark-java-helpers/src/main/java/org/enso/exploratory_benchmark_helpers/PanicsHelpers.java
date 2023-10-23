@@ -3,12 +3,11 @@ package org.enso.exploratory_benchmark_helpers;
 import java.util.function.Function;
 
 public class PanicsHelpers {
-  public static int extendJavaStack(int k, Function<Integer, Object> callback) {
+  public static long extendJavaStack(int k, Function<Integer, Long> callback) {
     if (k == 0) {
-      callback.apply(0);
-      return 0;
+      return callback.apply(0);
     } else {
-      int r = extendJavaStack(k - 1, callback);
+      long r = extendJavaStack(k - 1, callback);
       return r + 1;
     }
   }

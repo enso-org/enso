@@ -5,15 +5,15 @@ polyglot java import org.enso.exploratory_benchmark_helpers.PanicsHelpers
 polyglot java import org.enso.exploratory_benchmark_helpers.PanicsHelpers.MyException
 
 options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
+#options = Bench.options . set_warmup (Bench.phase_conf 3 10) . set_measure (Bench.phase_conf 3 5)
 
 type My_Error_Type
     Error
 
+extend_enso_stack : Integer -> Integer -> Integer
 extend_enso_stack k ~action =
     case k of
-        0 ->
-            action
-            0
+        0 -> action + 1
         _ ->
             # Ensure that this is not tail recursive
             r = extend_enso_stack (k - 1) action
