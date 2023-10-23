@@ -3,7 +3,8 @@ from Standard.Base import all
 from Standard.Table import all
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database import Update_Action
+from Standard.Database.Errors import Unsupported_Database_Operation, SQL_Error
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
