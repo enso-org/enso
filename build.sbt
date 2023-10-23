@@ -1607,26 +1607,6 @@ lazy val `engine-runner` = project
   .settings(
     frgaalJavaCompilerSetting,
     truffleDslSuppressWarnsSetting,
-    // Needed for the JPMS to work
-    compileOrder := CompileOrder.JavaThenScala,
-    moduleInfos := Seq(
-      JpmsModule(
-        "org.enso.runner"
-      )
-    ),
-    (Compile / javacOptions) ++= {
-      val truffleStuff =
-        JPMSUtils.filterTruffleAndGraalArtifacts((Compile / managedClasspath).value)
-          .map(_.data)
-      val runtimeWithInstrClasses =
-        (LocalProject("runtime-with-instruments") / Compile / classDirectory).value
-      val mp = (truffleStuff.map(_.getAbsolutePath) :+ runtimeWithInstrClasses.getAbsolutePath)
-        .mkString(File.pathSeparator)
-      Seq(
-        "--module-path",
-        mp
-      )
-    },
     javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
@@ -1662,7 +1642,8 @@ lazy val `engine-runner` = project
       case "reference.conf" =>
         MergeStrategy.concat
       case PathList(xs @ _*) if xs.last.contains("module-info") =>
-        JPMSUtils.removeAllModuleInfoExcept("runner")
+        // runner.jar must not be a JPMS module
+        MergeStrategy.discard
       case x =>
         MergeStrategy.first
     },
