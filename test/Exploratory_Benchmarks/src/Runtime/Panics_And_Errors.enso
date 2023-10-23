@@ -5,7 +5,6 @@ polyglot java import org.enso.exploratory_benchmark_helpers.PanicsHelpers
 polyglot java import org.enso.exploratory_benchmark_helpers.PanicsHelpers.MyException
 
 options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
-#options = Bench.options . set_warmup (Bench.phase_conf 3 10) . set_measure (Bench.phase_conf 3 5)
 
 type My_Error_Type
     Error
