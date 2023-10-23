@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FunctionDocs, TypeDocs } from '@/components/DocumentationPanel.vue'
 import type { Doc } from '@/util/docParser'
-import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
+import type { SuggestionEntryArgument, SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
 
 export type ListItems =
@@ -10,6 +10,7 @@ export type ListItems =
   | { Types: TypeDocs[] }
 
 const props = defineProps<{ items: ListItems }>()
+const emit = defineEmits<{ linkClicked: [id: SuggestionId] }>()
 
 function firstParagraph(synopsis: Doc.Section[]): string | undefined {
   if (synopsis[0] && 'Paragraph' in synopsis[0]) {
@@ -57,12 +58,16 @@ const items = computed<FunctionDocs[] | TypeDocs[]>(() => {
     return []
   }
 })
+
+function getId(entry: FunctionDocs | TypeDocs) {
+  return entry.id
+}
 </script>
 
 <template>
   <ul v-if="items.length > 0" class="sectionContent">
     <li v-for="(item, index) in items" :key="index" :class="itemClass">
-      <a :class="linkClass">
+      <a :class="linkClass" @pointerdown="emit('linkClicked', getId(item))">
         <span class="entryName">{{ item.name }}</span>
         <span class="arguments">{{ ' ' + argumentsList(item.arguments) }}</span>
       </a>
