@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Random.Random
 
 ## Generates a random name with a given prefix, ensuring relative uniqueness by
    appending a random UUID.
