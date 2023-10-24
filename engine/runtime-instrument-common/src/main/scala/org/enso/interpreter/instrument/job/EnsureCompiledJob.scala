@@ -140,7 +140,7 @@ final class EnsureCompiledJob(
           case Right(compilerResult) =>
             val status = runCompilationDiagnostics(module)
             (
-              modules.addAll(compilerResult.compiledModules).addOne(module),
+              modules.addAll(compilerResult.compiledModules.map(Module.fromCompilerModule(_))).addOne(module),
               statuses += status
             )
         }
@@ -168,7 +168,7 @@ final class EnsureCompiledJob(
       .runModule(
         module.getIr,
         ModuleContext(
-          module,
+          module.asCompilerModule(),
           compilerConfig = ctx.executionService.getContext.getCompilerConfig
         )
       )
@@ -230,7 +230,7 @@ final class EnsureCompiledJob(
       if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
-        val result = ctx.executionService.getContext.getCompiler.run(module)
+        val result = ctx.executionService.getContext.getCompiler.run(module.asCompilerModule())
         result.copy(compiledModules =
           result.compiledModules.filter(_.getName != module.getName)
         )
@@ -498,7 +498,7 @@ final class EnsureCompiledJob(
     val packageRepository =
       ctx.executionService.getContext.getCompiler.packageRepository
     packageRepository.getMainProjectPackage
-      .map(pkg => packageRepository.getModulesForLibrary(pkg.libraryName))
+      .map(pkg => packageRepository.getModulesForLibrary(pkg.libraryName).map(Module.fromCompilerModule(_)))
       .getOrElse(Seq())
   }
 
