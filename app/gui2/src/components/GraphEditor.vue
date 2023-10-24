@@ -6,14 +6,14 @@ import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
-import { useGraphStore, type Edge } from '@/stores/graph'
+import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
+import { Interaction } from '@/util/interaction'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import { type ExprId } from 'shared/yjsModel.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
@@ -132,34 +132,7 @@ const groupColors = computed(() => {
   return styles
 })
 
-abstract class Interaction {
-  id: number
-  static nextId: number = 0
-  constructor() {
-    this.id = Interaction.nextId
-    Interaction.nextId += 1
-  }
-
-  abstract cancel(): void
-  click(_e: MouseEvent): boolean {
-    return false
-  }
-}
 const currentInteraction = ref<Interaction>()
-class EditingEdge extends Interaction {
-  cancel() {
-    const target = graphStore.unconnectedEdge?.disconnectedEdgeTarget
-    graphStore.transact(() => {
-      if (target != null)
-        disconnectEdge(target)
-      graphStore.clearUnconnected()
-    })
-  }
-  click(_e: MouseEvent): boolean {
-    return onClick(_e)
-  }
-}
-const editingEdge = new EditingEdge()
 class EditingNode extends Interaction {
   cancel() {
     componentBrowserVisible.value = false
@@ -178,65 +151,17 @@ function cancelCurrentInteraction() {
 }
 
 /** Unset the current interaction, if it is the specified instance. */
-function forgetInteraction(interaction: Interaction) {
+function interactionEnded(interaction: Interaction) {
   if (currentInteraction.value?.id === interaction?.id) currentInteraction.value = undefined
 }
 
-watch(
-  () => graphStore.unconnectedEdge,
-  (edge) => {
-    if (edge != null) {
-      setCurrentInteraction(editingEdge)
-    } else {
-      forgetInteraction(editingEdge)
-    }
-  },
-)
 watch(componentBrowserVisible, (visible) => {
   if (visible) {
     setCurrentInteraction(editingNode)
   } else {
-    forgetInteraction(editingNode)
+    interactionEnded(editingNode)
   }
 })
-
-const hoveredNode = ref<ExprId>()
-const hoveredExpr = ref<ExprId>()
-
-function onClick(_e: MouseEvent) {
-  if (graphStore.unconnectedEdge == null) return false
-  const source = graphStore.unconnectedEdge.source ?? hoveredNode.value
-  const target = graphStore.unconnectedEdge.target ?? hoveredExpr.value
-  const targetNode = target != null ? graphStore.exprNodes.get(target) : undefined
-  graphStore.transact(() => {
-    if (source != targetNode) {
-      if (target == null && graphStore.unconnectedEdge?.disconnectedEdgeTarget != null) {
-        disconnectEdge(graphStore.unconnectedEdge.disconnectedEdgeTarget)
-      }
-      if (source == null || target == null) {
-        createNodeFromEdgeDrop({ source, target })
-      } else {
-        createEdge(source, target)
-      }
-    }
-    graphStore.clearUnconnected()
-  })
-  return true
-}
-
-function disconnectEdge(target: ExprId) {
-  graphStore.setExpressionContent(target, '_')
-}
-function createNodeFromEdgeDrop(edge: Edge) {
-  console.log(`TODO: createNodeFromEdgeDrop(${JSON.stringify(edge)})`)
-}
-function createEdge(source: ExprId, target: ExprId) {
-  const sourceNode = graphStore.nodes.get(source)
-  if (sourceNode == null) return
-  // TODO: Check alias analysis to see if the binding is shadowed.
-  graphStore.setExpressionContent(target, sourceNode.binding)
-  // TODO: Use alias analysis to ensure declarations are in a dependency order.
-}
 </script>
 
 <template>
@@ -250,14 +175,10 @@ function createEdge(source: ExprId, target: ExprId) {
     v-on..="nodeSelection.events"
   >
     <svg :viewBox="navigator.viewBox">
-      <GraphEdges
-        :sceneMousePos="navigator.sceneMousePos"
-        :hoveredNode="hoveredNode"
-        :hoveredExpr="hoveredExpr"
-      />
+      <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
-      <GraphNodes @hoverNode="hoveredNode = $event" @hoverExpr="hoveredExpr = $event" />
+      <GraphNodes />
     </div>
     <ComponentBrowser
       v-if="componentBrowserVisible"

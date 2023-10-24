@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { injectGraphNavigator } from '@/providers/graphNavigator.ts'
+import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import type { Edge } from '@/stores/graph'
 import type { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
@@ -6,14 +8,14 @@ import { clamp } from '@vueuse/core'
 import type { ExprId } from 'shared/yjsModel'
 import { computed, ref } from 'vue'
 
+const selection = injectGraphSelection(true)
+const navigator = injectGraphNavigator(true)
+
 const props = defineProps<{
   edge: Edge
   nodeRects: Map<ExprId, Rect>
   exprRects: Map<ExprId, Rect>
   exprNodes: Map<ExprId, ExprId>
-  hoveredNode: ExprId | undefined
-  hoveredExpr: ExprId | undefined
-  sceneMousePos: Vec2 | null
 }>()
 
 const emit = defineEmits<{
@@ -27,7 +29,8 @@ type PosMaybeSized = { pos: Vec2; size?: Vec2 }
 
 const targetPos = computed<PosMaybeSized | null>(() => {
   const targetExpr =
-    props.edge.target ?? (props.hoveredNode != props.edge.source ? props.hoveredExpr : undefined)
+    props.edge.target ??
+    (selection?.hoveredNode != props.edge.source ? selection?.hoveredExpr : undefined)
   if (targetExpr != null) {
     const targetNodeId = props.exprNodes.get(targetExpr)
     if (targetNodeId == null) return null
@@ -35,8 +38,8 @@ const targetPos = computed<PosMaybeSized | null>(() => {
     const targetRect = props.exprRects.get(targetExpr)
     if (targetRect == null || targetNodeRect == null) return null
     return { pos: targetRect.center().add(targetNodeRect.pos), size: targetRect.size }
-  } else if (props.sceneMousePos != null) {
-    return { pos: props.sceneMousePos }
+  } else if (navigator?.sceneMousePos != null) {
+    return { pos: navigator?.sceneMousePos }
   } else {
     return null
   }
@@ -44,14 +47,14 @@ const targetPos = computed<PosMaybeSized | null>(() => {
 const sourcePos = computed<PosMaybeSized | null>(() => {
   const targetNode = props.edge.target != null ? props.exprNodes.get(props.edge.target) : undefined
   const sourceNode =
-    props.edge.source ?? (props.hoveredNode != targetNode ? props.hoveredNode : undefined)
+    props.edge.source ?? (selection?.hoveredNode != targetNode ? selection?.hoveredNode : undefined)
   if (sourceNode != null) {
     const sourceNodeRect = props.nodeRects.get(sourceNode)
     if (sourceNodeRect == null) return null
     const pos = sourceNodeRect.center()
     return { pos, size: sourceNodeRect.size }
-  } else if (props.sceneMousePos != null) {
-    return { pos: props.sceneMousePos }
+  } else if (navigator?.sceneMousePos != null) {
+    return { pos: navigator?.sceneMousePos }
   } else {
     return null
   }
@@ -411,9 +414,9 @@ const activeStyle = computed(() => {
   if (!hovered.value) return {}
   if (props.edge.source == null || props.edge.target == null) return {}
   if (base.value == null) return {}
-  if (props.sceneMousePos == null) return {}
+  if (navigator?.sceneMousePos == null) return {}
   const length = base.value.getTotalLength()
-  let offset = lengthTo(props.sceneMousePos)
+  let offset = lengthTo(navigator?.sceneMousePos)
   if (offset == null) return {}
   offset = length - offset
   if (offset < length / 2) {
@@ -427,9 +430,9 @@ const activeStyle = computed(() => {
 
 function click(_e: PointerEvent) {
   if (base.value == null) return {}
-  if (props.sceneMousePos == null) return {}
+  if (navigator?.sceneMousePos == null) return {}
   const length = base.value.getTotalLength()
-  let offset = lengthTo(props.sceneMousePos)
+  let offset = lengthTo(navigator?.sceneMousePos)
   if (offset == null) return {}
   if (offset < length / 2) emit('disconnectTarget')
   else emit('disconnectSource')

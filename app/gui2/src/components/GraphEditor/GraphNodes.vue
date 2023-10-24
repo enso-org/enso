@@ -6,11 +6,6 @@ import { useGraphStore } from '@/stores/graph'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 
-const emit = defineEmits<{
-  hoverNode: [ExprId | undefined]
-  hoverExpr: [ExprId | undefined]
-}>()
-
 const graphStore = useGraphStore()
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
@@ -33,6 +28,14 @@ function moveNode(movedId: ExprId, delta: Vec2) {
     }
   })
 }
+
+function hoverNode(id: ExprId | undefined) {
+  if (selection != null) selection.hoveredNode = id
+}
+
+function hoverExpr(id: ExprId | undefined) {
+  if (selection != null) selection.hoveredExpr = id
+}
 </script>
 
 <template>
@@ -43,9 +46,9 @@ function moveNode(movedId: ExprId, delta: Vec2) {
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
     @updateExprRect="graphStore.updateExprRect"
-    @pointerenter="emit('hoverNode', id)"
-    @pointerleave="emit('hoverNode', undefined)"
-    @updateHoveredExpr="emit('hoverExpr', $event)"
+    @pointerenter="hoverNode(id)"
+    @pointerleave="hoverNode(undefined)"
+    @updateHoveredExpr="hoverExpr($event)"
     @updateContent="updateNodeContent(id, $event)"
     @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
     @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
