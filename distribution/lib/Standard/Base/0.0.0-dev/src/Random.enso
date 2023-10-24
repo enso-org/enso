@@ -218,10 +218,12 @@ type Random
          duplicates. If true, values from the `Vector` can be returned multiple
          times and duplicates are possible.
 
-       ! If `with_replacement` is false, and `count` is equal to the size of the
+       ? Selection without replacement
+
+         If `with_replacement` is false, and `count` is equal to the size of the
          collection, a random permutation of the collection is returned.
 
-       ! If `with_replacement` is false, and `count` is greater than the size of
+         If `with_replacement` is false, and `count` is greater than the size of
          the collection, an `Illegal_Argument` error is thrown. (If `count` is
          greater than the size of the collection, `items` will run out of values
          to choose from, and will not be able to return enough values.)
