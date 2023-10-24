@@ -175,16 +175,13 @@ class Compiler(
               s"starting at the root [${m.getName}]."
             )
 
-            val packageModules = packageRepository.freezeModuleMap
-              .collect {
-                case (name, mod)
-                    if name.startsWith(
-                      s"${pkg.namespace}.${pkg.normalizedName}"
-                    ) =>
-                  mod
-              }
-              .map(new Module(_))
-              .toList
+            val packageModules = packageRepository.freezeModuleMap.collect {
+              case (name, mod)
+                  if name.startsWith(
+                    s"${pkg.namespace}.${pkg.normalizedName}"
+                  ) =>
+                mod
+            }.toList
 
             runInternal(
               packageModules,
@@ -235,7 +232,7 @@ class Compiler(
             shouldCompileDependencies
           )
         val pending =
-          packageRepository.getPendingModules.map(new Module(_)).toList
+          packageRepository.getPendingModules.toList
         go(pending, compiledModules ++ newCompiled)
       }
 
@@ -664,7 +661,7 @@ class Compiler(
     * @return the module corresponding to the provided name, if exists
     */
   def getModule(name: String): Option[Module] = {
-    context.getTopScope.getModule(name).map(new Module(_)).toScala
+    Option(context.findTopScopeModule(name))
   }
 
   /** Ensures the passed module is in at least the parsed compilation stage.

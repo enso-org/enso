@@ -62,7 +62,7 @@ object InlineContext {
     InlineContext(
       localScope = Option(localScope),
       module = ModuleContext(
-        new CompilerContext.Module(moduleScope.getModule),
+        moduleScope.getModule().asCompilerModule(),
         compilerConfig
       ),
       isInTailPosition = Option(isInTailPosition != TailStatus.NOT_TAIL),

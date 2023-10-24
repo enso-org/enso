@@ -153,6 +153,16 @@ public final class Module implements EnsoObject {
   }
 
   /**
+   * Unwraps runtime module from compiler module.
+   *
+   * @param module module created by {@link #asCompilerModule()} method
+   * @return
+   */
+  public static Module fromCompilerModule(CompilerContext.Module module) {
+    return ((TruffleCompilerContext.Module) module).unsafeModule();
+  }
+
+  /**
    * Creates an empty module.
    *
    * @param name the qualified name of the newly created module.
@@ -522,7 +532,7 @@ public final class Module implements EnsoObject {
 
   // XXX
   public final CompilerContext.Module asCompilerModule() {
-    return new CompilerContext.Module(this);
+    return new TruffleCompilerContext.Module(this);
   }
 
   /**

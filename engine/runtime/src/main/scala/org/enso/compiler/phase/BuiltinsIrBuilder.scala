@@ -8,7 +8,6 @@ import org.enso.compiler.context.{
   ModuleContext
 }
 import org.enso.compiler.data.CompilerConfig
-import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.CompilationStage
 import scala.util.Using
 
@@ -33,13 +32,13 @@ object BuiltinsIrBuilder {
     */
   def build(
     context: CompilerContext,
-    module: Module,
+    module: CompilerContext.Module,
     freshNameSupply: FreshNameSupply,
     passes: Passes
   ): Unit = {
     val passManager = passes.passManager
     val moduleContext = ModuleContext(
-      module          = new CompilerContext.Module(module),
+      module          = module,
       freshNameSupply = Some(freshNameSupply),
       compilerConfig  = CompilerConfig(warningsEnabled = false)
     )
@@ -52,14 +51,14 @@ object BuiltinsIrBuilder {
       passes.moduleDiscoveryPasses
     )
     context.updateModule(
-      new CompilerContext.Module(module),
+      module,
       { u =>
         u.ir(irAfterModDiscovery)
         u.compilationStage(CompilationStage.AFTER_PARSING)
       }
     )
 
-    new ExportsResolution().run(List(new CompilerContext.Module(module)))
+    new ExportsResolution().run(List(module))
     val irAfterTypes = passManager.runPassesOnModule(
       irAfterModDiscovery,
       moduleContext,
@@ -71,7 +70,7 @@ object BuiltinsIrBuilder {
       passes.functionBodyPasses
     )
     context.updateModule(
-      new CompilerContext.Module(module),
+      module,
       { u =>
         u.ir(irAfterCompilation)
         u.compilationStage(CompilationStage.AFTER_CODEGEN)

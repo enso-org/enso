@@ -1108,7 +1108,7 @@ object BindingsMap {
 
       /** @inheritdoc */
       override def toConcrete(moduleMap: ModuleMap): Option[Concrete] = {
-        moduleMap.get(name.toString).map(new Module(_)).map(Concrete)
+        moduleMap.get(name.toString).map(Concrete)
       }
 
       /** Convert `this` into an abstract module reference (a no-op).
