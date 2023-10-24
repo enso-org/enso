@@ -425,6 +425,7 @@ val graalvmSdk = Seq(
   "org.graalvm.sdk" % "polyglot-tck" % graalMavenPackagesVersion,
   "org.graalvm.sdk" % "nativeimage" % graalMavenPackagesVersion,
   "org.graalvm.sdk" % "word" % graalMavenPackagesVersion,
+  "org.graalvm.sdk" % "jniutils" % graalMavenPackagesVersion,
   "org.graalvm.sdk" % "collections" % graalMavenPackagesVersion,
 )
 
@@ -439,10 +440,36 @@ val graalvmTruffle = Seq(
   "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion,
 )
 
-val graalvmLangs = Seq(
-  "org.graalvm.polyglot" % "js-community" % graalMavenPackagesVersion,
-  "org.graalvm.polyglot" % "python-community" % graalMavenPackagesVersion,
+/**
+ * Manually maintained GraalVM languages and their dependencies. Optimally,
+ * we would use 'org.graalvm.polyglot:js-community' or 'org.graavm.polyglot:python-community'
+ * maven artifacts and all their transitive dependencies, but we have to copy all these artifacts
+ * into engine distribution build, so we have to maintain these manually.
+ **/
+val graalvmPython = Seq(
+  "org.graalvm.python" % "python-language" % graalMavenPackagesVersion,
+  "org.graalvm.python" % "python-resources" % graalMavenPackagesVersion,
+  "org.bouncycastle" % "bcutil-jdk18on" % "1.76",
+  "org.bouncycastle" % "bcpkix-jdk18on" % "1.76",
+  "org.bouncycastle" % "bcprov-jdk18on" % "1.76",
+  "org.graalvm.llvm" % "llvm-api" % graalMavenPackagesVersion,
+  "org.graalvm.truffle" % "truffle-nfi" % graalMavenPackagesVersion,
+  "org.graalvm.truffle" % "truffle-nfi-libffi" % graalMavenPackagesVersion,
+  "org.graalvm.regex" % "regex" % graalMavenPackagesVersion,
+  "org.graalvm.tools" % "profiler-tool" % graalMavenPackagesVersion,
+  "org.graalvm.shadowed" % "json" % graalMavenPackagesVersion,
+  "org.graalvm.shadowed" % "icu4j" % graalMavenPackagesVersion,
+  "org.tukaani" % "xz" % "1.9",
 )
+
+val graalvmJs = Seq(
+  "org.graalvm.js" % "js-language" % graalMavenPackagesVersion,
+  "org.graalvm.regex" % "regex" % graalMavenPackagesVersion,
+  "org.graalvm.shadowed" % "icu4j" % graalMavenPackagesVersion,
+)
+
+// TODO: Add graalvmPython
+val graalvmLangs = graalvmJs
 
 // === Scala Compiler =========================================================
 
@@ -1332,7 +1359,7 @@ lazy val runtime = (project in file("engine/runtime"))
     ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
+    libraryDependencies ++= jmh ++ jaxb ++ circe ++ graalvmLangs ++ Seq(
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"     % "tika-core"             % tikaVersion,
       "org.graalvm.polyglot"     % "polyglot"             % graalMavenPackagesVersion % "provided",
@@ -1548,12 +1575,13 @@ lazy val `runtime-with-instruments` =
         // slf4j-api and logback packages need to be excluded from the fat jar, as they
         // both need to be specified on module-path at runtime.
         val pkgsToExclude = Seq(
-          "org.slf4j"  % "slf4j-api" % slf4jVersion
+          "org.slf4j"  % "slf4j-api" % slf4jVersion,
         ) ++
           logbackPkg ++
           graalvmSdk ++
           graalvmPolyglot ++
-          graalvmTruffle
+          graalvmTruffle ++
+          graalvmLangs
 
         val ourFullCp = (Compile / fullClasspath).value
 
@@ -2475,11 +2503,48 @@ launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
 projectManagerDistributionRoot :=
   packageBuilder.localArtifact("project-manager") / "enso"
 
+/**
+* Filters modules by their IDs from the given classpath.
+* @param cp The classpath to filter
+* @param modules These modules are looked for in the class path
+* @return The classpath with only the provided modules searched by their IDs.
+ */
+def filterModulesFromClasspath(
+  cp: Def.Classpath,
+  modules: Seq[ModuleID]
+): Def.Classpath = {
+  def shouldFilterModule(module: ModuleID): Boolean = {
+    modules.exists(
+      m =>
+        m.organization == module.organization &&
+        m.name         == module.name &&
+        m.revision     == module.revision
+    )
+  }
+  cp.filter(dep => {
+    val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
+    shouldFilterModule(moduleID)
+  })
+}
+
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
+
+  val moduleIdsToCopy = graalvmSdk ++
+    graalvmPolyglot ++
+    graalvmTruffle ++
+    graalvmLangs ++
+    logbackPkg ++ Seq(
+    "org.slf4j" % "slf4j-api" % slf4jVersion,
+  )
+  val runnerCp = (`engine-runner` / Compile / fullClasspath).value
+  val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
+  val fullCp = (runnerCp ++ runtimeCp).distinct
+  val modulesToCopy = filterModulesFromClasspath(fullCp, moduleIdsToCopy).map(_.data)
+  val engineModules = Seq(file("runtime.jar"))
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
@@ -2487,6 +2552,7 @@ buildEngineDistribution := {
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
+    jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
     javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
