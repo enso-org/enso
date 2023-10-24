@@ -23,12 +23,12 @@ public interface IdExecutionService {
     /**
      * Notifies when an execution of a node is over.
      *
-     * @param nodeId identification of the node to be computed
+     * @param node expression node that has been computed
      * @param result the just computed result
      * @param isPanic was the result a panic?
      * @param nanoElapsedTime how long it took to compute the result?
      */
-    void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoElapsedTime);
+    void updateCachedResult(Object node, Object result, boolean isPanic, long nanoElapsedTime);
 
     /**
      * Notification when a returned value is a function.

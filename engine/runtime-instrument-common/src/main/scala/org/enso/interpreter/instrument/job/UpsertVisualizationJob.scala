@@ -101,7 +101,8 @@ class UpsertVisualizationJob(
                 stack.headOption.get.syncState,
                 visualization,
                 expressionId,
-                value
+                value,
+                null
               )
               None
             case None =>

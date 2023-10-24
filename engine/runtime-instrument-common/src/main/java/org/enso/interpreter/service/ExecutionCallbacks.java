@@ -1,16 +1,17 @@
 package org.enso.interpreter.service;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
-
-import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -19,9 +20,7 @@ import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.service.ExecutionService.ExpressionCall;
 import org.enso.interpreter.service.ExecutionService.ExpressionValue;
 import org.enso.interpreter.service.ExecutionService.FunctionCallInfo;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.interop.TruffleObject;
+import org.enso.polyglot.debugger.IdExecutionService;
 
 final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
@@ -34,7 +33,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
 
-  /** Creates callbacks instance.
+  /**
+   * Creates callbacks instance.
    *
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed updateCachedResult calls.
@@ -45,11 +45,13 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
    * @param onCachedCallback the consumer of the cached value events.
    */
   ExecutionCallbacks(
-          UUID nextExecutionItem,
-          RuntimeCache cache, MethodCallsCache methodCallsCache, UpdatesSynchronizationState syncState,
-          Consumer<ExpressionValue> onCachedCallback, Consumer<ExpressionValue> onComputedCallback,
-          Consumer<ExpressionCall> functionCallCallback
-  ) {
+      UUID nextExecutionItem,
+      RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
+      UpdatesSynchronizationState syncState,
+      Consumer<ExpressionValue> onCachedCallback,
+      Consumer<ExpressionValue> onComputedCallback,
+      Consumer<ExpressionCall> functionCallCallback) {
     this.nextExecutionItem = nextExecutionItem;
     this.cache = cache;
     this.methodCallsCache = methodCallsCache;
@@ -68,16 +70,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
     // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
     if (result != null && !nodeId.equals(nextExecutionItem)) {
-      var value = new ExpressionValue(
+      var value =
+          new ExpressionValue(
               nodeId,
               result,
               cache.getType(nodeId),
               typeOf(result),
               calls.get(nodeId),
               cache.getCall(nodeId),
-              new ProfilingInfo[]{ExecutionTime.empty()},
-              true
-      );
+              new ProfilingInfo[] {ExecutionTime.empty()},
+              true);
       onCachedCallback.accept(value);
       return result;
     }
@@ -85,15 +87,27 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public final void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoTimeElapsed) {
+  public final void updateCachedResult(
+      Object node, Object result, boolean isPanic, long nanoTimeElapsed) {
+    ExpressionNode expressionNode = (ExpressionNode) node;
+    UUID nodeId = expressionNode.getId();
     String resultType = typeOf(result);
     String cachedType = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
-    ProfilingInfo[] profilingInfo = new ProfilingInfo[]{new ExecutionTime(nanoTimeElapsed)};
+    ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
-    ExpressionValue expressionValue
-            = new ExpressionValue(nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+    ExpressionValue expressionValue =
+        new ExpressionValue(
+            nodeId,
+            result,
+            resultType,
+            cachedType,
+            call,
+            cachedCall,
+            profilingInfo,
+            false,
+            expressionNode);
     syncState.setExpressionUnsync(nodeId);
     syncState.setVisualizationUnsync(nodeId);
 

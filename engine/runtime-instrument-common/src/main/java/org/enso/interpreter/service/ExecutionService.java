@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
@@ -254,9 +255,7 @@ public final class ExecutionService {
    * @param expression the expression to evaluated
    * @return a result of evaluation
    */
-  public Object evaluateExpression(Module module, String expression)
-      throws UnsupportedMessageException, ArityException, UnknownIdentifierException,
-          UnsupportedTypeException {
+  public Object evaluateExpression(Module module, String expression) {
     Object p = context.getThreadManager().enter();
     try {
       return invoke.getCallTarget().call(module, expression);
@@ -288,8 +287,7 @@ public final class ExecutionService {
    * @param argument the argument applied to the function
    * @return the result of calling the function
    */
-  public Object callFunction(Object fn, Object argument)
-      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+  public Object callFunction(Object fn, Object argument) {
     Object p = context.getThreadManager().enter();
     try {
       return call.getCallTarget().call(fn, new Object[] { argument });
@@ -308,8 +306,7 @@ public final class ExecutionService {
    * @return the result of calling the function
    */
   public Object callFunctionWithInstrument(
-      RuntimeCache cache, Module module, Object function, Object... arguments)
-      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+      RuntimeCache cache, Module module, Object function, Object... arguments) {
     UUID nextExecutionItem = null;
     CallTarget entryCallTarget =
         (function instanceof Function) ? ((Function) function).getCallTarget() : null;
@@ -573,6 +570,7 @@ public final class ExecutionService {
     private final FunctionCallInfo cachedCallInfo;
     private final ProfilingInfo[] profilingInfo;
     private final boolean wasCached;
+    private final ExpressionNode expressionNode;
 
     /**
      * Creates a new instance of this class.
@@ -603,6 +601,28 @@ public final class ExecutionService {
       this.cachedCallInfo = cachedCallInfo;
       this.profilingInfo = profilingInfo;
       this.wasCached = wasCached;
+      this.expressionNode = null;
+    }
+
+    public ExpressionValue(
+        UUID expressionId,
+        Object value,
+        String type,
+        String cachedType,
+        FunctionCallInfo callInfo,
+        FunctionCallInfo cachedCallInfo,
+        ProfilingInfo[] profilingInfo,
+        boolean wasCached,
+        ExpressionNode expressionNode) {
+      this.expressionId = expressionId;
+      this.value = value;
+      this.type = type;
+      this.cachedType = cachedType;
+      this.callInfo = callInfo;
+      this.cachedCallInfo = cachedCallInfo;
+      this.profilingInfo = profilingInfo;
+      this.wasCached = wasCached;
+      this.expressionNode = expressionNode;
     }
 
     @Override
@@ -678,6 +698,10 @@ public final class ExecutionService {
     /** @return {@code true} when the function call differs from the cached value. */
     public boolean isFunctionCallChanged() {
       return !Objects.equals(callInfo, cachedCallInfo);
+    }
+
+    public ExpressionNode getExpressionNode() {
+      return expressionNode;
     }
   }
 

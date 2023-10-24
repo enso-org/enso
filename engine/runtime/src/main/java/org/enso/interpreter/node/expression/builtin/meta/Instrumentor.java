@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import java.util.UUID;
 
 import org.enso.interpreter.instrument.Timer;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -68,18 +69,19 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
         return handle.isDisposed() ? null : ret;
       }
-    } catch (InteropException ex) {
+    } catch (InteropException ignored) {
     }
     return null;
   }
 
   @Override
-  public void updateCachedResult(UUID nodeId, Object result, boolean isPanic, long nanoElapsedTime) {
+  public void updateCachedResult(Object node, Object result, boolean isPanic, long nanoElapsedTime) {
     try {
       if (onReturn != null) {
+        UUID nodeId = ((ExpressionNode) node).getId();
         InteropLibrary.getUncached().execute(onReturn, nodeId.toString(), result);
       }
-    } catch (InteropException ex) {
+    } catch (InteropException ignored) {
     }
   }
 
@@ -102,7 +104,7 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
         return handle.isDisposed() ? null : ret;
       }
-    } catch (InteropException ex) {
+    } catch (InteropException ignored) {
     }
     return null;
   }

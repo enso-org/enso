@@ -1,8 +1,5 @@
 package org.enso.interpreter.instrument;
 
-
-import org.enso.polyglot.debugger.IdExecutionService;
-
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
@@ -20,15 +17,14 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-
 import java.util.UUID;
-
 import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
@@ -36,11 +32,11 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
-
-import com.oracle.truffle.api.interop.TruffleObject;
+import org.enso.polyglot.debugger.IdExecutionService;
 
 /** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
@@ -75,11 +71,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      * @param callbacks communication with users
      * @param timer the timer for timing execution
      */
-    IdEventNodeFactory(
-      CallTarget entryCallTarget,
-      Callbacks callbacks,
-      Timer timer
-    ) {
+    IdEventNodeFactory(CallTarget entryCallTarget, Callbacks callbacks, Timer timer) {
       this.entryCallTarget = entryCallTarget;
       this.callbacks = callbacks;
       this.timer = timer;
@@ -90,9 +82,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       return new IdExecutionEventNode(context);
     }
 
-    /**
-     * The execution event node class used by this instrument.
-     */
+    /** The execution event node class used by this instrument. */
     private class IdExecutionEventNode extends ExecutionEventNode {
 
       private final EventContext context;
@@ -131,12 +121,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
 
       /**
-       * Triggered when a node (either a function call sentry or an identified
-       * expression) finishes execution.
+       * Triggered when a node (either a function call sentry or an identified expression) finishes
+       * execution.
        *
        * @param frame the current execution frame.
-       * @param result the result of executing the node this method was
-       * triggered for.
+       * @param result the result of executing the node this method was triggered for.
        */
       @Override
       public void onReturnValue(VirtualFrame frame, Object result) {
@@ -145,16 +134,21 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
         Node node = context.getInstrumentedNode();
+        LocalScope localScope = null;
+
+        if (node.getRootNode() instanceof EnsoRootNode ensoRootNode) {
+          localScope = ensoRootNode.getLocalScope();
+        }
 
         if (node instanceof FunctionCallInstrumentationNode
-                && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
+            && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
           UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
           var cachedResult = callbacks.onFunctionReturn(nodeId, functionCall);
           if (cachedResult != null) {
             throw context.createUnwind(cachedResult);
           }
-        } else if (node instanceof ExpressionNode) {
-          onExpressionReturn(result, node, context, nanoTimeElapsed);
+        } else if (node instanceof ExpressionNode expressionNode) {
+          onExpressionReturn(result, expressionNode, context, nanoTimeElapsed);
         }
       }
 
@@ -169,11 +163,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
       }
 
-      private void onExpressionReturn(Object result, Node node, EventContext context, long howLong) {
-        boolean isPanic = result instanceof AbstractTruffleException && !(result instanceof DataflowError);
-        UUID nodeId = ((ExpressionNode) node).getId();
+      private void onExpressionReturn(
+          Object result, ExpressionNode node, EventContext context, long howLong) {
+        boolean isPanic =
+            result instanceof AbstractTruffleException && !(result instanceof DataflowError);
 
-        callbacks.updateCachedResult(nodeId, result, isPanic, howLong);
+        callbacks.updateCachedResult(node, result, isPanic, howLong);
         if (isPanic) {
           throw context.createUnwind(result);
         }
@@ -183,11 +178,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       private void onTailCallReturn(Throwable exception, State state) {
         try {
           TailCallException tailCallException = (TailCallException) exception;
-          FunctionCallInstrumentationNode.FunctionCall functionCall
-                  = new FunctionCallInstrumentationNode.FunctionCall(
-                          tailCallException.getFunction(),
-                          state,
-                          tailCallException.getArguments());
+          FunctionCallInstrumentationNode.FunctionCall functionCall =
+              new FunctionCallInstrumentationNode.FunctionCall(
+                  tailCallException.getFunction(), state, tailCallException.getArguments());
           Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
           onReturnValue(null, result);
         } catch (InteropException e) {
@@ -196,30 +189,32 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
 
       /**
-       * Checks if we're not inside a recursive call, i.e. the
-       * {@link #entryCallTarget} only appears in the stack trace once.
+       * Checks if we're not inside a recursive call, i.e. the {@link #entryCallTarget} only appears
+       * in the stack trace once.
        *
-       * @return {@code true} if it's not a recursive call, {@code false}
-       * otherwise.
+       * @return {@code true} if it's not a recursive call, {@code false} otherwise.
        */
       private boolean isTopFrame(CallTarget entryCallTarget) {
-        Object result = Truffle.getRuntime().iterateFrames(new FrameInstanceVisitor<Object>() {
-          boolean seenFirst = false;
+        Object result =
+            Truffle.getRuntime()
+                .iterateFrames(
+                    new FrameInstanceVisitor<Object>() {
+                      boolean seenFirst = false;
 
-          @Override
-          public Object visitFrame(FrameInstance frameInstance) {
-            CallTarget ct = frameInstance.getCallTarget();
-            if (ct != entryCallTarget) {
-              return null;
-            }
-            if (seenFirst) {
-              return new Object();
-            } else {
-              seenFirst = true;
-              return null;
-            }
-          }
-        });
+                      @Override
+                      public Object visitFrame(FrameInstance frameInstance) {
+                        CallTarget ct = frameInstance.getCallTarget();
+                        if (ct != entryCallTarget) {
+                          return null;
+                        }
+                        if (seenFirst) {
+                          return new Object();
+                        } else {
+                          seenFirst = true;
+                          return null;
+                        }
+                      }
+                    });
         return result == null;
       }
 
@@ -235,8 +230,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
   }
 
   /**
-   * Attach a new event node factory to observe identified nodes within given
-   * function.
+   * Attach a new event node factory to observe identified nodes within given function.
    *
    * @param mod module that contains the code
    * @param entryCallTarget the call target being observed.
@@ -246,19 +240,19 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    */
   @Override
   public EventBinding<ExecutionEventNodeFactory> bind(
-    TruffleObject mod,
-    CallTarget entryCallTarget,
-    Callbacks callbacks,
-    Object timer
-  ) {
-    var module = (Module)mod;
-    var builder = SourceSectionFilter.newBuilder()
+      TruffleObject mod, CallTarget entryCallTarget, Callbacks callbacks, Object timer) {
+    var module = (Module) mod;
+    var builder =
+        SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
             .tagIs(IdentifiedTag.class)
             .tagIsNot(AvoidIdInstrumentationTag.class)
             .sourceIs(module::isModuleSource);
 
-    if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() instanceof SourceSection section && section != null) {
+    if (entryCallTarget instanceof RootCallTarget r
+        && r.getRootNode() instanceof ClosureRootNode c
+        && c.getSourceSection() instanceof SourceSection section
+        && section != null) {
       final int firstFunctionLine = section.getStartLine();
       final int afterFunctionLine = section.getEndLine() + 1;
       builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));

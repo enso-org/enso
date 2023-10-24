@@ -2,6 +2,8 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
+import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.data.CompilerConfig
 import org.enso.interpreter.service.ExecutionService.{
   ExpressionCall,
   ExpressionValue,
@@ -15,6 +17,7 @@ import org.enso.interpreter.instrument.execution.{
 }
 import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument._
+import org.enso.interpreter.node.{EnsoRootNode, ExpressionNode}
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
@@ -435,7 +438,8 @@ object ProgramExecutionSupport {
           syncState,
           visualization,
           value.getExpressionId,
-          value.getValue
+          value.getValue,
+          value.getExpressionNode
         )
       }
     }
@@ -454,12 +458,14 @@ object ProgramExecutionSupport {
     syncState: UpdatesSynchronizationState,
     visualization: Visualization,
     expressionId: UUID,
-    expressionValue: AnyRef
+    expressionValue: AnyRef,
+    expressionNode: ExpressionNode
   )(implicit ctx: RuntimeContext): Unit = {
     val errorOrVisualizationData =
       Either
         .catchNonFatal {
-          ctx.executionService.getLogger.log(
+          val logger = ctx.executionService.getLogger
+          logger.log(
             Level.FINEST,
             "Executing visualization [{0}] on expression [{1}] of [{2}]...",
             Array[Object](
@@ -469,12 +475,37 @@ object ProgramExecutionSupport {
                 .getOrElse(expressionValue.getClass)
             )
           )
-          ctx.executionService.callFunctionWithInstrument(
-            visualization.cache,
-            visualization.module,
-            visualization.callback,
-            expressionValue +: visualization.arguments: _*
-          )
+          visualization.config.expression match {
+            case Api.VisualizationExpression.Text(_, expression) =>
+              val compiler = ctx.executionService.getContext.getCompiler
+              val ensoRootNode =
+                expressionNode.getRootNode.asInstanceOf[EnsoRootNode]
+              val compilerConfig = CompilerConfig(
+                autoParallelismEnabled = false,
+                warningsEnabled        = false,
+                isStrictErrors         = true
+              )
+              val moduleContext = ModuleContext(
+                ensoRootNode.getModuleScope.getModule,
+                compilerConfig
+              )
+              val inlineContext = InlineContext(
+                moduleContext,
+                compilerConfig,
+                Some(ensoRootNode.getLocalScope),
+                Some(false)
+              )
+              val callback = compiler.runInline(expression, inlineContext).get
+              val fn       = Function.thunk(callback.getRootNode.getCallTarget, null)
+              ctx.executionService.callFunction(fn, expressionValue)
+            case _ =>
+              ctx.executionService.callFunctionWithInstrument(
+                visualization.cache,
+                visualization.module,
+                visualization.callback,
+                expressionValue +: visualization.arguments: _*
+              )
+          }
         }
         .flatMap(visualizationResultToBytes)
     val result = errorOrVisualizationData match {
@@ -488,11 +519,12 @@ object ProgramExecutionSupport {
         if (!typeOfNode.map(TypesGen.isPanicSentinel).getOrElse(false)) {
           ctx.executionService.getLogger.log(
             Level.WARNING,
-            "Execution of visualization [{0}] on value [{1}] of [{2}] failed.",
+            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3}",
             Array[Object](
               visualization.config,
               expressionId,
               typeOfNode.getOrElse(expressionValue.getClass),
+              message,
               error
             )
           )
