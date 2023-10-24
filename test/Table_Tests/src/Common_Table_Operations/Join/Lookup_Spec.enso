@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
 from Standard.Table.Errors import all
@@ -252,6 +253,13 @@ spec setup =
             # But NULLs in source will mean such rows will never match:
             r3 = my_table2.lookup_and_replace lookup2 key_columns="X" allow_unmatched_rows=False
             r3.should_fail_with Unmatched_Rows_In_Lookup
+
+        Test.specify "will not allow providing no key_columns" <|
+            lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
+            my_table = table_builder [["X", [2, 1]], ["Z", [10, 20]]]
+
+            r2 = my_table.lookup_and_replace lookup key_columns=[]
+            r2.should_fail_with Illegal_Argument
 
         if setup.is_database.not then Test.specify "(in-memory only) will preserve the order of rows from the original table" <|
             lookup = table_builder [["Y", [1, 0]], ["V", ["TRUE", "FALSE"]]]

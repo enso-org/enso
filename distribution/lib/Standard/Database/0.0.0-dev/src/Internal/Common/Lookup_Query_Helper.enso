@@ -2,9 +2,9 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Runtime import assert
 
-import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Internal.Lookup_Helpers
 import Standard.Table.Internal.Lookup_Helpers.Lookup_Column
+from Standard.Table import Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
 import project.Data.Table.Table
@@ -34,41 +34,11 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
         unique_name_strategy.mark_used base_table.column_names
         unique_name_strategy.mark_used lookup_table.column_names
 
-        # First pass - no checking of invariants
-        lookup_indicator_base = Internal_Column.Value (unique_name_strategy.make_unique "lookup_indicator") SQL_Type_Reference.null (SQL_Expression.Literal "1")
-
-        self_requested_columns = Vector.new_builder
-        lookup_requested_columns = Vector.new_builder
-
-        lookup_columns.each c-> case c of
-            Lookup_Column.Key_Column base_column key_column ->
-                self_requested_columns.append [base_column]
-                lookup_requested_columns.append [key_column]
-            Lookup_Column.Keep_Column base_column ->
-                self_requested_columns.append [base_column]
-                lookup_requested_columns.append []
-            Lookup_Column.Replace_Column base_column lookup_column _ ->
-                self_requested_columns.append [base_column]
-                lookup_requested_columns.append [lookup_column]
-            Lookup_Column.Add_Column lookup_column ->
-                self_requested_columns.append []
-                lookup_requested_columns.append [lookup_column]
-
-        self_sub = base_table.context.as_subquery self_alias self_requested_columns.to_vector
-        lookup_sub = lookup_table.context.as_subquery lookup_alias lookup_requested_columns.to_vector+[[lookup_indicator_base]]
-        lookup_indicator = lookup_sub.new_columns.at -1 . first
-
-        get_self_column ix = self_sub.new_columns.at ix . first
-        get_lookup_column ix = lookup_sub.new_columns.at ix . first
-
-        on_expressions = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
-            Lookup_Column.Key_Column _ _ ->
-                [SQL_Expression.Operation "==" [(get_self_column ix).expression, (get_lookup_column ix).expression]]
-            _ -> []
+        subquery_setup = prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy
+        lookup_counter = subquery_setup.lookup_counter
 
         # We need to construct the context _before_ constructing the columns, to be able to use it in column construction (for inferring types).
-        new_from = From_Spec.Join SQL_Join_Kind.Left self_sub.subquery lookup_sub.subquery on_expressions
-        new_ctx = Context.for_subquery new_from
+        new_ctx = make_context_for_lookup_join lookup_columns subquery_setup
         infer_type_in_result expr =
             SQL_Type_Reference.new base_table.connection new_ctx expr
 
@@ -77,21 +47,14 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
            one fetch fetching all column types - TODO we should do that.
            See #6118.
         new_columns = lookup_columns.map_with_index ix-> c-> case c of
-            Lookup_Column.Key_Column _ _ -> get_self_column ix
-            Lookup_Column.Keep_Column _  -> get_self_column ix
+            Lookup_Column.Key_Column _ _ -> subquery_setup.get_self_column ix
+            Lookup_Column.Keep_Column _  -> subquery_setup.get_self_column ix
             Lookup_Column.Replace_Column _ _ expected_type ->
-                self_col = get_self_column ix
-                lookup_col = get_lookup_column ix
-                is_lookup_found = SQL_Expression.Operation "NOT" [SQL_Expression.Operation "IS_NULL" [lookup_indicator.expression]]
-                expression = case allow_unmatched_rows of
-                    True  -> SQL_Expression.Operation "CASE" [is_lookup_found, lookup_col.expression, self_col.expression]
-                    False -> Error.throw (Illegal_State.Error "Assumed that prepare_columns_for_lookup never returns Replace_Column if allow_unmatched_rows=False. This is a bug in the Database library.")
-                input_column = Internal_Column.Value self_col.name (infer_type_in_result expression) expression
-                adapted = base_table.connection.dialect.adapt_unified_column input_column expected_type infer_type_in_result
-                Internal_Column.Value self_col.name adapted.sql_type_reference adapted.expression
-            Lookup_Column.Add_Column _ -> get_lookup_column ix
+                subquery_setup.create_merged_column ix expected_type infer_type_in_result allow_unmatched_rows
+            Lookup_Column.Add_Column _ -> subquery_setup.get_lookup_column ix
 
-        Table.Value new_table_name base_table.connection new_columns new_ctx
+        precheck_for_duplicate_matches lookup_columns subquery_setup new_ctx <|
+            Table.Value new_table_name base_table.connection new_columns new_ctx
 
 ## PRIVATE
 check_initial_invariants : Table -> Table -> Vector Lookup_Column -> Boolean -> Any -> Any
@@ -102,10 +65,102 @@ check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_
             [lookup_column.name]
         _ -> []
     check_for_null_keys lookup_table key_column_names <|
-        # TODO check duplicate matches
         if allow_unmatched_rows then continuation else
             unmatched_rows = base_table.join lookup_table on=key_column_names join_kind=Join_Kind.Left_Exclusive . select_columns key_column_names
             unmatched_example = unmatched_rows.read max_rows=1
             if unmatched_example.row_count == 0 then continuation else
                 first_row = unmatched_example.rows.first
                 Error.throw (Unmatched_Rows_In_Lookup.Error first_row.to_vector)
+
+## PRIVATE
+make_lookup_counter_column dialect lookup_columns unique_name_strategy =
+    grouping_expressions = lookup_columns.flat_map c-> case c of
+        Lookup_Column.Key_Column _ lookup_column -> [lookup_column.expression]
+        _ -> []
+    row_number_expression = SQL_Expression.Operation "ROW_NUMBER_IN_GROUP" grouping_expressions
+    sql_type = dialect.get_type_mapping.value_type_to_sql Value_Type.Integer Problem_Behavior.Ignore
+    Internal_Column.Value (unique_name_strategy.make_unique "lookup_counter") (SQL_Type_Reference.from_constant sql_type) row_number_expression
+
+## PRIVATE
+make_context_for_lookup_join lookup_columns subquery_setup =
+    on_expressions = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
+        Lookup_Column.Key_Column _ _ ->
+            self_col = subquery_setup.get_self_column ix
+            lookup_col = subquery_setup.get_lookup_column ix
+            [SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]]
+        _ -> []
+
+    new_from = From_Spec.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
+    Context.for_subquery new_from
+
+## PRIVATE
+type Lookup_Subquery_Setup
+    ## PRIVATE
+    Value self_sub lookup_sub lookup_counter
+
+    ## PRIVATE
+    get_self_column self ix =
+        self.self_sub.new_columns.at ix . first
+
+    ## PRIVATE
+    get_lookup_column self ix =
+        self.lookup_sub.new_columns.at ix . first
+
+    ## PRIVATE
+       Creates an `Internal_Column` representing the `Replace_Column` scenario:
+       taking data from lookup table if it was matched, and from base table
+       otherwise.
+       This method also ensure that the column has the expected type, unifying
+       types of the two sources.
+    create_merged_column ix expected_type infer_type_in_result allow_unmatched_rows =
+        self_col = self.get_self_column ix
+        lookup_col = self.get_lookup_column ix
+        is_lookup_found = SQL_Expression.Operation "==" [self.lookup_counter.expression, SQL_Expression.Literal "1"]
+        expression = case allow_unmatched_rows of
+            True  -> SQL_Expression.Operation "CASE" [is_lookup_found, lookup_col.expression, self_col.expression]
+            False -> Error.throw (Illegal_State.Error "Assumed that prepare_columns_for_lookup never returns Replace_Column if allow_unmatched_rows=False. This is a bug in the Database library.")
+        input_column = Internal_Column.Value self_col.name (infer_type_in_result expression) expression
+        adapted = base_table.connection.dialect.adapt_unified_column input_column expected_type infer_type_in_result
+        Internal_Column.Value self_col.name adapted.sql_type_reference adapted.expression
+
+## PRIVATE
+prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
+    lookup_counter_base = make_lookup_counter_column lookup_table.connection.dialect lookup_columns unique_name_strategy
+
+    self_requested_columns = Vector.new_builder
+    lookup_requested_columns = Vector.new_builder
+
+    lookup_columns.each c-> case c of
+        Lookup_Column.Key_Column base_column key_column ->
+            self_requested_columns.append [base_column]
+            lookup_requested_columns.append [key_column]
+        Lookup_Column.Keep_Column base_column ->
+            self_requested_columns.append [base_column]
+            lookup_requested_columns.append []
+        Lookup_Column.Replace_Column base_column lookup_column _ ->
+            self_requested_columns.append [base_column]
+            lookup_requested_columns.append [lookup_column]
+        Lookup_Column.Add_Column lookup_column ->
+            self_requested_columns.append []
+            lookup_requested_columns.append [lookup_column]
+
+    self_sub = base_table.context.as_subquery self_alias self_requested_columns.to_vector
+    lookup_sub = lookup_table.context.as_subquery lookup_alias lookup_requested_columns.to_vector+[[lookup_counter_base]]
+    lookup_counter = lookup_sub.new_columns.at -1 . first
+
+    Lookup_Subquery_Setup.Value self_sub lookup_sub lookup_counter
+
+## PRIVATE
+precheck_for_duplicate_matches lookup_columns subquery_setup new_ctx ~continuation =
+    key_columns_for_duplicate_check = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
+        Lookup_Column.Key_Column _ _ -> [subquery_setup.get_self_column ix]
+        _ -> []
+    table_for_duplicate_check = Table.Value new_table_name base_table.connection [lookup_counter]+key_columns_for_duplicate_check new_ctx
+    duplicate_lookup_matches = table_for_duplicate_check.filter 0 (Filter_Condition.Greater than=1) . read max_rows=1
+    case duplicate_lookup_matches.row_count > 0 of
+        True ->
+            first_example_row = duplicate_lookup_matches.read.rows.first.to_vector
+            duplicate_example_count = first_example_row.first
+            duplicate_example_key = first_example_row.drop 1
+            Error.throw (Non_Unique_Key.Error (key_columns_for_duplicate_check.map .name) duplicate_example_key duplicate_example_count)
+        False -> continuation
