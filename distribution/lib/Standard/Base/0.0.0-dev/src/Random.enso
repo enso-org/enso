@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Array.Array
 import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
@@ -231,8 +232,8 @@ type Random
              import Standard.Base.Random.Random
 
              items = Random.items [1, 2, 3, 4]
-    items : Vector Any -> Integer -> Boolean -> Vector Any ! Illegal_Argument
-    items (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random_Generator.global_random_generator.items v count with_replacement
+    items : (Vector Any | Array Any) -> Integer -> Boolean -> Vector Any ! Illegal_Argument
+    items (v : Vector Any | Array Any) (count:Integer=1) (with_replacement:Boolean=False) = Random_Generator.global_random_generator.items v count with_replacement
 
     ## GROUP Random
        Returns a random permutation of the input `Vector`.
@@ -317,8 +318,8 @@ type Random_Generator
     uuid self = UUID.randomUUID.to_text
 
     ## PRIVATE
-    items : Vector Any -> Integer -> Boolean -> Any ! Illegal_Argument
-    items self (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) =
+    items : (Vector Any | Array Any) -> Integer -> Boolean -> Any ! Illegal_Argument
+    items self (v : Vector Any | Array Any) (count:Integer=1) (with_replacement:Boolean=False) =
         case with_replacement of
             True ->
                 len = v.length
