@@ -219,7 +219,7 @@ make_iif arguments = case arguments.length of
    An IR expression for constructing SQL `CASE` expressions.
 case_when : Vector Builder -> Builder
 case_when arguments =
-    if arguments.length < 4 then Error.throw (Illegal_State.Error "CASE_WHEN needs at least 3 arguments.") else
+    if arguments.length < 3 then Error.throw (Illegal_State.Error "CASE_WHEN needs at least 3 arguments.") else
         fallback = arguments.last
         cases = arguments.drop (Last 1)
         if cases.length % 2 != 0 then Error.throw (Illegal_State.Error "CASE_WHEN expects an odd number of arguments (two arguments for each case and a fallback).") else

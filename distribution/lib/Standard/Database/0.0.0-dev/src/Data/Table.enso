@@ -1410,26 +1410,39 @@ type Table
             lookup_sub = lookup_table.context.as_subquery lookup_alias lookup_requested_columns.to_vector+[[lookup_indicator_base]]
             lookup_indicator = lookup_sub.new_columns.at -1 . first
 
-            on_expressions_builder = Vector.new_builder
-            new_columns = lookup_columns.map_with_index ix-> c-> case c of
-                Lookup_Column.Key_Column _ _ ->
-                    self_col = self_sub.new_columns.at ix . first
-                    lookup_col = lookup_sub.new_columns.at ix . first
-                    on_expressions_builder.append <|
-                        SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]
-                    self_col
-                Lookup_Column.Keep_Column _ ->
-                    self_sub.new_columns.at ix . first
-                Lookup_Column.Replace_Column _ _ _ ->
-                    # TODO
-                    case allow_unmatched_rows of
-                        True -> lookup_sub.new_columns.at ix . first
-                        False -> lookup_sub.new_columns.at ix . first
-                Lookup_Column.Add_Column _ ->
-                    lookup_sub.new_columns.at ix . first
+            get_self_column ix = self_sub.new_columns.at ix . first
+            get_lookup_column ix = lookup_sub.new_columns.at ix . first
 
-            new_from = From_Spec.Join SQL_Join_Kind.Left self_sub.subquery lookup_sub.subquery on_expressions_builder.to_vector
+            on_expressions = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
+                Lookup_Column.Key_Column _ _ ->
+                    [SQL_Expression.Operation "==" [(get_self_column ix).expression, (get_lookup_column ix).expression]]
+                _ -> []
+
+            # We need to construct the context _before_ constructing the columns, to be able to use it in column construction (for inferring types).
+            new_from = From_Spec.Join SQL_Join_Kind.Left self_sub.subquery lookup_sub.subquery on_expressions
             new_ctx = Context.for_subquery new_from
+            infer_type_in_result expr =
+                SQL_Type_Reference.new self.connection new_ctx expr
+
+            ## TODO [RW] here we will perform as many fetches as there are
+               Replace_Column instances, but technically we could perform just
+               one fetch fetching all column types - TODO we should do that.
+               See #6118.
+            new_columns = lookup_columns.map_with_index ix-> c-> case c of
+                Lookup_Column.Key_Column _ _ -> get_self_column ix
+                Lookup_Column.Keep_Column _  -> get_self_column ix
+                Lookup_Column.Replace_Column _ _ expected_type ->
+                    self_col = get_self_column ix
+                    lookup_col = get_lookup_column ix
+                    is_lookup_found = SQL_Expression.Operation "NOT" [SQL_Expression.Operation "IS_NULL" [lookup_indicator.expression]]
+                    expression = case allow_unmatched_rows of
+                        True  -> SQL_Expression.Operation "CASE" [is_lookup_found, lookup_col.expression, self_col.expression]
+                        False -> Error.throw (Illegal_State.Error "Assumed that prepare_columns_for_lookup never returns Replace_Column if allow_unmatched_rows=False. This is a bug in the Database library.")
+                    input_column = Internal_Column.Value self_col.name (infer_type_in_result expression) expression
+                    adapted = self.connection.dialect.adapt_unified_column input_column expected_type infer_type_in_result
+                    Internal_Column.Value self_col.name adapted.sql_type_reference adapted.expression
+                Lookup_Column.Add_Column _ -> get_lookup_column ix
+
             Table.Value new_table_name self.connection new_columns new_ctx
 
     ## ALIAS join by row position
