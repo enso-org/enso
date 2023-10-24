@@ -92,7 +92,7 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    // emit('finished')
+    emit('finished')
   }
 }
 
