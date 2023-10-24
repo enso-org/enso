@@ -119,9 +119,7 @@ class EnsoParser extends Parser {
         if (code !== self.cachedCode || self.cachedTree == null) {
           self.cachedCode = code
           const ast = AstExtended.parse(code)
-          console.log(ast.debug())
           self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [[languageDataProp, facet]])
-          console.log(self.cachedTree)
         }
         return self.cachedTree
       },
