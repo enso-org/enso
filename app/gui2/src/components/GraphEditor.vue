@@ -267,22 +267,25 @@ function clearSelection() {
   }
 }
 
-/// Track play button presses
+/// Track play button presses.
 function onPlayButtonPress() {
+  console.log('Play button pressed.')
   projectStore.lsRpcConnection.then(async (rpc) => {
     const modeValue = mode.value
     if (modeValue == undefined) {
-      console.error('No execution mode available for setting the execution mode.')
       return
     }
     projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
   })
 }
 
-/// Observe execution mode changes
-watchEffect(async () => {
-  projectStore.executionContext.setExecutionEnvironment(mode.value === 'live' ? 'Live' : 'Design')
-})
+/// Watch for changes in the execution mode.
+watch(
+  () => mode.value,
+  (modeValue) => {
+    projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
+  },
+)
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}

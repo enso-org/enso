@@ -174,7 +174,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     )
     this.registerHandlers()
     this.create()
-    this.acquireExecutionContextCanModify()
     this.pushItem({ type: 'ExplicitCall', ...entryPoint })
     this.recompute()
   }
@@ -336,16 +335,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
         await state.lsRpc.destroyExecutionContext(this.id)
         return { ...state, created: false }
       })
-    })
-  }
-
-  private acquireExecutionContextCanModify() {
-    console.log('Pushing acquireExecutionContextCanModify task')
-    this.queue.pushTask(async (state) => {
-      if (!state.created) throw 'Cannot acquire edit capability for non-existing execution context'
-      console.log('lsRpc.acquireExecutionContextCanModify')
-      await state.lsRpc.acquireExecutionContextCanModify(this.id)
-      return state
     })
   }
 
