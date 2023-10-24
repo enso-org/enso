@@ -1,16 +1,16 @@
 from Standard.Base import all
 from Standard.Test import all
 
-fib n = if n <= 1 then 1 else
+fib n b=1 = if n <= 1 then b else
     a = fib n-1
     b = fib n-2
     a+b
 
-fib2 n =
+fib2 n f=1 s=1 =
     acc at n1 n2 = if at > n then n1 else
         @Tail_Call acc at+1 n2 n1+n2
 
-    acc 1 1 1
+    acc f s 1
 
 spec =
     Test.group "Instrument fibonacci" <|
@@ -155,6 +155,43 @@ spec =
             result3 . should_equal 89
 
 
+        Test.specify "Access (even default) arguments of calls" <|
+            b = Vector.new_builder
+
+            call_fn uuid:Text fn:Function args:Any =
+                if uuid == "00000000-ffff-1111-bbbb-000000000000" then
+                    # calling fib function
+                    fn.to_text . should_contain "fib["
+                    # which has "self" plus two other arguments
+                    args.length . should_equal 3
+                    # but b=1 is defaulted - e.g. nothing
+                    args.at 2 . is_nothing . should_be_true
+                    b.append <| args.at 1
+
+                    # change the value for `fib 8`
+                    100
+
+            result1 = fib 10
+            result1 . should_equal 89
+
+            instrumenter = Meta.meta .fib . instrument . on_call call_fn . activate
+
+            instrumenter . with _->
+                result2 = fib 10
+                result2 . should_equal 155
+
+            instrumenter.finalize
+
+            # only first top most call to `fib n-2` is recorded
+            b.to_vector.to_text . should_equal "[8]"
+
+            # behaves normally again
+            result3 = fib 10
+            result3 . should_equal 89
+
+            # no change to the value
+            b.to_vector.to_text . should_equal "[8]"
+
         Test.specify "GC disables Instrumentor" <|
             n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
 
@@ -189,4 +226,4 @@ main = Test_Suite.run_main spec
 
 
 #### METADATA ####
-[[{"index":{"value":127},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":69},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":214},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"]]
+[[{"index":{"value":131},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":73},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":226},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"],[{"index":{"value":119},"size":{"value":7}},"00000000-ffff-1111-bbbb-000000000000"]]
