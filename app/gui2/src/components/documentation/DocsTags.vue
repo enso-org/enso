@@ -22,7 +22,7 @@ interface View {
 }
 
 const defaultView = (tag: Doc.Tag, body: Doc.HtmlString): View => ({
-  label: tag + ' = ' + body,
+  label: tag + (body.length > 0 ? `= ${body}` : ''),
 })
 const tagsMap: Partial<Record<Doc.Tag, (body: Doc.HtmlString) => View>> = {
   Alias: (body) => ({ label: body }),
