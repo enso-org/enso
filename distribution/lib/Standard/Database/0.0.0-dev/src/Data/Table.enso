@@ -1353,8 +1353,8 @@ type Table
            specified in `key_columns`, a `Missing_Input_Columns` error is raised.
          - If an empty vector is provided for `key_columns`, a
            `No_Input_Columns_Selected` error is raised.
-         - If the lookup table contains multiple rows with the same values in
-           the `key_columns`, an `Non_Unique_Key` error is raised.
+         - If a single row is matched by multiple entries in the lookup table,
+           a `Non_Unique_Key` error is raised.
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.

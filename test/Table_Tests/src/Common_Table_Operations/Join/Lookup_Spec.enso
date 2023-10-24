@@ -149,16 +149,41 @@ spec setup =
             m2.at "Y" . to_vector . should_equal ["A", "B", "A", "B"]
             m2.at "Z" . to_vector . should_equal [100, 200, 100, 100]
 
-        Test.specify "will fail on duplicate keys in the lookup table" <|
+        Test.specify "will fail on duplicate matches in the lookup table" <|
             lookup = table_builder [["X", [1, 2, 1]], ["Y", ["A", "B", "C"]]]
             my_table = table_builder [["X", [4, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
-            r2 = my_table.lookup_and_replace lookup key_columns=["X"]
+            # If the duplicates do not show up in result - it is accepted.
+            t2 = my_table.lookup_and_replace lookup key_columns=["X"]
+            t2.column_names . should_equal ["X", "Y", "Z"]
+            m2 = t2 |> materialize |> _.order_by "Z"
+            m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
+            m2.at "X" . to_vector . should_equal [4, 2, 3, 2]
+            m2.at "Y" . to_vector . should_equal ["Z", "B", "ZZZ", "B"]
+
+            my_table2 = table_builder [["X", [1, 2]], ["Y", ["Z", "ZZ"]], ["Z", [10, 20]]]
+            r2 = my_table2.lookup_and_replace lookup key_columns=["X"]
             r2.should_fail_with Non_Unique_Key
+            r2.catch.key_column_names . should_equal ["X"]
+            r2.catch.clashing_example_key_values . should_equal [1]
+            r2.catch.clashing_example_row_count . should_equal 2
 
             lookup2 = table_builder [["X", [1, 1]], ["Y", ["A", "A"]], ["Z", [100, 100]]]
-            r3 = my_table.lookup_and_replace lookup2 key_columns=["X", "Y"]
+            Problems.assume_no_problems <| my_table.lookup_and_replace lookup2 key_columns=["X", "Y"]
+            r3 = my_table2.lookup_and_replace lookup2 key_columns=["X"]
             r3.should_fail_with Non_Unique_Key
+
+            m3 = my_table2.lookup_and_replace lookup2 key_columns=["X", "Y"] |> materialize |> _.order_by "Z"
+            m3.at "Z" . to_vector . should_equal [10, 20]
+            m3.at "X" . to_vector . should_equal [1, 2]
+            m3.at "Y" . to_vector . should_equal ["Z", "ZZ"]
+
+            my_table3 = table_builder [["X", [1, 1, 2]], ["Y", ["A", "Z", "ZZ"]], ["Z", [10, 20, 30]]]
+            r4 = my_table3.lookup_and_replace lookup2 key_columns=["X", "Y"]
+            r4.should_fail_with Non_Unique_Key
+            r4.catch.key_column_names . should_equal ["X", "Y"]
+            r4.catch.clashing_example_key_values . should_equal [1, "A"]
+            r4.catch.clashing_example_row_count . should_equal 2
 
         Test.specify "will preserve count of rows, even if there are duplicates" <|
             lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
