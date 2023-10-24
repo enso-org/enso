@@ -11,15 +11,22 @@ polyglot java import org.enso.table.data.table.join.LookupColumnDescription
 ## PRIVATE
 type Lookup_Column
     ## PRIVATE
+       A key column used to correlate rows between the two tables.
     Key_Column base_column lookup_column
 
     ## PRIVATE
+       A column from the base table that is kept as-is.
     Keep_Column base_column
 
     ## PRIVATE
+       A column that is present in both tables.
+       If the row is matched with a row from the lookup table, the value from
+       the lookup table is used; otherwise the value from the base table is kept.
     Replace_Column base_column lookup_column (common_type : Value_Type)
 
     ## PRIVATE
+       A new column added from the lookup table.
+       If the row has no match, it will be `Nothing`.
     Add_Column lookup_column
 
     ## PRIVATE

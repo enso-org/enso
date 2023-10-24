@@ -51,6 +51,8 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
             Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx
 
 ## PRIVATE
+   Checks if they key contains NULL values or if there would be unmatched rows
+   (if `allow_unmatched_rows` is `False`), and reports any errors.
 check_initial_invariants : Table -> Table -> Vector Lookup_Column -> Boolean -> Any -> Any
 check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows ~continuation =
     key_column_names = lookup_columns.flat_map c-> case c of
@@ -67,6 +69,13 @@ check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_
                 Error.throw (Unmatched_Rows_In_Lookup.Error first_row.to_vector)
 
 ## PRIVATE
+   Prepares the lookup table counter that is used for two things:
+   1. It allows us to check if a given row had found a match in the lookup row
+      and decide which value to use in `Replace_Column` case (the counter will
+      be `1` if there is a match and `NULL` if there is not).
+   2. It allows us to find duplicate matches - if a row with counter >1 is found,
+      that means that a single row has matched multiple rows in the lookup table
+      and we should report an error.
 make_lookup_counter_column dialect lookup_columns unique_name_strategy =
     grouping_expressions = lookup_columns.flat_map c-> case c of
         Lookup_Column.Key_Column _ lookup_column -> [lookup_column.expression]
@@ -76,18 +85,15 @@ make_lookup_counter_column dialect lookup_columns unique_name_strategy =
     Internal_Column.Value (unique_name_strategy.make_unique "lookup_counter") (SQL_Type_Reference.from_constant sql_type) row_number_expression
 
 ## PRIVATE
-make_context_for_lookup_join lookup_columns subquery_setup =
-    on_expressions = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
-        Lookup_Column.Key_Column _ _ ->
-            self_col = subquery_setup.get_self_column ix
-            lookup_col = subquery_setup.get_lookup_column ix
-            [SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]]
-        _ -> []
+   Gathers information about prepared subqueries in one place - to make it
+   easier to pass this context between various helper functions.
 
-    new_from = From_Spec.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
-    Context.for_subquery new_from
-
-## PRIVATE
+   The setup is prepared in such a way, that for each `Lookup_Column` we have a
+   vector of base table columns and lookup table columns corresponding to it.
+   Depending on the type of the `Lookup_Column`, one of these vectors may be
+   empty. The helper functions `get_self_column` and `get_lookup_column` allow
+   easy access of the corresponding columns for the given index - this should be
+   used with `lookup_columns.map_with_index`.
 type Lookup_Subquery_Setup
     ## PRIVATE
     Value self_sub lookup_sub lookup_counter new_table_name
@@ -118,6 +124,11 @@ type Lookup_Subquery_Setup
         Internal_Column.Value self_col.name adapted.sql_type_reference adapted.expression
 
 ## PRIVATE
+   Wraps the two source tables into subqueries and creates a set of new columns
+   (encapsulated as `Lookup_Subquery_Setup`), together with the `lookup_counter`
+   column (see `make_lookup_counter_column`), that are valid in the context of a
+   lookup join query (it translates the source columns valid in the input
+   contexts, to the external join context).
 prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
     table_name_deduplicator = base_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
     self_alias = table_name_deduplicator.make_unique base_table.name
@@ -151,6 +162,23 @@ prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
     Lookup_Subquery_Setup.Value self_sub lookup_sub lookup_counter new_table_name
 
 ## PRIVATE
+   Creates a context for the lookup join query.
+make_context_for_lookup_join lookup_columns subquery_setup =
+    on_expressions = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
+        Lookup_Column.Key_Column _ _ ->
+            self_col = subquery_setup.get_self_column ix
+            lookup_col = subquery_setup.get_lookup_column ix
+            [SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]]
+        _ -> []
+
+    new_from = From_Spec.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
+    Context.for_subquery new_from
+
+## PRIVATE
+   Runs a query that checks if there are any duplicate matches in the lookup
+   result. The query tries to minimize the amount of work and data that is
+   transferred, but it may not be cheap. It is however needed to be able to
+   report errors early.
 precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx ~continuation =
     key_columns_for_duplicate_check = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
         Lookup_Column.Key_Column _ _ -> [subquery_setup.get_self_column ix]
