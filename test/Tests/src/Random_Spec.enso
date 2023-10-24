@@ -101,33 +101,36 @@ spec = Test.group "Random" <|
     Test.specify "should allow generating random UUIDs" <|
         Random.uuid . should_only_contain_elements_in "0123456789abcdef-"
 
-    Test.specify "should allow to select a random item from a vector, without replacement" <|
+    Test.specify "should allow to select random items from a vector, without replacement" <|
         Random.set_seed 0
         vector = ["A", "B", "C"]
         shuffles = 0.up_to 100 . map _->
             Random.items vector 2
         shuffles . should_contain_the_same_elements_as [["A", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["C", "A"], ["C", "B"]]
 
-        overflow = Random.items vector 100
-        overflow.length . should_equal 3
-        overflow.should_contain_the_same_elements_as vector
-
         Random.items ["A", "A", "A"] 2 . should_equal ["A", "A"]
         Random.items ["A", "A", "A"] 0 . should_equal []
         Random.items ["A", "A", "A"] 3 . should_equal ["A", "A", "A"]
-        Random.items ["A", "A", "A"] 100 . should_equal ["A", "A", "A"]
 
-    Test.specify "should allow to select a random item from a vector, with replacement" <|
+    Test.specify "should allow to select random items from a vector, with replacement" <|
         Random.set_seed 0
         vector = 0.up_to 10 . to_vector
 
-        Random.items vector . length . should_equal 1
-        Random.items vector 4 . length . should_equal 4
+        Random.items vector with_replacement=True . length . should_equal 1
+        Random.items vector 4 with_replacement=True . length . should_equal 4
+        Random.items vector 10 with_replacement=True . length . should_equal 10
+        Random.items vector 11 with_replacement=True . length . should_equal 11
+        Random.items vector 100 with_replacement=True . length . should_equal 100
 
         0.up_to 20 . map _->
             items = Random.items vector 5 with_replacement=True
             items.should_only_contain_elements_in vector
             items.length . should_equal 5
+
+    Test.specify "should not allow to select more items than the vector has, without replacement" <|
+        vector = 0.up_to 10 . to_vector
+        Random.items vector 11 . should_fail_with Illegal_Argument
+        Random.items vector 100 . should_fail_with Illegal_Argument
 
     Test.specify "should allow to generate random permutations" <|
         Random.set_seed 0

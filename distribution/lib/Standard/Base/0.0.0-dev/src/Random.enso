@@ -217,9 +217,13 @@ type Random
          duplicates. If true, values from the `Vector` can be returned multiple
          times and duplicates are possible.
 
-       If `with_replacement` is false, and `count` is equal to or greater than
-       the size of the collection, a random permutation of the collection is
-       returned.
+       ! If `with_replacement` is false, and `count` is equal to the size of the
+         collection, a random permutation of the collection is returned.
+
+       ! If `with_replacement` is false, and `count` is greater than the size of
+         the collection, an `Illegal_Argument` error is thrown. (If `count` is
+         greater than the size of the collection, `items` will run out of values
+         to choose from, and will not be able to return enough values.)
 
        > Example
          Sample a vector.
@@ -227,7 +231,7 @@ type Random
              import Standard.Base.Random.Random
 
              items = Random.items [1, 2, 3, 4]
-    items : Vector Any -> Integer -> Boolean -> Vector Any
+    items : Vector Any -> Integer -> Boolean -> Vector Any ! Illegal_Argument
     items (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random_Generator.global_random_generator.items v count with_replacement
 
     ## GROUP Random
@@ -267,33 +271,40 @@ type Random_Generator
     java_random : Java_Random
     java_random self = self.random_instance_holder.getCurrentRandom
 
+    ## PRIVATE
     integer : Integer -> Integer -> Integer ! Illegal_Argument
     integer self (min:Integer) (max:Integer) =
         range = max - min
         if range >= Java_Integer.MAX_VALUE then Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.") else
           min + (self.java_random.nextInt range)
 
+    ## PRIVATE
     float : Float -> Float -> Float
     float self (min:Float=0.0) (max:Float=1.0) =
         range = max - min
         self.java_random.nextDouble * range + min
 
+    ## PRIVATE
     boolean : Boolean
     boolean self =
         self.java_random.nextBoolean
 
+    ## PRIVATE
     gaussian : Float -> Float -> Float
     gaussian self (standard_deviation:Float=1.0) (mean:Float=0.0) =
         self.java_random.nextGaussian * standard_deviation + mean
 
+    ## PRIVATE
     indices : Integer -> Integer -> Vector Integer
     indices self (n:Integer) (count:Integer=1) =
         array = Random_Utils.random_indices n count self.java_random
         Vector.from_polyglot_array array
 
+    ## PRIVATE
     date : Date_Range -> Date
     date self (date_range:Date_Range) = date_range.at (self.integer 0 date_range.length)
 
+    ## PRIVATE
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
     time self (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
         ## The time range end is inclusive because it is impossible to specify
@@ -301,19 +312,23 @@ type Random_Generator
         seconds = self.integer 0 (end_time.to_seconds - start_time.to_seconds + 1)
         start_time.date_add seconds Time_Period.Second
 
+    ## PRIVATE
     uuid : Text
     uuid self = UUID.randomUUID.to_text
 
-    items : Vector Any -> Integer -> Boolean -> Any
+    ## PRIVATE
+    items : Vector Any -> Integer -> Boolean -> Any ! Illegal_Argument
     items self (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) =
         case with_replacement of
             True ->
                 len = v.length
                 0.up_to count . map _-> v.at (self.integer 0 len)
             False ->
-                new_array = Random_Utils.sample v count self.java_random
-                Vector.from_polyglot_array new_array
+                if count > v.length then Error.throw (Illegal_Argument.Error "`count` cannot be greater than the size of the collection when `with_replacement` is false") else
+                  new_array = Random_Utils.sample v count self.java_random
+                  Vector.from_polyglot_array new_array
 
+    ## PRIVATE
     permute : Vector Any -> Vector Any
     permute self (v:Vector) = self.items v v.length False
 
