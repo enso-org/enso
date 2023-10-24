@@ -1,9 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
-from project.Errors import Missing_Input_Columns, Unexpected_Extra_Columns, Floating_Point_Equality, No_Common_Type
+from project.Errors import Missing_Input_Columns, Unexpected_Extra_Columns, Floating_Point_Equality, No_Common_Type, No_Output_Columns
 
 polyglot java import org.enso.table.data.table.join.LookupColumnDescription
 
@@ -33,7 +34,8 @@ type Lookup_Column
 
    It also reports any errors or warnings related to selecting these columns.
 prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_columns allow_unmatched_rows on_problems =
-    key_columns = base_table.select_columns key_columns_selector . column_names
+    key_columns = base_table.select_columns key_columns_selector . column_names . catch No_Output_Columns _->
+        Error.throw (Illegal_Argument.Error "At least one key column must be provided for `lookup_and_replace`.")
     lookup_table_key_columns = lookup_table.select_columns key_columns . catch Missing_Input_Columns error->
         Error.throw (Missing_Input_Columns.Error error.criteria "the lookup table")
 

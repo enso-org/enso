@@ -23,19 +23,12 @@ build_lookup_query : Table -> Table -> (Vector (Integer | Text | Regex) | Text |
 build_lookup_query base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems =
     lookup_columns = Lookup_Helpers.prepare_columns_for_lookup base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
     lookup_columns.if_not_error <| check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows <|
-        table_name_deduplicator = base_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
-        self_alias = table_name_deduplicator.make_unique base_table.name
-        lookup_alias = table_name_deduplicator.make_unique lookup_table.name
-        new_table_name = table_name_deduplicator.make_unique <|
-            base_table.name + "_" + lookup_table.name
-
         column_naming_helper = base_table.connection.base_connection.column_naming_helper
         unique_name_strategy = column_naming_helper.create_unique_name_strategy
         unique_name_strategy.mark_used base_table.column_names
         unique_name_strategy.mark_used lookup_table.column_names
 
         subquery_setup = prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy
-        lookup_counter = subquery_setup.lookup_counter
 
         # We need to construct the context _before_ constructing the columns, to be able to use it in column construction (for inferring types).
         new_ctx = make_context_for_lookup_join lookup_columns subquery_setup
@@ -50,11 +43,12 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
             Lookup_Column.Key_Column _ _ -> subquery_setup.get_self_column ix
             Lookup_Column.Keep_Column _  -> subquery_setup.get_self_column ix
             Lookup_Column.Replace_Column _ _ expected_type ->
-                subquery_setup.create_merged_column ix expected_type infer_type_in_result allow_unmatched_rows
+                dialect = base_table.connection.dialect
+                subquery_setup.create_merged_column ix expected_type dialect infer_type_in_result allow_unmatched_rows
             Lookup_Column.Add_Column _ -> subquery_setup.get_lookup_column ix
 
-        precheck_for_duplicate_matches lookup_columns subquery_setup new_ctx <|
-            Table.Value new_table_name base_table.connection new_columns new_ctx
+        precheck_for_duplicate_matches lookup_columns subquery_setup base_table.connection new_ctx <|
+            Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx
 
 ## PRIVATE
 check_initial_invariants : Table -> Table -> Vector Lookup_Column -> Boolean -> Any -> Any
@@ -96,7 +90,7 @@ make_context_for_lookup_join lookup_columns subquery_setup =
 ## PRIVATE
 type Lookup_Subquery_Setup
     ## PRIVATE
-    Value self_sub lookup_sub lookup_counter
+    Value self_sub lookup_sub lookup_counter new_table_name
 
     ## PRIVATE
     get_self_column self ix =
@@ -112,7 +106,7 @@ type Lookup_Subquery_Setup
        otherwise.
        This method also ensure that the column has the expected type, unifying
        types of the two sources.
-    create_merged_column ix expected_type infer_type_in_result allow_unmatched_rows =
+    create_merged_column self ix expected_type dialect infer_type_in_result allow_unmatched_rows =
         self_col = self.get_self_column ix
         lookup_col = self.get_lookup_column ix
         is_lookup_found = SQL_Expression.Operation "==" [self.lookup_counter.expression, SQL_Expression.Literal "1"]
@@ -120,11 +114,17 @@ type Lookup_Subquery_Setup
             True  -> SQL_Expression.Operation "CASE" [is_lookup_found, lookup_col.expression, self_col.expression]
             False -> Error.throw (Illegal_State.Error "Assumed that prepare_columns_for_lookup never returns Replace_Column if allow_unmatched_rows=False. This is a bug in the Database library.")
         input_column = Internal_Column.Value self_col.name (infer_type_in_result expression) expression
-        adapted = base_table.connection.dialect.adapt_unified_column input_column expected_type infer_type_in_result
+        adapted = dialect.adapt_unified_column input_column expected_type infer_type_in_result
         Internal_Column.Value self_col.name adapted.sql_type_reference adapted.expression
 
 ## PRIVATE
 prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
+    table_name_deduplicator = base_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+    self_alias = table_name_deduplicator.make_unique base_table.name
+    lookup_alias = table_name_deduplicator.make_unique lookup_table.name
+    new_table_name = table_name_deduplicator.make_unique <|
+        base_table.name + "_" + lookup_table.name
+
     lookup_counter_base = make_lookup_counter_column lookup_table.connection.dialect lookup_columns unique_name_strategy
 
     self_requested_columns = Vector.new_builder
@@ -148,14 +148,14 @@ prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
     lookup_sub = lookup_table.context.as_subquery lookup_alias lookup_requested_columns.to_vector+[[lookup_counter_base]]
     lookup_counter = lookup_sub.new_columns.at -1 . first
 
-    Lookup_Subquery_Setup.Value self_sub lookup_sub lookup_counter
+    Lookup_Subquery_Setup.Value self_sub lookup_sub lookup_counter new_table_name
 
 ## PRIVATE
-precheck_for_duplicate_matches lookup_columns subquery_setup new_ctx ~continuation =
+precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx ~continuation =
     key_columns_for_duplicate_check = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
         Lookup_Column.Key_Column _ _ -> [subquery_setup.get_self_column ix]
         _ -> []
-    table_for_duplicate_check = Table.Value new_table_name base_table.connection [lookup_counter]+key_columns_for_duplicate_check new_ctx
+    table_for_duplicate_check = Table.Value subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
     duplicate_lookup_matches = table_for_duplicate_check.filter 0 (Filter_Condition.Greater than=1) . read max_rows=1
     case duplicate_lookup_matches.row_count > 0 of
         True ->
