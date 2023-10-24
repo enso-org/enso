@@ -23,9 +23,11 @@ const emit = defineEmits<{
 
 const base = ref<SVGPathElement>()
 
-function targetPos(): { pos: Vec2; size?: Vec2 } | null {
-  const hovered = props.hoveredNode != props.edge.source ? props.hoveredExpr : undefined
-  const targetExpr = props.edge.target ?? hovered
+type PosMaybeSized = { pos: Vec2; size?: Vec2 }
+
+const targetPos = computed<PosMaybeSized | null>(() => {
+  const targetExpr =
+    props.edge.target ?? (props.hoveredNode != props.edge.source ? props.hoveredExpr : undefined)
   if (targetExpr != null) {
     const targetNodeId = props.exprNodes.get(targetExpr)
     if (targetNodeId == null) return null
@@ -38,11 +40,11 @@ function targetPos(): { pos: Vec2; size?: Vec2 } | null {
   } else {
     return null
   }
-}
-function sourcePos(): { pos: Vec2; size?: Vec2 } | null {
+})
+const sourcePos = computed<PosMaybeSized | null>(() => {
   const targetNode = props.edge.target != null ? props.exprNodes.get(props.edge.target) : undefined
-  const hovered = props.hoveredNode != targetNode ? props.hoveredNode : undefined
-  const sourceNode = props.edge.source ?? hovered
+  const sourceNode =
+    props.edge.source ?? (props.hoveredNode != targetNode ? props.hoveredNode : undefined)
   if (sourceNode != null) {
     const sourceNodeRect = props.nodeRects.get(sourceNode)
     if (sourceNodeRect == null) return null
@@ -53,7 +55,7 @@ function sourcePos(): { pos: Vec2; size?: Vec2 } | null {
   } else {
     return null
   }
-}
+})
 
 /** The inputs to the edge state computation. */
 type Inputs = {
@@ -346,8 +348,8 @@ function render(sourcePos: Vec2, elements: Element[]): string {
 }
 
 const currentJunctionPoints = computed(() => {
-  const target_ = targetPos()
-  const source_ = sourcePos()
+  const target_ = targetPos.value
+  const source_ = sourcePos.value
   if (target_ == null || source_ == null) return null
   const inputs = {
     targetOffset: target_.pos.sub(source_.pos),
@@ -357,23 +359,18 @@ const currentJunctionPoints = computed(() => {
   return junctionPoints(inputs)
 })
 
-function makePath() {
-  const jp = currentJunctionPoints.value
-  if (jp == null) return ''
-  const { start, elements } = pathElements(jp)
-  const source_ = sourcePos()
-  if (source_ == null) return ''
-  return render(source_.pos.add(start), elements)
-}
-
 const basePath = computed(() => {
-  if (props.edge.source != null && props.edge.target != null) return makePath()
-  return ''
+  if (props.edge.source == null && props.edge.target == null) return undefined
+  const jp = currentJunctionPoints.value
+  if (jp == null) return undefined
+  const { start, elements } = pathElements(jp)
+  const source_ = sourcePos.value
+  if (source_ == null) return undefined
+  return render(source_.pos.add(start), elements)
 })
 
 const activePath = computed(() => {
-  if (props.edge.source == null || props.edge.target == null || hovered.value) return makePath()
-  return ''
+  if (hovered.value) return basePath.value
 })
 
 function lengthTo(pos: Vec2): number | undefined {
@@ -442,8 +439,8 @@ function arrowPosition(): Vec2 | undefined {
   if (props.edge.source == null || props.edge.target == null) return
   const points = currentJunctionPoints.value?.points
   if (points == null || points.length < 3) return
-  const target = targetPos()
-  const source = sourcePos()
+  const target = targetPos.value
+  const source = sourcePos.value
   if (target == null || source == null) return
   if (Math.abs(target.pos.y - source.pos.y) < ThreeCorner.BACKWARD_EDGE_ARROW_THRESHOLD) return
   if (points[1] == null) return
@@ -453,24 +450,26 @@ function arrowPosition(): Vec2 | undefined {
 const arrowTransform = computed(() => {
   const pos = arrowPosition()
   if (pos != null) return `translate(${pos.x},${pos.y})`
-  else return `scale(0)`
+  else return undefined
 })
 </script>
 
 <template>
   <path
     :d="basePath"
+    v-if="basePath"
     class="edge io"
     @pointerdown="click"
     @pointerenter="hovered = true"
     @pointerleave="hovered = false"
   />
-  <path :d="basePath" ref="base" class="edge visible base" />
-  <path :d="activePath" class="edge visible active" :style="activeStyle" />
+  <path :d="basePath" v-if="basePath" ref="base" class="edge visible base" />
+  <path :d="activePath" v-if="activePath" class="edge visible active" :style="activeStyle" />
   <polygon
     points="0,-9.375 -9.375,9.375 9.375,9.375"
     class="arrow visible"
     :transform="arrowTransform"
+    v-if="arrowTransform"
   />
 </template>
 
