@@ -332,24 +332,22 @@ const visualizationConfig = ref<UnsafeMutable<VisualizationConfig>>({
 })
 provideVisualizationConfig(visualizationConfig)
 
-watchEffect(async () => {
-  if (props.node.vis == null) {
-    return
-  }
+const module = computed(() =>
+  props.node.vis == null ? undefined : visualizationStore.get(props.node.vis).value,
+)
 
-  visualization.value = undefined
-  const module = await visualizationStore.get(props.node.vis)
-  if (module) {
-    if (module.defaultPreprocessor != null) {
-      updatePreprocessor(...module.defaultPreprocessor)
+watchEffect(() => {
+  if (module.value) {
+    if (module.value.defaultPreprocessor != null) {
+      updatePreprocessor(...module.value.defaultPreprocessor)
     } else {
       switchToDefaultPreprocessor()
     }
-    visualization.value = module.default
+    visualization.value = module.value.default
   }
 })
 
-const effectiveVisualization = computed(() => {
+const effectiveVisualization = computed<Visualization>(() => {
   if (!visualization.value || visualizationData.value == null) {
     return LoadingVisualization
   }
@@ -487,7 +485,7 @@ watchEffect(() => {
     />
     <component
       :is="effectiveVisualization"
-      v-if="isVisualizationVisible && effectiveVisualization != null"
+      v-if="isVisualizationVisible"
       :data="visualizationData"
       @update:preprocessor="updatePreprocessor"
     />

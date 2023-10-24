@@ -51,7 +51,7 @@ interface UnknownTable {
   type: undefined
   json: unknown
   all_rows_count?: number
-  header: string[]
+  header: string[] | undefined
   indices_header?: string[]
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
@@ -292,7 +292,7 @@ watchEffect(() => {
     rowData = [{ Value: toRender(data_.json) }]
   } else {
     const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map(toField)
-    columnDefs = [...indicesHeader, ...data_.header.map(toField)]
+    columnDefs = [...indicesHeader, ...(data_.header?.map(toField) ?? [])]
 
     const rows =
       data_.data && data_.data.length > 0

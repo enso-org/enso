@@ -1,8 +1,10 @@
 import * as vue from 'vue'
-import { reactive, ref, type DefineComponent, type PropType } from 'vue'
+import { computed, reactive, ref, type DefineComponent, type PropType } from 'vue'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { useProjectStore } from '@/stores/project'
+import { assertNever } from '@/util/assert'
 import { defineKeybinds } from '@/util/shortcuts'
 import type {
   AddImportNotification,
@@ -14,6 +16,9 @@ import type {
   CompileError,
   CompileRequest,
   FetchError,
+  FetchResultWorkerResponse,
+  FetchWorkerError,
+  FetchWorkerRequest,
   InvalidMimetypeError,
   RegisterBuiltinModulesRequest,
 } from '@/workers/visualizationCompiler'
@@ -21,6 +26,7 @@ import Compiler from '@/workers/visualizationCompiler?worker'
 import { defineStore } from 'pinia'
 import type { VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { z } from 'zod'
 
 /** A module containing the default visualization function. */
 const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'
@@ -65,13 +71,27 @@ export type Visualization = DefineComponent<
     'update:preprocessor'?: (module: string, method: string, ...args: string[]) => void
   }
 >
-type VisualizationModule = {
-  default: Visualization
-  name: string
-  inputType?: string
-  defaultPreprocessor?: readonly [module: string, method: string, ...args: string[]]
-  scripts?: string[]
-  styles?: string[]
+
+const VisualizationModule = z.object({
+  default: z.unknown(),
+  name: z.string(),
+  inputType: z.string().optional(),
+  defaultPreprocessor: (
+    z.string().array().min(2) as unknown as z.ZodType<
+      [module: string, method: string, ...args: string[]]
+    >
+  )
+    .readonly()
+    .optional(),
+  scripts: z.string().array().optional(),
+  styles: z.string().array().optional(),
+})
+type VisualizationModule = z.infer<typeof VisualizationModule>
+
+class InvalidVisualizationModuleError extends TypeError {
+  constructor(public path: string) {
+    super(`The module '${path}' is not a visualization.`)
+  }
 }
 
 const builtinVisualizationImports: Record<string, () => Promise<VisualizationModule>> = {
@@ -89,16 +109,20 @@ const dynamicVisualizationPaths: Record<string, string> = {
   'Geo Map': '/visualizations/GeoMapVisualization.vue',
 }
 
+declare const visualizationCacheKeyBrand: unique symbol
+type VisualizationCacheKey = string & { [visualizationCacheKeyBrand]: never }
+
 export const useVisualizationStore = defineStore('visualization', () => {
   const imports = { ...builtinVisualizationImports }
   const paths = { ...dynamicVisualizationPaths }
-  let cache: Record<string, VisualizationModule> = {}
+  const cache = reactive(new Map<VisualizationCacheKey, VisualizationModule>())
+  const currentProjectVisualizationsByPath = new Map<string, string>()
   let worker: Worker | undefined
   let workerMessageId = 0
-  const workerCallbacks: Record<
-    string,
-    { resolve: (result: VisualizationModule) => void; reject: () => void }
-  > = {}
+  const workerCallbacks = new Map<
+    number,
+    { resolve: (result: VisualizationModule) => void; reject: (error: Error) => void }
+  >()
   const allVisualizations = [
     ...Object.keys(imports),
     ...Object.keys(paths),
@@ -108,6 +132,13 @@ export const useVisualizationStore = defineStore('visualization', () => {
   }))
   const visualizationsForType = reactive(new Map<string, readonly VisualizationIdentifier[]>())
   const visualizationsForAny = ref<readonly VisualizationIdentifier[]>([])
+  let isTypesLookupInitialized = false
+  const proj = useProjectStore()
+  const ls = proj.lsRpcConnection
+  const data = proj.dataConnection
+  const fsRoot = proj.contentRoots.then(
+    (roots) => roots.find((root) => root.type === 'FileSystemRoot') ?? null,
+  )
 
   Promise.all([
     ...Object.values(builtinVisualizationImports).map((importer) => importer()),
@@ -147,9 +178,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
         }
         visualizationsForType.set(type, matchingTypes)
       }
+      isTypesLookupInitialized = true
     })
 
   function types(type: string | undefined) {
+    if (!isTypesLookupInitialized) return allVisualizations
     const ret =
       type === undefined
         ? allVisualizations
@@ -167,7 +200,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
 
   async function compile(path: string) {
     if (worker == null) {
-      worker = new Compiler()
+      const worker_ = (worker = new Compiler())
       postMessage<RegisterBuiltinModulesRequest>(worker, {
         type: 'register-builtin-modules-request',
         modules: Object.keys(moduleCache),
@@ -179,6 +212,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
             // === Responses ===
             | CompilationResultResponse
             | CompilationErrorResponse
+            // === Worker Requests ===
+            | FetchWorkerRequest
             // === Notifications ===
             | AddStyleNotification
             | AddRawImportNotification
@@ -193,12 +228,90 @@ export const useVisualizationStore = defineStore('visualization', () => {
           switch (event.data.type) {
             // === Responses ===
             case 'compilation-result-response': {
-              workerCallbacks[event.data.id]?.resolve(moduleCache[event.data.path])
+              const module = moduleCache[event.data.path]
+              const vizModule = VisualizationModule.parse(module)
+              if (vizModule) {
+                workerCallbacks.get(event.data.id)?.resolve(vizModule)
+              } else {
+                workerCallbacks
+                  .get(event.data.id)
+                  ?.reject(new InvalidVisualizationModuleError(event.data.path))
+              }
+              workerCallbacks.delete(event.data.id)
               break
             }
             case 'compilation-error-response': {
               console.error(`Error compiling visualization '${event.data.path}':`, event.data.error)
-              workerCallbacks[event.data.id]?.reject()
+              workerCallbacks.get(event.data.id)?.reject(event.data.error)
+              workerCallbacks.delete(event.data.id)
+              break
+            }
+            // === Worker Requests ===
+            case 'fetch-worker-request': {
+              try {
+                const url = new URL(path, location.href)
+                switch (url.protocol) {
+                  case 'http':
+                  case 'https': {
+                    const response = await fetch(url)
+                    if (response.ok) {
+                      postMessage<FetchResultWorkerResponse>(worker_, {
+                        type: 'fetch-result-worker-response',
+                        path: event.data.path,
+                        contents: await response.arrayBuffer(),
+                        contentType: response.headers.get('Content-Type') ?? undefined,
+                      })
+                    } else {
+                      postMessage<FetchWorkerError>(worker_, {
+                        type: 'fetch-worker-error',
+                        path: event.data.path,
+                        error: new Error(
+                          `\`fetch\` returned status code ${response.status} (${response.statusText})`,
+                        ),
+                      })
+                    }
+                    break
+                  }
+                  case 'enso-current-project': {
+                    const rootId = (await fsRoot)?.id
+                    if (!rootId) {
+                      postMessage<FetchWorkerError>(worker_, {
+                        type: 'fetch-worker-error',
+                        path: event.data.path,
+                        error: new Error(
+                          'Could not find a file system content root for the current project.',
+                        ),
+                      })
+                      break
+                    }
+                    const payload = await (await data).readFile(url.pathname)
+                    const contents = payload.contentsArray()
+                    if (!contents) {
+                      postMessage<FetchWorkerError>(worker_, {
+                        type: 'fetch-worker-error',
+                        path: event.data.path,
+                        error: new Error(
+                          `An invalid response was recieved when fetching '${url.pathname}' from the current project.`,
+                        ),
+                      })
+                      break
+                    }
+                    postMessage<FetchResultWorkerResponse>(worker_, {
+                      type: 'fetch-result-worker-response',
+                      path: event.data.path,
+                      contents,
+                      contentType: undefined,
+                    })
+                    break
+                  }
+                }
+              } catch (error) {
+                postMessage<FetchWorkerError>(worker_, {
+                  type: 'fetch-worker-error',
+                  path: event.data.path,
+                  error: error instanceof Error ? error : new Error(`${error}`),
+                })
+              }
               break
             }
             // === Notifications ===
@@ -245,6 +358,9 @@ export const useVisualizationStore = defineStore('visualization', () => {
               console.error(`Error compiling '${event.data.path}':`, event.data.error)
               break
             }
+            default: {
+              assertNever(event.data)
+            }
           }
         },
       )
@@ -255,7 +371,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     const id = workerMessageId
     workerMessageId += 1
     const promise = new Promise<VisualizationModule>((resolve, reject) => {
-      workerCallbacks[id] = { resolve, reject }
+      workerCallbacks.set(id, { resolve, reject })
     })
     postMessage<CompileRequest>(worker, { type: 'compile-request', id, path })
     return await promise
@@ -295,35 +411,98 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return Promise.allSettled(promises)
   }
 
+  function toVisualizationCacheKey(meta: VisualizationIdentifier) {
+    return JSON.stringify({
+      // All fields MUST be explicitly written so that the order is consistent.
+      module: {
+        kind: meta.module.kind,
+        name: meta.module.kind === 'Library' ? meta.module.name : undefined,
+      },
+      name: meta.name,
+    }) as VisualizationCacheKey
+  }
+
+  ls.then((ls) =>
+    ls.on('file/event', async (event) => {
+      console.log(event.path)
+      const pathString = event.path.segments.join('/')
+      const name = currentProjectVisualizationsByPath.get(pathString)
+      const key =
+        name != null
+          ? toVisualizationCacheKey({ module: { kind: 'CurrentProject' }, name })
+          : undefined
+      if (event.path.segments[0] === 'visualizations') {
+        switch (event.kind) {
+          case 'Added': {
+            const viz = await compile('enso-current-project:' + pathString)
+            try {
+              const key = toVisualizationCacheKey({
+                module: { kind: 'CurrentProject' },
+                name: viz.name,
+              })
+              cache.set(key, await compile('enso-current-project:' + pathString))
+            } catch {
+              // Ignored - the file is not a module.
+            }
+            break
+          }
+          case 'Modified': {
+            if (!key) break
+            try {
+              cache.set(key, await compile('enso-current-project:' + pathString))
+            } catch (error) {
+              if (error instanceof InvalidVisualizationModuleError) {
+                cache.delete(key)
+              }
+              // Else, ignored - the file is not a module.
+            }
+            break
+          }
+          case 'Removed': {
+            currentProjectVisualizationsByPath.delete(pathString)
+            if (key) cache.delete(key)
+          }
+        }
+      }
+    }),
+  )
+
   // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
-  async function get(meta: VisualizationIdentifier) {
-    if (meta.module.kind !== 'Builtin') {
-      console.warn('Custom visualization module support is not yet implemented:', meta.module)
-      return
-    }
-    const type = meta.name
-    let module = cache[type]
-    if (module == null) {
-      module = await imports[type]?.()
-    }
-    if (module == null) {
-      const path = paths[type]
-      if (path != null) {
-        module = await compile(path)
+  function get(meta: VisualizationIdentifier, ignoreCache = false) {
+    const key = toVisualizationCacheKey(meta)
+    switch (meta.module.kind) {
+      case 'Builtin': {
+        ;(async () => {
+          const type = meta.name
+          let module = cache.get(key)
+          if (module == null) {
+            module = await imports[type]?.()
+          }
+          if (module == null || ignoreCache) {
+            const path = paths[type]
+            if (path != null) {
+              module = await compile(path)
+            }
+          }
+          if (module != null) {
+            register(module)
+            await loadScripts(module)
+            cache.set(key, module)
+          }
+        })()
+        break
+      }
+      case 'CurrentProject': {
+        // No special handling needed; updates are handled in an external event handler above.
+        break
+      }
+      case 'Library': {
+        console.warn('Library visualization support is not yet implemented:', meta.module)
+        break
       }
     }
-    if (module == null) {
-      return
-    }
-    register(module)
-    await loadScripts(module)
-    cache[type] = module
-    return module
+    return computed(() => cache.get(key))
   }
 
-  function clear() {
-    cache = {}
-  }
-
-  return { types, get, clear }
+  return { types, get }
 })

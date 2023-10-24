@@ -15,9 +15,9 @@ type Data = SQLData | Error
 
 interface SQLData {
   error: undefined
-  dialect: string
+  dialect: string | undefined
   code: string
-  interpolations: SQLInterpolation[]
+  interpolations: SQLInterpolation[] | undefined
 }
 
 interface SQLInterpolation {
@@ -55,10 +55,10 @@ const language = computed(() =>
     : 'sql',
 )
 const formatted = computed(() => {
-  if (props.data.error != null) {
+  if (props.data.error != null || props.data.code == null) {
     return undefined
   }
-  const params = props.data.interpolations.map((param) =>
+  const params = (props.data.interpolations ?? []).map((param) =>
     renderInterpolationParameter(theme, param),
   )
 
