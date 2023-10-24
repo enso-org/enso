@@ -35,8 +35,8 @@ export interface FunctionDocs {
 }
 
 export interface TypeDocs {
-  name: string
   id: SuggestionId
+  name: string
   arguments: SuggestionEntryArgument[]
   sections: Sections
   methods: FunctionDocs[]
