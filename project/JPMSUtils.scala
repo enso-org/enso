@@ -71,85 +71,95 @@ object JPMSUtils {
    * Note that sbt is not able to correctly handle `module-info.java` files when
    * compilation order is defined to mixed order.
    *
-   * @param scopeFilter The filter of scopes of the projects from which the class files are first
+   * @param copyDepsFilter The filter of scopes of the projects from which the class files are first
    *                    copied into the `target` directory before `module-info.java` is compiled.
+   * @param modulePath IDs of dependencies that should be put on the module path. The modules
+   *                   put into `modulePath` are filtered away from class-path, so that module-path
+   *                   and class-path passed to the `javac` are exclusive.
    *
    * @see https://users.scala-lang.org/t/scala-jdk-11-and-jpms/6102/19
    */
   def compileModuleInfo(
-    scopeFilter: ScopeFilter
+    copyDepsFilter: ScopeFilter,
+    modulePath: Seq[ModuleID] = Seq(),
   ): Def.Initialize[Task[Unit]] =
     Def.task {
-      val moduleInfo = (Compile / javaSource).value / "module-info.java"
-      val log = streams.value.log
-      val incToolOpts = IncToolOptionsUtil.defaultIncToolOptions()
-      val reporter = (Compile / compile / bspReporter).value
-      val output = CompileOutput((Compile / classDirectory).value.toPath)
-      // Target directory where all the classes from all the dependencies will be
-      // copied to.
-      val outputPath: Path = output
-        .getSingleOutputAsPath
-        .get()
+        val moduleInfo = (Compile / javaSource).value / "module-info.java"
+        val log = streams.value.log
+        val incToolOpts = IncToolOptionsUtil.defaultIncToolOptions()
+        val reporter = (Compile / compile / bspReporter).value
+        val output = CompileOutput((Compile / classDirectory).value.toPath)
+        // Target directory where all the classes from all the dependencies will be
+        // copied to.
+        val outputPath: Path = output
+          .getSingleOutputAsPath
+          .get()
 
-      /** Copy classes into the target directory from all the dependencies */
-      log.info(s"Copying classes to $output")
-      val sourceProducts = products.all(scopeFilter).value.flatten
+        /** Copy classes into the target directory from all the dependencies */
+        log.info(s"Copying classes to $output")
+        val sourceProducts = products.all(copyDepsFilter).value.flatten
 
-      if (!(outputPath.toFile.exists())) {
-        Files.createDirectory(outputPath)
-      }
-
-      val outputLangProvider = outputPath / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
-      sourceProducts.foreach { sourceProduct =>
-        log.info(s"Copying ${sourceProduct} to ${output}")
-        val sourceLangProvider = sourceProduct / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
-        if (outputLangProvider.toFile.exists() && sourceLangProvider.exists()) {
-          log.info(s"Merging ${sourceLangProvider} into ${outputLangProvider}")
-          val sourceLines = IO.readLines(sourceLangProvider)
-          val destLines = IO.readLines(outputLangProvider.toFile)
-          val outLines = (sourceLines ++ destLines).distinct
-          IO.writeLines(outputLangProvider.toFile, outLines)
+        if (!(outputPath.toFile.exists())) {
+          Files.createDirectory(outputPath)
         }
-        // Copy the rest of the directory - don't override META-INF.
-        IO.copyDirectory(
-          sourceProduct,
-          outputPath.toFile,
-          CopyOptions(
-            overwrite = false,
-            preserveLastModified = true,
-            preserveExecutable = true
-          )
-        )
-      }
 
-      log.info("Compiling module-info.java with javac")
-      val baseJavacOpts = (Compile / javacOptions).value
-      val fullCp = (Compile / fullClasspath).value.map(_.data)
-      val truffleCp = fullCp.filter(file => {
-        file.getAbsolutePath.contains("graalvm") || file.getAbsolutePath.contains("truffle")
-      })
-      val restCp = fullCp.filterNot(truffleCp.contains(_))
-      val allOpts = baseJavacOpts ++ Seq(
-        "--class-path",
-        restCp.map(_.getAbsolutePath).mkString(File.pathSeparator),
-        "--module-path",
-        truffleCp.map(_.getAbsolutePath).mkString(File.pathSeparator),
-        "-d",
-        outputPath.toAbsolutePath().toString(),
+        val outputLangProvider = outputPath / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
+        sourceProducts.foreach { sourceProduct =>
+          log.info(s"Copying ${sourceProduct} to ${output}")
+          val sourceLangProvider = sourceProduct / "META-INF" / "services" / "com.oracle.truffle.api.provider.TruffleLanguageProvider"
+          if (outputLangProvider.toFile.exists() && sourceLangProvider.exists()) {
+            log.info(s"Merging ${sourceLangProvider} into ${outputLangProvider}")
+            val sourceLines = IO.readLines(sourceLangProvider)
+            val destLines = IO.readLines(outputLangProvider.toFile)
+            val outLines = (sourceLines ++ destLines).distinct
+            IO.writeLines(outputLangProvider.toFile, outLines)
+          }
+          // Copy the rest of the directory - don't override META-INF.
+          IO.copyDirectory(
+            sourceProduct,
+            outputPath.toFile,
+            CopyOptions(
+              overwrite = false,
+              preserveLastModified = true,
+              preserveExecutable = true
+            )
+          )
+        }
+
+        log.info("Compiling module-info.java with javac")
+        val baseJavacOpts = (Compile / javacOptions).value
+        val fullCp = (Compile / fullClasspath).value
+        val (mp, cp) = fullCp.partition(file => {
+          val moduleID = file.metadata.get(AttributeKey[ModuleID]("moduleID")).get
+          modulePath.exists(mod => {
+            mod.organization == moduleID.organization &&
+              mod.name == moduleID.name &&
+              mod.revision == moduleID.revision
+          })
+        })
+
+        val allOpts = baseJavacOpts ++ Seq(
+          "--class-path",
+          cp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+          "--module-path",
+          mp.map(_.data.getAbsolutePath).mkString(File.pathSeparator),
+          "-d",
+          outputPath.toAbsolutePath().toString(),
         )
-      val javaCompiler =
-        (Compile / compile / compilers).value.javaTools.javac()
-      val succ = javaCompiler.run(
-        Array(PlainVirtualFile(moduleInfo.toPath)),
-        allOpts.toArray,
-        output,
-        incToolOpts,
-        reporter,
-        log
-      )
-      if (!succ) {
-        sys.error(s"Compilation of ${moduleInfo} failed")
+        val javaCompiler =
+          (Compile / compile / compilers).value.javaTools.javac()
+        val succ = javaCompiler.run(
+          Array(PlainVirtualFile(moduleInfo.toPath)),
+          allOpts.toArray,
+          output,
+          incToolOpts,
+          reporter,
+          log
+        )
+        if (!succ) {
+          sys.error(s"Compilation of ${moduleInfo} failed")
+        }
       }
-    }
       .dependsOn(Compile / compile)
+
 }

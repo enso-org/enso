@@ -419,6 +419,31 @@ val jmh = Seq(
   "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
 )
 
+// === Truffle and Graal ======================================================
+
+val graalvmSdk = Seq(
+  "org.graalvm.sdk" % "polyglot-tck" % graalMavenPackagesVersion,
+  "org.graalvm.sdk" % "nativeimage" % graalMavenPackagesVersion,
+  "org.graalvm.sdk" % "word" % graalMavenPackagesVersion,
+  "org.graalvm.sdk" % "collections" % graalMavenPackagesVersion,
+)
+
+val graalvmPolyglot = Seq(
+  "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion,
+)
+
+val graalvmTruffle = Seq(
+  "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion,
+  "org.graalvm.truffle" % "truffle-runtime" % graalMavenPackagesVersion,
+  "org.graalvm.truffle" % "truffle-compiler" % graalMavenPackagesVersion,
+  "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion,
+)
+
+val graalvmLangs = Seq(
+  "org.graalvm.polyglot" % "js-community" % graalMavenPackagesVersion,
+  "org.graalvm.polyglot" % "python-community" % graalMavenPackagesVersion,
+)
+
 // === Scala Compiler =========================================================
 
 val scalaCompiler = Seq(
@@ -1496,7 +1521,7 @@ lazy val `runtime-with-instruments` =
     .settings(
       assembly := assembly
         .dependsOn(JPMSUtils.compileModuleInfo(
-          ScopeFilter(
+          copyDepsFilter = ScopeFilter(
             inProjects(
               LocalProject("runtime"),
               LocalProject("runtime-language-epb"),
@@ -1506,16 +1531,44 @@ lazy val `runtime-with-instruments` =
               LocalProject("runtime-instrument-runtime-server"),
             ),
             inConfigurations(Compile)
-          )
+          ),
+          modulePath = Seq(
+            "org.slf4j"  % "slf4j-api" % slf4jVersion,
+          ) ++
+            logbackPkg ++
+            graalvmSdk ++
+            graalvmPolyglot ++
+            graalvmTruffle
         ))
         .value,
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
-      assembly / assemblyExcludedJars :=
-        JPMSUtils.filterTruffleAndGraalArtifacts(
-          (Compile / fullClasspath).value
-        ),
+      assembly / assemblyExcludedJars := {
+        // slf4j-api and logback packages need to be excluded from the fat jar, as they
+        // both need to be specified on module-path at runtime.
+        val pkgsToExclude = Seq(
+          "org.slf4j"  % "slf4j-api" % slf4jVersion
+        ) ++
+          logbackPkg ++
+          graalvmSdk ++
+          graalvmPolyglot ++
+          graalvmTruffle
+
+        val ourFullCp = (Compile / fullClasspath).value
+
+        def shouldPkgBeExcluded(pkg: ModuleID): Boolean = {
+          pkgsToExclude.exists { excludePkg =>
+            pkg.name == excludePkg.name &&
+            pkg.organization == excludePkg.organization &&
+            pkg.revision == excludePkg.revision
+          }
+        }
+        ourFullCp.filter { pkg =>
+          val pkgModuleID = pkg.metadata.get(AttributeKey[ModuleID]("moduleID")).get
+          shouldPkgBeExcluded(pkgModuleID)
+        }
+      },
       assembly / assemblyMergeStrategy := {
         case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
           MergeStrategy.discard
