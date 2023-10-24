@@ -9,9 +9,11 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useApproach } from '@/util/animation'
 import { useResizeObserver } from '@/util/events'
 import type { useNavigator } from '@/util/navigator'
+import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
+import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -151,11 +153,9 @@ const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
 const animatedHighlightPosition = useApproach(highlightPosition)
 const animatedHighlightHeight = useApproach(highlightHeight)
 
-const selectedSuggestion = computed(() => {
+const selectedSuggestionId = computed(() => {
   if (selected.value === null) return null
-  const id = components.value[selected.value]?.suggestionId
-  if (id == null) return null
-  return suggestionDbStore.entries.get(id) ?? null
+  return components.value[selected.value]?.suggestionId ?? null
 })
 
 watch(selectedPosition, (newPos) => {
@@ -234,6 +234,19 @@ function updateScroll() {
 // === Documentation Panel ===
 
 const docsVisible = ref(true)
+
+const displayedDocs: Ref<Opt<SuggestionId>> = ref(null)
+const docEntry = computed({
+  get() {
+    return displayedDocs.value
+  },
+  set(value) {
+    displayedDocs.value = value
+  },
+})
+watch(selectedSuggestionId, (id) => {
+  docEntry.value = id
+})
 
 // === Key Events Handler ===
 
@@ -352,7 +365,7 @@ function handleKeydown(e: KeyboardEvent) {
         </div>
       </div>
       <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop.passive>
-        <DocumentationPanel :selectedEntry="selectedSuggestion" />
+        <DocumentationPanel v-model:selectedEntry="docEntry" />
       </div>
     </div>
     <div class="CBInput">

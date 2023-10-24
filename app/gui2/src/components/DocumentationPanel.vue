@@ -6,13 +6,14 @@ import { default as DocsSynopsis } from '@/components/documentation/DocsSynopsis
 import { default as DocsTags } from '@/components/documentation/DocsTags.vue'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import type { Doc } from '@/util/docParser'
 import { type Opt } from '@/util/opt'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
 
-const props = defineProps<{ selectedEntry: Opt<SuggestionEntry> }>()
+const props = defineProps<{ selectedEntry: Opt<SuggestionId> }>()
+const emit = defineEmits<{ 'update:selectedEntry': [id: SuggestionId] }>()
 
 // === Types ===
 
@@ -27,12 +28,14 @@ export type Docs =
   | { Placeholder: string }
 
 export interface FunctionDocs {
+  id: SuggestionId
   name: string
   arguments: SuggestionEntryArgument[]
   sections: Sections
 }
 
 export interface TypeDocs {
+  id: SuggestionId
   name: string
   arguments: SuggestionEntryArgument[]
   sections: Sections
@@ -41,6 +44,7 @@ export interface TypeDocs {
 }
 
 export interface ModuleDocs {
+  id: SuggestionId
   name: string
   sections: Sections
   types: TypeDocs[]
@@ -48,6 +52,7 @@ export interface ModuleDocs {
 }
 
 export interface LocalDocs {
+  id: SuggestionId
   name: string
   sections: Sections
 }
@@ -87,10 +92,10 @@ function filterSections(sections: Iterable<Doc.Section>): Sections {
 
 function getChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): Docs[] {
   if (!id) return []
-  const children = Array.from(db.parent.reverseLookup(id)).map((id) => db.get(id))
-  return children.reduce((acc: Docs[], child: SuggestionEntry | undefined) => {
-    if (child?.kind === kind) {
-      const docs = lookupDocumentation(db, child)
+  const children = Array.from(db.parent.reverseLookup(id))
+  return children.reduce((acc: Docs[], id: SuggestionId) => {
+    if (db.get(id)?.kind === kind) {
+      const docs = lookupDocumentation(db, id)
       acc.push(docs)
     }
     return acc
@@ -119,11 +124,12 @@ function asTypeDocs(docs: Docs[]): TypeDocs[] {
   })
 }
 
-type DocsHandle = (db: SuggestionDb, entry: SuggestionEntry) => Docs
+type DocsHandle = (db: SuggestionDb, entry: SuggestionEntry, id: SuggestionId) => Docs
 
-const handleFunction: DocsHandle = (db, entry) => ({
+const handleFunction: DocsHandle = (_db, entry, id) => ({
   Function: {
     name: entry.name,
+    id,
     arguments: entry.arguments,
     sections: filterSections(entry.documentation),
   },
@@ -133,42 +139,43 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
   [SuggestionKind.Function]: handleFunction,
   [SuggestionKind.Method]: handleFunction,
   [SuggestionKind.Constructor]: handleFunction,
-  [SuggestionKind.Local]: (db, entry) => ({
+  [SuggestionKind.Local]: (_db, entry, id) => ({
     Local: {
       name: entry.name,
+      id,
       sections: filterSections(entry.documentation),
     },
   }),
-  [SuggestionKind.Type]: (db, entry) => {
-    const [entryId] = db.nameToId.lookup(entryQn(entry))
-    if (!entryId) return { Placeholder: 'No documentation available' }
+  [SuggestionKind.Type]: (db, entry, id) => {
     return {
       Type: {
         name: entry.name,
+        id,
         arguments: entry.arguments,
         sections: filterSections(entry.documentation),
-        methods: asFunctionDocs(getChildren(db, entryId, SuggestionKind.Method)),
-        constructors: asFunctionDocs(getChildren(db, entryId, SuggestionKind.Constructor)),
+        methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
+        constructors: asFunctionDocs(getChildren(db, id, SuggestionKind.Constructor)),
       },
     }
   },
-  [SuggestionKind.Module]: (db, entry) => {
-    const [entryId] = db.nameToId.lookup(entryQn(entry))
-    if (!entryId) return { Placeholder: 'No documentation available' }
+  [SuggestionKind.Module]: (db, entry, id) => {
     return {
       Module: {
         name: entry.name,
+        id,
         sections: filterSections(entry.documentation),
-        types: asTypeDocs(getChildren(db, entryId, SuggestionKind.Type)),
-        methods: asFunctionDocs(getChildren(db, entryId, SuggestionKind.Method)),
+        types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),
+        methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
       },
     }
   },
 }
 
-function lookupDocumentation(db: SuggestionDb, entry: SuggestionEntry): Docs {
+function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
+  const entry = db.get(id)
+  if (!entry) return { Placeholder: 'Entry not found' }
   const handle = handleDocumentation[entry.kind]
-  return handle ? handle(db, entry) : { Placeholder: `Entry kind not handled: ${entry.kind}` }
+  return handle ? handle(db, entry, id) : { Placeholder: `Entry kind not handled: ${entry.kind}` }
 }
 
 // === Helper variables ===
@@ -224,14 +231,18 @@ const types = computed<TypeDocs[]>(() => {
 
 <template>
   <div class="DocumentationPanel">
+    <h1 v-if="'Placeholder' in documentation">{{ documentation.Placeholder }}</h1>
     <DocsTags v-if="sections.tags.length > 0" :tags="sections.tags" />
     <DocsSynopsis :sections="sections.synopsis" />
     <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
-    <DocsList :items="{ Types: types }" />
+    <DocsList :items="{ Types: types }" @linkClicked="emit('update:selectedEntry', $event)" />
     <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
-    <DocsList :items="{ Constructors: constructors }" />
+    <DocsList
+      :items="{ Constructors: constructors }"
+      @linkClicked="emit('update:selectedEntry', $event)"
+    />
     <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
-    <DocsList :items="{ Methods: methods }" />
+    <DocsList :items="{ Methods: methods }" @linkClicked="emit('update:selectedEntry', $event)" />
     <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
     <DocsExamples :examples="sections.examples" />
   </div>
