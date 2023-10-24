@@ -1,6 +1,11 @@
 export function* empty(): Generator<never> {}
 
 export function* range(start: number, stop: number, step = start <= stop ? 1 : -1) {
+  if ((step > 0 && start > stop) || (step < 0 && start < stop)) {
+    throw new Error(
+      "The range's step is in the wrong direction - please use Infinity or -Infinity as the endpoint for an infinite range.",
+    )
+  }
   if (start <= stop) {
     while (start < stop) {
       yield start

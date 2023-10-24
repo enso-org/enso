@@ -7,12 +7,20 @@ export function findIndexOpt<T>(arr: T[], pred: (elem: T) => boolean): number | 
   return index >= 0 ? index : null
 }
 
-/** Binary search, using a predicate `pred` that returns `false` for elements ordered before the
- * target, and `true` for elements ordered after the target. Returns the index of the first element
- * for which the predicate returns `true`.
+/** Returns the index of the partition point according to the given predicate
+ * (the index of the first element of the second partition).
  *
- * The array MUST be sorted with respect to the predicate. */
-export function binarySearch<T>(
+ * The slice is assumed to be partitioned according to the given predicate.
+ * This means that all elements for which the predicate returns true are at the start of the slice
+ * and all elements for which the predicate returns false are at the end.
+ * For example, `[7, 15, 3, 5, 4, 12, 6]` is partitioned under the predicate `x % 2 != 0`
+ * (all odd numbers are at the start, all even at the end).
+ *
+ * If this slice is not partitioned, the returned result is unspecified and meaningless,
+ * as this method performs a kind of binary search.
+ *
+ * @see The original docs for the equivalent function in Rust: {@link https://doc.rust-lang.org/std/primitive.slice.html#method.partition_point} */
+export function partitionPoint<T>(
   array: T[],
   pred: (elem: T) => boolean,
   start = 0,
@@ -21,8 +29,8 @@ export function binarySearch<T>(
   while (start < end) {
     // Shift right by one to halve and round down in the same step.
     const middle = (start + end) >> 1
-    if (pred(array[middle]!)) end = middle
-    else start = middle + 1
+    if (pred(array[middle]!)) start = middle + 1
+    else end = middle
   }
   return start
 }

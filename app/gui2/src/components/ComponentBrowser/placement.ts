@@ -22,6 +22,17 @@ export interface Placement {
 // The default gap is the height of a single node.
 const defaultGap = 24
 
+/** The new node should appear at the center of the screen if there is enough space for the new node.
+ * Otherwise, it should be moved down to the closest free space.
+ *
+ * Specifically, this code, in order:
+ * - uses the center of the screen as the initial position
+ * - searches for all vertical spans below the initial position, that horizontally intersect the
+ *   initial position (no horizontal gap is required between the new node and old nodes)
+ * - shifts the node down (if required) until there is sufficient vertical space -
+ *   the height of the node, in addition to the specified gap both above and below the node.
+ *
+ * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
 export function nonDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, nodeRects }: Environment,
@@ -56,6 +67,27 @@ export function nonDictatedPlacement(
   else return { position: finalPosition, pan: finalPosition.sub(initialPosition) }
 }
 
+/** The new node should be left aligned to the first selected node (order of selection matters).
+ * The Panel should also be placed vertically directly below the lowest of all selected nodes.
+ *
+ * If there is not enough empty space, the Expression Input Panel should be moved right
+ * to the first empty place and the Magnet Alignment algorithm should be performed horizontally.
+ * In case the place is offscreen, the camera should be panned accordingly.
+ *
+ * Specifically, this code, in order:
+ * - uses the left side of the first selected node and as the initial x-position
+ * - uses the lowest (highest y-position) of all selected nodes, plus the specified gap,
+ *   as the initial y-position
+ * - searches for all horizontal spans to the right of the initial position,
+ *   that vertically intersect the initial position
+ *   (no vertical gap is required between the new node and old nodes)
+ * - shifts the node right (if required) until there is sufficient horizontal space -
+ *   the width of the node, in addition to the specified gap to the left and right of the node.
+ *
+ * Note that the algorithm for finding free space is almost the same as for non-dictated placement,
+ * except it searches horizontally instead of vertically.
+ *
+ * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
 export function previousNodeDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, selectedNodeRects, nodeRects }: Environment,
@@ -102,6 +134,13 @@ export function previousNodeDictatedPlacement(
   }
 }
 
+/** The new node should appear exactly below the mouse.
+ *
+ * Specifically, this code assumes the node is fully rounded on the left and right sides,
+ * so it subtracts half the node height (assumed to be the node radius) from the mouse x and y
+ * positions.
+ *
+ * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
 export function mouseDictatedPlacement(
   nodeSize: Vec2,
   { mousePosition }: Environment,
