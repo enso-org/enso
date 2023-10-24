@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { nodeEditBindings, nodeSelectionBindings } from '@/bindings'
+import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
-import NodeSpan from '@/components/NodeSpan.vue'
+import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
-import {
-  provideVisualizationConfig,
-  type VisualizationConfig,
-} from '@/providers/visualizationConfig'
+import { injectGraphSelection } from '@/providers/graphSelection'
+import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -20,23 +18,19 @@ import {
 import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
-import type { UnsafeMutable } from '@/util/mutable'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Rect } from '@/util/rect'
 import { unwrap } from '@/util/result'
-import type { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
+const MAXIMUM_CLICK_DISTANCE_SQ = 50
 
 const props = defineProps<{
   node: Node
-  // id: string & ExprId
-  selected: boolean
-  isLatestSelected: boolean
-  fullscreenVis: boolean
 }>()
 
 const emit = defineEmits<{
@@ -54,17 +48,19 @@ const emit = defineEmits<{
 }>()
 
 const visualizationStore = useVisualizationStore()
+const nodeSelection = injectGraphSelection(true)
 
+const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
+const menuVisible = ref(false)
 
-type PreprocessorDef = {
-  visualizationModule: string
-  expression: string
-  positionalArgumentsExpressions: string[]
-}
-const visPreprocessor = ref<PreprocessorDef>(DEFAULT_VISUALIZATION_CONFIGURATION)
+const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+watch(isSelected, (selected) => {
+  menuVisible.value = menuVisible.value && selected
+})
+const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
@@ -78,7 +74,7 @@ const visualizationData = projectStore.useVisualizationData(() => {
   if (!isVisualizationVisible.value || !visPreprocessor.value) return
   return {
     ...visPreprocessor.value,
-    expressionId: props.node.rootSpan.id,
+    expressionId: props.node.rootSpan.astId,
   }
 })
 
@@ -313,26 +309,25 @@ function switchToDefaultPreprocessor() {
   visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
 }
 
-// This usage of `UnsafeMutable` is SAFE, as it is being used on a type without an associated value.
-const visualizationConfig = ref<UnsafeMutable<VisualizationConfig>>({
+provideVisualizationConfig({
   fullscreen: false,
-  // We do not know the type yet.
-  types: visualizationStore.types(undefined),
   width: null,
   height: 150,
-  hide() {
-    emit('setVisualizationVisible', false)
+  get types() {
+    return visualizationStore.types(expressionInfo.value?.typename)
   },
-  updateType: (id) => emit('setVisualizationId', id),
-  isCircularMenuVisible: props.isLatestSelected,
+  get isCircularMenuVisible() {
+    return menuVisible.value
+  },
   get nodeSize() {
     return nodeSize.value
   },
   get currentType() {
     return props.node.vis ?? DEFAULT_VISUALIZATION_IDENTIFIER
   },
+  hide: () => emit('setVisualizationVisible', false),
+  updateType: (id) => emit('setVisualizationId', id),
 })
-provideVisualizationConfig(visualizationConfig)
 
 watchEffect(async () => {
   if (props.node.vis == null) {
@@ -365,24 +360,6 @@ watch(
   },
 )
 
-const mouseHandler = nodeSelectionBindings.handler({
-  replace() {
-    emit('replaceSelection')
-  },
-  add() {
-    emit('update:selected', true)
-  },
-  remove() {
-    emit('update:selected', false)
-  },
-  toggle() {
-    emit('update:selected', !props.selected)
-  },
-  invert() {
-    emit('update:selected', !props.selected)
-  },
-})
-
 const editableKeydownHandler = nodeEditBindings.handler({
   selectAll() {
     const element = editableRootNode.value
@@ -396,24 +373,29 @@ const editableKeydownHandler = nodeEditBindings.handler({
 })
 
 const startEpochMs = ref(0)
-const startEvent = ref<PointerEvent>()
+let startEvent: PointerEvent | null = null
+let startPos = Vec2.Zero()
 
 const dragPointer = usePointer((pos, event, type) => {
   emit('movePosition', pos.delta)
   switch (type) {
     case 'start': {
       startEpochMs.value = Number(new Date())
-      startEvent.value = event
+      startEvent = event
+      startPos = pos.absolute
       event.stopImmediatePropagation()
       break
     }
     case 'stop': {
       if (
         Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
-        startEvent.value != null
+        startEvent != null &&
+        pos.absolute.distanceSquare(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
-        mouseHandler(startEvent.value)
+        nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
+        menuVisible.value = true
       }
+      startEvent = null
       startEpochMs.value = 0
     }
   }
@@ -422,7 +404,7 @@ const dragPointer = usePointer((pos, event, type) => {
 const suggestionDbStore = useSuggestionDbStore()
 
 const expressionInfo = computed(() =>
-  projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.id),
+  projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.astId),
 )
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
@@ -455,10 +437,6 @@ const color = computed(() =>
     ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
     : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
 )
-
-watchEffect(() => {
-  visualizationConfig.value.types = visualizationStore.types(expressionInfo.value?.typename)
-})
 </script>
 
 <template>
@@ -471,7 +449,7 @@ watchEffect(() => {
     }"
     :class="{
       dragging: dragPointer.dragging,
-      selected,
+      selected: nodeSelection?.isSelected(nodeId),
       visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
@@ -481,9 +459,9 @@ watchEffect(() => {
       {{ node.binding }}
     </div>
     <CircularMenu
-      v-if="isLatestSelected"
-      v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
-      v-model:is-docs-visible="isDocsVisible"
+      v-if="menuVisible"
+      v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
+      v-model:isDocsVisible="isDocsVisible"
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
@@ -495,7 +473,7 @@ watchEffect(() => {
     />
     <div class="node" v-on="dragPointer.events">
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <div
+      <span
         ref="editableRootNode"
         class="editable"
         contenteditable
@@ -504,15 +482,12 @@ watchEffect(() => {
         @keydown="editableKeydownHandler"
         @pointerdown.stop
         @blur="projectStore.stopCapturingUndo()"
-      >
-        <NodeSpan
-          :content="node.content"
-          :span="node.rootSpan"
-          :offset="0"
+        ><NodeTree
+          :ast="node.rootSpan"
+          :nodeSpanStart="node.rootSpan.span()[0]"
           @updateExprRect="updateExprRect"
           @updateHoveredExpr="emit('updateHoveredExpr', $event)"
-        />
-      </div>
+      /></span>
     </div>
     <div key="outputPort" class="outputPort" @pointerdown="emit('outputPortAction')">
       <svg viewBox="-22 -35 22 38" xmlns="http://www.w3.org/2000/svg" class="outputPortCap">
@@ -531,6 +506,7 @@ watchEffect(() => {
         <path d="M 0 0 a 19 19 0 0 0 19 -19" class="outputPortCapLine" />
         <rect height="6" width="6" x="-6" y="-3" class="outputPortCapButt" />
       </svg>
+      />
     </div>
     <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>

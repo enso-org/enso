@@ -25,7 +25,7 @@ export class Vec2 {
   scale(scalar: number): Vec2 {
     return new Vec2(this.x * scalar, this.y * scalar)
   }
-  distanceSquared(other: Vec2): number {
+  distanceSquare(other: Vec2): number {
     const dx = this.x - other.x
     const dy = this.y - other.y
     return dx * dx + dy * dy
@@ -56,11 +56,5 @@ export class Vec2 {
   }
   lerp(to: Vec2, t: number): Vec2 {
     return new Vec2(this.x + (to.x - this.x) * t, this.y + (to.y - this.y) * t)
-  }
-  withX(x: number): Vec2 {
-    return new Vec2(x, this.y)
-  }
-  withY(y: number): Vec2 {
-    return new Vec2(this.x, y)
   }
 }

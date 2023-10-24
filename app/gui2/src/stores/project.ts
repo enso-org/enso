@@ -1,4 +1,5 @@
-import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider } from '@/util/crdt'
 import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
@@ -7,13 +8,11 @@ import { tryQualifiedName } from '@/util/qualifiedName'
 import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
 import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
-import { namespace } from 'd3'
 import * as array from 'lib0/array'
 import * as object from 'lib0/object'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import { defineStore } from 'pinia'
-import { mainModule } from 'process'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import type {
@@ -32,6 +31,7 @@ import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
+  reactive,
   ref,
   shallowRef,
   watch,
@@ -154,6 +154,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   queue: AsyncQueue<ExecutionContextState>
   taskRunning = false
   visSyncScheduled = false
+  desiredStack: StackItem[] = reactive([])
   visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
   abortCtl = new AbortController()
 
@@ -279,6 +280,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   private pushItem(item: StackItem) {
+    this.desiredStack.push(item)
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
       await this.withBackoff(
@@ -295,11 +297,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   pop() {
+    if (this.desiredStack.length === 1) bail('Cannot pop last item from execution context stack')
+    this.desiredStack.pop()
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
-      if (state.stack.length === 0) {
-        throw new Error('Cannot pop from empty execution context stack')
-      }
+      if (state.stack.length === 1) bail('Cannot pop last item from execution context stack')
       await this.withBackoff(
         () => state.lsRpc.popExecutionContextItem(this.id),
         'Failed to pop item from execution context stack',
@@ -386,6 +388,14 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     })
   }
 
+  getStackBottom(): StackItem {
+    return this.desiredStack[0]!
+  }
+
+  getStackTop(): StackItem {
+    return this.desiredStack[this.desiredStack.length - 1]!
+  }
+
   destroy() {
     this.abortCtl.abort()
   }
@@ -402,7 +412,7 @@ export const useProjectStore = defineStore('project', () => {
   const doc = new Y.Doc()
   const awareness = new Awareness(doc)
 
-  const config = useGuiConfig()
+  const config = injectGuiConfig()
   const projectName = config.value.startup?.project
   if (projectName == null) throw new Error('Missing project name.')
 
