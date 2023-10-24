@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Runtime import assert
 
+import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Internal.Lookup_Helpers
 import Standard.Table.Internal.Lookup_Helpers.Lookup_Column
 from Standard.Table.Errors import all
@@ -94,10 +96,16 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
 ## PRIVATE
 check_initial_invariants : Table -> Table -> Vector Lookup_Column -> Boolean -> Any -> Any
 check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows ~continuation =
-    lookup_key_columns = lookup_columns.flat_map c-> case c of
-        Lookup_Column.Key_Column _ key_column -> [key_column]
+    key_column_names = lookup_columns.flat_map c-> case c of
+        Lookup_Column.Key_Column base_column lookup_column ->
+            assert (base_column.name == lookup_column.name) "Columns should have equal names."
+            [lookup_column.name]
         _ -> []
-    check_for_null_keys lookup_table (lookup_key_columns.map .name) <|
-        #    2. is lookup key unique
-        #    3. if allow_unmatched_rows.not then all rows in lookup table are matched
-        continuation
+    check_for_null_keys lookup_table key_column_names <|
+        # TODO check duplicate matches
+        if allow_unmatched_rows then continuation else
+            unmatched_rows = base_table.join lookup_table on=key_column_names join_kind=Join_Kind.Left_Exclusive . select_columns key_column_names
+            unmatched_example = unmatched_rows.read max_rows=1
+            if unmatched_example.row_count == 0 then continuation else
+                first_row = unmatched_example.rows.first
+                Error.throw (Unmatched_Rows_In_Lookup.Error first_row.to_vector)
