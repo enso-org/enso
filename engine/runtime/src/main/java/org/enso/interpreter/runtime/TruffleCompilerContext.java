@@ -147,7 +147,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public boolean wasLoadedFromCache(Module module) {
-    return module.wasLoadedFromCache();
+    return module.unsafeModule().wasLoadedFromCache();
   }
 
   @Override
@@ -167,7 +167,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void updateModule(Module module, Consumer<Updater> callback) {
-    try (var u = new ModuleUpdater(module)) {
+    try (var u = new ModuleUpdater(module.unsafeModule())) {
       callback.accept(u);
     }
   }
@@ -198,7 +198,7 @@ final class TruffleCompilerContext implements CompilerContext {
           FreshNameSupply freshNameSupply, Passes passes
   ) {
     var builtins = context.getBuiltins();
-    var builtinsModule = builtins.getModule();
+    var builtinsModule = new CompilerContext.Module(builtins.getModule());
     if (!builtins.isIrInitialized()) {
       log(
               Level.FINE,
@@ -244,12 +244,12 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void runStubsGenerator(Module module) {
-    stubsGenerator.run(module);
+    stubsGenerator.run(module.unsafeModule());
   }
 
   private final class ModuleUpdater implements Updater, AutoCloseable {
 
-    private final Module module;
+    private final org.enso.interpreter.runtime.Module module;
     private org.enso.compiler.core.ir.Module ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;

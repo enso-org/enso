@@ -229,7 +229,7 @@ trait CompilerRunner {
   ): (ModuleContext, runtime.Module) = {
     val mod = runtime.Module.empty(moduleName, null)
     val ctx = ModuleContext(
-      module            = mod,
+      module            = mod.asCompilerModule(),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig,
@@ -262,7 +262,7 @@ trait CompilerRunner {
         .updateMetadata(
           BindingAnalysis -->> BindingsMap(
             List(),
-            ModuleReference.Concrete(mod)
+            ModuleReference.Concrete(mod.asCompilerModule())
           )
         )
     )
@@ -271,7 +271,7 @@ trait CompilerRunner {
       CompilationStage.AFTER_CODEGEN
     )
     val mc = ModuleContext(
-      module         = mod,
+      module         = mod.asCompilerModule(),
       compilerConfig = compilerConfig
     )
     InlineContext(

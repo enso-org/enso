@@ -3,9 +3,9 @@ package org.enso.compiler
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
+import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.CompilationStage

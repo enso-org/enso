@@ -1,7 +1,12 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.{Compiler, PackageRepository}
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext
+}
 import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
@@ -368,7 +373,11 @@ case object FullyQualifiedNames extends IRPass {
               } else {
                 Right(
                   Some(
-                    FQNResolution(ResolvedModule(ModuleReference.Concrete(m)))
+                    FQNResolution(
+                      ResolvedModule(
+                        ModuleReference.Concrete(new CompilerContext.Module(m))
+                      )
+                    )
                   )
                 )
               }

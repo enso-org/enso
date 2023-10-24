@@ -7,6 +7,7 @@ import org.enso.compiler.context.{
   InlineContext,
   ModuleContext
 }
+import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
 import org.enso.compiler.core.ir.{
@@ -34,7 +35,6 @@ import org.enso.compiler.phase.{
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.scope.ModuleScope
-import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.CompilationStage
@@ -175,13 +175,16 @@ class Compiler(
               s"starting at the root [${m.getName}]."
             )
 
-            val packageModules = packageRepository.freezeModuleMap.collect {
-              case (name, mod)
-                  if name.startsWith(
-                    s"${pkg.namespace}.${pkg.normalizedName}"
-                  ) =>
-                mod
-            }.toList
+            val packageModules = packageRepository.freezeModuleMap
+              .collect {
+                case (name, mod)
+                    if name.startsWith(
+                      s"${pkg.namespace}.${pkg.normalizedName}"
+                    ) =>
+                  mod
+              }
+              .map(new Module(_))
+              .toList
 
             runInternal(
               packageModules,
@@ -231,7 +234,8 @@ class Compiler(
             generateCode,
             shouldCompileDependencies
           )
-        val pending = packageRepository.getPendingModules.toList
+        val pending =
+          packageRepository.getPendingModules.map(new Module(_)).toList
         go(pending, compiledModules ++ newCompiled)
       }
 
@@ -656,7 +660,7 @@ class Compiler(
     * @return the module corresponding to the provided name, if exists
     */
   def getModule(name: String): Option[Module] = {
-    context.getTopScope.getModule(name).toScala
+    context.getTopScope.getModule(name).map(new Module(_)).toScala
   }
 
   /** Ensures the passed module is in at least the parsed compilation stage.

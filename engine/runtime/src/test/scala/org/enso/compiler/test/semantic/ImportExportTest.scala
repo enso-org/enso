@@ -69,7 +69,7 @@ class ImportExportTest
     def createModule(moduleName: QualifiedName): runtime.Module = {
       val module = new runtime.Module(moduleName, null, moduleCode)
       langCtx.getPackageRepository.registerModuleCreatedInRuntime(module)
-      langCtx.getCompiler.run(module)
+      langCtx.getCompiler.run(module.asCompilerModule())
       module
     }
   }

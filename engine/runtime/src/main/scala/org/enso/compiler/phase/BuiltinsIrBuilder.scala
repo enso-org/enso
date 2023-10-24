@@ -39,7 +39,7 @@ object BuiltinsIrBuilder {
   ): Unit = {
     val passManager = passes.passManager
     val moduleContext = ModuleContext(
-      module          = module,
+      module          = new CompilerContext.Module(module),
       freshNameSupply = Some(freshNameSupply),
       compilerConfig  = CompilerConfig(warningsEnabled = false)
     )
@@ -52,14 +52,14 @@ object BuiltinsIrBuilder {
       passes.moduleDiscoveryPasses
     )
     context.updateModule(
-      module,
+      new CompilerContext.Module(module),
       { u =>
         u.ir(irAfterModDiscovery)
         u.compilationStage(CompilationStage.AFTER_PARSING)
       }
     )
 
-    new ExportsResolution().run(List(module))
+    new ExportsResolution().run(List(new CompilerContext.Module(module)))
     val irAfterTypes = passManager.runPassesOnModule(
       irAfterModDiscovery,
       moduleContext,
@@ -71,7 +71,7 @@ object BuiltinsIrBuilder {
       passes.functionBodyPasses
     )
     context.updateModule(
-      module,
+      new CompilerContext.Module(module),
       { u =>
         u.ir(irAfterCompilation)
         u.compilationStage(CompilationStage.AFTER_CODEGEN)

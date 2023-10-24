@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.enso.compiler.Compiler;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.data.CompilerConfig;
@@ -244,7 +245,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           scala.Option.apply(new PrintStream(outputRedirect))
       );
       var moduleContext = new ModuleContext(
-        module, redirectConfigWithStrictErrors,
+        new CompilerContext.Module(module), redirectConfigWithStrictErrors,
         scala.Option.empty(),
         scala.Option.empty(),
         false,
