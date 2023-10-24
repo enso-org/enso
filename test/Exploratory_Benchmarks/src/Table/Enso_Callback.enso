@@ -25,7 +25,7 @@ type Boxed_Enso_Callback_Test
     java_roundtrip self =
         expected_type = Storage.from_value_type_strict Value_Type.Char
         Column.from_storage "result" <|
-            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                 MapHelpers.mapCallback self.text_column.java_column.getStorage self.fn expected_type java_problem_aggregator
 
     enso_map_as_vector self convert_polyglot_dates =
@@ -67,7 +67,7 @@ type Primitive_Enso_Callback_Test
     java_roundtrip self =
         expected_type = Storage.from_value_type_strict Value_Type.Integer
         Column.from_storage "result" <|
-            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                 MapHelpers.mapCallback self.int_column.java_column.getStorage self.fn expected_type java_problem_aggregator
 
     enso_map_as_vector_inferred_builder self convert_polyglot_dates =
