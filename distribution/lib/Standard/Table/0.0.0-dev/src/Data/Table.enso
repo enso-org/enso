@@ -1977,7 +1977,7 @@ type Table
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables:Vector match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    union self tables:Vector|Table match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, Table.from single_table]
