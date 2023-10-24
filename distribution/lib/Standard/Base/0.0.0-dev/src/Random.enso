@@ -20,7 +20,8 @@ from project.Data.Range.Extensions import all
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.UUID
-polyglot java import org.enso.base.Random_Utils
+polyglot java import org.enso.base.random.Random_Utils
+polyglot java import org.enso.base.random.RandomInstanceHolder
 
 type Random
     ## PRIVATE
@@ -56,7 +57,7 @@ type Random
 
              Random.set_seed 42
     set_seed : Integer -> Nothing
-    set_seed (seed:Integer=get_default_seed) = Random_Utils.seedRandomsSingleton seed
+    set_seed seed:Integer = Random_Generator.global_random_generator.set_seed seed
 
     ## GROUP Random
        Return a random `Integer` between `min` (inclusive) and `max`
@@ -73,7 +74,7 @@ type Random
 
               i = Random.integer 1 11
     integer : Integer -> Integer -> Integer ! Illegal_Argument
-    integer (min:Integer) (max:Integer) = Random.default_instance.integer min max
+    integer (min:Integer) (max:Integer) = Random_Generator.global_random_generator.integer min max
 
     ## GROUP Random
        Return a random `Float` in the specified range.
@@ -89,7 +90,7 @@ type Random
 
               i = Random.float 2.3 3.4
     float : Float -> Float -> Float
-    float (min:Float=0.0) (max:Float=1.0) = Random.default_instance.float min max
+    float (min:Float=0.0) (max:Float=1.0) = Random_Generator.global_random_generator.float min max
 
     ## GROUP Random
        Return a random `Boolean` using the default instance of
@@ -102,7 +103,7 @@ type Random
 
              b = Random.boolean
     boolean : Boolean
-    boolean = Random.default_instance.boolean
+    boolean = Random_Generator.global_random_generator.boolean
 
     ## GROUP Random
        Return a random Gaussian-distributed `Float` with the specified mean and
@@ -119,7 +120,7 @@ type Random
 
               f = Random.gaussian
     gaussian : Float -> Float -> Float
-    gaussian (standard_deviation:Float=1.0) (mean:Float=0.0) = Random.default_instance.gaussian standard_deviation mean
+    gaussian (standard_deviation:Float=1.0) (mean:Float=0.0) = Random_Generator.global_random_generator.gaussian standard_deviation mean
 
     ## GROUP Random
        Returns `count` indices sampled from the range 0 (inclusive) to n
@@ -136,7 +137,7 @@ type Random
 
               indices = Random.indices 100 10
     indices : Integer -> Integer -> Vector Integer
-    indices (n:Integer) (count:Integer=1) = Random.default_instance.indices n count
+    indices (n:Integer) (count:Integer=1) = Random_Generator.global_random_generator.indices n count
 
     ## GROUP Random
        Return a `Date` within the specified `Date_Range`.
@@ -160,7 +161,7 @@ type Random
              range = my_first_day_of_vacation.up_to my_last_day_of_vacation include_end=True
              d = Random.date range
     date : Date_Range -> Date
-    date (date_range:Date_Range) = Random.default_instance.date date_range
+    date (date_range:Date_Range) = Random_Generator.global_random_generator.date date_range
 
     ## GROUP Random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
@@ -186,7 +187,7 @@ type Random
              t = Random.time start end
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
     time (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
-        Random.default_instance.time start_time end_time
+        Random_Generator.global_random_generator.time start_time end_time
 
     ## GROUP Random
        Return a new UUID.
@@ -202,7 +203,7 @@ type Random
 
              uuid = Random.uuid
     uuid : Text
-    uuid = Random.default_instance.uuid
+    uuid = Random_Generator.global_random_generator.uuid
 
     ## GROUP Random
        Returns a new `Vector` containing a random sample of the input vector,
@@ -227,7 +228,7 @@ type Random
 
              items = Random.items [1, 2, 3, 4]
     items : Vector Any -> Integer -> Boolean -> Vector Any
-    items (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random.default_instance.items v count with_replacement
+    items (v:Vector) (count:Integer=1) (with_replacement:Boolean=False) = Random_Generator.global_random_generator.items v count with_replacement
 
     ## GROUP Random
        Returns a random permutation of the input `Vector`.
@@ -242,27 +243,29 @@ type Random
 
              permuted = Random.permute [1, 2, 3, 4]
     permute : Vector Any -> Vector Any
-    permute (v:Vector) = Random.default_instance.permute v
-
-    ## PRIVATE
-       Return the default instance.
-
-       This method should never be public, since it has to create a
-       `Random_Generator` each time, and so it would be possible to use this to
-       create multiple such default instances at the same time, in which case
-       setting the seed for one would not affect the others.
-    default_instance : Random_Generator
-    default_instance = Random_Generator.Value Random_Utils.getRandomSingleton
+    permute (v:Vector) = Random_Generator.global_random_generator.permute v
 
 # PRIVATE
 type Random_Generator
     ## PRIVATE
        Create a new rng with the given seed.
     new : Integer -> Random_Generator
-    new (seed:Integer) = Random_Generator.Value (Java_Random.new seed)
+    new (seed:Integer) = Random_Generator.Value (RandomInstanceHolder.new seed)
 
     ## PRIVATE
-    Value (java_random:Java_Random)
+    Value (random_instance_holder:RandomInstanceHolder)
+
+    ## PRIVATE
+    global_random_generator : Random_Generator
+    global_random_generator = Random_Generator.Value RandomInstanceHolder.SINGLETON
+
+    ## PRVIATE
+    set_seed : Integer -> Nothing
+    set_seed self seed = self.random_instance_holder.setSeed seed
+
+    ## PRIVATE
+    java_random : Java_Random
+    java_random self = self.random_instance_holder.getCurrentRandom
 
     integer : Integer -> Integer -> Integer ! Illegal_Argument
     integer self (min:Integer) (max:Integer) =
@@ -319,4 +322,4 @@ type Random_Generator
 
    The returned seed will likely differ between each call to this method.
 get_default_seed : Integer
-get_default_seed = System.nano_time
+get_default_seed = Random_Utils.getDefaultSeed

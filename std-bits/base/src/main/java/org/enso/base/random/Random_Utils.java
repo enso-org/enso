@@ -1,21 +1,12 @@
-package org.enso.base;
+package org.enso.base.random;
 
 import java.util.Arrays;
 import java.util.Random;
 
 public class Random_Utils {
-  /** Static singleton Random instance. This is modified by Random.enso. */
-  private static Random randomSingleton = null;
-
-  public static Random getRandomSingleton() {
-    if (randomSingleton == null) {
-      seedRandomsSingleton(System.currentTimeMillis());
-    }
-    return randomSingleton;
-  }
-
-  public static void seedRandomsSingleton(long seed) {
-    randomSingleton = new Random(seed);
+  /** Default `seed` used to initialize new instances of `Random` */
+  public static long getDefaultSeed() {
+      return java.lang.System.nanoTime();
   }
 
   /** Samples k random values from the input. */
