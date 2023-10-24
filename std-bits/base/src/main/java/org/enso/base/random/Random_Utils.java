@@ -6,7 +6,7 @@ import java.util.Random;
 public class Random_Utils {
   /** Default `seed` used to initialize new instances of `Random` */
   public static long getDefaultSeed() {
-      return java.lang.System.nanoTime();
+    return java.lang.System.nanoTime();
   }
 
   /** Samples k random values from the input. */
