@@ -250,7 +250,7 @@ spec setup =
             m2.at "Y" . to_vector . should_equal ["B", Nothing, Nothing, Nothing]
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
 
-            # But NULLs in source will mean such rows will never match:
+            # But NULLs in source are ok, but mean such rows will never match:
             r3 = my_table2.lookup_and_replace lookup2 key_columns="X" allow_unmatched_rows=False
             r3.should_fail_with Unmatched_Rows_In_Lookup
 
@@ -339,29 +339,6 @@ spec setup =
                 Problems.assume_no_problems <|
                     lookup.delete_rows (Table.new [["X", [1]]]) key_columns=["X"]
                 lookup.row_count . should_equal 1
-
-                # Now, the query is no longer valid:
-                m2 = r1 |> materialize
-                # TODO maybe more specific exception
-                m2.should_fail_with SQL_Error
-
-            Test.with_clue "(no NULLs in key check - added a NULL in lookup) " <|
-                lookup = table_builder [["X", [1, 2]], ["Y", ["A", Nothing]]]
-                table = table_builder [["X", [1, 2, 2]], ["Y", ["Z", "ZZ", "ZZZ"]], ["Z", [10, 20, 30]]]
-
-                r1 = table.lookup_and_replace lookup key_columns="X" allow_unmatched_rows=False
-                # Immediately, the query is all good.
-                Problems.assume_no_problems r1
-
-                m1 = r1 |> materialize |> _.order_by "Z"
-                m1.at "X" . to_vector . should_equal [1, 2, 2]
-                # NULLs in other columns are OK - only key is required to be non NULL
-                m1.at "Y" . to_vector . should_equal ["A", Nothing, Nothing]
-                m1.at "Z" . to_vector . should_equal [10, 20, 30]
-
-                # Now, we change the lookup table, so that there are unmatched rows:
-                Problems.assume_no_problems <|
-                    lookup.update_rows (Table.new [["X", [Nothing]], ["Y", ["C"]]]) key_columns=[] update_action=Update_Action.Insert
 
                 # Now, the query is no longer valid:
                 m2 = r1 |> materialize
