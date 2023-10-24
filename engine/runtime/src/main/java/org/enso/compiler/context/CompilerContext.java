@@ -172,10 +172,6 @@ public interface CompilerContext {
       return module.getSourceFile();
     }
 
-    public boolean isInteractive() {
-      return module.isInteractive();
-    }
-
     public List<QualifiedName> getDirectModulesRefs() {
       return module.getDirectModulesRefs();
     }

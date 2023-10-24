@@ -142,7 +142,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public boolean isInteractive(Module module) {
-    return module.isInteractive();
+    return module.unsafeModule().isInteractive();
   }
 
   @Override
@@ -152,7 +152,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public boolean hasCrossModuleLinks(Module module) {
-    return module.hasCrossModuleLinks();
+    return module.unsafeModule().hasCrossModuleLinks();
   }
 
   @Override
