@@ -24,7 +24,9 @@ sealed trait Unexpected extends Error {
   override def diagnosticKeys(): Array[Any] = Array(entity)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Unexpected
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Unexpected
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Unexpected
@@ -49,14 +51,14 @@ object Unexpected {
     */
   sealed case class TypeSignature(
     override val ir: IR,
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Unexpected
       with IRKind.Primitive
       with org.enso.compiler.core.ir.module.scope.Definition {
     override val entity: String = "type signature"
 
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -79,7 +81,7 @@ object Unexpected {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): TypeSignature = this
 
     /** @inheritdoc */

@@ -1,14 +1,17 @@
 package org.enso.compiler.core.ir
 package expression
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
 
 /** Operator sections. */
 sealed trait Section extends Operator {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Section
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Section
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Section
@@ -40,7 +43,7 @@ object Section {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -98,7 +101,9 @@ object Section {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Section =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Section =
       copy(
         arg      = arg.mapExpressions(fn),
         operator = operator.mapExpressions(fn)
@@ -139,7 +144,7 @@ object Section {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -190,7 +195,9 @@ object Section {
     ): Sides = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Section =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Section =
       copy(operator = operator.mapExpressions(fn))
 
     /** @inheritdoc */
@@ -229,7 +236,7 @@ object Section {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -288,7 +295,9 @@ object Section {
     ): Right = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Section = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Section = {
       copy(
         operator = operator.mapExpressions(fn),
         arg      = arg.mapExpressions(fn)

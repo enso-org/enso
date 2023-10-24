@@ -1,13 +1,16 @@
 package org.enso.compiler.context
 
 import com.oracle.truffle.api.source.Source
+
 import java.util.UUID
 import org.enso.compiler.core.EnsoParser
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.IR.Identifier
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.syntax.text.Location
@@ -237,9 +240,11 @@ object ChangesetBuilder {
       new NodeId(ir.getId, ir.getExternalId, getName(ir))
 
     implicit val ordering: Ordering[NodeId] = (x: NodeId, y: NodeId) => {
-      val cmpInternal = Ordering[UUID].compare(x.internalId, y.internalId)
+      val cmpInternal =
+        Ordering[UUID].compare(x.internalId.id(), y.internalId.id())
       if (cmpInternal == 0) {
-        Ordering[Option[UUID]].compare(x.externalId, y.externalId)
+        Ordering[Option[UUID]]
+          .compare(x.externalId.map(_.id()), y.externalId.map(_.id()))
       } else {
         cmpInternal
       }
@@ -307,7 +312,7 @@ object ChangesetBuilder {
       */
     def select(location: Location): Node =
       new Node(
-        NodeId(UUID.nameUUIDFromBytes(Array()), None, None),
+        NodeId(new Identifier(UUID.nameUUIDFromBytes(Array())), None, None),
         location,
         false
       )

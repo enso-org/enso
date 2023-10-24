@@ -16,15 +16,17 @@ import org.enso.compiler.core.IR.{randomId, Identifier}
 sealed case class Resolution(
   originalName: Name,
   reason: Resolution.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage      = MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with IRKind.Primitive
     with Name {
   override val name: String = originalName.name
 
-  override def mapExpressions(fn: Expression => Expression): Resolution =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Resolution =
     this
 
   override def setLocation(
@@ -78,7 +80,7 @@ sealed case class Resolution(
   override def children: List[IR] = List(originalName)
 
   /** @inheritdoc */
-  override protected var id: Identifier = randomId
+  var id: Identifier = randomId
 
   /** @inheritdoc */
   override def showCode(indent: Int): String = originalName.showCode(indent)

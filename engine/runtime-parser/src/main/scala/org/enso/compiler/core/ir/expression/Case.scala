@@ -1,20 +1,17 @@
 package org.enso.compiler.core.ir
 package expression
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{
-  indentLevel,
-  mkIndent,
-  randomId,
-  Identifier,
-  ToStringHelper
-}
+import org.enso.compiler.core.IR.{indentLevel, mkIndent, randomId, Identifier}
 
 /** The Enso case expression. */
 sealed trait Case extends Expression {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Case
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Case
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Case
@@ -48,7 +45,7 @@ object Case {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Case
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     def this(
       scrutinee: Expression,
@@ -121,7 +118,9 @@ object Case {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Expr = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Expr = {
       copy(
         scrutinee = fn(scrutinee),
         branches.map(_.mapExpressions(fn))
@@ -198,7 +197,7 @@ object Case {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Case
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     def this(
       pattern: Pattern,
@@ -274,7 +273,9 @@ object Case {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Branch = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Branch = {
       copy(pattern = pattern.mapExpressions(fn), expression = fn(expression))
     }
 

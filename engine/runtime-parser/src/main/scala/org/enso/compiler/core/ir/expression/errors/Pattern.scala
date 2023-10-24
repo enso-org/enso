@@ -17,12 +17,14 @@ import org.enso.compiler.core.IR.{randomId, Identifier}
 sealed case class Pattern(
   originalPattern: org.enso.compiler.core.ir.Pattern,
   reason: Pattern.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage      = MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with org.enso.compiler.core.ir.Pattern {
-  override def mapExpressions(fn: Expression => Expression): Pattern =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Pattern =
     copy(originalPattern = originalPattern.mapExpressions(fn))
 
   override def setLocation(location: Option[IdentifiedLocation]): Pattern =
@@ -79,7 +81,7 @@ sealed case class Pattern(
 
   override def children: List[IR] = List(originalPattern)
 
-  override protected var id: Identifier = randomId
+  var id: Identifier = randomId
 
   override def showCode(indent: Int): String =
     originalPattern.showCode(indent)

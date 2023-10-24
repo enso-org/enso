@@ -262,4 +262,6 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
     }
 
   }
+
+  implicit def toExternalId(id: UUID): IR.ExternalId = new IR.ExternalId(id)
 }

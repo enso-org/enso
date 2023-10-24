@@ -1,14 +1,17 @@
 package org.enso.compiler.core.ir
 package expression
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
 
 /** Enso comment entities. */
 sealed trait Comment extends Expression with module.scope.Definition {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Comment
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Comment
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Comment
@@ -38,7 +41,7 @@ object Comment {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Comment
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -83,7 +86,7 @@ object Comment {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Documentation = this
 
     /** @inheritdoc */

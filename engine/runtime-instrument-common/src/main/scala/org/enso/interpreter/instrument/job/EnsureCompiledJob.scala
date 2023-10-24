@@ -4,6 +4,7 @@ import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.{Diagnostic, Warning}
 import org.enso.compiler.core.ir.expression.Error
@@ -216,7 +217,7 @@ final class EnsureCompiledJob(
         ),
       diagnostic.location
         .flatMap(LocationResolver.getExpressionId(module.getIr, _))
-        .map(_.externalId),
+        .map(_.externalId.id()),
       Vector()
     )
   }
@@ -304,7 +305,9 @@ final class EnsureCompiledJob(
     source: CharSequence
   ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
-      CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
+      CacheInvalidation.Command.InvalidateKeys(
+        changeset.invalidated.map(_.id())
+      )
     val scopeIds = splitMeta(source.toString)._2.map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
@@ -382,7 +385,7 @@ final class EnsureCompiledJob(
     val invalidatedVisualizations =
       ctx.contextManager.getInvalidatedVisualizations(
         module.getName,
-        changeset.invalidated
+        changeset.invalidated.map(_.id())
       )
     invalidatedVisualizations.foreach { visualization =>
       UpsertVisualizationJob.upsertVisualization(visualization)
@@ -397,7 +400,7 @@ final class EnsureCompiledJob(
     // pending updates
     val updates = changeset.invalidated.map { key =>
       Api.ExpressionUpdate(
-        key,
+        key.id(),
         None,
         None,
         Vector.empty,

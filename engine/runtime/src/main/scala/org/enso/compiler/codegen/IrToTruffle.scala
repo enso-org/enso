@@ -3,6 +3,7 @@ package org.enso.compiler.codegen
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   CallArgument,

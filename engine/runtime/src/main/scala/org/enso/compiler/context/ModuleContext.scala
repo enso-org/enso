@@ -1,5 +1,6 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig

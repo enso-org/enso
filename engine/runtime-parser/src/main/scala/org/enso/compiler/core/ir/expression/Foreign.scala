@@ -1,8 +1,9 @@
 package org.enso.compiler.core.ir
 package expression
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
 import org.enso.compiler.core.ir.MetadataStorage
 
 // === Foreign ==============================================================
@@ -11,7 +12,9 @@ import org.enso.compiler.core.ir.MetadataStorage
 sealed trait Foreign extends Expression {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Foreign
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Foreign
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Foreign
@@ -43,7 +46,7 @@ object Foreign {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Foreign
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -89,7 +92,9 @@ object Foreign {
     ): Definition = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Definition =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Definition =
       this
 
     /** @inheritdoc */

@@ -1,15 +1,20 @@
 package org.enso.compiler.core.ir
 package `type`
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
 import org.enso.compiler.core.ir.Type.Info
+
+import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** IR nodes for dealing with typesets. */
 sealed trait Set extends Type {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Set
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Set
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Set
@@ -43,7 +48,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -110,7 +115,9 @@ object Set {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Member = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Member = {
       copy(
         label      = label.mapExpressions(fn),
         memberType = fn(memberType),
@@ -163,7 +170,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -222,7 +229,7 @@ object Set {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Subsumption = {
       copy(left = fn(left), right = fn(right))
     }
@@ -267,7 +274,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -325,7 +332,9 @@ object Set {
     ): Equality = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Equality = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Equality = {
       copy(left = fn(left), right = fn(right))
     }
 
@@ -369,7 +378,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -426,7 +435,9 @@ object Set {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Concat = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Concat = {
       copy(left = fn(left), right = fn(right))
     }
 
@@ -468,7 +479,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -520,8 +531,10 @@ object Set {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Union = {
-      copy(operands = operands.map(fn))
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Union = {
+      copy(operands = operands.map(fn.asScala))
     }
 
     /** @inheritdoc */
@@ -563,7 +576,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -622,7 +635,7 @@ object Set {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Intersection = {
       copy(left = fn(left), right = fn(right))
     }

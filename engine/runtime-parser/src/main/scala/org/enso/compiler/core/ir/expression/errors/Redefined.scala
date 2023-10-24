@@ -3,6 +3,7 @@ package expression
 package errors
 
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.Implicits.ShowPassData
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{randomId, Identifier}
 
@@ -12,7 +13,9 @@ import org.enso.compiler.core.IR.{randomId, Identifier}
 sealed trait Redefined extends Error {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Redefined
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Redefined
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Redefined
@@ -42,7 +45,7 @@ object Redefined {
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `self`.
       *
@@ -84,7 +87,9 @@ object Redefined {
     ): SelfArg = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): SelfArg =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): SelfArg =
       this
 
     /** @inheritdoc */
@@ -122,7 +127,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -197,7 +202,9 @@ object Redefined {
       .toArray
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Conversion =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Conversion =
       this
 
     /** @inheritdoc */
@@ -244,7 +251,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -318,7 +325,9 @@ object Redefined {
     }
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Method = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Method = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -365,7 +374,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -441,7 +450,7 @@ object Redefined {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): MethodClashWithAtom =
       this
 
@@ -483,7 +492,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -542,7 +551,9 @@ object Redefined {
     override def diagnosticKeys(): Array[Any] = Array(typeName.name)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Type = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Type = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -580,7 +591,7 @@ object Redefined {
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -632,7 +643,9 @@ object Redefined {
       invalidBinding.location
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Binding =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Binding =
       this
 
     /** @inheritdoc */

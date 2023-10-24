@@ -274,7 +274,7 @@ object ProgramExecutionSupport {
         section.map(LocationResolver.sectionToRange),
         section
           .flatMap(LocationResolver.getExpressionId(_))
-          .map(_.externalId),
+          .map(_.externalId.id()),
         ErrorResolver.getStackTrace(ex)
       )
   }

@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -97,7 +98,10 @@ class DataflowAnalysisTest extends CompilerTest {
     str: String,
     extId: Option[IR.Identifier]
   ): DependencyInfo.Type = {
-    DependencyInfo.Type.Dynamic(str, extId)
+    DependencyInfo.Type.Dynamic(
+      str,
+      extId.map(ir => new IR.ExternalId(ir.id()))
+    )
   }
 
   /** Adds an extension method to run dataflow analysis on an [[Module]].
@@ -1509,11 +1513,14 @@ class DataflowAnalysisTest extends CompilerTest {
         asStatic(ir)
       )
 
-      asStatic(ir).externalId shouldEqual Some(lambdaId)
+      asStatic(ir).externalId.map(_.id()) shouldEqual Some(lambdaId)
     }
 
     "return the set of external identifiers for invalidation" in {
-      metadata.dependents.getExternal(asStatic(aBindExpr)).get shouldEqual Set(
+      metadata.dependents
+        .getExternal(asStatic(aBindExpr))
+        .get
+        .map(_.id()) shouldEqual Set(
         lambdaId,
         aBindId
       )
@@ -1522,7 +1529,8 @@ class DataflowAnalysisTest extends CompilerTest {
     "return the set of direct external identifiers for invalidation" in {
       metadata.dependents
         .getExternalDirect(asStatic(aBindExpr))
-        .get shouldEqual Set(
+        .get
+        .map(_.id()) shouldEqual Set(
         aBindId
       )
     }

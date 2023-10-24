@@ -3,8 +3,9 @@ package expression
 package errors
 
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
 
 import scala.annotation.unused
 
@@ -18,15 +19,15 @@ import scala.annotation.unused
 sealed case class Syntax(
   at: IdentifiedLocation,
   reason: Syntax.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage      = MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with module.scope.Definition
     with module.scope.Export
     with module.scope.Import
     with IRKind.Primitive {
-  override protected var id: Identifier = randomId
+  var id: Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -71,7 +72,9 @@ sealed case class Syntax(
   override val location: Option[IdentifiedLocation] = Option(at)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Syntax = this
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Syntax = this
 
   /** @inheritdoc */
   override def toString: String =

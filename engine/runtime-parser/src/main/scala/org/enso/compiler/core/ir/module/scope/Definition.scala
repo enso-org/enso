@@ -11,19 +11,16 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.core.ir.module.Scope
-import org.enso.compiler.core.IR.{
-  indentLevel,
-  mkIndent,
-  randomId,
-  Identifier,
-  ToStringHelper
-}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.IR.{indentLevel, mkIndent, randomId, Identifier}
 
 /** A representation of top-level definitions. */
 trait Definition extends Scope {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Definition
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Definition
 
   /** @inheritdoc */
   override def setLocation(
@@ -57,12 +54,12 @@ object Definition {
     name: Name,
     params: List[DefinitionArgument],
     members: List[Data],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Definition
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     def copy(
       name: Name                           = name,
@@ -115,7 +112,9 @@ object Definition {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Type =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Type =
       copy(
         params  = params.map(_.mapExpressions(fn)),
         members = members.map(_.mapExpressions(fn))
@@ -159,12 +158,12 @@ object Definition {
     name: Name,
     arguments: List[DefinitionArgument],
     annotations: List[Name.GenericAnnotation],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -232,7 +231,9 @@ object Definition {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Data = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Data = {
       copy(
         name        = name.mapExpressions(fn),
         arguments   = arguments.map(_.mapExpressions(fn)),
@@ -279,12 +280,12 @@ object Definition {
     name: Name,
     arguments: List[DefinitionArgument],
     body: List[IR],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Definition
       with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -357,7 +358,7 @@ object Definition {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): SugaredType =
       copy(body = body.map(_.mapExpressions(fn)))
 

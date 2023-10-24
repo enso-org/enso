@@ -1,7 +1,8 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
 
 /** A representation of a top-level Enso module.
@@ -25,12 +26,12 @@ sealed case class Module(
   exports: List[Export],
   bindings: List[Definition],
   isPrivate: Boolean,
-  override val location: Option[IdentifiedLocation],
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  location: Option[IdentifiedLocation],
+  passData: MetadataStorage      = MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends IR
     with IRKind.Primitive {
-  override protected var id: Identifier = randomId
+  var id: Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -102,7 +103,9 @@ sealed case class Module(
     copy(location = location)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Module = {
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Module = {
     copy(
       imports  = imports.map(_.mapExpressions(fn)),
       exports  = exports.map(_.mapExpressions(fn)),

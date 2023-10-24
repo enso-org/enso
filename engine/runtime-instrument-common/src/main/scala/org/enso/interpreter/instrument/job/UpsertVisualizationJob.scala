@@ -2,6 +2,8 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
+import org.enso.compiler.core.IR
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.definition
@@ -527,6 +529,7 @@ object UpsertVisualizationJob {
           }
           .flatten
           .headOption
+          .map(_.id())
 
       case _: Api.VisualizationExpression.Text => None
     }
@@ -597,12 +600,13 @@ object UpsertVisualizationJob {
         module.getIr
           .getMetadata(DataflowAnalysis)
           .foreach { metadata =>
+            val externalId = new IR.ExternalId(expressionId)
             module.getIr.preorder
-              .find(_.getExternalId.contains(expressionId))
+              .find(_.getExternalId.contains(externalId))
               .collect {
                 case name: Name.Literal =>
                   DataflowAnalysis.DependencyInfo.Type
-                    .Dynamic(name.name, Some(expressionId))
+                    .Dynamic(name.name, Some(externalId))
                 case ir =>
                   DataflowAnalysis.DependencyInfo.Type
                     .Static(ir.getId, ir.getExternalId)
@@ -615,14 +619,14 @@ object UpsertVisualizationJob {
                 stacks.foreach { stack =>
                   stack.headOption.foreach { frame =>
                     dependents
-                      .find { id => frame.cache.get(id) ne null }
+                      .find { id => frame.cache.get(id.id()) ne null }
                       .foreach { firstDependent =>
                         CacheInvalidation.run(
                           stack,
                           CacheInvalidation(
                             CacheInvalidation.StackSelector.Top,
                             CacheInvalidation.Command
-                              .InvalidateKeys(Seq(firstDependent))
+                              .InvalidateKeys(Seq(firstDependent).map(_.id()))
                           )
                         )
                       }

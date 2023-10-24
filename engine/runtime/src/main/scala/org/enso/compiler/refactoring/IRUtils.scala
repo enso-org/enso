@@ -1,5 +1,6 @@
 package org.enso.compiler.refactoring
 
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.data.BindingsMap

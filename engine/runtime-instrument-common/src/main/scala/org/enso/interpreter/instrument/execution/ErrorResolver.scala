@@ -50,7 +50,7 @@ object ErrorResolver {
               element.getTarget.getRootNode.getName,
               findFileByModuleName(section.getSource.getName),
               Some(LocationResolver.sectionToRange(section)),
-              LocationResolver.getExpressionId(section).map(_.externalId)
+              LocationResolver.getExpressionId(section).map(_.externalId.id())
             )
           )
       }

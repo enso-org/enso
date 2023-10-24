@@ -2,6 +2,7 @@ package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{
@@ -261,7 +262,7 @@ final class SuggestionBuilder[A: IndexedSource](
     methodType match {
       case MethodType.Getter =>
         Suggestion.Getter(
-          externalId    = externalId,
+          externalId    = externalId.map(_.id()),
           module        = module.toString,
           name          = name,
           arguments     = methodArgs,
@@ -272,7 +273,7 @@ final class SuggestionBuilder[A: IndexedSource](
         )
       case MethodType.Defined =>
         Suggestion.DefinedMethod(
-          externalId    = externalId,
+          externalId    = externalId.map(_.id()),
           module        = module.toString,
           name          = name,
           arguments     = methodArgs,
@@ -303,7 +304,7 @@ final class SuggestionBuilder[A: IndexedSource](
       }.tail
 
     Suggestion.Conversion(
-      externalId    = externalId,
+      externalId    = externalId.map(_.id()),
       module        = module.toString,
       arguments     = methodArgs,
       selfType      = methodArgs.head.reprType,
@@ -326,7 +327,7 @@ final class SuggestionBuilder[A: IndexedSource](
     val (methodArgs, returnTypeDef) =
       buildFunctionArguments(args, typeSig)
     Suggestion.Function(
-      externalId    = externalId,
+      externalId    = externalId.map(_.id()),
       module        = module.toString,
       name          = name.name,
       arguments     = methodArgs,
@@ -348,7 +349,7 @@ final class SuggestionBuilder[A: IndexedSource](
     val typeSig            = buildTypeSignatureFromMetadata(typeSignature)
     val (_, returnTypeDef) = buildFunctionArguments(Seq(), typeSig)
     Suggestion.Local(
-      externalId    = externalId,
+      externalId    = externalId.map(_.id()),
       module        = module.toString,
       name          = name,
       returnType    = buildReturnType(returnTypeDef),

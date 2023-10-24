@@ -1,7 +1,10 @@
 package org.enso.compiler.core.ir
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
+
+import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** Definition-site arguments in Enso. */
 sealed trait DefinitionArgument extends IR {
@@ -20,12 +23,7 @@ sealed trait DefinitionArgument extends IR {
 
   /** @inheritdoc */
   override def mapExpressions(
-    fn: Expression => Expression
-  ): DefinitionArgument
-
-  /** @inheritdoc */
-  override def setLocation(
-    location: Option[IdentifiedLocation]
+    fn: java.util.function.Function[Expression, Expression]
   ): DefinitionArgument
 
   /** @inheritdoc */
@@ -61,12 +59,12 @@ object DefinitionArgument {
     override val ascribedType: Option[Expression],
     override val defaultValue: Option[Expression],
     override val suspended: Boolean,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends DefinitionArgument
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -149,11 +147,13 @@ object DefinitionArgument {
     ): Specified = copy(location = location)
 
     /** @inheritdoc */
-    def mapExpressions(fn: Expression => Expression): Specified = {
+    def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Specified = {
       copy(
         name         = name.mapExpressions(fn),
-        ascribedType = ascribedType.map(fn),
-        defaultValue = defaultValue.map(fn)
+        ascribedType = ascribedType.map(fn.asScala),
+        defaultValue = defaultValue.map(fn.asScala)
       )
     }
 

@@ -24,7 +24,9 @@ sealed case class Conversion(
     with Name {
   override val name: String = "conversion_error"
 
-  override def mapExpressions(fn: Expression => Expression): Conversion =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Conversion =
     this
 
   override def setLocation(
@@ -79,7 +81,7 @@ sealed case class Conversion(
   override def children: List[IR] = List(storedIr)
 
   /** @inheritdoc */
-  override protected var id: Identifier = randomId
+  var id: Identifier = randomId
 
   /** @inheritdoc */
   override def showCode(indent: Int): String =

@@ -206,7 +206,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[Function.Lambda]
       val secondLine =
-        ir.body.children(1).asInstanceOf[Application.Prefix]
+        ir.body.children()(1).asInstanceOf[Application.Prefix]
       val y =
         secondLine.arguments(0).asInstanceOf[CallArgument.Specified].value
       val plus = secondLine.function
@@ -246,7 +246,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Function.Lambda]
-      val firstLine = ir.body.children(0).asInstanceOf[Expression.Binding]
+      val firstLine = ir.body.children()(0).asInstanceOf[Expression.Binding]
       val five      = firstLine.expression
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -266,10 +266,10 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Function.Lambda]
-      val secondLine = ir.body.children(1).asInstanceOf[Expression.Binding]
+      val secondLine = ir.body.children()(1).asInstanceOf[Expression.Binding]
       val z          = secondLine.expression.asInstanceOf[Application.Force].target
       val thirdLine =
-        ir.body.children(2).asInstanceOf[Application.Prefix]
+        ir.body.children()(2).asInstanceOf[Application.Prefix]
       val y =
         thirdLine.arguments(0).asInstanceOf[CallArgument.Specified].value
       val plus = thirdLine.function
@@ -322,9 +322,9 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[Expression.Binding]
       val body       = ir.expression.asInstanceOf[Function.Lambda].body
-      val secondLine = body.children(1).asInstanceOf[Expression.Binding]
+      val secondLine = body.children()(1).asInstanceOf[Expression.Binding]
       val z          = secondLine.expression.asInstanceOf[Application.Force].target
-      val thirdLine  = body.children(2).asInstanceOf[Application.Prefix]
+      val thirdLine  = body.children()(2).asInstanceOf[Application.Prefix]
       val y =
         thirdLine.arguments(0).asInstanceOf[CallArgument.Specified].value
       val plus = thirdLine.function
@@ -428,7 +428,7 @@ class ChangesetBuilderTest extends CompilerTest {
       val all = new ChangesetBuilder(Rope(code), ir).invalidated(Seq(edit))
 
       all
-        .map(n => n.externalId.getOrElse(n.internalId))
+        .map(n => n.externalId.map(_.id()).getOrElse(n.internalId.id()))
         .map(findCode(code, ir, _)) should contain theSameElementsAs Seq(
         atCode
       )
@@ -465,7 +465,9 @@ class ChangesetBuilderTest extends CompilerTest {
   def invalidated(ir: IR, code: String, edits: TextEdit*): Set[IR.Identifier] =
     new ChangesetBuilder(Rope(code), ir)
       .invalidated(edits)
-      .map(n => n.externalId.getOrElse(n.internalId))
+      .map(n =>
+        new IR.Identifier(n.externalId.map(_.id()).getOrElse(n.internalId.id()))
+      )
 
   def invalidatedAll(
     ir: IR,

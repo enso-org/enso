@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
@@ -18,6 +19,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 
 import java.util
+import java.util.UUID
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -216,8 +218,11 @@ case object CachePreferenceAnalysis extends IRPass {
       weights.contains(id)
 
     /** @return weights as the Java collection */
-    def asJavaWeights: util.Map[IR.ExternalId, java.lang.Double] =
-      weights.asJava.asInstanceOf[util.Map[IR.ExternalId, java.lang.Double]]
+    def asJavaWeights: util.Map[UUID, java.lang.Double] =
+      weights
+        .map(kv => (kv._1.id(), kv._2))
+        .asJava
+        .asInstanceOf[util.Map[UUID, java.lang.Double]]
 
     override def duplicate(): Option[IRPass.IRMetadata] =
       Some(copy(weights = this.weights))

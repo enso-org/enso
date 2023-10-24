@@ -1,7 +1,8 @@
 package org.enso.compiler.core.ir
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
 
 /** Functions in Enso. */
 sealed trait Function extends Expression {
@@ -23,19 +24,6 @@ sealed trait Function extends Expression {
     */
   val canBeTCO: Boolean
 
-  /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Function
-
-  /** @inheritdoc */
-  override def setLocation(location: Option[IdentifiedLocation]): Function
-
-  /** @inheritdoc */
-  override def duplicate(
-    keepLocations: Boolean   = true,
-    keepMetadata: Boolean    = true,
-    keepDiagnostics: Boolean = true,
-    keepIdentifiers: Boolean = false
-  ): Function
 }
 
 object Function {
@@ -56,13 +44,13 @@ object Function {
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
     override val body: Expression,
-    override val location: Option[IdentifiedLocation],
-    override val canBeTCO: Boolean              = true,
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    override val canBeTCO: Boolean = true,
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Function
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -124,7 +112,9 @@ object Function {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Lambda = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Lambda = {
       copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
     }
 
@@ -172,13 +162,13 @@ object Function {
     name: Name,
     override val arguments: List[DefinitionArgument],
     override val body: Expression,
-    override val location: Option[IdentifiedLocation],
-    override val canBeTCO: Boolean              = true,
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    override val canBeTCO: Boolean = true,
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Function
       with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -256,7 +246,9 @@ object Function {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Binding =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Binding =
       copy(
         name      = name.mapExpressions(fn),
         arguments = arguments.map(_.mapExpressions(fn)),

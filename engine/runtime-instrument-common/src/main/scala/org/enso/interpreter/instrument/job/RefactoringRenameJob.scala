@@ -52,7 +52,7 @@ final class RefactoringRenameJob(
       case ex: RefactoringRenameJob.ExpressionNotFound =>
         reply(
           Api.SymbolRenameFailed(
-            Api.SymbolRenameFailed.ExpressionNotFound(ex.expressionId)
+            Api.SymbolRenameFailed.ExpressionNotFound(ex.expressionId.id())
           )
         )
         Seq()
@@ -66,7 +66,7 @@ final class RefactoringRenameJob(
       case ex: RefactoringRenameJob.OperationNotSupported =>
         reply(
           Api.SymbolRenameFailed(
-            Api.SymbolRenameFailed.OperationNotSupported(ex.expressionId)
+            Api.SymbolRenameFailed.OperationNotSupported(ex.expressionId.id())
           )
         )
         Seq()
@@ -90,16 +90,20 @@ final class RefactoringRenameJob(
     val newSymbolName = MethodNameValidation.normalize(newName)
 
     val expression = IRUtils
-      .findByExternalId(module.getIr, expressionId)
+      .findByExternalId(module.getIr, new IR.ExternalId(expressionId))
       .getOrElse(
-        throw new RefactoringRenameJob.ExpressionNotFound(expressionId)
+        throw new RefactoringRenameJob.ExpressionNotFound(
+          new IR.ExternalId(expressionId)
+        )
       )
     val local            = getLiteral(expression)
     val methodDefinition = getMethodDefinition(expression)
     val symbol = local
       .orElse(methodDefinition)
       .getOrElse(
-        throw new RefactoringRenameJob.OperationNotSupported(expressionId)
+        throw new RefactoringRenameJob.OperationNotSupported(
+          new IR.ExternalId(expressionId)
+        )
       )
 
     def localUsages = local.flatMap(IRUtils.findLocalUsages(module.getIr, _))

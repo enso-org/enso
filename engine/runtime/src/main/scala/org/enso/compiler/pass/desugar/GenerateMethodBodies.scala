@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsDiagnostics
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Expression,

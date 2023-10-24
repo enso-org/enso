@@ -1,13 +1,16 @@
 package org.enso.compiler.core.ir
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.IR.{randomId, Identifier}
 
 /** Enso literals. */
 sealed trait Literal extends Expression with IRKind.Primitive {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Literal
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Literal
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Literal
@@ -34,11 +37,11 @@ object Literal {
   sealed case class Number(
     base: Option[String],
     value: String,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Literal {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -83,7 +86,9 @@ object Literal {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Number = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Number = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -158,11 +163,11 @@ object Literal {
     */
   sealed case class Text(
     text: String,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Literal {
-    override protected var id: Identifier = randomId
+    var id: Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -205,7 +210,9 @@ object Literal {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Text = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Text = this
 
     /** @inheritdoc */
     override def toString: String =

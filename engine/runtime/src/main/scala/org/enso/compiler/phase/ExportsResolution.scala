@@ -1,5 +1,6 @@
 package org.enso.compiler.phase
 
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference.Concrete
 import org.enso.compiler.data.BindingsMap.{
