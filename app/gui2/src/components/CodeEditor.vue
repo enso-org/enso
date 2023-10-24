@@ -177,6 +177,7 @@ const editorStyle = computed(() => {
     width: 100%;
     height: 100%;
     backdrop-filter: var(--blur-app-bg);
+    border-radius: 7px;
   }
 
   &.v-enter-active,
@@ -246,6 +247,7 @@ const editorStyle = computed(() => {
     content: '';
     background-color: rgba(255, 255, 255, 0.35);
     backdrop-filter: blur(64px);
+    border-radius: 4px;
   }
 }
 </style>

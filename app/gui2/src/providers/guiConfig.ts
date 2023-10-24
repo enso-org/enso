@@ -17,4 +17,4 @@ export interface GuiConfig {
   window?: { topBarOffset?: string }
 }
 export { injectFn as injectGuiConfig, provideFn as provideGuiConfig }
-const { provideFn, injectFn } = createContextStore(identity<Ref<GuiConfig>>)
+const { provideFn, injectFn } = createContextStore('GUI config', identity<Ref<GuiConfig>>)

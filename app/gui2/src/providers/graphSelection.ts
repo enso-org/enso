@@ -9,6 +9,7 @@ const SELECTION_BRUSH_MARGIN_PX = 6
 export type GraphSelection = ReturnType<typeof injectFn>
 export { injectFn as injectGraphSelection, provideFn as provideGraphSelection }
 const { provideFn, injectFn } = createContextStore(
+  'graph selection',
   (
     navigator: NavigatorComposable,
     nodeRects: Map<ExprId, Rect>,

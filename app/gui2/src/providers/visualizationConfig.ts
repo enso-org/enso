@@ -18,7 +18,10 @@ export interface VisualizationConfig {
 }
 
 export { provideFn as provideVisualizationConfig }
-const { provideFn, injectFn } = createContextStore(reactive<VisualizationConfig>)
+const { provideFn, injectFn } = createContextStore(
+  'Visualization config',
+  reactive<VisualizationConfig>,
+)
 
 // The visualization config public API should not expose the `allowMissing` parameter. It should
 // look like an ordinary vue composable.
