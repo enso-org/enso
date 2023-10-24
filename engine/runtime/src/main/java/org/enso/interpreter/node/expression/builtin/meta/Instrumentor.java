@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
@@ -86,11 +87,17 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   public Object onFunctionReturn(UUID nodeId, TruffleObject result) {
     try {
       if (onCall != null && result instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+        var args = (Object[])call.getArguments().clone();
+        for (var i = 0; i < args.length; i++) {
+          if (args[i] == null) {
+            args[i] = EnsoContext.get(null).getBuiltins().nothing();
+          }
+        }
         var ret = InteropLibrary.getUncached().execute(
                 onCall,
                 nodeId.toString(),
                 call.getFunction(),
-                ArrayLikeHelpers.asVectorWithCheckAt(call.getArguments())
+                ArrayLikeHelpers.asVectorWithCheckAt(args)
         );
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
         return handle.isDisposed() ? null : ret;
