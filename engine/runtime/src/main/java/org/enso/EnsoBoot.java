@@ -1,18 +1,21 @@
 package org.enso;
 
-import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 
 public final class EnsoBoot {
   private EnsoBoot() {}
 
   public static void main(String[] args) throws Exception {
-    var jar = new File("runner.jar");
-    if (!jar.exists()) {
-      throw new IllegalStateException("Can find " + jar);
+    var runtimeJar = EnsoBoot.class.getProtectionDomain().getCodeSource().getLocation();
+    var runnerJarUri = runtimeJar.toURI().resolve("runner/runner.jar");
+    var runnerJarPath = Path.of(runnerJarUri);
+    var runnerJar = runnerJarPath.toFile();
+    if (!runnerJar.exists()) {
+      throw new IllegalStateException("Cannot find " + runnerJar + ". Tried path: " + runnerJarPath);
     }
-    var url = jar.toURI().toURL();
+    var url = runnerJar.toURI().toURL();
 
     var loader = new PrefferingLoader(new URL[] {url});
     var clazz = loader.loadClass("org.enso.runner.Main");
