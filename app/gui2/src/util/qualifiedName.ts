@@ -64,6 +64,14 @@ export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName
   return `${left}.${right}` as QualifiedName
 }
 
+export function qnSegments(name: QualifiedName): Result<Identifier[]> {
+  try {
+    return Ok(name.split('.').map((segment) => unwrap(tryIdentifier(segment))))
+  } catch (err) {
+    return Err(`Unable to split qualified name. ${err}`)
+  }
+}
+
 /** Checks if given full qualified name is considered a top element of some project.
  *
  * The fully qualified names consists of namespace, project name, and then a path (possibly empty).
