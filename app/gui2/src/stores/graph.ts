@@ -1,11 +1,13 @@
 import { useProjectStore } from '@/stores/project'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
+import { binarySearch } from '@/util/array'
 import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import type { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import * as map from 'lib0/map'
+import { abs } from 'lib0/math'
 import * as set from 'lib0/set'
 import { defineStore } from 'pinia'
 import type { StackItem } from 'shared/languageServerTypes'
@@ -18,8 +20,54 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, type ComputedRef } from 'vue'
 import * as Y from 'yjs'
+
+export class SnapGrid {
+  leftAxes: ComputedRef<number[]>
+  rightAxes: ComputedRef<number[]>
+  topAxes: ComputedRef<number[]>
+  bottomAxes: ComputedRef<number[]>
+
+  constructor(rects: Map<ExprId, Rect>) {
+    this.leftAxes = computed(() => Array.from(rects.values(), (rect) => rect.pos.x).sort())
+    this.rightAxes = computed(() =>
+      Array.from(rects.values(), (rect) => rect.pos.x + rect.size.x).sort(),
+    )
+    this.topAxes = computed(() => Array.from(rects.values(), (rect) => rect.pos.y).sort())
+    this.bottomAxes = computed(() =>
+      Array.from(rects.values(), (rect) => rect.pos.y + rect.size.y).sort(),
+    )
+  }
+
+  snapped(rect: Rect): Vec2 {
+    const leftSnap = SnapGrid.boundSnap(rect.pos.x, this.leftAxes.value)
+    const rightSnap = SnapGrid.boundSnap(rect.pos.x + rect.size.x, this.rightAxes.value)
+    const topSnap = SnapGrid.boundSnap(rect.pos.y, this.topAxes.value)
+    const bottomSnap = SnapGrid.boundSnap(rect.pos.y + rect.size.y, this.bottomAxes.value)
+    return rect.pos.add(
+      new Vec2(
+        SnapGrid.minSnap(leftSnap, rightSnap) ?? 0.0,
+        SnapGrid.minSnap(topSnap, bottomSnap) ?? 0.0,
+      ),
+    )
+  }
+
+  private static boundSnap(value: number, axes: number[]): number | null {
+    const firstNotLower = binarySearch(axes, (x) => x >= value)
+    const lowerNearest = axes[firstNotLower - 1]
+    const lowerSnap = lowerNearest != null ? value - lowerNearest : null
+    const notLowerNearest = axes[firstNotLower]
+    const higherSnap = notLowerNearest != null ? value - notLowerNearest : null
+    return SnapGrid.minSnap(lowerSnap, higherSnap)
+  }
+  private static minSnap(a: Opt<number>, b: Opt<number>): number | null {
+    if (a != null && b != null) return abs(a) > abs(b) ? a : b
+    else if (a != null) return a
+    else if (b != null) return b
+    else return null
+  }
+}
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -35,6 +83,7 @@ export const useGraphStore = defineStore('graph', () => {
   const exprNodes = reactive(new Map<ExprId, ExprId>())
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
+  const snapGrid = new SnapGrid(nodeRects)
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -343,6 +392,7 @@ export const useGraphStore = defineStore('graph', () => {
     clearUnconnected,
     identDefinitions,
     identUsages,
+    snapGrid,
     createNode,
     deleteNode,
     setNodeContent,
