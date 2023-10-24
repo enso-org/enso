@@ -20,6 +20,8 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
     .getBindings(LanguageInfo.ID)
     .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
     .asHostObject[EnsoContext]()
+  implicit private def toExternalId(id: UUID): IR.ExternalId =
+    new IR.ExternalId(id)
 
   implicit private class PreprocessModule(code: String) {
 
@@ -262,6 +264,4 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
     }
 
   }
-
-  implicit def toExternalId(id: UUID): IR.ExternalId = new IR.ExternalId(id)
 }
