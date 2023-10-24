@@ -5,6 +5,7 @@ import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
 import { assertNever } from '@/util/assert'
+import { rpcWithRetries } from '@/util/net'
 import { defineKeybinds } from '@/util/shortcuts'
 import type {
   AddImportNotification,
@@ -24,7 +25,7 @@ import type {
 } from '@/workers/visualizationCompiler'
 import Compiler from '@/workers/visualizationCompiler?worker'
 import { defineStore } from 'pinia'
-import type { VisualizationConfiguration } from 'shared/languageServerTypes'
+import type { Path, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { z } from 'zod'
 
@@ -422,9 +423,19 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }) as VisualizationCacheKey
   }
 
-  ls.then((ls) =>
+  ls.then(async (ls) => {
+    const fsRoot_ = await fsRoot
+    if (!fsRoot_) {
+      console.error('Could not load custom visualizations: File system content root not found.')
+      return
+    }
+    await rpcWithRetries(() =>
+      ls.acquireCapability('file/receivesTreeUpdates', {
+        path: { rootId: fsRoot_.id, segments: [] } satisfies Path,
+      }),
+    )
     ls.on('file/event', async (event) => {
-      console.log(event.path)
+      console.log('file/event', event.path)
       const pathString = event.path.segments.join('/')
       const name = currentProjectVisualizationsByPath.get(pathString)
       const key =
@@ -464,8 +475,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
           }
         }
       }
-    }),
-  )
+    })
+  })
 
   // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
   function get(meta: VisualizationIdentifier, ignoreCache = false) {
