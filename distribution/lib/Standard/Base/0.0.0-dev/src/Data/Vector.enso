@@ -826,7 +826,7 @@ type Vector a
            indices, but we can sample the vector directly.
         Index_Sub_Range.Sample count seed ->
             rng = Random.new_generator seed
-            rng.item self count
+            rng.items self count
         _ ->
             take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
