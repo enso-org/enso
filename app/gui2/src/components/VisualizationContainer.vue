@@ -36,7 +36,7 @@ const resizeRight = usePointer((pos, _, type) => {
     return
   }
   const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-  config.value.width = Math.max(config.value.nodeSize.x, width)
+  config.width = Math.max(config.nodeSize.x, width)
 }, PointerButtonMask.Main)
 
 const resizeBottom = usePointer((pos, _, type) => {
@@ -44,7 +44,7 @@ const resizeBottom = usePointer((pos, _, type) => {
     return
   }
   const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-  config.value.height = Math.max(0, height)
+  config.height = Math.max(0, height)
 }, PointerButtonMask.Main)
 
 const resizeBottomRight = usePointer((pos, _, type) => {
@@ -53,11 +53,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   }
   if (pos.delta.x !== 0) {
     const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-    config.value.width = Math.max(config.value.nodeSize.x, width)
+    config.width = Math.max(config.nodeSize.x, width)
   }
   if (pos.delta.y !== 0) {
     const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-    config.value.height = Math.max(0, height)
+    config.height = Math.max(0, height)
   }
 }, PointerButtonMask.Main)
 </script>

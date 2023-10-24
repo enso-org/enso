@@ -2,43 +2,7 @@
 
 export { type Result } from '@/util/result'
 import { bail } from '@/util/assert'
-import { Err, Error, Ok, type Result } from '@/util/result'
-
-export type Primitive = {
-  type: 'primitive'
-  value: boolean | number | bigint | string
-}
-export type DynValue = Primitive | DynSequence | DynResult | DynOption | DynObject
-export type DynResult = {
-  type: 'result'
-  value: Result<DynValue, DynValue>
-}
-export type DynSequence = {
-  type: 'sequence'
-  value: Iterable<DynValue>
-}
-export type DynOption = {
-  type: 'option'
-  value: DynValue | undefined
-}
-export type DynObject = {
-  type: 'object'
-  getFields: () => [string, DynValue][]
-}
-
-export const Dyn = {
-  Primitive: (value: boolean | number | bigint | string): DynValue => ({
-    type: 'primitive',
-    value: value,
-  }),
-  Result: (value: Result<DynValue, DynValue>): DynValue => ({ type: 'result', value: value }),
-  Sequence: (value: Iterable<DynValue>): DynValue => ({ type: 'sequence', value: value }),
-  Option: (value: DynValue | undefined): DynValue => ({ type: 'option', value: value }),
-  Object: (value: LazyObject): DynValue => ({
-    type: 'object',
-    getFields: value.fields.bind(value),
-  }),
-} as const
+import { Err, Ok, type Result } from '@/util/result'
 
 export type ObjectVisitor = (object: LazyObject) => boolean | void
 export type ObjectAddressVisitor = (view: DataView, address: number) => boolean | void
@@ -48,11 +12,8 @@ export abstract class LazyObject {
   protected readonly _v: DataView
 
   protected constructor(view: DataView) {
+    if (view == null) throw new Error('WTF?')
     this._v = view
-  }
-
-  fields(): [string, DynValue][] {
-    return []
   }
 
   visitChildren(_visitor: ObjectVisitor): boolean {
@@ -202,7 +163,7 @@ export function readSequence<T>(
   return new LazySequence(offset, size, end, (offset: number) => reader(data, offset))
 }
 
-class LazySequence<T> implements Iterator<T> {
+export class LazySequence<T> implements Iterator<T> {
   private offset: number
   private readonly step: number
   private readonly end: number
@@ -241,43 +202,4 @@ export function readEnum<T>(readers: Reader<T>[], view: DataView, address: numbe
   const discriminant = readU32(data, 0)
   const reader = readers[discriminant] ?? bail(`Invalid enum discriminant: ${discriminant}`)
   return reader(data, 4)
-}
-
-export function debug(obj: LazyObject): any {
-  return debug_(Dyn.Object(obj))
-}
-
-function debug_(value: DynValue): any {
-  switch (value.type) {
-    case 'sequence':
-      return Array.from(value.value, debug_)
-    case 'result':
-      if (value.value.ok) return Ok(debug_(value.value.value))
-      else return Err(debug_(value.value.error.payload))
-    case 'option':
-      if (value.value != null) return debug_(value.value)
-      else return undefined
-    case 'object': {
-      // FIXME: Include the `hide` reflect property in the schema, and apply it during code generation to avoid magic
-      //  strings here.
-      const hide = [
-        'codeReprBegin',
-        'codeReprLen',
-        'leftOffsetCodeReprBegin',
-        'leftOffsetCodeReprLen',
-        'leftOffsetVisible',
-        'spanLeftOffsetCodeReprBegin',
-        'spanLeftOffsetCodeReprLen',
-        'spanLeftOffsetVisible',
-      ]
-      return Object.fromEntries(
-        value
-          .getFields()
-          .filter(([name, _]) => !hide.includes(name))
-          .map(([name, value]) => [name, debug_(value)]),
-      )
-    }
-    case 'primitive':
-      return value.value
-  }
 }
