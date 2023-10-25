@@ -9,15 +9,15 @@ const props = defineProps<{ sections: Doc.Section[] }>()
 <template>
   <!-- eslint-disable vue/no-v-html -->
   <div v-if="props.sections.length > 0" class="sectionContent">
-    <div v-for="(section, i) in props.sections" :key="i">
+    <template v-for="(section, _i) in props.sections" :key="_i">
       <p v-if="'Paragraph' in section" class="paragraph">
         <span v-html="section.Paragraph.body ?? 'Invalid body'"></span>
       </p>
-      <p v-if="'Keyed' in section" class="paragraph">
+      <p v-else-if="'Keyed' in section" class="paragraph">
         {{ section.Keyed.key + ': ' + section.Keyed.body }}
       </p>
       <div
-        v-if="'Marked' in section"
+        v-else-if="'Marked' in section"
         :class="[
           {
             backgroundInfo: section.Marked.mark == 'Info',
@@ -32,21 +32,21 @@ const props = defineProps<{ sections: Doc.Section[] }>()
         </div>
         <p class="paragraph" v-html="section.Marked.body ?? 'Invalid body'" />
       </div>
-      <ul v-if="'List' in section">
+      <ul v-else-if="'List' in section">
         <li
           v-for="(item, index) in section.List.items"
           :key="index"
           v-html="item ?? 'Invalid item'"
         ></li>
       </ul>
-      <ul v-if="'Arguments' in section">
+      <ul v-else-if="'Arguments' in section">
         <li v-for="(arg, index) in section.Arguments.args" :key="index">
           <span class="argument">{{ arg.name }}</span
           >:&nbsp;
           <span v-html="arg.description ?? 'Invalid description'"></span>
         </li>
       </ul>
-    </div>
+    </template>
   </div>
   <!-- eslint-enable vue/no-v-html -->
 </template>

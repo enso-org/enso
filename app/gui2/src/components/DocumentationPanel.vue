@@ -43,7 +43,7 @@ const types = computed<TypeDocs[]>(() => {
 
 <template>
   <div class="DocumentationPanel">
-    <h1 v-if="'Placeholder' in documentation">{{ documentation.Placeholder }}</h1>
+    <h1 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h1>
     <DocsTags v-if="sections.tags.length > 0" :tags="sections.tags" />
     <DocsSynopsis :sections="sections.synopsis" />
     <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
