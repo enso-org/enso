@@ -26,5 +26,5 @@ public class RandomInstanceHolder {
     currentRandom = new Random(seed);
   }
 
-  public static RandomInstanceHolder SINGLETON = new RandomInstanceHolder();
+  public static final RandomInstanceHolder SINGLETON = new RandomInstanceHolder();
 }

@@ -266,7 +266,7 @@ type Random_Generator
     global_random_generator : Random_Generator
     global_random_generator = Random_Generator.Value RandomInstanceHolder.SINGLETON
 
-    ## PRVIATE
+    ## PRIVATE
     set_seed : Integer -> Nothing
     set_seed self seed = self.random_instance_holder.setSeed seed
 
