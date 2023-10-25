@@ -111,4 +111,36 @@ spec =
             actual.at "date_formats" . should_equal (table.at "date_formats")
             actual.at "time_formats" . should_equal (table.at "time_formats")
 
+        Test.specify "Date and Date_Time, with empty string format" <|
+            expected_dates = Column.from_vector "dates" ["2020-12-21", "2023-04-25"]
+            expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05-05:00[America/New_York]', '2020-08-08 05:06:07-04:00[America/New_York]']
+            expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
+            actual = table.format ["dates", "datetimes", "times"] ""
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal expected_dates
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal expected_times
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+
+        Test.specify "Date and Date_Time, with Nothing format" <|
+            expected_dates = Column.from_vector "dates" ["2020-12-21", "2023-04-25"]
+            expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05-05:00[America/New_York]', '2020-08-08 05:06:07-04:00[America/New_York]']
+            expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
+            actual = table.format ["dates", "datetimes", "times"] Nothing
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal expected_dates
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal expected_times
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+
 main = Test_Suite.run_main spec
