@@ -1,6 +1,6 @@
 package org.enso.compiler.core.ir.module.scope
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   DiagnosticStorage,
@@ -12,7 +12,9 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.module.Scope
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR.{indentLevel, mkIndent, randomId, Identifier}
+import org.enso.compiler.core.IR.{indentLevel, mkIndent, randomId}
+
+import java.util.UUID
 
 /** A representation of top-level definitions. */
 trait Definition extends Scope {
@@ -59,7 +61,7 @@ object Definition {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Definition
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     def copy(
       name: Name                           = name,
@@ -68,7 +70,7 @@ object Definition {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Type = {
       val res =
         Type(name, params, members, location, passData, diagnostics)
@@ -163,7 +165,7 @@ object Definition {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -183,7 +185,7 @@ object Definition {
       location: Option[IdentifiedLocation]      = location,
       passData: MetadataStorage                 = passData,
       diagnostics: DiagnosticStorage            = diagnostics,
-      id: Identifier                            = id
+      id: UUID @Identifier                      = id
     ): Data = {
       val res = Data(
         name,
@@ -285,7 +287,7 @@ object Definition {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Definition
       with IRKind.Sugar {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -305,7 +307,7 @@ object Definition {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): SugaredType = {
       val res = SugaredType(
         name,

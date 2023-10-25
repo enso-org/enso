@@ -3,9 +3,11 @@ package expression
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.{ir, IR}
+import org.enso.compiler.core.{ir, IR, Identifier}
+
+import java.util.UUID
 
 /** A trait for all errors in Enso's IR. */
 trait Error extends Expression with ir.module.scope.Definition with Diagnostic {
@@ -42,7 +44,7 @@ object Error {
   ) extends Error
       with Diagnostic.Kind.Static
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -56,7 +58,7 @@ object Error {
       ir: IR                         = ir,
       passData: MetadataStorage      = passData,
       diagnostics: DiagnosticStorage = diagnostics,
-      id: Identifier                 = id
+      id: UUID @Identifier           = id
     ): InvalidIR = {
       val res = InvalidIR(ir, passData, diagnostics)
       res.id = id

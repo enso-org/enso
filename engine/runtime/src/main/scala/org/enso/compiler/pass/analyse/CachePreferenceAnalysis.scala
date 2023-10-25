@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{CompilerError, ExternalID}
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Expression,
@@ -14,7 +14,6 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.{Comment, Error}
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 
@@ -187,7 +186,7 @@ case object CachePreferenceAnalysis extends IRPass {
     * @param weights the storage for weights of the program components
     */
   sealed case class WeightInfo(
-    weights: mutable.HashMap[IR.ExternalId, Double] = mutable.HashMap()
+    weights: mutable.HashMap[UUID @ExternalID, Double] = mutable.HashMap()
   ) extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */
@@ -206,23 +205,21 @@ case object CachePreferenceAnalysis extends IRPass {
       * @param id the external id
       * @param weight the assigned weight
       */
-    def update(id: IR.ExternalId, weight: Double): Unit =
+    def update(id: UUID @ExternalID, weight: Double): Unit =
       weights.put(id, weight)
 
     /** Get the weight associated with given id */
-    def get(id: IR.ExternalId): Double =
+    def get(id: UUID @ExternalID): Double =
       weights.getOrElse(id, Weight.Never)
 
     /** Check if the weight is assigned to this id. */
-    def contains(id: IR.ExternalId): Boolean =
+    def contains(id: UUID @ExternalID): Boolean =
       weights.contains(id)
 
     /** @return weights as the Java collection */
-    def asJavaWeights: util.Map[UUID, java.lang.Double] =
-      weights
-        .map(kv => (kv._1.id(), kv._2))
-        .asJava
-        .asInstanceOf[util.Map[UUID, java.lang.Double]]
+    def asJavaWeights: util.Map[UUID @ExternalID, java.lang.Double] =
+      weights.asJava
+        .asInstanceOf[util.Map[UUID @ExternalID, java.lang.Double]]
 
     override def duplicate(): Option[IRPass.IRMetadata] =
       Some(copy(weights = this.weights))

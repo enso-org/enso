@@ -3,8 +3,10 @@ package expression
 package errors
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** A trait for errors about unexpected language constructs. */
 sealed trait Unexpected extends Error {
@@ -58,7 +60,7 @@ object Unexpected {
       with org.enso.compiler.core.ir.module.scope.Definition {
     override val entity: String = "type signature"
 
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -72,7 +74,7 @@ object Unexpected {
       ir: IR                         = ir,
       passData: MetadataStorage      = passData,
       diagnostics: DiagnosticStorage = diagnostics,
-      id: Identifier                 = id
+      id: UUID @Identifier           = id
     ): TypeSignature = {
       val res = TypeSignature(ir, passData, diagnostics)
       res.id = id

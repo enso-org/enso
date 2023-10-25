@@ -895,7 +895,7 @@ final class TreeToIr {
           yield switch (translateExpression(group.getBody(), false)) {
               case null -> translateSyntaxError(group, Syntax.EmptyParentheses$.MODULE$);
               case Application.Prefix pref -> {
-                  final Option<IdentifiedLocation> groupWithoutParenthesis = getIdentifiedLocation(group, 1, -1, pref.getExternalId().map(IR.ExternalId::id));
+                  final Option<IdentifiedLocation> groupWithoutParenthesis = getIdentifiedLocation(group, 1, -1, pref.getExternalId());
                   yield pref.setLocation(groupWithoutParenthesis);
               }
               case Expression in -> in;

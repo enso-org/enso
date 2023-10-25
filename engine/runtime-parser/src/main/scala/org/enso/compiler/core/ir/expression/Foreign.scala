@@ -2,9 +2,11 @@ package org.enso.compiler.core.ir
 package expression
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.MetadataStorage
+
+import java.util.UUID
 
 // === Foreign ==============================================================
 
@@ -46,7 +48,7 @@ object Foreign {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Foreign
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -64,7 +66,7 @@ object Foreign {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Definition = {
       val res = Definition(lang, code, location, passData, diagnostics)
       res.id = id

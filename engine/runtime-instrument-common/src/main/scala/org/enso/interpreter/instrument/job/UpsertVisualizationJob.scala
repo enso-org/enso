@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
-import org.enso.compiler.core.IR
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
@@ -529,7 +528,6 @@ object UpsertVisualizationJob {
           }
           .flatten
           .headOption
-          .map(_.id())
 
       case _: Api.VisualizationExpression.Text => None
     }
@@ -600,7 +598,7 @@ object UpsertVisualizationJob {
         module.getIr
           .getMetadata(DataflowAnalysis)
           .foreach { metadata =>
-            val externalId = new IR.ExternalId(expressionId)
+            val externalId = expressionId
             module.getIr.preorder
               .find(_.getExternalId.contains(externalId))
               .collect {
@@ -619,14 +617,14 @@ object UpsertVisualizationJob {
                 stacks.foreach { stack =>
                   stack.headOption.foreach { frame =>
                     dependents
-                      .find { id => frame.cache.get(id.id()) ne null }
+                      .find { id => frame.cache.get(id) ne null }
                       .foreach { firstDependent =>
                         CacheInvalidation.run(
                           stack,
                           CacheInvalidation(
                             CacheInvalidation.StackSelector.Top,
                             CacheInvalidation.Command
-                              .InvalidateKeys(Seq(firstDependent).map(_.id()))
+                              .InvalidateKeys(Seq(firstDependent))
                           )
                         )
                       }

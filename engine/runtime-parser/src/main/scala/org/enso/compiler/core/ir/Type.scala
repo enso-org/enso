@@ -1,9 +1,10 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 
+import java.util.UUID
 import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** Constructs that operate on types. */
@@ -40,7 +41,7 @@ object Type {
     override val passData: MetadataStorage      = MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     def copy(
       args: List[Expression]               = args,
@@ -48,7 +49,7 @@ object Type {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Function = {
       val res = Function(args, result, location, passData, diagnostics)
       res.id = id
@@ -133,7 +134,7 @@ object Type {
   ) extends Type
       with module.scope.Definition
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -151,7 +152,7 @@ object Type {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Ascription = {
       val res = Ascription(typed, signature, location, passData, diagnostics)
       res.id = id
@@ -238,7 +239,7 @@ object Type {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates ac opy of `this`.
       *
@@ -256,7 +257,7 @@ object Type {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Context = {
       val res = Context(typed, context, location, passData, diagnostics)
       res.id = id
@@ -341,7 +342,7 @@ object Type {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Type
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -359,7 +360,7 @@ object Type {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Error = {
       val res = Error(typed, error, location, passData, diagnostics)
       res.id = id

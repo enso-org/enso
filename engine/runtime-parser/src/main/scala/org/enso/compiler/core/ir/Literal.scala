@@ -1,8 +1,10 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{CompilerError, IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** Enso literals. */
 sealed trait Literal extends Expression with IRKind.Primitive {
@@ -41,7 +43,7 @@ object Literal {
     passData: MetadataStorage      = MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Literal {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -59,7 +61,7 @@ object Literal {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Number = {
       val res = Number(base, value, location, passData, diagnostics)
       res.id = id
@@ -167,7 +169,7 @@ object Literal {
     passData: MetadataStorage      = MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Literal {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -183,7 +185,7 @@ object Literal {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Text = {
       val res = Text(text, location, passData, diagnostics)
       res.id = id

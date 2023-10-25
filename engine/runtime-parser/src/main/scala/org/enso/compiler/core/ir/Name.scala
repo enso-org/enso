@@ -1,9 +1,11 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.{ConstantsNames, IR}
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{ConstantsNames, IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.syntax.text.Location
+
+import java.util.UUID
 
 /** Enso names. */
 trait Name extends Expression with IRKind.Primitive {
@@ -53,7 +55,7 @@ object Name {
       with IRKind.Sugar {
 
     override val name: String = showCode()
-    var id: Identifier        = randomId
+    var id: UUID @Identifier  = randomId
 
     /** Creates a copy of `this`.
       *
@@ -71,7 +73,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): MethodReference = {
       val res =
         MethodReference(
@@ -235,7 +237,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Qualified = {
       val res =
         Qualified(
@@ -275,7 +277,7 @@ object Name {
     override def children: List[IR] = parts
 
     /** @inheritdoc */
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
@@ -294,7 +296,7 @@ object Name {
   ) extends Name
       with IRKind.Sugar {
     override val name: String = "_"
-    var id: Identifier        = randomId
+    var id: UUID @Identifier  = randomId
 
     /** Creates a copy of `this`.
       *
@@ -308,7 +310,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Blank = {
       val res = Blank(location, passData, diagnostics)
       res.id = id
@@ -366,7 +368,7 @@ object Name {
   ) extends Name
       with IRKind.Sugar {
     override val name: String = s"<special::${specialName}>"
-    var id: Identifier        = randomId
+    var id: UUID @Identifier  = randomId
 
     /** Creates a copy of `this`.
       *
@@ -381,7 +383,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Special = {
       val res = Special(specialName, location, passData, diagnostics)
       res.id = id
@@ -457,7 +459,7 @@ object Name {
     passData: MetadataStorage      = MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -477,7 +479,7 @@ object Name {
       originalName: Option[Name]           = originalName,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Literal = {
       val res =
         Literal(name, isMethod, location, originalName, passData, diagnostics)
@@ -563,7 +565,7 @@ object Name {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Annotation
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -579,7 +581,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): BuiltinAnnotation = {
       val res = BuiltinAnnotation(name, location, passData, diagnostics)
       res.id = id
@@ -647,7 +649,7 @@ object Name {
     passData: MetadataStorage      = MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Annotation {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -665,7 +667,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): GenericAnnotation = {
       val res =
         GenericAnnotation(name, expression, location, passData, diagnostics)
@@ -733,7 +735,7 @@ object Name {
     passData: MetadataStorage      = MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name {
-    var id: Identifier        = randomId
+    var id: UUID @Identifier  = randomId
     override val name: String = ConstantsNames.SELF_ARGUMENT
 
     /** Creates a copy of `self`.
@@ -749,7 +751,7 @@ object Name {
       synthetic: Boolean                   = synthetic,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Self = {
       val res = Self(location, synthetic, passData, diagnostics)
       res.id = id
@@ -810,7 +812,7 @@ object Name {
     passData: MetadataStorage      = MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name {
-    var id: Identifier        = randomId
+    var id: UUID @Identifier  = randomId
     override val name: String = ConstantsNames.SELF_TYPE_ARGUMENT
 
     /** Creates a copy of `Self`.
@@ -825,7 +827,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): SelfType = {
       val res = SelfType(location, passData, diagnostics)
       res.id = id

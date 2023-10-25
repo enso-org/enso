@@ -2,8 +2,10 @@ package org.enso.compiler.core.ir
 package expression
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** Enso comment entities. */
 sealed trait Comment extends Expression with module.scope.Definition {
@@ -41,7 +43,7 @@ object Comment {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Comment
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -57,7 +59,7 @@ object Comment {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Documentation = {
       val res = Documentation(doc, location, passData, diagnostics)
       res.id = id

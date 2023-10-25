@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument.job
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.RuntimeContext
@@ -52,7 +52,7 @@ final class RefactoringRenameJob(
       case ex: RefactoringRenameJob.ExpressionNotFound =>
         reply(
           Api.SymbolRenameFailed(
-            Api.SymbolRenameFailed.ExpressionNotFound(ex.expressionId.id())
+            Api.SymbolRenameFailed.ExpressionNotFound(ex.expressionId)
           )
         )
         Seq()
@@ -66,7 +66,7 @@ final class RefactoringRenameJob(
       case ex: RefactoringRenameJob.OperationNotSupported =>
         reply(
           Api.SymbolRenameFailed(
-            Api.SymbolRenameFailed.OperationNotSupported(ex.expressionId.id())
+            Api.SymbolRenameFailed.OperationNotSupported(ex.expressionId)
           )
         )
         Seq()
@@ -90,20 +90,16 @@ final class RefactoringRenameJob(
     val newSymbolName = MethodNameValidation.normalize(newName)
 
     val expression = IRUtils
-      .findByExternalId(module.getIr, new IR.ExternalId(expressionId))
+      .findByExternalId(module.getIr, expressionId)
       .getOrElse(
-        throw new RefactoringRenameJob.ExpressionNotFound(
-          new IR.ExternalId(expressionId)
-        )
+        throw new RefactoringRenameJob.ExpressionNotFound(expressionId)
       )
     val local            = getLiteral(expression)
     val methodDefinition = getMethodDefinition(expression)
     val symbol = local
       .orElse(methodDefinition)
       .getOrElse(
-        throw new RefactoringRenameJob.OperationNotSupported(
-          new IR.ExternalId(expressionId)
-        )
+        throw new RefactoringRenameJob.OperationNotSupported(expressionId)
       )
 
     def localUsages = local.flatMap(IRUtils.findLocalUsages(module.getIr, _))
@@ -195,13 +191,13 @@ final class RefactoringRenameJob(
 
 object RefactoringRenameJob {
 
-  final private class ExpressionNotFound(val expressionId: IR.ExternalId)
+  final private class ExpressionNotFound(val expressionId: UUID @ExternalID)
       extends Exception(s"Expression was not found by id [$expressionId].")
 
   final private class FailedToApplyEdits(val module: String)
       extends Exception(s"Failed to apply edits to module [$module]")
 
-  final private class OperationNotSupported(val expressionId: IR.ExternalId)
+  final private class OperationNotSupported(val expressionId: UUID @ExternalID)
       extends Exception(
         s"Operation not supported for expression [$expressionId]"
       )

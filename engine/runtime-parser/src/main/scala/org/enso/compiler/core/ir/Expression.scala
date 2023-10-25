@@ -2,8 +2,10 @@ package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.Identifier
 import org.enso.compiler.core.IR.{indentLevel, mkIndent, randomId}
 
+import java.util.UUID
 import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 trait Expression extends IR {
@@ -62,7 +64,7 @@ object Expression {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Expression
       with IRKind.Primitive {
-    var id: IR.Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -82,7 +84,7 @@ object Expression {
       suspended: Boolean                   = suspended,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: IR.Identifier                    = id
+      id: UUID @Identifier                 = id
     ): Block = {
       val res = Block(
         expressions,
@@ -187,7 +189,8 @@ object Expression {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Expression
       with IRKind.Primitive {
-    var id: IR.Identifier = randomId
+
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -205,7 +208,7 @@ object Expression {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: IR.Identifier                    = id
+      id: UUID @Identifier                 = id
     ): Binding = {
       val res = Binding(name, expression, location, passData, diagnostics)
       res.id = id

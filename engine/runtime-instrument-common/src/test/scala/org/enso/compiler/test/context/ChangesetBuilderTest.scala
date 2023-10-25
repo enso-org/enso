@@ -7,7 +7,7 @@ import org.enso.compiler.context.{
   InlineContext,
   ModuleContext
 }
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.{CallArgument, Expression, Function}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
@@ -428,7 +428,7 @@ class ChangesetBuilderTest extends CompilerTest {
       val all = new ChangesetBuilder(Rope(code), ir).invalidated(Seq(edit))
 
       all
-        .map(n => n.externalId.map(_.id()).getOrElse(n.internalId.id()))
+        .map(n => n.externalId.getOrElse(n.internalId))
         .map(findCode(code, ir, _)) should contain theSameElementsAs Seq(
         atCode
       )
@@ -462,18 +462,20 @@ class ChangesetBuilderTest extends CompilerTest {
     }
   }
 
-  def invalidated(ir: IR, code: String, edits: TextEdit*): Set[IR.Identifier] =
+  def invalidated(
+    ir: IR,
+    code: String,
+    edits: TextEdit*
+  ): Set[UUID @Identifier] =
     new ChangesetBuilder(Rope(code), ir)
       .invalidated(edits)
-      .map(n =>
-        new IR.Identifier(n.externalId.map(_.id()).getOrElse(n.internalId.id()))
-      )
+      .map(n => n.externalId.getOrElse(n.internalId))
 
   def invalidatedAll(
     ir: IR,
     code: String,
     edits: TextEdit*
-  ): Set[IR.ExternalId] =
+  ): Set[UUID @ExternalID] =
     new ChangesetBuilder(Rope(code), ir).compute(edits)
 
   def freshModuleContext: ModuleContext =

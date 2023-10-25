@@ -2,8 +2,10 @@ package org.enso.compiler.core.ir
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** A node representing an empty IR construct that can be used in any place.
   *
@@ -19,7 +21,7 @@ sealed case class Empty(
     with Expression
     with Diagnostic
     with IRKind.Primitive {
-  var id: IR.Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`
     *
@@ -33,7 +35,7 @@ sealed case class Empty(
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
     diagnostics: DiagnosticStorage       = diagnostics,
-    id: IR.Identifier                    = id
+    id: UUID @Identifier                 = id
   ): Empty = {
     val res = Empty(location, passData, diagnostics)
     res.id = id

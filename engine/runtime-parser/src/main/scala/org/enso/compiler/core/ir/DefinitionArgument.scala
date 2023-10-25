@@ -1,9 +1,10 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 
+import java.util.UUID
 import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** Definition-site arguments in Enso. */
@@ -64,7 +65,7 @@ object DefinitionArgument {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends DefinitionArgument
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -87,7 +88,7 @@ object DefinitionArgument {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Specified = {
       val res = Specified(
         name,

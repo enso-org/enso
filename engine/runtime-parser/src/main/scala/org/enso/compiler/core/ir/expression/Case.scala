@@ -2,8 +2,10 @@ package org.enso.compiler.core.ir
 package expression
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{indentLevel, mkIndent, randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.{indentLevel, mkIndent, randomId}
+
+import java.util.UUID
 
 /** The Enso case expression. */
 sealed trait Case extends Expression {
@@ -45,7 +47,7 @@ object Case {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Case
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     def this(
       scrutinee: Expression,
@@ -75,7 +77,7 @@ object Case {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Expr = {
       val res =
         Expr(scrutinee, branches, isNested, location, passData, diagnostics)
@@ -197,7 +199,7 @@ object Case {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Case
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     def this(
       pattern: Pattern,
@@ -226,7 +228,7 @@ object Case {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Branch = {
       val res = Branch(
         pattern,

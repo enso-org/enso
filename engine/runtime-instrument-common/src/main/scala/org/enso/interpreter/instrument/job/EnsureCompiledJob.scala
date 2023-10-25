@@ -217,7 +217,7 @@ final class EnsureCompiledJob(
         ),
       diagnostic.location
         .flatMap(LocationResolver.getExpressionId(module.getIr, _))
-        .map(_.externalId.id()),
+        .map(_.externalId),
       Vector()
     )
   }
@@ -306,7 +306,7 @@ final class EnsureCompiledJob(
   ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(
-        changeset.invalidated.map(_.id())
+        changeset.invalidated
       )
     val scopeIds = splitMeta(source.toString)._2.map(_._2)
     val invalidateStaleCommand =
@@ -385,7 +385,7 @@ final class EnsureCompiledJob(
     val invalidatedVisualizations =
       ctx.contextManager.getInvalidatedVisualizations(
         module.getName,
-        changeset.invalidated.map(_.id())
+        changeset.invalidated
       )
     invalidatedVisualizations.foreach { visualization =>
       UpsertVisualizationJob.upsertVisualization(visualization)
@@ -400,7 +400,7 @@ final class EnsureCompiledJob(
     // pending updates
     val updates = changeset.invalidated.map { key =>
       Api.ExpressionUpdate(
-        key.id(),
+        key,
         None,
         None,
         Vector.empty,

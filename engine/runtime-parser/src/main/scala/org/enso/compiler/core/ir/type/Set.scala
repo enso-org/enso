@@ -2,10 +2,11 @@ package org.enso.compiler.core.ir
 package `type`
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.Type.Info
 
+import java.util.UUID
 import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** IR nodes for dealing with typesets. */
@@ -48,7 +49,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -68,7 +69,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Member = {
       val res =
         Member(label, memberType, value, location, passData, diagnostics)
@@ -170,7 +171,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -188,7 +189,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Subsumption = {
       val res = Subsumption(left, right, location, passData, diagnostics)
       res.id = id
@@ -274,7 +275,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -292,7 +293,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Equality = {
       val res = Equality(left, right, location, passData, diagnostics)
       res.id = id
@@ -378,7 +379,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -396,7 +397,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Concat = {
       val res = Concat(left, right, location, passData, diagnostics)
       res.id = id
@@ -479,7 +480,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -496,7 +497,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Union = {
       val res = Union(operands, location, passData, diagnostics)
       res.id = id
@@ -576,7 +577,7 @@ object Set {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -594,7 +595,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Intersection = {
       val res = Intersection(left, right, location, passData, diagnostics)
       res.id = id

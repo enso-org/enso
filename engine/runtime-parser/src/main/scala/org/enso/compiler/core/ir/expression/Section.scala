@@ -2,8 +2,10 @@ package org.enso.compiler.core.ir
 package expression
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** Operator sections. */
 sealed trait Section extends Operator {
@@ -43,7 +45,7 @@ object Section {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -61,7 +63,7 @@ object Section {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: IR.Identifier                    = id
+      id: UUID @Identifier                 = id
     ): Left = {
       val res = Left(arg, operator, location, passData, diagnostics)
       res.id = id
@@ -144,7 +146,7 @@ object Section {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -160,7 +162,7 @@ object Section {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Sides = {
       val res = Sides(operator, location, passData, diagnostics)
       res.id = id
@@ -236,7 +238,7 @@ object Section {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
       with IRKind.Sugar {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -254,7 +256,7 @@ object Section {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Right = {
       val res = Right(operator, arg, location, passData, diagnostics)
       res.id = id

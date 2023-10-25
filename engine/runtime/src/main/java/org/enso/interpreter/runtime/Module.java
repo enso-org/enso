@@ -403,7 +403,7 @@ public final class Module implements EnsoObject {
             .foreach(
                 (v1) -> {
                   if (v1.getExternalId().isDefined()) {
-                    newMap.put(v1.getExternalId().get().id(), v1);
+                    newMap.put(v1.getExternalId().get(), v1);
                   }
                   return null;
                 });

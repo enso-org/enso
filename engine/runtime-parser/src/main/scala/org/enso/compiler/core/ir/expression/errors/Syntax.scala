@@ -4,9 +4,10 @@ package errors
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 
+import java.util.UUID
 import scala.annotation.unused
 
 /** A representation of an Enso syntax error.
@@ -27,7 +28,7 @@ sealed case class Syntax(
     with module.scope.Export
     with module.scope.Import
     with IRKind.Primitive {
-  var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -43,7 +44,7 @@ sealed case class Syntax(
     reason: Syntax.Reason          = reason,
     passData: MetadataStorage      = passData,
     diagnostics: DiagnosticStorage = diagnostics,
-    id: Identifier                 = id
+    id: UUID @Identifier           = id
   ): Syntax = {
     val res = Syntax(at, reason, passData, diagnostics)
     res.id = id

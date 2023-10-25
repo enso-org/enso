@@ -1,8 +1,8 @@
 package org.enso.compiler.core.ir.module.scope
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.module.Scope
 import org.enso.compiler.core.ir.{
   DiagnosticStorage,
@@ -12,6 +12,8 @@ import org.enso.compiler.core.ir.{
   MetadataStorage,
   Name
 }
+
+import java.util.UUID
 
 /** An export statement */
 trait Export extends Scope {
@@ -60,7 +62,7 @@ object Export {
   ) extends IR
       with IRKind.Primitive
       with Export {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -86,7 +88,7 @@ object Export {
       isSynthetic: Boolean                    = isSynthetic,
       passData: MetadataStorage               = passData,
       diagnostics: DiagnosticStorage          = diagnostics,
-      id: Identifier                          = id
+      id: UUID @Identifier                    = id
     ): Module = {
       val res = Module(
         name,

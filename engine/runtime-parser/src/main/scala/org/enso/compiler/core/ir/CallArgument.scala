@@ -1,8 +1,10 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+
+import java.util.UUID
 
 /** Call-site arguments in Enso. */
 sealed trait CallArgument extends IR {
@@ -48,7 +50,7 @@ object CallArgument {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends CallArgument
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -68,7 +70,7 @@ object CallArgument {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Specified = {
       val res = Specified(
         name,

@@ -4,9 +4,10 @@ package errors
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{fileLocationFromSection, randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.{fileLocationFromSection, randomId}
 
+import java.util.UUID
 import scala.annotation.unused
 
 /** An erroneous import or export statement.
@@ -26,7 +27,7 @@ sealed case class ImportExport(
     with org.enso.compiler.core.ir.module.scope.Import
     with org.enso.compiler.core.ir.module.scope.Export
     with IRKind.Primitive {
-  var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -42,7 +43,7 @@ sealed case class ImportExport(
     reason: ImportExport.Reason    = reason,
     passData: MetadataStorage      = passData,
     diagnostics: DiagnosticStorage = diagnostics,
-    id: Identifier                 = id
+    id: UUID @Identifier           = id
   ): ImportExport = {
     val res = ImportExport(ir, reason, passData, diagnostics)
     res.id = id

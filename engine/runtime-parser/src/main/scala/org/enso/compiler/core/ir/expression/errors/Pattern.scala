@@ -3,8 +3,10 @@ package expression
 package errors
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** A representation of an error resulting from wrong pattern matches.
   *
@@ -44,7 +46,7 @@ sealed case class Pattern(
     reason: Pattern.Reason                             = reason,
     passData: MetadataStorage                          = passData,
     diagnostics: DiagnosticStorage                     = diagnostics,
-    id: Identifier                                     = id
+    id: UUID @Identifier                               = id
   ): Pattern = {
     val res = Pattern(originalPattern, reason, passData, diagnostics)
     res.id = id
@@ -81,7 +83,7 @@ sealed case class Pattern(
 
   override def children: List[IR] = List(originalPattern)
 
-  var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   override def showCode(indent: Int): String =
     originalPattern.showCode(indent)

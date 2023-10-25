@@ -2,9 +2,10 @@ package org.enso.compiler.core.ir
 package expression
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 
+import java.util.UUID
 import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** All function applications in Enso. */
@@ -31,7 +32,7 @@ object Application {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Application
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -52,7 +53,7 @@ object Application {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Prefix = {
       val res =
         Prefix(
@@ -146,7 +147,7 @@ object Application {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Application
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -162,7 +163,7 @@ object Application {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Force = {
       val res = Force(target, location, passData, diagnostics)
       res.id = id
@@ -257,7 +258,7 @@ object Application {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Literal
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
@@ -278,7 +279,7 @@ object Application {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Typeset = {
       val res = Typeset(expression, location, passData, diagnostics)
       res.id = id
@@ -352,7 +353,7 @@ object Application {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Literal
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     override def mapExpressions(
       fn: java.util.function.Function[Expression, Expression]
@@ -373,7 +374,7 @@ object Application {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Sequence = {
       val res = Sequence(items, location, passData, diagnostics)
       res.id = id

@@ -4,8 +4,10 @@ package errors
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.Implicits.ShowPassData
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** Errors pertaining to the redefinition of language constructs that are
   * not allowed to be.
@@ -45,7 +47,7 @@ object Redefined {
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `self`.
       *
@@ -59,7 +61,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): SelfArg = {
       val res = SelfArg(location, passData, diagnostics)
       res.id = id
@@ -127,7 +129,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -147,7 +149,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Conversion = {
       val res =
         Conversion(targetType, sourceType, location, passData, diagnostics)
@@ -251,7 +253,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -270,7 +272,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Method = {
       val res =
         Method(atomName, methodName, location, passData, diagnostics)
@@ -374,7 +376,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -393,7 +395,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): MethodClashWithAtom = {
       val res = MethodClashWithAtom(
         atomName,
@@ -492,7 +494,7 @@ object Redefined {
       with Diagnostic.Kind.Interactive
       with module.scope.Definition
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -510,7 +512,7 @@ object Redefined {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Type = {
       val res =
         Type(atomName, location, passData, diagnostics)
@@ -591,7 +593,7 @@ object Redefined {
   ) extends Redefined
       with Diagnostic.Kind.Interactive
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -605,7 +607,7 @@ object Redefined {
       invalidBinding: Expression.Binding = invalidBinding,
       passData: MetadataStorage          = passData,
       diagnostics: DiagnosticStorage     = diagnostics,
-      id: Identifier                     = id
+      id: UUID @Identifier               = id
     ): Binding = {
       val res = Binding(invalidBinding, passData, diagnostics)
       res.id = id

@@ -1,8 +1,10 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** Functions in Enso. */
 sealed trait Function extends Expression {
@@ -50,7 +52,7 @@ object Function {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Function
       with IRKind.Primitive {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -70,7 +72,7 @@ object Function {
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Lambda = {
       val res =
         Lambda(arguments, body, location, canBeTCO, passData, diagnostics)
@@ -168,7 +170,7 @@ object Function {
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Function
       with IRKind.Sugar {
-    var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -190,7 +192,7 @@ object Function {
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Binding = {
       val res =
         Binding(
