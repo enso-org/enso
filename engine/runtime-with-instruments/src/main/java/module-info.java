@@ -2,6 +2,7 @@ module org.enso.runtime {
   requires java.base;
   requires java.compiler;
   requires java.desktop;
+  requires java.se;
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires org.slf4j;
