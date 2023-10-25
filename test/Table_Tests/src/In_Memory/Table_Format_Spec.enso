@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Column, Table
@@ -370,5 +371,11 @@ spec =
             table = Table.new [input, formats]
             expected = Table.new [output, formats]
             table.format ["values"] (table.at "formats") locale=(Locale.new "fr") . should_equal expected
+
+    Test.group "Bad formats" <|
+        Test.specify "Bad formats" <|
+            table.format ["dates", "datetimes"] "jjjjjj" . should_fail_with Date_Time_Format_Parse_Error
+            table.format ["ints", "floats"] "#.##0,00" . should_fail_with Illegal_Argument
+            table.format ["bools"] "||||" . should_fail_with Illegal_Argument
 
 main = Test_Suite.run_main spec
