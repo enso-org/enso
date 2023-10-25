@@ -4,7 +4,6 @@ import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import { useGraphStore } from '@/stores/graph'
 import { Interaction } from '@/util/interaction.ts'
 import type { ExprId } from 'shared/yjsModel.ts'
-import { watch } from 'vue/dist/vue'
 
 const emit = defineEmits<{
   startInteraction: [Interaction]

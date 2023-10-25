@@ -36,7 +36,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
-  updateHoveredExpr: [ExprId | undefined]
   updateContent: [updates: [range: ContentRange, content: string][]]
   movePosition: [delta: Vec2]
   setVisualizationId: [id: Opt<VisualizationIdentifier>]
@@ -437,6 +436,10 @@ const color = computed(() =>
     ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
     : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
 )
+
+function hoverExpr(id: ExprId | undefined) {
+  if (nodeSelection != null) nodeSelection.hoveredExpr = id
+}
 </script>
 
 <template>
@@ -486,7 +489,7 @@ const color = computed(() =>
           :ast="node.rootSpan"
           :nodeSpanStart="node.rootSpan.span()[0]"
           @updateExprRect="updateExprRect"
-          @updateHoveredExpr="emit('updateHoveredExpr', $event)"
+          @updateHoveredExpr="hoverExpr($event)"
       /></span>
     </div>
     <div key="outputPort" class="outputPort" @pointerdown="emit('outputPortAction')">
