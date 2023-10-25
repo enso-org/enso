@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { Doc } from '@/util/docParser'
+import type { Example } from '@/components/DocumentationPanel/ir'
 
-const props = defineProps<{ examples: Doc.Section.Marked[] }>()
+const props = defineProps<{ examples: Example[] }>()
 </script>
 
 <template>

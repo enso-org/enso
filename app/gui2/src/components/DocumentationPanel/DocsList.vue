@@ -1,13 +1,25 @@
 <script setup lang="ts">
-import type { FunctionDocs, TypeDocs } from '@/components/DocumentationPanel.vue'
+import type { FunctionDocs, TypeDocs } from '@/components/DocumentationPanel/ir'
 import type { Doc } from '@/util/docParser'
 import type { SuggestionEntryArgument, SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
 
-export type ListItems =
-  | { Methods: FunctionDocs[] }
-  | { Constructors: FunctionDocs[] }
-  | { Types: TypeDocs[] }
+interface Methods {
+  kind: 'Methods'
+  items: FunctionDocs[]
+}
+
+interface Constructors {
+  kind: 'Constructors'
+  items: FunctionDocs[]
+}
+
+interface Types {
+  kind: 'Types'
+  items: TypeDocs[]
+}
+
+type ListItems = Methods | Constructors | Types
 
 const props = defineProps<{ items: ListItems }>()
 const emit = defineEmits<{ linkClicked: [id: SuggestionId] }>()
@@ -28,7 +40,7 @@ function argumentsList(args: SuggestionEntryArgument[]): string {
 }
 
 const itemClass = computed<string>(() => {
-  switch (Object.keys(props.items)[0]) {
+  switch (props.items.kind) {
     case 'Methods':
     case 'Constructors':
       return 'methodItem'
@@ -41,36 +53,23 @@ const itemClass = computed<string>(() => {
 
 const linkClass = computed(() => ({
   link: true,
-  method: 'Methods' in props.items,
-  constructor: 'Constructors' in props.items,
-  type: 'Types' in props.items,
+  method: props.items.kind === 'Methods',
+  constructor: props.items.kind === 'Constructors',
+  type: props.items.kind === 'Types',
 }))
-
-const items = computed<FunctionDocs[] | TypeDocs[]>(() => {
-  const items: ListItems = props.items
-  if ('Methods' in items) {
-    return items.Methods
-  } else if ('Constructors' in items) {
-    return items.Constructors
-  } else if ('Types' in items) {
-    return items.Types
-  } else {
-    return []
-  }
-})
 
 function getId(entry: FunctionDocs | TypeDocs) {
   return entry.id
 }
 
 const annotations = computed<Array<string | undefined>>(() => {
-  return items.value.map((item) => firstParagraph(item.sections.synopsis))
+  return props.items.items.map((item) => firstParagraph(item.sections.synopsis))
 })
 </script>
 
 <template>
-  <ul v-if="items.length > 0" class="sectionContent">
-    <li v-for="(item, index) in items" :key="index" :class="itemClass">
+  <ul v-if="props.items.items.length > 0" class="sectionContent">
+    <li v-for="(item, index) in props.items.items" :key="index" :class="itemClass">
       <a :class="linkClass" @pointerdown="emit('linkClicked', getId(item))">
         <span class="entryName">{{ item.name }}</span>
         <span class="arguments">{{ ' ' + argumentsList(item.arguments) }}</span>
