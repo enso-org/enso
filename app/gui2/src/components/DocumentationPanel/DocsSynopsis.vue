@@ -11,7 +11,7 @@ const props = defineProps<{ sections: Doc.Section[] }>()
   <div v-if="props.sections.length > 0" class="sectionContent">
     <template v-for="(section, _i) in props.sections" :key="_i">
       <p v-if="'Paragraph' in section" class="paragraph">
-        <span v-html="section.Paragraph.body ?? 'Invalid body'"></span>
+        <span v-html="section.Paragraph.body"></span>
       </p>
       <p v-else-if="'Keyed' in section" class="paragraph">
         {{ section.Keyed.key + ': ' + section.Keyed.body }}
@@ -30,20 +30,20 @@ const props = defineProps<{ sections: Doc.Section[] }>()
           <img :src="section.Marked.mark == 'Info' ? iconInfo : iconImportant" class="markedIcon" />
           {{ section.Marked.header }}
         </div>
-        <p class="paragraph" v-html="section.Marked.body ?? 'Invalid body'" />
+        <p class="paragraph" v-html="section.Marked.body" />
       </div>
       <ul v-else-if="'List' in section">
         <li
           v-for="(item, index) in section.List.items"
           :key="index"
-          v-html="item ?? 'Invalid item'"
+          v-html="item"
         ></li>
       </ul>
       <ul v-else-if="'Arguments' in section">
         <li v-for="(arg, index) in section.Arguments.args" :key="index">
           <span class="argument">{{ arg.name }}</span
           >:&nbsp;
-          <span v-html="arg.description ?? 'Invalid description'"></span>
+          <span v-html="arg.description"></span>
         </li>
       </ul>
     </template>
