@@ -9,7 +9,7 @@ import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
 import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
-import com.sandinh.javamodule.moduleinfo.{AutomaticModule, JpmsModule}
+import com.sandinh.javamodule.moduleinfo.{JpmsModule}
 
 import java.io.File
 
@@ -18,9 +18,9 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion = "2.13.11"
-val graalVersion  = "21"
+val javaVersion  = "21"
 // Version used for the Graal/Truffle related Maven packages
-val graalMavenPackagesVersion = "23.1.0"
+val graalMavenPackagesVersion = GraalVM.version
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -154,7 +154,7 @@ analyzeDependency := GatherLicenses.analyzeDependency.evaluated
 val packageBuilder = new DistributionPackage.Builder(
   ensoVersion      = ensoVersion,
   graalVersion     = graalMavenPackagesVersion,
-  graalJavaVersion = graalVersion,
+  graalJavaVersion = javaVersion,
   artifactRoot     = file("built-distribution")
 )
 
@@ -419,58 +419,6 @@ val jmh = Seq(
   "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
 )
 
-// === Truffle and Graal ======================================================
-
-val graalvmSdk = Seq(
-  "org.graalvm.sdk" % "polyglot-tck" % graalMavenPackagesVersion,
-  "org.graalvm.sdk" % "nativeimage" % graalMavenPackagesVersion,
-  "org.graalvm.sdk" % "word" % graalMavenPackagesVersion,
-  "org.graalvm.sdk" % "jniutils" % graalMavenPackagesVersion,
-  "org.graalvm.sdk" % "collections" % graalMavenPackagesVersion,
-)
-
-val graalvmPolyglot = Seq(
-  "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion,
-)
-
-val graalvmTruffle = Seq(
-  "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion,
-  "org.graalvm.truffle" % "truffle-runtime" % graalMavenPackagesVersion,
-  "org.graalvm.truffle" % "truffle-compiler" % graalMavenPackagesVersion,
-  "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion,
-)
-
-/**
- * Manually maintained GraalVM languages and their dependencies. Optimally,
- * we would use 'org.graalvm.polyglot:js-community' or 'org.graavm.polyglot:python-community'
- * maven artifacts and all their transitive dependencies, but we have to copy all these artifacts
- * into engine distribution build, so we have to maintain these manually.
- **/
-val graalvmPython = Seq(
-  "org.graalvm.python" % "python-language" % graalMavenPackagesVersion,
-  "org.graalvm.python" % "python-resources" % graalMavenPackagesVersion,
-  "org.bouncycastle" % "bcutil-jdk18on" % "1.76",
-  "org.bouncycastle" % "bcpkix-jdk18on" % "1.76",
-  "org.bouncycastle" % "bcprov-jdk18on" % "1.76",
-  "org.graalvm.llvm" % "llvm-api" % graalMavenPackagesVersion,
-  "org.graalvm.truffle" % "truffle-nfi" % graalMavenPackagesVersion,
-  "org.graalvm.truffle" % "truffle-nfi-libffi" % graalMavenPackagesVersion,
-  "org.graalvm.regex" % "regex" % graalMavenPackagesVersion,
-  "org.graalvm.tools" % "profiler-tool" % graalMavenPackagesVersion,
-  "org.graalvm.shadowed" % "json" % graalMavenPackagesVersion,
-  "org.graalvm.shadowed" % "icu4j" % graalMavenPackagesVersion,
-  "org.tukaani" % "xz" % "1.9",
-)
-
-val graalvmJs = Seq(
-  "org.graalvm.js" % "js-language" % graalMavenPackagesVersion,
-  "org.graalvm.regex" % "regex" % graalMavenPackagesVersion,
-  "org.graalvm.shadowed" % "icu4j" % graalMavenPackagesVersion,
-)
-
-// TODO: Add graalvmPython
-val graalvmLangs = graalvmJs
-
 // === Scala Compiler =========================================================
 
 val scalaCompiler = Seq(
@@ -540,15 +488,7 @@ val httpComponentsVersion   = "4.4.1"
  * The list of modules that are included in the `component` directory in engine distribution.
  * When invoking the `java` command, these modules need to be put on the module-path.
  */
-val componentModules: Seq[ModuleID] = graalvmLangs ++ Seq(
-  "org.graalvm.sdk" % "nativeimage" % graalMavenPackagesVersion,
-  "org.graalvm.sdk" % "word" % graalMavenPackagesVersion,
-  "org.graalvm.sdk" % "jniutils" % graalMavenPackagesVersion,
-  "org.graalvm.sdk" % "collections" % graalMavenPackagesVersion,
-  "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion,
-  "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion,
-  "org.graalvm.truffle" % "truffle-runtime" % graalMavenPackagesVersion,
-  "org.graalvm.truffle" % "truffle-compiler" % graalMavenPackagesVersion,
+val componentModules: Seq[ModuleID] = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
   "ch.qos.logback" % "logback-core" % logbackClassicVersion
@@ -929,7 +869,7 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           defaultDevEnsoVersion = defaultDevEnsoVersion,
           ensoVersion           = ensoVersion,
           scalacVersion         = scalacVersion,
-          graalVersion          = graalVersion,
+          graalVersion          = javaVersion,
           currentEdition        = currentEdition
         )
     }.taskValue
@@ -1421,7 +1361,7 @@ lazy val runtime = (project in file("engine/runtime"))
     ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ circe ++ graalvmLangs ++ Seq(
+    libraryDependencies ++= jmh ++ jaxb ++ circe ++ GraalVM.langsPkgs ++ Seq(
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"     % "tika-core"             % tikaVersion,
       "org.graalvm.polyglot"     % "polyglot"             % graalMavenPackagesVersion % "provided",
@@ -2576,7 +2516,7 @@ buildEngineDistribution := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = graalVersion,
+    javaVersion         = javaVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
@@ -2609,7 +2549,7 @@ buildEngineDistributionNoIndex := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = graalVersion,
+    javaVersion         = javaVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
