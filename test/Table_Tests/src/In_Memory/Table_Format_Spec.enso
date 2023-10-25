@@ -125,7 +125,7 @@ spec =
             actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
             actual.at "bool_formats" . should_equal (table.at "bool_formats")
 
-        Test.specify "Date and Date_Time, with empty string format" <|
+        Test.specify "Date and Date_Time, with empty format string" <|
             expected_dates = Column.from_vector "dates" ["2020-12-21", "2023-04-25"]
             expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05-05:00[America/New_York]', '2020-08-08 05:06:07-04:00[America/New_York]']
             expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
@@ -196,7 +196,7 @@ spec =
             actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
             actual.at "bool_formats" . should_equal (table.at "bool_formats")
 
-        Test.specify "Ints and floats, with empty string format" <|
+        Test.specify "Ints and floats, with empty format string" <|
             expected_ints = Column.from_vector "ints" ["100000000", "2222"]
             expected_floats = Column.from_vector "floats" ['2.000000009E8', '4444.3']
             actual = table.format ["ints", "floats"] ""
@@ -224,6 +224,71 @@ spec =
             actual.at "bools" . should_equal (table.at "bools")
             actual.at "ints" . should_equal expected_ints
             actual.at "floats" . should_equal expected_floats
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+            actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
+            actual.at "bool_formats" . should_equal (table.at "bool_formats")
+
+    Test.group "Boolean" <|
+        Test.specify "Booleans, with format string" <|
+            expected_bools = Column.from_vector "bools" ["tt", "ff"]
+            actual = table.format ["bools"] "tt|ff"
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal (table.at "dates")
+            actual.at "datetimes" . should_equal (table.at "datetimes")
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal expected_bools
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+            actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
+            actual.at "bool_formats" . should_equal (table.at "bool_formats")
+
+        Test.specify "Booleans, with column" <|
+            expected_bools = Column.from_vector "bools" ["t", "F"]
+            actual = table.format ["bools"] (table.at "bool_formats")
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal (table.at "dates")
+            actual.at "datetimes" . should_equal (table.at "datetimes")
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal expected_bools
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+            actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
+            actual.at "bool_formats" . should_equal (table.at "bool_formats")
+
+        Test.specify "Booleans, with format empty format string" <|
+            expected_bools = Column.from_vector "bools" ["True", "False"]
+            actual = table.format ["bools"] ""
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal (table.at "dates")
+            actual.at "datetimes" . should_equal (table.at "datetimes")
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal expected_bools
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+            actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
+            actual.at "bool_formats" . should_equal (table.at "bool_formats")
+
+        Test.specify "Booleans, with format Nothing format" <|
+            expected_bools = Column.from_vector "bools" ["True", "False"]
+            actual = table.format ["bools"] Nothing
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal (table.at "dates")
+            actual.at "datetimes" . should_equal (table.at "datetimes")
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal expected_bools
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
             actual.at "strings" . should_equal (table.at "strings")
             actual.at "date_formats" . should_equal (table.at "date_formats")
             actual.at "time_formats" . should_equal (table.at "time_formats")
