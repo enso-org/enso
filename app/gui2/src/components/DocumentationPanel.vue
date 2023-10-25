@@ -42,7 +42,7 @@ const types = computed<TypeDocs[]>(() => {
 </script>
 
 <template>
-  <div class="DocumentationPanel">
+  <div class="DocumentationPanel scrollable" @wheel.stop.passive>
     <h1 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h1>
     <DocsTags v-if="sections.tags.length > 0" :tags="sections.tags" />
     <div class="sections">
@@ -90,6 +90,9 @@ const types = computed<TypeDocs[]>(() => {
   background-color: var(--enso-docs-background-color);
   padding: 8px 12px 4px 8px;
   white-space: normal;
+  clip-path: inset(0 0 4px 0);
+  height: 100%;
+  overflow-y: auto;
 }
 
 .sections {
