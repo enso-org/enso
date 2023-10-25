@@ -179,9 +179,8 @@ class RuntimeExecutionEnvironmentTest
         )
       )
     )
-    val responses1 = context.receiveNIgnoreStdLib(4)
+    val responses1 = context.receiveNIgnoreStdLib(3)
     responses1 should contain allOf (
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -279,9 +278,8 @@ class RuntimeExecutionEnvironmentTest
         )
       )
     )
-    val responses1 = context.receiveNIgnoreStdLib(4)
+    val responses1 = context.receiveNIgnoreStdLib(3)
     responses1 should contain allOf (
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,

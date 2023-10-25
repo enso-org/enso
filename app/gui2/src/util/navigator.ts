@@ -1,5 +1,5 @@
-import { Rect } from '@/stores/rect'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, ref, type Ref } from 'vue'
 
@@ -11,6 +11,7 @@ function elemRect(target: Element | undefined): Rect {
   return Rect.Zero()
 }
 
+export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>) {
   const size = useResizeObserver(viewportNode)
   const center = ref<Vec2>(Vec2.Zero())

@@ -1,19 +1,19 @@
 import { useProjectStore } from '@/stores/project'
 import { DEFAULT_VISUALIZATION_IDENTIFIER } from '@/stores/visualization'
-import { assert, assertNever } from '@/util/assert'
-import { parseEnso, type Ast } from '@/util/ast'
+import { Ast, AstExtended, childrenAstNodes, findAstWithRange, readAstSpan } from '@/util/ast'
 import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
+import type { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import * as map from 'lib0/map'
 import * as set from 'lib0/set'
 import { defineStore } from 'pinia'
+import type { StackItem } from 'shared/languageServerTypes'
 import {
-  rangeIntersects,
+  decodeRange,
   visMetadataEquals,
   type ContentRange,
   type ExprId,
-  type IdMap,
   type NodeMetadata,
   type VisualizationIdentifier,
   type VisualizationMetadata,
@@ -33,43 +33,30 @@ export const useGraphStore = defineStore('graph', () => {
 
   const nodes = reactive(new Map<ExprId, Node>())
   const exprNodes = reactive(new Map<ExprId, ExprId>())
+  const nodeRects = reactive(new Map<ExprId, Rect>())
+  const exprRects = reactive(new Map<ExprId, Rect>())
 
   useObserveYjs(text, (event) => {
     const delta = event.changes.delta
     if (delta.length === 0) return
 
-    const affectedRanges: ContentRange[] = []
-    function addAffectedRange(range: ContentRange) {
-      const lastRange = affectedRanges[affectedRanges.length - 1]
-      if (lastRange?.[1] === range[0]) {
-        lastRange[1] = range[1]
-      } else {
-        affectedRanges.push(range)
-      }
-    }
-
     let newContent = ''
     let oldIdx = 0
-    let newIdx = 0
     for (const op of delta) {
       if (op.retain) {
         newContent += textContent.value.substring(oldIdx, oldIdx + op.retain)
         oldIdx += op.retain
-        newIdx += op.retain
       } else if (op.delete) {
-        addAffectedRange([newIdx, newIdx])
         oldIdx += op.delete
       } else if (op.insert && typeof op.insert === 'string') {
-        addAffectedRange([newIdx, newIdx + op.insert.length])
         newContent += op.insert
-        newIdx += op.insert.length
       } else {
         console.error('Unexpected Yjs operation:', op)
       }
     }
     newContent += textContent.value.substring(oldIdx)
     textContent.value = newContent
-    updateState(affectedRanges)
+    updateState()
   })
 
   watch(text, (value) => {
@@ -77,51 +64,47 @@ export const useGraphStore = defineStore('graph', () => {
     if (value != null) updateState()
   })
 
-  const _parsed = ref<Statement[]>([])
-  const _parsedEnso = ref<Ast.Tree>()
+  const _ast = ref<Ast.Tree>()
 
-  function updateState(affectedRanges?: ContentRange[]) {
+  function updateState() {
     const module = proj.module
     if (module == null) return
     module.transact(() => {
       const idMap = module.getIdMap()
       const meta = module.doc.metadata
-      const text = module.doc.contents
       const textContentLocal = textContent.value
-      const parsed = parseBlock(0, textContentLocal, idMap)
 
-      _parsed.value = parsed
-      _parsedEnso.value = parseEnso(textContentLocal)
+      const ast = AstExtended.parse(textContentLocal, idMap)
+      const updatedMap = idMap.finishAndSynchronize()
 
-      const accessed = idMap.accessedSoFar()
-
-      for (const nodeId of nodes.keys()) {
-        if (!accessed.has(nodeId)) {
-          nodeDeleted(nodeId)
+      const methodAst = ast.isTree()
+        ? ast.tryMap((tree) =>
+            getExecutedMethodAst(
+              tree,
+              textContentLocal,
+              proj.executionContext.getStackTop(),
+              updatedMap,
+            ),
+          )
+        : undefined
+      const nodeIds = new Set<ExprId>()
+      if (methodAst) {
+        for (const nodeAst of methodAst.visit(getFunctionNodeExpressions)) {
+          const newNode = nodeFromAst(nodeAst)
+          const nodeId = newNode.rootSpan.astId
+          const node = nodes.get(nodeId)
+          nodeIds.add(nodeId)
+          if (node == null) {
+            nodeInserted(newNode, meta.get(nodeId))
+          } else {
+            nodeUpdated(node, newNode, meta.get(nodeId))
+          }
         }
       }
-      idMap.finishAndSynchronize()
 
-      for (const stmt of parsed) {
-        const exprRange: ContentRange = [stmt.exprOffset, stmt.exprOffset + stmt.expression.length]
-
-        if (affectedRanges != null) {
-          while (affectedRanges[0]?.[1]! < exprRange[0]) {
-            affectedRanges.shift()
-          }
-          if (affectedRanges[0] == null) break
-          const nodeAffected = rangeIntersects(exprRange, affectedRanges[0])
-          if (!nodeAffected) continue
-        }
-
-        const nodeId = stmt.expression.id
-        const node = nodes.get(nodeId)
-        const nodeMeta = meta.get(nodeId)
-        const nodeContent = textContentLocal.substring(exprRange[0], exprRange[1])
-        if (node == null) {
-          nodeInserted(stmt, text, nodeContent, nodeMeta)
-        } else {
-          nodeUpdated(node, stmt, nodeContent, nodeMeta)
+      for (const nodeId of nodes.keys()) {
+        if (!nodeIds.has(nodeId)) {
+          nodeDeleted(nodeId)
         }
       }
     })
@@ -143,48 +126,27 @@ export const useGraphStore = defineStore('graph', () => {
   const identDefinitions = reactive(new Map<string, ExprId>())
   const identUsages = reactive(new Map<string, Set<ExprId>>())
 
-  function nodeInserted(stmt: Statement, text: Y.Text, content: string, meta: Opt<NodeMetadata>) {
-    const nodeId = stmt.expression.id
-    const node: Node = {
-      outerExprId: stmt.id,
-      content,
-      binding: stmt.binding ?? '',
-      rootSpan: stmt.expression,
-      position: Vec2.Zero(),
-      vis: undefined,
-      docRange: [
-        Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset, -1),
-        Y.createRelativePositionFromTypeIndex(text, stmt.exprOffset + stmt.expression.length),
-      ],
-    }
-    if (meta) {
-      assignUpdatedMetadata(node, meta)
-    }
-    identDefinitions.set(node.binding, nodeId)
-    addSpanUsages(nodeId, node)
+  function nodeInserted(node: Node, meta: Opt<NodeMetadata>) {
+    const nodeId = node.rootSpan.astId
+
     nodes.set(nodeId, node)
+    identDefinitions.set(node.binding, nodeId)
+    if (meta) assignUpdatedMetadata(node, meta)
+    addSpanUsages(nodeId, node)
   }
 
-  function nodeUpdated(node: Node, stmt: Statement, content: string, meta: Opt<NodeMetadata>) {
-    const nodeId = stmt.expression.id
-    clearSpanUsages(nodeId, node)
-    node.content = content
-    if (node.binding !== stmt.binding) {
+  function nodeUpdated(node: Node, newNode: Node, meta: Opt<NodeMetadata>) {
+    const nodeId = node.rootSpan.astId
+    if (node.binding !== newNode.binding) {
       identDefinitions.delete(node.binding)
-      node.binding = stmt.binding ?? ''
-      identDefinitions.set(node.binding, nodeId)
+      identDefinitions.set(newNode.binding, nodeId)
+      node.binding = newNode.binding
     }
-    if (node.outerExprId !== stmt.id) {
-      node.outerExprId = stmt.id
+    if (node.outerExprId !== newNode.outerExprId) {
+      node.outerExprId = newNode.outerExprId
     }
-    if (node.rootSpan.id === stmt.expression.id) {
-      patchSpan(node.rootSpan, stmt.expression)
-    } else {
-      node.rootSpan = stmt.expression
-    }
-    if (meta != null) {
-      assignUpdatedMetadata(node, meta)
-    }
+    node.rootSpan = newNode.rootSpan
+    if (meta) assignUpdatedMetadata(node, meta)
     addSpanUsages(nodeId, node)
   }
 
@@ -199,29 +161,30 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function addSpanUsages(id: ExprId, node: Node) {
-    for (const [span, offset] of walkSpansBfs(node.rootSpan)) {
-      exprNodes.set(span.id, id)
-      const ident = node.content.substring(offset, offset + span.length)
-      if (span.kind === SpanKind.Ident) {
-        map.setIfUndefined(identUsages, ident, set.create).add(span.id)
+    node.rootSpan.visitRecursive((span) => {
+      exprNodes.set(span.astId, id)
+      if (span.isTree(Ast.Tree.Type.Ident)) {
+        map.setIfUndefined(identUsages, span.repr(), set.create).add(span.astId)
+        return false
       }
-    }
+      return true
+    })
   }
 
   function clearSpanUsages(id: ExprId, node: Node) {
-    for (const [span, offset] of walkSpansBfs(node.rootSpan)) {
-      exprNodes.delete(span.id)
-      if (span.kind === SpanKind.Ident) {
-        const ident = node.content.substring(offset, offset + span.length)
+    node.rootSpan.visitRecursive((span) => {
+      exprNodes.delete(span.astId)
+      if (span.isTree(Ast.Tree.Type.Ident)) {
+        const ident = span.repr()
         const usages = identUsages.get(ident)
         if (usages != null) {
-          usages.delete(span.id)
-          if (usages.size === 0) {
-            identUsages.delete(ident)
-          }
+          usages.delete(span.astId)
+          if (usages.size === 0) identUsages.delete(ident)
         }
+        return false
       }
-    }
+      return true
+    })
   }
 
   function nodeDeleted(id: ExprId) {
@@ -231,13 +194,6 @@ export const useGraphStore = defineStore('graph', () => {
       identDefinitions.delete(node.binding)
       clearSpanUsages(id, node)
     }
-  }
-
-  function patchSpan(span: Span, newSpan: Span) {
-    assert(span.id === newSpan.id)
-    span.length = newSpan.length
-    span.kind = newSpan.kind
-    span.children = newSpan.children
   }
 
   function generateUniqueIdent() {
@@ -282,7 +238,7 @@ export const useGraphStore = defineStore('graph', () => {
   function setNodeContent(id: ExprId, content: string) {
     const node = nodes.get(id)
     if (node == null) return
-    setExpressionContent(node.rootSpan.id, content)
+    setExpressionContent(node.rootSpan.astId, content)
   }
 
   function setExpressionContent(id: ExprId, content: string) {
@@ -300,7 +256,7 @@ export const useGraphStore = defineStore('graph', () => {
   function replaceNodeSubexpression(nodeId: ExprId, range: ContentRange, content: string) {
     const node = nodes.get(nodeId)
     if (node == null) return
-    proj.module?.replaceExpressionContent(node.rootSpan.id, content, range)
+    proj.module?.replaceExpressionContent(node.rootSpan.astId, content, range)
   }
 
   function setNodePosition(nodeId: ExprId, position: Vec2) {
@@ -339,13 +295,22 @@ export const useGraphStore = defineStore('graph', () => {
     proj.module?.updateNodeMetadata(nodeId, { vis: normalizeVisMetadata(node.vis, visible) })
   }
 
+  function updateNodeRect(id: ExprId, rect: Rect) {
+    nodeRects.set(id, rect)
+  }
+
+  function updateExprRect(id: ExprId, rect: Rect) {
+    exprRects.set(id, rect)
+  }
+
   return {
-    _parsed,
-    _parsedEnso,
+    _ast,
     transact,
     nodes,
     exprNodes,
     edges,
+    nodeRects,
+    exprRects,
     identDefinitions,
     identUsages,
     createNode,
@@ -357,6 +322,8 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeVisualizationId,
     setNodeVisualizationVisible,
     stopCapturingUndo,
+    updateNodeRect,
+    updateExprRect,
   }
 })
 
@@ -366,74 +333,29 @@ function randomString() {
 
 export interface Node {
   outerExprId: ExprId
-  content: string
   binding: string
-  rootSpan: Span
+  rootSpan: AstExtended<Ast.Tree>
   position: Vec2
-  docRange: [Y.RelativePosition, Y.RelativePosition]
   vis: Opt<VisualizationMetadata>
 }
 
-export const enum SpanKind {
-  Root = 0,
-  Spacing,
-  Group,
-  Token,
-  Ident,
-  Literal,
-}
-
-export function spanKindName(kind: SpanKind): string {
-  switch (kind) {
-    case SpanKind.Root:
-      return 'Root'
-    case SpanKind.Spacing:
-      return 'Spacing'
-    case SpanKind.Group:
-      return 'Group'
-    case SpanKind.Token:
-      return 'Token'
-    case SpanKind.Ident:
-      return 'Ident'
-    case SpanKind.Literal:
-      return 'Literal'
-    default:
-      assertNever(kind)
-  }
-}
-
-export interface Span {
-  id: ExprId
-  kind: SpanKind
-  length: number
-  children: Span[]
-}
-
-function walkSpansBfs(
-  span: Span,
-  offset: number = 0,
-  visitChildren?: (span: Span, offset: number) => boolean,
-): IterableIterator<[Span, number]> {
-  const stack: [Span, number][] = [[span, offset]]
-  return {
-    next() {
-      if (stack.length === 0) {
-        return { done: true, value: undefined }
-      }
-      const [span, spanOffset] = stack.shift()!
-      if (visitChildren?.(span, spanOffset) !== false) {
-        let offset = spanOffset
-        for (let i = 0; i < span.children.length; i++) {
-          const child = span.children[i]!
-          stack.push([child, offset])
-          offset += child.length
-        }
-      }
-      return { done: false, value: [span, spanOffset] }
-    },
-    [Symbol.iterator]() {
-      return this
-    },
+function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
+  if (ast.isTree(Ast.Tree.Type.Assignment)) {
+    return {
+      outerExprId: ast.astId,
+      binding: ast.map((t) => t.pattern).repr(),
+      rootSpan: ast.map((t) => t.expr),
+      position: Vec2.Zero(),
+      vis: undefined,
+    }
+  } else {
+    return {
+      outerExprId: ast.astId,
+      binding: '',
+      rootSpan: ast,
+      position: Vec2.Zero(),
+      vis: undefined,
+    }
   }
 }
 
@@ -442,104 +364,62 @@ export interface Edge {
   target: ExprId
 }
 
-interface Statement {
-  id: ExprId
-  binding: Opt<string>
-  exprOffset: number
-  expression: Span
+function getExecutedMethodAst(
+  ast: Ast.Tree,
+  code: string,
+  executionStackTop: StackItem,
+  updatedIdMap: Y.Map<Uint8Array>,
+): Opt<Ast.Tree.Function> {
+  switch (executionStackTop.type) {
+    case 'ExplicitCall': {
+      // Assume that the provided AST matches the module in the method pointer. There is no way to
+      // actually verify this assumption at this point.
+      const ptr = executionStackTop.methodPointer
+      const name = ptr.name
+      return findModuleMethod(ast, code, name)
+    }
+    case 'LocalCall': {
+      const exprId = executionStackTop.expressionId
+      const range = lookupIdRange(updatedIdMap, exprId)
+      if (range == null) return
+      const node = findAstWithRange(ast, range)
+      if (node?.type === Ast.Tree.Type.Function) return node
+    }
+  }
 }
 
-function parseBlock(offset: number, content: string, idMap: IdMap): Statement[] {
-  const stmtRegex = /^( *)(([a-zA-Z0-9_]+) *= *)?(.*)$/gm
-  const stmts: Statement[] = []
-  content.replace(stmtRegex, (stmt, indent, beforeExpr, binding, expr, index) => {
-    if (stmt.trim().length === 0) return stmt
-    const pos = offset + index + indent.length
-    const id = idMap.getOrInsertUniqueId([pos, pos + stmt.length - indent.length])
-    const exprOffset = pos + (beforeExpr?.length ?? 0)
-    stmts.push({
-      id,
-      binding,
-      exprOffset,
-      expression: parseNodeExpression(exprOffset, expr, idMap),
-    })
-    return stmt
-  })
-  return stmts
-}
-
-function parseNodeExpression(offset: number, content: string, idMap: IdMap): Span {
-  const root = mkSpanGroup(SpanKind.Root)
-  let span: Span = root
-  let spanOffset = offset
-  const stack: [Span, number][] = []
-
-  const tokenRegex = /(?:(".*?"|[0-9]+\b)|(\s+)|([a-zA-Z0-9_]+)|(.))/g
-  content.replace(tokenRegex, (token, tokLit, tokSpace, tokIdent, tokSymbol, index) => {
-    const pos = offset + index
-    if (tokSpace != null) {
-      span.children.push(mkSpan(idMap, SpanKind.Spacing, pos, token.length))
-    } else if (tokIdent != null) {
-      span.children.push(mkSpan(idMap, SpanKind.Ident, pos, token.length))
-    } else if (tokLit != null) {
-      span.children.push(mkSpan(idMap, SpanKind.Literal, pos, token.length))
-    } else if (tokSymbol != null) {
-      if (token === '(') {
-        stack.push([span, spanOffset])
-        span = mkSpanGroup(SpanKind.Group)
-        spanOffset = pos
-      }
-
-      span.children.push(mkSpan(idMap, SpanKind.Token, pos, token.length))
-
-      if (token === ')') {
-        const popped = stack.pop()
-        if (popped != null) {
-          finishSpanGroup(span, idMap, spanOffset)
-          popped[0].children.push(span)
-          span = popped[0]
-          spanOffset = popped[1]
+function* getFunctionNodeExpressions(func: Ast.Tree.Function): Generator<Ast.Tree> {
+  if (func.body) {
+    if (func.body.type === Ast.Tree.Type.BodyBlock) {
+      for (const stmt of func.body.statements) {
+        if (stmt.expression && stmt.expression.type !== Ast.Tree.Type.Function) {
+          yield stmt.expression
         }
       }
+    } else {
+      yield func.body
     }
-    return token
-  })
-
-  let popped
-  while ((popped = stack.pop())) {
-    finishSpanGroup(span, idMap, spanOffset)
-    popped[0].children.push(span)
-    span = popped[0]
-    spanOffset = popped[1]
-  }
-
-  finishSpanGroup(root, idMap, offset)
-  return root
-}
-
-const NULL_ID: ExprId = '00000-' as ExprId
-
-function mkSpanGroup(kind: SpanKind): Span {
-  return {
-    id: NULL_ID,
-    kind,
-    length: 0,
-    children: [],
   }
 }
 
-function mkSpan(idMap: IdMap, kind: SpanKind, offset: number, length: number): Span {
-  const range: ContentRange = [offset, offset + length]
-  return {
-    id: idMap.getOrInsertUniqueId(range),
-    kind,
-    length,
-    children: [],
-  }
+function lookupIdRange(updatedIdMap: Y.Map<Uint8Array>, id: ExprId): [number, number] | undefined {
+  const doc = updatedIdMap.doc!
+  const rangeBuffer = updatedIdMap.get(id)
+  if (rangeBuffer == null) return
+  const decoded = decodeRange(rangeBuffer)
+  const index = Y.createAbsolutePositionFromRelativePosition(decoded[0], doc)?.index
+  const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
+  if (index == null || endIndex == null) return
+  return [index, endIndex]
 }
 
-function finishSpanGroup(span: Span, idMap: IdMap, offset: number) {
-  const totalLength = span.children.reduce((acc, child) => acc + child.length, 0)
-  span.length = totalLength
-  span.id = idMap.getOrInsertUniqueId([offset, offset + span.length])
+function findModuleMethod(
+  moduleAst: Ast.Tree,
+  code: string,
+  methodName: string,
+): Opt<Ast.Tree.Function> {
+  for (const node of childrenAstNodes(moduleAst)) {
+    if (node.type === Ast.Tree.Type.Function && readAstSpan(node.name, code) === methodName)
+      return node
+  }
 }

@@ -77,7 +77,7 @@ import type {
 } from 'ag-grid-community'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
@@ -394,7 +394,7 @@ onMounted(() => {
 })
 
 watch(
-  () => config.value.fullscreen,
+  () => config.fullscreen,
   () => queueMicrotask(() => updateTableSize(undefined)),
 )
 
@@ -405,10 +405,8 @@ const debouncedUpdateTableSize = useDebounceFn((...args: Parameters<typeof updat
 }, 500)
 
 watch(
-  () => [props.data, config.value.width],
-  () => {
-    debouncedUpdateTableSize(undefined)
-  },
+  () => [props.data, config.width],
+  () => debouncedUpdateTableSize(undefined),
 )
 </script>
 

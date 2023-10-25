@@ -72,9 +72,12 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
         setSelectedKeys: (items: Set<Key>) => void
     ) => void
     draggableRows?: boolean
-    onRowDragStart?: React.DragEventHandler<HTMLTableRowElement>
-    onRowDrag?: React.DragEventHandler<HTMLTableRowElement>
-    onRowDragEnd?: React.DragEventHandler<HTMLTableRowElement>
+    onDragLeave?: React.DragEventHandler
+    onRowDragStart?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDrag?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDragOver?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDragEnd?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDrop?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
 }
 
 /** Props for a {@link Table}. */
@@ -107,9 +110,12 @@ export default function Table<T, State = never, RowState = never, Key extends st
         placeholder,
         onContextMenu,
         draggableRows,
+        onDragLeave,
         onRowDragStart,
         onRowDrag,
+        onRowDragOver,
         onRowDragEnd,
+        onRowDrop,
         ...rowProps
     } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -319,11 +325,21 @@ export default function Table<T, State = never, RowState = never, Key extends st
                                 setPreviouslySelectedKey(key)
                                 setSelectedKeys(new Set([key]))
                             }
-                            onRowDragStart(event)
+                            onRowDragStart(event, item, key)
                         }
                     }}
-                    onDrag={onRowDrag}
-                    onDragEnd={onRowDragEnd}
+                    onDrag={event => {
+                        onRowDrag?.(event, item, key)
+                    }}
+                    onDragOver={event => {
+                        onRowDragOver?.(event, item, key)
+                    }}
+                    onDragEnd={event => {
+                        onRowDragEnd?.(event, item, key)
+                    }}
+                    onDrop={event => {
+                        onRowDrop?.(event, item, key)
+                    }}
                 />
             )
         })
@@ -335,6 +351,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
+            onDragLeave={onDragLeave}
         >
             <table className="rounded-rows table-fixed border-collapse">
                 <thead>{headerRow}</thead>

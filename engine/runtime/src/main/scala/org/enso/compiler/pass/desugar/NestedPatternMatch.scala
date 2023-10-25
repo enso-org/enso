@@ -204,12 +204,12 @@ case object NestedPatternMatch extends IRPass {
   ): Case.Branch = {
     if (containsNestedPatterns(branch.pattern)) {
       branch.pattern match {
-        case cons @ Pattern.Constructor(_, fields, _, _, _) =>
+        case cons @ Pattern.Constructor(constrName, fields, _, _, _) =>
           // Note [Unsafe Getting the Nested Field]
           val (lastNestedPattern, nestedPosition) =
             fields.zipWithIndex.findLast { case (pat, _) => isNested(pat) }.get
 
-          val newName  = freshNameSupply.newName()
+          val newName  = freshNameSupply.newName(from = Some(constrName))
           val newField = Pattern.Name(newName, None)
           val nestedScrutinee =
             newName.duplicate()

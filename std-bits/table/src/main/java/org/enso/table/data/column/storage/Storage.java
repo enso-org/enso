@@ -452,6 +452,18 @@ public abstract class Storage<T> {
   }
 
   /**
+   * Fills missing values with a previous non-missing value.
+   *
+   * <p>
+   *
+   * @param missingIndicator Specifies which values should be considered missing. It can be used to
+   *     implement custom missing value semantics, like `fill_empty`. It can be set to {@code null}
+   *     to just rely on the default semantics of missing values. Some storages may not allow
+   *     customizing the semantics.
+   */
+  public abstract Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator);
+
+  /**
    * Return a new storage, containing only the items marked true in the mask.
    *
    * @param mask the mask to use

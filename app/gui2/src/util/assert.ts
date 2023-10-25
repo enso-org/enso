@@ -3,7 +3,7 @@ export function assertNever(x: never): never {
 }
 
 export function assert(condition: boolean, message?: string): asserts condition {
-  if (!condition) bail(message ?? 'Assertion failed.')
+  if (!condition) bail(message ? `Assertion failed: ${message}` : 'Assertion failed')
 }
 
 export function assertEqual<T>(actual: T, expected: T, message?: string) {
