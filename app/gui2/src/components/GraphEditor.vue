@@ -13,11 +13,9 @@ import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
-import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { computed, onMounted, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -114,7 +112,7 @@ const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigat
 
 /// Track play button presses.
 function onPlayButtonPress() {
-  projectStore.lsRpcConnection.then(async (rpc) => {
+  projectStore.lsRpcConnection.then(async () => {
     const modeValue = mode.value
     if (modeValue == undefined) {
       return
