@@ -4,6 +4,8 @@ from Standard.Table import Table, Value_Type, Aggregate_Column
 
 from Standard.Test import Bench
 
+from project.Config import extended_tests
+
 options = Bench.options . set_warmup (Bench.phase_conf 2 2) . set_measure (Bench.phase_conf 3 2)
 
 create_table : Integer -> Table
@@ -25,10 +27,6 @@ type Data
     Value ~table
 
     create num_rows = Data.Value (create_table num_rows)
-
-## A flag enabling additional tests that can be used as a 'baseline' for the
-   measurements. Usually there is no need to enable this on the CI.
-extended_tests = False
 
 collect_benches = Bench.build builder->
     num_rows = 50000

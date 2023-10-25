@@ -208,15 +208,15 @@ const margin = computed(() => {
   }
 })
 const width = computed(() =>
-  config.value.fullscreen
+  config.fullscreen
     ? containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.value.width ?? 0, config.value.nodeSize.x),
+    : Math.max(config.width ?? 0, config.nodeSize.x),
 )
 
 const height = computed(() =>
-  config.value.fullscreen
+  config.fullscreen
     ? containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.value.height ?? (config.value.nodeSize.x * 3) / 4,
+    : config.height ?? (config.nodeSize.x * 3) / 4,
 )
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
