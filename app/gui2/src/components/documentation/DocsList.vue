@@ -62,6 +62,10 @@ const items = computed<FunctionDocs[] | TypeDocs[]>(() => {
 function getId(entry: FunctionDocs | TypeDocs) {
   return entry.id
 }
+
+const annotations = computed<Array<string | undefined>>(() => {
+  return items.value.map((item) => firstParagraph(item.sections.synopsis))
+})
 </script>
 
 <template>
@@ -72,10 +76,7 @@ function getId(entry: FunctionDocs | TypeDocs) {
         <span class="arguments">{{ ' ' + argumentsList(item.arguments) }}</span>
       </a>
       <!-- eslint-disable vue/no-v-html -->
-      <span
-        v-if="firstParagraph(item.sections.synopsis)"
-        v-html="' ' + firstParagraph(item.sections.synopsis)"
-      ></span>
+      <span v-if="annotations[index]" v-html="' ' + annotations[index]"></span>
       <!-- eslint-enable vue/no-v-html -->
     </li>
   </ul>
