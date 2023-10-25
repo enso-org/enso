@@ -269,7 +269,6 @@ function clearSelection() {
 
 /// Track play button presses.
 function onPlayButtonPress() {
-  console.log('Play button pressed.')
   projectStore.lsRpcConnection.then(async (rpc) => {
     const modeValue = mode.value
     if (modeValue == undefined) {
