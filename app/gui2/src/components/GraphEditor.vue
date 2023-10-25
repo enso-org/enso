@@ -122,6 +122,25 @@ useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 const scaledMousePos = computed(() => navigator.sceneMousePos?.scale(navigator.scale))
 const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigator.scale))
 
+/// Track play button presses.
+function onPlayButtonPress() {
+  projectStore.lsRpcConnection.then(async () => {
+    const modeValue = mode.value
+    if (modeValue == undefined) {
+      return
+    }
+    projectStore.executionContext.recompute('all', modeValue === 'live' ? 'Live' : 'Design')
+  })
+}
+
+/// Watch for changes in the execution mode.
+watch(
+  () => mode.value,
+  (modeValue) => {
+    projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
+  },
+)
+
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
   for (let group of suggestionDb.groups) {
@@ -194,7 +213,7 @@ watch(componentBrowserVisible, (visible) => {
       @breadcrumbClick="console.log(`breadcrumb #${$event + 1} clicked.`)"
       @back="console.log('breadcrumbs \'back\' button clicked.')"
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
-      @execute="console.log('\'execute\' button clicked.')"
+      @execute="onPlayButtonPress()"
     />
     <div ref="codeEditorArea">
       <Suspense>
