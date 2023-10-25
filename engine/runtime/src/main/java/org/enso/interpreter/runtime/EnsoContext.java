@@ -537,7 +537,9 @@ public final class EnsoContext {
   private Object lookupHostSymbol(String pkgName, String curClassName)
           throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
     if (findGuestJava() == null) {
-      return asGuestValue(hostClassLoader.loadClass(pkgName + "." + curClassName));
+      return environment.asHostSymbol(
+          hostClassLoader.loadClass(pkgName + "." + curClassName)
+      );
     } else {
       return InteropLibrary.getUncached().readMember(findGuestJava(), pkgName + "." + curClassName);
     }
