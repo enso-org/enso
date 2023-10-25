@@ -9,12 +9,106 @@ from Standard.Test import Test, Test_Suite
 from project.Util import all
 
 spec =
-    Test.group "Date Table.format, with format string" <|
-        Test.specify "Table with date column" <|
-            column = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
-            table = Table.new [column]
-            expected = Table.new [Column.from_vector "values" ["20201221", "20230425"]]
-            actual = table.format ["values"] "yyyyMMdd"
-            actual . should_equal expected
+    column0 = Column.from_vector "dates" [Date.new 2020 12 21, Date.new 2023 4 25]
+    column1 = Column.from_vector "datetimes" [Date_Time.new 2020 01 10 3 4 5, Date_Time.new 2020 08 08 5 6 7]
+    column2 = Column.from_vector "times" [Time_Of_Day.new 1 2 3, Time_Of_Day.new 10 30 35]
+    column3 = Column.from_vector "bools" [True, False]
+    column4 = Column.from_vector "ints" [20, 30]
+    column5 = Column.from_vector "floats" [200.3, 300.7]
+    column6 = Column.from_vector "strings" ["a", "b"]
+    column7 = Column.from_vector "date_formats" ["yyyyMMdd", "ddMMyyyy"]
+    column8 = Column.from_vector "time_formats" ["hh:mm:ss", "ss:mm:hh"]
+    table = Table.new [column0, column1, column2, column3, column4, column5, column6, column7, column8]
+
+    Test.group "Dates" <|
+        Test.specify "Date and Date_Time, with format string" <|
+            expected_dates = Column.from_vector "dates" ["20201221", "20230425"]
+            expected_datetimes = Column.from_vector "datetimes" ["20200110", "20200808"]
+            actual = table.format ["dates", "datetimes"] "yyyyMMdd"
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal expected_dates
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+
+        Test.specify "Date_Time and Time_Of_Day, with format string" <|
+            expected_datetimes = Column.from_vector "datetimes" ["03:04:05", "05:06:07"]
+            expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
+            actual = table.format ["datetimes", "times"] "hh:mm:ss"
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal (table.at "dates")
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal expected_times
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+
+        Test.specify "Date and Date_Time, with Date_Time_Formatter" <|
+            expected_dates = Column.from_vector "dates" ["20201221", "20230425"]
+            expected_datetimes = Column.from_vector "datetimes" ["20200110", "20200808"]
+            actual = table.format ["dates", "datetimes"] (Date_Time_Formatter.from "yyyyMMdd")
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal expected_dates
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+
+        Test.specify "Date_Time and Time_Of_Day, Date_Time_Formatter" <|
+            expected_datetimes = Column.from_vector "datetimes" ["03:04:05", "05:06:07"]
+            expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
+            actual = table.format ["datetimes", "times"] (Date_Time_Formatter.from "hh:mm:ss")
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal (table.at "dates")
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal expected_times
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+
+        Test.specify "Date and Date_Time, with format column" <|
+            expected_dates = Column.from_vector "dates" ["20201221", "25042023"]
+            expected_datetimes = Column.from_vector "datetimes" ["20200110", "08082020"]
+            actual = table.format ["dates", "datetimes"] (table.at "date_formats")
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal expected_dates
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+
+        Test.specify "Date_Time and Time_Of_Day, with format column" <|
+            expected_datetimes = Column.from_vector "datetimes" ["03:04:05", "07:06:05"]
+            expected_times = Column.from_vector "times" ["01:02:03", "35:30:10"]
+            actual = table.format ["datetimes", "times"] (table.at "time_formats")
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal (table.at "dates")
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal expected_times
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
 
 main = Test_Suite.run_main spec
