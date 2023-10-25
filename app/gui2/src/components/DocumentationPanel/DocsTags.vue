@@ -38,8 +38,8 @@ const view = (tag: Doc.Section.Tag): View => {
     <div
       v-for="(tag, index) in tags"
       :key="index"
-      :class="view(tag).class ?? 'tag'"
-      :style="view(tag).style ?? {}"
+      :class="view(tag).class || 'tag'"
+      :style="view(tag).style || {}"
     >
       {{ view(tag).label }}
     </div>

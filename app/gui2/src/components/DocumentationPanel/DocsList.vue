@@ -4,6 +4,9 @@ import type { Doc } from '@/util/docParser'
 import type { SuggestionEntryArgument, SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
 
+const props = defineProps<{ items: ListItems }>()
+const emit = defineEmits<{ linkClicked: [id: SuggestionId] }>()
+
 interface Methods {
   kind: 'Methods'
   items: FunctionDocs[]
@@ -21,9 +24,6 @@ interface Types {
 
 type ListItems = Methods | Constructors | Types
 
-const props = defineProps<{ items: ListItems }>()
-const emit = defineEmits<{ linkClicked: [id: SuggestionId] }>()
-
 function firstParagraph(synopsis: Doc.Section[]): string | undefined {
   if (synopsis[0] && 'Paragraph' in synopsis[0]) {
     return synopsis[0].Paragraph.body
@@ -39,29 +39,6 @@ function argumentsList(args: SuggestionEntryArgument[]): string {
     .join(', ')
 }
 
-const itemClass = computed<string>(() => {
-  switch (props.items.kind) {
-    case 'Methods':
-    case 'Constructors':
-      return 'methodItem'
-    case 'Types':
-      return 'typeItem'
-    default:
-      return ''
-  }
-})
-
-const linkClass = computed(() => ({
-  link: true,
-  method: props.items.kind === 'Methods',
-  constructor: props.items.kind === 'Constructors',
-  type: props.items.kind === 'Types',
-}))
-
-function getId(entry: FunctionDocs | TypeDocs) {
-  return entry.id
-}
-
 const annotations = computed<Array<string | undefined>>(() => {
   return props.items.items.map((item) => firstParagraph(item.sections.synopsis))
 })
@@ -69,8 +46,8 @@ const annotations = computed<Array<string | undefined>>(() => {
 
 <template>
   <ul v-if="props.items.items.length > 0">
-    <li v-for="(item, index) in props.items.items" :key="index" :class="itemClass">
-      <a :class="linkClass" @pointerdown="emit('linkClicked', getId(item))">
+    <li v-for="(item, index) in props.items.items" :key="index" :class="props.items.kind">
+      <a :class="['link', props.items.kind]" @pointerdown="emit('linkClicked', item.id)">
         <span class="entryName">{{ item.name }}</span>
         <span class="arguments">{{ ' ' + argumentsList(item.arguments) }}</span>
       </a>
@@ -84,25 +61,23 @@ const annotations = computed<Array<string | undefined>>(() => {
 <style scoped>
 .link {
   cursor: pointer;
+  font-weight: 600;
 
   &:hover {
     text-decoration: underline;
   }
-}
 
-.type {
-  color: var(--enso-docs-type-name-color);
-  font-weight: 600;
-}
+  &.Types {
+    color: var(--enso-docs-type-name-color);
+  }
 
-.method {
-  color: var(--enso-docs-method-name-color);
-  font-weight: 600;
-}
+  &.Methods {
+    color: var(--enso-docs-method-name-color);
+  }
 
-.constructor {
-  color: var(--enso-docs-type-name-color);
-  font-weight: 600;
+  &.Constructors {
+    color: var(--enso-docs-type-name-color);
+  }
 }
 
 .entryName {
@@ -128,11 +103,15 @@ li {
     margin-right: 3px;
   }
 
-  &.typeItem:before {
+  &.Types:before {
     color: var(--enso-docs-type-name-color);
   }
 
-  &.methodItem:before {
+  &.Methods:before {
+    color: var(--enso-docs-method-name-color);
+  }
+
+  &.Constructors:before {
     color: var(--enso-docs-method-name-color);
   }
 }

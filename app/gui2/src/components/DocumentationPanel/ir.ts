@@ -63,7 +63,9 @@ export function placeholder(text: string): Placeholder {
 }
 
 /**
- * Documentation sections split into three categories. These categories of sections are present in almost every documentation page.
+ * Documentation sections split into three categories.
+ *
+ * These categories of sections are present in almost every documentation page.
  */
 export interface Sections {
   tags: Doc.Section.Tag[]
@@ -92,6 +94,16 @@ function filterSections(sections: Iterable<Doc.Section>): Sections {
 }
 
 // === Lookup ===
+
+export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
+  const entry = db.get(id)
+  if (!entry)
+    return placeholder(
+      `Documentation not available. Entry with id ${id} not found in the database.`,
+    )
+  const handle = handleDocumentation[entry.kind]
+  return handle ? handle(db, entry, id) : placeholder(`Entry kind ${entry.kind} was not handled.`)
+}
 
 function getChildren(db: SuggestionDb, id: SuggestionId, kind: SuggestionKind): Docs[] {
   if (!id) return []
@@ -164,14 +176,4 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
     types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
   }),
-}
-
-export function lookupDocumentation(db: SuggestionDb, id: SuggestionId): Docs {
-  const entry = db.get(id)
-  if (!entry)
-    return placeholder(
-      `Documentation not available. Entry with id ${id} not found in the database.`,
-    )
-  const handle = handleDocumentation[entry.kind]
-  return handle ? handle(db, entry, id) : placeholder(`Entry kind ${entry.kind} was not handled.`)
 }

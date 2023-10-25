@@ -39,8 +39,6 @@ const props = defineProps<{ sections: Doc.Section[] }>()
 </template>
 
 <style scoped>
-/* Common parts. */
-
 ul {
   margin: 0;
   padding: 0;

@@ -15,8 +15,6 @@ const props = defineProps<{ selectedEntry: Opt<SuggestionId> }>()
 const emit = defineEmits<{ 'update:selectedEntry': [id: SuggestionId] }>()
 const db = useSuggestionDbStore()
 
-// === Helper variables ===
-
 const documentation = computed<Docs>(() => {
   const entry = props.selectedEntry
   return entry ? lookupDocumentation(db.entries, entry) : placeholder('No suggestion selected.')
@@ -27,14 +25,17 @@ const sections = computed<Sections>(() => {
   const fallback = { tags: [], synopsis: [], examples: [] }
   return docs.kind === 'Placeholder' ? fallback : docs.sections
 })
+
 const methods = computed<FunctionDocs[]>(() => {
   const docs = documentation.value
   return docs.kind === 'Module' || docs.kind === 'Type' ? docs.methods : []
 })
+
 const constructors = computed<FunctionDocs[]>(() => {
   const docs = documentation.value
   return docs.kind === 'Type' ? docs.constructors : []
 })
+
 const types = computed<TypeDocs[]>(() => {
   const docs = documentation.value
   return docs.kind === 'Module' ? docs.types : []
