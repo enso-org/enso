@@ -16,10 +16,7 @@ const props = defineProps<{ sections: Doc.Section[] }>()
       <p v-else-if="'Keyed' in section" class="paragraph">
         {{ section.Keyed.key + ': ' + section.Keyed.body }}
       </p>
-      <div
-        v-else-if="'Marked' in section"
-        :class="[section.Marked.mark, 'markedContainer']"
-      >
+      <div v-else-if="'Marked' in section" :class="[section.Marked.mark, 'markedContainer']">
         <div v-if="'header' in section.Marked" class="markedHeader">
           <img :src="section.Marked.mark == 'Info' ? iconInfo : iconImportant" class="markedIcon" />
           {{ section.Marked.header }}
@@ -27,11 +24,7 @@ const props = defineProps<{ sections: Doc.Section[] }>()
         <p class="paragraph" v-html="section.Marked.body" />
       </div>
       <ul v-else-if="'List' in section">
-        <li
-          v-for="(item, index) in section.List.items"
-          :key="index"
-          v-html="item"
-        ></li>
+        <li v-for="(item, index) in section.List.items" :key="index" v-html="item"></li>
       </ul>
       <ul v-else-if="'Arguments' in section">
         <li v-for="(arg, index) in section.Arguments.args" :key="index">

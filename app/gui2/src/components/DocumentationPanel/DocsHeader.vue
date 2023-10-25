@@ -7,7 +7,7 @@ export type Kind = 'types' | 'methods' | 'examples'
 
 const props = defineProps<{ kind: Kind; label: string }>()
 
-const classes = computed(() => (['Header', props.kind ]))
+const classes = computed(() => ['Header', props.kind])
 
 const iconMap: Record<Kind, string> = {
   types: iconMethods,
