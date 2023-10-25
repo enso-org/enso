@@ -317,4 +317,39 @@ spec =
             actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
             actual.at "bool_formats" . should_equal (table.at "bool_formats")
 
+    Test.group "Column selectors" <|
+        Test.specify "Date and Date_Time, with regex column selector" <|
+            expected_dates = Column.from_vector "dates" ["20201221", "20230425"]
+            expected_datetimes = Column.from_vector "datetimes" ["20200110", "20200808"]
+            actual = table.format "date(|time)s".to_regex "yyyyMMdd"
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal expected_dates
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+            actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
+            actual.at "bool_formats" . should_equal (table.at "bool_formats")
+
+        Test.specify "Date and Date_Time, with index column selector" <|
+            expected_dates = Column.from_vector "dates" ["20201221", "20230425"]
+            expected_datetimes = Column.from_vector "datetimes" ["20200110", "20200808"]
+            actual = table.format [0, 1] "yyyyMMdd"
+            actual.column_names . should_equal table.column_names
+            actual.at "dates" . should_equal expected_dates
+            actual.at "datetimes" . should_equal expected_datetimes
+            actual.at "times" . should_equal (table.at "times")
+            actual.at "bools" . should_equal (table.at "bools")
+            actual.at "ints" . should_equal (table.at "ints")
+            actual.at "floats" . should_equal (table.at "floats")
+            actual.at "strings" . should_equal (table.at "strings")
+            actual.at "date_formats" . should_equal (table.at "date_formats")
+            actual.at "time_formats" . should_equal (table.at "time_formats")
+            actual.at "numeric_formats" . should_equal (table.at "numeric_formats")
+            actual.at "bool_formats" . should_equal (table.at "bool_formats")
+
 main = Test_Suite.run_main spec
