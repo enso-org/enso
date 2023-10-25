@@ -357,6 +357,22 @@ spec setup =
                 # TODO maybe more specific exception
                 m2.should_fail_with SQL_Error
 
+                ## Now, even if we drop the lookup-related columns, we still should get an error
+                   (otherwise we would risk duplicating records due to the non-uniqueness!)
+                r3 = r1.select_columns ["Z"]
+                Problems.assume_no_problems r3
+
+                m3 = r3 |> materialize
+                ## Alternatively, theoretically, this query could succeed
+                   (knowing that it no longer depends on the lookup at all).
+                   But if it does so, we need to guarantee that we do not get duplicated rows in the result:
+
+                        r3.row_count . should_equal 3
+                        r3.at "Z" . to_vector . length . should_equal 3
+                        r3.at "Z" . to_vector . should_contain_the_same_elements_as [10, 20, 30]
+                m3.should_fail_with SQL_Error
+                r3.at "Z" . to_vector . should_fail_with SQL_Error
+
             Test.with_clue "(no unmatched rows check - added a row in source) " <|
                 lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
                 table = table_builder [["X", [1, 2, 2]], ["Y", ["Z", "ZZ", "ZZZ"]], ["Z", [10, 20, 30]]]
