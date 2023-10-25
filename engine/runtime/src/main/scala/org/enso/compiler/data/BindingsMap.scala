@@ -2,6 +2,7 @@ package org.enso.compiler.data
 
 import org.enso.compiler.{PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
+import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
@@ -9,7 +10,6 @@ import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
-import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 
 import java.io.ObjectOutputStream
@@ -788,7 +788,7 @@ object BindingsMap {
       tp.members.map(m => (m.name, List(ResolvedConstructor(this, m)))).toMap
 
     def unsafeToRuntimeType(): org.enso.interpreter.runtime.data.Type =
-      module.unsafeAsModule().getScope.getTypes.get(tp.name)
+      module.unsafeAsModule().findType(tp.name)
   }
 
   /** A result of successful name resolution.

@@ -7,6 +7,7 @@ import org.enso.compiler.context.{
   InlineContext,
   ModuleContext
 }
+import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
 import org.enso.compiler.core.ir.{
@@ -34,7 +35,6 @@ import org.enso.compiler.phase.{
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.scope.ModuleScope
-import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.CompilationStage
@@ -231,7 +231,8 @@ class Compiler(
             generateCode,
             shouldCompileDependencies
           )
-        val pending = packageRepository.getPendingModules.toList
+        val pending =
+          packageRepository.getPendingModules.toList
         go(pending, compiledModules ++ newCompiled)
       }
 
@@ -432,7 +433,11 @@ class Compiler(
         if (shouldCompileDependencies || isModuleInRootPackage(module)) {
           val shouldStoreCache =
             irCachingEnabled && !context.wasLoadedFromCache(module)
-          if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
+          if (
+            shouldStoreCache && !hasErrors(module) && !context.isInteractive(
+              module
+            )
+          ) {
             if (isInteractiveMode) {
               context.notifySerializeModule(context.getModuleName(module))
             } else {
@@ -656,7 +661,7 @@ class Compiler(
     * @return the module corresponding to the provided name, if exists
     */
   def getModule(name: String): Option[Module] = {
-    context.getTopScope.getModule(name).toScala
+    Option(context.findTopScopeModule(name))
   }
 
   /** Ensures the passed module is in at least the parsed compilation stage.
@@ -718,9 +723,7 @@ class Compiler(
     loc: Option[IdentifiedLocation],
     source: Source
   ): ModuleScope = {
-    val module = context.getTopScope
-      .getModule(qualifiedName)
-      .toScala
+    val module = Option(context.findTopScopeModule(qualifiedName))
       .getOrElse {
         val locStr = fileLocationFromSection(loc, source)
         throw new CompilerError(

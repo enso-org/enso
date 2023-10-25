@@ -1,6 +1,7 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
+import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.IR.AsMetadata
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.core.ir.Name
@@ -17,7 +18,6 @@ import org.enso.compiler.data.BindingsMap.{
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.CompilationStage
 import scala.collection.mutable
 
@@ -58,7 +58,7 @@ class ImportResolver(compiler: Compiler) {
           .getCompilationStage(current)
           .isBefore(
             CompilationStage.AFTER_IMPORT_RESOLUTION
-          ) || !current.hasCrossModuleLinks
+          ) || !context.hasCrossModuleLinks(current)
       ) {
         val importedModules: List[
           (Import, Option[BindingsMap.ResolvedImport])
@@ -150,11 +150,8 @@ class ImportResolver(compiler: Compiler) {
     val mod = name.parts.dropRight(1).map(_.name).mkString(".")
     compiler.getModule(mod).flatMap { mod =>
       compiler.ensureParsed(mod)
-      mod.getIr
-        .unsafeGetMetadata(
-          BindingAnalysis,
-          "impossible: just ensured it's parsed"
-        )
+      mod
+        .getBindingsMap()
         .definedEntities
         .find(_.name == tp)
         .collect { case t: Type =>

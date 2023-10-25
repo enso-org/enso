@@ -209,7 +209,14 @@ class IrToTruffle(
         case ResolvedModule(module) =>
           val mod = module.unsafeAsModule()
           val scope: ModuleScope = imp.importDef.onlyNames
-            .map(only => mod.getScope(only.map(_.name).asJava))
+            .map(only => {
+              val requestedTypes = only.map(_.name).asJava
+              if (requestedTypes.isEmpty()) {
+                mod.getScope()
+              } else {
+                mod.getScope().withTypes(requestedTypes)
+              }
+            })
             .getOrElse(mod.getScope())
           moduleScope.addImport(scope)
       }
@@ -871,8 +878,9 @@ class IrToTruffle(
     bindingsMap.exportedSymbols.foreach {
       case (name, resolution :: _) =>
         if (
-          resolution.isInstanceOf[ResolvedConstructor] || resolution.module
-            .unsafeAsModule() != moduleScope.getModule
+          resolution.isInstanceOf[ResolvedConstructor] || !resolution.module
+            .unsafeAsModule()
+            .isSameAs(moduleScope.getModule)
         ) {
           resolution match {
             case BindingsMap.ResolvedType(module, tp) =>

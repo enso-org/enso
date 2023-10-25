@@ -23,6 +23,7 @@ import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
@@ -149,6 +150,16 @@ public final class Module implements EnsoObject {
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.synthetic = synthetic;
+  }
+
+  /**
+   * Unwraps runtime module from compiler module.
+   *
+   * @param module module created by {@link #asCompilerModule()} method
+   * @return
+   */
+  public static Module fromCompilerModule(CompilerContext.Module module) {
+    return ((TruffleCompilerContext.Module) module).unsafeModule();
   }
 
   /**
@@ -374,7 +385,7 @@ public final class Module implements EnsoObject {
     if (source == null) return;
     scope.reset();
     compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(this);
+    context.getCompiler().run(asCompilerModule());
   }
 
   /** @return IR defined by this module. */
@@ -520,6 +531,15 @@ public final class Module implements EnsoObject {
   }
 
   /**
+   * Turns this module into appropriate {@link CompilerContext} wrapper.
+   *
+   * @return instance of {@link CompilerContext.Module} that delegates to this module
+   */
+  public final CompilerContext.Module asCompilerModule() {
+    return new TruffleCompilerContext.Module(this);
+  }
+
+  /**
    * Handles member invocations through the polyglot API.
    *
    * <p>The exposed members are:
@@ -606,12 +626,12 @@ public final class Module implements EnsoObject {
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {
-      return context.getCompiler().generateDocs(module);
+      return context.getCompiler().generateDocs(module.asCompilerModule());
     }
 
     @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, EnsoContext context) {
-      String[] imports = context.getCompiler().gatherImportStatements(module);
+      String[] imports = context.getCompiler().gatherImportStatements(module.asCompilerModule());
       return ArrayLikeHelpers.wrapStrings(imports);
     }
 

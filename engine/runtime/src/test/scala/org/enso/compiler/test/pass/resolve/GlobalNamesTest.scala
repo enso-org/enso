@@ -86,7 +86,7 @@ class GlobalNamesTest extends CompilerTest {
     val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
     ModuleTestUtils.unsafeSetIr(both._2, moduleMapped)
 
-    new ExportsResolution().run(List(both._2))
+    new ExportsResolution().run(List(both._2.asCompilerModule()))
     val allPrecursors = passManager.runPassesOnModule(moduleMapped, ctx, group2)
     val ir            = allPrecursors.analyse
 

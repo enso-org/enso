@@ -8,8 +8,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule,
   SymbolRestriction
 }
-import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.interpreter.runtime.Module
+import org.enso.compiler.context.CompilerContext.Module
 
 import scala.collection.mutable
 
@@ -37,11 +36,7 @@ class ExportsResolution {
     var exportedBy: List[Edge] = List()
   }
 
-  private def getBindings(module: Module): BindingsMap =
-    module.getIr.unsafeGetMetadata(
-      BindingAnalysis,
-      "module without binding analysis in Exports Resolution"
-    )
+  private def getBindings(module: Module): BindingsMap = module.getBindingsMap()
 
   private def buildGraph(modules: List[Module]): List[Node] = {
     val moduleTargets = modules.map(m => ResolvedModule(Concrete(m)))

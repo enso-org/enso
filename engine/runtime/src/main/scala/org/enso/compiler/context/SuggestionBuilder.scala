@@ -1,6 +1,7 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
+import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{
@@ -23,7 +24,6 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
-import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
@@ -762,7 +762,7 @@ object SuggestionBuilder {
     * @return the suggestions builder for the module
     */
   def apply(
-    module: Module,
+    module: CompilerContext.Module,
     compiler: Compiler
   ): SuggestionBuilder[CharSequence] =
     SuggestionBuilder(module.getSource.getCharacters, compiler)

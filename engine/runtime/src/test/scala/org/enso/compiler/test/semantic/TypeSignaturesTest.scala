@@ -153,7 +153,7 @@ class TypeSignaturesTest
   implicit private class PreprocessModule(code: String) {
     def preprocessModule: Module = {
       val module = new runtime.Module(Module, null, code)
-      langCtx.getCompiler.run(module)
+      langCtx.getCompiler.run(module.asCompilerModule())
       module.getIr
     }
   }

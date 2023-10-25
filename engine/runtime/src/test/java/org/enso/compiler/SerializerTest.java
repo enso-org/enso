@@ -50,7 +50,7 @@ public class SerializerTest {
     assertEquals(mainModuleOpt.isPresent(), true);
 
     var compiler = ensoContext.getCompiler();
-    var module = mainModuleOpt.get();
+    var module = mainModuleOpt.get().asCompilerModule();
 
     ctx.enter();
     var result = compiler.run(module);

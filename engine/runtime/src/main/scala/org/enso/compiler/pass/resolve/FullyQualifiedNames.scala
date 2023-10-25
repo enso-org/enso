@@ -368,7 +368,11 @@ case object FullyQualifiedNames extends IRPass {
               } else {
                 Right(
                   Some(
-                    FQNResolution(ResolvedModule(ModuleReference.Concrete(m)))
+                    FQNResolution(
+                      ResolvedModule(
+                        ModuleReference.Concrete(m)
+                      )
+                    )
                   )
                 )
               }
