@@ -1872,12 +1872,13 @@ type Table
             table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
-       Formats `Column`s within a `Table` using a format string (or `Column` of
-       format strings).
+       Formats `Column`s within a `Table` using a format string,
+       `Date_Time_Formatter`, or `Column` of format strings.
 
        Arguments:
        - columns: The columns to format. If not specified, all columns will be
-         formatted. The columns can have different types.
+         formatted. The columns can have different types, but all columns must
+         be compatible with any provided `format` value.
        - format: The type-dependent format string to use to format the values.
          If `format` is `""` or `Nothing`, .to_text is used to format the value.
          In case of date/time columns, the format can also be a
@@ -1900,10 +1901,10 @@ type Table
          - If a provided `format` value is not compatible with all selected
            columns, and error will be thrown. The error will depend on the
            mismatch between the format and the column.
-         - if no columns have been selected for formatting, a
-           `no_input_columns_selected` error is raised.
-         - if the format is incorrectly formed, or if some values in the column
-           did not match the expected datatype format, an `illegal_argument`
+         - If no columns have been selected for formatting, a
+           `No_Input_Columns_Selected` error is raised.
+         - If the format is incorrectly formed, or if some values in the column
+           did not match the expected datatype format, an `Illegal_Argument`
            error is thrown.
 
        ? Supported Types
