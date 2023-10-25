@@ -197,6 +197,64 @@ spec setup =
             m2.at "Y" . to_vector . should_equal ["A", "B", "B", "B", "A"]
             m2.at "Z" . to_vector . should_equal [10, 20, 20, 20, 50]
 
+        Test.specify "should correctly preserve types of original, merged and added columns" <|
+            table = table_builder [["key1", [0, 1]], ["key2", ["o", "?"]], ["X", [1, 10]], ["Y", ["A", "E"]], ["Z", [1.5, 2.0]], ["W", [True, False]], ["A", [2, 22]], ["B", ["1", "2"]], ["C", [2.0, 2.5]], ["D", [False, False]]]
+            lookup = table_builder [["key1", [0, 2]], ["key2", ["o", "?"]], ["X2", [100, 1000]], ["Y2", ["foo", "bar"]], ["Z2", [0.5, 4.0]], ["W2", [False, True]], ["A", [3, 55]], ["B", ["F", "F"]], ["C", [3.0, 10.5]], ["D", [True, False]]]
+
+            [True, False].each allow_unmatched_rows->
+                table_prepared = if allow_unmatched_rows then table else
+                    # If we don't allow unmatched rows, we filter the input to only contain the matching row - this test is not about matching, but about the types.
+                    table.filter "key1" (Filter_Condition.Equal to=0)
+                t2 = table_prepared.lookup_and_replace lookup key_columns=["key1", "key2"] allow_unmatched_rows=allow_unmatched_rows
+                t2.column_names . should_equal ["key1", "key2", "X", "Y", "Z", "W", "A", "B", "C", "D", "X2", "Y2", "Z2", "W2"]
+
+                t2.at "key1" . value_type . should_be_a (Value_Type.Integer ...)
+                t2.at "key2" . value_type . should_equal Value_Type.Char
+
+                t2.at "X" . value_type . should_be_a (Value_Type.Integer ...)
+                t2.at "Y" . value_type . should_equal Value_Type.Char
+                t2.at "Z" . value_type . should_equal Value_Type.Float
+                t2.at "W" . value_type . should_equal Value_Type.Boolean
+
+                t2.at "A" . value_type . should_be_a (Value_Type.Integer ...)
+                t2.at "B" . value_type . should_equal Value_Type.Char
+                t2.at "C" . value_type . should_equal Value_Type.Float
+                t2.at "D" . value_type . should_equal Value_Type.Boolean
+
+                t2.at "X2" . value_type . should_be_a (Value_Type.Integer ...)
+                t2.at "Y2" . value_type . should_equal Value_Type.Char
+                t2.at "Z2" . value_type . should_equal Value_Type.Float
+                t2.at "W2" . value_type . should_equal Value_Type.Boolean
+
+        if setup.test_selection.fixed_length_text_columns then Test.specify "should correctly preserve types of original, merged and added columns (various Char types test case)" <|
+            table2 = table_builder [["key", ["0"]], ["X", ["a"]], ["A", ["bbbbb"]]] . cast "key" (Value_Type.Char size=50) . cast "X" (Value_Type.Char size=1) . cast "A" (Value_Type.Char size=5 variable_length=False)
+            lookup2 = table_builder [["key", ["0"]], ["X2", ["ccc"]], ["A", ["dddd"]]] . cast "key" (Value_Type.Char size=100) . cast "X2" (Value_Type.Char size=3 variable_length=False) . cast "A" (Value_Type.Char size=4 variable_length=False)
+
+            table2.at "key" . value_type . should_equal (Value_Type.Char size=50 variable_length=True)
+            table2.at "X" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
+            table2.at "A" . value_type . should_equal (Value_Type.Char size=5 variable_length=False)
+
+            lookup2.at "key" . value_type . should_equal (Value_Type.Char size=100 variable_length=True)
+            lookup2.at "X2" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+            lookup2.at "A" . value_type . should_equal (Value_Type.Char size=4 variable_length=False)
+
+            [True, False].each allow_unmatched_rows->
+                t3 = table2.lookup_and_replace lookup2 key_columns=["key"] allow_unmatched_rows=allow_unmatched_rows
+                t3.column_names . should_equal ["key", "X", "A", "X2"]
+
+                # The key column keeps its original type
+                t3.at "key" . value_type . should_equal (Value_Type.Char size=50 variable_length=True)
+                t3.at "X" . value_type . should_equal (Value_Type.Char size=1 variable_length=True)
+                t3.at "X2" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+                case allow_unmatched_rows of
+                    True ->
+                        # The merged column gets a merged type (max size in that case, but gets variable length due to differences), because it may contain both old and new values.
+                        t3.at "A" . value_type . should_equal (Value_Type.Char size=5 variable_length=True)
+                    False ->
+                        # If unmatched rows are not allowed, we can guarantee only _new_ values (from the lookup table) will be in the result, so instead of merging the type we inherit the type from the lookup table.
+                        t3.at "A" . value_type . should_equal (Value_Type.Char size=4 variable_length=False)
+
         Test.specify "will report Floating_Point_Equality if floating-point columns are used as key" <|
             lookup = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", ["A", "B", "C"]]]
             my_table = table_builder [["X", [2.0, 3.0, 2.0, 3.0]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
