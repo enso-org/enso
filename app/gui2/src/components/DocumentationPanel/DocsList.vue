@@ -118,22 +118,22 @@ ul {
   padding: 0;
   list-style-type: none;
   list-style-position: inside;
+}
 
-  li {
-    &:before {
-      content: '•';
-      font-size: 13px;
-      font-weight: 700;
-      margin-right: 3px;
-    }
+li {
+  &:before {
+    content: '•';
+    font-size: 13px;
+    font-weight: 700;
+    margin-right: 3px;
+  }
 
-    &.typeItem:before {
-      color: var(--enso-docs-type-name-color);
-    }
+  &.typeItem:before {
+    color: var(--enso-docs-type-name-color);
+  }
 
-    &.methodItem:before {
-      color: var(--enso-docs-method-name-color);
-    }
+  &.methodItem:before {
+    color: var(--enso-docs-method-name-color);
   }
 }
 </style>

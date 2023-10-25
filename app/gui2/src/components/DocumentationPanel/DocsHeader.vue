@@ -45,50 +45,50 @@ const icon = computed(() => {
   &:first-child {
     margin-top: 0;
   }
+}
 
-  &.methodsHeader {
-    color: var(--enso-docs-methods-header-color);
+.headerIcon {
+  display: flex;
+  padding-top: 4px;
+  align-items: flex-start;
+
+  > img {
+    pointer-events: none;
+    width: 16px;
+    height: 16px;
   }
+}
 
-  &.typesHeader {
-    color: var(--enso-docs-types-header-color);
-  }
+.headerText {
+  padding-top: 2px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 24px;
+}
 
-  &.examplesHeader {
-    color: var(--enso-docs-examples-header-color);
+.methodsHeader {
+  color: var(--enso-docs-methods-header-color);
+}
 
-    .headerIcon {
-      padding-top: 3px;
+.typesHeader {
+  color: var(--enso-docs-types-header-color);
+}
 
-      > img {
-        width: 12px;
-        height: 12px;
-      }
-    }
-
-    .headerText {
-      font-size: 13px;
-      line-height: 22px;
-    }
-  }
+.examplesHeader {
+  color: var(--enso-docs-examples-header-color);
 
   .headerIcon {
-    display: flex;
-    padding-top: 4px;
-    align-items: flex-start;
+    padding-top: 3px;
 
     > img {
-      pointer-events: none;
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
     }
   }
 
   .headerText {
-    padding-top: 2px;
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 24px;
+    font-size: 13px;
+    line-height: 22px;
   }
 }
 </style>

@@ -59,15 +59,13 @@ ul {
   padding: 0;
   list-style-type: none;
   list-style-position: inside;
+}
 
-  li {
-    &:before {
-      content: '•';
-      font-size: 13px;
-      font-weight: 600;
-      margin-right: 6px;
-    }
-  }
+li:before {
+  content: '•';
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 6px;
 }
 
 .paragraph {
