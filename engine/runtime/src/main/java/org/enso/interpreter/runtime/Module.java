@@ -530,7 +530,11 @@ public final class Module implements EnsoObject {
     this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
 
-  // XXX
+  /**
+   * Turns this module into appropriate {@link CompilerContext} wrapper.
+   *
+   * @return instance of {@link CompilerContext.Module} that delegates to this module
+   */
   public final CompilerContext.Module asCompilerModule() {
     return new TruffleCompilerContext.Module(this);
   }
