@@ -22,14 +22,16 @@ export const DEFAULT_LABEL_COLOR: backend.LChColor = {
 // =============
 
 /** Props for a {@link Label}. */
-interface InternalLabelProps extends React.PropsWithChildren {
+interface InternalLabelProps
+    extends React.PropsWithChildren,
+        Omit<JSX.IntrinsicElements['button'], 'color' | 'onClick'>,
+        Required<Pick<JSX.IntrinsicElements['button'], 'onClick'>> {
     /** When true, the button is not faded out even when not hovered. */
     active?: boolean
     /** When true, the button cannot be clicked. */
     disabled?: boolean
     color: backend.LChColor
     className?: string
-    onClick: React.MouseEventHandler<HTMLButtonElement>
 }
 
 /** An label that can be applied to an asset. */
@@ -39,8 +41,8 @@ export default function Label(props: InternalLabelProps) {
         disabled = false,
         color,
         className = 'text-tag-text',
-        onClick,
         children,
+        ...passthrough
     } = props
     return (
         <button
@@ -52,7 +54,7 @@ export default function Label(props: InternalLabelProps) {
                 color.lightness <= 50 ? 'text-tag-text placeholder-tag-text' : 'text-primary'
             }`}
             style={{ backgroundColor: backend.lChColorToCssColor(color) }}
-            onClick={onClick}
+            {...passthrough}
         >
             {children}
         </button>

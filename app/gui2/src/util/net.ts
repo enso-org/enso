@@ -1,4 +1,4 @@
-import { Err, Error, Ok, rejectionToResult, type Result } from '@/util/result'
+import { Err, Ok, ResultError, rejectionToResult, type Result } from '@/util/result'
 import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
 
@@ -12,7 +12,7 @@ export interface BackoffOptions<E> {
    * When this function returns `false`, the backoff is immediately aborted. When this function is
    * not provided, the backoff will always continue until the maximum number of retries is reached.
    */
-  onBeforeRetry?: (error: Error<E>, retryCount: number, delay: number) => boolean | void
+  onBeforeRetry?: (error: ResultError<E>, retryCount: number, delay: number) => boolean | void
 }
 
 const defaultBackoffOptions: Required<BackoffOptions<any>> = {
@@ -107,9 +107,7 @@ export class AsyncQueue<State> {
   async waitForCompletion(): Promise<State> {
     let lastState: State
     do {
-      console.log('this.lastTask', this.lastTask)
       lastState = await this.lastTask
-      console.log('lastState', lastState)
     } while (this.taskRunning)
     return lastState
   }
@@ -180,7 +178,7 @@ if (import.meta.vitest) {
       const promise = exponentialBackoff(task, { maxRetries: 4 })
       vi.runAllTimersAsync()
       const result = await promise
-      expect(result).toEqual({ ok: false, error: new Error(1) })
+      expect(result).toEqual({ ok: false, error: new ResultError(1) })
       expect(task).toHaveBeenCalledTimes(5)
     })
 
@@ -226,8 +224,8 @@ if (import.meta.vitest) {
       vi.runAllTimersAsync()
       await promise
       expect(onBeforeRetry).toHaveBeenCalledTimes(2)
-      expect(onBeforeRetry).toHaveBeenNthCalledWith(1, new Error(3), 0, 1000)
-      expect(onBeforeRetry).toHaveBeenNthCalledWith(2, new Error(2), 1, 2000)
+      expect(onBeforeRetry).toHaveBeenNthCalledWith(1, new ResultError(3), 0, 1000)
+      expect(onBeforeRetry).toHaveBeenNthCalledWith(2, new ResultError(2), 1, 2000)
     })
   })
 }

@@ -28,6 +28,7 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
   display: flex;
   border-radius: var(--radius-full);
   background: var(--color-frame-bg);
+  backdrop-filter: var(--blur-app-bg);
   place-items: center;
   gap: 12px;
   padding-left: 8px;

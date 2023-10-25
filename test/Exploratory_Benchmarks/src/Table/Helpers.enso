@@ -18,9 +18,9 @@ column_from_vector name items convert_polyglot_dates =
         Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
             java_column = case convert_polyglot_dates of
                 True ->
-                    Java_Column.fromItems name items expected_storage_type
+                    Java_Column.fromItems name items expected_storage_type java_problem_aggregator
                 False ->
-                    Java_Column.fromItemsNoDateConversion name items expected_storage_type
+                    Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
             Column.Value java_column
 
 check_results results =

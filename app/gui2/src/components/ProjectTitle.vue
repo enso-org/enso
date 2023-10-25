@@ -24,6 +24,7 @@ const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
   align-items: center;
   background: var(--color-frame-bg);
   border-radius: var(--radius-full);
+  backdrop-filter: var(--blur-app-bg);
   gap: 8px;
   padding-left: 10px;
   padding-right: 4px;

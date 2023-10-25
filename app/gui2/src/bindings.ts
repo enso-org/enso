@@ -18,18 +18,18 @@ export const graphBindings = defineKeybinds('graph-editor', {
   dragScene: ['PointerAux', 'Mod+PointerMain'],
   openComponentBrowser: ['Enter'],
   newNode: ['N'],
-})
-
-export const nodeSelectionBindings = defineKeybinds('node-selection', {
+  toggleVisualization: ['Space'],
   deleteSelected: ['Delete'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape', 'PointerMain'],
+})
+
+export const selectionMouseBindings = defineKeybinds('selection', {
   replace: ['PointerMain'],
   add: ['Mod+Shift+PointerMain'],
   remove: ['Shift+Alt+PointerMain'],
   toggle: ['Shift+PointerMain'],
   invert: ['Mod+Shift+Alt+PointerMain'],
-  toggleVisualization: ['Space'],
 })
 
 export const nodeEditBindings = defineKeybinds('node-edit', {

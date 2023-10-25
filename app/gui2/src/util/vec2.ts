@@ -26,9 +26,9 @@ export class Vec2 {
     return new Vec2(this.x * scalar, this.y * scalar)
   }
 
-  distanceSquared(a: Vec2, b: Vec2): number {
-    const dx = a.x - b.x
-    const dy = a.y - b.y
+  distanceSquared(other: Vec2): number {
+    const dx = this.x - other.x
+    const dy = this.y - other.y
     return dx * dx + dy * dy
   }
 
