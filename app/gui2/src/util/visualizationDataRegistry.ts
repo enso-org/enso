@@ -1,12 +1,12 @@
-import type { ExecutionContext } from '@/stores/project.ts'
-import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol.ts'
-import type { DataServer } from 'shared/dataServer.ts'
+import type { ExecutionContext } from '@/stores/project'
+import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
+import type { DataServer } from 'shared/dataServer'
 import type {
   ExpressionUpdatePayload,
   MethodCall,
   ProfilingInfo,
   Uuid,
-} from 'shared/languageServerTypes.ts'
+} from 'shared/languageServerTypes'
 import { reactive } from 'vue'
 
 export interface ExpressionInfo {

@@ -11,6 +11,7 @@ function elemRect(target: Element | undefined): Rect {
   return Rect.Zero()
 }
 
+export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>) {
   const size = useResizeObserver(viewportNode)
   const center = ref<Vec2>(Vec2.Zero())
