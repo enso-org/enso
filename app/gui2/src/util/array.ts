@@ -10,13 +10,13 @@ export function findIndexOpt<T>(arr: T[], pred: (elem: T) => boolean): number | 
 /** Returns the index of the partition point according to the given predicate
  * (the index of the first element of the second partition).
  *
- * The slice is assumed to be partitioned according to the given predicate.
- * This means that all elements for which the predicate returns true are at the start of the slice
- * and all elements for which the predicate returns false are at the end.
+ * The array is assumed to be partitioned according to the given predicate.
+ * This means that all elements for which the predicate returns `true` are at the start of the array
+ * and all elements for which the predicate returns `false` are at the end.
  * For example, `[7, 15, 3, 5, 4, 12, 6]` is partitioned under the predicate `x % 2 != 0`
  * (all odd numbers are at the start, all even at the end).
  *
- * If this slice is not partitioned, the returned result is unspecified and meaningless,
+ * If this array is not partitioned, the returned result is unspecified and meaningless,
  * as this method performs a kind of binary search.
  *
  * @see The original docs for the equivalent function in Rust: {@link https://doc.rust-lang.org/std/primitive.slice.html#method.partition_point} */
