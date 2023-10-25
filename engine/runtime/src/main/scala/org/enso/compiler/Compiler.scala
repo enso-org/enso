@@ -723,9 +723,7 @@ class Compiler(
     loc: Option[IdentifiedLocation],
     source: Source
   ): ModuleScope = {
-    val module = context.getTopScope
-      .getModule(qualifiedName)
-      .toScala
+    val module = Option(context.findTopScopeModule(qualifiedName))
       .getOrElse {
         val locStr = fileLocationFromSection(loc, source)
         throw new CompilerError(

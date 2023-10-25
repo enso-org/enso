@@ -1,33 +1,12 @@
 package org.enso.interpreter.runtime;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-
-import org.enso.compiler.Cache;
-import org.enso.compiler.Compiler;
-import org.enso.compiler.PackageRepository;
-import org.enso.compiler.Passes;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
-import org.enso.compiler.SerializationManager;
 import org.enso.compiler.codegen.IrToTruffle;
 import org.enso.compiler.codegen.RuntimeStubsGenerator;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.data.CompilerConfig;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.scope.TopLevelScope;
-import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
 
-import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.source.Source;
 
@@ -52,7 +31,6 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
@@ -116,11 +94,6 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public void notifySerializeModule(QualifiedName moduleName) {
     context.getNotificationHandler().serializeModule(moduleName);
-  }
-
-  @Override
-  public TopLevelScope getTopScope() {
-    return context.getTopScope();
   }
 
   @Override

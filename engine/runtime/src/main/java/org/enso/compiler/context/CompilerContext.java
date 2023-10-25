@@ -21,7 +21,6 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
@@ -50,9 +49,6 @@ public interface CompilerContext {
   void logSerializationManager(Level level, String msg, Object... args);
 
   void notifySerializeModule(QualifiedName moduleName);
-
-  // XXX delete
-  TopLevelScope getTopScope();
 
   Module findTopScopeModule(String name);
 
