@@ -47,8 +47,17 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
                 subquery_setup.create_merged_column ix expected_type dialect infer_type_in_result allow_unmatched_rows
             Lookup_Column.Add_Column _ -> subquery_setup.get_lookup_column ix
 
+        ## Originally, I wanted to add invariant checks to all columns (or some of them),
+           but storing it in WHERE has 2 benefits:
+           1. The query is actually _simpler_ - instead of having the check in the expression for _every_ column
+              or multiple columns, we have it only once.
+           2. We have a guarantee that the query optimizer will not remove it (which could happen if it was a separate
+              column, or was added only to some column and these columns got removed in subsequent steps) - which is
+              paramount to ensuring that our rows will not get duplicated in case the key uniqueness gets violated.
+        new_ctx_with_invariant_check = new_ctx.add_where_filters [make_invariant_check subquery_setup.lookup_counter allow_unmatched_rows]
+
         precheck_for_duplicate_matches lookup_columns subquery_setup base_table.connection new_ctx <|
-            Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx
+            Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx_with_invariant_check
 
 ## PRIVATE
    Checks if they key contains NULL values or if there would be unmatched rows
@@ -192,3 +201,39 @@ precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx 
             duplicate_example_key = first_example_row.drop 1
             Error.throw (Non_Unique_Key.Error (key_columns_for_duplicate_check.map .name) duplicate_example_key duplicate_example_count)
         False -> continuation
+
+## PRIVATE
+   Creates an expression that can be baked into the query (preferably in such
+   a way that it will not get removed after query transformations), that will
+   fail if the 'key uniqueness' invariant and the 'all rows matching'
+   (if `allow_unmatched_rows=False`) are not violated when the query is being
+   materialized.
+
+   This is needed, because the initial checks are run when the query is built,
+   but there is no guarantee that the table will not be changed before the query
+   is actually materialized. If in the meantime, the data is modified and
+   invariants are broken, the query may return completely unexpected results
+   (e.g. rows of the source table could get duplicated, which should never
+   happen with `lookup_and_replace`).
+
+   This additional checks ensures that if the invariants are broken, the query
+   will fail instead of returning corrupted data. Its error reporting may be
+   limited in comparison to the initial checks which may compute more
+   information.
+make_invariant_check lookup_counter allow_unmatched_rows =
+    make_error message =
+        SQL_Expression.Operation "RUNTIME_ERROR" [SQL_Expression.Text_Literal "lookup_and_replace: "+message]
+
+    exact_match =
+        is_matched = SQL_Expression.Operation "==" [lookup_counter.expression, SQL_Expression.Literal "1"]
+        [is_matched, SQL_Expression.Literal "TRUE"]
+    unmatched =
+        is_unmatched = SQL_Expression.Operation "IS_NULL" [lookup_counter.expression]
+        case allow_unmatched_rows of
+            True  -> [is_unmatched, SQL_Expression.Literal "TRUE"]
+            False -> [is_unmatched, make_error "Some rows have no matches in the lookup table."]
+
+    # This will be matched if the first branches do not match - this should happen if there is more than 1 match for a row.
+    fallback = [make_error "Duplicate matches found in the lookup table."]
+
+    SQL_Expression.Operation "CASE" unmatched+exact_match+fallback

@@ -307,6 +307,9 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     SQL_Expression.Constant value -> Builder.interpolation value
     SQL_Expression.Literal value -> Builder.code value
+    SQL_Expression.Text_Literal value ->
+        escaped = value.replace "'" "''"
+        Builder.code ("'" + escaped + "'")
     SQL_Expression.Operation kind arguments metadata ->
         op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)

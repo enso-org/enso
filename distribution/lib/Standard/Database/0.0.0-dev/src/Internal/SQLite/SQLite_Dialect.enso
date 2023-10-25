@@ -286,9 +286,10 @@ make_internal_generator_dialect =
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [is_inf, floating_point_div, mod_op]
+    other = [["RUNTIME_ERROR", make_runtime_error_op]]
 
     bool = [bool_or]
-    my_mappings = text + counts + stats + arith_extensions + bool
+    my_mappings = text + counts + stats + arith_extensions + bool + other
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -481,3 +482,12 @@ make_custom_cast column target_value_type type_mapping =
         result.put expr
 
     result.get
+
+## PRIVATE
+make_runtime_error_op arguments =
+    if arguments.length != 1 then
+        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 1 argument.")
+    error_message = arguments.at 0
+    # TODO can we pass a message somehow?
+    _ = error_message
+    Builder.code "match('trigger', 'error')"
