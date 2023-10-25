@@ -2,14 +2,14 @@ import { isSome, type Opt } from '@/util/opt'
 
 export type Result<T = undefined, E = string> =
   | { ok: true; value: T }
-  | { ok: false; error: Error<E> }
+  | { ok: false; error: ResultError<E> }
 
 export function Ok<T>(data: T): Result<T, never> {
   return { ok: true, value: data }
 }
 
 export function Err<E>(error: E): Result<never, E> {
-  return { ok: false, error: new Error(error) }
+  return { ok: false, error: new ResultError(error) }
 }
 
 export function okOr<T, E>(data: Opt<T>, error: E): Result<T, E> {
@@ -27,7 +27,17 @@ export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result
   else return result
 }
 
-export class Error<E = string> {
+export function isResult(v: unknown): v is Result {
+  return (
+    v != null &&
+    typeof v === 'object' &&
+    'ok' in v &&
+    typeof v.ok === 'boolean' &&
+    ('value' in v || ('error' in v && v.error instanceof ResultError))
+  )
+}
+
+export class ResultError<E = string> {
   payload: E
   context: (() => string)[]
 
