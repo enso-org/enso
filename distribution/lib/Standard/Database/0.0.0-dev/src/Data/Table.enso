@@ -1872,6 +1872,85 @@ type Table
             table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
+       Formats `Column`s within a `Table` using a format string (or `Column` of
+       format strings).
+
+       Arguments:
+       - columns: The columns to format. If not specified, all columns will be
+         formatted. The columns can have different types.
+       - format: The type-dependent format string to use to format the values.
+         If `format` is `""` or `Nothing`, .to_text is used to format the value.
+         In case of date/time columns, the format can also be a
+         `Date_Time_Formatter`. If `format` is a `Column`, it must be a text
+         column.
+       - locale: The locale in which the format should be interpreted.
+         If a `Date_Time_Formatter` is provided for `format` and the `locale` is
+         set to anything else than `Locale.default`, then that locale will
+         override the formatters locale.
+       - error_on_missing_columns: if `True` (the default) raises an error if
+         any column is missing. Otherwise, reported as a problem.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error or problem
+           following the `error_on_missing_columns` rules.
+         - If a provided `format` value is not compatible with all selected
+           columns, and error will be thrown. The error will depend on the
+           mismatch between the format and the column.
+         - if no columns have been selected for formatting, a
+           `no_input_columns_selected` error is raised.
+         - if the format is incorrectly formed, or if some values in the column
+           did not match the expected datatype format, an `illegal_argument`
+           error is thrown.
+
+       ? Supported Types
+         - `Value_Type.Date`
+         - `Value_Type.Date_Time`
+         - `Value_Type.Time`
+         - `Value_Type.Integer`
+         - `Value_Type.Float`
+         - `Value_Type.Boolean`
+
+       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
+
+          See `Date_Time_Formatter` for more details.
+
+       ? `Value_Type.Integer`, `Value_Type.Float` format strings
+
+         Numeric format strings are specified by the Java DecimalFormat class.
+         See https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
+         for a complete format specification.
+
+       ? `Value_Type.Boolean` format strings
+
+         Format strings for `Boolean` consist of two values that represent true
+         and false, separated by a `|`.
+
+       > Example
+         Format the first and last boolean columns as 'Yes'/'No'.
+
+             table.format columns=[0, -1] format="Yes|No"
+
+       > Example
+         Format dates in a column using the format `yyyyMMdd`.
+
+             table.format "birthday" "yyyyMMdd"
+
+       > Example
+         Format all columns in the table using the default formatter.
+
+             table.format
+    @columns Widget_Helpers.make_column_name_vector_selector
+    @locale Locale.default_widget
+    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | Column | Nothing -> Locale -> Boolean -> Problem_Behavior -> Table
+    format self columns=[0] format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
+        _ = [columns, format, locale, error_on_missing_columns, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.format is not implemented yet for the Database backends.")
+
+    ## GROUP Standard.Base.Conversions
        Splits a column of text into a set of new columns.
        The original column will be removed from the table.
        The new columns will be named with the name of the input column with a
