@@ -68,7 +68,7 @@ const annotations = computed<Array<string | undefined>>(() => {
 </script>
 
 <template>
-  <ul v-if="props.items.items.length > 0" class="sectionContent">
+  <ul v-if="props.items.items.length > 0">
     <li v-for="(item, index) in props.items.items" :key="index" :class="itemClass">
       <a :class="linkClass" @pointerdown="emit('linkClicked', getId(item))">
         <span class="entryName">{{ item.name }}</span>

@@ -8,7 +8,7 @@ const props = defineProps<{ sections: Doc.Section[] }>()
 
 <template>
   <!-- eslint-disable vue/no-v-html -->
-  <div v-if="props.sections.length > 0" class="sectionContent">
+  <div v-if="props.sections.length > 0">
     <template v-for="(section, _i) in props.sections" :key="_i">
       <p v-if="'Paragraph' in section" class="paragraph">
         <span v-html="section.Paragraph.body"></span>

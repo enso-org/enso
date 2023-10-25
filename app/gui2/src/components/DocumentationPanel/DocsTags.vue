@@ -52,7 +52,6 @@ const view = (tag: Doc.Section.Tag): View => {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: start;
-  padding: 0 8px;
   gap: 2px;
 }
 

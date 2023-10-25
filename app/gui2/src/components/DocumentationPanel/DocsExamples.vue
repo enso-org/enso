@@ -5,7 +5,7 @@ const props = defineProps<{ examples: Example[] }>()
 </script>
 
 <template>
-  <div v-if="props.examples.length > 0" class="sectionContent">
+  <div v-if="props.examples.length > 0">
     <div v-for="(example, index) in props.examples" :key="index" class="exampleContainer">
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-html="example.body"></div>

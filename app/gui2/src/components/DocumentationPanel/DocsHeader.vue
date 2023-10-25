@@ -34,7 +34,6 @@ const icon = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding-left: 8px;
   margin-top: 16px;
 
   &:first-child {

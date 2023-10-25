@@ -45,25 +45,27 @@ const types = computed<TypeDocs[]>(() => {
   <div class="DocumentationPanel">
     <h1 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h1>
     <DocsTags v-if="sections.tags.length > 0" :tags="sections.tags" />
-    <span v-if="sections.synopsis.length == 0">{{ 'No documentation available.' }}</span>
-    <DocsSynopsis :sections="sections.synopsis" />
-    <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
-    <DocsList
-      :items="{ kind: 'Types', items: types }"
-      @linkClicked="emit('update:selectedEntry', $event)"
-    />
-    <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
-    <DocsList
-      :items="{ kind: 'Constructors', items: constructors }"
-      @linkClicked="emit('update:selectedEntry', $event)"
-    />
-    <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
-    <DocsList
-      :items="{ kind: 'Methods', items: methods }"
-      @linkClicked="emit('update:selectedEntry', $event)"
-    />
-    <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
-    <DocsExamples :examples="sections.examples" />
+    <div class="sections">
+      <span v-if="sections.synopsis.length == 0">{{ 'No documentation available.' }}</span>
+      <DocsSynopsis :sections="sections.synopsis" />
+      <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
+      <DocsList
+        :items="{ kind: 'Types', items: types }"
+        @linkClicked="emit('update:selectedEntry', $event)"
+      />
+      <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
+      <DocsList
+        :items="{ kind: 'Constructors', items: constructors }"
+        @linkClicked="emit('update:selectedEntry', $event)"
+      />
+      <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
+      <DocsList
+        :items="{ kind: 'Methods', items: methods }"
+        @linkClicked="emit('update:selectedEntry', $event)"
+      />
+      <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
+      <DocsExamples :examples="sections.examples" />
+    </div>
   </div>
 </template>
 
@@ -86,11 +88,11 @@ const types = computed<TypeDocs[]>(() => {
   line-height: 160%;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);
-  padding: 8px 8px 4px;
+  padding: 8px 12px 4px 8px;
   white-space: normal;
 }
 
-:deep(.sectionContent) {
+.sections {
   padding: 0 8px;
 }
 </style>
