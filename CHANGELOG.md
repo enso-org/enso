@@ -588,6 +588,7 @@
 - [Implemented `Table.expand_to_rows` for the in-memory backend.][8029]
 - [Added XML support for `.to Table` and `.expand_column`.][8083]
 - [Added `Previous_Value` option to `fill_nothing` and `fill_empty`.][8105]
+- [Added `Table.format` for the in-memory backend.][8150]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -839,6 +840,7 @@
 [8029]: https://github.com/enso-org/enso/pull/8029
 [8083]: https://github.com/enso-org/enso/pull/8083
 [8105]: https://github.com/enso-org/enso/pull/8105
+[8150]: https://github.com/enso-org/enso/pull/8150
 
 #### Enso Compiler
 
