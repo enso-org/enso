@@ -2527,23 +2527,28 @@ def filterModulesFromClasspath(
   })
 }
 
+/**
+ * The list of modules that are included in the `component` directory in engine distribution.
+ * When invoking the `java` command, these modules need to be put on the module-path.
+ */
+val componentModules: Seq[ModuleID] = graalvmSdk ++
+  graalvmPolyglot ++
+  graalvmTruffle ++
+  graalvmLangs ++
+  logbackPkg ++ Seq(
+  "org.slf4j" % "slf4j-api" % slf4jVersion,
+)
+
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
 
-  val moduleIdsToCopy = graalvmSdk ++
-    graalvmPolyglot ++
-    graalvmTruffle ++
-    graalvmLangs ++
-    logbackPkg ++ Seq(
-    "org.slf4j" % "slf4j-api" % slf4jVersion,
-  )
   val runnerCp = (`engine-runner` / Compile / fullClasspath).value
   val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
   val fullCp = (runnerCp ++ runtimeCp).distinct
-  val modulesToCopy = filterModulesFromClasspath(fullCp, moduleIdsToCopy).map(_.data)
+  val modulesToCopy = filterModulesFromClasspath(fullCp, componentModules).map(_.data)
   val engineModules = Seq(file("runtime.jar"))
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
@@ -2576,6 +2581,12 @@ lazy val buildEngineDistributionNoIndex =
 buildEngineDistributionNoIndex := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
+
+  val runnerCp = (`engine-runner` / Compile / fullClasspath).value
+  val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
+  val fullCp = (runnerCp ++ runtimeCp).distinct
+  val modulesToCopy = filterModulesFromClasspath(fullCp, componentModules).map(_.data)
+  val engineModules = Seq(file("runtime.jar"))
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
@@ -2583,6 +2594,7 @@ buildEngineDistributionNoIndex := {
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
+    jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
     javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
