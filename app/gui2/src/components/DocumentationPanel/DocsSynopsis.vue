@@ -18,13 +18,7 @@ const props = defineProps<{ sections: Doc.Section[] }>()
       </p>
       <div
         v-else-if="'Marked' in section"
-        :class="[
-          {
-            backgroundInfo: section.Marked.mark == 'Info',
-            backgroundImportant: section.Marked.mark == 'Important',
-          },
-          'markedContainer',
-        ]"
+        :class="[section.Marked.mark, 'markedContainer']"
       >
         <div v-if="'header' in section.Marked" class="markedHeader">
           <img :src="section.Marked.mark == 'Info' ? iconInfo : iconImportant" class="markedIcon" />
@@ -79,11 +73,11 @@ li:before {
 
 /* Marked sections, such as `Info` and `Important` sections. */
 
-.backgroundInfo {
+.Info {
   background-color: var(--enso-docs-info-background-color);
 }
 
-.backgroundImportant {
+.Important {
   background-color: var(--enso-docs-important-background-color);
 }
 
