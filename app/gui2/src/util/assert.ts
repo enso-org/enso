@@ -2,8 +2,23 @@ export function assertNever(x: never): never {
   bail('Unexpected object: ' + x)
 }
 
-export function assert(condition: boolean): asserts condition {
-  if (!condition) bail('Assertion failed')
+export function assert(condition: boolean, message?: string): asserts condition {
+  if (!condition) bail(message ?? 'Assertion failed.')
+}
+
+export function assertEqual<T>(actual: T, expected: T, message?: string) {
+  const messagePrefix = message ? message + ' ' : ''
+  assert(actual === expected, `${messagePrefix}Expected ${expected}, got ${actual}.`)
+}
+
+export function assertNotEqual<T>(actual: T, unexpected: T, message?: string) {
+  const messagePrefix = message ? message + ' ' : ''
+  assert(actual !== unexpected, `${messagePrefix}Expected not ${unexpected}, got ${actual}.`)
+}
+
+export function assertDefined<T>(x: T | undefined, message?: string): asserts x is T {
+  const messagePrefix = message ? message + ' ' : ''
+  assert(x !== undefined, `${messagePrefix}Expected value to be defined.`)
 }
 
 export function assertUnreachable(): never {
