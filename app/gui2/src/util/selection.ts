@@ -4,7 +4,7 @@ import type { NavigatorComposable } from '@/util/navigator'
 import type { Rect } from '@/util/rect'
 import type { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
-import { type ExprId } from "../../shared/yjsModel.ts";
+import { type ExprId } from '../../shared/yjsModel.ts'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(

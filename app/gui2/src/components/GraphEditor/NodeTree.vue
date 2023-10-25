@@ -93,7 +93,7 @@ function isHoverable(): boolean | 'tokensOnly' {
     case 'AutoScope':
       return false
   }
-  console.log("Unexpected tree type", props.ast.treeTypeName())
+  console.log('Unexpected tree type', props.ast.treeTypeName())
   return true
 }
 
