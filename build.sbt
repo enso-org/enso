@@ -533,6 +533,68 @@ val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
 
 // ============================================================================
+// === Utility methods =====================================================
+// ============================================================================
+
+/**
+ * The list of modules that are included in the `component` directory in engine distribution.
+ * When invoking the `java` command, these modules need to be put on the module-path.
+ */
+val componentModules: Seq[ModuleID] = graalvmLangs ++ Seq(
+  "org.graalvm.sdk" % "nativeimage" % graalMavenPackagesVersion,
+  "org.graalvm.sdk" % "word" % graalMavenPackagesVersion,
+  "org.graalvm.sdk" % "jniutils" % graalMavenPackagesVersion,
+  "org.graalvm.sdk" % "collections" % graalMavenPackagesVersion,
+  "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion,
+  "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion,
+  "org.graalvm.truffle" % "truffle-runtime" % graalMavenPackagesVersion,
+  "org.graalvm.truffle" % "truffle-compiler" % graalMavenPackagesVersion,
+  "org.slf4j" % "slf4j-api" % slf4jVersion,
+  "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+  "ch.qos.logback" % "logback-core" % logbackClassicVersion
+)
+
+lazy val componentModulesPaths =
+  taskKey[Def.Classpath]("Gathers all component modules (Jar archives that should be put on module-path" +
+    " as files")
+componentModulesPaths := {
+  val runnerCp = (`engine-runner` / Runtime / fullClasspath).value
+  val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
+  val fullCp = (runnerCp ++ runtimeCp).distinct
+  val modules = filterModulesFromClasspath(fullCp, componentModules)
+  if (modules.size != componentModules.size) {
+    throw new RuntimeException(
+      s"Unexpected: Not all component modules were found in the classpath"
+    )
+  }
+  modules
+}
+
+/**
+ * Filters modules by their IDs from the given classpath.
+ * @param cp The classpath to filter
+ * @param modules These modules are looked for in the class path
+ * @return The classpath with only the provided modules searched by their IDs.
+ */
+def filterModulesFromClasspath(
+  cp: Def.Classpath,
+  modules: Seq[ModuleID]
+): Def.Classpath = {
+  def shouldFilterModule(module: ModuleID): Boolean = {
+    modules.exists(
+      m =>
+        m.organization == module.organization &&
+          m.name         == module.name &&
+          m.revision     == module.revision
+    )
+  }
+  cp.filter(dep => {
+    val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
+    shouldFilterModule(moduleID)
+  })
+}
+
+// ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
 
@@ -1378,6 +1440,16 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
       "com.lihaoyi"        %% "fansi"                 % fansiVersion
     ),
+    // Dependencies with "Runtime" scope - we don't need them for compilation, just provide them
+    // at runtime (in module-path).
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-runtime"       % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.truffle" % "truffle-compiler"      % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.sdk"     % "nativeimage" % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.sdk" % "word" % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.sdk" % "jniutils" % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.sdk" % "collections" % graalMavenPackagesVersion % Runtime,
+    ),
     // Note [Classpath Separation]
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
       "-Dgraalvm.locatorDisabled=true",
@@ -1559,31 +1631,16 @@ lazy val `runtime-with-instruments` =
             ),
             inConfigurations(Compile)
           ),
-          modulePath = Seq(
-            "org.slf4j"  % "slf4j-api" % slf4jVersion,
-          ) ++
-            logbackPkg ++
-            graalvmSdk ++
-            graalvmPolyglot ++
-            graalvmTruffle
+          modulePath = componentModules
         ))
         .value,
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
       assembly / assemblyExcludedJars := {
-        // slf4j-api and logback packages need to be excluded from the fat jar, as they
-        // both need to be specified on module-path at runtime.
-        val pkgsToExclude = Seq(
-          "org.slf4j"  % "slf4j-api" % slf4jVersion,
-        ) ++
-          logbackPkg ++
-          graalvmSdk ++
-          graalvmPolyglot ++
-          graalvmTruffle ++
-          graalvmLangs
+        val pkgsToExclude = componentModules
 
-        val ourFullCp = (Compile / fullClasspath).value
+        val ourFullCp = (Runtime / fullClasspath).value
 
         def shouldPkgBeExcluded(pkg: ModuleID): Boolean = {
           pkgsToExclude.exists { excludePkg =>
@@ -2503,52 +2560,12 @@ launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
 projectManagerDistributionRoot :=
   packageBuilder.localArtifact("project-manager") / "enso"
 
-/**
-* Filters modules by their IDs from the given classpath.
-* @param cp The classpath to filter
-* @param modules These modules are looked for in the class path
-* @return The classpath with only the provided modules searched by their IDs.
- */
-def filterModulesFromClasspath(
-  cp: Def.Classpath,
-  modules: Seq[ModuleID]
-): Def.Classpath = {
-  def shouldFilterModule(module: ModuleID): Boolean = {
-    modules.exists(
-      m =>
-        m.organization == module.organization &&
-        m.name         == module.name &&
-        m.revision     == module.revision
-    )
-  }
-  cp.filter(dep => {
-    val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-    shouldFilterModule(moduleID)
-  })
-}
-
-/**
- * The list of modules that are included in the `component` directory in engine distribution.
- * When invoking the `java` command, these modules need to be put on the module-path.
- */
-val componentModules: Seq[ModuleID] = graalvmSdk ++
-  graalvmPolyglot ++
-  graalvmTruffle ++
-  graalvmLangs ++
-  logbackPkg ++ Seq(
-  "org.slf4j" % "slf4j-api" % slf4jVersion,
-)
-
 lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
-
-  val runnerCp = (`engine-runner` / Compile / fullClasspath).value
-  val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
-  val fullCp = (runnerCp ++ runtimeCp).distinct
-  val modulesToCopy = filterModulesFromClasspath(fullCp, componentModules).map(_.data)
+  val modulesToCopy = componentModulesPaths.value.map(_.data)
   val engineModules = Seq(file("runtime.jar"))
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
@@ -2581,11 +2598,7 @@ lazy val buildEngineDistributionNoIndex =
 buildEngineDistributionNoIndex := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
-
-  val runnerCp = (`engine-runner` / Compile / fullClasspath).value
-  val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
-  val fullCp = (runnerCp ++ runtimeCp).distinct
-  val modulesToCopy = filterModulesFromClasspath(fullCp, componentModules).map(_.data)
+  val modulesToCopy = componentModulesPaths.value.map(_.data)
   val engineModules = Seq(file("runtime.jar"))
   val root         = engineDistributionRoot.value
   val log          = streams.value.log
