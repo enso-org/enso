@@ -17,6 +17,7 @@ import * as authProvider from '../authentication/providers/auth'
 import * as backendModule from './backend'
 import * as backendProvider from '../providers/backend'
 import * as dateTime from './dateTime'
+import * as hooks from '../hooks'
 import * as modalProvider from '../providers/modal'
 import * as permissions from './permissions'
 import * as sorting from './sorting'
@@ -206,7 +207,7 @@ function SharedWithColumn(props: AssetColumnProps) {
             ))}
             {managesThisAsset && (
                 <button
-                    className={`h-4 w-4 ${isHovered ? '' : 'invisible'}`}
+                    className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
@@ -243,10 +244,12 @@ function LabelsColumn(props: AssetColumnProps) {
         item: { item: asset },
         setItem,
         state: { category, labels, deletedLabelNames, doCreateLabel },
+        rowState: { temporarilyAddedLabels, temporarilyRemovedLabels },
     } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
     const [isHovered, setIsHovered] = React.useState(false)
     const self = asset.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
@@ -282,16 +285,23 @@ function LabelsColumn(props: AssetColumnProps) {
                 .filter(label => !deletedLabelNames.has(label))
                 .map(label => (
                     <Label
-                        active
                         key={label}
                         color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
+                        active={!temporarilyRemovedLabels.has(label)}
+                        disabled={temporarilyRemovedLabels.has(label)}
+                        className={
+                            temporarilyRemovedLabels.has(label)
+                                ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
+                                : ''
+                        }
                         onClick={() => {
                             setAsset(oldAsset => {
                                 const newLabels =
                                     oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
                                 void backend
                                     .associateTag(asset.id, newLabels, asset.title)
-                                    .catch(() => {
+                                    .catch(error => {
+                                        toastAndLog(null, error)
                                         setAsset(oldAsset2 =>
                                             oldAsset2.labels?.some(
                                                 oldLabel => oldLabel === label
@@ -313,9 +323,22 @@ function LabelsColumn(props: AssetColumnProps) {
                         {label}
                     </Label>
                 ))}
+            {...[...temporarilyAddedLabels]
+                .filter(label => asset.labels?.includes(label) !== true)
+                .map(label => (
+                    <Label
+                        disabled
+                        key={label}
+                        color={labels.get(label)?.color ?? labelModule.DEFAULT_LABEL_COLOR}
+                        className="pointer-events-none"
+                        onClick={() => {}}
+                    >
+                        {label}
+                    </Label>
+                ))}
             {managesThisAsset && (
                 <button
-                    className={`h-4 w-4 ${isHovered ? '' : 'invisible'}`}
+                    className={`h-4 w-4 ${isHovered ? '' : 'invisible pointer-events-none'}`}
                     onClick={event => {
                         event.stopPropagation()
                         setModal(

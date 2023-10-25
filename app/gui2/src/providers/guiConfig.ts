@@ -1,4 +1,6 @@
-import { inject, provide, type InjectionKey, type Ref } from 'vue'
+import { identity } from '@vueuse/core'
+import { type Ref } from 'vue'
+import { createContextStore } from '.'
 
 export interface GuiConfig {
   engine?: {
@@ -10,20 +12,9 @@ export interface GuiConfig {
   }
   startup?: {
     project?: string
+    displayedProjectName: string
   }
   window?: { topBarOffset?: string }
 }
-
-export const guiConfigProvideKey$FOR$INTERNAL$USE$ONLY = Symbol('appConfig') as InjectionKey<
-  Ref<GuiConfig>
->
-
-export function useGuiConfig(): Ref<GuiConfig> {
-  const injected = inject(guiConfigProvideKey$FOR$INTERNAL$USE$ONLY)
-  if (injected == null) throw new Error('AppConfig not provided')
-  return injected
-}
-
-export function provideGuiConfig(appConfig: Ref<GuiConfig>) {
-  provide(guiConfigProvideKey$FOR$INTERNAL$USE$ONLY, appConfig)
-}
+export { injectFn as injectGuiConfig, provideFn as provideGuiConfig }
+const { provideFn, injectFn } = createContextStore('GUI config', identity<Ref<GuiConfig>>)

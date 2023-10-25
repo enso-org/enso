@@ -6,8 +6,8 @@ import type { Highlighter } from '@/util/codemirror'
 import { colorFromString } from '@/util/colors'
 import { usePointer } from '@/util/events'
 import { useLocalStorage } from '@vueuse/core'
+import { rangeEncloses } from 'shared/yjsModel'
 import { computed, onMounted, ref, watchEffect } from 'vue'
-import * as Y from 'yjs'
 import { qnJoin, tryQualifiedName } from '../util/qualifiedName'
 import { unwrap } from '../util/result'
 
@@ -52,34 +52,34 @@ watchEffect(() => {
         foldGutter(),
         highlightSelectionMatches(),
         tooltips({ position: 'absolute' }),
-        hoverTooltip((ast) => {
+        hoverTooltip((ast, syn) => {
           const dom = document.createElement('div')
-          const ydoc = projectStore.module?.doc.ydoc
-          if (ydoc == null) return
-          const start = ast.whitespaceStartInCodeParsed + ast.whitespaceLengthInCodeParsed
-          const end = start + ast.childrenLengthInCodeParsed
+          const astSpan = ast.span()
           let foundNode: Node | undefined
           for (const node of graphStore.nodes.values()) {
-            const nodeStart = Y.createAbsolutePositionFromRelativePosition(node.docRange[0], ydoc)
-              ?.index
-            if (nodeStart == null || nodeStart > start) continue
-            const nodeEnd = Y.createAbsolutePositionFromRelativePosition(node.docRange[1], ydoc)
-              ?.index
-            if (nodeEnd == null || nodeEnd < end) continue
-            foundNode = node
-            break
+            if (rangeEncloses(node.rootSpan.span(), astSpan)) {
+              foundNode = node
+              break
+            }
           }
-          if (foundNode == null) return
-          const expressionInfo = projectStore.computedValueRegistry.getExpressionInfo(
-            foundNode.rootSpan.id,
-          )
-          if (expressionInfo == null) return
+          const expressionInfo = foundNode
+            ? projectStore.computedValueRegistry.getExpressionInfo(foundNode.rootSpan.astId)
+            : undefined
+
+          if (foundNode != null) {
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.astId}`))
+          }
+          if (expressionInfo != null) {
+            dom
+              .appendChild(document.createElement('div'))
+              .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+          }
+
           dom
             .appendChild(document.createElement('div'))
-            .appendChild(document.createTextNode(`AST ID: ${foundNode.rootSpan.id}`))
-          dom
-            .appendChild(document.createElement('div'))
-            .appendChild(document.createTextNode(`Type: ${expressionInfo.typename ?? 'Unknown'}`))
+            .appendChild(document.createTextNode(`Syntax: ${syn.toString()}`))
           const method = expressionInfo?.methodCall?.methodPointer
           if (method != null) {
             const moduleName = tryQualifiedName(method.module)
@@ -176,7 +176,8 @@ const editorStyle = computed(() => {
     position: absolute;
     width: 100%;
     height: 100%;
-    backdrop-filter: blur(16px);
+    backdrop-filter: var(--blur-app-bg);
+    border-radius: 7px;
   }
 
   &.v-enter-active,
@@ -246,6 +247,7 @@ const editorStyle = computed(() => {
     content: '';
     background-color: rgba(255, 255, 255, 0.35);
     backdrop-filter: blur(64px);
+    border-radius: 4px;
   }
 }
 </style>

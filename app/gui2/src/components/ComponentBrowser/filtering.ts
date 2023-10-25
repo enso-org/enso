@@ -240,7 +240,8 @@ class FilteringQualifiedName {
  *
  * - Without `showUnstable` flag, unstable entries will be filtered out.
  *
- * - 'showLocal' flag is not implemented yet.
+ * - If 'showLocal' flag is set, only entries defined in currentModule (passed as constructor
+ *   argument) are accepted.
  *
  * - Finally, if `pattern` is specified, the entry name or any alias must match the pattern:
  *   there must exists a subsequence of words in name/alias (words are separated by `_`), so each
@@ -271,8 +272,9 @@ export class Filtering {
   extractMatchesRegex: RegExp | undefined
   showUnstable: boolean = false
   showLocal: boolean = false
+  currentModule?: QualifiedName
 
-  constructor(filter: Filter) {
+  constructor(filter: Filter, currentModule: Opt<QualifiedName> = undefined) {
     const { pattern, selfType, qualifiedNamePattern, showUnstable, showLocal } = filter
     if (pattern) {
       this.pattern = new FilteringWithPattern(pattern)
@@ -297,6 +299,7 @@ export class Filtering {
     }
     this.showUnstable = showUnstable ?? false
     this.showLocal = showLocal ?? false
+    if (currentModule != null) this.currentModule = currentModule
   }
 
   private selfTypeMatches(entry: SuggestionEntry): boolean {
@@ -332,6 +335,11 @@ export class Filtering {
     else if (!this.selfTypeMatches(entry)) return null
     else if (!(qualifiedNameMatch = this.qualifiedNameMatches(entry))) return null
     else if (!this.showUnstable && entry.isUnstable) return null
+    else if (
+      this.showLocal &&
+      (this.currentModule == null || entry.definedIn !== this.currentModule)
+    )
+      return null
     else if (this.pattern) {
       const patternMatch = this.pattern.tryMatch(entry)
       if (!patternMatch || !qualifiedNameMatch) return patternMatch

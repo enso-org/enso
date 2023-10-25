@@ -15,11 +15,22 @@ onMounted(() => useSuggestionDbStore())
 </script>
 
 <template>
-  <ProjectView class="flex" />
+  <ProjectView class="App flex" />
 </template>
 
 <style scoped>
 .flex {
   flex: 1;
+}
+
+.App {
+  color: var(--color-text);
+  font-family: 'M PLUS 1', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 20px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 </style>

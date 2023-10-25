@@ -5,6 +5,7 @@ import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { Input } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { useApproach } from '@/util/animation'
@@ -35,6 +36,8 @@ onMounted(() => {
   }
 })
 
+const projectStore = useProjectStore()
+
 // === Position ===
 
 const transform = computed(() => {
@@ -53,10 +56,14 @@ const input = new Input()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
 const currentFiltering = computed(() => {
-  return new Filtering({
-    ...input.filter.value,
-    ...filterFlags.value,
-  })
+  const currentModule = projectStore.modulePath
+  return new Filtering(
+    {
+      ...input.filter.value,
+      ...filterFlags.value,
+    },
+    currentModule?.ok ? currentModule.value : undefined,
+  )
 })
 
 watch(currentFiltering, selectLastAfterRefresh)

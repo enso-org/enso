@@ -17,7 +17,7 @@ export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
-import { Ast, childrenAstNodes, parseEnso } from '@/util/ast'
+import { Ast, AstExtended } from '@/util/ast'
 import {
   Language,
   LanguageSupport,
@@ -35,67 +35,67 @@ import {
   Tree,
   type Input,
   type PartialParse,
+  type SyntaxNode,
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
-import type { EditorView } from 'codemirror'
+import { EditorView } from 'codemirror'
 
-const nodeTypes: NodeType[] = []
-for (const potentialAstNodeType of Object.values(Ast.Tree)) {
-  if (
-    'prototype' in potentialAstNodeType &&
-    potentialAstNodeType.prototype instanceof Ast.Tree.AbstractBase &&
-    potentialAstNodeType !== Ast.Tree.AbstractBase
-  ) {
-    const view = new DataView(new Uint8Array().buffer)
-    const tree = new (potentialAstNodeType as new (
-      view: DataView,
-    ) => Ast.Tree.AbstractBase & { type: Ast.Tree.Type })(view)
-    nodeTypes.push(NodeType.define({ id: tree.type, name: tree.constructor.name }))
-  }
-}
+type AstNode = AstExtended<Ast.Tree | Ast.Token, false>
+
+const nodeTypes: NodeType[] = [
+  ...Ast.Tree.typeNames.map((name, id) => NodeType.define({ id, name })),
+  ...Ast.Token.typeNames.map((name, id) =>
+    NodeType.define({ id: id + Ast.Tree.typeNames.length, name: 'Token' + name }),
+  ),
+]
 
 const nodeSet = new NodeSet(nodeTypes).extend(
   styleTags({
     Ident: tags.variableName,
-    Private: tags.variableName,
+    'Private!': tags.variableName,
     Number: tags.number,
-    Wildcard: tags.variableName,
-    TextLiteral: tags.string,
-    OprApp: tags.operator,
+    'Wildcard!': tags.variableName,
+    'TextLiteral!': tags.string,
+    'OprApp!': tags.operator,
+    TokenOperator: tags.operator,
+    'Assignment/TokenOperator': tags.definitionOperator,
     UnaryOprApp: tags.operator,
-    Function: tags.function(tags.variableName),
+    'Function/Ident': tags.function(tags.variableName),
     ForeignFunction: tags.function(tags.variableName),
-    Import: tags.function(tags.moduleKeyword),
+    'Import!': tags.function(tags.moduleKeyword),
     Export: tags.function(tags.moduleKeyword),
     Lambda: tags.function(tags.variableName),
     Documented: tags.docComment,
     ConstructorDefinition: tags.function(tags.variableName),
   }),
   foldNodeProp.add({
-    Function: (node) => node,
+    Function: (node) => node.lastChild,
     ArgumentBlockApplication: (node) => node,
     OperatorBlockApplication: (node) => node,
   }),
 )
 
-export const astProp = new NodeProp<Ast.Tree>({ perNode: true })
+export const astProp = new NodeProp<AstNode>({ perNode: true })
 
 function astToCodeMirrorTree(
   nodeSet: NodeSet,
-  tree: Ast.Tree,
+  ast: AstNode,
   props?: readonly [number | NodeProp<any>, any][] | undefined,
 ): Tree {
-  const begin = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
-  return new Tree(
-    nodeSet.types[tree.type]!,
-    Array.from(childrenAstNodes(tree), (tree) => astToCodeMirrorTree(nodeSet, tree)),
-    Array.from(
-      childrenAstNodes(tree),
-      (child) => child.whitespaceStartInCodeParsed + child.whitespaceLengthInCodeParsed - begin,
-    ),
-    tree.childrenLengthInCodeParsed,
-    [...(props ?? []), [astProp, tree]],
+  const [start, end] = ast.span()
+  const children = ast.children()
+
+  const hasSingleTokenChild = children.length === 1 && children[0]!.isToken()
+  const childrenToConvert = hasSingleTokenChild ? [] : children
+
+  const tree = new Tree(
+    nodeSet.types[ast.inner.type + (ast.isToken() ? Ast.Tree.typeNames.length : 0)]!,
+    childrenToConvert.map((child) => astToCodeMirrorTree(nodeSet, child)),
+    childrenToConvert.map((child) => child.span()[0] - start),
+    end - start,
+    [...(props ?? []), [astProp, ast]],
   )
+  return tree
 }
 
 const facet = defineLanguageFacet()
@@ -118,7 +118,7 @@ class EnsoParser extends Parser {
         const code = input.read(0, input.length)
         if (code !== self.cachedCode || self.cachedTree == null) {
           self.cachedCode = code
-          const ast = parseEnso(code)
+          const ast = AstExtended.parse(code)
           self.cachedTree = astToCodeMirrorTree(self.nodeSet, ast, [[languageDataProp, facet]])
         }
         return self.cachedTree
@@ -140,18 +140,23 @@ export function enso() {
 }
 
 export function hoverTooltip(
-  create: (node: Ast.Tree) => TooltipView | ((view: EditorView) => TooltipView) | null | undefined,
+  create: (
+    ast: AstNode,
+    syntax: SyntaxNode,
+  ) => TooltipView | ((view: EditorView) => TooltipView) | null | undefined,
 ) {
   return originalHoverTooltip((view, pos, side) => {
-    const node = syntaxTree(view.state).resolveInner(pos, side)
-    const ast = node.tree?.prop(astProp)
-    if (ast == null) return null
-    const domOrCreate = create(ast)
+    const syntaxNode = syntaxTree(view.state).resolveInner(pos, side)
+    const astNode = syntaxNode.tree?.prop(astProp)
+    if (astNode == null) return null
+    const domOrCreate = create(astNode, syntaxNode)
     if (domOrCreate == null) return null
+
     return {
-      pos: node.from,
-      end: node.to,
+      pos: syntaxNode.from,
+      end: syntaxNode.to,
       above: true,
+      arrow: true,
       create: typeof domOrCreate !== 'function' ? () => domOrCreate : domOrCreate,
     }
   })

@@ -1,6 +1,7 @@
 import { Vec2 } from '@/util/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { inject, provide, type InjectionKey, type Ref } from 'vue'
+import { reactive } from 'vue'
+import { createContextStore } from '.'
 
 export interface VisualizationConfig {
   /** Possible visualization types that can be switched to. */
@@ -16,46 +17,15 @@ export interface VisualizationConfig {
   updateType: (type: VisualizationIdentifier) => void
 }
 
-export function defaultVisualizationConfig(): VisualizationConfig {
-  return {
-    fullscreen: false,
-    width: 200,
-    height: 150,
-    hide() {},
-    isCircularMenuVisible: false,
-    nodeSize: new Vec2(200, 150),
-    currentType: {
-      module: { kind: 'Builtin' },
-      name: 'Current Type',
-    },
-    types: [
-      {
-        module: { kind: 'Builtin' },
-        name: 'Example',
-      },
-      {
-        module: { kind: 'Builtin' },
-        name: 'Types',
-      },
-      {
-        module: { kind: 'Builtin' },
-        name: 'Here',
-      },
-    ],
-    updateType() {},
-  }
-}
+export { provideFn as provideVisualizationConfig }
+const { provideFn, injectFn } = createContextStore(
+  'Visualization config',
+  reactive<VisualizationConfig>,
+)
 
-export const visualizationConfigProvideKey$FOR$INTERNAL$USE$ONLY = Symbol(
-  'visualizationConfig',
-) as InjectionKey<Ref<VisualizationConfig>>
+// The visualization config public API should not expose the `allowMissing` parameter. It should
+// look like an ordinary vue composable.
 
-export function useVisualizationConfig(): Ref<VisualizationConfig> {
-  const injected = inject(visualizationConfigProvideKey$FOR$INTERNAL$USE$ONLY)
-  if (injected == null) throw new Error('Visualization config not provided')
-  return injected
-}
-
-export function provideVisualizationConfig(visualizationConfig: Ref<VisualizationConfig>) {
-  provide(visualizationConfigProvideKey$FOR$INTERNAL$USE$ONLY, visualizationConfig)
+export function useVisualizationConfig() {
+  return injectFn()
 }
