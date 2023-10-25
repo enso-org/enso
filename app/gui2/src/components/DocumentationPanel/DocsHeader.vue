@@ -7,12 +7,7 @@ export type Kind = 'types' | 'methods' | 'examples'
 
 const props = defineProps<{ kind: Kind; label: string }>()
 
-const classes = computed(() => ({
-  Header: true,
-  typesHeader: props.kind === 'types',
-  methodsHeader: props.kind === 'methods',
-  examplesHeader: props.kind === 'examples',
-}))
+const classes = computed(() => (['Header', props.kind ]))
 
 const iconMap: Record<Kind, string> = {
   types: iconMethods,
@@ -66,15 +61,15 @@ const icon = computed(() => {
   line-height: 24px;
 }
 
-.methodsHeader {
+.methods {
   color: var(--enso-docs-methods-header-color);
 }
 
-.typesHeader {
+.types {
   color: var(--enso-docs-types-header-color);
 }
 
-.examplesHeader {
+.examples {
   color: var(--enso-docs-examples-header-color);
 
   .headerIcon {
