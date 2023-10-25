@@ -374,6 +374,7 @@ const basePath = computed(() => {
 
 const activePath = computed(() => {
   if (hovered.value) return basePath.value
+  else return undefined
 })
 
 function lengthTo(pos: Vec2): number | undefined {
@@ -459,20 +460,20 @@ const arrowTransform = computed(() => {
 
 <template>
   <path
-    :d="basePath"
     v-if="basePath"
+    :d="basePath"
     class="edge io"
     @pointerdown="click"
     @pointerenter="hovered = true"
     @pointerleave="hovered = false"
   />
-  <path :d="basePath" v-if="basePath" ref="base" class="edge visible base" />
-  <path :d="activePath" v-if="activePath" class="edge visible active" :style="activeStyle" />
+  <path v-if="basePath" ref="base" :d="basePath" class="edge visible base" />
+  <path v-if="activePath" :d="activePath" class="edge visible active" :style="activeStyle" />
   <polygon
+    v-if="arrowTransform"
+    :transform="arrowTransform"
     points="0,-9.375 -9.375,9.375 9.375,9.375"
     class="arrow visible"
-    :transform="arrowTransform"
-    v-if="arrowTransform"
   />
 </template>
 
