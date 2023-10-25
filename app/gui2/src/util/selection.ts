@@ -4,6 +4,7 @@ import type { NavigatorComposable } from '@/util/navigator'
 import type { Rect } from '@/util/rect'
 import type { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
+import { type ExprId } from '../../shared/yjsModel.ts'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
@@ -18,6 +19,8 @@ export function useSelection<T>(
   const anchor = shallowRef<Vec2>()
   const initiallySelected = new Set<T>()
   const selected = reactive(new Set<T>())
+  const hoveredNode = ref<ExprId>()
+  const hoveredExpr = ref<ExprId>()
 
   function readInitiallySelected() {
     initiallySelected.clear()
@@ -125,6 +128,8 @@ export function useSelection<T>(
     deselectAll: () => selected.clear(),
     isSelected: (element: T) => selected.has(element),
     handleSelectionOf,
+    hoveredNode,
+    hoveredExpr,
     mouseHandler: selectionEventHandler,
     events: pointer.events,
   })

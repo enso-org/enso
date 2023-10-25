@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { codeEditorBindings, graphBindings } from '@/bindings'
+import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import SelectionBrush from '@/components/SelectionBrush.vue'
@@ -11,9 +11,10 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
+import { Interaction } from '@/util/interaction'
 import { Vec2 } from '@/util/vec2'
 import * as set from 'lib0/set'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
 
@@ -41,7 +42,7 @@ const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
 })
 
 useEvent(window, 'keydown', (event) => {
-  graphBindingsHandler(event) || codeEditorHandler(event)
+  interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
 })
 
 onMounted(() => viewportNode.value?.focus())
@@ -107,6 +108,17 @@ const codeEditorHandler = codeEditorBindings.handler({
   },
 })
 
+const interactionBindingsHandler = interactionBindings.handler({
+  cancel() {
+    cancelCurrentInteraction()
+  },
+  click(e) {
+    if (e instanceof MouseEvent) return currentInteraction.value?.click(e) ?? false
+    return false
+  },
+})
+useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
+
 const scaledMousePos = computed(() => navigator.sceneMousePos?.scale(navigator.scale))
 const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigator.scale))
 
@@ -118,6 +130,37 @@ const groupColors = computed(() => {
     styles[`--group-color-${name}`] = color
   }
   return styles
+})
+
+const currentInteraction = ref<Interaction>()
+class EditingNode extends Interaction {
+  cancel() {
+    componentBrowserVisible.value = false
+  }
+}
+const editingNode = new EditingNode()
+
+function setCurrentInteraction(interaction: Interaction | undefined) {
+  if (currentInteraction.value?.id === interaction?.id) return
+  currentInteraction.value?.cancel()
+  currentInteraction.value = interaction
+}
+
+function cancelCurrentInteraction() {
+  setCurrentInteraction(undefined)
+}
+
+/** Unset the current interaction, if it is the specified instance. */
+function interactionEnded(interaction: Interaction) {
+  if (currentInteraction.value?.id === interaction?.id) currentInteraction.value = undefined
+}
+
+watch(componentBrowserVisible, (visible) => {
+  if (visible) {
+    setCurrentInteraction(editingNode)
+  } else {
+    interactionEnded(editingNode)
+  }
 })
 </script>
 
@@ -132,7 +175,7 @@ const groupColors = computed(() => {
     v-on..="nodeSelection.events"
   >
     <svg :viewBox="navigator.viewBox">
-      <GraphEdges />
+      <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
     </svg>
     <div :style="{ transform: navigator.transform }" class="htmlLayer">
       <GraphNodes />
