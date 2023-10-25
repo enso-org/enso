@@ -36,12 +36,18 @@ object StdBits {
         else baseFilter
       val configFilter: ConfigurationFilter =
         DependencyFilter.configurationFilter(name = validConfig)
-
+      // All graal related modules must be filtered away - they will be provided in
+      // module-path, and so, they must not be included anywhere else.
+      val graalModuleFilter = DependencyFilter.moduleFilter(
+        name = new SimpleFilter(name => {
+          !GraalVM.modules.exists(graalModule => name.contains(graalModule.name))
+        })
+      )
       val relevantFiles =
         libraryUpdates
           .select(
             configuration = configFilter,
-            module        = DependencyFilter.moduleFilter(),
+            module        = graalModuleFilter,
             artifact      = DependencyFilter.artifactFilter()
           )
 
