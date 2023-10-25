@@ -17,7 +17,7 @@ import org.enso.interpreter.instrument.execution.{
 }
 import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument._
-import org.enso.interpreter.node.{EnsoRootNode, ExpressionNode}
+import org.enso.interpreter.node.{ClosureRootNode, EnsoRootNode, ExpressionNode}
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
@@ -477,9 +477,9 @@ object ProgramExecutionSupport {
           )
           visualization.config.expression match {
             case Api.VisualizationExpression.Text(_, expression) =>
-              val compiler = ctx.executionService.getContext.getCompiler
               val ensoRootNode =
                 expressionNode.getRootNode.asInstanceOf[EnsoRootNode]
+              val compiler = ctx.executionService.getContext.getCompiler
               val compilerConfig = CompilerConfig(
                 autoParallelismEnabled = false,
                 warningsEnabled        = false,
@@ -489,15 +489,31 @@ object ProgramExecutionSupport {
                 ensoRootNode.getModuleScope.getModule,
                 compilerConfig
               )
+              val localScope =
+                ensoRootNode.getLocalScope
               val inlineContext = InlineContext(
                 moduleContext,
                 compilerConfig,
-                Some(ensoRootNode.getLocalScope),
+                Some(localScope),
                 Some(false)
               )
-              val callback = compiler.runInline(expression, inlineContext).get
-              val fn       = Function.thunk(callback.getRootNode.getCallTarget, null)
-              ctx.executionService.callFunction(fn, expressionValue)
+              val evaluatedExpression =
+                compiler.runInline(expression, inlineContext).get
+
+              val rootNode = ClosureRootNode.build(
+                ctx.executionService.getContext.getLanguage,
+                localScope,
+                ensoRootNode.getModuleScope,
+                evaluatedExpression,
+                null,
+                "<synthetic>",
+                false,
+                false
+              )
+              val fn = Function.thunk(rootNode.getCallTarget, null)
+              val result =
+                ctx.executionService.callFunction(fn, expressionValue)
+              result
             case _ =>
               ctx.executionService.callFunctionWithInstrument(
                 visualization.cache,

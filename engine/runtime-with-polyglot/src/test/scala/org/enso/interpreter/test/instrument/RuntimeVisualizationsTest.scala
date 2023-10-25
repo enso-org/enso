@@ -379,7 +379,7 @@ class RuntimeVisualizationsTest
             contextId,
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
-              "x -> encode x"
+              "x -> x + y"
               //"encode 42"
             ),
             "Enso_Test.Test.Visualization"
