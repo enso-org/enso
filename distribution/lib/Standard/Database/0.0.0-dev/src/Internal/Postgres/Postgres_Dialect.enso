@@ -738,8 +738,16 @@ postgres_statement_setter = Statement_Setter.default
    that is not possible - so currently it just 'pretends' that it would return a
    Boolean - because that is the type we expect in the use-case. This can be
    altered if needed.
+
+   It takes a variable as the second argument. It can be any value that is not
+   statically known - this ensure that the optimizer will not be able to
+   pre-compute the expression too early (which could make the query fail
+   spuriously). See `make_invariant_check` in `Lookup_Query_Helper` for an
+   example.
 make_runtime_error_op arguments =
-    if arguments.length != 1 then
-        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 1 argument.")
+    if arguments.length != 2 then
+        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 2 arguments (error message and a variable to ensure deferred execution).")
     error_message = arguments.at 0
-    Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||']' AS BOOLEAN)"
+    variable_to_defer = arguments.at 1
+
+    Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
