@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.enso.compiler.Compiler;
-import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.data.CompilerConfig;
