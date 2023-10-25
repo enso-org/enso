@@ -2787,11 +2787,24 @@ updateLibraryManifests := {
   val libraries = Editions.standardLibraries.map(libName =>
     BundledLibrary(libName, stdLibVersion)
   )
-
+  val runnerCp = (LocalProject("engine-runner") / Compile / fullClasspath).value
+  val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
+  val fullCp = (runnerCp ++ runtimeCp).distinct
+  val modulesOnModulePath = filterModulesFromClasspath(fullCp, componentModules).map(_.data)
+  val modulePath = modulesOnModulePath ++ Seq(file("runtime.jar"))
+  val runnerJar = (LocalProject("engine-runner") / assembly).value
+  val javaOpts = Seq(
+    "-Denso.runner=" + runnerJar.getAbsolutePath,
+    "--module-path",
+    modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
+    "-m",
+    "org.enso.runtime/org.enso.EnsoBoot"
+  )
   LibraryManifestGenerator.generateManifests(
     libraries,
     file("distribution"),
     log,
+    javaOpts,
     cacheFactory
   )
 }
