@@ -497,28 +497,27 @@ val componentModules: Seq[ModuleID] = GraalVM.modules ++ GraalVM.langsPkgs ++ Se
 lazy val componentModulesPaths =
   taskKey[Def.Classpath]("Gathers all component modules (Jar archives that should be put on module-path" +
     " as files")
-componentModulesPaths := {
+(ThisBuild / componentModulesPaths) := {
   val runnerCp = (`engine-runner` / Runtime / fullClasspath).value
   val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
   val fullCp = (runnerCp ++ runtimeCp).distinct
-  val modules = filterModulesFromClasspath(fullCp, componentModules)
-  if (modules.size != componentModules.size) {
-    throw new RuntimeException(
-      s"Unexpected: Not all component modules were found in the classpath"
-    )
-  }
-  modules
+  val log = streams.value.log
+  filterModulesFromClasspath(fullCp, componentModules, log, shouldContainAll = true)
 }
 
 /**
  * Filters modules by their IDs from the given classpath.
  * @param cp The classpath to filter
  * @param modules These modules are looked for in the class path
+ * @param shouldContainAll If true, the method will throw an exception if not all modules were found
+ *                         in the classpath.
  * @return The classpath with only the provided modules searched by their IDs.
  */
 def filterModulesFromClasspath(
   cp: Def.Classpath,
-  modules: Seq[ModuleID]
+  modules: Seq[ModuleID],
+  log: sbt.util.Logger,
+  shouldContainAll: Boolean = false,
 ): Def.Classpath = {
   def shouldFilterModule(module: ModuleID): Boolean = {
     modules.exists(
@@ -528,10 +527,18 @@ def filterModulesFromClasspath(
           m.revision     == module.revision
     )
   }
-  cp.filter(dep => {
+  val ret = cp.filter(dep => {
     val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
     shouldFilterModule(moduleID)
   })
+  if (shouldContainAll) {
+    if (ret.size < modules.size) {
+      log.error("Not all modules from classpath were found")
+      log.error(s"Returned (${ret.size}): $ret")
+      log.error(s"Expected: (${modules.size}): $modules")
+    }
+  }
+  ret
 }
 
 // ============================================================================
@@ -2755,7 +2762,8 @@ updateLibraryManifests := {
   val runnerCp = (LocalProject("engine-runner") / Compile / fullClasspath).value
   val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
   val fullCp = (runnerCp ++ runtimeCp).distinct
-  val modulesOnModulePath = filterModulesFromClasspath(fullCp, componentModules).map(_.data)
+  val modulesOnModulePath = filterModulesFromClasspath(fullCp, componentModules, log)
+    .map(_.data)
   val modulePath = modulesOnModulePath ++ Seq(file("runtime.jar"))
   val runnerJar = (LocalProject("engine-runner") / assembly).value
   val javaOpts = Seq(
