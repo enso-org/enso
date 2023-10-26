@@ -1475,15 +1475,22 @@ type Table
     @column Column_Operation.default_widget
     set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column:(Text | Column | Constant_Column | Column_Operation) new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+        problem_builder = Problem_Builder.new
+        unique = self.column_naming_helper.create_unique_name_strategy
+
+        unique.mark_used self.column_names
+
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column -> column
-            _ : Constant_Column -> self.make_constant_column column.value
+            _ : Constant_Column -> self.make_constant_column column.value on_problems
             _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        renamed = if new_name == "" then resolved else resolved.rename new_name
-        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
+        new_column_name = if new_name == "" then resolved.name else new_name
+        new_column_name_unique = unique.make_unique new_column_name
+        renamed = resolved.rename new_column_name_unique
+        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
             check_add_mode = case set_mode of
                 Set_Mode.Add_Or_Update -> True
                 Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
@@ -1491,9 +1498,12 @@ type Table
                 Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
                     Error.throw (Missing_Column.Error renamed.name)
 
-            check_add_mode.if_not_error <|
+            new_table = check_add_mode.if_not_error <|
                 if resolved.length != self.row_count then Error.throw (Row_Count_Mismatch.Error self.row_count resolved.length) else
                     Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
+
+            problem_builder.report_unique_name_strategy unique
+            problem_builder.attach_problems_after on_problems new_table
 
     ## Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.
@@ -1520,7 +1530,8 @@ type Table
     evaluate_expression : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression on_problems=Report_Warning =
         get_column name = self.at name
-        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
+        make_constant x = self.make_constant_column x on_problems
+        new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
@@ -1529,10 +1540,18 @@ type Table
     ## PRIVATE
 
        Create a constant column from a value.
-    make_constant_column : Any -> Column
-    make_constant_column self value =
+    make_constant_column : Any -> Problem_Behavior -> Column
+    make_constant_column self value on_problems=Report_Warning =
         if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
-            Column.from_vector_repeated ("Constant_" + UUID.randomUUID.to_text) [value] self.row_count
+            problem_builder = Problem_Builder.new
+            unique = self.column_naming_helper.create_unique_name_strategy
+
+            unique.mark_used self.column_names
+            new_column_name = unique.make_unique ("Constant_" + value.to_text)
+            new_column = Column.from_vector_repeated new_column_name [value] self.row_count
+
+            problem_builder.report_unique_name_strategy unique
+            problem_builder.attach_problems_after on_problems new_column
 
     ## PRIVATE
        Create a unique temporary column name.

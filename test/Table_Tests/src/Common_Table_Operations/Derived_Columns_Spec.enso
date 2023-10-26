@@ -17,6 +17,7 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
+
     Test.group prefix+"Table.set with Column_Operation" <|
         Test.specify "arithmetics" <|
             t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
@@ -197,3 +198,10 @@ spec setup =
             t.set (Column_Operation.Add (Column_Ref.Name "X") (Column_Ref.Name "Z")) . should_fail_with No_Such_Column
             t.set (Column_Operation.Not (Column_Ref.Name "zzz")) . should_fail_with No_Such_Column
             t.set (Column_Operation.Not (Column_Ref.Index 42)) . should_fail_with Index_Out_Of_Bounds
+
+    Test.group "Unique derived column names" <|
+        Test.specify "Should disambiguate two derived columns that would otherwise have the same name" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            column_op = Column_Operation.Power 2 (Column_Ref.Name "X")
+            t2 = t.set column_op . set column_op
+            t2.column_names . should_equal ["X", "[Constant_2] ^ [X]", "[Constant_2] ^ [X] 1"]
