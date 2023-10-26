@@ -109,6 +109,10 @@ class ImportResolver(compiler: Compiler) {
                 val converted = bindings
                   .toConcrete(compiler.packageRepository.getModuleMap)
                   .map { concreteBindings =>
+                    compiler.context.updateModule(
+                      current,
+                      _.bindingsMap(concreteBindings)
+                    )
                     concreteBindings
                   }
                 (

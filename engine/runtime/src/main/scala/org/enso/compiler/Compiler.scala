@@ -297,6 +297,7 @@ class Compiler(
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
+        ensureParsed(module)
         if (!context.hasCrossModuleLinks(module)) {
           val flags =
             context
@@ -509,7 +510,9 @@ class Compiler(
   }
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
-    ensureParsed(module)
+    if (module.getBindingsMap() == null) {
+      ensureParsed(module)
+    }
     if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
       // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
@@ -522,11 +525,8 @@ class Compiler(
             .map { concreteBindings =>
               concreteBindings
             }
-          val ir = context.getIr(module)
-          val currentLocal = ir.unsafeGetMetadata(
-            BindingAnalysis,
-            "Synthetic parsed module missing bindings"
-          )
+          ensureParsed(module)
+          val currentLocal = module.getBindingsMap()
           currentLocal.resolvedImports =
             converted.map(_.resolvedImports).getOrElse(Nil)
           currentLocal.resolvedExports =
