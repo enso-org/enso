@@ -4,7 +4,12 @@ import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import com.oracle.truffle.api.frame.VirtualFrame
 import org.enso.interpreter.instrument._
-import org.enso.interpreter.instrument.execution.{Completion, ErrorResolver, LocationResolver, RuntimeContext}
+import org.enso.interpreter.instrument.execution.{
+  Completion,
+  ErrorResolver,
+  LocationResolver,
+  RuntimeContext
+}
 import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
@@ -12,8 +17,17 @@ import org.enso.interpreter.node.{EnsoRootNode, ExpressionNode}
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel, WarningsLibrary, WithWarnings}
-import org.enso.interpreter.service.ExecutionService.{ExpressionCall, ExpressionValue, FunctionPointer}
+import org.enso.interpreter.runtime.error.{
+  DataflowError,
+  PanicSentinel,
+  WarningsLibrary,
+  WithWarnings
+}
+import org.enso.interpreter.service.ExecutionService.{
+  ExpressionCall,
+  ExpressionValue,
+  FunctionPointer
+}
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
@@ -468,9 +482,9 @@ object ProgramExecutionSupport {
                 expressionNode.getRootNode.asInstanceOf[EnsoRootNode]
               val evaluatedExpression = ctx.executionService.evaluateExpression(
                 ensoRootNode.getModuleScope.getModule,
-                expression,
                 ensoRootNode.getLocalScope,
-                virtualFrame
+                virtualFrame,
+                expression
               )
               val result =
                 ctx.executionService.callFunction(

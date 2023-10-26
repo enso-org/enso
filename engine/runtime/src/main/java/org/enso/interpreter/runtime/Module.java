@@ -5,7 +5,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -608,31 +608,42 @@ public final class Module implements EnsoObject {
     private static Object evalExpression(
         ModuleScope scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
         throws ArityException, UnsupportedTypeException {
-      String expr;
-      LocalScope localScope;
-      MaterializedFrame virtualFrame;
-      if (args.length == 1) {
-        expr = Types.extractArguments(args, String.class);
-        localScope = LocalScope.root();
-        virtualFrame = null;
-      } else {
-        expr = (String) args[0];
-        localScope = (LocalScope) args[1];
-        virtualFrame = (MaterializedFrame) args[2];
-      }
+      String expr = Types.extractArguments(args, String.class);
+
+      return doEval(context, callOptimiserNode, scope, LocalScope.root(), null, expr);
+    }
+
+    private static Object evalExpressionLocalScope(
+        ModuleScope scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
+        throws ArityException, UnsupportedTypeException {
+      String expr = Types.extractArgument(args, String.class, 0);
+      LocalScope localScope = Types.extractArgument(args, LocalScope.class, 1);
+      VirtualFrame virtualFrame = Types.extractArgument(args, VirtualFrame.class, 2);
+
+      return doEval(context, callOptimiserNode, scope, localScope, virtualFrame, expr);
+    }
+
+    private static Object doEval(
+        EnsoContext context,
+        CallOptimiserNode callOptimiserNode,
+        ModuleScope moduleScope,
+        LocalScope localScope,
+        VirtualFrame virtualFrame,
+        String expression) {
       Builtins builtins = context.getBuiltins();
       BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
-      CallerInfo callerInfo = new CallerInfo(virtualFrame, localScope, scope);
+      CallerInfo callerInfo = new CallerInfo(virtualFrame.materialize(), localScope, moduleScope);
+
       return callOptimiserNode.executeDispatch(
           null,
           eval.getFunction(),
           callerInfo,
           context.emptyState(),
-          new Object[] {builtins.debug(), Text.create(expr)},
+          new Object[] {builtins.debug(), Text.create(expression)},
           null);
     }
 
@@ -682,6 +693,9 @@ public final class Module implements EnsoObject {
         case MethodNames.Module.EVAL_EXPRESSION:
           scope = module.compileScope(context);
           return evalExpression(scope, arguments, context, callOptimiserNode);
+        case MethodNames.Module.EVAL_EXPRESSION_LOCAL_SCOPE:
+          scope = module.compileScope(context);
+          return evalExpressionLocalScope(scope, arguments, context, callOptimiserNode);
         default:
           throw UnknownIdentifierException.create(member);
       }
