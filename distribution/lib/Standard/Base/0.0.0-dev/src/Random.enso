@@ -264,7 +264,7 @@ type Random_Generator
 
     ## PRIVATE
     global_random_generator : Random_Generator
-    global_random_generator = Random_Generator.Value RandomInstanceHolder.SINGLETON
+    global_random_generator = RandomInstanceHolder.singleton Random_Generator.Value
 
     ## PRIVATE
     set_seed : Integer -> Nothing

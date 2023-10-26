@@ -1,6 +1,7 @@
 package org.enso.base.random;
 
 import java.util.Random;
+import java.util.function.Function;
 
 /**
  * Container for a `Random` object. Setting the seed requires recreating the `Random` object, so the
@@ -12,6 +13,8 @@ public class RandomInstanceHolder {
   public RandomInstanceHolder(long seed) {
     setSeed(seed);
   }
+
+  public static Object SINGLETON = null;
 
   private Random currentRandom = null;
 
@@ -26,5 +29,10 @@ public class RandomInstanceHolder {
     currentRandom = new Random(seed);
   }
 
-  public static final RandomInstanceHolder SINGLETON = new RandomInstanceHolder();
+  public static Object singleton(Function<Object,Object> factory) {
+    if (SINGLETON == null) {
+      SINGLETON = factory.apply(new RandomInstanceHolder());
+    }
+    return SINGLETON;
+  }
 }
