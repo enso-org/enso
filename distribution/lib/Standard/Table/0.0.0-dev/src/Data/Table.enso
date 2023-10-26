@@ -1482,7 +1482,7 @@ type Table
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column -> column
-            _ : Constant_Column -> self.make_constant_column column.value on_problems
+            _ : Constant_Column -> self.make_constant_column column.value
             _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 

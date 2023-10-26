@@ -199,7 +199,7 @@ spec setup =
             t.set (Column_Operation.Not (Column_Ref.Index 42)) . should_fail_with Index_Out_Of_Bounds
 
     Test.group "Unique derived column names" <|
-        Test.specify "Should disambiguate two derived columns that would otherwise have the same name" <|
+        Test.specify "Should disambiguate two derived columns that would otherwise have had the same name" <|
             t = table_builder [["X", [1, 2, 3]]]
             column_op = Column_Operation.Power 2 (Column_Ref.Name "X")
             t2 = t.set column_op . set column_op
