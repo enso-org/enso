@@ -2,7 +2,8 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -29,6 +30,8 @@ import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.test.Metadata
 import org.scalatest.Assertion
+
+import java.util.UUID
 
 class DataflowAnalysisTest extends CompilerTest {
 
@@ -61,7 +64,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @param id the identifier to use as the id
     * @return a static dependency on the node given by `id`
     */
-  def mkStaticDep(id: DependencyInfo.Identifier): DependencyInfo.Type = {
+  def mkStaticDep(id: UUID @Identifier): DependencyInfo.Type = {
     mkStaticDep(id, None)
   }
 
@@ -72,8 +75,8 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a static dependency on the node corresponding to `ir`, `extId`
     */
   def mkStaticDep(
-    id: DependencyInfo.Identifier,
-    extId: Option[IR.ExternalId]
+    id: UUID @Identifier,
+    extId: Option[UUID @ExternalID]
   ): DependencyInfo.Type = {
     DependencyInfo.Type.Static(id, extId)
   }
@@ -95,9 +98,12 @@ class DataflowAnalysisTest extends CompilerTest {
     */
   def mkDynamicDep(
     str: String,
-    extId: Option[IR.Identifier]
+    extId: Option[UUID @Identifier]
   ): DependencyInfo.Type = {
-    DependencyInfo.Type.Dynamic(str, extId)
+    DependencyInfo.Type.Dynamic(
+      str,
+      extId
+    )
   }
 
   /** Adds an extension method to run dataflow analysis on an [[Module]].
@@ -1513,7 +1519,9 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "return the set of external identifiers for invalidation" in {
-      metadata.dependents.getExternal(asStatic(aBindExpr)).get shouldEqual Set(
+      metadata.dependents
+        .getExternal(asStatic(aBindExpr))
+        .get shouldEqual Set(
         lambdaId,
         aBindId
       )

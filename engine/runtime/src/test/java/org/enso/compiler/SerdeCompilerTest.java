@@ -47,7 +47,7 @@ public class SerdeCompilerTest {
               ctx.getBindings(LanguageInfo.ID)
                   .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                   .asHostObject();
-      var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
+      var module = ensoContext.getModuleForFile(pkg.mainFile()).get().asCompilerModule();
       var compiler = ensoContext.getCompiler();
 
       ctx.enter();
@@ -82,7 +82,7 @@ public class SerdeCompilerTest {
               ctx.getBindings(LanguageInfo.ID)
                   .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                   .asHostObject();
-      var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
+      var module = ensoContext.getModuleForFile(pkg.mainFile()).get().asCompilerModule();
       var compiler = ensoContext.getCompiler();
 
       ctx.enter();

@@ -4,21 +4,24 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import org.enso.compiler.Cache;
 import org.enso.compiler.Compiler;
+import org.enso.compiler.ModuleCache;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.SerializationManager;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 
@@ -47,7 +50,7 @@ public interface CompilerContext {
 
   void notifySerializeModule(QualifiedName moduleName);
 
-  TopLevelScope getTopScope();
+  Module findTopScopeModule(String name);
 
   // threads
   boolean isCreateThreadAllowed();
@@ -112,5 +115,39 @@ public interface CompilerContext {
     void resetScope();
 
     void invalidateCache();
+  }
+
+  public abstract static class Module {
+    public abstract Source getSource() throws IOException;
+
+    public abstract String getPath();
+
+    public abstract Package<TruffleFile> getPackage();
+
+    public abstract boolean isSameAs(org.enso.interpreter.runtime.Module m);
+
+    public abstract org.enso.interpreter.runtime.scope.ModuleScope getScope();
+
+    public abstract QualifiedName getName();
+
+    public abstract Type findType(String name);
+
+    public abstract BindingsMap getBindingsMap();
+
+    public abstract TruffleFile getSourceFile();
+
+    public abstract List<QualifiedName> getDirectModulesRefs();
+
+    public abstract ModuleCache getCache();
+
+    public abstract CompilationStage getCompilationStage();
+
+    public abstract boolean isSynthetic();
+
+    public abstract boolean hasCrossModuleLinks();
+
+    public abstract org.enso.compiler.core.ir.Module getIr();
+
+    public abstract boolean isPrivate();
   }
 }

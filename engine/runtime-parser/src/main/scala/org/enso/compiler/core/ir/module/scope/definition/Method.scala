@@ -3,8 +3,11 @@ package module
 package scope
 package definition
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** A trait representing method definitions in Enso. */
 sealed trait Method extends Definition {
@@ -15,7 +18,9 @@ sealed trait Method extends Definition {
   override def setLocation(location: Option[IdentifiedLocation]): Method
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Method
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Method
 
   /** @inheritdoc */
   override def duplicate(
@@ -50,7 +55,7 @@ object Method {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -68,7 +73,7 @@ object Method {
       location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
       diagnostics: DiagnosticStorage        = diagnostics,
-      id: Identifier                        = id
+      id: UUID @Identifier                  = id
     ): Explicit = {
       val res = Explicit(
         methodReference,
@@ -117,7 +122,7 @@ object Method {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Explicit = {
       copy(
         methodReference = methodReference.mapExpressions(fn),
@@ -198,7 +203,7 @@ object Method {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
       with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -218,7 +223,7 @@ object Method {
       location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
       diagnostics: DiagnosticStorage        = diagnostics,
-      id: Identifier                        = id
+      id: UUID @Identifier                  = id
     ): Binding = {
       val res = Binding(
         methodReference,
@@ -276,7 +281,7 @@ object Method {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Binding = {
       copy(
         methodReference = methodReference.mapExpressions(fn),
@@ -337,7 +342,7 @@ object Method {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -359,7 +364,7 @@ object Method {
       location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
       diagnostics: DiagnosticStorage        = diagnostics,
-      id: Identifier                        = id
+      id: UUID @Identifier                  = id
     ): Conversion = {
       val res = Conversion(
         methodReference,
@@ -415,7 +420,7 @@ object Method {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Conversion = {
       copy(
         methodReference = methodReference.mapExpressions(fn),

@@ -1,20 +1,19 @@
 package org.enso.compiler.core.ir
 package expression
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{
-  indentLevel,
-  mkIndent,
-  randomId,
-  Identifier,
-  ToStringHelper
-}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.{indentLevel, mkIndent, randomId}
+
+import java.util.UUID
 
 /** The Enso case expression. */
 sealed trait Case extends Expression {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Case
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Case
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Case
@@ -48,7 +47,7 @@ object Case {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Case
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     def this(
       scrutinee: Expression,
@@ -78,7 +77,7 @@ object Case {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Expr = {
       val res =
         Expr(scrutinee, branches, isNested, location, passData, diagnostics)
@@ -121,7 +120,9 @@ object Case {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Expr = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Expr = {
       copy(
         scrutinee = fn(scrutinee),
         branches.map(_.mapExpressions(fn))
@@ -198,7 +199,7 @@ object Case {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Case
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     def this(
       pattern: Pattern,
@@ -227,7 +228,7 @@ object Case {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Branch = {
       val res = Branch(
         pattern,
@@ -274,7 +275,9 @@ object Case {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Branch = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Branch = {
       copy(pattern = pattern.mapExpressions(fn), expression = fn(expression))
     }
 
