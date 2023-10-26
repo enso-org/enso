@@ -4,13 +4,20 @@ import { computed, ref } from 'vue'
 
 import * as Y from 'yjs'
 
-import GraphNode from '@/components/GraphNode.vue'
+import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import { provideGraphSelection } from '@/providers/graphSelection'
+import type { Node } from '@/stores/graph'
+import { AstExtended } from '@/util/ast'
+import { useNavigator } from '@/util/navigator'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
-import type { ContentRange } from '../shared/yjsModel'
+import { reactive, watchEffect } from 'vue'
+import { IdMap, type ContentRange } from '../shared/yjsModel'
+import { createSetupComponent } from './histoire/utils'
 
 const doc = new Y.Doc()
-const text = doc.getText()
-const dummyPosition = Y.createRelativePositionFromTypeIndex(text, 0)
+const text = doc.getText('content')
+const yIdMap = doc.getMap<Uint8Array>('idMap')
 
 const nodeBinding = ref('binding')
 const nodeContent = ref('content')
@@ -29,24 +36,49 @@ function updateContent(updates: [range: ContentRange, content: string][]) {
   }
   nodeContent.value = content
 }
+const idMap = new IdMap(yIdMap, text)
+
+const rootSpan = computed(() => AstExtended.parse(nodeContent.value, idMap))
+
+const node = computed((): Node => {
+  return {
+    outerExprId: '' as any,
+    binding: nodeBinding.value,
+    position: position.value,
+    rootSpan: rootSpan.value,
+    vis: undefined,
+  }
+})
+
+const mockRects = reactive(new Map())
+
+watchEffect((onCleanup) => {
+  const id = node.value.rootSpan.astId
+  mockRects.set(id, Rect.Zero)
+  onCleanup(() => {
+    mockRects.delete(id)
+  })
+})
+
+const navigator = useNavigator(ref())
+const SetupStory = createSetupComponent((app) => {
+  const selection = provideGraphSelection._mock([navigator, mockRects], app)
+  watchEffect(() => {
+    if (selected.value) {
+      selection.selectAll()
+    } else {
+      selection.deselectAll()
+    }
+  })
+})
 </script>
 
 <template>
   <Story title="Node" group="graph" :layout="{ type: 'grid', width: 300 }" autoPropsDisabled>
+    <SetupStory />
     <div style="height: 72px; padding: 20px; padding-left: 50px">
       <GraphNode
-        :node="{
-          outerExprId: '' as any,
-          binding: nodeBinding,
-          content: nodeContent,
-          position,
-          rootSpan: { id: '' as any, kind: 0, length: nodeContent.length, children: [] },
-          docRange: [dummyPosition, dummyPosition],
-          vis: undefined,
-        }"
-        :selected="selected"
-        :isLatestSelected="isLatestSelected"
-        :fullscreenVis="fullscreenVis"
+        :node="node"
         @movePosition="
           (nodeX += $event.x),
             (nodeY += $event.y),

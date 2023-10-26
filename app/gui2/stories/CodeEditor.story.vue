@@ -26,7 +26,10 @@ collect_benches = Bench.build builder->
 
             cell.get . should_equal range_size
 
-main = collect_benches . run_main`)
+main =
+    benches = collect_benches
+    result = run_main benches
+`)
 </script>
 
 <template>

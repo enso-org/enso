@@ -1,37 +1,10 @@
 <script setup lang="ts">
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
+import { Vec2 } from '@/util/vec2'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { ref } from 'vue'
 
-import { onMounted } from 'vue'
-import GeoMapVisualization from '../public/visualizations/GeoMapVisualization.vue'
-
-const DEPENDENCIES = [
-  'https://api.tiles.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js',
-  'https://cdn.jsdelivr.net/npm/deck.gl@8.9.27/dist.min.js',
-]
-
-const ready = ref(false)
-
-onMounted(async () => {
-  await Promise.allSettled(
-    DEPENDENCIES.map(
-      (scriptUrl) =>
-        new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script')
-          script.src = scriptUrl
-          script.addEventListener('load', () => {
-            resolve()
-            script.remove()
-          })
-          script.addEventListener('error', () => {
-            reject()
-            script.remove()
-          })
-          document.body.appendChild(script)
-        }),
-    ),
-  )
-  ready.value = true
-})
+const isCircularMenuVisible = ref(false)
 
 const data = ref<any>({
   latitude: 37.8,
@@ -54,6 +27,12 @@ const data = ref<any>({
     },
   ],
 })
+
+const nodeSize = ref(new Vec2(400, 32))
+const currentType: VisualizationIdentifier = {
+  module: { kind: 'Builtin' },
+  name: 'Geo Map',
+}
 </script>
 
 <template>
@@ -63,11 +42,15 @@ const data = ref<any>({
     :layout="{ type: 'grid', width: 400 }"
     autoPropsDisabled
   >
-    <div style="height: 250px">
-      <GeoMapVisualization v-if="ready" :data="data" />
-    </div>
+    <GraphVisualization
+      :currentType="currentType"
+      :data="data"
+      :nodeSize="nodeSize"
+      :isCircularMenuVisible="isCircularMenuVisible"
+    />
 
     <template #controls>
+      <HstCheckbox v-model="isCircularMenuVisible" title="circular menu visible" />
       <HstJson v-model="data" title="data" />
     </template>
   </Story>

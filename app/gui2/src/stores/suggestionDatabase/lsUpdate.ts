@@ -10,7 +10,7 @@ import {
   type SuggestionEntryScope,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import { assert } from '@/util/assert'
+import { assert, assertNever } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
 import type { Icon } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
@@ -204,6 +204,8 @@ export function entryFromLs(
             ...entry,
           })
         }
+        default:
+          assertNever(lsEntry)
       }
     },
   )
