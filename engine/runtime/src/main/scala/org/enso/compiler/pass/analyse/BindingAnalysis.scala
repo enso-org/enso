@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition

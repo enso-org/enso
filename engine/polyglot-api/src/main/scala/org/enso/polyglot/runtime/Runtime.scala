@@ -799,7 +799,7 @@ object Runtime {
         * @param reexport the reexport field to update
         */
       case class Modify(
-        externalId: Option[Option[Suggestion.ExternalId]] = None,
+        externalId: Option[Option[Suggestion.ExternalID]] = None,
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,

@@ -1,8 +1,8 @@
 package org.enso.compiler.test
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.EnsoParser
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{EnsoParser, IR, Identifier}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
@@ -18,6 +18,8 @@ import org.enso.interpreter.runtime.ModuleTestUtils
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.CompilationStage
+
+import java.util.UUID
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
@@ -133,7 +135,7 @@ trait CompilerRunner {
     *
     * @return a random identifier
     */
-  def genId: IR.Identifier = IR.randomId
+  def genId: UUID @Identifier = IR.randomId
 
   // === IR Testing Utils =====================================================
 

@@ -1,7 +1,8 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.{CompilerError, ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.{
@@ -26,12 +27,11 @@ import org.enso.compiler.core.ir.{
   Pattern,
   Type
 }
-import org.enso.compiler.core.IR.ExternalId
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 
+import java.util.UUID
 import scala.collection.immutable.ListSet
 import scala.collection.mutable
 
@@ -820,7 +820,7 @@ case object DataflowAnalysis extends IRPass {
       */
     def getExternalDirect(
       key: DependencyInfo.Type
-    ): Option[Set[IR.ExternalId]] = {
+    ): Option[Set[UUID @ExternalID]] = {
       getDirect(key).map(_.flatMap(_.externalId))
     }
 
@@ -884,7 +884,7 @@ case object DataflowAnalysis extends IRPass {
       * @return the set of all external identifiers of program components
       *         associated with `key`, if it exists
       */
-    def getExternal(key: DependencyInfo.Type): Option[Set[IR.ExternalId]] = {
+    def getExternal(key: DependencyInfo.Type): Option[Set[UUID @ExternalID]] = {
       get(key).map(_.flatMap(_.externalId))
     }
 
@@ -992,15 +992,12 @@ case object DataflowAnalysis extends IRPass {
   }
   object DependencyInfo {
 
-    /** The type of identifiers in this analysis. */
-    type Identifier = IR.Identifier
-
     /** The type of symbols in this analysis. */
     type Symbol = String
 
     /** The type of identification for a program component. */
     sealed trait Type {
-      val externalId: Option[IR.ExternalId]
+      val externalId: Option[UUID @ExternalID]
     }
     object Type {
 
@@ -1011,8 +1008,8 @@ case object DataflowAnalysis extends IRPass {
         *                   component
         */
       sealed case class Static(
-        id: DependencyInfo.Identifier,
-        override val externalId: Option[ExternalId]
+        id: UUID @Identifier,
+        override val externalId: Option[UUID @ExternalID]
       ) extends Type
 
       /** Program components identified by their symbol.
@@ -1023,7 +1020,7 @@ case object DataflowAnalysis extends IRPass {
         */
       sealed case class Dynamic(
         name: DependencyInfo.Symbol,
-        override val externalId: Option[ExternalId]
+        override val externalId: Option[UUID @ExternalID]
       ) extends Type
 
       // === Utility Functions ================================================

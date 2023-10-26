@@ -1,8 +1,11 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
+
+import java.util.UUID
 
 /** A representation of a top-level Enso module.
   *
@@ -18,19 +21,19 @@ import org.enso.compiler.core.ir.module.scope.{Definition, Export, Import}
   * @param diagnostics compiler diagnostics for this node
   */
 @SerialVersionUID(
-  7833L // instrumentor
+  8145L // Scala to Java
 )       // prevents reading broken caches, see PR-3692 for details
 sealed case class Module(
   imports: List[Import],
   exports: List[Export],
   bindings: List[Definition],
   isPrivate: Boolean,
-  override val location: Option[IdentifiedLocation],
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  location: Option[IdentifiedLocation],
+  passData: MetadataStorage      = MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends IR
     with IRKind.Primitive {
-  override protected var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -50,7 +53,7 @@ sealed case class Module(
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
     diagnostics: DiagnosticStorage       = diagnostics,
-    id: Identifier                       = id
+    id: UUID @Identifier                 = id
   ): Module = {
     val res =
       Module(
@@ -102,7 +105,9 @@ sealed case class Module(
     copy(location = location)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Module = {
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Module = {
     copy(
       imports  = imports.map(_.mapExpressions(fn)),
       exports  = exports.map(_.mapExpressions(fn)),

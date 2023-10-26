@@ -1,6 +1,7 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
 import org.enso.compiler.context.CompilerContext.Module

@@ -1,14 +1,19 @@
 package org.enso.compiler.core.ir
 package expression
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper};
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID;
 
 /** Operator applications in Enso. */
 trait Operator extends Application {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Operator
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Operator
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Operator
@@ -42,7 +47,7 @@ object Operator {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Operator
       with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -62,7 +67,7 @@ object Operator {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Binary = {
       val res =
         Binary(left, operator, right, location, passData, diagnostics)
@@ -108,7 +113,9 @@ object Operator {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Binary = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Binary = {
       copy(left = left.mapExpressions(fn), right = right.mapExpressions(fn))
     }
 

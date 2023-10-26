@@ -10,6 +10,7 @@ import org.enso.compiler.context.{
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   Diagnostic,
   Expression,

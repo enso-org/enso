@@ -3,6 +3,7 @@ package org.enso.compiler.data
 import org.enso.compiler.{PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.context.CompilerContext.Module
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
@@ -22,7 +23,7 @@ import scala.annotation.unused
   */
 
 @SerialVersionUID(
-  7833L // instrumentor
+  8145L // Scala to Java
 )
 case class BindingsMap(
   definedEntities: List[DefinedEntity],

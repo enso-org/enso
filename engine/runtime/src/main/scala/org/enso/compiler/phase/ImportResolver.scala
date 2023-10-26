@@ -2,7 +2,7 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.core.IR.AsMetadata
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.errors
