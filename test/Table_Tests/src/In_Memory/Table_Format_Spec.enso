@@ -212,9 +212,9 @@ spec =
     Test.group "Locales" <|
         Test.specify "Date with locale" <|
             input = Table.new [Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]]
-            expected_default = Table.new[Column.from_vector "values" ["21. June 2020", "25. April 2023"]]
-            expected_gb = Table.new[Column.from_vector "values" ["21. June 2020", "25. April 2023"]]
-            expected_fr = Table.new[Column.from_vector "values" ["21. juin 2020", "25. avril 2023"]]
+            expected_default = Table.new [Column.from_vector "values" ["21. June 2020", "25. April 2023"]]
+            expected_gb = Table.new [Column.from_vector "values" ["21. June 2020", "25. April 2023"]]
+            expected_fr = Table.new [Column.from_vector "values" ["21. juin 2020", "25. avril 2023"]]
             input.format ["values"] "d. MMMM yyyy" . should_equal expected_default
             input.format ["values"] (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal expected_default
             input.format ["values"] (Date_Time_Formatter.from "d. MMMM yyyy" Locale.uk) . should_equal expected_gb
