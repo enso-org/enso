@@ -2,10 +2,7 @@ package org.enso.logger;
 
 import static java.util.logging.Level.*;
 
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import java.util.logging.SimpleFormatter;
+import java.util.logging.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +27,9 @@ public final class JulHandler extends Handler {
 
   @Override
   public void publish(LogRecord record) {
+    if (!isLoggable(record)) {
+      return;
+    }
     Logger logger = LoggerFactory.getLogger(record.getLoggerName());
     java.util.logging.Level julLevel = record.getLevel();
     String msg;
@@ -63,6 +63,15 @@ public final class JulHandler extends Handler {
       if (hasThrowable) logger.trace(msg, record.getThrown());
       else logger.trace(msg, record.getParameters());
     }
+  }
+
+  @Override
+  public boolean isLoggable(LogRecord record) {
+    final Filter filter = getFilter();
+    if (filter == null) {
+      return true;
+    }
+    return filter.isLoggable(record);
   }
 
   @Override

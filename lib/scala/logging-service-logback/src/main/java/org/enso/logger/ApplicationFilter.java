@@ -12,9 +12,11 @@ import org.enso.logger.config.LoggersLevels;
  */
 public class ApplicationFilter extends Filter<ILoggingEvent> {
   private final LoggersLevels loggers;
+  private final Level level;
 
-  private ApplicationFilter(LoggersLevels loggers) {
+  private ApplicationFilter(LoggersLevels loggers, Level level) {
     this.loggers = loggers;
+    this.level = level;
   }
 
   @Override
@@ -23,16 +25,23 @@ public class ApplicationFilter extends Filter<ILoggingEvent> {
       if (event.getLoggerName().startsWith(entry.getKey())) {
         Level loggerLevel = Level.convertAnSLF4JLevel(entry.getValue());
         if (event.getLevel().isGreaterOrEqual(loggerLevel)) {
+
           return FilterReply.NEUTRAL;
         } else {
           return FilterReply.DENY;
         }
       }
     }
-    return FilterReply.NEUTRAL;
+
+    if (event.getLevel().isGreaterOrEqual(level)) {
+      return FilterReply.NEUTRAL;
+    } else {
+      return FilterReply.DENY;
+    }
   }
 
-  public static Filter<ILoggingEvent> fromLoggers(LoggersLevels loggers) {
-    return new ApplicationFilter(loggers);
+  public static Filter<ILoggingEvent> fromLoggers(
+      LoggersLevels loggers, org.slf4j.event.Level level) {
+    return new ApplicationFilter(loggers, Level.convertAnSLF4JLevel(level));
   }
 }

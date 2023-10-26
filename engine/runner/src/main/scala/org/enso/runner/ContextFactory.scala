@@ -1,7 +1,11 @@
 package org.enso.runner
 
-import org.enso.logger.Converter
-import org.enso.logger.JulHandler
+import org.enso.logger.{
+  Converter,
+  JulApplicationFilter,
+  JulHandler,
+  LoggerSetup
+}
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
@@ -59,7 +63,8 @@ class ContextFactory {
     if (javaHome == null) {
       throw new IllegalStateException("Specify JAVA_HOME environment property");
     }
-    val logLevelName = Converter.toJavaLevel(logLevel).getName
+    val julLogLevel  = Converter.toJavaLevel(logLevel)
+    val logLevelName = julLogLevel.getName
     val builder = Context
       .newBuilder()
       .allowExperimentalOptions(true)
@@ -95,11 +100,26 @@ class ContextFactory {
           new DebuggerSessionManagerEndpoint(repl, peer)
         } else null
       }
-      .option(
+
+    val logHandler = JulHandler.get()
+    val logLevels  = LoggerSetup.get().getConfig.getLoggers
+    if (logLevels.isEmpty) {
+      builder.option(
         RuntimeOptions.LOG_LEVEL,
         logLevelName
       )
-      .logHandler(JulHandler.get())
+    } else {
+      builder.option(
+        RuntimeOptions.LOG_LEVEL,
+        java.util.logging.Level.ALL.getName
+      )
+      val filter = new JulApplicationFilter(
+        new LogLevelFilter(logLevels, julLogLevel)
+      )
+      logHandler.setFilter(filter)
+    }
+    builder
+      .logHandler(logHandler)
     val graalpy = new File(
       new File(
         new File(new File(new File(projectRoot), "polyglot"), "python"),
