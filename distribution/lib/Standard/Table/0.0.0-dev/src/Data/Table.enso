@@ -1477,7 +1477,6 @@ type Table
     set self column:(Text | Column | Constant_Column | Column_Operation) new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
-
         unique.mark_used self.column_names
 
         resolved = case column of
