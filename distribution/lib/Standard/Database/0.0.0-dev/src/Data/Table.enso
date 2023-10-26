@@ -852,8 +852,14 @@ type Table
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Date_Range` for `set` in the database.")
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
+        should_make_unique = case column of
+            _ : Text -> True
+            _ : Constant_Column -> True
+            _ : Column_Operation -> True
+            _ -> False
+
         new_column_name = if new_name == "" then resolved.name else new_name
-        new_column_name_unique = unique.make_unique new_column_name
+        new_column_name_unique = if should_make_unique then unique.make_unique new_column_name else new_column_name
         renamed = resolved.rename new_column_name_unique
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
