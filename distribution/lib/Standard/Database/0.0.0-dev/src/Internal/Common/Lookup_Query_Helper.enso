@@ -206,7 +206,7 @@ precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx 
    Creates an expression that can be baked into the query (preferably in such
    a way that it will not get removed after query transformations), that will
    fail if the 'key uniqueness' invariant and the 'all rows matching'
-   (if `allow_unmatched_rows=False`) are not violated when the query is being
+   (if `allow_unmatched_rows=False`) are violated when the query is being
    materialized.
 
    This is needed, because the initial checks are run when the query is built,
