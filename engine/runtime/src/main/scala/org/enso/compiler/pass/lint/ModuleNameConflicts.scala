@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsDiagnostics
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.module.scope.Definition

@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{

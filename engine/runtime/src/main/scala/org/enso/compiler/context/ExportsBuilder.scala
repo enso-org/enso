@@ -1,5 +1,6 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis

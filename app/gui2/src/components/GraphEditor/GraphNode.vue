@@ -41,6 +41,9 @@ const emit = defineEmits<{
   setVisualizationId: [id: Opt<VisualizationIdentifier>]
   setVisualizationVisible: [visible: boolean]
   delete: []
+  replaceSelection: []
+  'update:selected': [selected: boolean]
+  outputPortAction: []
 }>()
 
 const visualizationStore = useVisualizationStore()
@@ -433,6 +436,10 @@ const color = computed(() =>
     ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
     : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
 )
+
+function hoverExpr(id: ExprId | undefined) {
+  if (nodeSelection != null) nodeSelection.hoveredExpr = id
+}
 </script>
 
 <template>
@@ -482,16 +489,78 @@ const color = computed(() =>
           :ast="node.rootSpan"
           :nodeSpanStart="node.rootSpan.span()[0]"
           @updateExprRect="updateExprRect"
+          @updateHoveredExpr="hoverExpr($event)"
       /></span>
+    </div>
+    <div key="outputPort" class="outputPort" @pointerdown="emit('outputPortAction')">
+      <svg viewBox="-22 -35 22 38" xmlns="http://www.w3.org/2000/svg" class="outputPortCap">
+        <path d="M 0 0 a 19 19 0 0 1 -19 -19" class="outputPortCapLine" />
+        <rect height="6" width="6" x="0" y="-3" class="outputPortCapButt" />
+      </svg>
+      <svg
+        viewBox="0 -35 1 38"
+        preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg"
+        class="outputPortBar"
+      >
+        <path d="M 0 0 h 1" class="outputPortBarLine" />
+      </svg>
+      <svg viewBox="0 -35 22 38" xmlns="http://www.w3.org/2000/svg" class="outputPortCap">
+        <path d="M 0 0 a 19 19 0 0 0 19 -19" class="outputPortCapLine" />
+        <rect height="6" width="6" x="-6" y="-3" class="outputPortCapButt" />
+      </svg>
+      />
     </div>
     <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>
 </template>
 
 <style scoped>
+.outputPort {
+  width: 100%;
+  margin: 0;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  display: flex;
+  opacity: 0;
+}
+.outputPort:hover {
+  opacity: 1;
+}
+.outputPortCap {
+  flex: none;
+  height: 38px;
+  width: 22px;
+}
+.outputPortCapLine {
+  fill: none;
+  stroke: var(--node-group-color);
+  opacity: 30%;
+  stroke-width: 6px;
+  stroke-linecap: round;
+}
+.outputPortCapButt {
+  fill: var(--node-group-color);
+  opacity: 30%;
+}
+.outputPortBar {
+  height: 38px;
+  width: 100%;
+}
+.outputPortBarLine {
+  fill: none;
+  stroke: var(--node-group-color);
+  opacity: 30%;
+  /* 6px + extra width to prevent antialiasing issues:
+     The 1px on the top will draw mostly under the node, but will ensure the line meets the node.
+     (The 1px on the bottom will be clipped.) */
+  stroke-width: 8px;
+}
 .GraphNode {
   --node-height: 32px;
   --node-border-radius: calc(var(--node-height) * 0.5);
+  --output-port-padding: 6px;
 
   --node-group-color: #357ab9;
 
@@ -510,6 +579,9 @@ const color = computed(() =>
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
+
+  padding-left: var(--output-port-padding);
+  padding-right: var(--output-port-padding);
 }
 
 .node {
@@ -534,7 +606,7 @@ const color = computed(() =>
 }
 .GraphNode .selection {
   position: absolute;
-  inset: calc(0px - var(--selected-node-border-width));
+  inset: calc(0px - var(--selected-node-border-width) + var(--output-port-padding));
   --node-current-selection-width: 0px;
 
   &:before {
@@ -615,6 +687,7 @@ const color = computed(() =>
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
   pointer-events: none;
+  z-index: 10;
   color: var(--node-color-primary);
 }
 

@@ -1,11 +1,13 @@
 package org.enso.interpreter.instrument.execution
 
 import com.oracle.truffle.api.source.SourceSection
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.IdentifiedLocation
 import org.enso.interpreter.runtime.Module
 import org.enso.syntax.text.Location
 import org.enso.text.editing.{model, IndexedSource}
+
+import java.util.UUID
 
 /** Helper methods to convert between the `IR` and source locations, and
   * resolving the expression ids in the source text.
@@ -17,7 +19,10 @@ object LocationResolver {
     * @param internalId the internal node id
     * @param externalId the external node id
     */
-  case class ExpressionId(internalId: IR.Identifier, externalId: IR.ExternalId)
+  case class ExpressionId(
+    internalid: UUID @Identifier,
+    externalId: UUID @ExternalID
+  )
 
   /** Resolve expression id of the given source section.
     *

@@ -28,6 +28,10 @@ function moveNode(movedId: ExprId, delta: Vec2) {
     }
   })
 }
+
+function hoverNode(id: ExprId | undefined) {
+  if (selection != null) selection.hoveredNode = id
+}
 </script>
 
 <template>
@@ -38,9 +42,12 @@ function moveNode(movedId: ExprId, delta: Vec2) {
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
     @updateExprRect="graphStore.updateExprRect"
+    @pointerenter="hoverNode(id)"
+    @pointerleave="hoverNode(undefined)"
     @updateContent="updateNodeContent(id, $event)"
     @setVisualizationId="graphStore.setNodeVisualizationId(id, $event)"
     @setVisualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
     @movePosition="moveNode(id, $event)"
+    @outputPortAction="graphStore.createEdgeFromOutput(id)"
   />
 </template>

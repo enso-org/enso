@@ -8,7 +8,6 @@ import org.enso.compiler.context.{
   ModuleContext
 }
 import org.enso.compiler.data.CompilerConfig
-import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.CompilationStage
 import scala.util.Using
 
@@ -33,7 +32,7 @@ object BuiltinsIrBuilder {
     */
   def build(
     context: CompilerContext,
-    module: Module,
+    module: CompilerContext.Module,
     freshNameSupply: FreshNameSupply,
     passes: Passes
   ): Unit = {

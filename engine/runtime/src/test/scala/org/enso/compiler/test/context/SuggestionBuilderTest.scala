@@ -28,7 +28,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
         null,
         code.stripMargin.linesIterator.mkString("\n")
       )
-      langCtx.getCompiler.run(module)
+      langCtx.getCompiler.run(module.asCompilerModule())
       module.getIr
     }
 

@@ -396,6 +396,13 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     return this.desiredStack[this.desiredStack.length - 1]!
   }
 
+  setExecutionEnvironment(mode: ExecutionEnvironment) {
+    this.queue.pushTask(async (state) => {
+      await state.lsRpc.setExecutionEnvironment(this.id, mode)
+      return state
+    })
+  }
+
   destroy() {
     this.abortCtl.abort()
   }

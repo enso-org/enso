@@ -45,7 +45,10 @@ final class AnalyzeModuleInScopeJob(
         .log(Level.FINEST, s"Analyzing module in scope ${module.getName}")
       val moduleName = module.getName
       val newSuggestions =
-        SuggestionBuilder(module, ctx.executionService.getContext.getCompiler)
+        SuggestionBuilder(
+          module.asCompilerModule(),
+          ctx.executionService.getContext.getCompiler
+        )
           .build(moduleName, module.getIr)
           .filter(Suggestion.isGlobal)
       val prevExports = ModuleExports(moduleName.toString, Set())

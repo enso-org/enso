@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.definition
@@ -597,12 +598,13 @@ object UpsertVisualizationJob {
         module.getIr
           .getMetadata(DataflowAnalysis)
           .foreach { metadata =>
+            val externalId = expressionId
             module.getIr.preorder
-              .find(_.getExternalId.contains(expressionId))
+              .find(_.getExternalId.contains(externalId))
               .collect {
                 case name: Name.Literal =>
                   DataflowAnalysis.DependencyInfo.Type
-                    .Dynamic(name.name, Some(expressionId))
+                    .Dynamic(name.name, Some(externalId))
                 case ir =>
                   DataflowAnalysis.DependencyInfo.Type
                     .Static(ir.getId, ir.getExternalId)

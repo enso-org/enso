@@ -244,7 +244,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           scala.Option.apply(new PrintStream(outputRedirect))
       );
       var moduleContext = new ModuleContext(
-        module, redirectConfigWithStrictErrors,
+        module.asCompilerModule(), redirectConfigWithStrictErrors,
         scala.Option.empty(),
         scala.Option.empty(),
         false,
