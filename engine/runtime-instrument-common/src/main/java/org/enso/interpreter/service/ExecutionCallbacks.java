@@ -1,6 +1,7 @@
 package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.HashMap;
 import java.util.Map;
@@ -88,8 +89,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @CompilerDirectives.TruffleBoundary
   public final void updateCachedResult(
-      Object node, Object result, boolean isPanic, long nanoTimeElapsed) {
+      Object virtualFrame, Object node, Object result, boolean isPanic, long nanoTimeElapsed) {
     ExpressionNode expressionNode = (ExpressionNode) node;
+    VirtualFrame frame = (VirtualFrame) virtualFrame;
     UUID nodeId = expressionNode.getId();
     String resultType = typeOf(result);
     String cachedType = cache.getType(nodeId);
@@ -107,7 +109,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             cachedCall,
             profilingInfo,
             false,
-            expressionNode);
+            expressionNode,
+            frame);
     syncState.setExpressionUnsync(nodeId);
     syncState.setVisualizationUnsync(nodeId);
 

@@ -75,7 +75,7 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   }
 
   @Override
-  public void updateCachedResult(Object node, Object result, boolean isPanic, long nanoElapsedTime) {
+  public void updateCachedResult(Object virtualFrame, Object node, Object result, boolean isPanic, long nanoElapsedTime) {
     try {
       if (onReturn != null) {
         UUID nodeId = ((ExpressionNode) node).getId();

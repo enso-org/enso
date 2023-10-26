@@ -870,7 +870,7 @@ class Compiler(
     source: Source,
     inlineContext: InlineContext
   ): Unit =
-    if (config.isStrictErrors) {
+    if (inlineContext.compilerConfig.isStrictErrors) {
       val errors = GatherDiagnostics
         .runExpression(ir, inlineContext)
         .unsafeGetMetadata(

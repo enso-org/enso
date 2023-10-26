@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 
@@ -259,6 +260,15 @@ public final class ExecutionService {
     Object p = context.getThreadManager().enter();
     try {
       return invoke.getCallTarget().call(module, expression);
+    } finally {
+      context.getThreadManager().leave(p);
+    }
+  }
+
+  public Object evaluateExpression(Module module, String expression, LocalScope localScope, VirtualFrame virtualFrame) {
+    Object p = context.getThreadManager().enter();
+    try {
+      return invoke.getCallTarget().call(module, expression, localScope, virtualFrame);
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -523,10 +533,17 @@ public final class ExecutionService {
 
     @Override
     public Object execute(VirtualFrame frame) {
-      var module = frame.getArguments()[0];
-      var expression = frame.getArguments()[1];
+      Object[] arguments = frame.getArguments();
+      Object module = arguments[0];
+      Object expression = arguments[1];
       try {
-        return iop.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
+        if (arguments.length > 2) {
+          Object localScope = arguments[2];
+          Object virtualFrame = arguments[3];
+          return iop.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression, localScope, virtualFrame);
+        } else {
+          return iop.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
+        }
       } catch (UnknownIdentifierException | UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
@@ -571,6 +588,7 @@ public final class ExecutionService {
     private final ProfilingInfo[] profilingInfo;
     private final boolean wasCached;
     private final ExpressionNode expressionNode;
+    private final VirtualFrame virtualFrame;
 
     /**
      * Creates a new instance of this class.
@@ -602,6 +620,7 @@ public final class ExecutionService {
       this.profilingInfo = profilingInfo;
       this.wasCached = wasCached;
       this.expressionNode = null;
+      this.virtualFrame = null;
     }
 
     public ExpressionValue(
@@ -613,7 +632,8 @@ public final class ExecutionService {
         FunctionCallInfo cachedCallInfo,
         ProfilingInfo[] profilingInfo,
         boolean wasCached,
-        ExpressionNode expressionNode) {
+        ExpressionNode expressionNode,
+        VirtualFrame virtualFrame) {
       this.expressionId = expressionId;
       this.value = value;
       this.type = type;
@@ -623,6 +643,7 @@ public final class ExecutionService {
       this.profilingInfo = profilingInfo;
       this.wasCached = wasCached;
       this.expressionNode = expressionNode;
+      this.virtualFrame = virtualFrame;
     }
 
     @Override
@@ -702,6 +723,10 @@ public final class ExecutionService {
 
     public ExpressionNode getExpressionNode() {
       return expressionNode;
+    }
+
+    public VirtualFrame getVirtualFrame() {
+      return virtualFrame;
     }
   }
 

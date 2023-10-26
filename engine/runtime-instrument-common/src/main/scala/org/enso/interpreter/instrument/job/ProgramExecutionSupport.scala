@@ -2,33 +2,18 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
-import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.data.CompilerConfig
-import org.enso.interpreter.service.ExecutionService.{
-  ExpressionCall,
-  ExpressionValue,
-  FunctionPointer
-}
-import org.enso.interpreter.instrument.execution.{
-  Completion,
-  ErrorResolver,
-  LocationResolver,
-  RuntimeContext
-}
-import org.enso.interpreter.instrument.profiling.ExecutionTime
+import com.oracle.truffle.api.frame.VirtualFrame
 import org.enso.interpreter.instrument._
-import org.enso.interpreter.node.{ClosureRootNode, EnsoRootNode, ExpressionNode}
+import org.enso.interpreter.instrument.execution.{Completion, ErrorResolver, LocationResolver, RuntimeContext}
+import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
+import org.enso.interpreter.node.{EnsoRootNode, ExpressionNode}
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.error.{
-  DataflowError,
-  PanicSentinel,
-  WarningsLibrary,
-  WithWarnings
-}
+import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel, WarningsLibrary, WithWarnings}
+import org.enso.interpreter.service.ExecutionService.{ExpressionCall, ExpressionValue, FunctionPointer}
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
@@ -439,7 +424,8 @@ object ProgramExecutionSupport {
           visualization,
           value.getExpressionId,
           value.getValue,
-          value.getExpressionNode
+          value.getExpressionNode,
+          value.getVirtualFrame
         )
       }
     }
@@ -459,7 +445,8 @@ object ProgramExecutionSupport {
     visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef,
-    expressionNode: ExpressionNode
+    expressionNode: ExpressionNode,
+    virtualFrame: VirtualFrame
   )(implicit ctx: RuntimeContext): Unit = {
     val errorOrVisualizationData =
       Either
@@ -479,40 +466,17 @@ object ProgramExecutionSupport {
             case Api.VisualizationExpression.Text(_, expression) =>
               val ensoRootNode =
                 expressionNode.getRootNode.asInstanceOf[EnsoRootNode]
-              val compiler = ctx.executionService.getContext.getCompiler
-              val compilerConfig = CompilerConfig(
-                autoParallelismEnabled = false,
-                warningsEnabled        = false,
-                isStrictErrors         = true
-              )
-              val moduleContext = ModuleContext(
+              val evaluatedExpression = ctx.executionService.evaluateExpression(
                 ensoRootNode.getModuleScope.getModule,
-                compilerConfig
+                expression,
+                ensoRootNode.getLocalScope,
+                virtualFrame
               )
-              val localScope =
-                ensoRootNode.getLocalScope
-              val inlineContext = InlineContext(
-                moduleContext,
-                compilerConfig,
-                Some(localScope),
-                Some(false)
-              )
-              val evaluatedExpression =
-                compiler.runInline(expression, inlineContext).get
-
-              val rootNode = ClosureRootNode.build(
-                ctx.executionService.getContext.getLanguage,
-                localScope,
-                ensoRootNode.getModuleScope,
-                evaluatedExpression,
-                null,
-                "<synthetic>",
-                false,
-                false
-              )
-              val fn = Function.thunk(rootNode.getCallTarget, null)
               val result =
-                ctx.executionService.callFunction(fn, expressionValue)
+                ctx.executionService.callFunction(
+                  evaluatedExpression,
+                  expressionValue
+                )
               result
             case _ =>
               ctx.executionService.callFunctionWithInstrument(

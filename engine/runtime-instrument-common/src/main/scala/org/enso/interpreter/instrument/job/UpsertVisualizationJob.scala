@@ -102,6 +102,7 @@ class UpsertVisualizationJob(
                 visualization,
                 expressionId,
                 value,
+                null,
                 null
               )
               None
@@ -335,11 +336,12 @@ object UpsertVisualizationJob {
     Either
       .catchNonFatal {
         expression match {
-          case Api.VisualizationExpression.Text(_, expression) =>
-            ctx.executionService.evaluateExpression(
-              expressionModule,
-              expression
-            )
+          case Api.VisualizationExpression.Text(_, _) =>
+//            val result = ctx.executionService.evaluateExpression(
+//              expressionModule,
+//              expression
+//            )
+            null
           case Api.VisualizationExpression.ModuleMethod(
                 Api.MethodPointer(_, definedOnType, name),
                 _

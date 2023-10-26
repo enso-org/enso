@@ -28,7 +28,7 @@ public interface IdExecutionService {
      * @param isPanic was the result a panic?
      * @param nanoElapsedTime how long it took to compute the result?
      */
-    void updateCachedResult(Object node, Object result, boolean isPanic, long nanoElapsedTime);
+    void updateCachedResult(Object virtualFrame, Object node, Object result, boolean isPanic, long nanoElapsedTime);
 
     /**
      * Notification when a returned value is a function.

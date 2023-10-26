@@ -134,11 +134,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
         Node node = context.getInstrumentedNode();
-        LocalScope localScope = null;
-
-        if (node.getRootNode() instanceof EnsoRootNode ensoRootNode) {
-          localScope = ensoRootNode.getLocalScope();
-        }
 
         if (node instanceof FunctionCallInstrumentationNode
             && result instanceof FunctionCallInstrumentationNode.FunctionCall functionCall) {
@@ -148,7 +143,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             throw context.createUnwind(cachedResult);
           }
         } else if (node instanceof ExpressionNode expressionNode) {
-          onExpressionReturn(result, expressionNode, context, nanoTimeElapsed);
+          onExpressionReturn(result, frame, expressionNode, context, nanoTimeElapsed);
         }
       }
 
@@ -164,11 +159,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
 
       private void onExpressionReturn(
-          Object result, ExpressionNode node, EventContext context, long howLong) {
+          Object result, VirtualFrame frame, ExpressionNode node, EventContext context, long elapsedTime) {
         boolean isPanic =
             result instanceof AbstractTruffleException && !(result instanceof DataflowError);
 
-        callbacks.updateCachedResult(node, result, isPanic, howLong);
+        callbacks.updateCachedResult(frame, node, result, isPanic, elapsedTime);
         if (isPanic) {
           throw context.createUnwind(result);
         }

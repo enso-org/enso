@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -607,14 +608,25 @@ public final class Module implements EnsoObject {
     private static Object evalExpression(
         ModuleScope scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
         throws ArityException, UnsupportedTypeException {
-      String expr = Types.extractArguments(args, String.class);
+      String expr;
+      LocalScope localScope;
+      MaterializedFrame virtualFrame;
+      if (args.length == 1) {
+        expr = Types.extractArguments(args, String.class);
+        localScope = LocalScope.root();
+        virtualFrame = null;
+      } else {
+        expr = (String) args[0];
+        localScope = (LocalScope) args[1];
+        virtualFrame = (MaterializedFrame) args[2];
+      }
       Builtins builtins = context.getBuiltins();
       BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
-      CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
+      CallerInfo callerInfo = new CallerInfo(virtualFrame, localScope, scope);
       return callOptimiserNode.executeDispatch(
           null,
           eval.getFunction(),
