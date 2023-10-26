@@ -439,7 +439,7 @@ type Append_Helper
 
     ## PRIVATE
     check_rows_unmatched_in_target self ~continuation =
-        # assert key_columns.not_empty
+        assert key_columns.not_empty
         unmatched_rows = self.new_source_rows
         count = unmatched_rows.row_count
         if count != 0 then Error.throw (Unmatched_Rows.Error count) else continuation
