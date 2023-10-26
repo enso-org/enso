@@ -113,7 +113,7 @@ class PolyglotTest extends InterpreterTest {
           |polyglot java import java.util.Random
           |
           |main =
-          |    random_gen = Random.new_generator
+          |    random_gen = Random.new
           |    case random_gen of
           |        Polyglot_Module -> IO.println "OK"
           |        _ -> IO.println "FAIL"
@@ -130,7 +130,7 @@ class PolyglotTest extends InterpreterTest {
           |polyglot java import java.util.Random
           |
           |main =
-          |    random_gen = Random.new_generator
+          |    random_gen = Random.new
           |    case random_gen of
           |        Polyglot -> IO.println "OK"
           |        _ -> IO.println "FAIL"
@@ -147,7 +147,7 @@ class PolyglotTest extends InterpreterTest {
           |polyglot java import java.util.Random
           |
           |main =
-          |    random_gen = Random.new_generator
+          |    random_gen = Random.new
           |    case random_gen of
           |        Polyglot -> IO.println "OK"
           |        _ -> IO.println "FAIL"
@@ -164,7 +164,7 @@ class PolyglotTest extends InterpreterTest {
           |polyglot java import java.util.Random
           |
           |main =
-          |    random_gen = Random.new_generator
+          |    random_gen = Random.new
           |    case random_gen of
           |        Polyglot.Polyglot -> IO.println "OK"
           |        _ -> IO.println "FAIL"
