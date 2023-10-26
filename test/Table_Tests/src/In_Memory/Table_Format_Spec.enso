@@ -105,6 +105,35 @@ spec =
             actual.at "times" . should_equal expected_times
             check_unchanged table actual ["bools", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
 
+    Test.group "Boolean" <|
+        Test.specify "Booleans, with format string" <|
+            expected_bools = Column.from_vector "bools" ["tt", "ff"]
+            actual = table.format ["bools"] "tt|ff"
+            actual.column_names . should_equal table.column_names
+            actual.at "bools" . should_equal expected_bools
+            check_unchanged table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
+
+        Test.specify "Booleans, with column" <|
+            expected_bools = Column.from_vector "bools" ["t", "F"]
+            actual = table.format ["bools"] (table.at "bool_formats")
+            actual.column_names . should_equal table.column_names
+            actual.at "bools" . should_equal expected_bools
+            check_unchanged table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
+
+        Test.specify "Booleans, with format empty format string" <|
+            expected_bools = Column.from_vector "bools" ["True", "False"]
+            actual = table.format ["bools"] ""
+            actual.column_names . should_equal table.column_names
+            actual.at "bools" . should_equal expected_bools
+            check_unchanged table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
+
+        Test.specify "Booleans, with format Nothing format" <|
+            expected_bools = Column.from_vector "bools" ["True", "False"]
+            actual = table.format ["bools"] Nothing
+            actual.column_names . should_equal table.column_names
+            actual.at "bools" . should_equal expected_bools
+            check_unchanged table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
+
     Test.group "Numeric" <|
         Test.specify "Ints and floats, with format string" <|
             expected_ints = Column.from_vector "ints" ["100,000,000.00", "2,222.00"]
@@ -141,35 +170,6 @@ spec =
             actual.at "ints" . should_equal expected_ints
             actual.at "floats" . should_equal expected_floats
             check_unchanged table actual ["dates", "datetimes", "times", "bools", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
-
-    Test.group "Boolean" <|
-        Test.specify "Booleans, with format string" <|
-            expected_bools = Column.from_vector "bools" ["tt", "ff"]
-            actual = table.format ["bools"] "tt|ff"
-            actual.column_names . should_equal table.column_names
-            actual.at "bools" . should_equal expected_bools
-            check_unchanged table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
-
-        Test.specify "Booleans, with column" <|
-            expected_bools = Column.from_vector "bools" ["t", "F"]
-            actual = table.format ["bools"] (table.at "bool_formats")
-            actual.column_names . should_equal table.column_names
-            actual.at "bools" . should_equal expected_bools
-            check_unchanged table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
-
-        Test.specify "Booleans, with format empty format string" <|
-            expected_bools = Column.from_vector "bools" ["True", "False"]
-            actual = table.format ["bools"] ""
-            actual.column_names . should_equal table.column_names
-            actual.at "bools" . should_equal expected_bools
-            check_unchanged table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
-
-        Test.specify "Booleans, with format Nothing format" <|
-            expected_bools = Column.from_vector "bools" ["True", "False"]
-            actual = table.format ["bools"] Nothing
-            actual.column_names . should_equal table.column_names
-            actual.at "bools" . should_equal expected_bools
-            check_unchanged table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
 
     Test.group "All types" <|
         Test.specify "Format all columns" <|
