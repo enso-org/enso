@@ -1986,8 +1986,11 @@ type Column
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    read : (Nothing | Integer) -> Column
-    read self max_rows=Nothing =
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    read : (Nothing | Integer) -> Boolean -> Column
+    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) =
+        # TODO warning
         if max_rows.is_nothing then self else self.slice 0 max_rows
 
     ## GROUP Standard.Base.Conversions

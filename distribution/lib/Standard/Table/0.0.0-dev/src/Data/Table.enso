@@ -2033,10 +2033,14 @@ type Table
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    read : (Integer | Nothing) -> Table
-    read self max_rows=Nothing = case max_rows of
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    read : (Integer | Nothing) -> Boolean -> Table
+    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) = case max_rows of
         Nothing -> self
-        _ : Integer -> self.take (First max_rows)
+        _ : Integer ->
+            # TODO warning
+            self.take (First max_rows)
 
     ## GROUP Standard.Base.Metadata
        Returns a Table describing this table's contents.

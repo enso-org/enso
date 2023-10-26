@@ -2140,9 +2140,11 @@ type Table
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
-    read : (Integer | Nothing) -> Materialized_Table
-    read self max_rows=Nothing =
-        preprocessed = self.limit max_rows
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    read : (Integer | Nothing) -> Boolean -> Materialized_Table
+    read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
+        preprocessed = if warn_if_more_rows then self.limit max_rows+1 else self.limit max_rows
         case preprocessed.internal_columns.is_empty of
             True ->
                 Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
