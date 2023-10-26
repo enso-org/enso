@@ -144,25 +144,17 @@ type Random
        Return a `Date` within the specified `Date_Range`.
 
        Arguments:
-       - date_range: The `Date_Range` that specifies the range to pick from.
+       - start_date: The lower bound of the range to pick from (inclusive).
+       - end_date: The upper bound of the range to pick from (exclusive).
 
        > Example
          Generate a random date.
 
              import Standard.Base.Random.Random
 
-             range = Date_Range.new (Date.new 2023 03 01) (Date.new 2023 10 15)
-             d = Random.date range
-
-       > Example
-         Generate a random date, with an inclusive end date.
-
-             import Standard.Base.Random.Random
-
-             range = my_first_day_of_vacation.up_to my_last_day_of_vacation include_end=True
-             d = Random.date range
-    date : Date_Range -> Date
-    date (date_range:Date_Range) = Random_Generator.global_random_generator.date date_range
+             d = Random.date (Date.new 2023 03 01) (Date.new 2023 10 15)
+    date : Date -> Date -> Date
+    date start_date:Date end_date:Date = Random_Generator.global_random_generator.date start_date end_date
 
     ## GROUP Random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
@@ -304,8 +296,10 @@ type Random_Generator
         Vector.from_polyglot_array array
 
     ## PRIVATE
-    date : Date_Range -> Date
-    date self (date_range:Date_Range) = date_range.at (self.integer 0 date_range.length)
+    date : Date -> Date -> Date
+    date self start_date:Date end_date:Date =
+        date_range = Date_Range.new start_date end_date
+        date_range.at (self.integer 0 date_range.length)
 
     ## PRIVATE
     time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
