@@ -61,7 +61,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Data.Take_Drop_Helpers import Take_Drop
-from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation
+from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation, SQL_Error
 
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
@@ -2148,7 +2148,8 @@ type Table
             False ->
                 sql = preprocessed.to_sql
                 column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
-                materialized_table = self.connection.read_statement sql column_type_suggestions
+                materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
+                    Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
 
                 expected_types = self.columns.map .value_type
                 actual_types = materialized_table.columns.map .value_type

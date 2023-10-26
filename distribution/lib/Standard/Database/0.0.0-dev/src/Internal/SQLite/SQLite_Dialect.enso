@@ -498,5 +498,5 @@ make_runtime_error_op arguments =
         Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 2 arguments (error message and a variable to ensure deferred execution).")
     error_message = arguments.at 0
     variable_to_defer = arguments.at 1
-    # TODO can we do something to ensure the error message is included in the raised error? Currently it is not, unfortunately.
+    # We have to ensure that the implementation of SQLite that we use does not have a MATCH function defined which would make the code below succeed.
     Builder.code "match('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] ', " ++ variable_to_defer ++ ")"

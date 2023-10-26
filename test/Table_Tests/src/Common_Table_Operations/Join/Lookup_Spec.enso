@@ -5,7 +5,7 @@ from Standard.Table import all
 from Standard.Table.Errors import all
 
 from Standard.Database import all
-from Standard.Database.Errors import Unsupported_Database_Operation, SQL_Error
+from Standard.Database.Errors import Unsupported_Database_Operation, Invariant_Violation
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -354,8 +354,9 @@ spec setup =
 
                 # Now, the query is no longer valid:
                 m2 = r1 |> materialize
-                # TODO maybe more specific exception
-                m2.should_fail_with SQL_Error
+                m2.should_fail_with Invariant_Violation
+                m2.catch.to_display_text . should_contain "database has been modified"
+                m2.catch.to_display_text . should_contain "re-run the workflow"
 
                 ## Now, even if we drop the lookup-related columns, we still should get an error
                    (otherwise we would risk duplicating records due to the non-uniqueness!)
@@ -370,8 +371,8 @@ spec setup =
                         r3.row_count . should_equal 3
                         r3.at "Z" . to_vector . length . should_equal 3
                         r3.at "Z" . to_vector . should_contain_the_same_elements_as [10, 20, 30]
-                m3.should_fail_with SQL_Error
-                r3.at "Z" . to_vector . should_fail_with SQL_Error
+                m3.should_fail_with Invariant_Violation
+                r3.at "Z" . to_vector . should_fail_with Invariant_Violation
 
             Test.with_clue "(no unmatched rows check - added a row in source) " <|
                 lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
@@ -393,8 +394,7 @@ spec setup =
 
                 # Now, the query is no longer valid:
                 m2 = r1 |> materialize
-                # TODO maybe more specific exception
-                m2.should_fail_with SQL_Error
+                m2.should_fail_with Invariant_Violation
 
             Test.with_clue "(no unmatched rows check - removed a row in lookup) " <|
                 lookup = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
@@ -416,8 +416,7 @@ spec setup =
 
                 # Now, the query is no longer valid:
                 m2 = r1 |> materialize
-                # TODO maybe more specific exception
-                m2.should_fail_with SQL_Error
+                m2.should_fail_with Invariant_Violation
 
         # This does not seem useful really, but there is no reason to disallow it, so we should ensure it does not crash.
         Test.specify "(edge-case) should allow lookup with itself" <|

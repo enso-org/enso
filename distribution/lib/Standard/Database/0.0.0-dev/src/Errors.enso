@@ -203,3 +203,31 @@ type Unsupported_Database_Encoding
        Pretty print the unsupported database encoding warning.
     to_display_text : Text
     to_display_text self = self.message
+
+## Indicates that the database has been modified between the time the query was
+   prepared and the time it was executed, breaking an expected invariant and
+   potentially causing data corruption.
+
+   The query needs to be rebuilt again.
+type Invariant_Violation
+    ## PRIVATE
+       Indicates that the database has been modified between the time the query
+       was prepared and the time it was executed, breaking an expected invariant
+       and potentially causing data corruption.
+
+       Arguments:
+       - message: A message describing the broken invariant, if available.
+         It may be set to `Nothing` if the backend cannot decode the invariant
+         message from the SQL error.
+       - original_cause: The original SQL error that this error has been
+         translated from.
+    Error (message:Text|Nothing) (original_cause:SQL_Error)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        prefix = "The database has been modified between the time the query was prepared and the time it was executed, breaking an expected invariant. This could cause the query to yield incorrect results - to prevent data corruption the query has failed. Please re-run the workflow to try again and possibly gather more detailed error diagnostics."
+        suffix = case self.message of
+            Nothing -> ""
+            _ -> " The broken invariant was: " + self.message
+        prefix + suffix
