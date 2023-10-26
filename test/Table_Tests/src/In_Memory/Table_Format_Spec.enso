@@ -26,7 +26,8 @@ spec =
     table = Table.new [column0, column1, column2, column3, column4, column5, column6, column7, column8, column9, column10]
 
     check_unchanged t0 t1 columns = columns.map c->
-        (t0.at c) . should_equal (t1.at c)
+        Test.with_clue c+": " <|
+            (t0.at c) . should_equal (t1.at c)
 
     Test.group "Dates" <|
         Test.specify "Date and Date_Time, with format string" <|
