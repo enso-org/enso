@@ -1530,8 +1530,7 @@ type Table
     evaluate_expression : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression on_problems=Report_Warning =
         get_column name = self.at name
-        make_constant x = self.make_constant_column x on_problems
-        new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
+        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
@@ -1540,18 +1539,10 @@ type Table
     ## PRIVATE
 
        Create a constant column from a value.
-    make_constant_column : Any -> Problem_Behavior -> Column
-    make_constant_column self value on_problems=Report_Warning =
+    make_constant_column : Any -> Column
+    make_constant_column self value =
         if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
-            problem_builder = Problem_Builder.new
-            unique = self.column_naming_helper.create_unique_name_strategy
-
-            unique.mark_used self.column_names
-            new_column_name = unique.make_unique ("Constant_" + value.to_text)
-            new_column = Column.from_vector_repeated new_column_name [value] self.row_count
-
-            problem_builder.report_unique_name_strategy unique
-            problem_builder.attach_problems_after on_problems new_column
+            Column.from_vector_repeated ("Constant_" + value.to_text) [value] self.row_count
 
     ## PRIVATE
        Create a unique temporary column name.

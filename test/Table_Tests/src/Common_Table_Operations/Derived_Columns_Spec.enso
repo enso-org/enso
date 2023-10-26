@@ -17,7 +17,6 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
-
     Test.group prefix+"Table.set with Column_Operation" <|
         Test.specify "arithmetics" <|
             t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
