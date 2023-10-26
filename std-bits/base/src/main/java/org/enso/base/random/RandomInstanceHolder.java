@@ -29,7 +29,7 @@ public class RandomInstanceHolder {
     currentRandom = new Random(seed);
   }
 
-  public static Object singleton(Function<Object,Object> factory) {
+  public static Object singleton(Function<Object, Object> factory) {
     if (SINGLETON == null) {
       SINGLETON = factory.apply(new RandomInstanceHolder());
     }
