@@ -88,7 +88,7 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.read max_rows=show_rows
+        df = self.read max_rows=show_rows warn_if_more_rows=False
         all_rows_count = self.row_count
         display_dataframe df indices_count=0 all_rows_count format_terminal
 
@@ -950,21 +950,23 @@ type Table
        - max_rows: The maximum amount of rows to return. It is mainly meant for
          the Database backend, to limit how many rows are downloaded. In the
          in-memory backend it is only kept for API compatibility.
-    rows : Integer -> Vector Row
-    rows self max_rows=1000 =
-        self.read max_rows=max_rows . rows
+       - warn_if_more_rows: if set to `True`, a warning is attached to the
+         result if the number of rows returned by the query exceeds `max_rows`.
+    rows : Integer | Nothing -> Boolean -> Vector Row
+    rows self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
+        self.read max_rows=max_rows warn_if_more_rows=warn_if_more_rows . rows
 
     ## GROUP Standard.Base.Selections
        Returns the first row of the table.
     first_row : Row ! Index_Out_Of_Bounds
     first_row self =
-        self.read max_rows=1 . rows . first
+        self.read max_rows=1 warn_if_more_rows=False . rows . first
 
     ## GROUP Standard.Base.Selections
        Returns the second row of the table.
     second_row : Row ! Index_Out_Of_Bounds
     second_row self =
-        self.read max_rows=2 . rows . second
+        self.read max_rows=2 warn_if_more_rows=False . rows . second
 
     ## GROUP Standard.Base.Selections
        Returns the last row of the table.
