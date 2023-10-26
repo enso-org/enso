@@ -12,6 +12,7 @@ import project.Math
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
+import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
@@ -52,7 +53,7 @@ type Index_Sub_Range
 
        If `count` is greater than the length of the input, a random permutation
        of all elements from the input is selected.
-    Sample (count:Integer) (seed:Integer=get_default_seed)
+    Sample (count:Integer) (seed:Integer|Nothing=Nothing)
 
     ## Gets every Nth entry.
 

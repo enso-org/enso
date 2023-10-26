@@ -38,10 +38,10 @@ type Random
 
              import Standard.Base.Random.Random
 
-             rng = Random.new_generator 42
+             rng = Random.oew_generator 42
              i = rng.integer 0 10
     new_generator : Integer -> Random_Generator
-    new_generator (seed:Integer=get_default_seed) = Random_Generator.new seed
+    new_generator (seed:Integer|Nothing=Nothing) = Random_Generator.new seed
 
     ## TEXT_ONLY
        GROUP Random
@@ -248,8 +248,10 @@ type Random
 type Random_Generator
     ## PRIVATE
        Create a new rng with the given seed.
-    new : Integer -> Random_Generator
-    new (seed:Integer) = Random_Generator.Value (RandomInstanceHolder.new seed)
+    new : Integer|Nothing -> Random_Generator
+    new (seed:Integer|Nothing) =
+        seed_resolved = seed.if_nothing get_default_seed
+        Random_Generator.Value (RandomInstanceHolder.new seed_resolved)
 
     ## PRIVATE
     Value (random_instance_holder:RandomInstanceHolder)
