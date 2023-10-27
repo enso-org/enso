@@ -1,10 +1,139 @@
 import * as Ast from '@/generated/ast'
 import { Token, Tree } from '@/generated/ast'
 import { assert, assertDefined, assertEqual, assertNotEqual } from '@/util/assert'
-import {childrenAstNodes, parseEnso, parseEnsoLine, readTokenSpan} from '@/util/ast'
-import { LazyObject, debug } from '@/util/parserSupport'
+import {
+  childrenAstNodes,
+  debugAst,
+  parseEnso,
+  parseEnsoLine,
+  parsedTreeOrTokenRange,
+  readAstOrTokenSpan,
+  readTokenSpan, astPrettyPrintType,
+} from '@/util/ast'
+import { LazyObject } from '@/util/parserSupport'
 
 import * as fss from 'node:fs/promises'
+import type { ContentRange } from '../../../shared/yjsModel.ts'
+
+type Primitive = string | number | boolean | bigint | symbol | null | undefined
+
+/**
+ * Map that supports Object-based keys.
+ *
+ * Internally keys are converted to strings using the provided {@link keyMapper} function and then compared.
+ *
+ * @template Key The type of the keys.
+ * @template Value The type of the values.
+ */
+export class ObjectKeyedMap<Key extends Object, Value> {
+  /** The inner map that stores the values. */
+  private readonly map = new Map<string, [Key, Value]>()
+
+  /** Construct a new map, optionally setting a custom key mapper.
+   *
+   * @param keyMapper The function that maps the keys to strings. By default, strings are generated using {@link JSON.stringify}.
+   *
+   */
+  constructor(private readonly keyMapper: (key: Key) => string = JSON.stringify) {}
+
+  /** Set the value for the given key. */
+  set(key: Key, value: Value): this {
+    const innerKey = this.keyMapper(key)
+    this.map.set(innerKey, [key, value])
+    return this
+  }
+
+  /** Get the value for the given key, or `undefined` if it does not exist. */
+  get(key: Key): Value | undefined {
+    const innerKey = this.keyMapper(key)
+    const entry = this.map.get(innerKey)
+    return entry ? entry[1] : undefined
+  }
+
+  /** Check if the map contains a value for the given key. */
+  has(key: Key): boolean {
+    const innerKey = this.keyMapper(key)
+    return this.map.has(innerKey)
+  }
+
+  /** Remove the value for the given key. */
+  delete(key: Key): boolean {
+    const innerKey = this.keyMapper(key)
+    return this.map.delete(innerKey)
+  }
+
+  /** Remove all values from the map. */
+  clear(): void {
+    this.map.clear()
+  }
+
+  /** Get the number of values in the map. */
+  get size(): number {
+    return this.map.size
+  }
+
+  /** Iterate over the values in the map. */
+  *[Symbol.iterator](): IterableIterator<[Key, Value]> {
+    for (const [_innerKey, [key, value]] of this.map.entries()) {
+      yield [key, value]
+    }
+  }
+}
+
+/**
+ * Set that supports Object-based keys.
+ *
+ * Internally keys are converted to strings using the provided {@link keyMapper} function and then compared.
+ *
+ * @template Key The type of the keys.
+ */
+export class ObjectKeyedSet<Key extends Object> {
+  /** The inner set that stores the keys. */
+  private readonly set = new Set<string>()
+
+  /** Construct a new set, optionally setting a custom key mapper.
+   *
+   * @param keyMapper The function that maps the keys to strings. By default, strings are generated using {@link JSON.stringify}.
+   *
+   */
+  constructor(private readonly keyMapper: (key: Key) => string = JSON.stringify) {}
+
+  /** Add the given key to the set. */
+  add(key: Key): this {
+    const innerKey = this.keyMapper(key)
+    this.set.add(innerKey)
+    return this
+  }
+
+  /** Check if the set contains the given key. */
+  has(key: Key): boolean {
+    const innerKey = this.keyMapper(key)
+    return this.set.has(innerKey)
+  }
+
+  /** Remove the given key from the set. */
+  delete(key: Key): boolean {
+    const innerKey = this.keyMapper(key)
+    return this.set.delete(innerKey)
+  }
+
+  /** Remove all keys from the set. */
+  clear(): void {
+    this.set.clear()
+  }
+
+  /** Get the number of keys in the set. */
+  get size(): number {
+    return this.set.size
+  }
+
+  /** Iterate over the keys in the set. */
+  *[Symbol.iterator](): IterableIterator<Key> {
+    for (const innerKey of this.set) {
+      yield JSON.parse(innerKey) as Key
+    }
+  }
+}
 
 /** Stack that always has at least one element.
  *
@@ -23,15 +152,17 @@ class NonEmptyStack<T> {
   }
 
   /** Temporary pushes the given value to the stack and calls the callback. */
-  withPushed<R>(value: T, callback: (value: T) => R): R {
+  withPushed<R>(value: T, callback: (value: T) => R): { value: T; result?: R } {
     this.stack.push(value)
+    let result = undefined
     try {
-      return callback(value)
+      result = callback(value)
     } finally {
       const popped = this.stack.pop()
       assertDefined(popped, 'Stack is empty.')
       assertEqual(popped, value, 'Stack is inconsistent.')
     }
+    return { value, result }
   }
 
   /** Get the top-most element of the stack. */
@@ -43,9 +174,10 @@ class NonEmptyStack<T> {
 
   /** Iterate over the stack values from the top to the bottom. */
   *valuesFromTop(): Iterable<T> {
-    for(let i = this.stack.length - 1; i >= 0; i--) {
+    for (let i = this.stack.length - 1; i >= 0; i--) {
       const value = this.stack[i]
-      if(value != null) {
+      // Be defensive against the stack mutation during the iteration.
+      if (value != null) {
         yield value
       }
     }
@@ -54,15 +186,25 @@ class NonEmptyStack<T> {
 
 class Scope {
   /** The variables defined in this scope. */
-  bindings: Map<string, Token> = new Map()
+  bindings: ObjectKeyedMap<string, Token> = new ObjectKeyedMap()
 
-  /** The variables used (referred to) in this scope. */
-  usages: Map<Token, Token[]> = new Map()
+  /** The children scopes. */
+  children: Scope[] = []
 
-  /**
-   * @param {Tree} [definition] - Optional Ast element that introduces the scope.
+  /** Construct a new scope for the given range. If the parent scope is provided, the new scope will be added to its
+   * children.
+   *
+   * @param range The range of the code that is covered by this scope.
+   * @param parent The parent scope. If not provided, the scope will be considered the root scope.
    */
-  constructor(public definition?: Tree) {}
+  constructor(
+    public range: ContentRange,
+    parent?: Scope,
+  ) {
+    if (parent != null) {
+      parent.children.push(this)
+    }
+  }
 }
 
 /** Context tells how the variables are to be treated. */
@@ -71,90 +213,92 @@ enum Context {
   Expression = 'Expression',
 }
 
-class AliasAnalyzer {
+export class AliasAnalyzer {
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
-  readonly unresolvedSymbols: Set<Token> = new Set()
+  readonly unresolvedSymbols: ObjectKeyedSet<ContentRange> = new ObjectKeyedSet()
+
+  /** The AST representation of the code. */
+  readonly ast: Tree
 
   /** The special "root" scope that contains the analyzed tree. */
-  readonly rootScope: Scope = new Scope()
+  readonly rootScope: Scope
 
   /** The stack of scopes, where the top-most scope is the current one. Must never be empty. */
-  readonly scopes: NonEmptyStack<Scope> = new NonEmptyStack(this.rootScope)
+  private readonly scopes: NonEmptyStack<Scope>
 
   /** The stack for keeping track whether we are in a pattern or expression context. */
-  readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
+  private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
+
+  readonly aliases: ObjectKeyedMap<ContentRange, ObjectKeyedSet<ContentRange>> = new ObjectKeyedMap()
 
   /**
-   * @param code text representation of the code being analyzed.
+   * @param code text representation of the code.
+   * @param ast AST representation of the code. If not provided, it will be parsed from the text.
    */
-  constructor(private readonly code: string) {}
+  constructor(
+    private readonly code: string,
+    ast?: Tree,
+  ) {
+    this.ast = ast ?? parseEnso(code)
+    this.rootScope = new Scope(parsedTreeOrTokenRange(this.ast))
+    this.scopes = new NonEmptyStack(this.rootScope)
+  }
 
   /** Invoke the given function in a new temporary scope. */
-  withNewScope<T>(f: (scope: Scope) => T): T {
-    const scope = new Scope()
-    return this.withScope(scope, f)
+  withNewScopeOver(node: Tree | Token, f: () => undefined) {
+    const range = parsedTreeOrTokenRange(node)
+    const scope = new Scope(range)
+    this.scopes.withPushed(scope, f)
   }
 
-  /** Invoke the given function with the given scope on top of the stack. */
-  withScope<T>(scope: Scope, f: (scope: Scope) => T): T {
-    return this.scopes.withPushed(scope, value => {
-      console.log('Entering a new scope')
-      try {
-        return f(value)
-      }
-      finally {
-        console.log('Leaving a scope')
-      }
-    })
+  /** Execute the given function while the given context is temporarily pushed to the stack. */
+  withContext(context: Context, f: () => void) {
+    return this.contexts.withPushed(context, f)
   }
 
-  withContext<T>(context: Context, f: () => T): T {
-    return this.contexts.withPushed(context, () => {
-      console.log(`Entering a new context: ${context}`)
-      try {
-          return f()
-      }
-      finally {
-          console.log(`Leaving a context: ${context}`)
-      }
-    })
-  }
-
+  /** Marks given token as a binding, i.e. a definition of a new variable. */
   bind(token: Token) {
     const scope = this.scopes.top
     const identifier = readTokenSpan(token, this.code)
-    console.debug(`Binding ${identifier} to ${debug(token)}`)
+    const range = parsedTreeOrTokenRange(token)
+    console.debug(`Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
+    assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
+    this.aliases.set(range, new ObjectKeyedSet())
   }
 
+  addConnection(source: Token, target: Token) {
+    const sourceRange = parsedTreeOrTokenRange(source)
+    const targetRange = parsedTreeOrTokenRange(target)
+    const targets = this.aliases.get(sourceRange)
+    if (targets != null) {
+      console.log(`Usage of ${readTokenSpan(source, this.code)}@[${targetRange}] resolved to [${sourceRange}]`)
+      targets.add(targetRange)
+    } else {
+      console.warn(`No targets found for source range ${sourceRange}`)
+    }
+  }
+
+  /** Marks given token as a usage, i.e. a reference to an existing variable. */
   use(token: Token) {
     const identifier = readTokenSpan(token, this.code)
-    console.debug(`Resolving ${identifier} usage.`)
+    const range = parsedTreeOrTokenRange(token)
 
     for (const scope of this.scopes.valuesFromTop()) {
       const binding = scope.bindings.get(identifier)
       if (binding != null) {
-        const usages = scope.usages.get(binding)
-        if (usages != null) {
-          usages.push(token)
-        } else {
-          scope.usages.set(binding, [token])
-        }
+        this.addConnection(binding, token)
         return
       }
     }
 
-    console.error(`Unresolved identifier: '${identifier}'`)
-    this.unresolvedSymbols.add(token)
+    console.debug(`Usage of ${identifier}@[${range}] is unresolved.`)
+    this.unresolvedSymbols.add(range)
   }
 
-  processNodeInNewScope(node?: Tree): void {
-    if (node == null) {
-      return
-    }
-    this.withNewScope(() => {
-      this.processNode(node)
-    })
+  /** Method that processes a single AST node. */
+  public process() {
+    this.processNode(this.ast)
   }
 
   /** Method that processes a single AST node. */
@@ -163,18 +307,44 @@ class AliasAnalyzer {
       return
     }
 
-    console.log('\nprocessNode', debug(node), '\n')
+    const range = parsedTreeOrTokenRange(node)
+    const repr = readAstOrTokenSpan(node, this.code)
+
+    // console.log('\nprocessNode', astPrettyPrintType(node), 'Repr:\n====\n', readAstOrTokenSpan(node, this.code), '\n====\n')
 
     if (node.type === Tree.Type.BodyBlock) {
-      this.withNewScope(
-          _ => {
-            for (const child of childrenAstNodes(node)) {
-              this.processNode(child)
-            }
-          }
-      )
+      this.withNewScopeOver(node, () => {
+        for (const child of childrenAstNodes(node)) {
+          this.processNode(child)
+        }
+      })
+    }
+    ///
+    else if (node.type === Tree.Type.Ident) {
+      if (this.contexts.top === Context.Pattern) {
+        this.bind(node.token)
+      } else {
+        this.use(node.token)
+      }
+    } else if (node.type === Tree.Type.OprApp && node.opr.ok && readAstOrTokenSpan(node.opr.value, this.code) === '->') {
+      // Lambda expression.
+        this.withNewScopeOver(node, () => {
+          this.withContext(Context.Pattern, () => {
+            this.processNode(node.lhs)
+          })
+          this.processNode(node.rhs)
+        })
+    } else if (node.type === Tree.Type.OprApp && node.opr.ok && readAstOrTokenSpan(node.opr.value, this.code) === '.') {
+      // Accessor expression.
+      this.processNode(node.lhs)
+      // Don't process the right-hand side, as it will be a method call, which is not a variable usage.
+    } else if (node.type === Tree.Type.Assignment) {
+      this.withContext(Context.Pattern, () => {
+        this.processNode(node.pattern)
+      })
+      this.processNode(node.expr)
     } else if (node.type === Tree.Type.Function) {
-      this.withNewScope(() => {
+      this.withNewScopeOver(node, () => {
         this.withContext(Context.Pattern, () => {
           for (const argument of node.args) {
             this.processNode(argument.pattern)
@@ -182,286 +352,17 @@ class AliasAnalyzer {
         })
         this.processNode(node.body)
       })
-    }
-    ///
-    else if (node.type === Tree.Type.Documented) {
+    } else if (node.type === Tree.Type.Documented) {
       this.processNode(node.expression)
     }
-    else if (node.type === Tree.Type.Ident) {
-      const currentContext = this.contexts.top
-      if(currentContext === Context.Pattern) {
-        this.bind(node.token)
-      } else {
-        this.use(node.token)
-      }
-    } else if (node.type === Tree.Type.Assignment) {
-      this.withContext(Context.Pattern, () => {
-        this.processNode(node.pattern)
-      })
-      this.processNode(node.expr)
-    }
     ///
-
     else {
-      if (childrenAstNodes(node).length === 0) {
-        console.log(`No children for ${debug(node)}`)
-      } else {     
-        console.warn(`Unsupported AST node type: ${node.type}`)
-        console.warn(`Full node: ${debug(node)}`)
-      }
+      node.visitChildren((child) => {
+          if (Tree.isInstance(child)) {
+            this.processNode(child)
+          }
+      })
+      console.warn(`Catch-all for ${astPrettyPrintType(node)} at ${range}:\n${repr}\n`)
     }
-
   }
-}
-
-export function aliasAnalysis(
-  code: string,
-  tree: Tree
-) {
-  console.log('aliasAnalysis', debug(tree))
-  const analyzer = new AliasAnalyzer(code)
-  analyzer.processNode(tree)
-}
-
-/**
- * The testing process employs a unique DSL-like syntax to denote the anticipated results.
- *
- * Take this Enso program as an example:
- * ```
- * main =
- *     x = 1
- *     y = 2
- *     z = x -> x + y
- * ```
- *
- * It would be annotated in the following manner:
- * ```
- * main =
- *     «1,x» = 1
- *     «2,y» = 2
- *     z = «3,x» -> «3,x» + »2,y«
- *     u = »1,x« + »2,y«
- * ```
- *
- * In general: `»1,x«` indicates that the identifier links to the `x` variable as per the `«1,x»` pattern.
- * Numerical prefixes are used to differentiate variables of the same name, which is permitted by the language via
- * shadowing.
- *
- * All unannotated identifiers are assumed to preexist in the environment (captured from an external scope or imports).
- */
-
-/** The type of annotation. */
-enum AnnotationType {
-  /** An identifier binding. */
-  Binding = 'Binding',
-  /** An identifier usage. */
-  Usage = 'Usage',
-}
-
-/** Information about an annotated identifier. */
-interface AnnotatedIdentifier {
-  /** Whether this is an identifier binding or usage. */
-  kind: AnnotationType
-
-  /** The numerical prefix of the identifier. */
-  prefix: number
-
-  /** The initial index of the identifier in the unannotated code. */
-  start: number
-
-  /** The index past the last character of the identifier in the unannotated code. */
-  end: number
-}
-
-function parseAnnotations(annotatedCode: string): {
-  unannotatedCode: string
-  annotations: AnnotatedIdentifier[]
-} {
-  const annotations: AnnotatedIdentifier[] = []
-
-  // Iterate over all annotations (either bindings or usages).
-  // I.e. we want to cover both `«1,x»` and `»1,x«` cases, while keeping the track of the annotation type.
-  const annotationRegex = /«(\d+),([^»]+)»|»(\d+),([^»]+)«/g
-
-  // As the annotations are removed from the code, we need to keep track of the offset between the annotated and
-  // unannotated code. This is necessary to correctly calculate the start and length of the annotations.
-  let accumulatedOffset = 0
-
-  const unannotatedCode = annotatedCode.replace(
-    annotationRegex,
-    (match, bindingPrefix, bindingName, usagePrefix, usageName, offset) => {
-      // Sanity check: either both binding prefix and name are present, or both usage prefix and name are present.
-      // Otherwise, we have an internal error in the regex.
-      assertEqual(bindingPrefix != null, bindingName != null)
-      assertEqual(usagePrefix != null, usageName != null)
-      assertNotEqual(bindingPrefix != null, usagePrefix != null)
-
-      const prefix = parseInt(bindingPrefix ?? usagePrefix, 10)
-      const name = bindingName ?? usageName
-      const kind = bindingPrefix != null ? AnnotationType.Binding : AnnotationType.Usage
-
-      const start = offset - accumulatedOffset
-      const end = start + name.length
-
-      const annotation = { kind, prefix, start, end }
-      accumulatedOffset += match.length - name.length
-      annotations.push(annotation)
-      return name
-    },
-  )
-  return { unannotatedCode, annotations }
-}
-
-/** Alias analysis test case, typically parsed from an annotated code. */
-interface TestCase {
-  /** The code of the program to be tested, after removing all annotations.
-   *  Effectively, this is the code that will be passed to the parser.
-   */
-  code: string
-
-  /** The list of expected identifier bindings. */
-  expected_bindings: Set<Token>
-
-  /** The list of expected identifier usages. */
-  expected_usages: Set<Token>
-}
-//
-// /** Parses a test case from the given annotated code string. */
-// function parseTestCase(annotatedCode: string): TestCase {
-//   const expected_bindings = new Set<Token>()
-//   const expected_usages = new Set<Token>()
-//
-//   // Process code annotations.
-//   const annotatedIdentifierRegex = /«(\d+),([^»]+)»/g
-//
-//   return {
-//     code: code,
-//     expected_bindings: expected_bindings,
-//     expected_usages: expected_usages,
-//   }
-// }
-
-// TESTS
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-
-  test('Parse annotations', () => {
-    const annotatedCode = `main =
-    «1,x» = 1
-    «2,y» = 2
-    z = «3,x» -> »3,x« + »2,y«
-    u = »1,x« + »2,y«`
-
-    const expectedUnannotatedCode = `main =
-    x = 1
-    y = 2
-    z = x -> x + y
-    u = x + y`
-
-    const { unannotatedCode, annotations } = parseAnnotations(annotatedCode)
-    assert(unannotatedCode === expectedUnannotatedCode)
-    assert(annotations.length === 7)
-    const validateAnnotation = (
-      i: number,
-      kind: AnnotationType,
-      prefix: number,
-      start: number,
-      end: number,
-      identifier: string,
-    ) => {
-      const a = annotations[i]
-      try {
-        assertDefined(a, `Annotation is not defined.`)
-        assertEqual(a.kind, kind, 'Invalid annotation kind.')
-        assertEqual(a.prefix, prefix, 'Invalid annotation prefix.')
-        assertEqual(a.start, start, 'Invalid annotation start.')
-        assertEqual(a.end, end, 'Invalid annotation end.')
-        assertEqual(
-          unannotatedCode.substring(a.start, a.end),
-          identifier,
-          'Invalid annotation identifier.',
-        )
-      } catch (e) {
-        console.log(`Invalid annotation #${i}: ${JSON.stringify(a)}.`)
-        throw e
-      }
-    }
-
-    validateAnnotation(0, AnnotationType.Binding, 1, 11, 12, 'x')
-    validateAnnotation(1, AnnotationType.Binding, 2, 21, 22, 'y')
-    validateAnnotation(2, AnnotationType.Binding, 3, 35, 36, 'x')
-    validateAnnotation(3, AnnotationType.Usage, 3, 40, 41, 'x')
-    validateAnnotation(4, AnnotationType.Usage, 2, 44, 45, 'y')
-    validateAnnotation(5, AnnotationType.Usage, 1, 54, 55, 'x')
-    validateAnnotation(6, AnnotationType.Usage, 2, 58, 59, 'y')
-  })
-
-  test('Enso File', async () => {
-    const path = `H:\\NBO\\enso\\distribution\\lib\\Standard\\Base\\0.0.0-dev\\src\\Data\\Maybe.enso`
-    const content = await fss.readFile(path, 'utf-8')
-    const ast = parseEnso(content)
-    console.log(debug(ast))
-    aliasAnalysis(ast)
-
-  })
-
-
-  test('Plain dependency', () => {
-    const code = 'main =\n    x = 1\n    x'
-    const ast = parseEnso(code)
-    console.log(ast.type)
-
-    console.log(`Alias analysis: ${JSON.stringify(aliasAnalysis(code, ast))}`)
-
-    // if (ast.type === Tree.Type.BodyBlock) {
-    //   Array.from(ast.statements).forEach((line, i) => {
-    //     console.log(`=== line #${i} ===`)
-    //     console.log(debug(line))
-    //   })
-    //   console.log('=== end ===')
-    // }
-    //
-    // console.log('debug(ast)', debug(ast))
-    // console.log('ast', ast)
-    // ast.visitChildren((obj: any) => {
-    //   console.log('obj', obj)
-    // })
-    //
-    // const children = Array.from(ast.children())
-    // console.log('children', children)
-    //
-    // const childrenNodes = childrenAstNodes(ast)
-    // console.log('childrenNodes', childrenNodes)
-  })
-
-  test('parseEnsoLine', () => {
-    const ast = parseEnsoLine('1 + 2')
-    console.log(debug(ast))
-    console.log(ast)
-  })
-
-  test('Traverse AST', () => {
-    const program = parseEnso('main =\n    x = 1\n    x')
-
-    childrenAstNodes(program).forEach((node, i) => {
-        console.log(`=== node #${i} ===`)
-        console.log(debug(node))
-    })
-
-
-    const children = Array.from(program.children())
-    console.log('children', children)
-
-
-    // console.log("visitChildren start")
-    // const processChild: (obj: any) => {
-    //   console.log('\tchild', obj)
-    //   obj.visitChildren(processChild)
-    // }
-    // program.visitChildren((obj: any) => {
-    //     console.log('\tchild', obj)
-    // })
-    // console.log("visitChildren end")
-  })
 }

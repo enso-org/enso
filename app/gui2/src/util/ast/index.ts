@@ -177,14 +177,20 @@ export function parsedTreeOrTokenRange(node: Tree | Token): ContentRange {
   else return parsedTokenRange(node)
 }
 
+export function astPrettyPrintType(obj: unknown): string | undefined {
+  if (obj instanceof LazyObject && Object.hasOwnProperty.call(obj, 'type')) {
+    const proto = Object.getPrototypeOf(obj)
+    return proto?.constructor?.name
+  }
+}
+
 export function debugAst(obj: unknown): unknown {
   if (obj instanceof LazyObject) {
-    const proto = Object.getPrototypeOf(obj)
     const fields = Object.fromEntries(
       allGetterNames(obj).map((k) => [k, debugAst((obj as any)[k])]),
     )
     if (Object.hasOwnProperty.call(obj, 'type')) {
-      const className = proto?.constructor?.name
+      const className = astPrettyPrintType(obj)
       return { type: className, ...fields }
     } else {
       return fields
