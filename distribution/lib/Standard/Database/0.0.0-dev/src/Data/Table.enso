@@ -1848,8 +1848,9 @@ type Table
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
-           `Missing_Input_Columns` is raised as an error or problem
-           following the `error_on_missing_columns` rules.
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
          - If a column selected for parsing is not a text column, an
            `Invalid_Value_Type` error is raised.
          - If no columns have been selected for parsing,
