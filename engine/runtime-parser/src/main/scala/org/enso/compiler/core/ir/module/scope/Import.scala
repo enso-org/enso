@@ -1,7 +1,8 @@
 package org.enso.compiler.core.ir.module.scope
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.ir.module.Scope
 import org.enso.compiler.core.ir.{
   DiagnosticStorage,
@@ -12,11 +13,15 @@ import org.enso.compiler.core.ir.{
   Name
 }
 
+import java.util.UUID
+
 /** Module-level import statements. */
 trait Import extends Scope {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Import
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Import
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Import
@@ -56,7 +61,7 @@ object Import {
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Import
       with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+    var id: UUID @Identifier = randomId
 
     /** Creates a copy of `this`.
       *
@@ -82,7 +87,7 @@ object Import {
       isSynthetic: Boolean                    = isSynthetic,
       passData: MetadataStorage               = passData,
       diagnostics: DiagnosticStorage          = diagnostics,
-      id: Identifier                          = id
+      id: UUID @Identifier                    = id
     ): Module = {
       val res = Module(
         name,
@@ -122,7 +127,7 @@ object Import {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Module = this
 
     /** @inheritdoc */

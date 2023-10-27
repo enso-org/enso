@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.{errors, Comment, Error}

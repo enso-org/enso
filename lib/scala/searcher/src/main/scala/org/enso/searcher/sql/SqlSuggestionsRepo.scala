@@ -86,7 +86,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   /** @inheritdoc */
   override def update(
     suggestion: Suggestion,
-    externalId: Option[Option[Suggestion.ExternalId]],
+    externalId: Option[Option[Suggestion.ExternalID]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope],
@@ -105,7 +105,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def updateAll(
-    expressions: Seq[(Suggestion.ExternalId, String)]
+    expressions: Seq[(Suggestion.ExternalID, String)]
   ): Future[(Long, Seq[Option[Long]])] =
     db.run(updateAllQuery(expressions).transactionally)
 
@@ -479,7 +479,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the id of updated suggestion
     */
   private def updateByExternalIdQuery(
-    externalId: Suggestion.ExternalId,
+    externalId: Suggestion.ExternalID,
     returnType: String
   ): DBIO[Option[Long]] = {
     val selectQuery = Suggestions
@@ -503,7 +503,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     */
   private def updateQuery(
     suggestion: Suggestion,
-    externalId: Option[Option[Suggestion.ExternalId]],
+    externalId: Option[Option[Suggestion.ExternalID]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope],
@@ -531,7 +531,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     */
   private def updateSuggestionQuery(
     suggestion: Suggestion,
-    externalId: Option[Option[Suggestion.ExternalId]],
+    externalId: Option[Option[Suggestion.ExternalID]],
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope],
@@ -594,7 +594,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the current database version with the list of updated suggestion ids
     */
   private def updateAllQuery(
-    expressions: Seq[(Suggestion.ExternalId, String)]
+    expressions: Seq[(Suggestion.ExternalID, String)]
   ): DBIO[(Long, Seq[Option[Long]])] = {
     val query = for {
       ids <- DBIO.sequence(

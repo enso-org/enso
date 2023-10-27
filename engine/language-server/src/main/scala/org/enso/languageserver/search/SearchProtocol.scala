@@ -161,7 +161,7 @@ object SearchProtocol {
       for {
         externalId <- cursor
           .downField(CodecField.ExternalId)
-          .as[Option[Suggestion.ExternalId]]
+          .as[Option[Suggestion.ExternalID]]
         module <- cursor.downField(CodecField.Module).as[String]
         name   <- cursor.downField(CodecField.Name).as[String]
         params <- cursor
@@ -334,7 +334,7 @@ object SearchProtocol {
       */
     case class Modify(
       id: SuggestionId,
-      externalId: Option[FieldUpdate[Suggestion.ExternalId]] = None,
+      externalId: Option[FieldUpdate[Suggestion.ExternalID]] = None,
       arguments: Option[Seq[SuggestionArgumentUpdate]]       = None,
       module: Option[FieldUpdate[String]]                    = None,
       selfType: Option[FieldUpdate[String]]                  = None,

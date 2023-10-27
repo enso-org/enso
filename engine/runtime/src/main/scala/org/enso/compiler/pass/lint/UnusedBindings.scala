@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Expression,

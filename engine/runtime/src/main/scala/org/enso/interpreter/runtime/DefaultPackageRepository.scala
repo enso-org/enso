@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.ImportExportCache
 import org.enso.compiler.SerializationManager
+import org.enso.compiler.context.CompilerContext
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.StringUtils
@@ -80,8 +81,11 @@ private class DefaultPackageRepository(
     * Strings, and constantly converting them into [[QualifiedName]]s would
     * add more overhead than is probably necessary.
     */
-  private val loadedModules: collection.concurrent.Map[String, Module] =
-    collection.concurrent.TrieMap(Builtins.MODULE_NAME -> builtins.getModule)
+  private val loadedModules
+    : collection.concurrent.Map[String, CompilerContext.Module] =
+    collection.concurrent.TrieMap(
+      Builtins.MODULE_NAME -> builtins.getModule.asCompilerModule()
+    )
 
   /** The mapping containing loaded component groups.
     *
@@ -102,7 +106,7 @@ private class DefaultPackageRepository(
   ] =
     collection.mutable.LinkedHashMap()
 
-  private def getComponentModules: ListSet[Module] = {
+  private def getComponentModules: ListSet[CompilerContext.Module] = {
     val modules = for {
       componentGroups <- loadedComponents.values
       newComponents      = componentGroups.newGroups.flatMap(_.exports)
@@ -113,11 +117,13 @@ private class DefaultPackageRepository(
     modules.to(ListSet)
   }
 
-  private def findComponentModule(component: Component): Option[Module] = {
+  private def findComponentModule(
+    component: Component
+  ): Option[CompilerContext.Module] = {
     def mkModuleName(path: Array[String]): String =
       path.mkString(LibraryName.separator.toString)
     @scala.annotation.tailrec
-    def go(path: Array[String]): Option[Module] =
+    def go(path: Array[String]): Option[CompilerContext.Module] =
       if (path.isEmpty) None
       else {
         loadedModules.get(mkModuleName(path)) match {
@@ -143,7 +149,7 @@ private class DefaultPackageRepository(
     }
 
   /** @inheritdoc */
-  override def getPendingModules: ListSet[Module] =
+  override def getPendingModules: ListSet[CompilerContext.Module] =
     this.synchronized {
       for {
         module <- getComponentModules
@@ -193,7 +199,7 @@ private class DefaultPackageRepository(
       )
       .unzip
 
-    regularModules.foreach(registerModule)
+    regularModules.foreach(m => registerModule(m.asCompilerModule()))
 
     syntheticModulesMetadata.flatten
       .groupMap(_._1)(v => (v._2, v._3))
@@ -434,7 +440,7 @@ private class DefaultPackageRepository(
   }
 
   /** @inheritdoc */
-  override def getLoadedModules: Seq[Module] =
+  override def getLoadedModules: Seq[CompilerContext.Module] =
     loadedModules.values.toSeq
 
   /** @inheritdoc */
@@ -445,14 +451,18 @@ private class DefaultPackageRepository(
     loadedPackages.flatMap(_._2).asJava
 
   /** @inheritdoc */
-  override def getLoadedModule(qualifiedName: String): Option[Module] =
+  override def getLoadedModule(
+    qualifiedName: String
+  ): Option[CompilerContext.Module] =
     loadedModules.get(qualifiedName)
 
   /** @inheritdoc */
-  override def registerModuleCreatedInRuntime(module: Module): Unit =
+  override def registerModuleCreatedInRuntime(
+    module: CompilerContext.Module
+  ): Unit =
     registerModule(module)
 
-  private def registerModule(module: Module): Unit = {
+  private def registerModule(module: CompilerContext.Module): Unit = {
     loadedModules.put(module.getName.toString, module)
   }
 
@@ -476,11 +486,17 @@ private class DefaultPackageRepository(
   ): Unit = {
     assert(syntheticModule.isSynthetic)
     if (!loadedModules.contains(syntheticModule.getName.toString)) {
-      loadedModules.put(syntheticModule.getName.toString, syntheticModule)
+      loadedModules.put(
+        syntheticModule.getName.toString,
+        syntheticModule.asCompilerModule()
+      )
     } else {
       val loaded = loadedModules(syntheticModule.getName.toString)
       assert(!loaded.isSynthetic)
-      loaded.setDirectModulesRefs(refs.asJava)
+      loaded
+        .asInstanceOf[TruffleCompilerContext.Module]
+        .unsafeModule()
+        .setDirectModulesRefs(refs.asJava)
     }
   }
 
@@ -531,7 +547,10 @@ private class DefaultPackageRepository(
       key    <- keys
       module <- loadedModules.remove(key)
     } {
-      module.renameProject(newName)
+      module
+        .asInstanceOf[TruffleCompilerContext.Module]
+        .unsafeModule()
+        .renameProject(newName)
       loadedModules.put(module.getName.toString, module)
     }
   }
@@ -544,7 +563,9 @@ private class DefaultPackageRepository(
   ): Option[Package[TruffleFile]] =
     loadedPackages.get(libraryName).flatten
 
-  override def getModulesForLibrary(libraryName: LibraryName): List[Module] =
+  override def getModulesForLibrary(
+    libraryName: LibraryName
+  ): List[CompilerContext.Module] =
     getPackageForLibrary(libraryName)
       .map(pkg => loadedModules.values.filter(_.getPackage == pkg).toList)
       .getOrElse(Nil)

@@ -1,8 +1,8 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.{CompilerError, ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -34,6 +34,7 @@ import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.syntax.text.Debug
 
 import java.io.Serializable
+import java.util.UUID
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
@@ -1558,8 +1559,8 @@ case object AliasAnalysis extends IRPass {
       sealed case class Def(
         override val id: Id,
         override val symbol: Graph.Symbol,
-        identifier: IR.Identifier,
-        externalId: Option[IR.ExternalId],
+        identifier: UUID @Identifier,
+        externalId: Option[UUID @ExternalID],
         isLazy: Boolean = false
       ) extends Occurrence
 
@@ -1578,8 +1579,8 @@ case object AliasAnalysis extends IRPass {
       sealed case class Use(
         override val id: Id,
         override val symbol: Graph.Symbol,
-        identifier: IR.Identifier,
-        externalId: Option[IR.ExternalId]
+        identifier: UUID @Identifier,
+        externalId: Option[UUID @ExternalID]
       ) extends Occurrence
 
       // TODO [AA] At some point the analysis should make use of these.
