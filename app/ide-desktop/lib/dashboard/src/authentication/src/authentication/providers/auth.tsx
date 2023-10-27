@@ -318,11 +318,15 @@ export function AuthProvider(props: AuthProviderProps) {
                         user,
                     }
 
-                    /** Save access token so can be reused by Enso backend. */
+                    // 34560000 is the recommended max cookie age.
+                    document.cookie =
+                        'logged_in=yes;max-age=34560000;domain=enso.org;samesite=strict;secure'
+
+                    // Save access token so can it be reused by the backend.
                     cognito.saveAccessToken(session.accessToken)
 
-                    /** Execute the callback that should inform the Electron app that the user has logged in.
-                     * This is done to transition the app from the authentication/dashboard view to the IDE. */
+                    // Execute the callback that should inform the Electron app that the user has logged in.
+                    // This is done to transition the app from the authentication/dashboard view to the IDE.
                     onAuthenticated(session.accessToken)
                 }
 
@@ -490,10 +494,12 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
+        document.cookie = 'logged_in=no;max-age=0;domain=enso.org'
+        cognito.saveAccessToken(null)
+        localStorage.clearUserSpecificEntries()
         deinitializeSession()
         setInitialized(false)
         setUserSession(null)
-        localStorage.clearUserSpecificEntries()
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
         await toast.toast.promise(cognito.signOut(), {
