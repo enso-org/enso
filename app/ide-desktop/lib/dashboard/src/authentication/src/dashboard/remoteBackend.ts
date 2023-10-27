@@ -334,7 +334,7 @@ export class RemoteBackend extends backendModule.Backend {
         const response = await this.patch(remoteBackendPaths.updateAssetPath(assetId), body)
         if (!responseIsSuccessful(response)) {
             return this.throw(
-                `Unable to delete ${title != null ? `'${title}'` : `asset with ID '${assetId}'`}.`
+                `Could not update ${title != null ? `'${title}'` : `asset with ID '${assetId}'`}.`
             )
         } else {
             return

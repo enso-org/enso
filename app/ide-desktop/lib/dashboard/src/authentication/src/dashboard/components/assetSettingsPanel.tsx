@@ -1,14 +1,21 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
+import PenIcon from 'enso-assets/pen.svg'
+
 import type * as assetEvent from '../events/assetEvent'
 import type * as assetTreeNode from '../assetTreeNode'
-import type * as backend from '../backend'
+import * as authProvider from '../../authentication/providers/auth'
+import type * as backendModule from '../backend'
+import * as backendProvider from '../../providers/backend'
+import * as hooks from '../../hooks'
+import * as permissions from '../permissions'
 
 import type * as categorySwitcher from './categorySwitcher'
 import * as column from '../column'
 import type * as pageSwitcher from './pageSwitcher'
 import AssetInfoBar from './assetInfoBar'
+import Button from './button'
 import UserBar from './userBar'
 
 // ==========================
@@ -29,8 +36,8 @@ export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps
     setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
     setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
     dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-    projectAsset: backend.ProjectAsset | null
-    setProjectAsset: React.Dispatch<React.SetStateAction<backend.ProjectAsset>> | null
+    projectAsset: backendModule.ProjectAsset | null
+    setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
     doRemoveSelf: () => void
     onSignOut: () => void
 }
@@ -52,6 +59,12 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
         onSignOut,
     } = props
     const [item, innerSetItem] = React.useState(rawItem)
+    const [isEditingDescription, setIsEditingDescription] = React.useState(false)
+    const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
+    const [description, setDescription] = React.useState('')
+    const { organization } = authProvider.useNonPartialUserSession()
+    const { backend } = backendProvider.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
     const setItem = React.useCallback(
         (valueOrUpdater: React.SetStateAction<assetTreeNode.AssetTreeNode>) => {
             innerSetItem(valueOrUpdater)
@@ -59,6 +72,36 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
         },
         [/* should never change */ rawSetItem]
     )
+    const self = item.item.permissions?.find(
+        permission => permission.user.user_email === organization?.email
+    )
+    const ownsThisAsset = self?.permission === permissions.PermissionAction.own
+
+    React.useEffect(() => {
+        setDescription(item.item.description ?? '')
+    }, [item.item.description])
+
+    const doEditDescription = async () => {
+        setIsEditingDescription(false)
+        if (description !== item.item.description) {
+            const oldDescription = item.item.description
+            setItem(oldItem => ({ ...oldItem, item: { ...oldItem.item, description } }))
+            try {
+                await backend.updateAsset(
+                    item.item.id,
+                    { parentDirectoryId: null, description },
+                    item.item.title
+                )
+            } catch (error) {
+                toastAndLog('Could not edit asset description')
+                setItem(oldItem => ({
+                    ...oldItem,
+                    item: { ...oldItem.item, description: oldDescription },
+                }))
+            }
+        }
+    }
+
     return (
         <div
             className="absolute flex flex-col h-full border-black-a12 border-l-2 gap-8 w-120 pl-3 pr-4 py-2.25"
@@ -87,12 +130,60 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                 </div>
             </div>
             <div className="flex flex-col items-start gap-1">
-                <span className="text-lg leading-144.5 h-7 py-px">Description</span>
-                <div className="py-1">
-                    <span className="leading-170 py-px">
-                        This connector can be used to get the latest user data (purchase history,
-                        website activities, etc.)
-                    </span>
+                <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">
+                    Description
+                    {ownsThisAsset && !isEditingDescription && (
+                        <Button
+                            image={PenIcon}
+                            onClick={() => {
+                                setIsEditingDescription(true)
+                                setQueuedDescripion(item.item.description)
+                            }}
+                        />
+                    )}
+                </span>
+                <div className="py-1 self-stretch">
+                    {!isEditingDescription ? (
+                        <span className="leading-170 py-px">{item.item.description}</span>
+                    ) : (
+                        <form className="flex flex-col gap-2" onSubmit={doEditDescription}>
+                            <textarea
+                                ref={element => {
+                                    if (element != null && queuedDescription != null) {
+                                        element.value = queuedDescription
+                                        setQueuedDescripion(null)
+                                    }
+                                }}
+                                onBlur={doEditDescription}
+                                value={description}
+                                onKeyDown={event => {
+                                    event.stopPropagation()
+                                    switch (event.key) {
+                                        case 'Escape': {
+                                            setIsEditingDescription(false)
+                                            break
+                                        }
+                                        case 'Enter': {
+                                            if (event.ctrlKey) {
+                                                void doEditDescription()
+                                                break
+                                            }
+                                        }
+                                    }
+                                }}
+                                onChange={event => {
+                                    setDescription(event.currentTarget.value)
+                                }}
+                                className="bg-frame resize-none rounded-lg w-full p-2"
+                            ></textarea>
+                            <button
+                                type="submit"
+                                className="self-start bg-frame-selected rounded-full px-4 py-1"
+                            >
+                                Update
+                            </button>
+                        </form>
+                    )}
                 </div>
             </div>
             <div className="flex flex-col items-start gap-2">

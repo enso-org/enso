@@ -446,6 +446,7 @@ export interface BaseAsset {
     parentId: DirectoryId
     permissions: UserPermission[] | null
     labels: LabelName[] | null
+    description: string | null
 }
 
 /** Metadata uniquely identifying a directory entry.
@@ -483,6 +484,7 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
         permissions: [],
         projectState: null,
         labels: [],
+        description: null,
     }
 }
 
@@ -501,6 +503,7 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
         permissions: [],
         projectState: null,
         labels: [],
+        description: null,
     }
 }
 
@@ -600,7 +603,8 @@ export interface UpdateDirectoryRequestBody {
 
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
-    parentDirectoryId: DirectoryId
+    parentDirectoryId: DirectoryId | null
+    description: string | null
 }
 
 /** HTTP request body for the "create project" endpoint. */

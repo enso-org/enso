@@ -113,7 +113,10 @@ export default function AssetRow(props: AssetRowProps) {
                 }))
                 await backend.updateAsset(
                     asset.id,
-                    { parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization) },
+                    {
+                        parentDirectoryId: newParentId ?? backend.rootDirectoryId(organization),
+                        description: null,
+                    },
                     asset.title
                 )
             } catch (error) {

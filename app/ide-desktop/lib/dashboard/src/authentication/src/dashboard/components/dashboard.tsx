@@ -81,7 +81,11 @@ export default function Dashboard(props: DashboardProps) {
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
     const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
         React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
-    const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(false)
+    const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(
+        () =>
+            localStorage.get(localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible) ??
+            false
+    )
     const modalRef = React.useRef<modalProvider.Modal | null>(null)
     const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
 

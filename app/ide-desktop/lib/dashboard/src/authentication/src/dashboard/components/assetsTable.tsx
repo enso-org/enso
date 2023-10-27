@@ -813,6 +813,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     labels: [],
+                    description: null,
                 }
                 if (
                     event.parentId != null &&
@@ -865,6 +866,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         ...(organization != null ? { opened_by: organization.email } : {}),
                     },
                     labels: [],
+                    description: null,
                 }
                 if (
                     event.parentId != null &&
@@ -914,6 +916,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
                         labels: [],
+                        description: null,
                     })
                 )
                 const placeholderProjects = reversedFiles.filter(backendModule.fileIsProject).map(
@@ -932,6 +935,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             ...(organization != null ? { opened_by: organization.email } : {}),
                         },
                         labels: [],
+                        description: null,
                     })
                 )
                 if (
@@ -996,6 +1000,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     labels: [],
+                    description: null,
                 }
                 if (
                     event.parentId != null &&
