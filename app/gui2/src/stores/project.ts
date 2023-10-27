@@ -431,10 +431,10 @@ export const useProjectStore = defineStore('project', () => {
   const namespace = computed(() => config.value.engine?.namespace)
   const fullName = computed(() => {
     const ns = namespace.value
-    if (ns == null) {
-      // console.warn(
-      //   'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
-      // )
+    if (import.meta.env.PROD && ns == null) {
+      console.warn(
+        'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
+      )
     }
     const projectName = name.value
     if (projectName == null) {

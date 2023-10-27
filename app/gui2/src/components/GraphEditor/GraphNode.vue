@@ -37,7 +37,6 @@ const emit = defineEmits<{
 }>()
 
 const nodeSelection = injectGraphSelection(true)
-console.log('in selection', nodeSelection)
 
 const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()

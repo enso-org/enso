@@ -56,19 +56,12 @@ interface UnknownTable {
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
 }
-
-// declare const agGrid: typeof import('ag-grid-enterprise')
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
-
 import { useDebounceFn } from '@vueuse/core'
-
-// // @ts-expect-error
-// eslint-disable-next-line no-redeclare
-// import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
 import * as agGrid from 'ag-grid-enterprise'
+import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
 
 import type {
   ColDef,

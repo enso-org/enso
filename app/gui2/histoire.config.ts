@@ -52,30 +52,6 @@ export default defineConfig({
     },
   },
   vite: {
-    resolve: {
-      // alias: {
-      //       'https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm': require.resolve('d3'),
-      //       'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm':
-      //         require.resolve('ag-grid-enterprise'),
-      //       'https://cdn.jsdelivr.net/npm/sql-formatter@13.0.0/+esm': require.resolve('sql-formatter'),
-      //       builtins: 'src/util/visualizationBuiltins.ts',
-      //       './icons/show_all.svg': 'src/assets/icons/show_all.svg',
-      //       './icons/find.svg': 'src/assets/icons/find.svg',
-      //       './icons/geo_map_distance.svg': 'src/assets/icons/geo_map_distance.svg',
-      //       './icons/geo_map_pin.svg': 'src/assets/icons/geo_map_pin.svg',
-      //       './icons/path2.svg': 'src/assets/icons/path2.svg',
-      //       './measurement.ts': 'src/util/measurement.ts',
-      //       './events.ts': 'src/util/events.ts',
-      //       '../public/visualizations/ScatterplotVisualization.vue':
-      //         'public/visualizations/ScatterplotVisualization.vue',
-      //       '../public/visualizations/GeoMapVisualization.vue':
-      //         'public/visualizations/GeoMapVisualization.vue',
-      //       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // },
-    },
-    define: {
-      HISTOIRE: 'true',
-    },
     server: {
       fs: {
         allow: ['../..'],
