@@ -1,0 +1,118 @@
+from Standard.Base import all
+from Standard.Base.Runtime import assert
+
+from Standard.Table import Table, Join_Condition
+
+from Standard.Test import Bench
+
+#from project.Config import extended_tests
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 4) . set_measure (Bench.phase_conf 2 5)
+
+type Scenario
+    Value table1 table2
+
+shuffle vec =
+    vec.take (Index_Sub_Range.Sample vec.length seed=42)
+
+create_scenario_equals num_rows =
+    xs = (0.up_to num_rows).to_vector
+    table1 = Table.new [["key", xs]]
+    table2 = Table.new [["key", shuffle xs]]
+    Scenario.Value table1 table2
+
+create_scenario_equals_medium_groups num_rows =
+    xs = (0.up_to num_rows).map x-> (x/30).floor
+    ys = xs.reverse.map (+2)
+    table1 = Table.new [["key", xs]]
+    table2 = Table.new [["key", ys]]
+    Scenario.Value table1 table2
+
+create_scenario_equals_ignore_case num_rows =
+    table1 = Table.new [["key", (0.up_to num_rows).map i-> "a"+i.to_text]]
+    table2 = Table.new [["case_insensitive_key", (0.up_to num_rows).reverse.map i-> "A"+i.to_text]]
+    Scenario.Value table1 table2
+
+create_scenario_between num_rows =
+    xs = (0.up_to num_rows).map x-> x*100
+    lows = xs.map x-> x-10
+    highs = xs.map x-> x+50
+
+    table1 = Table.new [["x", shuffle xs]]
+    table2 = Table.new [["lows", lows], ["highs", highs]]
+    Scenario.Value table1 table2
+
+## The mixed scenario creates a pair of tables where all rows are mapped 1-1,
+   but they are split into 3 groups. Each group differs by only one 'key' while
+   having equal keys of the other two types.
+
+   This ensures that a combined scenario must be efficient for all conditions,
+   regardless of the distribution of keys - it cannot naively group by only a
+   subset of keys and brute force the remaining keys - because in this example,
+   splitting by any subset of keys will still yield a big group - only splitting
+   by all 3 keys gives us small groups (1-1).
+create_scenario_mixed num_rows =
+    n = (num_rows/3).round
+    xs = (0.up_to n).to_vector
+    ys_1 = (0.up_to n).map i-> "a"+i.to_text
+    ys_2 = (0.up_to n).map i-> "A"+i.to_text
+    zs = (0.up_to n).map x-> 1000 + x*100
+
+    constant_x = Vector.new n _-> 1
+    constant_y = Vector.new n _-> "_"
+    constant_z = Vector.new n _-> 0
+
+    table1 =
+        group1 = Table.new [["EQ", shuffle xs], ["case_insensitive", constant_y], ["x", constant_z]]
+        group2 = Table.new [["EQ", constant_x], ["case_insensitive", shuffle ys_1], ["x", constant_z]]
+        group3 = Table.new [["EQ", constant_x], ["case_insensitive", constant_y], ["x", shuffle zs]]
+        group1.union [group2, group3]
+
+    table2 =
+        group1 = Table.new [["EQ", shuffle xs], ["case_insensitive", constant_y], ["lows", constant_z], ["highs", constant_z]]
+        group2 = Table.new [["EQ", constant_x], ["case_insensitive", shuffle ys_2], ["lows", constant_z], ["highs", constant_z]]
+
+        lows = zs.map x-> x-10
+        highs = zs.map x-> x+30
+        group3 = Table.new [["EQ", constant_x], ["case_insensitive", constant_y], ["lows", lows], ["highs", highs]]
+
+        group1.union [group2, group3]
+
+    Scenario.Value table1 table2
+
+type Data
+    Value ~equals ~equals_medium_groups ~equals_ignore_case ~between ~mixed
+
+    create num_rows = Data.Value (create_scenario_equals num_rows) (create_scenario_equals_medium_groups num_rows) (create_scenario_equals_ignore_case num_rows) (create_scenario_between num_rows) (create_scenario_mixed num_rows)
+
+collect_benches = Bench.build builder->
+    num_rows = 20000
+    data = Data.create num_rows
+
+    builder.group ("Join_" + num_rows.to_text) options group_builder->
+        group_builder.specify "Equals" <|
+            scenario = data.equals
+            r = scenario.table1.join scenario.table2 on="key"
+            assert (r.row_count == num_rows)
+
+        group_builder.specify "Equals_Medium_Groups" <|
+            scenario = data.equals_medium_groups
+            scenario.table1.join scenario.table2 on="key"
+
+        group_builder.specify "Equals_Ignore_Case" <|
+            scenario = data.equals_ignore_case
+            r = scenario.table1.join scenario.table2 on=(Join_Condition.Equals_Ignore_Case "key" "case_insensitive_key")
+            assert (r.row_count == num_rows)
+
+        group_builder.specify "Between" <|
+            scenario = data.between
+            r = scenario.table1.join scenario.table2 on=(Join_Condition.Between "x" "lows" "highs")
+            assert (r.row_count == num_rows)
+
+        group_builder.specify "Mixed" <|
+            scenario = data.mixed
+            r = scenario.table1.join scenario.table2 on=[Join_Condition.Equals "EQ", Join_Condition.Equals_Ignore_Case "case_insensitive", Join_Condition.Between "x" "lows" "highs"]
+            expected_rows = data.mixed.table1.row_count
+            assert (r.row_count == expected_rows)
+
+main = collect_benches . run_main
