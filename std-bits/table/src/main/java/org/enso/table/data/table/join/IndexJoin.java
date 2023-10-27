@@ -1,8 +1,6 @@
 package org.enso.table.data.table.join;
 
 import org.enso.base.text.TextFoldingStrategy;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
