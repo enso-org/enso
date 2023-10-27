@@ -24,13 +24,15 @@
     "esbuild-plugin-time": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.7.0"
+    "react-router-dom": "^6.7.0",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@modyfi/vite-plugin-yaml": "^1.0.4",
     "@playwright/experimental-ct-react": "^1.38.0",
     "@playwright/test": "^1.38.0",
+    "@types/validator": "^13.11.5",
     "@typescript-eslint/eslint-plugin": "^6.7.2",
     "@typescript-eslint/parser": "^6.7.2",
     "chalk": "^5.3.0",
