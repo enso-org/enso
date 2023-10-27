@@ -796,4 +796,4 @@ type Not_All_Rows_Downloaded
     ## PRIVATE
     to_display_text : Text
     to_display_text self =
-        "The query was set to download at most "+self.max_rows.to_text+" rows, but more rows than that limit were available in the result and were discarded. If you want to know the full result, change the `read` limit."
+        "The query has returned more than the maximum of "+self.max_rows.to_text+" rows, so some rows have been dropped from the result. If you want to get the full result, change the row limit."

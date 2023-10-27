@@ -292,6 +292,7 @@ spec setup =
             t1.row_count . should_equal 23
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 23
+            w1.to_display_text . should_contain "some rows have been dropped"
 
             t2 = t_big.read max_rows=1500
             t2.row_count . should_equal 1500
