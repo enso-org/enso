@@ -19,6 +19,7 @@ import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
+import LoadingScreen from '../components/loadingScreen'
 
 // =================
 // === Constants ===
@@ -530,7 +531,7 @@ export function AuthProvider(props: AuthProviderProps) {
     return (
         <AuthContext.Provider value={value}>
             {/* Only render the underlying app after we assert for the presence of a current user. */}
-            {initialized && children}
+            {initialized ? children : <LoadingScreen />}
         </AuthContext.Provider>
     )
 }
