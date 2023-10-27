@@ -10,7 +10,12 @@ import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
 }
-import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
+import org.enso.polyglot.{
+  HostAccessFactory,
+  LanguageInfo,
+  PolyglotContext,
+  RuntimeOptions
+}
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.slf4j.event.Level
@@ -103,7 +108,7 @@ class ContextFactory {
 
     val logHandler = JulHandler.get()
     val logLevels  = LoggerSetup.get().getConfig.getLoggers
-    if (logLevels.isEmpty) {
+    if (!logLevels.hasEnsoLoggers(LanguageInfo.ID)) {
       builder.option(
         RuntimeOptions.LOG_LEVEL,
         logLevelName
