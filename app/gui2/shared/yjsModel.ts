@@ -37,15 +37,19 @@ export function visIdentifierEquals(a: VisualizationIdentifier, b: Visualization
   return a.name === b.name && object.equalFlat(a.module, b.module)
 }
 
+export type ProjectSetting = string
+
 export class DistributedProject {
   doc: Y.Doc
   name: Y.Text
   modules: Y.Map<Y.Doc>
+  settings: Y.Map<ProjectSetting>
 
   constructor(doc: Y.Doc) {
     this.doc = doc
     this.name = this.doc.getText('name')
     this.modules = this.doc.getMap('modules')
+    this.settings = this.doc.getMap('settings')
   }
 
   moduleNames(): string[] {
@@ -99,20 +103,16 @@ export interface NodeMetadata {
   vis: VisualizationMetadata | null
 }
 
-export type ModuleSetting = string
-
 export class ModuleDoc {
   ydoc: Y.Doc
   contents: Y.Text
   idMap: Y.Map<Uint8Array>
   metadata: Y.Map<NodeMetadata>
-  settings: Y.Map<ModuleSetting>
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
     this.contents = ydoc.getText('contents')
     this.idMap = ydoc.getMap('idMap')
     this.metadata = ydoc.getMap('metadata')
-    this.settings = ydoc.getMap('settings')
   }
 }
 

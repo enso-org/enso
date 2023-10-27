@@ -124,7 +124,7 @@ const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigat
 /// Track play button presses.
 function onPlayButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
-    const modeValue = graphStore.executionMode
+    const modeValue = projectStore.executionMode
     if (modeValue == undefined) {
       return
     }
@@ -134,7 +134,7 @@ function onPlayButtonPress() {
 
 /// Watch for changes in the execution mode.
 watch(
-  () => graphStore.executionMode,
+  () => projectStore.executionMode,
   (modeValue) => {
     projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
   },
@@ -205,7 +205,7 @@ watch(componentBrowserVisible, (visible) => {
       @finished="componentBrowserVisible = false"
     />
     <TopBar
-      v-model:mode="graphStore.executionMode"
+      v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
       :breadcrumbs="['main', 'ad_analytics']"

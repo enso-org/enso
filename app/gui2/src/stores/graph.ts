@@ -18,7 +18,7 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, watch, type WritableComputedRef } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
 
 export const useGraphStore = defineStore('graph', () => {
@@ -328,8 +328,6 @@ export const useGraphStore = defineStore('graph', () => {
     exprRects.set(id, rect)
   }
 
-  const { executionMode } = setupSettings(proj)
-
   return {
     _ast,
     transact,
@@ -356,48 +354,8 @@ export const useGraphStore = defineStore('graph', () => {
     stopCapturingUndo,
     updateNodeRect,
     updateExprRect,
-    executionMode,
   }
 })
-
-type ExecutionMode = 'live' | 'design'
-type Settings = { executionMode: WritableComputedRef<ExecutionMode> }
-function setupSettings(proj: ReturnType<typeof useProjectStore>): Settings {
-  const settings = computed(() => proj.module?.doc.settings)
-  // Value synchronized with a key of the `settings` map, used to enforce reactive dependencies.
-  const executionMode_ = ref<ExecutionMode>()
-  const executionMode = computed<ExecutionMode>({
-    get() {
-      return executionMode_.value ?? 'design'
-    },
-    set(value) {
-      // Update the synchronized map; the change observer will set `executionMode_`.
-      if (settings.value != null) settings.value.set('executionMode', value)
-    },
-  })
-  useObserveYjs(settings, (event) => {
-    event.changes.keys.forEach((change, key) => {
-      if (key == 'executionMode') {
-        if (change.action === 'add' || change.action === 'update') {
-          switch (settings.value?.get('executionMode')) {
-            case 'design':
-              executionMode_.value = 'design'
-              break
-            case 'live':
-              executionMode_.value = 'live'
-              break
-            default:
-              console.log(`Bug: Unexpected executionMode. Ignoring...`, executionMode)
-              break
-          }
-        } else if (change.action === 'delete') {
-          executionMode_.value = undefined
-        }
-      }
-    })
-  })
-  return { executionMode }
-}
 
 function randomString() {
   return Math.random().toString(36).substring(2, 10)

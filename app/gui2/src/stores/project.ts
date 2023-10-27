@@ -1,7 +1,7 @@
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
-import { attachProvider } from '@/util/crdt'
+import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
@@ -38,6 +38,7 @@ import {
   watchEffect,
   type ShallowRef,
   type WatchSource,
+  type WritableComputedRef,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -538,6 +539,8 @@ export const useProjectStore = defineStore('project', () => {
     module.value?.undoManager.stopCapturing()
   }
 
+  const { executionMode } = setupSettings(projectModel)
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -553,5 +556,45 @@ export const useProjectStore = defineStore('project', () => {
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
     stopCapturingUndo,
+    executionMode,
   }
 })
+
+type ExecutionMode = 'live' | 'design'
+type Settings = { executionMode: WritableComputedRef<ExecutionMode> }
+function setupSettings(project: DistributedProject | null): Settings {
+  const settings = computed(() => project?.settings)
+  // Value synchronized with a key of the `settings` map, used to enforce reactive dependencies.
+  const executionMode_ = ref<ExecutionMode>()
+  const executionMode = computed<ExecutionMode>({
+    get() {
+      return executionMode_.value ?? 'design'
+    },
+    set(value) {
+      // Update the synchronized map; the change observer will set `executionMode_`.
+      if (settings.value != null) settings.value.set('executionMode', value)
+    },
+  })
+  useObserveYjs(settings, (event) => {
+    event.changes.keys.forEach((change, key) => {
+      if (key == 'executionMode') {
+        if (change.action === 'add' || change.action === 'update') {
+          switch (settings.value?.get('executionMode')) {
+            case 'design':
+              executionMode_.value = 'design'
+              break
+            case 'live':
+              executionMode_.value = 'live'
+              break
+            default:
+              console.log(`Bug: Unexpected executionMode. Ignoring...`, executionMode)
+              break
+          }
+        } else if (change.action === 'delete') {
+          executionMode_.value = undefined
+        }
+      }
+    })
+  })
+  return { executionMode }
+}
