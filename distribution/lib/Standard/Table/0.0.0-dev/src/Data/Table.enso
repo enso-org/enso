@@ -874,8 +874,9 @@ type Table
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
-           `Missing_Input_Columns` is raised as an error or problem
-           following the `error_on_missing_columns` rules.
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
          - If a column selected for parsing is not a text column, an
            `Invalid_Value_Type` error is raised.
          - If no columns have been selected for parsing,
@@ -965,9 +966,8 @@ type Table
        `Date_Time_Formatter`, or `Column` of format strings.
 
        Arguments:
-       - columns: The columns to format. If not specified, all columns will be
-         formatted. The columns can have different types, but all columns must
-         be compatible with any provided `format` value.
+       - columns: The columns to format. The columns can have different types,
+         but all columns must be compatible with any provided `format` value.
        - format: The type-dependent format string to use to format the values.
          If `format` is `""` or `Nothing`, .to_text is used to format the value.
          In case of date/time columns, the format can also be a
@@ -977,16 +977,18 @@ type Table
          If a `Date_Time_Formatter` is provided for `format` and the `locale` is
          set to anything else than `Locale.default`, then that locale will
          override the formatters locale.
-       - error_on_missing_columns: if `True` (the default) raises an error if
-         any column is missing. Otherwise, reported as a problem.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
-           `Missing_Input_Columns` is raised as an error or problem
-           following the `error_on_missing_columns` rules.
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
          - If a provided `format` value is not compatible with all selected
            columns, and error will be thrown. The error will depend on the
            mismatch between the format and the column.
@@ -1036,7 +1038,7 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     @locale Locale.default_widget
     format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | Column | Nothing -> Locale -> Boolean -> Problem_Behavior -> Table
-    format self columns=[0] format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
+    format self columns format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
         select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selected_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True select_problem_builder
         select_problem_builder.attach_problems_before on_problems <|

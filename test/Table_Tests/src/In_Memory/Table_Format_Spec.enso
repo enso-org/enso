@@ -7,7 +7,7 @@ from Standard.Table import Column, Table
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns
 
 import Standard.Test.Extensions
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Problems, Test, Test_Suite
 
 from project.Util import all
 
@@ -241,6 +241,8 @@ spec =
 
         Test.specify "Missing column" <|
             table.format ["abc", "dates"] . should_fail_with Missing_Input_Columns
+            Problems.expect_only_warning Missing_Input_Columns <|
+                table.format ["abc", "dates"] error_on_missing_columns=False . should_be_a Table
 
         Test.specify "No columns selected" <|
             table.format [] . should_fail_with No_Input_Columns_Selected
