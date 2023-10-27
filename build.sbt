@@ -20,7 +20,9 @@ import java.io.File
 val scalacVersion = "2.13.11"
 val javaVersion  = "21"
 // Version used for the Graal/Truffle related Maven packages
-val graalMavenPackagesVersion = GraalVM.version
+// Keep in sync with GraalVM.version. Do not change the name of this variable,
+// it is used by the Rust build script via regex matching.
+val graalMavenPackagesVersion = "23.1.0"
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -35,6 +37,10 @@ val currentEdition = sys.env.getOrElse(
 // Note [Stdlib Version]
 val stdLibVersion       = defaultDevEnsoVersion
 val targetStdlibVersion = ensoVersion
+
+Global / onLoad := GraalVM.addVersionCheck(
+  graalMavenPackagesVersion
+)((Global / onLoad).value)
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

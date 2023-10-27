@@ -76,4 +76,28 @@ object GraalVM {
 
   // TODO: Add graalvmPython
   val langsPkgs = jsPkgs
+
+  /** Augments a state transition to do GraalVM version check.
+   *
+   * @param graalVersion  the GraalVM version that should be used for
+   *                      building this project
+   * @param oldTransition the state transition to be augmented
+   * @return an augmented state transition that does all the state changes of
+   *         oldTransition but also runs the version checks
+   */
+  def addVersionCheck(
+    graalVersion: String
+  )(
+    oldTransition: State => State
+  ): State => State =
+    (state: State) => {
+      val newState = oldTransition(state)
+      val logger = newState.log
+      if (graalVersion != version) {
+        logger.error("GraalVM version check failed.")
+        throw new IllegalStateException(s"Expected GraalVM version $version, but got $graalVersion. " +
+          s"Version specified in build.sbt and GraalVM.scala must be in sync")
+      }
+      newState
+    }
 }
