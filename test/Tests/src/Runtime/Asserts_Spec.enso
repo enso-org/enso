@@ -22,9 +22,10 @@ spec = Test.group "Asserts" pending=on_ci <|
         ret = Runtime.assert js_check
         ret . should_be_a Nothing
 
-    Test.specify "should be able to take lambdas as expressions" <|
-        Runtime.assert <|
+    Test.specify "should be able to take a block as expressions" <|
+        ret = Runtime.assert <|
             4 == 2 + 2
+        ret . should_be_a Nothing
 
     Test.specify "should fail with type error when given dataflow error as expression" <|
         p = Panic.catch Assertion_Error (Runtime.assert (Error.throw "foo")) err->
