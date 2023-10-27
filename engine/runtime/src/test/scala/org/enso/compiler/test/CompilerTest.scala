@@ -1,8 +1,11 @@
 package org.enso.compiler.test
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.EnsoParser
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{EnsoParser, IR, Identifier}
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Module, Name}
+import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
@@ -10,11 +13,13 @@ import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.CompilationStage
+
+import java.util.UUID
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
@@ -31,7 +36,7 @@ trait CompilerRunner {
       *
       * @return the [[IR]] representing [[source]]
       */
-    def toIrModule: IR.Module = {
+    def toIrModule: Module = {
       val compiler = new EnsoParser()
       try compiler.compile(source)
       finally compiler.close()
@@ -49,7 +54,7 @@ trait CompilerRunner {
       *
       * @return the [[IR]] representing [[source]], if it is a valid expression
       */
-    def toIrExpression: Option[IR.Expression] = {
+    def toIrExpression: Option[Expression] = {
       val compiler = new EnsoParser()
       try compiler.generateIRInline(compiler.parse(source))
       finally compiler.close()
@@ -61,7 +66,7 @@ trait CompilerRunner {
     *
     * @param ir the IR to run the passes on
     */
-  implicit class RunPassesOnModule(ir: IR.Module) {
+  implicit class RunPassesOnModule(ir: Module) {
 
     /** Executes the passes using `passManager` on the input [[ir]].
       *
@@ -72,7 +77,7 @@ trait CompilerRunner {
     def runPasses(
       passManager: PassManager,
       moduleContext: ModuleContext
-    ): IR.Module = {
+    ): Module = {
       passManager.runPassesOnModule(ir, moduleContext)
     }
   }
@@ -82,7 +87,7 @@ trait CompilerRunner {
     *
     * @param ir the IR to run the passes on
     */
-  implicit class RunPassesOnExpression(ir: IR.Expression) {
+  implicit class RunPassesOnExpression(ir: Expression) {
 
     /** Executes the passes using `passManager` on the input [[ir]].
       *
@@ -93,7 +98,7 @@ trait CompilerRunner {
     def runPasses(
       passManager: PassManager,
       inlineContext: InlineContext
-    ): IR.Expression = {
+    ): Expression = {
       passManager.runPassesInline(ir, inlineContext)
     }
   }
@@ -110,7 +115,7 @@ trait CompilerRunner {
       *
       * @return IR appropriate for testing the alias analysis pass as a module
       */
-    def preprocessModule(implicit moduleContext: ModuleContext): IR.Module = {
+    def preprocessModule(implicit moduleContext: ModuleContext): Module = {
       source.toIrModule.runPasses(passManager, moduleContext)
     }
 
@@ -121,7 +126,7 @@ trait CompilerRunner {
       */
     def preprocessExpression(implicit
       inlineContext: InlineContext
-    ): Option[IR.Expression] = {
+    ): Option[Expression] = {
       source.toIrExpression.map(_.runPasses(passManager, inlineContext))
     }
   }
@@ -130,7 +135,7 @@ trait CompilerRunner {
     *
     * @return a random identifier
     */
-  def genId: IR.Identifier = IR.randomId
+  def genId: UUID @Identifier = IR.randomId
 
   // === IR Testing Utils =====================================================
 
@@ -138,25 +143,25 @@ trait CompilerRunner {
     *
     * @param ir the expression to add extension methods to
     */
-  implicit class ExpressionAs(ir: IR.Expression) {
+  implicit class ExpressionAs(ir: Expression) {
 
     /** Hoists the provided expression into the body of a method.
       *
       * @return a method containing `ir` as its body
       */
-    def asMethod: IR.Module.Scope.Definition.Method = {
-      IR.Module.Scope.Definition.Method.Explicit(
-        IR.Name.MethodReference(
+    def asMethod: definition.Method = {
+      definition.Method.Explicit(
+        Name.MethodReference(
           Some(
-            IR.Name.Qualified(
+            Name.Qualified(
               List(
-                IR.Name
+                Name
                   .Literal("TestType", isMethod = false, None)
               ),
               None
             )
           ),
-          IR.Name
+          Name
             .Literal("testMethod", isMethod = false, None),
           None
         ),
@@ -169,13 +174,13 @@ trait CompilerRunner {
       *
       * @return an atom with one argument `arg` with default value `ir`
       */
-    def asAtomDefaultArg: IR.Module.Scope.Definition.Data = {
-      IR.Module.Scope.Definition.Data(
-        IR.Name.Literal("TestAtom", isMethod = false, None),
+    def asAtomDefaultArg: Definition.Data = {
+      Definition.Data(
+        Name.Literal("TestAtom", isMethod = false, None),
         List(
-          IR.DefinitionArgument
+          DefinitionArgument
             .Specified(
-              IR.Name
+              Name
                 .Literal("arg", isMethod = false, None),
               None,
               Some(ir),
@@ -202,14 +207,37 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig,
     isGeneratingDocs: Boolean                    = false
-  ): ModuleContext = {
-    ModuleContext(
-      module            = Module.empty(moduleName, null),
+  ): ModuleContext = buildModuleContextModule(
+    moduleName,
+    freshNameSupply,
+    passConfiguration,
+    compilerConfig,
+    isGeneratingDocs
+  )._1
+
+  /** Builds a module context with a mocked module for testing purposes.
+    *
+    * @param moduleName the name of the test module.
+    * @param freshNameSupply the fresh name supply to use in tests.
+    * @param passConfiguration any additional pass configuration.
+    * @return an pair of module context and module.
+    */
+  def buildModuleContextModule(
+    moduleName: QualifiedName                    = QualifiedName.simpleName("Test_Module"),
+    freshNameSupply: Option[FreshNameSupply]     = None,
+    passConfiguration: Option[PassConfiguration] = None,
+    compilerConfig: CompilerConfig               = defaultConfig,
+    isGeneratingDocs: Boolean                    = false
+  ): (ModuleContext, runtime.Module) = {
+    val mod = runtime.Module.empty(moduleName, null)
+    val ctx = ModuleContext(
+      module            = mod.asCompilerModule(),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig,
       isGeneratingDocs  = isGeneratingDocs
     )
+    (ctx, mod)
   }
 
   /** Builds an inline context with a mocked module for testing purposes.
@@ -228,14 +256,15 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
-    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null)
+    val mod =
+      runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
     ModuleTestUtils.unsafeSetIr(
       mod,
-      IR.Module(List(), List(), List(), None)
+      Module(List(), List(), List(), false, None)
         .updateMetadata(
           BindingAnalysis -->> BindingsMap(
             List(),
-            ModuleReference.Concrete(mod)
+            ModuleReference.Concrete(mod.asCompilerModule())
           )
         )
     )
@@ -243,8 +272,12 @@ trait CompilerRunner {
       mod,
       CompilationStage.AFTER_CODEGEN
     )
+    val mc = ModuleContext(
+      module         = mod.asCompilerModule(),
+      compilerConfig = compilerConfig
+    )
     InlineContext(
-      module            = mod,
+      module            = mc,
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       localScope        = localScope,

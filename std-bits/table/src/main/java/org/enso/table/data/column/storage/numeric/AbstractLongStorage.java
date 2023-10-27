@@ -1,19 +1,27 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
-import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
-import org.enso.table.data.column.operation.map.numeric.LongComparison;
-import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
-import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
+import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
+import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long> {
@@ -29,8 +37,9 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
   }
 
   @Override
-  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
-    return ops.runUnaryMap(name, this, problemBuilder);
+  public Storage<?> runVectorizedUnaryMap(
+      String name, MapOperationProblemAggregator problemAggregator) {
+    return ops.runUnaryMap(name, this, problemAggregator);
   }
 
   @Override
@@ -40,8 +49,8 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runBinaryMap(name, this, argument, problemBuilder);
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runBinaryMap(name, this, argument, problemAggregator);
   }
 
   @Override
@@ -51,102 +60,70 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
 
   @Override
   public Storage<?> runVectorizedTernaryMap(
-      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
-    return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
+      String name,
+      Object argument0,
+      Object argument1,
+      MapOperationProblemAggregator problemAggregator) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemAggregator);
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runZip(name, this, argument, problemBuilder);
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return ops.runZip(name, this, argument, problemAggregator);
   }
 
   @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return NumericBuilder.createLongBuilder(capacity);
+  public abstract IntegerType getType();
+
+  @Override
+  public StorageType inferPreciseType() {
+    return getType();
+  }
+
+  @Override
+  public StorageType inferPreciseTypeShrunk() {
+    // If the type is already smallest possible, we return it unchanged (we will return 8-bit
+    // columns as-is, although
+    // we will not shrink 16-bit columns to 8-bits even if it were possible).
+    if (getType().bits().toInteger() <= 16) {
+      return getType();
+    }
+
+    IntegerType[] possibleTypes =
+        new IntegerType[] {IntegerType.INT_16, IntegerType.INT_32, IntegerType.INT_64};
+
+    int currentTypeIdx = 0;
+    int n = size();
+    Context context = Context.getCurrent();
+    for (int i = 0; i < n; i++) {
+      if (isNa(i)) {
+        continue;
+      }
+
+      long item = getItem(i);
+      while (!possibleTypes[currentTypeIdx].fits(item)) {
+        currentTypeIdx++;
+      }
+
+      if (currentTypeIdx >= possibleTypes.length - 1) {
+        break;
+      }
+
+      context.safepoint();
+    }
+
+    return possibleTypes[currentTypeIdx];
   }
 
   private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
     MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
-    ops.add(
-            new LongNumericOp(Storage.Maps.ADD) {
-              @Override
-              public double doDouble(
-                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in + arg;
-              }
-
-              @Override
-              public Long doLong(
-                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in + arg;
-              }
-            })
-        .add(
-            new LongNumericOp(Storage.Maps.SUB) {
-              @Override
-              public double doDouble(
-                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in - arg;
-              }
-
-              @Override
-              public Long doLong(
-                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in - arg;
-              }
-            })
-        .add(
-            new LongNumericOp(Storage.Maps.MUL) {
-              @Override
-              public double doDouble(
-                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in * arg;
-              }
-
-              @Override
-              public Long doLong(
-                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return in * arg;
-              }
-            })
-        .add(
-            new LongNumericOp(Storage.Maps.MOD) {
-              @Override
-              public double doDouble(
-                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                if (arg == 0.0) {
-                  problemBuilder.reportDivisionByZero(ix);
-                }
-                return in % arg;
-              }
-
-              @Override
-              public Long doLong(
-                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                if (arg == 0) {
-                  problemBuilder.reportDivisionByZero(ix);
-                  return null;
-                }
-
-                return in % arg;
-              }
-            })
-        .add(
-            new LongNumericOp(Storage.Maps.POWER, true) {
-              @Override
-              public double doDouble(
-                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                return Math.pow(in, arg);
-              }
-
-              @Override
-              public Long doLong(
-                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                throw new IllegalStateException(
-                    "Internal error: Power operation should cast to double.");
-              }
-            })
+    ops.add(new AddOp<>())
+        .add(new SubOp<>())
+        .add(new MulOp<>())
+        .add(new DivideOp<>())
+        .add(new ModOp<>())
+        .add(new PowerOp<>())
         .add(
             new UnaryLongToLongOp(Maps.TRUNCATE) {
               @Override
@@ -169,133 +146,16 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(new LongRoundOp(Maps.ROUND))
-        .add(
-            new LongNumericOp(Storage.Maps.DIV, true) {
-              @Override
-              public double doDouble(
-                  long in, double arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                if (arg == 0.0) {
-                  problemBuilder.reportDivisionByZero(ix);
-                }
-                return in / arg;
-              }
-
-              @Override
-              public Long doLong(
-                  long in, long arg, int ix, MapOperationProblemBuilder problemBuilder) {
-                throw new UnsupportedOperationException("Divide operation should cast to double.");
-              }
-            })
-        .add(
-            new LongComparison(Storage.Maps.GT) {
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a > b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a > b;
-              }
-            })
-        .add(
-            new LongComparison(Storage.Maps.GTE) {
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a >= b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a >= b;
-              }
-            })
-        .add(
-            new LongComparison(Storage.Maps.LT) {
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a < b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a < b;
-              }
-            })
-        .add(
-            new LongComparison(Storage.Maps.LTE) {
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a <= b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a <= b;
-              }
-            })
-        .add(
-            new LongBooleanOp(Storage.Maps.EQ) {
-              @Override
-              public BoolStorage runBinaryMap(
-                  AbstractLongStorage storage,
-                  Object arg,
-                  MapOperationProblemBuilder problemBuilder) {
-                if (arg instanceof Double) {
-                  problemBuilder.reportFloatingPointEquality(-1);
-                }
-                return super.runBinaryMap(storage, arg, problemBuilder);
-              }
-
-              @Override
-              public BoolStorage runZip(
-                  AbstractLongStorage storage,
-                  Storage<?> arg,
-                  MapOperationProblemBuilder problemBuilder) {
-                if (arg instanceof DoubleStorage) {
-                  problemBuilder.reportFloatingPointEquality(-1);
-                } else if (!(arg instanceof LongStorage)) {
-                  boolean hasFloats = false;
-                  Context context = Context.getCurrent();
-                  for (int i = 0; i < storage.size(); i++) {
-                    if (arg.isNa(i)) {
-                      continue;
-                    }
-
-                    if (arg.getItemBoxed(i) instanceof Double) {
-                      hasFloats = true;
-                      break;
-                    }
-
-                    context.safepoint();
-                  }
-                  if (hasFloats) {
-                    problemBuilder.reportFloatingPointEquality(-1);
-                  }
-                }
-                return super.runZip(storage, arg, problemBuilder);
-              }
-
-              @Override
-              protected boolean doLong(long a, long b) {
-                return a == b;
-              }
-
-              @Override
-              protected boolean doDouble(long a, double b) {
-                return a == b;
-              }
-
-              @Override
-              protected boolean doObject(long x, Object o) {
-                return false;
-              }
-            })
+        .add(new LessComparison<>())
+        .add(new LessOrEqualComparison<>())
+        .add(new EqualsComparison<>())
+        .add(new GreaterOrEqualComparison<>())
+        .add(new GreaterComparison<>())
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_NOTHING) {
               @Override
               public BoolStorage runUnaryMap(
-                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
+                  AbstractLongStorage storage, MapOperationProblemAggregator problemAggregator) {
                 return new BoolStorage(storage.getIsMissing(), new BitSet(), storage.size(), false);
               }
             })
@@ -303,7 +163,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
             new UnaryMapOperation<>(Storage.Maps.IS_NAN) {
               @Override
               public BoolStorage runUnaryMap(
-                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
+                  AbstractLongStorage storage, MapOperationProblemAggregator problemAggregator) {
                 BitSet isNaN = new BitSet();
                 return new BoolStorage(isNaN, storage.getIsMissing(), storage.size(), false);
               }
@@ -312,7 +172,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
             new UnaryMapOperation<>(Storage.Maps.IS_INFINITE) {
               @Override
               public BoolStorage runUnaryMap(
-                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
+                  AbstractLongStorage storage, MapOperationProblemAggregator problemAggregator) {
                 BitSet isInfinite = new BitSet();
                 return new BoolStorage(isInfinite, storage.getIsMissing(), storage.size(), false);
               }
@@ -320,4 +180,46 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(new LongIsInOp());
     return ops;
   }
+
+  @Override
+  public AbstractLongStorage fillMissingFromPrevious(BoolStorage missingIndicator) {
+    if (missingIndicator != null) {
+      throw new IllegalStateException(
+          "Custom missing value semantics are not supported by AbstractLongStorage.");
+    }
+
+    int n = size();
+    long[] newData = new long[n];
+    BitSet newMissing = new BitSet();
+    long previousValue = 0;
+    boolean hasPrevious = false;
+
+    Context context = Context.getCurrent();
+    for (int i = 0; i < n; i++) {
+      boolean isCurrentMissing = isNa(i);
+      if (isCurrentMissing) {
+        if (hasPrevious) {
+          newData[i] = previousValue;
+        } else {
+          newMissing.set(i);
+        }
+      } else {
+        long currentValue = getItem(i);
+        newData[i] = currentValue;
+        previousValue = currentValue;
+        hasPrevious = true;
+      }
+
+      context.safepoint();
+    }
+
+    return new LongStorage(newData, n, newMissing, getType());
+  }
+
+  /**
+   * Return an instance of storage containing the same data but with a wider type.
+   *
+   * <p>Ideally it should avoid copying the data, if it's possible.
+   */
+  public abstract AbstractLongStorage widen(IntegerType widerType);
 }

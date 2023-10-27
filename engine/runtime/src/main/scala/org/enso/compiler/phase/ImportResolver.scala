@@ -1,8 +1,13 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.{Export, Import}
+import org.enso.compiler.context.CompilerContext.Module
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.ir.{Module => IRModule}
+import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   ModuleReference,
@@ -13,7 +18,6 @@ import org.enso.compiler.data.BindingsMap.{
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.CompilationStage
 import scala.collection.mutable
 
@@ -54,13 +58,13 @@ class ImportResolver(compiler: Compiler) {
           .getCompilationStage(current)
           .isBefore(
             CompilationStage.AFTER_IMPORT_RESOLUTION
-          ) || !current.hasCrossModuleLinks
+          ) || !context.hasCrossModuleLinks(current)
       ) {
         val importedModules: List[
-          (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport])
+          (Import, Option[BindingsMap.ResolvedImport])
         ] =
           ir.imports.map {
-            case imp: IR.Module.Scope.Import.Module =>
+            case imp: Import.Module =>
               tryResolveImport(ir, imp)
             case other => (other, None)
           }
@@ -140,17 +144,14 @@ class ImportResolver(compiler: Compiler) {
   }
 
   private def tryResolveAsType(
-    name: IR.Name.Qualified
+    name: Name.Qualified
   ): Option[ResolvedType] = {
     val tp  = name.parts.last.name
     val mod = name.parts.dropRight(1).map(_.name).mkString(".")
     compiler.getModule(mod).flatMap { mod =>
       compiler.ensureParsed(mod)
-      mod.getIr
-        .unsafeGetMetadata(
-          BindingAnalysis,
-          "impossible: just ensured it's parsed"
-        )
+      mod
+        .getBindingsMap()
         .definedEntities
         .find(_.name == tp)
         .collect { case t: Type =>
@@ -160,9 +161,9 @@ class ImportResolver(compiler: Compiler) {
   }
 
   private def tryResolveImport(
-    module: IR.Module,
+    module: IRModule,
     imp: Import.Module
-  ): (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport]) = {
+  ): (Import, Option[BindingsMap.ResolvedImport]) = {
     val impName = imp.name.name
     val exp = module.exports
       .collect { case ex: Export.Module if ex.name.name == impName => ex }
@@ -174,7 +175,7 @@ class ImportResolver(compiler: Compiler) {
           case e if e.onlyNames.isEmpty => e
         }
         val qualifiedImports = fromAllExports.collect {
-          case IR.Module.Scope.Export.Module(
+          case Export.Module(
                 _,
                 _,
                 _,
@@ -188,7 +189,7 @@ class ImportResolver(compiler: Compiler) {
             onlyNames.map(_.name)
         }
         val importsWithHiddenNames = fromAllExports.collect {
-          case e @ IR.Module.Scope.Export.Module(
+          case e @ Export.Module(
                 _,
                 _,
                 _,
@@ -254,9 +255,9 @@ class ImportResolver(compiler: Compiler) {
                 (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
               case None =>
                 (
-                  IR.Error.ImportExport(
+                  errors.ImportExport(
                     imp,
-                    IR.Error.ImportExport.ModuleDoesNotExist(impName)
+                    errors.ImportExport.ModuleDoesNotExist(impName)
                   ),
                   None
                 )
@@ -264,9 +265,9 @@ class ImportResolver(compiler: Compiler) {
         }
       case Left(loadingError) =>
         (
-          IR.Error.ImportExport(
+          errors.ImportExport(
             imp,
-            IR.Error.ImportExport.PackageCouldNotBeLoaded(
+            errors.ImportExport.PackageCouldNotBeLoaded(
               impName,
               loadingError.toString
             )

@@ -26,7 +26,10 @@ const DEFAULT_PORT = 8080
 export class WindowSize {
     static separator = 'x'
     /** Create a new {@link WindowSize}. */
-    constructor(public width: number, public height: number) {}
+    constructor(
+        public width: number,
+        public height: number
+    ) {}
 
     /** Constructor of the default window size. */
     static default(): WindowSize {
@@ -608,6 +611,8 @@ export const CONFIG = contentConfig.OPTIONS.merge(
 CONFIG.groups.startup.options.platform.value = process.platform
 
 CONFIG.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
+
+CONFIG.groups.engine.options.projectManagerUrl.passToWebApplication = true
 
 /** The type of the full configuration object. */
 export type Args = typeof CONFIG

@@ -23,13 +23,14 @@ import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
+import java.nio.file.Path
 
 import scala.concurrent.duration._
 
 class LibrariesTest extends BaseServerTest {
   private val libraryRepositoryPort: Int = 47308
 
-  private val exampleRepo = new ExampleRepository {
+  private val exampleRepo = new ExampleRepository(Path.of(".")) {
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
         LibraryName("Foo", "Bar"),
@@ -53,21 +54,45 @@ class LibrariesTest extends BaseServerTest {
 
   "LocalLibraryManager" should {
     "create a library project and include it on the list of local projects" in {
-      val client = getInitialisedWsClient()
+      val client          = getInitialisedWsClient()
+      val testLibraryName = LibraryName("user", "My_Local_Lib")
+
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "library/listLocal",
             "id": 0
           }
           """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 0,
-            "result": {
-              "localLibraries": []
-            }
+
+      def getLibraryNameFromJsonDescription(lib: Json): LibraryName = {
+        inside(lib.asObject) { case Some(obj) =>
+          inside(
+            (
+              obj("namespace").flatMap(_.asString),
+              obj("name").flatMap(_.asString)
+            )
+          ) { case (Some(namespace), Some(name)) =>
+            LibraryName(namespace, name)
           }
-          """)
+        }
+      }
+
+      def findLibraryNamesInResponse(
+        response: Json
+      ): Option[Vector[LibraryName]] =
+        for {
+          obj       <- response.asObject
+          result    <- obj("result").flatMap(_.asObject)
+          libraries <- result("localLibraries").flatMap(_.asArray)
+          libraryNames = libraries.map(getLibraryNameFromJsonDescription)
+        } yield libraryNames
+
+      // The resolver may find the current project and other test projects on the path.
+      val msg1 = client.expectSomeJson()
+      inside(findLibraryNamesInResponse(msg1)) { case Some(libs) =>
+        // Ensure that before running this test, the library did not exist.
+        libs should not contain testLibraryName
+      }
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -107,23 +132,10 @@ class LibrariesTest extends BaseServerTest {
             "id": 2
           }
           """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 2,
-            "result": {
-              "localLibraries": [
-                {
-                  "namespace": "user",
-                  "name": "My_Local_Lib",
-                  "version": {
-                    "type": "LocalLibraryVersion"
-                  },
-                  "isCached": true
-                }
-              ]
-            }
-          }
-          """)
+      val msg2 = client.expectSomeJson()
+      inside(findLibraryNamesInResponse(msg2)) { case Some(libs) =>
+        libs should contain(testLibraryName)
+      }
     }
 
     "fail with LibraryAlreadyExists when creating a library that already " +
@@ -275,7 +287,6 @@ class LibrariesTest extends BaseServerTest {
       val libraryRoot = getTestDirectory
         .resolve("test_home")
         .resolve("libraries")
-        .resolve("user")
         .resolve("Get_Package_Test_Lib")
       val packageFile = libraryRoot.resolve(Package.configFileName)
       val packageConfig =
@@ -383,7 +394,6 @@ class LibrariesTest extends BaseServerTest {
       val libraryRoot = getTestDirectory
         .resolve("test_home")
         .resolve("libraries")
-        .resolve("user")
         .resolve("Publishable_Lib")
       val mainSource = libraryRoot.resolve("src").resolve("Main.enso")
       FileSystem.writeTextFile(
@@ -413,8 +423,9 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      val repoRoot = getTestDirectory.resolve("libraries_repo_root")
-      EmptyRepository.withServer(
+      val repoRoot        = getTestDirectory.resolve("libraries_repo_root")
+      val emptyRepository = new EmptyRepository(Path.of("."))
+      emptyRepository.withServer(
         libraryRepositoryPort,
         repoRoot,
         uploads = true
@@ -608,7 +619,7 @@ class LibrariesTest extends BaseServerTest {
           PackageManager.Default
             .loadPackage(cachedLibraryRoot.location.toFile)
             .get
-        pkg.module shouldEqual "Bar"
+        pkg.normalizedName shouldEqual "Bar"
         pkg
           .listSources()
           .map(
@@ -648,7 +659,7 @@ class LibrariesTest extends BaseServerTest {
     }
 
     "update the list of editions if requested" ignore {
-      val repo     = new ExampleRepository
+      val repo     = new ExampleRepository(Path.of("."))
       val repoPath = getTestDirectory.resolve("repo_root")
       repo.createRepository(repoPath)
       repo.withServer(43707, repoPath) {

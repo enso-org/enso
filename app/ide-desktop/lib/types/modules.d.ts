@@ -49,18 +49,18 @@ declare module '*/gui/config.yaml' {
 
 declare module '@eslint/js' {
     /** A set of configurations. */
-    interface Config {
+    export interface Config {
         rules: Record<string, unknown>
     }
 
     /** Preset configurations defined by ESLint. */
-    interface EslintConfigs {
+    export interface EslintConfigs {
         all: Config
         recommended: Config
     }
 
     /** The default export of the module. */
-    interface Default {
+    export interface Default {
         configs: EslintConfigs
     }
 
@@ -98,7 +98,7 @@ declare module 'eslint-plugin-react' {
     /* eslint-enable @typescript-eslint/naming-convention */
 
     /** The default export of this ESLint plugin. */
-    interface Default {
+    export interface Default {
         rules: Record<string, object>
         configs: Configs
         deprecatedRules: DeprecatedRules
@@ -134,7 +134,7 @@ declare module 'eslint-plugin-react-hooks' {
     }
 
     /** The default export of this ESLint plugin. */
-    interface Default {
+    export interface Default {
         configs: Configs
         rules: ReactHooksRules
     }
@@ -150,20 +150,20 @@ declare module 'eslint-plugin-react-hooks' {
 }
 
 declare module 'esbuild-plugin-time' {
-    import * as esbuild from 'esbuild'
+    import type * as esbuild from 'esbuild'
 
     export default function (name?: string): esbuild.Plugin
 }
 
 declare module 'tailwindcss/nesting/index.js' {
-    import * as nested from 'postcss-nested'
+    import type * as nested from 'postcss-nested'
 
     const DEFAULT: nested.Nested
     export default DEFAULT
 }
 
 declare module 'create-servers' {
-    import * as http from 'node:http'
+    import type * as http from 'node:http'
 
     /** Configuration options for `create-servers`. */
     interface CreateServersOptions {
@@ -176,11 +176,16 @@ declare module 'create-servers' {
         http: string
     }
 
+    /** Created server instances of various types. */
+    interface CreatedServers {
+        http?: http.Server
+    }
+
     export default function (
         option: CreateServersOptions,
         // The types come from a third-party API and cannot be changed.
         // eslint-disable-next-line no-restricted-syntax
-        errorHandler: (err: HttpError | undefined) => void
+        handler: (err: HttpError | undefined, servers: CreatedServers) => void
     ): unknown
 }
 

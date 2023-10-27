@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as modalProvider from '../../providers/modal'
 
-import * as tableColumn from './tableColumn'
+import type * as tableColumn from './tableColumn'
 
 // =============================
 // === Partial `Props` types ===
@@ -41,7 +41,7 @@ export type TableRowInnerProps<
     T,
     State = never,
     RowState = never,
-    Key extends string = string
+    Key extends string = string,
 > = InternalTableRowInnerProps<T, Key> &
     ([RowState] extends never ? unknown : InternalTableRowStateProps<RowState>) &
     ([State] extends never ? unknown : StateProp<State>)
@@ -76,7 +76,7 @@ export type TableRowProps<
     T,
     State = never,
     TableRowState = never,
-    Key extends string = string
+    Key extends string = string,
 > = InternalBaseTableRowProps<T, State, TableRowState, Key> &
     ([State] extends [never] ? unknown : StateProp<State>) &
     ([TableRowState] extends [never] ? unknown : InitialRowStateProp<TableRowState>)
@@ -152,7 +152,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
             onContextMenu={event => {
                 onContextMenu?.(innerProps, event)
             }}
-            className={`h-10 transition duration-300 ease-in-out ${className ?? ''} ${
+            className={`h-8 transition duration-300 ease-in-out ${className ?? ''} ${
                 selected ? 'selected' : ''
             }`}
             {...passthrough}

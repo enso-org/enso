@@ -229,7 +229,9 @@ class DistributionManager(val env: Environment) {
     env
       .getEnvPaths(ENSO_LIBRARY_PATH)
       .getOrElse {
-        Seq(ensoHome / DistributionManager.Home.LIBRARIES_DIRECTORY)
+        Seq(
+          ensoHome / DistributionManager.Home.LIBRARIES_DIRECTORY
+        )
       }
 
   /** Name of the file that should be placed in the distribution root to mark it
@@ -420,7 +422,7 @@ class DistributionManager(val env: Environment) {
       * Should be used in places where not being able to determine the data
       * directory is not a fatal error.
       */
-    def safeDataDirectory: Option[Path] =
+    private def safeDataDirectory: Option[Path] =
       Try(dataDirectory).toOption
 
     /** Determines whether a locally installed distribution exists on the

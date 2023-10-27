@@ -359,8 +359,7 @@ typesetMember <- memberValue
 
 #### Typing Operators
 
-All typing operators in Enso (`IR.Type`) are dependent on their constituent
-parts:
+All typing operators in Enso (`Type`) are dependent on their constituent parts:
 
 ```
 typingExpr <- expressionChildren
@@ -441,7 +440,6 @@ hit ratio.
 > The actionables for this section are:
 >
 > - Evolve the cache by storing the results of intermediate expressions
->
 > - Evolve the cache eviction strategy implementation by employing more
 >   information of the stored values
 

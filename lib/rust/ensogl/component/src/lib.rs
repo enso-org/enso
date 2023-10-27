@@ -11,6 +11,7 @@
 // === Export ===
 // ==============
 
+pub use ensogl_breadcrumbs as breadcrumbs;
 pub use ensogl_button as button;
 pub use ensogl_drop_down as drop_down;
 pub use ensogl_drop_down_menu as drop_down_menu;

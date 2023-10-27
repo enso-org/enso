@@ -1,8 +1,14 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Pattern
+import org.enso.compiler.core.Implicits.ListAsIr
+import org.enso.compiler.core.ir.{
+  Expression,
+  IdentifiedLocation,
+  Module,
+  Pattern
+}
+import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -67,14 +73,14 @@ case object NestedPatternMatch extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     DocumentationComments,
     FunctionBinding,
     GenerateMethodBodies,
     LambdaShorthandToLambda
   )
-  override val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
@@ -91,9 +97,9 @@ case object NestedPatternMatch extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     val freshNameSupply = moduleContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "A fresh name supply is required for nested case desugaring."
@@ -112,9 +118,9 @@ case object NestedPatternMatch extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "A fresh name supply is required for inline nested case desugaring."
@@ -135,10 +141,10 @@ case object NestedPatternMatch extends IRPass {
     * @return `expr`, with any nested pattern matches desugared
     */
   def desugarExpression(
-    expr: IR.Expression,
+    expr: Expression,
     freshNameSupply: FreshNameSupply
-  ): IR.Expression = {
-    expr.transformExpressions { case cse: IR.Case =>
+  ): Expression = {
+    expr.transformExpressions { case cse: Case =>
       desugarCase(cse, freshNameSupply)
     }
   }
@@ -150,15 +156,15 @@ case object NestedPatternMatch extends IRPass {
     * @return `expr`, with any nested patterns desugared
     */
   def desugarCase(
-    expr: IR.Case,
+    expr: Case,
     freshNameSupply: FreshNameSupply
-  ): IR.Expression = {
+  ): Expression = {
     expr match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         val scrutineeBindingName = freshNameSupply.newName()
         val scrutineeExpression  = desugarExpression(scrutinee, freshNameSupply)
         val scrutineeBinding =
-          IR.Expression.Binding(scrutineeBindingName, scrutineeExpression, None)
+          Expression.Binding(scrutineeBindingName, scrutineeExpression, None)
 
         val caseExprScrutinee = scrutineeBindingName.duplicate()
 
@@ -175,8 +181,8 @@ case object NestedPatternMatch extends IRPass {
           branches  = processedBranches
         )
 
-        IR.Expression.Block(List(scrutineeBinding), desugaredCaseExpr, None)
-      case _: IR.Case.Branch =>
+        Expression.Block(List(scrutineeBinding), desugaredCaseExpr, None)
+      case _: Case.Branch =>
         throw new CompilerError(
           "Unexpected case branch during case desugaring."
         )
@@ -193,18 +199,18 @@ case object NestedPatternMatch extends IRPass {
     */
   @scala.annotation.tailrec
   def desugarCaseBranch(
-    branch: IR.Case.Branch,
-    topBranchLocation: Option[IR.IdentifiedLocation],
+    branch: Case.Branch,
+    topBranchLocation: Option[IdentifiedLocation],
     freshNameSupply: FreshNameSupply
-  ): IR.Case.Branch = {
+  ): Case.Branch = {
     if (containsNestedPatterns(branch.pattern)) {
       branch.pattern match {
-        case cons @ Pattern.Constructor(_, fields, _, _, _) =>
+        case cons @ Pattern.Constructor(constrName, fields, _, _, _) =>
           // Note [Unsafe Getting the Nested Field]
           val (lastNestedPattern, nestedPosition) =
             fields.zipWithIndex.findLast { case (pat, _) => isNested(pat) }.get
 
-          val newName  = freshNameSupply.newName()
+          val newName  = freshNameSupply.newName(from = Some(constrName))
           val newField = Pattern.Name(newName, None)
           val nestedScrutinee =
             newName.duplicate()
@@ -225,7 +231,7 @@ case object NestedPatternMatch extends IRPass {
           )
 
           val newPattern1 = newPattern.duplicate()
-          val partDesugaredBranch = IR.Case.Branch(
+          val partDesugaredBranch = Case.Branch(
             pattern        = newPattern1,
             expression     = newExpression.duplicate(),
             terminalBranch = false,
@@ -253,7 +259,7 @@ case object NestedPatternMatch extends IRPass {
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case _: IR.Error.Pattern =>
+        case _: errors.Pattern =>
           throw new CompilerError(
             "Error patterns cannot be nested. This should be unreachable."
           )
@@ -291,20 +297,20 @@ case object NestedPatternMatch extends IRPass {
     */
   def generateNestedCase(
     pattern: Pattern,
-    nestedScrutinee: IR.Expression,
-    currentBranchExpr: IR.Expression
-  ): IR.Expression = {
+    nestedScrutinee: Expression,
+    currentBranchExpr: Expression
+  ): Expression = {
     val patternDuplicate = pattern.duplicate()
     val finalTest        = containsNestedPatterns(patternDuplicate)
     val patternBranch =
-      IR.Case.Branch(
+      Case.Branch(
         patternDuplicate,
         currentBranchExpr.duplicate(),
         terminalBranch = !finalTest,
         location       = None
       )
 
-    IR.Case.Expr(
+    Case.Expr(
       nestedScrutinee.duplicate(),
       List(patternBranch),
       isNested = true,
@@ -326,15 +332,15 @@ case object NestedPatternMatch extends IRPass {
           case _: Pattern.Name        => false
           case _: Pattern.Type        => true
           case _: Pattern.Literal     => true
-          case _: IR.Error.Pattern    => false
+          case _: errors.Pattern      => false
           case _: Pattern.Documentation =>
             throw new CompilerError(
               "Branch documentation should be desugared at an earlier stage."
             )
         }
-      case _: Pattern.Literal  => false
-      case _: Pattern.Type     => false
-      case _: IR.Error.Pattern => false
+      case _: Pattern.Literal => false
+      case _: Pattern.Type    => false
+      case _: errors.Pattern  => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
@@ -353,7 +359,7 @@ case object NestedPatternMatch extends IRPass {
       case _: Pattern.Type        => true
       case _: Pattern.Constructor => true
       case _: Pattern.Literal     => true
-      case _: IR.Error.Pattern    => false
+      case _: errors.Pattern      => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
@@ -371,7 +377,7 @@ case object NestedPatternMatch extends IRPass {
       case _: Pattern.Constructor => false
       case _: Pattern.Literal     => false
       case _: Pattern.Type        => false
-      case _: IR.Error.Pattern    => true
+      case _: errors.Pattern      => true
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

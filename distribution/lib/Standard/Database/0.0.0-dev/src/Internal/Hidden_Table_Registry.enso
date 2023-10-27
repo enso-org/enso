@@ -10,6 +10,7 @@ polyglot java import org.enso.database.dryrun.HiddenTableReferenceCounter
    Once all references to a particular hidden table are garbage collected, the
    hidden table is marked for deletion.
 type Hidden_Table_Reference
+    ## PRIVATE
     Reference (parent : Hidden_Table_Registry) (table_name : Text)
 
 ## PRIVATE

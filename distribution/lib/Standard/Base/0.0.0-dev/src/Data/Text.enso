@@ -20,7 +20,8 @@ polyglot java import org.enso.base.Text_Utils
      users with efficient concatenation operations.
 @Builtin_Type
 type Text
-    ## ALIAS Count
+    ## ALIAS count
+       GROUP Metadata
        Computes the number of characters in the text.
 
        ! What is a Character?
@@ -35,7 +36,8 @@ type Text
     length : Integer
     length self = @Builtin_Method "Text.length"
 
-    ## ALIAS Concatenate
+    ## ALIAS concatenate
+       GROUP Operators
        Concatenates the text that to the right side of this.
 
        Arguments:
@@ -48,7 +50,8 @@ type Text
     + : Text -> Text
     + self that = @Builtin_Method "Text.+"
 
-    ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
+    ## GROUP Logical
+       Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
        Arguments:
        - that: The text to compare `self` for case-insensitive equality with.
@@ -63,11 +66,11 @@ type Text
          underlying binary representation are considered equal.
 
        > Example
-         The string 'É' (i.e. the character U+00C9, LATIN CAPITAL LETTER E WITH
-         ACUTE) is equal ignore case to the string 'é' (i.e. the character U+00E9,
-         LATIN SMALL LETTER E WITH ACUTE), which is canonically the same as the
-         string 'e\u0301' (i.e. the letter `e` followed by U+0301, COMBINING ACUTE
-         ACCENT). Therefore:
+         The string 'É' (i.e. U+00C9, LATIN CAPITAL LETTER E WITH ACUTE) is
+         equal to the string 'é' (i.e. U+00E9, LATIN SMALL LETTER E WITH ACUTE)
+         ignoring case, which is canonically the same as the string 'e\u0301'
+         (i.e. the letter `e` followed by U+0301, COMBINING ACUTE ACCENT).
+         Therefore:
 
              (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
     @locale Locale.default_widget
@@ -75,8 +78,8 @@ type Text
     equals_ignore_case self that locale=Locale.default =
         Text_Utils.equals_ignore_case self that locale.java_locale
 
-    ## ADVANCED
-       PRIVATE
+    ## PRIVATE
+       ADVANCED
        UNSTABLE
        Unifies the case of all letters in the text, generating a key which can be
        used to perform case-insensitive comparisons.
@@ -101,8 +104,7 @@ type Text
             comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 
-    ## ALIAS Check Emptiness
-
+    ## GROUP Logical
        Check if `self` is empty.
 
        ! What is Empty?
@@ -115,8 +117,7 @@ type Text
     is_empty : Boolean
     is_empty self = self == ""
 
-    ## ALIAS Check Non-Emptiness
-
+    ## GROUP Logical
        Check if `self` is not empty.
 
        ! What is Not Empty?

@@ -1,7 +1,7 @@
 /** @file Defines the {@link RemoteLogger} class and {@link remoteLog} function for sending logs to a remote server.
  * {@link RemoteLogger} provides a convenient way to manage remote logging with access token authorization. */
 
-import * as app from '../../../../../target/ensogl-pack/linked-dist'
+import * as app from 'ensogl-runner/src/runner'
 import * as authConfig from '../../dashboard/src/authentication/src/config'
 
 const logger = app.log.logger

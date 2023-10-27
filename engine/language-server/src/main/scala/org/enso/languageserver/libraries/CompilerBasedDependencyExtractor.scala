@@ -2,11 +2,14 @@ package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
 import org.enso.libraryupload.DependencyExtractor
-import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
+import org.enso.logger.Converter
+
+import org.enso.logger.JulHandler
 import org.enso.pkg.Package
 import org.enso.pkg.SourceFile
 import org.enso.polyglot.{HostAccessFactory, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
+import org.slf4j.event.Level
 
 import java.io.File
 
@@ -17,7 +20,7 @@ import java.io.File
   * @param logLevel the log level to use for the runtime context that will do
   *                 the parsing
   */
-class CompilerBasedDependencyExtractor(logLevel: LogLevel)
+class CompilerBasedDependencyExtractor(logLevel: Level)
     extends DependencyExtractor[File] {
 
   /** @inheritdoc */
@@ -60,11 +63,9 @@ class CompilerBasedDependencyExtractor(logLevel: LogLevel)
       .option("js.foreign-object-prototype", "true")
       .option(
         RuntimeOptions.LOG_LEVEL,
-        JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
+        Converter.toJavaLevel(logLevel).getName
       )
-      .logHandler(
-        JavaLoggingLogHandler.create(JavaLoggingLogHandler.defaultLevelMapping)
-      )
+      .logHandler(JulHandler.get())
       .build
     new PolyglotContext(context)
   }

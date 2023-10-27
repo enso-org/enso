@@ -139,7 +139,6 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
             }
             return new String[] {
               "  return context",
-              "      .getEnvironment()",
               "      .asGuestValue(" + qual + "." + name + "(" + paramsApplied + "));"
             };
           }
@@ -160,7 +159,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
   }
 
   public List<String> generate(String name, String owner) {
-    SafeWrapException[] exceptionWrappers = wrapExceptions(processingEnvironment, method);
+    SafeWrapException[] exceptionWrappers = wrapExceptions(method);
     boolean wrapsExceptions = exceptionWrappers.length != 0;
     List<? extends VariableElement> rawParams = method.getParameters();
     List<MethodParameter> params =

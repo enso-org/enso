@@ -310,9 +310,35 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case GetSuggestionsDatabase =>
-      suggestionsRepo.currentVersion
-        .map(GetSuggestionsDatabaseResult(_, Seq()))
-        .pipeTo(sender())
+      val responseAction = for {
+        _       <- suggestionsRepo.clean
+        version <- suggestionsRepo.currentVersion
+      } yield GetSuggestionsDatabaseResult(version, Seq())
+
+      responseAction.pipeTo(sender())
+
+      val handlerAction = for {
+        _ <- responseAction
+      } yield SearchProtocol.InvalidateModulesIndex
+
+      val handler = context.system.actorOf(
+        InvalidateModulesIndexHandler.props(
+          RuntimeFailureMapper(contentRootManager),
+          timeout,
+          runtimeConnector
+        )
+      )
+
+      handlerAction.pipeTo(handler)
+
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.backgroundProcessingStarted()
+        )
+      )
 
     case Completion(path, pos, selfType, returnType, tags, isStatic) =>
       val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
@@ -397,6 +423,7 @@ final class SuggestionsHandler(
         )
       )
       action.pipeTo(handler)(sender())
+      context.become(initialized(projectName, graph, clients, state))
 
     case ProjectNameUpdated(name, updates) =>
       updates.foreach(sessionRouter ! _)
@@ -742,6 +769,12 @@ object SuggestionsHandler {
     /** @return the new state with the background processing started. */
     def backgroundProcessingStarted(): State = {
       _shouldStartBackgroundProcessing = false
+      this
+    }
+
+    /** @return the new state with the background processing stopped. */
+    def backgroundProcessingStopped(): State = {
+      _shouldStartBackgroundProcessing = true
       this
     }
   }

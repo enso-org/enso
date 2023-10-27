@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "Enso.enso4vscode",
+    "Vue.volar",
+    "Vue.vscode-typescript-vue-plugin",
+    "ms-playwright.playwright",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "andreasxp.auto-snippets"
+  ]
+}

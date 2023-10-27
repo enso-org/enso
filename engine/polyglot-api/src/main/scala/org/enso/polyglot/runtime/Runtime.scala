@@ -157,6 +157,10 @@ object Runtime {
         name  = "projectRenamed"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ProjectRenameFailed],
+        name  = "projectRenameFailed"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.RenameSymbol],
         name  = "renameSymbol"
       ),
@@ -603,7 +607,8 @@ object Runtime {
       )
     )
     sealed trait VisualizationExpression extends ToLogString {
-      def module: String
+      def module:                         String
+      def positionalArgumentsExpressions: Vector[String]
     }
     object VisualizationExpression {
 
@@ -615,11 +620,13 @@ object Runtime {
       case class Text(module: String, expression: String)
           extends VisualizationExpression {
 
+        override val positionalArgumentsExpressions: Vector[String] =
+          Vector()
+
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"Text(module=$module" +
-          s",expression=" +
-          (if (shouldMask) STUB else expression) +
+          s",expression=$expression" +
           ")"
       }
 
@@ -640,9 +647,9 @@ object Runtime {
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"ModuleMethod(methodPointer=$methodPointer," +
-          s"positionalArgumentsExpressions=" +
-          (if (shouldMask) STUB else positionalArgumentsExpressions) +
-          s")"
+          "positionalArgumentsExpressions=" +
+          positionalArgumentsExpressions.mkString("[", ",", "]") +
+          ")"
       }
     }
 
@@ -663,7 +670,7 @@ object Runtime {
         s"VisualizationConfiguration(" +
         s"executionContextId=$executionContextId," +
         s"expression=${expression.toLogString(shouldMask)})" +
-        s"visualizationModule=${visualizationModule})"
+        s"visualizationModule=$visualizationModule)"
     }
 
     /** An operation applied to the suggestion argument. */
@@ -792,7 +799,7 @@ object Runtime {
         * @param reexport the reexport field to update
         */
       case class Modify(
-        externalId: Option[Option[Suggestion.ExternalId]] = None,
+        externalId: Option[Option[Suggestion.ExternalID]] = None,
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
@@ -1638,10 +1645,22 @@ object Runtime {
 
     /** Signals that project has been renamed.
       *
-      * @param namespace the namespace of the project
-      * @param newName the new project name
+      * @param oldNormalizedName old normalized name of the project
+      * @param newNormalizedName new normalized name of the project
+      * @param newName new display name of the project
       */
-    final case class ProjectRenamed(namespace: String, newName: String)
+    final case class ProjectRenamed(
+      oldNormalizedName: String,
+      newNormalizedName: String,
+      newName: String
+    ) extends ApiResponse
+
+    /** Signals that project has been renamed.
+      *
+      * @param oldName the old name of the project
+      * @param newName the new name of the project
+      */
+    final case class ProjectRenameFailed(oldName: String, newName: String)
         extends ApiResponse
 
     /** A request for symbol renaming.

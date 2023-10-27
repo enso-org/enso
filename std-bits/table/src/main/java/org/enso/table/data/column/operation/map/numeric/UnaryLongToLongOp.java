@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import java.util.BitSet;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -18,7 +18,7 @@ public abstract class UnaryLongToLongOp extends UnaryMapOperation<Long, Abstract
 
   @Override
   protected LongStorage runUnaryMap(
-      AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
+      AbstractLongStorage storage, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     long[] newVals = new long[storage.size()];
@@ -32,6 +32,7 @@ public abstract class UnaryLongToLongOp extends UnaryMapOperation<Long, Abstract
       context.safepoint();
     }
 
-    return new LongStorage(newVals, newVals.length, newMissing);
+    // TODO is inheriting type ok? it may not be enough!
+    return new LongStorage(newVals, newVals.length, newMissing, storage.getType());
   }
 }

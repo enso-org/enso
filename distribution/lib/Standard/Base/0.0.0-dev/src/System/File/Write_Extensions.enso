@@ -18,7 +18,8 @@ from project.Data.Text.Extensions import all
 
 polyglot java import org.enso.base.Array_Utils
 
-## Writes (or appends) the text to the specified file using the supplied
+## GROUP Output
+   Writes (or appends) the text to the specified file using the supplied
    encoding. The behavior specified in the `existing_file` parameter will be
    used if the file exists.
 

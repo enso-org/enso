@@ -1,10 +1,13 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
-import * as assetEvent from '../events/assetEvent'
+import type * as assetEvent from '../events/assetEvent'
+import type * as assetTreeNode from '../assetTreeNode'
+import type * as backend from '../backend'
 
-import * as assetTreeNode from '../assetTreeNode'
+import type * as categorySwitcher from './categorySwitcher'
 import * as column from '../column'
+import type * as pageSwitcher from './pageSwitcher'
 import AssetInfoBar from './assetInfoBar'
 import UserBar from './userBar'
 
@@ -16,15 +19,19 @@ import UserBar from './userBar'
 export interface AssetSettingsPanelRequiredProps {
     item: assetTreeNode.AssetTreeNode
     setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AssetTreeNode>>
-    /** This must be supplied by the row as the dashboard container does not have access to it. */
-    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Props for a {@link AssetSettingsPanel}. */
 export interface AssetSettingsPanelProps extends AssetSettingsPanelRequiredProps {
+    page: pageSwitcher.Page
+    category: categorySwitcher.Category
     isHelpChatOpen: boolean
     setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
     setIsSettingsPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+    dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+    projectAsset: backend.ProjectAsset | null
+    setProjectAsset: React.Dispatch<React.SetStateAction<backend.ProjectAsset>> | null
+    doRemoveSelf: () => void
     onSignOut: () => void
 }
 
@@ -33,11 +40,16 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
     const {
         item: rawItem,
         setItem: rawSetItem,
+        page,
+        category,
         isHelpChatOpen,
         setIsHelpChatOpen,
         setIsSettingsPanelVisible,
-        onSignOut,
         dispatchAssetEvent,
+        projectAsset,
+        setProjectAsset,
+        doRemoveSelf,
+        onSignOut,
     } = props
     const [item, innerSetItem] = React.useState(rawItem)
     const setItem = React.useCallback(
@@ -67,6 +79,10 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                         isHelpChatOpen={isHelpChatOpen}
                         setIsHelpChatOpen={setIsHelpChatOpen}
                         onSignOut={onSignOut}
+                        page={page}
+                        projectAsset={projectAsset}
+                        setProjectAsset={setProjectAsset}
+                        doRemoveSelf={doRemoveSelf}
                     />
                 </div>
             </div>
@@ -93,7 +109,7 @@ export default function AssetSettingsPanel(props: AssetSettingsPanelProps) {
                                 <column.SharedWithColumn
                                     item={item}
                                     setItem={setItem}
-                                    state={{ dispatchAssetEvent }}
+                                    state={{ category, dispatchAssetEvent }}
                                 />
                             </td>
                         </tr>

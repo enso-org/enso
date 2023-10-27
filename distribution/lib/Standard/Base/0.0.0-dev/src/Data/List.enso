@@ -38,7 +38,8 @@ type List
        - xs: The rest of the list.
     Cons x xs
 
-    ## Computes the number of elements in the list.
+    ## GROUP Metadata
+       Computes the number of elements in the list.
 
        ! Computational Complexity
 
@@ -53,7 +54,8 @@ type List
     length : Number
     length self = self.fold 0 (acc -> _ -> acc + 1)
 
-    ## Gets an element from the list at a specified index (0-based).
+    ## GROUP Selections
+       Gets an element from the list at a specified index (0-based).
 
        ! Computational Complexity
 
@@ -146,7 +148,8 @@ type List
         Nil -> if_empty
         Cons x xs -> xs.fold x function
 
-    ## Checks whether any element of the list matches the given condition.
+    ## GROUP Logical
+       Checks whether any element of the list matches the given condition.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -175,7 +178,8 @@ type List
         res = go self
         res
 
-    ## Checks whether a condition holds for all elements in this list.
+    ## GROUP Logical
+       Checks whether a condition holds for all elements in this list.
 
        Arguments:
        - condition: A `Filter_Condition` or a predicate function to test each
@@ -199,7 +203,8 @@ type List
         predicate = unify_condition_or_predicate condition
         self . any (predicate >> .not) . not
 
-    ## Checks whether this list contains a given value as an element.
+    ## GROUP Logical
+       Checks whether this list contains a given value as an element.
 
        Arguments:
        - elem: The element to check if it is in the list.
@@ -213,7 +218,8 @@ type List
     contains : Any -> Boolean
     contains self elem = self.any (== elem)
 
-    ## Checks if this list is empty.
+    ## GROUP Logical
+       Checks if this list is empty.
 
        > Example
          Checking for emptiness.
@@ -226,7 +232,8 @@ type List
         Nil -> True
         Cons _ _ -> False
 
-    ## Checks if the list is not empty.
+    ## GROUP Logical
+       Checks if the list is not empty.
 
        > Example
          Checking for emptiness.
@@ -237,7 +244,8 @@ type List
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## Selects all elements of this list which satisfy a condition.
+    ## GROUP Selections
+       Selects all elements of this list which satisfy a condition.
 
        Arguments:
        - filter: The filter to apply to the list. It can either be an instance
@@ -269,7 +277,8 @@ type List
                 go xs res.fill
                 res.value
 
-    ## Partitions the list into lists of elements which satisfy a given
+    ## GROUP Selections
+       Partitions the list into lists of elements which satisfy a given
        condition and ones that do not.
 
        Returns a `Pair` whose `first` element is the list of elements satisfying
@@ -350,7 +359,8 @@ type List
         go self
         Nothing
 
-    ## Reverses the list, returning a list with the same elements, but in the
+    ## GROUP Selections
+       Reverses the list, returning a list with the same elements, but in the
        opposite order.
 
        > Example
@@ -362,7 +372,8 @@ type List
     reverse : List
     reverse self = self.fold Nil (l -> el -> Cons el l)
 
-    ## Creates a new list with the first `count` elements at the start of `self`
+    ## GROUP Selections
+       Creates a new list with the first `count` elements at the start of `self`
        removed.
 
        Arguments:
@@ -379,7 +390,8 @@ type List
         Nil -> Nil
         Cons _ b -> b.drop_start count-1
 
-    ## Creates a new list consisting of the first `count` elements at the start
+    ## GROUP Selections
+       Creates a new list consisting of the first `count` elements at the start
        of `self`.
 
        Arguments:
@@ -405,7 +417,8 @@ type List
             go count-1 b res.fill
             res.value
 
-    ## Get all elements from the list except the last.
+    ## GROUP Selections
+       Get all elements from the list except the last.
 
        > Example
          Removing the last element of the list to give (Cons 1 Nil).
@@ -431,7 +444,8 @@ type List
                 go b res.fill
                 res.value
 
-    ## Get the last element of the list.
+    ## GROUP Selections
+       Get the last element of the list.
 
        > Example
          Getting the final element of the list.
@@ -444,7 +458,8 @@ type List
         Nothing -> Error.throw (Index_Out_Of_Bounds.Error -1 0)
         a -> a
 
-    ## Get the first element from the list.
+    ## GROUP Selections
+       Get the first element from the list.
 
        > Example
          Getting the first element in the list.
@@ -457,7 +472,8 @@ type List
         Nil -> Error.throw (Index_Out_Of_Bounds.Error 0 0)
         Cons a _ -> a
 
-    ## Get the second element from the list.
+    ## GROUP Selections
+       Get the second element from the list.
 
        > Example
          Getting the second element in the list.
@@ -472,7 +488,8 @@ type List
             Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 1)
             Cons b _ -> b
 
-    ## Get the first element from the list.
+    ## GROUP Selections
+       Get the first element from the list.
 
        > Example
          This returns 1.
@@ -483,7 +500,8 @@ type List
     head : Any ! Index_Out_Of_Bounds
     head self = self.first
 
-    ## Get all elements from the list except the first.
+    ## GROUP Selections
+       Get all elements from the list except the first.
 
        > Example
          This returns (Cons 2 Nil).
@@ -496,7 +514,8 @@ type List
         Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 0)
         Cons _ b -> b
 
-    ## Convert this list to a vector with the same elements.
+    ## GROUP Conversions
+       Convert this list to a vector with the same elements.
     to_vector : Vector
     to_vector self =
         builder = self.fold (Vector.new_builder self.length) builder-> elem->
@@ -512,7 +531,8 @@ type List
             Cons x xs -> @Tail_Call go xs (t + "(Cons " + x.to_text + " ") (")" + e)
         go self "" ""
 
-    ## Returns the first element of the list that satisfies the condition or
+    ## GROUP Selections
+       Returns the first element of the list that satisfies the condition or
        if no elements of the list satisfy the predicate, returns `if_missing`.
 
        Arguments:
@@ -542,7 +562,8 @@ type List
                     Cons x xs -> if predicate x then x else @Tail_Call loop xs
                 loop start_node
 
-    ## Returns the index of the element in the list.
+    ## GROUP Values
+       Returns the index of the element in the list.
        Returns Nothing if the element is not found.
 
        Arguments:
@@ -569,7 +590,8 @@ type List
                 Cons x xs -> if predicate x then idx else @Tail_Call loop xs idx+1
             loop start_node start
 
-    ## Returns the last index of the element in the list.
+    ## GROUP Values
+       Returns the last index of the element in the list.
        Returns Nothing if the element is not found.
 
        Arguments:

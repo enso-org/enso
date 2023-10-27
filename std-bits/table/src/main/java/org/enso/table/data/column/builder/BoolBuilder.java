@@ -4,6 +4,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
@@ -34,7 +35,7 @@ public class BoolBuilder extends TypedBuilder {
           vals.set(size);
         }
       } else {
-        throw new UnsupportedOperationException("Cannot coerce " + o + " (" + o.getClass().getCanonicalName() + ")" + " to a boolean type.");
+        throw new ValueTypeMismatchException(getType(), o);
       }
     }
     size++;
@@ -79,7 +80,7 @@ public class BoolBuilder extends TypedBuilder {
         throw new IllegalStateException("Unexpected storage implementation for type BOOLEAN: " + storage + ". This is a bug in the Table library.");
       }
     } else {
-      throw new StorageTypeMismatch(getType(), storage.getType());
+      throw new StorageTypeMismatchException(getType(), storage.getType());
     }
   }
 
@@ -94,7 +95,7 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public void writeTo(Object[] items) {
+  public void retypeToMixed(Object[] items) {
     for (int i = 0; i < size; i++) {
       if (isNa.get(i)) {
         items[i] = null;

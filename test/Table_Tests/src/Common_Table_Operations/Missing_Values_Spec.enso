@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Value_Type
+from Standard.Table import Value_Type, Column_Ref, Previous_Value
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
 from Standard.Table.Errors import all
 
@@ -57,6 +57,15 @@ spec setup =
             t4 = t3.filter_blank_rows when_any=False
             t4.row_count . should_equal 0
             t4.at "X" . to_vector . should_equal []
+
+        Test.specify "filter_blank_rows should work with a table with many columns" <|
+            cols = Vector.new 60 i->
+                ["col_"+i.to_text, [i, Nothing]]
+            t1 = table_builder cols
+            t2 = t1.filter_blank_rows
+            t2.columns.length . should_equal 60
+            t2.row_count . should_equal 1
+            t2.at 42 . to_vector . should_equal [42]
 
         Test.specify "should allow to select blank columns" <|
             r1 = t1.select_blank_columns
@@ -218,12 +227,28 @@ spec setup =
             table.at "Z" . fill_nothing True . should_fail_with No_Common_Type
 
         if setup.is_database.not then
-            Test.specify "may allow mixed types if explicitly retyped" pending="TODO: cast #6112" <|
+            Test.specify "may allow mixed types if explicitly retyped" <|
+                table = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [True, False, Nothing, Nothing]], ["Z", [0.5, Nothing, Nothing, 0.25]]]
+                mix = table.at "X" . cast Value_Type.Mixed
+                mix.value_type . should_equal Value_Type.Mixed
+                mix_filled = mix.fill_nothing False
+                mix_filled.to_vector . should_equal [1, False, 2, False]
+                mix_filled.value_type . should_equal Value_Type.Mixed
+
+                c2 = table.at "Y" . fill_nothing mix
+                c2.to_vector . should_equal [True, False, 2, Nothing]
+                c2.value_type . should_equal Value_Type.Mixed
+
+                c3 = table.at "Z" . fill_nothing mix
+                c3.to_vector . should_equal [0.5, Nothing, 2, 0.25]
+                c3.value_type . should_equal Value_Type.Mixed
+
+            Test.specify "will keep the Mixed type if was explicitly retyped" <|
                 table = table_builder [["X", [1, Nothing, 2, Nothing]]]
-                ints = table.at "X" . cast Value_Type.Mixed
-                ints_filled = ints.fill_nothing False
-                ints_filled.to_vector . should_equal [1, False, 2, False]
-                ints_filled.value_type . should_equal Value_Type.Mixed
+                mix = table.at "X" . cast Value_Type.Mixed
+                mix_filled = mix.fill_nothing 0
+                mix_filled.to_vector . should_equal [1, 0, 2, 0]
+                mix_filled.value_type . should_equal Value_Type.Mixed
 
         Test.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
             t0 = table_builder [["A", ["a", Nothing, "c"]], ["B", ["X", "Y", "Z"]], ["C", ["xyz", "abc", "def"]]]
@@ -244,3 +269,49 @@ spec setup =
             e.to_vector . should_equal ["a", "abc", "c"]
             Test.with_clue "e.value_type="+e.value_type.to_display_text+": " <|
                 e.value_type.variable_length.should_be_true
+
+        Test.specify "should allow setting a default column by reference" <|
+            t = table_builder [["A", ["x", "", Nothing]], ["B", ["a", "b", "c"]], ["C", [Nothing, Nothing, "ZZZ"]], ["D", [Nothing, "2", "3"]]]
+
+            t1 = t.fill_nothing "A" (Column_Ref.Name "B")
+            t1.at "A" . to_vector . should_equal ["x", "", "c"]
+
+            t2 = t.fill_empty "A" (Column_Ref.Name "B")
+            t2.at "A" . to_vector . should_equal ["x", "b", "c"]
+
+            t3 = t.fill_nothing ["A", "C"] (Column_Ref.Name "D")
+            t3.at "A" . to_vector . should_equal ["x", "", "3"]
+            t3.at "B" . to_vector . should_equal ["a", "b", "c"]
+            t3.at "C" . to_vector . should_equal [Nothing, "2", "ZZZ"]
+            t3.at "D" . to_vector . should_equal [Nothing, "2", "3"]
+
+        if setup.is_database.not then Test.specify "should allow filling rows with previous value" <|
+            t = table_builder [["A", ["a", "", Nothing, Nothing, "", "b", "c", Nothing]]]
+
+            t1 = t.fill_nothing "A" Previous_Value
+            t1.at "A" . to_vector . should_equal ["a", "", "", "", "", "b", "c", "c"]
+
+            t2 = t.fill_empty "A" Previous_Value
+            t2.at "A" . to_vector . should_equal ["a", "a", "a", "a", "a", "b", "c", "c"]
+
+            # May still keep Nothing/empty if there is no previous value
+            t3 = table_builder [["B", [Nothing, Nothing, "", Nothing, "a", Nothing]]]
+            t3.fill_nothing "B" Previous_Value . at "B" . to_vector . should_equal [Nothing, Nothing, "", "", "a", "a"]
+            t3.fill_empty "B" Previous_Value . at "B" . to_vector . should_equal [Nothing, Nothing, "", Nothing, "a", "a"]
+
+            # Will work on multiple columns
+            t4 = table_builder [["A", ["a", "b", Nothing, Nothing]], ["B", [Nothing, 42, Nothing, 123]], ["C", ["", "foo", Nothing, "bar"]], ["D", [True, Nothing, False, Nothing]], ["E", [Nothing, Date.new 2001, Nothing, Nothing]], ["F", [2, Nothing, "a", Nothing]]]
+            t5 = t4.fill_nothing ["A", "B", "D", "E", "F"] Previous_Value
+            t5.at "A" . to_vector . should_equal ["a", "b", "b", "b"]
+            t5.at "B" . to_vector . should_equal [Nothing, 42, 42, 123]
+            t5.at "D" . to_vector . should_equal [True, True, False, False]
+            t5.at "E" . to_vector . should_equal [Nothing, Date.new 2001, Date.new 2001, Date.new 2001]
+            t5.at "F" . to_vector . should_equal [2, 2, "a", "a"]
+
+            # C is unchanged
+            t5.at "C" . to_vector . should_equal ["", "foo", Nothing, "bar"]
+
+        if setup.is_database then Test.specify "will for now report that Previous_Value is not supported" <|
+            t = table_builder [["A", ["a", "", Nothing, Nothing, "", "b", "c", Nothing]]]
+            t.fill_nothing "A" Previous_Value . should_fail_with Unsupported_Database_Operation
+            t.fill_empty "A" Previous_Value . should_fail_with Unsupported_Database_Operation

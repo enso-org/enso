@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.13-NAPSHOT</version>
+    <version>1.15-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -29,6 +29,31 @@
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>uk.co.bithatch</groupId>
+                <artifactId>svg-rasterizer-maven-plugin</artifactId>
+                <version>1.2</version>
+                <executions>
+                    <execution>
+                        <id>Rasterize</id>
+                        <goals>
+                            <goal>rasterize-image</goal>
+                        </goals>
+                        <configuration>
+                            <inputFile>src/main/resources/org/enso/tools/enso4igv/enso.svg</inputFile>
+                            <destDir>dist/</destDir>
+                            <outputs>
+                                <output>
+                                    <path>enso.png</path>
+                                    <width>128</width>
+                                    <height>128</height>
+                                    <format>png</format>
+                                </output>
+                            </outputs>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -223,6 +248,18 @@
                                 <goals>
                                     <goal>install</goal>
                                 </goals>
+                            </execution>
+                            <execution>
+                                <id>version</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <command>version</command>
+                                    <args>
+                                        <arg>${project.version}</arg>
+                                    </args>
+                                </configuration>
                             </execution>
                             <execution>
                                 <id>vsix</id>

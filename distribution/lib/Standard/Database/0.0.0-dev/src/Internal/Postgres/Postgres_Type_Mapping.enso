@@ -34,8 +34,11 @@ type Postgres_Type_Mapping
                 SQL_Type.Value Types.REAL "float4"
             Value_Type.Float Bits.Bits_64 ->
                 SQL_Type.Value Types.DOUBLE "float8"
-            Value_Type.Decimal precision scale ->
-                SQL_Type.Value Types.DECIMAL "decimal" precision scale
+            Value_Type.Decimal precision scale -> case precision of
+                # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
+                Nothing -> SQL_Type.Value Types.DECIMAL "decimal" Nothing Nothing
+                # Scale can be set or not, if precision is given, so no check needed.
+                _       -> SQL_Type.Value Types.DECIMAL "decimal" precision scale
             Value_Type.Char size variable ->
                 case variable of
                     True  ->
@@ -52,6 +55,10 @@ type Postgres_Type_Mapping
                 type_name = if with_timezone then "timestamptz" else "timestamp"
                 SQL_Type.Value Types.TIMESTAMP type_name
             Value_Type.Binary _ _ ->
+                ## `bytea` is the compact storage for binary data, but it does not allow setting fixed size.
+                   We currently do not use Binary datatype much, so it is hard to decide which one is more appropriate,
+                   but we may also consider using the standard SQL `bit(n)` and `bit varying(n)` types.
+                   See: https://www.postgresql.org/docs/current/datatype-bit.html
                 SQL_Type.Value Types.BINARY "bytea" precision=max_precision
             Value_Type.Mixed ->
                 Error.throw (Unsupported_Database_Operation.Error "Postgres tables do not support Mixed types.")

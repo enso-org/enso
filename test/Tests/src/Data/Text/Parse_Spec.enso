@@ -10,11 +10,11 @@ from Standard.Test import Test, Test_Suite
 
 spec =
     Test.group "parse" <|
-        Test.specify "Decimal" <|
-            "32.5".parse_decimal . should_equal <| Decimal.parse "32.5"
+        Test.specify "Float" <|
+            "32.5".parse_float . should_equal <| Float.parse "32.5"
             l = Locale.new "cs"
-            "32,5".parse_decimal l . should_equal <| Decimal.parse "32,5" l
-            "abc".parse_decimal . should_fail_with Number_Parse_Error
+            "32,5".parse_float l . should_equal <| Float.parse "32,5" l
+            "abc".parse_float . should_fail_with Number_Parse_Error
 
         Test.specify "Integer" <|
             "12343456".parse_integer . should_equal <| Integer.parse "12343456"
@@ -26,9 +26,11 @@ spec =
             "[[".parse_json . should_fail_with Invalid_JSON
 
         Test.specify "Date" <|
-            "1999-01-01".parse_date . should_equal <| Date.parse "1999-01-01"
-            "1999 1 1".parse_date "yyyy M d" . should_equal <| Date.parse "1999 1 1" "yyyy M d"
+            "1999-01-01".parse_date . should_equal <| Date.new 1999 1 1
+            "1999 1 1".parse_date "yyyy M d" . should_equal <| Date.new 1999 1 1
             "1999-01-01".parse_date "yyyy M d" . should_fail_with Time_Error
+            "13 Jan 2023".parse_date "d MMM yyyy" . should_equal <| Date.new 2023 1 13
+            "13 January 2023".parse_date "d MMMM yyyy" . should_equal <| Date.new 2023 1 13
 
         Test.specify "Date_Time" <|
             "2020-10-01T04:11:12-04:00".parse_date_time . should_equal <| Date_Time.parse "2020-10-01T04:11:12-04:00"

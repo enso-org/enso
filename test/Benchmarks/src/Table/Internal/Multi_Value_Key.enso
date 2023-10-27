@@ -1,0 +1,119 @@
+from Standard.Base import all
+
+from Standard.Table import Table, Value_Type, Aggregate_Column
+import Standard.Table.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
+import Standard.Table.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
+from Standard.Test import Bench
+
+polyglot java import org.enso.table.data.index.OrderedMultiValueKey
+polyglot java import org.enso.table.data.index.UnorderedMultiValueKey
+polyglot java import org.enso.base.text.TextFoldingStrategy
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 2)
+
+type My_Pair
+    Value x1 x2
+
+type My_Pair_Comparator
+    compare x y =
+        Ordering.compare x.x2 y.x2 . and_then <|
+            Ordering.compare x.x1 y.x1
+
+    hash x = x.x1.bit_xor x.x2
+
+Comparable.from (_:My_Pair) = My_Pair_Comparator
+
+create_table : Integer -> Table
+create_table num_rows =
+    rng = Random.new 42
+    x = Vector.new num_rows _-> rng.integer min=0 max=100
+    y = Vector.new num_rows _-> rng.integer min=0 max=20 . to_text
+    z = Vector.new num_rows _->
+        a = rng.integer min=0 max=100
+        b = rng.integer min=0 max=100
+        My_Pair.Value a b
+    t = Table.new [["X", x], ["Y", y], ["Z", z]]
+
+    assert condition =
+        if condition.not then Panic.throw "Assertion failed"
+
+    assert ((t.at "X" . value_type) == Value_Type.Integer)
+    assert ((t.at "Y" . value_type) == Value_Type.Char)
+    assert ((t.at "Z" . value_type) == Value_Type.Mixed)
+    t
+
+
+type Data
+    Value ~table
+
+    create num_rows = Data.Value (create_table num_rows)
+
+compare_ordered_keys make_key table compare_keys =
+    n = table.row_count
+    keys = 0.up_to n . map ix-> make_key ix
+    blackhole = 1.up_to n . fold 0 acc-> ix->
+        current = keys.at ix
+        previous = keys.at (ix - 1)
+        if compare_keys current previous then acc+1 else acc-1
+    blackhole
+
+compute_hashcodes make_key table get_hash =
+    n = table.row_count
+    keys = 0.up_to n . map ix-> make_key ix
+    blackhole = keys.fold 0 acc-> key->
+        h = get_hash key
+        (acc + h) % 1997
+    blackhole
+
+collect_benches = Bench.build builder->
+    num_rows = 100000
+    data = Data.create num_rows
+
+    builder.group ("Ordered_Multi_Value_Key" + num_rows.to_text) options group_builder->
+        run_enso table =
+            key_columns = table.columns
+            directions = Vector.fill key_columns.length False
+            make_key row_ix = Ordered_Multi_Value_Key.from_row key_columns directions row_ix
+            compare_keys key1 key2 = key1 < key2
+            compare_ordered_keys make_key table compare_keys
+
+        run_java table =
+            key_storages = table.columns.map c-> c.java_column.getStorage
+            directions = Vector.fill key_storages.length 1
+            make_key row_ix = OrderedMultiValueKey.new key_storages row_ix directions
+            compare_keys key1 key2 = key1.compareTo key2 < 0
+            compare_ordered_keys make_key table compare_keys
+
+        group_builder.specify "Primitive_Enso" <|
+            run_enso (data.table.select_columns ["X", "Y"])
+        group_builder.specify "Primitive_Java" <|
+            run_java (data.table.select_columns ["X", "Y"])
+        group_builder.specify "Custom_Object_Enso" <|
+            run_enso (data.table.select_columns ["X", "Z"])
+        group_builder.specify "Custom_Object_Java" <|
+            run_java (data.table.select_columns ["X", "Z"])
+
+    builder.group ("Unordered_Multi_Value_Key" + num_rows.to_text) options group_builder->
+        run_enso table =
+            key_columns = table.columns
+            make_key row_ix = Unordered_Multi_Value_Key.from_row key_columns row_ix
+            get_hash key = key.hash_code
+            compute_hashcodes make_key table get_hash
+
+        run_java table =
+            key_storages = table.columns.map c-> c.java_column.getStorage
+            text_folding_strategies = Vector.fill key_storages.length TextFoldingStrategy.unicodeNormalizedFold
+            make_key row_ix = UnorderedMultiValueKey.new key_storages row_ix text_folding_strategies
+            get_hash key = key.hashCode
+            compute_hashcodes make_key table get_hash
+
+        group_builder.specify "Primitive_Enso" <|
+            run_enso (data.table.select_columns ["X", "Y"])
+        group_builder.specify "Primitive_Java" <|
+            run_java (data.table.select_columns ["X", "Y"])
+        group_builder.specify "Custom_Object_Enso" <|
+            run_enso (data.table.select_columns ["X", "Z"])
+        group_builder.specify "Custom_Object_Java" <|
+            run_java (data.table.select_columns ["X", "Z"])
+
+main = collect_benches . run_main

@@ -16,7 +16,7 @@ import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
@@ -38,7 +38,7 @@ public class SerdeCompilerTest {
 
   private void parseSerializedModule(String projectName, String forbiddenMessage)
       throws InterruptedException, ExecutionException, IOException, TimeoutException {
-    IR.Module old;
+    Module old;
     var pkgPath = new File(getClass().getClassLoader().getResource(projectName).getPath());
     var pkg = PackageManager.Default().fromDirectory(pkgPath).get();
     try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(projectName, pkgPath, true)) {
@@ -47,7 +47,7 @@ public class SerdeCompilerTest {
               ctx.getBindings(LanguageInfo.ID)
                   .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                   .asHostObject();
-      var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
+      var module = ensoContext.getModuleForFile(pkg.mainFile()).get().asCompilerModule();
       var compiler = ensoContext.getCompiler();
 
       ctx.enter();
@@ -73,7 +73,7 @@ public class SerdeCompilerTest {
       ctx.leave();
     }
 
-    IR.Module now;
+    Module now;
     mockHandler.failOnMessage(forbiddenMessage);
 
     try (org.graalvm.polyglot.Context ctx = ensoContextForPackage(projectName, pkgPath, false)) {
@@ -82,7 +82,7 @@ public class SerdeCompilerTest {
               ctx.getBindings(LanguageInfo.ID)
                   .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                   .asHostObject();
-      var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
+      var module = ensoContext.getModuleForFile(pkg.mainFile()).get().asCompilerModule();
       var compiler = ensoContext.getCompiler();
 
       ctx.enter();
@@ -90,9 +90,8 @@ public class SerdeCompilerTest {
       mockHandler.assertNoFailureMessage();
       assertEquals(result.compiledModules().exists(m -> m == module), true);
 
-      var methods = module.getScope().getMethods();
-      var methodsOfMain = methods.values().iterator().next();
-      var main = methodsOfMain.values().iterator().next();
+      var methods = module.getScope().getAllMethods();
+      var main = methods.get(0);
 
       assertEquals("Main.main", main.getName());
       var mainValue = ctx.asValue(main);
@@ -143,7 +142,6 @@ public class SerdeCompilerTest {
       if (failMsg != null && failMsg.equals(msg)) {
         failure = new AssertionError(this.toString() + "\nGot forbidden message: " + msg);
       }
-      System.err.println(msg);
     }
 
     @Override

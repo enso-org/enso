@@ -2,15 +2,20 @@ from Standard.Base import all
 
 import project.AWS_Credential.AWS_Credential
 
+polyglot java import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+polyglot java import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
+polyglot java import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 polyglot java import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
+polyglot java import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 
 ## PRIVATE
    Create the Java credentialsProvider object.
-create_provider : (AWS_Credential | Nothing) -> ProfileCredentialsProvider
+create_provider : (AWS_Credential | Nothing) -> AwsCredentialsProvider
 create_provider (credentials : AWS_Credential | Nothing) = case credentials of
     AWS_Credential.Profile p ->
         ProfileCredentialsProvider.builder.profileName p . build
-    AWS_Credential.Key k s ->
-        ProfileCredentialsProvider.builder.accessKeyId k . secretAccessKey s . build
+    AWS_Credential.Key key secret ->
+        credentials = AwsBasicCredentials.create key secret
+        StaticCredentialsProvider.create credentials
     Nothing ->
-        ProfileCredentialsProvider.builder.build
+        DefaultCredentialsProvider.builder.build

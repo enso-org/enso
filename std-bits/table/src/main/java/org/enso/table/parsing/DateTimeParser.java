@@ -1,17 +1,19 @@
 package org.enso.table.parsing;
 
-import java.util.Locale;
-import org.enso.polyglot.common_utils.Core_Date_Utils;
+import org.enso.base.time.EnsoDateTimeFormatter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.DateTimeBuilder;
+import org.enso.table.problems.ProblemAggregator;
 
 public class DateTimeParser extends BaseTimeParser {
-  public DateTimeParser(String[] formats, Locale locale) {
-    super(formats, locale, Core_Date_Utils::parseZonedDateTime);
+  public DateTimeParser(EnsoDateTimeFormatter[] formatters) {
+    super(
+        formatters,
+        (String text, EnsoDateTimeFormatter formatter) -> formatter.parseZonedDateTime(text));
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(int capacity) {
+  protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
     return new DateTimeBuilder(capacity);
   }
 }

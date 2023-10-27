@@ -300,7 +300,10 @@ pub mod mock {
             let mut executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
             let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
-            let searcher_mode = controller::searcher::Mode::EditNode { node_id: searcher_target };
+            let searcher_mode = controller::searcher::Mode::EditNode {
+                original_node_id: searcher_target,
+                edited_node_id:   default(),
+            };
             let position_in_code = executed_graph.graph().definition_end_location().unwrap();
             let searcher = controller::Searcher::new_from_graph_controller(
                 ide.clone_ref(),
@@ -460,8 +463,10 @@ pub fn assert_call_info(
     let parser = parser::Parser::new();
     let db = model::suggestion_database::SuggestionDatabase::new_empty();
     for (encountered, expected) in info.parameters.iter().zip(entry.arguments.iter()) {
-        let expected_info =
-            model::suggestion_database::entry::to_span_tree_param(expected, &db, &parser);
+        let in_module = default();
+        let expected_info = model::suggestion_database::entry::to_span_tree_param(
+            expected, &db, &parser, in_module,
+        );
         assert_eq!(encountered, &expected_info);
     }
 }

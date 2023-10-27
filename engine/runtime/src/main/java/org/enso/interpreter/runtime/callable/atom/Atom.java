@@ -116,7 +116,10 @@ public abstract class Atom implements EnsoObject {
       sb.append(suffix);
     }
     if (obj != null) {
-      var errorMessage = InteropLibrary.getUncached().toDisplayString(obj);
+      var errorMessage = switch (obj) {
+        case Function fn -> fn.toString(false);
+        default -> InteropLibrary.getUncached().toDisplayString(obj);
+      };
       if (errorMessage != null) {
         sb.append(errorMessage);
       } else {
@@ -141,14 +144,14 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public EnsoObject getMembers(boolean includeInternal) {
-    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
+    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     Set<String> allMembers = new HashSet<>();
     if (members != null) {
-      allMembers.addAll(members.keySet());
+      allMembers.addAll(members);
     }
-    members = constructor.getType().getDefinitionScope().getMethods().get(constructor.getType());
+    members = constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
     if (members != null) {
-      allMembers.addAll(members.keySet());
+      allMembers.addAll(members);
     }
     String[] mems = allMembers.toArray(new String[0]);
     return ArrayLikeHelpers.wrapStrings(mems);
@@ -157,12 +160,12 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   public boolean isMemberInvocable(String member) {
-    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor.getType());
-    if (members != null && members.containsKey(member)) {
+    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
+    if (members != null && members.contains(member)) {
       return true;
     }
-    members = constructor.getType().getDefinitionScope().getMethods().get(constructor.getType());
-    return members != null && members.containsKey(member);
+    members = constructor.getType().getDefinitionScope().getMethodNamesForType(constructor.getType());
+    return members != null && members.contains(member);
   }
 
   @ExportMessage
@@ -239,6 +242,7 @@ public abstract class Atom implements EnsoObject {
       boolean allowSideEffects,
       @CachedLibrary("this") InteropLibrary atoms,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached BranchProfile handleError
   ) {
     Object result = null;
@@ -252,6 +256,8 @@ public abstract class Atom implements EnsoObject {
         msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
       } else if (TypesGen.isText(result)) {
         return TypesGen.asText(result);
+      } else if (interop.isString(result)) {
+        return Text.create(interop.asString(result));
       } else {
         msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
       }

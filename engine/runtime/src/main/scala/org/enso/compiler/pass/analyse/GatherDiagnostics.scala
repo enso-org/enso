@@ -1,7 +1,15 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Diagnostic,
+  Expression,
+  Module
+}
+import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.resolve.TypeSignatures
@@ -17,8 +25,8 @@ case object GatherDiagnostics extends IRPass {
   override type Metadata = DiagnosticsMeta
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass]   = List(TypeSignatures)
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override lazy val precursorPasses: Seq[IRPass]   = List(TypeSignatures)
+  override lazy val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
     * diagnostics to its metadata storage.
@@ -30,9 +38,9 @@ case object GatherDiagnostics extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): Module =
     ir.updateMetadata(this -->> gatherMetadata(ir))
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
@@ -44,9 +52,9 @@ case object GatherDiagnostics extends IRPass {
     * @return `ir` with all the errors accumulated in pass metadata.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir.updateMetadata(this -->> gatherMetadata(ir))
+  ): Expression = ir.updateMetadata(this -->> gatherMetadata(ir))
 
   /** Gathers diagnostics from all children of an IR node.
     *
@@ -55,33 +63,42 @@ case object GatherDiagnostics extends IRPass {
     */
   private def gatherMetadata(ir: IR): DiagnosticsMeta = {
     val diagnostics = ir.preorder.collect {
-      case err: IR.Diagnostic =>
+      case err: Diagnostic =>
         List(err)
-      case arg: IR.DefinitionArgument =>
+      case arg: DefinitionArgument =>
         val typeSignatureDiagnostics =
           arg
             .getMetadata(TypeSignatures)
-            .map(_.signature.preorder.collect { case err: IR.Diagnostic =>
+            .map(_.signature.preorder.collect { case err: Diagnostic =>
               err
             })
             .getOrElse(Nil)
         typeSignatureDiagnostics ++ arg.diagnostics.toList
-      case x: IR.Module.Scope.Definition.Method =>
+      case x: definition.Method =>
         val typeSignatureDiagnostics =
           x.getMetadata(TypeSignatures)
-            .map(_.signature.preorder.collect { case err: IR.Diagnostic =>
+            .map(_.signature.preorder.collect { case err: Diagnostic =>
               err
             })
             .getOrElse(Nil)
         typeSignatureDiagnostics ++ x.diagnostics.toList
-      case x => x.diagnostics.toList
+      case x: Expression =>
+        val typeSignatureDiagnostics =
+          x.getMetadata(TypeSignatures)
+            .map(_.signature.preorder.collect { case err: Diagnostic =>
+              err
+            })
+            .getOrElse(Nil)
+        typeSignatureDiagnostics ++ x.diagnostics.toList
+      case x =>
+        x.diagnostics.toList
     }.flatten
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))
     )
   }
 
-  final private class DiagnosticKeys(private val diagnostic: IR.Diagnostic) {
+  final private class DiagnosticKeys(private val diagnostic: Diagnostic) {
 
     /** Equals is based on type of diagnostic, its location and its diagnostic keys.
       */
@@ -110,7 +127,7 @@ case object GatherDiagnostics extends IRPass {
     *
     * @param diagnostics a list of the errors found in the IR
     */
-  case class DiagnosticsMeta(diagnostics: List[IR.Diagnostic])
+  case class DiagnosticsMeta(diagnostics: List[Diagnostic])
       extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */

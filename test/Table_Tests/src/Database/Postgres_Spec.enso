@@ -6,7 +6,7 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
-from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
+from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 import Standard.Database.Data.Column.Column
 import Standard.Database.Data.SQL_Type.SQL_Type
@@ -26,6 +26,7 @@ import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
 import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Common_Table_Operations
+from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 postgres_specific_spec connection db_name setup =
@@ -138,7 +139,7 @@ postgres_specific_spec connection db_name setup =
         row2 = ["abc", Nothing, Nothing, 1.3]
         row3 = ["def", 42, True, 1.4]
         Panic.rethrow <|
-            (Table.from_rows ["strs", "ints", "bools", "doubles"] [row1, row2, row3]).update_database_table t update_action=Update_Action.Insert
+            t.update_rows (Table.from_rows ["strs", "ints", "bools", "doubles"] [row1, row2, row3]) update_action=Update_Action.Insert
 
         Test.specify "should return Table information" <|
             i = t.info
@@ -157,6 +158,22 @@ postgres_specific_spec connection db_name setup =
             t.at "ints" . value_type . is_integer . should_be_true
             t.at "bools" . value_type . is_boolean . should_be_true
             t.at "doubles" . value_type . is_floating_point . should_be_true
+
+        Test.specify "should preserve Postgres types when table is materialized, where possible" <|
+            name = Name_Generator.random_name "types-test"
+            Problems.assume_no_problems <|
+                connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
+            t1 = connection.query (SQL_Query.Table_Name name)
+            t1.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            t1.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            t1.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+            t1.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
+
+            in_memory = t1.read
+            in_memory.at "int4" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+            in_memory.at "int2" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
+            in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
+            in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
     Test.group "[PostgreSQL] Dialect-specific codegen" <|
         Test.specify "should generate queries for the Distinct operation" <|
@@ -263,6 +280,162 @@ postgres_specific_spec connection db_name setup =
             Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
                 d.value_type.variable_length.should_be_true
 
+        Test.specify "should be able to round-trip a BigInteger column" <|
+            x = 2^70
+            m1 = Table.new [["X", [10, x]]]
+            m1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+
+            t1 = m1.select_into_database_table connection (Name_Generator.random_name "BigInteger") primary_key=[] temporary=True
+            t1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            t1.at "X" . value_type . scale . should_equal 0
+            # If we want to enforce the scale, Postgres requires us to enforce a precision too, so we use the biggest one we can:
+            t1.at "X" . value_type . precision . should_equal 1000
+            w1 = Problems.expect_only_warning Inexact_Type_Coercion t1
+            w1.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=0)
+            w1.actual_type . should_equal (Value_Type.Decimal precision=1000 scale=0)
+
+            v1x = t1.at "X" . to_vector
+            v1x.should_equal [10, x]
+            v1x.each e-> Test.with_clue "("+e.to_text+"): " <| e.should_be_a Integer
+
+            t2 = t1.set "[X] + 10" "Y"
+            t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            t2.at "Y" . value_type . should_be_a (Value_Type.Decimal ...)
+            # Unfortunately, performing operations on a Decimal column in postgres can lose information about it being an integer column.
+            t2.at "Y" . value_type . scale . should_equal Nothing
+            t2.at "X" . to_vector . should_equal [10, x]
+            # Only works by approximation:
+            t2.at "Y" . to_vector . should_equal [20, x+10]
+            t2.at "Y" . cast Value_Type.Char . to_vector . should_equal ["20", (x+10).to_text]
+
+            m2 = t2.remove_warnings.read
+            m2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            # As noted above - once operations are performed, the scale=0 may be lost and the column will be approximated as a float.
+            m2.at "Y" . value_type . should_equal Value_Type.Float
+            m2.at "X" . to_vector . should_equal [10, x]
+            m2.at "Y" . to_vector . should_equal [20, x+10]
+            w2 = Problems.expect_only_warning Inexact_Type_Coercion m2
+            w2.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
+            w2.actual_type . should_equal Value_Type.Float
+
+            # This has more than 1000 digits.
+            super_large = 11^2000
+            m3 = Table.new [["X", [super_large]]]
+            m3.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            t3 = m3.select_into_database_table connection (Name_Generator.random_name "BigInteger2") primary_key=[] temporary=True
+            t3 . at "X" . value_type . should_be_a (Value_Type.Decimal ...)
+            # If we exceed the 1000 digits precision, we cannot enforce neither scale nor precision anymore.
+            t3 . at "X" . value_type . precision . should_equal Nothing
+            t3 . at "X" . value_type . scale . should_equal Nothing
+            # Works but only relying on imprecise float equality:
+            t3 . at "X" . to_vector . should_equal [super_large]
+            w3 = Problems.expect_only_warning Inexact_Type_Coercion t3
+            w3.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=0)
+            w3.actual_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
+
+            m4 = t3.remove_warnings.read
+            # Because we no longer have a set scale, we cannot get a BigInteger column back - we'd need BigDecimal, but that is not fully supported yet in Enso - so we get the closest approximation - the imprecise Float.
+            m4 . at "X" . value_type . should_equal Value_Type.Float
+            m4 . at "X" . to_vector . should_equal [super_large]
+            w4 = Problems.expect_only_warning Inexact_Type_Coercion m4
+            w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
+            w4.actual_type . should_equal Value_Type.Float
+
+        Test.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
+            table_name = Name_Generator.random_name "TimestampTZ"
+            table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
+
+            dt1 = Date_Time.new 2022 05 04 15 30
+            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+            dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+            v = [dt1, dt2, dt3, dt4]
+
+            Problems.assume_no_problems <|
+                table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
+
+            tz_zero = Time_Zone.parse "Z"
+            v_at_z = v.map dt-> dt.at_zone tz_zero
+            table.at "A" . to_vector . should_equal v_at_z
+            table.at "A" . to_vector . should_equal_tz_agnostic v
+
+            ## We also check how the timestamp column behaves with interpolations:
+               (See analogous test showing a less nice behaviour without timezones below.)
+            v.each my_dt-> Test.with_clue my_dt.to_text+" " <|
+                # Checks if the two date-times represent the same instant in time.
+                is_same_time_instant dt1 dt2 =
+                    dt1.at_zone tz_zero == dt2.at_zone tz_zero
+                local_equals = v.filter (is_same_time_instant my_dt)
+                # Depending on test runner's timezone, the `my_dt` may be equal to 1 or 2 entries in `v`.
+                [1, 2].should_contain local_equals.length
+
+                Test.with_clue " == "+local_equals.to_text+": " <|
+                    t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                    t2.row_count . should_equal local_equals.length
+                    t2.at "A" . to_vector . should_equal_tz_agnostic local_equals
+
+        Test.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
+            table_name = Name_Generator.random_name "Timestamp"
+            table = connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
+            Problems.assume_no_problems table
+
+            dt1 = Date_Time.new 2022 05 04 15 30
+            dt2 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.utc)
+            dt3 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "US/Hawaii")
+            dt4 = Date_Time.new 2022 05 04 15 30 zone=(Time_Zone.parse "Europe/Warsaw")
+            v = [dt1, dt2, dt3, dt4]
+
+            source_table = Table.new [["A", v]]
+            source_table.at "A" . value_type . should_equal (Value_Type.Date_Time with_timezone=True)
+            w = Problems.expect_only_warning Inexact_Type_Coercion <|
+                table.update_rows source_table update_action=Update_Action.Insert
+            w.requested_type . should_equal (source_table.at "A" . value_type)
+            w.actual_type . should_equal (table.at "A" . value_type)
+            w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
+
+            # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
+            # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
+            local_dt = "2022-05-04 15:30:00"
+            table.at "A" . cast Value_Type.Char . to_vector . should_equal [local_dt, local_dt, local_dt, local_dt]
+
+            # Then when downloaded, it should be interpreted at the 'system default' timezone.
+            materialized_table = table.read
+            materialized_table.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+
+            # The Inexact_Type_Coercion warning is silenced for this case:
+            Problems.assume_no_problems materialized_table
+
+            # We also check how the timestamp column behaves with interpolations:
+            v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
+                t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
+                is_in_system_tz = my_dt.at_zone Time_Zone.system . time_of_day == my_dt.time_of_day
+                ## Unfortunately, this will work in the following way:
+                   - if the date-time represented as local time in the current system default timezone is 15:30,
+                     then it will match _all_ entries (as they do not have a timezone).
+                   - otherwise, the date-time is converted into UTC before being passed to the Database,
+                     and only then the timezone is stripped - so the local time is actually shifted.
+
+                   This is not ideal - ideally we'd want the local date time to be extracted from the timestamp directly,
+                   before any date conversions happen - this way in _all_ 4 cases we would get 15:30 local time
+                   and all rows would always be matching.
+
+                   That logic is applied when uploading a table. However, in custom queries, we do not currently have
+                   enough metadata to infer that the Date_Time that is being passed to a given `?` hole in the query
+                   should be treated as a local date-time or a zoned date-time.
+                   Thus, we pass it as zoned by default to avoid losing information - and that triggers the conversion
+                   on the Database side. If we want to change that, we would need to add metadata within our operations,
+                   so that an operation like `==` will infer the expected type of the `?` hole based on the type of the
+                   second operand.
+                case is_in_system_tz of
+                    True ->
+                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_equal "15:30:00"
+                        t2.row_count . should_equal 4
+                        t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
+                    False ->
+                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_not_equal "15:30:00"
+                        t2.row_count . should_equal 0
+                        t2.at "A" . to_vector . should_equal []
+
     Test.group "[PostgreSQL] math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
             col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
@@ -319,16 +492,16 @@ postgres_specific_spec connection db_name setup =
                 do_op Number.negative_infinity op . should_equal Number.negative_infinity
 
         Test.specify "round returns the correct type" <|
-            do_round 231.2 1 . should_be_a Decimal
-            do_round 231.2 0 . should_be_a Decimal
-            do_round 231.2 . should_be_a Decimal
-            do_round 231.2 -1 . should_be_a Decimal
+            do_round 231.2 1 . should_be_a Float
+            do_round 231.2 0 . should_be_a Float
+            do_round 231.2 . should_be_a Float
+            do_round 231.2 -1 . should_be_a Float
 
         Test.specify "round returns the correct type" <|
-            do_round 231 1 . should_be_a Decimal
-            do_round 231 0 . should_be_a Decimal
-            do_round 231 . should_be_a Decimal
-            do_round 231 -1 . should_be_a Decimal
+            do_round 231 1 . should_be_a Float
+            do_round 231 0 . should_be_a Float
+            do_round 231 . should_be_a Float
+            do_round 231 -1 . should_be_a Float
 
 run_tests connection db_name =
     prefix = "[PostgreSQL] "
@@ -345,7 +518,7 @@ run_tests connection db_name =
 
     Common_Spec.spec prefix connection
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False fixed_length_text_columns=True supports_decimal_type=True supported_replace_params=supported_replace_params
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False fixed_length_text_columns=True supports_decimal_type=True supported_replace_params=supported_replace_params
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True

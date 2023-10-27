@@ -574,7 +574,7 @@ impl SpanWidget for Widget {
     type Config = Config;
 
     fn match_node(ctx: &ConfigContext) -> Score {
-        let is_placeholder = ctx.span_node.is_expected_argument();
+        let is_placeholder = ctx.span_node.is_placeholder();
         let decl_type = ctx.span_node.kind.tp().map(|t| t.as_str());
 
         let first_decl_is_vector =
@@ -789,7 +789,7 @@ enum DefaultVariant {
 impl DefaultVariant {
     fn from_single(ty: &str) -> Option<Self> {
         match ty.strip_prefix("Standard.Base.Data.")? {
-            "Numbers.Integer" | "Numbers.Decimal" | "Numbers.Number" => Some(Self::Numeric),
+            "Numbers.Integer" | "Numbers.Float" | "Numbers.Number" => Some(Self::Numeric),
             "Boolean.Boolean" => Some(Self::Boolean),
             "Text.Text" => Some(Self::Text),
             "Any" => Some(Self::Any),

@@ -2,6 +2,7 @@ package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
 import buildinfo.Info
+import com.typesafe.config.ConfigFactory
 import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
@@ -10,7 +11,7 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.filewatcher.WatcherAdapterFactory
-import org.enso.jsonrpc.JsonRpcServer
+import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
@@ -43,19 +44,22 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
+import org.enso.logger.Converter
 import org.enso.logger.masking.{MaskedPath, Masking}
-import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
+import org.enso.logger.JulHandler
+import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
+import org.slf4j.event.Level
 import org.slf4j.LoggerFactory
 
 import java.io.File
 import java.net.URI
 import java.time.Clock
-
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -64,7 +68,7 @@ import scala.util.{Failure, Success}
   * @param serverConfig configuration for the language server
   * @param logLevel log level for the Language Server
   */
-class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
+class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
   log.info(
@@ -284,7 +288,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  val context = Context
+  val builder = Context
     .newBuilder()
     .allowAllAccess(true)
     .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
@@ -294,7 +298,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
     .option(
       RuntimeOptions.LOG_LEVEL,
-      JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
+      Converter.toJavaLevel(logLevel).getName
     )
     .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
     .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
@@ -306,9 +310,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(
-      JavaLoggingLogHandler.create(JavaLoggingLogHandler.defaultLevelMapping)
-    )
+    .logHandler(JulHandler.get())
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -319,10 +321,25 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         connection
       } else null
     })
-    .build()
+  if (
+    Engine
+      .newBuilder()
+      .allowExperimentalOptions(true)
+      .build
+      .getLanguages()
+      .containsKey("java")
+  ) {
+    builder
+      .option("java.ExposeNativeJavaVM", "true")
+      .option("java.Polyglot", "true")
+      .option("java.UseBindingsLoader", "true")
+      .allowCreateThread(true)
+  }
+
+  val context = builder.build()
   log.trace("Created Runtime context [{}].", context)
 
-  system.eventStream.setLogLevel(LogLevel.toAkka(logLevel))
+  system.eventStream.setLogLevel(AkkaConverter.toAkka(logLevel))
   log.trace("Set akka log level to [{}].", logLevel)
 
   val runtimeKiller =
@@ -356,13 +373,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "project-settings-manager"
   )
 
+  val libraryLocations =
+    LibraryLocations.resolve(
+      distributionManager,
+      Some(languageHome),
+      Some(contentRoot.file.toPath)
+    )
+
   val localLibraryManager = system.actorOf(
-    LocalLibraryManager.props(contentRoot.file, distributionManager),
+    LocalLibraryManager.props(contentRoot.file, libraryLocations),
     "local-library-manager"
   )
-
-  val libraryLocations =
-    LibraryLocations.resolve(distributionManager, Some(languageHome))
 
   val libraryConfig = LibraryConfig(
     localLibraryManager      = localLibraryManager,
@@ -435,12 +456,23 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     jsonRpcControllerFactory
   )
 
+  val secureConfig = SecureConnectionConfig
+    .fromApplicationConfig(applicationConfig())
+    .fold(
+      v => v.flatMap(msg => { log.warn(s"invalid secure config: $msg"); None }),
+      Some(_)
+    )
+
   val jsonRpcServer =
     new JsonRpcServer(
       jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
-        .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
+        .Config(
+          outgoingBufferSize = 10000,
+          lazyMessageTimeout = 10.seconds,
+          secureConfig       = secureConfig
+        ),
       List(healthCheckEndpoint, idlenessEndpoint)
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
@@ -452,7 +484,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       new BinaryConnectionControllerFactory(fileManager),
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
-        lazyMessageTimeout = 10.seconds
+        lazyMessageTimeout = 10.seconds,
+        secureConfig       = secureConfig
       )
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
@@ -467,5 +500,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     suggestionsRepo.close()
     context.close()
     log.info("Closed Language Server main module.")
+  }
+
+  private def applicationConfig(): com.typesafe.config.Config = {
+    val empty = ConfigFactory.empty().atPath("akka.https")
+    ConfigFactory
+      .load()
+      .withFallback(empty)
+      .getConfig("akka")
+      .getConfig("https")
   }
 }

@@ -1,8 +1,14 @@
 package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{IdentifiedLocation, Pattern}
+import org.enso.compiler.core.Implicits.AsDiagnostics
+import org.enso.compiler.core.ir.{
+  Expression,
+  IdentifiedLocation,
+  Module,
+  Pattern
+}
+import org.enso.compiler.core.ir.expression.{errors, warnings, Case}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -20,7 +26,7 @@ import scala.annotation.unused
 /** This pass discovers and optimised away unreachable case branches.
   *
   * It removes these unreachable expressions from the IR, and attaches a
-  * [[IR.Warning]] diagnostic to the case expression itself.
+  * [[org.enso.compiler.core.ir.Warning]] diagnostic to the case expression itself.
   *
   * Currently, a branch is considered 'unreachable' by this pass if:
   *
@@ -41,14 +47,14 @@ case object UnreachableMatchBranches extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     DocumentationComments,
     FunctionBinding,
     GenerateMethodBodies,
     LambdaShorthandToLambda
   )
-  override val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
@@ -66,9 +72,9 @@ case object UnreachableMatchBranches extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = {
+  ): Module = {
     ir.mapExpressions(optimizeExpression)
   }
 
@@ -81,9 +87,9 @@ case object UnreachableMatchBranches extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     ir.transformExpressions { case x =>
       optimizeExpression(x)
     }
@@ -97,8 +103,8 @@ case object UnreachableMatchBranches extends IRPass {
     * @param expression the expression to optimize
     * @return `expression` with unreachable case branches removed
     */
-  def optimizeExpression(expression: IR.Expression): IR.Expression = {
-    expression.transformExpressions { case cse: IR.Case =>
+  def optimizeExpression(expression: Expression): Expression = {
+    expression.transformExpressions { case cse: Case =>
       optimizeCase(cse)
     }
   }
@@ -112,9 +118,9 @@ case object UnreachableMatchBranches extends IRPass {
     * @return `cse` with unreachable branches removed
     */
   //noinspection DuplicatedCode
-  def optimizeCase(cse: IR.Case): IR.Case = {
+  def optimizeCase(cse: Case): Case = {
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         val reachableNonCatchAllBranches = branches.takeWhile(!isCatchAll(_))
         val firstCatchAll                = branches.find(isCatchAll)
         val unreachableBranches =
@@ -152,7 +158,7 @@ case object UnreachableMatchBranches extends IRPass {
               }
             )
 
-          val diagnostic = IR.Warning.Unreachable.Branches(unreachableLocation)
+          val diagnostic = warnings.Unreachable.Branches(unreachableLocation)
 
           expr
             .copy(
@@ -162,7 +168,7 @@ case object UnreachableMatchBranches extends IRPass {
             )
             .addDiagnostic(diagnostic)
         }
-      case _: IR.Case.Branch =>
+      case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
   }
@@ -172,14 +178,14 @@ case object UnreachableMatchBranches extends IRPass {
     * @param branch the branch to check
     * @return `true` if `branch` is catch-all, otherwise `false`
     */
-  def isCatchAll(branch: IR.Case.Branch): Boolean = {
+  def isCatchAll(branch: Case.Branch): Boolean = {
     branch.pattern match {
       case _: Pattern.Name          => true
       case _: Pattern.Constructor   => false
       case _: Pattern.Literal       => false
       case _: Pattern.Type          => false
       case _: Pattern.Documentation => false
-      case _: IR.Error.Pattern      => true
+      case _: errors.Pattern        => true
     }
   }
 }

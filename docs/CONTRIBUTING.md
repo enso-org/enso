@@ -589,16 +589,13 @@ configured correctly and run the tests as following:
 LANG=C enso --run test/Tests
 ```
 
+Note that JVM assertions are not enabled by default, one has to pass `-ea` via
+`JAVA_OPTS` environment variable. There are also Enso-specific assertions
+(method `Runtime.assert`) that can be enabled when `ENSO_ENABLE_ASSERTIONS`
+environment variable is set to "true". If JVM assertions are enable, Enso
+assertions are enabled as well.
+
 #### Test Dependencies
-
-Some test suites require extra setup and enabled only on CI. To replicate the CI
-environment you should install and run extra services:
-
-```bash
-# Httpbin
-go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
-$(go env GOPATH)/bin/httpbin -host :8080
-```
 
 To run all the stdlib test suites, set `CI=true` environment variable:
 
@@ -754,7 +751,7 @@ content root to be provided (`--root-id` and `--path` options). Command-line
 interface of the runner prints all server options when you execute it with
 `--help` option.
 
-Below are options uses by the Language Server:
+Below are options used by the Language Server:
 
 - `--server`: Runs the Language Server
 - `--root-id <uuid>`: Content root id. The Language Server chooses one randomly,
@@ -766,6 +763,10 @@ Below are options uses by the Language Server:
   value is 8080.
 - `--data-port <port>`: Data port for visualization protocol. Default value
   is 8081.
+- `--secure-rpc-port <port>`: (optional) Secure RPC port for processing all
+  incoming connections.
+- `--secure-data-port <port>`: (optional) Secure data port for visualization
+  protocol.
 
 To run the Language Server on 127.0.0.1:8080 type:
 

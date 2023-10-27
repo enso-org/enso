@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.google.common.base.Objects;
-import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
@@ -279,7 +278,7 @@ public abstract class HashCodeNode extends Node {
 
   @TruffleBoundary
   static Function findHashMethod(Type comparator) {
-    var fn = comparator.getDefinitionScope().getMethods().get(comparator).get("hash");
+    var fn = comparator.getDefinitionScope().getMethodForType(comparator, "hash");
     if (fn == null) {
       throw new AssertionError("No hash method for type " + comparator);
     }
@@ -557,7 +556,7 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization(guards = {
       "!isAtom(objectWithMembers)",
-      "!isHostObject(objectWithMembers)",
+      "!isJavaObject(objectWithMembers)",
       "interop.hasMembers(objectWithMembers)",
       "!interop.hasArrayElements(objectWithMembers)",
       "!interop.isTime(objectWithMembers)",
@@ -603,7 +602,7 @@ public abstract class HashCodeNode extends Node {
     return 0;
   }
 
-  @Specialization(guards = "isHostObject(hostObject)")
+  @Specialization(guards = "isJavaObject(hostObject)")
   long hashCodeForHostObject(
       Object hostObject,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
@@ -624,7 +623,7 @@ public abstract class HashCodeNode extends Node {
    * We get the hashcode from the qualified name.
    */
   @TruffleBoundary
-  @Specialization(guards = "isHostFunction(hostFunction)")
+  @Specialization(guards = "isJavaFunction(hostFunction)")
   long hashCodeForHostFunction(Object hostFunction,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
@@ -635,13 +634,11 @@ public abstract class HashCodeNode extends Node {
     return object instanceof Atom;
   }
 
-  @TruffleBoundary
-  boolean isHostObject(Object object) {
-    return EnsoContext.get(this).getEnvironment().isHostObject(object);
+  boolean isJavaObject(Object object) {
+    return EnsoContext.get(this).isJavaPolyglotObject(object);
   }
 
-  @TruffleBoundary
-  boolean isHostFunction(Object object) {
-    return EnsoContext.get(this).getEnvironment().isHostFunction(object);
+  boolean isJavaFunction(Object object) {
+    return EnsoContext.get(this).isJavaPolyglotFunction(object);
   }
 }

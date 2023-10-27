@@ -45,7 +45,6 @@ import org.enso.languageserver.vcsmanager.{Git, VcsManager}
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
-import org.enso.loggingservice.LogLevel
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -57,11 +56,10 @@ import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
+import org.slf4j.event.Level
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BaseServerTest
@@ -70,8 +68,6 @@ class BaseServerTest
     with OptionValues
     with WithTemporaryDirectory
     with FakeEnvironment {
-
-  import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
 
@@ -142,16 +138,23 @@ class BaseServerTest
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
 
-  val initializationComponent = SequentialResourcesInitialization(
-    new DirectoriesInitialization(config.directories),
-    new ZioRuntimeInitialization(zioRuntime, system.eventStream),
-    new RepoInitialization(
-      config.directories,
-      system.eventStream,
-      sqlDatabase,
-      suggestionsRepo
+  private def initializationComponent =
+    new SequentialResourcesInitialization(
+      system.dispatcher,
+      new DirectoriesInitialization(system.dispatcher, config.directories),
+      new ZioRuntimeInitialization(
+        system.dispatcher,
+        zioRuntime,
+        system.eventStream
+      ),
+      new RepoInitialization(
+        system.dispatcher,
+        config.directories,
+        system.eventStream,
+        sqlDatabase,
+        suggestionsRepo
+      )
     )
-  )
 
   val contentRootManagerActor =
     system.actorOf(ContentRootManagerActor.props(config))
@@ -263,7 +266,7 @@ class BaseServerTest
       UUID.randomUUID(),
       Api.GetTypeGraphResponse(typeGraph)
     )
-    Await.ready(initializationComponent.init(), timeout)
+    initializationComponent.init().get(timeout.length, timeout.unit)
     suggestionsHandler ! ProjectNameUpdated("Test")
 
     val environment         = fakeInstalledEnvironment()
@@ -297,15 +300,19 @@ class BaseServerTest
       )
     )
 
+    val libraryLocations =
+      LibraryLocations.resolve(
+        distributionManager,
+        Some(languageHome),
+        Some(config.projectContentRoot.file.toPath)
+      )
+
     val localLibraryManager = system.actorOf(
       LocalLibraryManager.props(
         config.projectContentRoot.file,
-        distributionManager
+        libraryLocations
       )
     )
-
-    val libraryLocations =
-      LibraryLocations.resolve(distributionManager, Some(languageHome))
 
     val libraryConfig = LibraryConfig(
       localLibraryManager      = localLibraryManager,
@@ -318,7 +325,7 @@ class BaseServerTest
         distributionManager,
         resourceManager,
         Some(languageHome),
-        new CompilerBasedDependencyExtractor(logLevel = LogLevel.Warning)
+        new CompilerBasedDependencyExtractor(logLevel = Level.WARN)
       )
     )
 

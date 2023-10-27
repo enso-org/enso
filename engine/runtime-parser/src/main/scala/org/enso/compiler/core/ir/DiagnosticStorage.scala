@@ -1,8 +1,5 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Diagnostic
-
 /** Storage for diagnostics in IR nodes.
   *
   * @param initDiagnostics the initial diagnostics
@@ -34,7 +31,7 @@ sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     * @tparam R the result type of `f`
     * @return the sequence that results from applying `f` over the storage
     */
-  def map[R](f: IR.Diagnostic => R): Seq[R] = {
+  def map[R](f: Diagnostic => R): Seq[R] = {
     diagnostics.map(f)
   }
 
@@ -42,7 +39,7 @@ sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     *
     * @param f the function to apply
     */
-  def mapInPlace(f: IR.Diagnostic => IR.Diagnostic): Unit = {
+  def mapInPlace(f: Diagnostic => Diagnostic): Unit = {
     diagnostics = diagnostics.map(f)
   }
 
@@ -53,7 +50,7 @@ sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     * @tparam R the result type of the partial function
     * @return the result of collecting across the storage with `pf`
     */
-  def collect[R](pf: PartialFunction[IR.Diagnostic, R]): Seq[R] = {
+  def collect[R](pf: PartialFunction[Diagnostic, R]): Seq[R] = {
     diagnostics.collect(pf)
   }
 
@@ -63,7 +60,7 @@ sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     * @return a new diagnostic storage instance containing elements matching
     *         `pred`
     */
-  def filter(pred: IR.Diagnostic => Boolean): DiagnosticStorage = {
+  def filter(pred: Diagnostic => Boolean): DiagnosticStorage = {
     new DiagnosticStorage(diagnostics.filter(pred))
   }
 
@@ -72,7 +69,7 @@ sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     *
     * @param pred the predicate to filter with
     */
-  def filterInPlace(pred: IR.Diagnostic => Boolean): Unit = {
+  def filterInPlace(pred: Diagnostic => Boolean): Unit = {
     diagnostics = diagnostics.filter(pred)
   }
 
@@ -84,7 +81,7 @@ sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     * @return the result of folding over the storage using `op` starting wit
     *         `init`
     */
-  def foldLeft[L](init: L)(op: (L, IR.Diagnostic) => L): L = {
+  def foldLeft[L](init: L)(op: (L, Diagnostic) => L): L = {
     diagnostics.foldLeft(init)(op)
   }
 
@@ -110,7 +107,7 @@ sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq())
     *
     * @return a list of the diagnostics in the storage
     */
-  def toList: List[IR.Diagnostic] = {
+  def toList: List[Diagnostic] = {
     diagnostics
   }
 

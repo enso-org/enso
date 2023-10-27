@@ -64,9 +64,10 @@ pub struct Context {
 #[allow(missing_docs)]
 pub struct ContextData {
     #[deref]
-    native:              native::ContextWithExtensions,
-    pub profiler:        profiler::Profiler,
-    pub shader_compiler: shader::Compiler,
+    native:          native::ContextWithExtensions,
+    pub profiler:    profiler::Profiler,
+    shader_compiler: shader::Compiler,
+    id:              u32,
 }
 
 impl Context {
@@ -77,10 +78,17 @@ impl Context {
 
 impl ContextData {
     fn from_native(native: WebGl2RenderingContext) -> Self {
+        static NEXT_CONTEXT_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let id = NEXT_CONTEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Release);
         let native = native::ContextWithExtensions::from_native(native);
         let profiler = profiler::Profiler::new(&native);
         let shader_compiler = shader::Compiler::new(&native);
-        Self { native, profiler, shader_compiler }
+        Self { native, profiler, shader_compiler, id }
+    }
+
+    /// Returns the current context's shader compiler.
+    pub fn shader_compiler(&self) -> &shader::Compiler {
+        &self.shader_compiler
     }
 }
 
@@ -90,12 +98,71 @@ impl ContextData {
 /// extension plans.
 pub type DeviceContextHandler = web::HtmlCanvasElement;
 
+
+// === Context loss ===
+
+/// Error type returned to indicate that an operation failed due to context loss.
+#[derive(Debug, Copy, Clone)]
+pub struct ContextLost;
+
 /// Handler for closures taking care of context restoration. After dropping this handler and losing
-/// the context, the context will not be restored automaticaly.
+/// the context, the context will not be restored automatically.
 #[derive(Debug)]
 pub struct ContextLostHandler {
     on_lost:     web::EventListenerHandle,
     on_restored: web::EventListenerHandle,
+}
+
+
+// === Wrappers ===
+
+#[allow(missing_docs)]
+impl ContextData {
+    pub fn create_framebuffer(&self) -> Result<web_sys::WebGlFramebuffer, ContextLost> {
+        self.native.create_framebuffer().ok_or(ContextLost)
+    }
+
+    pub fn create_buffer(&self) -> Result<web_sys::WebGlBuffer, ContextLost> {
+        self.native.create_buffer().ok_or(ContextLost)
+    }
+
+    pub fn create_texture(&self) -> Result<web_sys::WebGlTexture, ContextLost> {
+        self.native.create_texture().ok_or(ContextLost)
+    }
+
+    pub fn delete_texture(&self, texture: &web_sys::WebGlTexture) {
+        // Avoid WebGL errors if we delete something bound to a context that has been lost.
+        if self.native.is_texture(Some(texture)) {
+            self.native.delete_texture(Some(texture));
+        }
+    }
+
+    pub fn delete_vertex_array(&self, texture: &web_sys::WebGlVertexArrayObject) {
+        // Avoid WebGL errors if we delete something bound to a context that has been lost.
+        if self.native.is_vertex_array(Some(texture)) {
+            self.native.delete_vertex_array(Some(texture));
+        }
+    }
+}
+
+
+// === Context Handler ===
+
+/// Shared handle of a function that handles context loss and restoration.
+#[derive(Clone, CloneRef)]
+pub struct ContextHandler(Rc<dyn Fn(Option<&Context>)>);
+
+impl ContextHandler {
+    /// Wrap the handle.
+    pub fn new(rc: Rc<dyn Fn(Option<&Context>)>) -> Self {
+        Self(rc)
+    }
+}
+
+impl Debug for ContextHandler {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ContextHandler")
+    }
 }
 
 
@@ -147,16 +214,18 @@ pub fn init_webgl_2_context<D: Display + 'static>(
     match opt_context {
         None => Err(UnsupportedStandard("WebGL 2.0")),
         Some(native) => {
-            let context = Context::from_native(native);
-            type Handler = web::JsEventHandler;
+            let context = Context::from_native(native.clone());
             display.set_context(Some(&context));
-            let lost: Handler = Closure::new(f_!([display]
+            type Handler = web::JsEventHandler<web_sys::Event>;
+            let lost: Handler = Closure::new(f!([display] (e: web_sys::Event)
                 warn!("Lost the WebGL context.");
-                display.set_context(None)
+                display.set_context(None);
+                e.prevent_default();
             ));
-            let restored: Handler = Closure::new(f_!([display]
-                warn!("Trying to restore the WebGL context.");
-                display.set_context(Some(&context))
+            let restored: Handler = Closure::new(f_!([display, native]
+                warn!("Restoring the WebGL context.");
+                let new_context = Context::from_native(native.clone());
+                display.set_context(Some(&new_context))
             ));
             let on_lost = web::add_event_listener(hdc, "webglcontextlost", lost);
             let on_restored = web::add_event_listener(hdc, "webglcontextrestored", restored);

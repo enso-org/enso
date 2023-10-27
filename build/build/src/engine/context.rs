@@ -198,7 +198,7 @@ impl RunContext {
         graalvm.install_if_missing(&self.cache).await?;
         graal::Gu.require_present().await?;
 
-        let required_components = [graal::ComponentId::NativeImage];
+        let required_components = [graal::ComponentId::NativeImage, graal::ComponentId::JS];
         // Some GraalVM components depend on Sulong and are not available on all platforms (like
         // Windows or M1 macOS). Thus, we treat them as optional. See e.g.
         // https://github.com/oracle/graalpython/issues/156
@@ -222,16 +222,29 @@ impl RunContext {
             ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.bench_report_xml)?;
         }
 
-        let test_results_dir = if self.config.test_standard_library {
-            // If we run tests, make sure that old and new results won't end up mixed together.
-            let test_results_dir = ENSO_TEST_JUNIT_DIR
-                .get()
-                .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-            ide_ci::fs::reset_dir(&test_results_dir)?;
-            Some(test_results_dir)
-        } else {
-            None
-        };
+
+        let _test_results_upload_guard =
+            if self.config.test_scala || self.config.test_standard_library {
+                // If we run tests, make sure that old and new results won't end up mixed together.
+                let test_results_dir = ENSO_TEST_JUNIT_DIR
+                    .get()
+                    .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
+                ide_ci::fs::reset_dir(&test_results_dir)?;
+
+                // If we are run in CI conditions and we prepared some test results, we want to
+                // upload them as a separate artifact to ease debugging. And we do want to do that
+                // even if the tests fail and we are leaving the scope with an error.
+                is_in_env().then(|| {
+                    scopeguard::guard(test_results_dir, |test_results_dir| {
+                        ide_ci::global::spawn(
+                            "Upload test results",
+                            upload_test_results(test_results_dir),
+                        );
+                    })
+                })
+            } else {
+                None
+            };
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
         // We target files like
@@ -290,6 +303,8 @@ impl RunContext {
             self.config.build_engine_package() && big_memory_machine && TARGET_OS != OS::Windows;
 
 
+        // === Build project-manager distribution and native image ===
+        debug!("Bulding project-manager distribution and Native Image");
         if big_memory_machine {
             let mut tasks = vec![];
 
@@ -314,29 +329,7 @@ impl RunContext {
             if self.config.build_launcher_package() {
                 tasks.push("buildLauncherDistribution");
             }
-
-            // This just compiles benchmarks, not run them. At least we'll know that they can be
-            // run. Actually running them, as part of this routine, would be too heavy.
-            // TODO [mwu] It should be possible to run them through context config option.
-            if self.config.build_benchmarks {
-                tasks.extend([
-                    "runtime/Benchmark/compile",
-                    "language-server/Benchmark/compile",
-                    "searcher/Benchmark/compile",
-                ]);
-            }
-
-            // We want benchmarks to run only after the other build tasks are done, as they are
-            // really CPU-heavy.
-            let build_command = (!tasks.is_empty()).then_some(Sbt::concurrent_tasks(tasks));
-            let benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
-            let command_sequence = build_command.as_deref().into_iter().chain(benchmark_tasks);
-            let final_command = Sbt::sequential_tasks(command_sequence);
-            if !final_command.is_empty() {
-                sbt.call_arg(final_command).await?;
-            } else {
-                debug!("No SBT tasks to run.");
-            }
+            sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
         } else {
             // If we are run on a weak machine (like GH-hosted runner), we need to build things one
             // by one.
@@ -362,24 +355,8 @@ impl RunContext {
 
             // Prepare Project Manager Distribution
             sbt.call_arg("buildProjectManagerDistribution").await?;
-
-            if self.config.build_benchmarks {
-                // Check Runtime Benchmark Compilation
-                sbt.call_arg("runtime/Benchmark/compile").await?;
-
-                // Check Language Server Benchmark Compilation
-                sbt.call_arg("language-server/Benchmark/compile").await?;
-
-                // Check Searcher Benchmark Compilation
-                sbt.call_arg("searcher/Benchmark/compile").await?;
-            }
-
-            for benchmark in &self.config.execute_benchmarks {
-                if let Some(task) = benchmark.sbt_task() {
-                    sbt.call_arg(task).await?;
-                }
-            }
-        } // End of Sbt run.
+        }
+        // === End of Build project-manager distribution and native image ===
 
         let ret = self.expected_artifacts();
 
@@ -410,39 +387,119 @@ impl RunContext {
         }
 
         let enso = BuiltEnso { paths: self.paths.clone() };
+
+        // === Unit tests and Enso tests ===
+        debug!("Running unit tests and Enso tests.");
+        if self.config.test_scala {
+            // Run unit tests
+            sbt.call_arg("set Global / parallelExecution := false; test").await?;
+        }
+        if self.config.test_standard_library {
+            enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
+        }
+
+        perhaps_test_java_generated_from_rust_job.await.transpose()?;
+
+        // === Run benchmarks ===
+        debug!("Running benchmarks.");
+        if big_memory_machine {
+            let mut tasks = vec![];
+            // This just compiles benchmarks, not run them. At least we'll know that they can be
+            // run. Actually running them, as part of this routine, would be too heavy.
+            // TODO [mwu] It should be possible to run them through context config option.
+            if self.config.build_benchmarks {
+                tasks.extend([
+                    "runtime/Benchmark/compile",
+                    "language-server/Benchmark/compile",
+                    "searcher/Benchmark/compile",
+                    "std-benchmarks/Benchmark/compile",
+                ]);
+            }
+
+            let build_command = (!tasks.is_empty()).then_some(Sbt::concurrent_tasks(tasks));
+
+            // We want benchmarks to run only after the other build tasks are done, as they are
+            // really CPU-heavy.
+            let benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
+            let command_sequence = build_command.as_deref().into_iter().chain(benchmark_tasks);
+            let final_command = Sbt::sequential_tasks(command_sequence);
+            if !final_command.is_empty() {
+                sbt.call_arg(final_command).await?;
+            } else {
+                debug!("No SBT tasks to run.");
+            }
+        } else {
+            if self.config.build_benchmarks {
+                // Check Runtime Benchmark Compilation
+                sbt.call_arg("runtime/Benchmark/compile").await?;
+
+                // Check Language Server Benchmark Compilation
+                sbt.call_arg("language-server/Benchmark/compile").await?;
+
+                // Check Searcher Benchmark Compilation
+                sbt.call_arg("searcher/Benchmark/compile").await?;
+
+                // Check Enso JMH benchmark compilation
+                sbt.call_arg("std-benchmarks/Benchmark/compile").await?;
+            }
+
+            for benchmark in &self.config.execute_benchmarks {
+                if let Some(task) = benchmark.sbt_task() {
+                    sbt.call_arg(task).await?;
+                }
+            }
+        }
+
         if self.config.execute_benchmarks.contains(&Benchmarks::Enso) {
             enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
         } else if self.config.check_enso_benchmarks {
             enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
         }
 
-
         // If we were running any benchmarks, they are complete by now. Upload the report.
         if is_in_env() {
-            let path = &self.paths.repo_root.engine.runtime.bench_report_xml;
-            if path.exists() {
-                ide_ci::actions::artifacts::upload_single_file(
-                    &self.paths.repo_root.engine.runtime.bench_report_xml,
-                    "Runtime Benchmark Report",
-                )
-                .await?;
-            } else {
-                info!("No benchmark file found at {}, nothing to upload.", path.display());
+            for bench in &self.config.execute_benchmarks {
+                match bench {
+                    Benchmarks::Runtime => {
+                        let runtime_bench_report =
+                            &self.paths.repo_root.engine.runtime.bench_report_xml;
+                        if runtime_bench_report.exists() {
+                            ide_ci::actions::artifacts::upload_single_file(
+                                runtime_bench_report,
+                                "Runtime Benchmark Report",
+                            )
+                            .await?;
+                        } else {
+                            warn!(
+                                "No Runtime Benchmark Report file found at {}, nothing to upload.",
+                                runtime_bench_report.display()
+                            );
+                        }
+                    }
+                    Benchmarks::EnsoJMH => {
+                        let enso_jmh_report =
+                            &self.paths.repo_root.std_bits.benchmarks.bench_report_xml;
+                        if enso_jmh_report.exists() {
+                            ide_ci::actions::artifacts::upload_single_file(
+                                enso_jmh_report,
+                                "Enso JMH Benchmark Report",
+                            )
+                            .await?;
+                        } else {
+                            warn!(
+                                "No Enso JMH Benchmark Report file found at {}, nothing to upload.",
+                                enso_jmh_report.display()
+                            );
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
 
-        if self.config.test_scala {
-            // Test Enso
-            sbt.call_arg("set Global / parallelExecution := false; test").await?;
-        }
-
-        perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Build Distribution ===
-        if self.config.test_standard_library {
-            enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
-        }
-
+        debug!("Building distribution");
         if self.config.build_engine_package() {
             let std_libs =
                 &self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.standard;
@@ -456,22 +513,6 @@ impl RunContext {
             }
         }
 
-        if self.config.test_standard_library {
-            enso.run_tests(IrCaches::Yes, &sbt, PARALLEL_ENSO_TESTS).await?;
-        }
-
-        // If we are run in CI conditions and we prepared some test results, we want to upload
-        // them as a separate artifact to ease debugging.
-        if let Some(test_results_dir) = test_results_dir && is_in_env() {
-            // Each platform gets its own log results, so we need to generate unique names.
-            let name = format!("Test_Results_{TARGET_OS}");
-            if let Err(err) = ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name)
-                .await {
-                // We wouldn't want to fail the whole build if we can't upload the test results.
-                // Still, it should be somehow visible in the build summary.
-                ide_ci::actions::workflow::message(MessageLevel::Warning, format!("Failed to upload test results: {err}"));
-            }
-        }
 
         // if build_native_runner {
         //     let factorial_input = "6";
@@ -539,8 +580,9 @@ impl RunContext {
             }
         }
 
+        let graal_version = crate::engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
         for bundle in ret.bundles() {
-            bundle.create(&self.repo_root).await?;
+            bundle.create(&self.repo_root, &graal_version).await?;
         }
 
         Ok(ret)
@@ -597,4 +639,26 @@ impl RunContext {
 
         Ok(())
     }
+}
+
+/// Upload the directory with Enso-generated test results.
+///
+/// This is meant to ease debugging, it does not really affect the build.
+#[context("Failed to upload test results.")]
+pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
+    // Each platform gets its own log results, so we need to generate unique
+    // names.
+    let name = format!("Test_Results_{TARGET_OS}");
+    let upload_result =
+        ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name).await;
+    if let Err(err) = &upload_result {
+        // We wouldn't want to fail the whole build if we can't upload the test
+        // results. Still, it should be somehow
+        // visible in the build summary.
+        ide_ci::actions::workflow::message(
+            MessageLevel::Warning,
+            format!("Failed to upload test results: {err}"),
+        );
+    }
+    upload_result
 }

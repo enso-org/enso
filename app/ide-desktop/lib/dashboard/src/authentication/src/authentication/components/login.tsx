@@ -40,19 +40,18 @@ export default function Login() {
     const [email, setEmail] = React.useState(initialEmail ?? '')
     const [password, setPassword] = React.useState('')
     const [isSubmitting, setIsSubmitting] = React.useState(false)
+    const shouldReportValidityRef = React.useRef(true)
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center">
-            <div
-                className={
-                    'flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md ' +
-                    'w-full max-w-md'
-                }
-            >
-                <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
+            <div className="flex flex-col bg-white shadow-md p-8 rounded-md w-full max-w-md">
+                <div className="font-medium self-center text-xl uppercase text-gray-800">
                     Login To Your Account
                 </div>
                 <button
+                    onMouseDown={() => {
+                        shouldReportValidityRef.current = false
+                    }}
                     onClick={async event => {
                         event.preventDefault()
                         await signInWithGoogle()
@@ -63,6 +62,9 @@ export default function Login() {
                     <span>Sign Up or Login with Google</span>
                 </button>
                 <button
+                    onMouseDown={() => {
+                        shouldReportValidityRef.current = false
+                    }}
                     onClick={async event => {
                         event.preventDefault()
                         await signInWithGitHub()
@@ -85,13 +87,14 @@ export default function Login() {
                             event.preventDefault()
                             setIsSubmitting(true)
                             await signInWithPassword(email, password)
+                            shouldReportValidityRef.current = true
                             setIsSubmitting(false)
                         }}
                     >
                         <div className="flex flex-col mb-6">
                             <label
                                 htmlFor="email"
-                                className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
+                                className="mb-1 text-xs tracking-wide text-gray-600"
                             >
                                 E-Mail Address:
                             </label>
@@ -105,16 +108,18 @@ export default function Login() {
                                     id="email"
                                     type="email"
                                     name="email"
+                                    autoComplete="email"
                                     placeholder="E-Mail Address"
                                     value={email}
                                     setValue={setEmail}
+                                    shouldReportValidityRef={shouldReportValidityRef}
                                 />
                             </div>
                         </div>
                         <div className="flex flex-col mb-6">
                             <label
                                 htmlFor="password"
-                                className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
+                                className="mb-1 text-xs tracking-wide text-gray-600"
                             >
                                 Password:
                             </label>
@@ -128,11 +133,13 @@ export default function Login() {
                                     id="password"
                                     type="password"
                                     name="password"
+                                    autoComplete="current-password"
                                     placeholder="Password"
                                     pattern={validation.PASSWORD_PATTERN}
                                     error={validation.PASSWORD_ERROR}
                                     value={password}
                                     setValue={setPassword}
+                                    shouldReportValidityRef={shouldReportValidityRef}
                                 />
                             </div>
                         </div>
@@ -140,7 +147,7 @@ export default function Login() {
                             <div className="flex ml-auto">
                                 <router.Link
                                     to={app.FORGOT_PASSWORD_PATH}
-                                    className="inline-flex text-xs sm:text-sm text-blue-500 hover:text-blue-700"
+                                    className="inline-flex text-xs text-blue-500 hover:text-blue-700"
                                 >
                                     Forgot Your Password?
                                 </router.Link>
@@ -152,7 +159,7 @@ export default function Login() {
                                 type="submit"
                                 className={
                                     'flex items-center justify-center focus:outline-none text-white ' +
-                                    'text-sm sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full ' +
+                                    'text-sm bg-blue-600 hover:bg-blue-700 rounded py-2 w-full ' +
                                     'transition duration-150 ease-in disabled:opacity-50'
                                 }
                             >

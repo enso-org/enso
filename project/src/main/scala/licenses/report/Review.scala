@@ -266,37 +266,51 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         val customFilename = content.strip()
         WithWarnings(LicenseReview.Custom(customFilename))
       case None =>
-        val settingPath =
-          root / Paths.reviewedLicenses / Review.normalizeName(
-            info.license.name
-          )
-        readFile(settingPath)
-          .map { content =>
-            if (content.isBlank) {
-              WithWarnings(
-                LicenseReview.NotReviewed,
-                Seq(s"License review file $settingPath is empty.")
-              )
-            } else
-              try {
-                val path = Path.of(content.strip())
-                val bothDefaultAndCustom =
-                  (packageRoot / Paths.defaultAndCustomLicense).exists()
-                WithWarnings(
-                  LicenseReview.Default(
-                    path,
-                    allowAdditionalCustomLicenses = bothDefaultAndCustom
-                  )
-                )
-              } catch {
-                case e: InvalidPathException =>
+        val directory   = root / Paths.reviewedLicenses
+        val fileName    = Review.normalizeName(info.license.name)
+        var settingPath = directory / fileName
+        directory.listFiles.filter(_.getName.equalsIgnoreCase(fileName)) match {
+          case Array(settingPath) =>
+            readFile(settingPath)
+              .map { content =>
+                if (content.isBlank) {
                   WithWarnings(
                     LicenseReview.NotReviewed,
-                    Seq(s"License review file $settingPath is malformed: $e")
+                    Seq(s"License review file $settingPath is empty.")
                   )
+                } else
+                  try {
+                    val path = Path.of(content.strip())
+                    val bothDefaultAndCustom =
+                      (packageRoot / Paths.defaultAndCustomLicense).exists()
+                    WithWarnings(
+                      LicenseReview.Default(
+                        path,
+                        allowAdditionalCustomLicenses = bothDefaultAndCustom
+                      )
+                    )
+                  } catch {
+                    case e: InvalidPathException =>
+                      WithWarnings(
+                        LicenseReview.NotReviewed,
+                        Seq(
+                          s"License review file $settingPath is malformed: $e"
+                        )
+                      )
+                  }
               }
-          }
-          .getOrElse(WithWarnings(LicenseReview.NotReviewed))
+              .getOrElse(WithWarnings(LicenseReview.NotReviewed))
+          case Array(_, _*) =>
+            WithWarnings(
+              LicenseReview.NotReviewed,
+              Seq(s"Multiple copies of file $settingPath with differing case.")
+            )
+          case Array() =>
+            WithWarnings(
+              LicenseReview.NotReviewed,
+              Seq(s"License review file $settingPath is missing.")
+            )
+        }
     }
 
   /** Reads the file as lines.

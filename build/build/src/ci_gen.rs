@@ -10,6 +10,7 @@ use crate::version::ENSO_RELEASE_MODE;
 use crate::version::ENSO_VERSION;
 
 use ide_ci::actions::workflow::definition::checkout_repo_step;
+use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::is_non_windows_runner;
 use ide_ci::actions::workflow::definition::is_windows_runner;
 use ide_ci::actions::workflow::definition::run;
@@ -48,9 +49,6 @@ pub mod step;
 
 
 #[derive(Clone, Copy, Debug)]
-pub struct DeluxeRunner;
-
-#[derive(Clone, Copy, Debug)]
 pub struct BenchmarkRunner;
 
 pub const PRIMARY_OS: OS = OS::Linux;
@@ -74,6 +72,12 @@ pub mod secret {
     // === AWS S3 deploy (release list) ===
     pub const ARTEFACT_S3_ACCESS_KEY_ID: &str = "ARTEFACT_S3_ACCESS_KEY_ID";
     pub const ARTEFACT_S3_SECRET_ACCESS_KEY: &str = "ARTEFACT_S3_SECRET_ACCESS_KEY";
+
+
+    // === AWS S3 Standard Library Tests ===
+    pub const ENSO_LIB_S3_AWS_ACCESS_KEY_ID: &str = "ENSO_LIB_S3_AWS_ACCESS_KEY_ID";
+    pub const ENSO_LIB_S3_AWS_REGION: &str = "ENSO_LIB_S3_AWS_REGION";
+    pub const ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: &str = "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY";
 
 
     // === AWS ECR deployment (runtime release to cloud) ===
@@ -107,21 +111,6 @@ pub mod secret {
 
 pub fn release_concurrency() -> Concurrency {
     Concurrency::new(RELEASE_CONCURRENCY_GROUP)
-}
-
-/// Get expression that gets input from the workflow dispatch. See:
-/// <https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs>
-pub fn get_input_expression(name: impl Into<String>) -> String {
-    wrap_expression(format!("inputs.{}", name.into()))
-}
-
-impl RunsOn for DeluxeRunner {
-    fn runs_on(&self) -> Vec<RunnerLabel> {
-        vec![RunnerLabel::MwuDeluxe]
-    }
-    fn os_name(&self) -> Option<String> {
-        None
-    }
 }
 
 impl RunsOn for BenchmarkRunner {
@@ -231,9 +220,12 @@ pub struct PublishRelease;
 impl JobArchetype for PublishRelease {
     fn job(&self, os: OS) -> Job {
         let mut ret = plain_job(&os, "Publish release", "release publish");
-        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID");
-        ret.expose_secret_as(secret::ARTEFACT_S3_SECRET_ACCESS_KEY, "AWS_SECRET_ACCESS_KEY");
-        ret.env("AWS_REGION", "us-west-1");
+        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
+        ret.expose_secret_as(
+            secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
+            crate::aws::env::AWS_SECRET_ACCESS_KEY,
+        );
+        ret.env(crate::aws::env::AWS_REGION, "us-west-1");
         ret
     }
 }
@@ -242,8 +234,21 @@ impl JobArchetype for PublishRelease {
 pub struct UploadIde;
 impl JobArchetype for UploadIde {
     fn job(&self, os: OS) -> Job {
-        plain_job_customized(&os, "Build IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", |step| 
+        plain_job_customized(&os, "Build Old IDE", "ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}", |step| 
             vec![expose_os_specific_signing_secret(os, step)]
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct UploadIde2;
+impl JobArchetype for UploadIde2 {
+    fn job(&self, os: OS) -> Job {
+        plain_job_customized(
+            &os,
+            "Build New IDE",
+            "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
+            |step| vec![expose_os_specific_signing_secret(os, step)],
         )
     }
 }
@@ -325,6 +330,10 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
             &build_wasm_job_id,
         ]);
         packaging_job_ids.push(build_ide_job_id.clone());
+
+        let build_ide2_job_id =
+            workflow.add_dependent(os, UploadIde2, [&prepare_job_id, &backend_job_id]);
+        packaging_job_ids.push(build_ide2_job_id.clone());
 
         // Deploying our release to cloud needs to be done only once.
         // We could do this on any platform, but we choose Linux, because it's most easily
@@ -436,6 +445,7 @@ pub fn gui() -> Result<Workflow> {
     workflow.add(PRIMARY_OS, job::Lint);
     workflow.add(PRIMARY_OS, job::WasmTest);
     workflow.add(PRIMARY_OS, job::NativeTest);
+    workflow.add(PRIMARY_OS, job::NewGuiTest);
 
     // FIXME: Integration tests are currently always failing.
     //        The should be reinstated when fixed.
@@ -452,10 +462,14 @@ pub fn gui() -> Result<Workflow> {
             let _wasm_job = workflow.add(os, job::BuildWasm);
         }
         let project_manager_job = workflow.add(os, job::BuildBackend);
-        workflow.add_customized(os, job::PackageIde, |job| {
+        workflow.add_customized(os, job::PackageOldIde, |job| {
             job.needs.insert(wasm_job_linux.clone());
-            job.needs.insert(project_manager_job);
+            job.needs.insert(project_manager_job.clone());
         });
+        workflow.add_customized(os, job::PackageNewIde, |job| {
+            job.needs.insert(project_manager_job.clone());
+        });
+        workflow.add(os, job::NewGuiBuild);
     }
     Ok(workflow)
 }
@@ -470,7 +484,15 @@ pub fn backend() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn benchmark() -> Result<Workflow> {
+pub fn engine_benchmark() -> Result<Workflow> {
+    benchmark("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
+}
+
+pub fn std_libs_benchmark() -> Result<Workflow> {
+    benchmark("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
+}
+
+fn benchmark(name: &str, cmd_line: &str, timeout: Option<u32>) -> Result<Workflow> {
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
         r#type: WorkflowDispatchInputType::Boolean{default: Some(false)},
@@ -483,7 +505,7 @@ pub fn benchmark() -> Result<Workflow> {
         schedule: vec![Schedule::new("0 0 * * *")?],
         ..default()
     };
-    let mut workflow = Workflow { name: "Benchmark Engine".into(), on, ..default() };
+    let mut workflow = Workflow { name: name.into(), on, ..default() };
     // Note that we need to use `true == input` instead of `input` because that interprets input as
     // `false` rather than empty string. Empty string is not falsy enough.
     workflow.env(
@@ -491,12 +513,12 @@ pub fn benchmark() -> Result<Workflow> {
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
 
-    let mut benchmark_job =
-        plain_job(&BenchmarkRunner, "Benchmark Engine", "backend benchmark runtime");
-    benchmark_job.timeout_minutes = Some(60 * 8);
+    let mut benchmark_job = plain_job(&BenchmarkRunner, name, cmd_line);
+    benchmark_job.timeout_minutes = timeout;
     workflow.add_job(benchmark_job);
     Ok(workflow)
 }
+
 
 /// Generate workflows for the CI.
 pub fn generate(
@@ -507,7 +529,8 @@ pub fn generate(
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
-        (repo_root.benchmark_yml.to_path_buf(), benchmark()?),
+        (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
+        (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
         (repo_root.release_yml.to_path_buf(), release()?),
         (repo_root.promote_yml.to_path_buf(), promote()?),
     ];

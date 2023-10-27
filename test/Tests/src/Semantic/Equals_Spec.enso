@@ -3,8 +3,11 @@ from Standard.Base import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import java.nio.file.Path as JavaPath
+polyglot java import java.math.BigInteger as Java_Big_Integer
+polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.util.Random as Java_Random
+polyglot java import org.enso.base_test_helpers.IntHolder
+polyglot java import org.enso.base_test_helpers.IntHolderEquals
 
 type CustomEqType
     C1 f1
@@ -110,6 +113,24 @@ foreign js js_true = """
 foreign js js_text_foo = """
     return 'foo'
 
+foreign js js_json a b = """
+    return JSON.parse(`
+    {
+        "a" : ${a},
+        "b" : ${b}
+    }`);
+
+foreign js js_map a b = """
+    var m = new Map()
+    m.set("a", a)
+    m.set("b", b);
+    return m
+
+foreign js js_obj a b = """
+    var m = {};
+    m.a = a;
+    m.b = b;
+    return m;
 
 spec =
     Test.group "Operator ==" <|
@@ -158,8 +179,8 @@ spec =
             ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
 
         Test.specify "should dispatch to equals on host values" <|
-            path1 = JavaPath.of "home" "user" . resolve "file.txt"
-            path2 = JavaPath.of "home" "user" "file.txt"
+            path1 = Java_Path.of "home" "user" . resolve "file.txt"
+            path2 = Java_Path.of "home" "user" "file.txt"
             (path1 == path2).should_be_true
             path3 = path1.resolve "subfile.txt"
             (path3 == path2).should_be_false
@@ -203,5 +224,59 @@ spec =
                 dupl_tree = tree.deep_copy
                 Test.with_clue "Seed sed to 42" (tree == dupl_tree).should_be_true
 
+        Test.specify "partially applied constructors aren't == " <|
+            f1 = CustomEqType.C2 10
+            f2 = CustomEqType.C2 10
+            f1==f2 . should_be_false
+
+    Test.group "Polyglot Operator ==" <|
+        Test.specify "should not try to compare members" <|
+            x = IntHolder.new 5
+            y = IntHolder.new 5
+            z = IntHolder.new 3
+            x==z . should_be_false
+            x==y . should_be_false
+            y==y . should_be_true
+            x==x . should_be_true
+            z==z . should_be_true
+
+        Test.specify "should not try to compare members in JS object" <|
+            x = js_obj 5 3
+            y = js_obj 5 3
+            z = js_obj 3 5
+            x==z . should_be_false
+            x==y . should_be_false
+            y==y . should_be_true
+            x==x . should_be_true
+            z==z . should_be_true
+
+        Test.specify "should invoke equals" <|
+            x = IntHolderEquals.new 5
+            y = IntHolderEquals.new 5
+            z = IntHolderEquals.new 3
+            x==z . should_be_false
+            x==y . should_be_true
+            y==y . should_be_true
+            x==x . should_be_true
+            z==z . should_be_true
+
+        Test.specify "should compare big integer" <|
+            x = Java_Big_Integer.new "54024430107564432"
+            y = Java_Big_Integer.new "54024430107564432"
+            x==y . should_be_true
+
+        Test.specify "JSON is found different" <|
+            x = js_json 10 5
+            y = js_json 10 5
+            x==y . should_be_false
+
+        Test.specify "Identical JSON is found equal" <|
+            x = js_json 10 5
+            x==x . should_be_true
+
+        Test.specify "JavaScript Map is found same" <|
+            x = js_map 10 5
+            y = js_map 10 5
+            x==y . should_be_true
 
 main = Test_Suite.run_main spec

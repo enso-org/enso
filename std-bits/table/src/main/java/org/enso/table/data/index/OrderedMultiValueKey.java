@@ -1,9 +1,9 @@
 package org.enso.table.data.index;
 
-import java.util.Comparator;
-
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
+
+import java.util.Comparator;
 
 /**
  * A multi-value key for ordered operations like sorting.
@@ -72,5 +72,10 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
     throw new IllegalStateException(
         "Currently no hash_code implementation consistent with the ObjectComparator is exposed, so"
             + " OrderedMultiValueKey is not hashable.");
+  }
+
+  @Override
+  public String toString() {
+    return "OrderedMultiValueKey{row="+rowIndex+"}";
   }
 }

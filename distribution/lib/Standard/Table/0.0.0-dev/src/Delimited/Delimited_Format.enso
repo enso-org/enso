@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Network.HTTP.Response.Response
+import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Data_Formatter.Data_Formatter
@@ -97,10 +98,9 @@ type Delimited_Format
 
     ## PRIVATE
        Implements the `Data.parse` for this `File_Format`
-    read_web : Response -> Any
-    read_web self response =
-        text = Text.from_bytes response.body.bytes self.encoding
-        Delimited_Reader.read_text text self Report_Warning
+    read_stream : Input_Stream -> Any
+    read_stream self stream:Input_Stream =
+        Delimited_Reader.read_stream self stream on_problems=Report_Warning
 
     ## PRIVATE
        ADVANCED

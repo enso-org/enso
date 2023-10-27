@@ -1,6 +1,5 @@
 package org.enso.launcher.cli
 
-import akka.http.scaladsl.model.Uri
 import cats.data.NonEmptyList
 import cats.implicits._
 import nl.gn0s1s.bump.SemVer
@@ -9,18 +8,18 @@ import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
 import org.enso.distribution.config.DefaultVersion
 import org.enso.distribution.config.DefaultVersion._
-import org.enso.launcher.cli.LauncherColorMode.argument
 import org.enso.launcher.distribution.DefaultManagers._
 import org.enso.launcher.installation.DistributionInstaller
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.{cli, Launcher}
-import org.enso.loggingservice.{ColorMode, LogLevel}
 import org.enso.runtimeversionmanager.cli.Arguments._
 import org.enso.runtimeversionmanager.runner.LanguageServerOptions
+import org.slf4j.event.Level
 
 import java.nio.file.Path
 import java.util.UUID
+import java.net.URI
 
 /** Defines the CLI commands and options for the program.
   *
@@ -127,12 +126,12 @@ object LauncherApplication {
   }
   private def engineLogLevel = {
     Opts
-      .optionalParameter[LogLevel](
+      .optionalParameter[Level](
         "log-level",
         "(error | warning | info | debug | trace)",
         "Sets logging verbosity for the engine. Defaults to info."
       )
-      .withDefault(LogLevel.Info)
+      .withDefault(Level.INFO)
   }
 
   private def runCommand: Command[Config => Int] =
@@ -207,6 +206,13 @@ object LauncherApplication {
             "RPC port for processing all incoming connections. Defaults to 8080."
           )
           .withDefault(8080)
+      val secureRpcPort =
+        Opts
+          .optionalParameter[Int](
+            "secure-rpc-port",
+            "SECURE_RPC_PORT",
+            "Secure RPC port for processing all incoming connections."
+          )
       val dataPort =
         Opts
           .optionalParameter[Int](
@@ -215,13 +221,22 @@ object LauncherApplication {
             "Data port for visualization protocol. Defaults to 8081."
           )
           .withDefault(8081)
+      val secureDataPort =
+        Opts
+          .optionalParameter[Int](
+            "secure-data-port",
+            "SECURE_DATA_PORT",
+            "Secure data port for visualization protocol."
+          )
       val additionalArgs = Opts.additionalArguments()
       (
         rootId,
         path,
         interface,
         rpcPort,
+        secureRpcPort,
         dataPort,
+        secureDataPort,
         versionOverride,
         engineLogLevel,
         systemJVMOverride,
@@ -233,7 +248,9 @@ object LauncherApplication {
           path,
           interface,
           rpcPort,
+          secureRpcPort,
           dataPort,
+          secureDataPort,
           versionOverride,
           engineLogLevel,
           systemJVMOverride,
@@ -242,10 +259,12 @@ object LauncherApplication {
         ) => (config: Config) =>
           Launcher(config).runLanguageServer(
             options = LanguageServerOptions(
-              rootId    = rootId,
-              interface = interface,
-              rpcPort   = rpcPort,
-              dataPort  = dataPort
+              rootId         = rootId,
+              interface      = interface,
+              rpcPort        = rpcPort,
+              secureRpcPort  = secureRpcPort,
+              dataPort       = dataPort,
+              secureDataPort = secureDataPort
             ),
             contentRoot         = path,
             versionOverride     = versionOverride,
@@ -606,14 +625,14 @@ object LauncherApplication {
       "running actions. May be needed if program output is piped.",
       showInUsage = false
     )
-    val logLevel = Opts.optionalParameter[LogLevel](
+    val logLevel = Opts.optionalParameter[Level](
       GlobalCLIOptions.LOG_LEVEL,
       "(error | warning | info | debug | trace)",
-      "Sets logging verbosity for the launcher. If not provided, defaults to" +
+      "Sets logging verbosity for the launcher. If not provided, defaults to " +
       s"${LauncherLogging.defaultLogLevel}."
     )
     val connectLogger = Opts
-      .optionalParameter[Uri](
+      .optionalParameter[URI](
         GlobalCLIOptions.CONNECT_LOGGER,
         "URI",
         "Instead of starting its own logging service, " +
@@ -627,18 +646,6 @@ object LauncherApplication {
       "variable.",
       showInUsage = false
     )
-    val colorMode =
-      Opts
-        .aliasedOptionalParameter[ColorMode](
-          GlobalCLIOptions.COLOR_MODE,
-          "colour",
-          "colors"
-        )(
-          "(auto | yes | always | no | never)",
-          "Specifies if colors should be used in the output, defaults to auto."
-        )
-        .withDefault(ColorMode.Auto)
-
     val internalOpts = InternalOpts.topLevelOptions
 
     (
@@ -650,8 +657,7 @@ object LauncherApplication {
       hideProgress,
       logLevel,
       connectLogger,
-      noLogMasking,
-      colorMode
+      noLogMasking
     ) mapN {
       (
         internalOptsCallback,
@@ -662,8 +668,7 @@ object LauncherApplication {
         hideProgress,
         logLevel,
         connectLogger,
-        disableLogMasking,
-        colorMode
+        disableLogMasking
       ) => () =>
         if (shouldEnsurePortable) {
           Launcher.ensurePortable()
@@ -673,7 +678,6 @@ object LauncherApplication {
           autoConfirm  = autoConfirm,
           hideProgress = hideProgress,
           useJSON      = useJSON,
-          colorMode    = colorMode,
           internalOptions = GlobalCLIOptions.InternalOptions(
             logLevel,
             connectLogger,
@@ -686,9 +690,7 @@ object LauncherApplication {
         LauncherLogging.setup(
           logLevel,
           connectLogger,
-          globalCLIOptions.colorMode,
-          !disableLogMasking,
-          None
+          !disableLogMasking
         )
         initializeApp()
 

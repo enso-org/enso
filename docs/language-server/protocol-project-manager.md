@@ -23,6 +23,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`MissingComponentAction`](#missingcomponentaction)
   - [`ProgressUnit`](#progressunit)
   - [`EngineVersion`](#engineversion)
+  - [`RunningState`](#runningstate)
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
   - [`project/close`](#projectclose)
@@ -31,6 +32,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`project/rename`](#projectrename)
   - [`project/delete`](#projectdelete)
   - [`project/listSample`](#projectlistsample)
+  - [`project/status`](#projectstatus)
 - [Action Progress Reporting](#action-progress-reporting)
   - [`task/started`](#taskstarted)
   - [`task/progress-update`](#taskprogress-update)
@@ -162,6 +164,29 @@ interface EngineVersion {
 }
 ```
 
+### `RunningState`
+
+This type represents information about a state of the (potentially) running
+project.
+
+#### Format
+
+```typescript
+interface RunningStatus {
+  /**
+   * If true, the project is open and (still) accepting new connections.
+   * False, if the project is currently shutdown.
+   */
+  open: bool;
+
+  /**
+   * If true, the project is currently running but in a soft shutdown mode.
+   * False, if the project is either not running or it is not shutting down.
+   */
+  shuttingDown: bool;
+}
+```
+
 ## Project Management Operations
 
 The primary responsibility of the project managers is to allow users to manage
@@ -218,9 +243,19 @@ the action.
   languageServerJsonAddress: IPWithSocket;
 
   /**
+   * The optional endpoint used for secure JSON-RPC protocol.
+   */
+  languageServerSecureJsonAddress?: IPWithSocket;
+
+  /**
    * The endpoint used for binary protocol.
    */
   languageServerBinaryAddress: IPWithSocket;
+
+  /**
+   * The optional endpoint used for secure binary protocol.
+   */
+  languageServerSecureBinaryAddress?: IPWithSocket;
 
   // The name of the project as it is opened.
   projectName: String;
@@ -494,6 +529,31 @@ interface ProjectListSampleResponse {
 #### Errors
 
 TBC
+
+### `project/status`
+
+This request asks for the current state of the project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectStatusRequest {
+  projectID: UUID;
+}
+```
+
+#### Result
+
+```typescript
+interface ProjectStatusResponse {
+  status: RunningStatus;
+}
+```
 
 ## Action Progress Reporting
 

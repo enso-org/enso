@@ -1,0 +1,162 @@
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
+import project.Data.Time.Errors.Date_Time_Format_Parse_Error
+import project.Data.Vector.Builder as Vector_Builder
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Runtime.Ref.Ref
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+
+polyglot java import org.enso.base.Text_Utils
+
+## PRIVATE
+type Format_Token
+    ## PRIVATE
+       A format pattern described by a single character and count.
+    Pattern character:Text count:Integer
+
+    ## PRIVATE
+       A literal text string.
+    Literal text:Text
+
+    ## PRIVATE
+       Indicates beginning of an optional section.
+    Optional_Section_Start
+
+    ## PRIVATE
+       Indicates end of an optional section.
+    Optional_Section_End
+
+    ## PRIVATE
+       A special parameter in curly braces.
+
+       Currently only used to customize base year for `yy`, i.e. `yy{2099}`.
+    Curly_Section (inner_text : Text)
+
+## PRIVATE
+type Tokenizer
+    ## PRIVATE
+       A helper type to hold the state of the tokenizer.
+       Normally, we could keep these in the closure, inside of a method.
+       But our 3 parse methods need to be able to call each other, and mutual
+       recursion of variables defined inside of a method is not supported in
+       Enso. So to achieve the mutual recursion, we instead define these as
+       member methods.
+    Instance (original_text : Text) (chars : Vector Text) (tokens_builder : Vector_Builder Format_Token) (optional_nesting : Ref Integer)
+
+    ## PRIVATE
+    new : Text -> Tokenizer
+    new text =
+        # Nothing is appended at the and as a guard to avoid checking for length.
+        Tokenizer.Instance text text.characters+[Nothing] Vector.new_builder (Ref.new 0)
+
+    ## PRIVATE
+    finalize_token self current_token = case current_token of
+        Nothing -> Nothing
+        _ -> self.tokens_builder.append current_token
+
+    ## PRIVATE
+       Checks if we are inside of an optional section.
+    is_in_optional : Boolean
+    is_in_optional self = self.optional_nesting.get > 0
+
+    ## PRIVATE
+    enter_optional_section : Nothing
+    enter_optional_section self =
+        i = self.optional_nesting.get
+        self.optional_nesting.put i+1
+        self.tokens_builder.append Format_Token.Optional_Section_Start
+
+    ## PRIVATE
+    exit_optional_section : Nothing
+    exit_optional_section self =
+        i = self.optional_nesting.get
+        if i <= 0 then
+            Panic.throw (Illegal_State.Error "Invariant violation: leaving optional section while not in one. This is a bug in the Tokenizer.")
+        self.optional_nesting.put i-1
+        self.tokens_builder.append Format_Token.Optional_Section_End
+
+    ## PRIVATE
+    parse_normal self position current_token = case self.chars.at position of
+        Nothing ->
+            if self.is_in_optional then
+                Panic.throw (Date_Time_Format_Parse_Error.Error "Unterminated optional section within the pattern "+self.original_text.to_display_text)
+            self.finalize_token current_token
+            Nothing
+        "'" ->
+            self.finalize_token current_token
+            @Tail_Call self.parse_quoted position+1 ""
+        "[" ->
+            self.finalize_token current_token
+            self.enter_optional_section
+            @Tail_Call self.parse_normal position+1 Nothing
+        "]" ->
+            if self.is_in_optional.not then
+                Panic.throw (Date_Time_Format_Parse_Error.Error "Unmatched closing bracket ] (at position "+position.to_text+" in pattern "+self.original_text.to_display_text+").")
+            self.finalize_token current_token
+            self.exit_optional_section
+            @Tail_Call self.parse_normal position+1 Nothing
+        "{" ->
+            self.finalize_token current_token
+            @Tail_Call self.parse_curly position+1 ""
+        new_character ->
+            case Text_Utils.is_all_letters new_character of
+                True ->
+                    is_matching_current_token = case current_token of
+                        Format_Token.Pattern current_pattern_character _ ->
+                            current_pattern_character == new_character
+                        _ -> False
+                    case is_matching_current_token of
+                        True ->
+                            @Tail_Call self.parse_normal position+1 (Format_Token.Pattern current_token.character current_token.count+1)
+                        False ->
+                            self.finalize_token current_token
+                            @Tail_Call self.parse_normal position+1 (Format_Token.Pattern new_character 1)
+                False ->
+                    self.finalize_token current_token
+                    self.tokens_builder.append (Format_Token.Literal new_character)
+                    @Tail_Call self.parse_normal position+1 Nothing
+
+    ## PRIVATE
+    parse_quoted self position text_accumulator = case self.chars.at position of
+        Nothing ->
+            Panic.throw (Date_Time_Format_Parse_Error.Error "Unterminated quoted sequence within the pattern "+self.original_text.to_display_text)
+        "'" ->
+            # Next letter is always accessible, but it may be Nothing.
+            next_letter = self.chars.at position+1
+            case next_letter of
+                # If the next letter is a quote, that means an escaped single quote within a quoted section.
+                "'" ->
+                    @Tail_Call self.parse_quoted position+2 text_accumulator+"'"
+
+                # If the next letter is not a quote, that means the end of the quoted sequence.
+                _ ->
+                    case text_accumulator.is_empty of
+                        # If there is no text between the quotes, that means this whole quoted sequence was just an escaped single quote OUTSIDE a quoted section.
+                        True ->
+                            self.tokens_builder.append (Format_Token.Literal "'")
+                        False ->
+                            self.tokens_builder.append (Format_Token.Literal text_accumulator)
+                    @Tail_Call self.parse_normal position+1 Nothing
+        other_character -> @Tail_Call self.parse_quoted position+1 text_accumulator+other_character
+
+    ## PRIVATE
+    parse_curly self position text_accumulator = case self.chars.at position of
+        Nothing ->
+            Panic.throw (Date_Time_Format_Parse_Error.Error "Unterminated curly sequence within the pattern "+self.original_text.to_display_text)
+        "}" ->
+            self.tokens_builder.append (Format_Token.Curly_Section text_accumulator)
+            @Tail_Call self.parse_normal position+1 Nothing
+        other_character ->
+            @Tail_Call self.parse_curly position+1 text_accumulator+other_character
+
+    ## PRIVATE
+    tokenize : Text -> Vector Format_Token
+    tokenize text = Panic.recover Date_Time_Format_Parse_Error <|
+        tokenizer = Tokenizer.new text
+        tokenizer.parse_normal 0 Nothing
+        tokenizer.tokens_builder.to_vector

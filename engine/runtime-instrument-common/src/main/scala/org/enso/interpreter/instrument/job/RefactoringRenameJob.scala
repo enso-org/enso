@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.job
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{ExternalID, IR}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.execution.model.PendingEdit
@@ -160,16 +161,15 @@ final class RefactoringRenameJob(
     }
   }
 
-  private def getLiteral(ir: IR): Option[IR.Name.Literal] =
+  private def getLiteral(ir: IR): Option[Name.Literal] =
     ir match {
-      case literal: IR.Name.Literal => Some(literal)
-      case _                        => None
+      case literal: Name.Literal => Some(literal)
+      case _                     => None
     }
 
-  private def getMethodDefinition(ir: IR): Option[IR.Name] =
+  private def getMethodDefinition(ir: IR): Option[Name] =
     ir match {
-      case methodRef: IR.Name.MethodReference
-          if methodRef.typePointer.isEmpty =>
+      case methodRef: Name.MethodReference if methodRef.typePointer.isEmpty =>
         Some(methodRef.methodName)
       case _ =>
         None
@@ -191,13 +191,13 @@ final class RefactoringRenameJob(
 
 object RefactoringRenameJob {
 
-  final private class ExpressionNotFound(val expressionId: IR.ExternalId)
+  final private class ExpressionNotFound(val expressionId: UUID @ExternalID)
       extends Exception(s"Expression was not found by id [$expressionId].")
 
   final private class FailedToApplyEdits(val module: String)
       extends Exception(s"Failed to apply edits to module [$module]")
 
-  final private class OperationNotSupported(val expressionId: IR.ExternalId)
+  final private class OperationNotSupported(val expressionId: UUID @ExternalID)
       extends Exception(
         s"Operation not supported for expression [$expressionId]"
       )

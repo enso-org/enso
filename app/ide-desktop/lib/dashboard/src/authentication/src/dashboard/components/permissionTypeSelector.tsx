@@ -70,7 +70,7 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {
     showDelete?: boolean
-    selfPermission: backend.PermissionAction
+    selfPermission: permissions.PermissionAction
     type: permissions.Permission
     assetType: backend.AssetType
     style?: React.CSSProperties
@@ -83,17 +83,16 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
     return (
         <div
             style={style}
-            className="sticky pointer-events-auto w-min"
+            className="sticky pointer-events-auto w-min before:absolute before:bg-frame-selected before:rounded-2xl before:backdrop-blur-3xl before:w-full before:h-full"
             onClick={event => {
                 event.stopPropagation()
             }}
         >
-            <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full" />
             <div className="relative flex flex-col w-112.5 p-1">
                 {PERMISSION_TYPE_DATA.filter(
                     data =>
                         (showDelete ? true : data.type !== permissions.Permission.delete) &&
-                        (selfPermission === backend.PermissionAction.own
+                        (selfPermission === permissions.PermissionAction.own
                             ? true
                             : data.type !== permissions.Permission.owner)
                 ).map(data => (

@@ -95,7 +95,7 @@ class MessageHandlerSpec
     handler = system.actorOf(
       Props(new MessageHandler(MyProtocolFactory, controller.ref))
     )
-    handler ! Connected(out.ref)
+    handler ! Connected(out.ref, 0)
   }
 
   "Message handler" must {

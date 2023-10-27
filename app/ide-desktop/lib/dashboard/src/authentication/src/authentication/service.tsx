@@ -10,7 +10,7 @@ import * as auth from './config'
 import * as cognito from './cognito'
 import * as config from '../config'
 import * as listen from './listen'
-import * as loggerProvider from '../providers/logger'
+import type * as loggerProvider from '../providers/logger'
 
 // =============
 // === Types ===

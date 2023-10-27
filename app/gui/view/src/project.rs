@@ -143,16 +143,14 @@ ensogl::define_endpoints! {
         execution_context_reload_and_restart(),
         toggle_read_only(),
         set_read_only(bool),
-        /// Push a hardcoded breadcrumb without notifying the controller.
-        debug_push_breadcrumb(),
-        /// Pop a breadcrumb without notifying the controller.
-        debug_pop_breadcrumb(),
         /// Started creation of a new node using the AI searcher.
         start_node_creation_with_ai_searcher(),
         /// Started creation of a new node using the Component Browser.
         start_node_creation_with_component_browser(),
         /// Accepts the currently selected input of the searcher.
         accept_searcher_input(),
+        /// Dump the suggestion database in JSON to the console.
+        dump_suggestion_database(),
     }
 
     Output {
@@ -178,9 +176,10 @@ ensogl::define_endpoints! {
         fullscreen_visualization_shown (bool),
         drop_files_enabled             (bool),
         debug_mode                     (bool),
-        go_to_dashboard_button_pressed (),
         /// The name of the command currently being handled due to shortcut being pressed.
         current_shortcut               (Option<ImString>),
+        /// Request the controller to dump the suggestion database in JSON to the console.
+        request_dump_suggestion_database(),
     }
 }
 
@@ -204,7 +203,7 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("ProjectView");
         let searcher = app.new_view::<component_browser::View>();
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
@@ -391,9 +390,6 @@ impl View {
             project_view_top_bar_width <-
                 project_view_top_bar_display_object.on_resized.map(|new_size| new_size.x);
             self.model.graph_editor.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
-
-            project_view_top_bar.breadcrumbs.debug_push_breadcrumb <+ frp.debug_push_breadcrumb.constant(None);
-            project_view_top_bar.breadcrumbs.debug_pop_breadcrumb <+ frp.debug_pop_breadcrumb;
         }
         init.emit(());
         self
@@ -430,6 +426,8 @@ impl View {
         let _network = &self.frp.network;
         frp::extend! { _network
             self.model.code_editor.set_read_only <+ self.frp.set_read_only;
+            self.model.code_editor.hide <+ self.model.graph_editor.node_editing_started.constant(());
+            self.model.code_editor.hide <+ self.model.graph_editor.node_selected.constant(());
         }
         self
     }
@@ -707,6 +705,7 @@ impl View {
             debug_mode <- bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
             frp.source.debug_mode <+ debug_mode;
             popup.is_enabled <+ debug_mode;
+            frp.source.request_dump_suggestion_database <+ frp.dump_suggestion_database;
         }
         self
     }
@@ -715,6 +714,7 @@ impl View {
         let frp = &self.frp;
         let network = &frp.network;
         let graph_editor = &self.model.graph_editor.frp;
+        let code_editor = &self.model.code_editor;
         frp::extend! { network
             // Searcher type to use for node creation.
             // Debounces are needed, because there are shortcut conflits with Component Browser's
@@ -729,6 +729,7 @@ impl View {
 
             should_not_create_node <- graph_editor.node_editing || graph_editor.read_only;
             should_not_create_node <- should_not_create_node || graph_editor.is_fs_visualization_displayed;
+            should_not_create_node <- should_not_create_node || code_editor.is_visible;
             start_node_creation <- searcher_type.gate_not(&should_not_create_node);
             graph_editor.start_node_creation <+ start_node_creation.constant(());
         }
@@ -810,6 +811,7 @@ impl application::View for View {
             (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),
+            (Press, "debug_mode", "ctrl shift u", "dump_suggestion_database"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

@@ -3,6 +3,8 @@
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
+import * as detect from 'enso-common/src/detect'
+
 import * as backend from './backend'
 import * as dateTime from './dateTime'
 import * as errorModule from '../error'
@@ -27,22 +29,13 @@ export class LocalBackend extends backend.Backend {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
-    private readonly projectManager = projectManager.ProjectManager.default()
+    private readonly projectManager: projectManager.ProjectManager
 
     /** Create a {@link LocalBackend}. */
-    constructor(projectStartupInfo: backend.ProjectStartupInfo | null) {
+    constructor(projectManagerUrl: string | null) {
         super()
-        if (projectStartupInfo?.backendType === backend.BackendType.local) {
-            LocalBackend.currentlyOpenProjects.set(projectStartupInfo.project.projectId, {
-                projectName: projectManager.ProjectName(projectStartupInfo.project.name),
-                // The values are not important; fill with dummy values.
-                engineVersion: projectStartupInfo.project.engineVersion?.value ?? '',
-                projectNamespace: '',
-                languageServerBinaryAddress: { host: '', port: 0 },
-                languageServerJsonAddress: { host: '', port: 0 },
-            })
-        }
-        if (IS_DEV_MODE) {
+        this.projectManager = projectManager.ProjectManager.default(projectManagerUrl)
+        if (detect.IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.
             window.localBackend = this
@@ -53,7 +46,6 @@ export class LocalBackend extends backend.Backend {
     override rootDirectoryId(): backend.DirectoryId {
         return backend.DirectoryId('')
     }
-
     /** Return a list of assets in a directory.
      *
      * @throws An error if the JSON-RPC call fails. */
@@ -72,7 +64,10 @@ export class LocalBackend extends backend.Backend {
                     : project.id === LocalBackend.currentlyOpeningProjectId
                     ? backend.ProjectState.openInProgress
                     : backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
+            labels: [],
         }))
     }
 
@@ -88,6 +83,8 @@ export class LocalBackend extends backend.Backend {
             packageName: project.name,
             state: {
                 type: backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
             jsonAddress: null,
             binaryAddress: null,
@@ -114,6 +111,8 @@ export class LocalBackend extends backend.Backend {
             packageName: body.projectName,
             state: {
                 type: backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
             },
         }
     }
@@ -131,7 +130,7 @@ export class LocalBackend extends backend.Backend {
             return
         } catch (error) {
             throw new Error(
-                `Unable to close project ${
+                `Could not close project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
@@ -141,27 +140,32 @@ export class LocalBackend extends backend.Backend {
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
-    override async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
+    override async getProjectDetails(
+        projectId: backend.ProjectId,
+        title: string | null
+    ): Promise<backend.Project> {
         const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
         if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
-            const engineVersion = project?.engineVersion
             if (project == null) {
-                throw new Error(`The project ID '${projectId}' is invalid.`)
-            } else if (engineVersion == null) {
-                throw new Error(`The project '${project.name}' does not have an engine version.`)
+                throw new Error(
+                    `Could not get details of project ${
+                        title != null ? `'${title}'` : `with ID '${projectId}'`
+                    }.`
+                )
             } else {
+                const version =
+                    project.engineVersion == null
+                        ? null
+                        : {
+                              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
+                              value: project.engineVersion,
+                          }
                 return {
                     name: project.name,
-                    engineVersion: {
-                        lifecycle: backend.detectVersionLifecycle(engineVersion),
-                        value: engineVersion,
-                    },
-                    ideVersion: {
-                        lifecycle: backend.detectVersionLifecycle(engineVersion),
-                        value: engineVersion,
-                    },
+                    engineVersion: version,
+                    ideVersion: version,
                     jsonAddress: null,
                     binaryAddress: null,
                     organizationId: '',
@@ -174,6 +178,8 @@ export class LocalBackend extends backend.Backend {
                                 : project.lastOpened != null
                                 ? backend.ProjectState.closed
                                 : backend.ProjectState.created,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        volume_id: '',
                     },
                 }
             }
@@ -191,10 +197,12 @@ export class LocalBackend extends backend.Backend {
                 jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
                 binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
                 organizationId: '',
-                packageName: cachedProject.projectName,
+                packageName: cachedProject.projectNormalizedName,
                 projectId,
                 state: {
                     type: backend.ProjectState.opened,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    volume_id: '',
                 },
             }
         }
@@ -219,7 +227,7 @@ export class LocalBackend extends backend.Backend {
                 return
             } catch (error) {
                 throw new Error(
-                    `Unable to open project ${
+                    `Could not open project ${
                         title != null ? `'${title}'` : `with ID '${projectId}'`
                     }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
                 )
@@ -247,22 +255,20 @@ export class LocalBackend extends backend.Backend {
             }
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
-            const engineVersion = project?.engineVersion
+            const version =
+                project?.engineVersion == null
+                    ? null
+                    : {
+                          lifecycle: backend.detectVersionLifecycle(project.engineVersion),
+                          value: project.engineVersion,
+                      }
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
-            } else if (engineVersion == null) {
-                throw new Error(`The project '${project.name}' does not have an engine version.`)
             } else {
                 return {
                     ami: null,
-                    engineVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
-                        value: engineVersion,
-                    },
-                    ideVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
-                        value: engineVersion,
-                    },
+                    engineVersion: version,
+                    ideVersion: version,
                     name: project.name,
                     organizationId: '',
                     projectId,
@@ -271,13 +277,13 @@ export class LocalBackend extends backend.Backend {
         }
     }
 
-    /** Delete a project.
+    /** Delete an arbitrary asset.
      *
      * @throws An error if the JSON-RPC call fails. */
-    override async deleteProject(
-        projectId: backend.ProjectId,
-        title: string | null
-    ): Promise<void> {
+    override async deleteAsset(assetId: backend.AssetId, title: string | null): Promise<void> {
+        // This is SAFE, as the only asset type on the local backend is projects.
+        // eslint-disable-next-line no-restricted-syntax
+        const projectId = assetId as backend.ProjectId
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
@@ -287,14 +293,14 @@ export class LocalBackend extends backend.Backend {
             return
         } catch (error) {
             throw new Error(
-                `Unable to delete project ${
+                `Could not delete project ${
                     title != null ? `'${title}'` : `with ID '${projectId}'`
                 }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
         }
     }
 
-    /** Do nothing. This function should never need to be called. */
+    /** Return a list of engine versions. */
     override async listVersions(params: backend.ListVersionsRequestParams) {
         const engineVersions = await this.projectManager.listAvailableEngineVersions()
         const engineVersionToVersion = (
@@ -310,7 +316,7 @@ export class LocalBackend extends backend.Backend {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             version_type: params.versionType,
         })
-        return engineVersions.map(engineVersionToVersion)
+        return engineVersions.versions.map(engineVersionToVersion)
     }
 
     // === Endpoints that intentionally do not work on the Local Backend ===
@@ -318,7 +324,14 @@ export class LocalBackend extends backend.Backend {
     /** @throws An error stating that the operation is intentionally unavailable on the local
      * backend. */
     invalidOperation(): never {
-        throw new Error('Unable to manage users, folders, files, and secrets on the local backend.')
+        throw new Error(
+            'Cannot manage users, folders, files, tags, and secrets on the local backend.'
+        )
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override undoDeleteAsset(): Promise<void> {
+        return this.invalidOperation()
     }
 
     /** Return an empty array. This function should never need to be called. */
@@ -356,8 +369,8 @@ export class LocalBackend extends backend.Backend {
         return this.invalidOperation()
     }
 
-    /** Does nothing. This function should never need to be called. */
-    override deleteDirectory() {
+    /** Return `void`. This function should never need to be called. */
+    override updateAsset() {
         return Promise.resolve()
     }
 
@@ -377,11 +390,6 @@ export class LocalBackend extends backend.Backend {
         return this.invalidOperation()
     }
 
-    /** Do nothing. This function should never need to be called. */
-    override deleteFile() {
-        return Promise.resolve()
-    }
-
     /** Invalid operation. */
     override createSecret() {
         return this.invalidOperation()
@@ -397,11 +405,6 @@ export class LocalBackend extends backend.Backend {
         return Promise.resolve([])
     }
 
-    /** Do nothing. This function should never need to be called. */
-    override deleteSecret() {
-        return Promise.resolve()
-    }
-
     /** Invalid operation. */
     override createTag() {
         return this.invalidOperation()
@@ -410,6 +413,11 @@ export class LocalBackend extends backend.Backend {
     /** Return an empty array. This function should never need to be called. */
     override listTags() {
         return Promise.resolve([])
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override associateTag() {
+        return Promise.resolve()
     }
 
     /** Do nothing. This function should never need to be called. */

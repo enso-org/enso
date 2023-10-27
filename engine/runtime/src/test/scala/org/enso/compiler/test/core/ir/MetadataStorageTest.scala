@@ -1,7 +1,8 @@
 package org.enso.compiler.test.core.ir
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
@@ -17,18 +18,18 @@ class MetadataStorageTest extends CompilerTest {
     override type Metadata = Metadata1
     override type Config   = IRPass.Configuration.Default
 
-    override val precursorPasses: Seq[IRPass]   = List()
-    override val invalidatedPasses: Seq[IRPass] = List()
+    override lazy val precursorPasses: Seq[IRPass]   = List()
+    override lazy val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
-      ir: IR.Module,
+      ir: Module,
       moduleContext: ModuleContext
-    ): IR.Module = ir
+    ): Module = ir
 
     override def runExpression(
-      ir: IR.Expression,
+      ir: Expression,
       inlineContext: InlineContext
-    ): IR.Expression = ir
+    ): Expression = ir
 
     sealed case class Metadata1() extends IRPass.IRMetadata {
       override val metadataName: String = "TestPass1.Metadata1"
@@ -49,18 +50,18 @@ class MetadataStorageTest extends CompilerTest {
     override type Metadata = Metadata2
     override type Config   = IRPass.Configuration.Default
 
-    override val precursorPasses: Seq[IRPass]   = List()
-    override val invalidatedPasses: Seq[IRPass] = List()
+    override lazy val precursorPasses: Seq[IRPass]   = List()
+    override lazy val invalidatedPasses: Seq[IRPass] = List()
 
     override def runModule(
-      ir: IR.Module,
+      ir: Module,
       moduleContext: ModuleContext
-    ): IR.Module = ir
+    ): Module = ir
 
     override def runExpression(
-      ir: IR.Expression,
+      ir: Expression,
       inlineContext: InlineContext
-    ): IR.Expression = ir
+    ): Expression = ir
 
     sealed case class Metadata2() extends IRPass.IRMetadata {
       override val metadataName: String = "TestPass2.Metadata2"

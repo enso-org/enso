@@ -4,8 +4,10 @@ import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.{Diagnostic, Warning}
+import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   GatherDiagnostics
@@ -139,7 +141,12 @@ final class EnsureCompiledJob(
           case Right(compilerResult) =>
             val status = runCompilationDiagnostics(module)
             (
-              modules.addAll(compilerResult.compiledModules).addOne(module),
+              modules
+                .addAll(
+                  compilerResult.compiledModules
+                    .map(Module.fromCompilerModule(_))
+                )
+                .addOne(module),
               statuses += status
             )
         }
@@ -167,7 +174,7 @@ final class EnsureCompiledJob(
       .runModule(
         module.getIr,
         ModuleContext(
-          module,
+          module.asCompilerModule(),
           compilerConfig = ctx.executionService.getContext.getCompilerConfig
         )
       )
@@ -177,9 +184,9 @@ final class EnsureCompiledJob(
       )
       .diagnostics
     val diagnostics = pass.collect {
-      case warn: IR.Warning =>
+      case warn: Warning =>
         createDiagnostic(Api.DiagnosticType.Warning, module, warn)
-      case error: IR.Error =>
+      case error: Error =>
         createDiagnostic(Api.DiagnosticType.Error, module, error)
     }
     sendDiagnosticUpdates(diagnostics)
@@ -196,16 +203,17 @@ final class EnsureCompiledJob(
   private def createDiagnostic(
     kind: Api.DiagnosticType,
     module: Module,
-    diagnostic: IR.Diagnostic
+    diagnostic: Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
+    val source = module.getSource
     Api.ExecutionResult.Diagnostic(
       kind,
-      Option(diagnostic.formattedMessage),
+      Option(diagnostic.formattedMessage(source)),
       Option(module.getPath).map(new File(_)),
       diagnostic.location
         .map(loc =>
           LocationResolver
-            .locationToRange(loc.location, module.getSource.getCharacters)
+            .locationToRange(loc.location, source.getCharacters)
         ),
       diagnostic.location
         .flatMap(LocationResolver.getExpressionId(module.getIr, _))
@@ -228,7 +236,8 @@ final class EnsureCompiledJob(
       if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
-        val result = ctx.executionService.getContext.getCompiler.run(module)
+        val result = ctx.executionService.getContext.getCompiler
+          .run(module.asCompilerModule())
         result.copy(compiledModules =
           result.compiledModules.filter(_.getName != module.getName)
         )
@@ -296,7 +305,9 @@ final class EnsureCompiledJob(
     source: CharSequence
   ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
-      CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
+      CacheInvalidation.Command.InvalidateKeys(
+        changeset.invalidated
+      )
     val scopeIds = splitMeta(source.toString)._2.map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
@@ -496,7 +507,11 @@ final class EnsureCompiledJob(
     val packageRepository =
       ctx.executionService.getContext.getCompiler.packageRepository
     packageRepository.getMainProjectPackage
-      .map(pkg => packageRepository.getModulesForLibrary(pkg.libraryName))
+      .map(pkg =>
+        packageRepository
+          .getModulesForLibrary(pkg.libraryName)
+          .map(Module.fromCompilerModule(_))
+      )
       .getOrElse(Seq())
   }
 

@@ -26,7 +26,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.nio.file.Files
 import java.util.UUID
-
 import scala.collection.immutable.ListSet
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -723,7 +722,7 @@ class SuggestionsHandlerSpec
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(
-          SearchProtocol.GetSuggestionsDatabaseResult(1, Seq())
+          SearchProtocol.GetSuggestionsDatabaseResult(0, Seq())
         )
     }
 
@@ -895,7 +894,7 @@ class SuggestionsHandlerSpec
           Suggestions.methodOnInteger
         )
 
-        val (_, Seq(_, _, _, methodId, _, _, _, _, _)) =
+        val (_, Seq(moduleId, typeId, consId, methodId, _, localId, _, _, _)) =
           Await.result(repo.insertAll(all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -909,7 +908,7 @@ class SuggestionsHandlerSpec
         expectMsg(
           SearchProtocol.CompletionResult(
             1L,
-            Seq(methodId)
+            Seq(moduleId, typeId, consId, methodId, localId)
           )
         )
     }

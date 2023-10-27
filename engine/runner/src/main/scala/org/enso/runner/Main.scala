@@ -1,6 +1,6 @@
 package org.enso.runner
 
-import akka.http.scaladsl.model.{IllegalUriException, Uri}
+import akka.http.scaladsl.model.{IllegalUriException}
 import buildinfo.Info
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
@@ -14,13 +14,14 @@ import org.enso.languageserver.boot.{
   StartupConfig
 }
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
-import org.enso.loggingservice.LogLevel
+import org.slf4j.event.Level
 import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{HostEnsoUtils, LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
 import java.io.File
+import java.net.URI
 import java.nio.file.{Path, Paths}
 import java.util.{HashMap, UUID}
 import scala.Console.err
@@ -56,6 +57,8 @@ object Main {
   private val INTERFACE_OPTION               = "interface"
   private val RPC_PORT_OPTION                = "rpc-port"
   private val DATA_PORT_OPTION               = "data-port"
+  private val SECURE_RPC_PORT_OPTION         = "secure-rpc-port"
+  private val SECURE_DATA_PORT_OPTION        = "secure-data-port"
   private val ROOT_ID_OPTION                 = "root-id"
   private val ROOT_PATH_OPTION               = "path"
   private val IN_PROJECT_OPTION              = "in-project"
@@ -219,12 +222,26 @@ object Main {
       .argName("rpc-port")
       .desc("RPC port for processing all incoming connections")
       .build()
+    val secureRpcPortOption = CliOption.builder
+      .longOpt(SECURE_RPC_PORT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("rpc-port")
+      .desc("A secure RPC port for processing all incoming connections")
+      .build()
     val dataPortOption = CliOption.builder
       .longOpt(DATA_PORT_OPTION)
       .hasArg(true)
       .numberOfArgs(1)
       .argName("data-port")
       .desc("Data port for visualization protocol")
+      .build()
+    val secureDataPortOption = CliOption.builder
+      .longOpt(SECURE_DATA_PORT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("data-port")
+      .desc("A secure data port for visualization protocol")
       .build()
     val uuidOption = CliOption.builder
       .hasArg(true)
@@ -411,6 +428,8 @@ object Main {
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
       .addOption(dataPortOption)
+      .addOption(secureRpcPortOption)
+      .addOption(secureDataPortOption)
       .addOption(uuidOption)
       .addOption(pathOption)
       .addOption(inProjectOption)
@@ -524,7 +543,7 @@ object Main {
     packagePath: String,
     shouldCompileDependencies: Boolean,
     shouldUseGlobalCache: Boolean,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean
   ): Unit = {
     val file = new File(packagePath)
@@ -575,7 +594,7 @@ object Main {
     path: String,
     additionalArgs: Array[String],
     projectPath: Option[String],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean,
     enableAutoParallelism: Boolean,
@@ -660,7 +679,7 @@ object Main {
     */
   private def genDocs(
     projectPath: Option[String],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean
   ): Unit = {
@@ -682,7 +701,7 @@ object Main {
     */
   private def generateDocsFrom(
     path: String,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean
   ): Unit = {
@@ -724,7 +743,7 @@ object Main {
     */
   private def preinstallDependencies(
     projectPath: Option[String],
-    logLevel: LogLevel
+    logLevel: Level
   ): Unit = projectPath match {
     case Some(path) =>
       try {
@@ -875,7 +894,7 @@ object Main {
     */
   private def runRepl(
     projectPath: Option[String],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean
   ): Unit = {
@@ -914,7 +933,7 @@ object Main {
     * @param line     a CLI line
     * @param logLevel log level to set for the engine runtime
     */
-  private def runLanguageServer(line: CommandLine, logLevel: LogLevel): Unit = {
+  private def runLanguageServer(line: CommandLine, logLevel: Level): Unit = {
     val maybeConfig = parseServerOptions(line)
 
     maybeConfig match {
@@ -957,6 +976,18 @@ object Main {
       dataPort <- Either
         .catchNonFatal(dataPortStr.toInt)
         .leftMap(_ => "Port must be integer")
+      secureRpcPortStr = Option(line.getOptionValue(SECURE_RPC_PORT_OPTION))
+        .map(Some(_))
+        .getOrElse(None)
+      secureRpcPort <- Either
+        .catchNonFatal(secureRpcPortStr.map(_.toInt))
+        .leftMap(_ => "Port must be integer")
+      secureDataPortStr = Option(line.getOptionValue(SECURE_DATA_PORT_OPTION))
+        .map(Some(_))
+        .getOrElse(None)
+      secureDataPort <- Either
+        .catchNonFatal(secureDataPortStr.map(_.toInt))
+        .leftMap(_ => "Port must be integer")
       profilingPathStr =
         Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_PATH))
       profilingPath <- Either
@@ -978,7 +1009,9 @@ object Main {
     } yield boot.LanguageServerConfig(
       interface,
       rpcPort,
+      secureRpcPort,
       dataPort,
+      secureDataPort,
       rootId,
       rootPath,
       ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime),
@@ -1000,11 +1033,11 @@ object Main {
 
   /** Parses the log level option.
     */
-  def parseLogLevel(levelOption: String): LogLevel = {
+  def parseLogLevel(levelOption: String): Level = {
     val name = levelOption.toLowerCase
-    LogLevel.allLevels.find(_.toString.toLowerCase == name).getOrElse {
+    Level.values().find(_.name().toLowerCase() == name).getOrElse {
       val possible =
-        LogLevel.allLevels.map(_.toString.toLowerCase).mkString(", ")
+        Level.values().map(_.toString.toLowerCase).mkString(", ")
       System.err.println(s"Invalid log level. Possible values are $possible.")
       exitFail()
     }
@@ -1012,9 +1045,9 @@ object Main {
 
   /** Parses an URI that specifies the logging service connection.
     */
-  def parseUri(string: String): Uri =
+  def parseUri(string: String): URI =
     try {
-      Uri(string)
+      URI.create(string)
     } catch {
       case _: IllegalUriException =>
         System.err.println(s"`$string` is not a valid URI.")
@@ -1023,7 +1056,7 @@ object Main {
 
   /** Default log level to use if the LOG_LEVEL option is not provided.
     */
-  val defaultLogLevel: LogLevel = LogLevel.Error
+  val defaultLogLevel: Level = Level.WARN
 
   /** Main entry point for the CLI program.
     *
@@ -1179,7 +1212,7 @@ object Main {
     }
   }
 
-  /** Checks whether IR caching should be enabled.o
+  /** Checks whether IR caching should be enabled.
     *
     * The (mutually exclusive) flags can control it explicitly, otherwise it
     * defaults to off in development builds and on in production builds.

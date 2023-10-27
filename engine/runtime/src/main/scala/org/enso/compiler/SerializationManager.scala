@@ -1,11 +1,12 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
-import org.enso.compiler.core.IR
+import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.CompilationStage
@@ -26,9 +27,7 @@ import java.util.logging.Level
 import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptional
 
-final class SerializationManager(
-  compiler: Compiler
-) {
+final class SerializationManager(compiler: Compiler) {
 
   import SerializationManager._
 
@@ -260,7 +259,7 @@ final class SerializationManager(
           suggestions
         }
         .map { suggestion =>
-          val reexport = Option(exportsMap.get(suggestion)).map(_.toString)
+          val reexport = exportsMap.get(suggestion).map(_.toString)
           suggestion.withReexport(reexport)
         }
         .foreach(suggestions.add)
@@ -316,9 +315,9 @@ final class SerializationManager(
             libraryName
           )
           result
-        case _ =>
+        case None =>
           compiler.context.logSerializationManager(
-            Level.FINEST,
+            Level.FINE,
             "Unable to load suggestions for library [{0}].",
             libraryName
           )
@@ -370,7 +369,9 @@ final class SerializationManager(
     *         relinking being successful and `false` otherwise. [[None]] if the
     *         cache could not be deserialized.
     */
-  def deserialize(module: Module): Option[Boolean] = {
+  def deserialize(
+    module: Module
+  ): Option[Boolean] = {
     if (isWaitingForSerialization(module)) {
       abort(module)
       None
@@ -397,7 +398,8 @@ final class SerializationManager(
           compiler.context.logSerializationManager(
             debugLogLevel,
             "Restored IR from cache for module [{0}] at stage [{1}].",
-            Array[Object](module.getName, loadedCache.compilationStage())
+            module.getName,
+            loadedCache.compilationStage()
           )
 
           if (!relinkedIrChecks.contains(false)) {
@@ -453,7 +455,9 @@ final class SerializationManager(
     * @param module the module to check
     * @return `true` if `module` is waiting for serialization, `false` otherwise
     */
-  private def isWaitingForSerialization(module: Module): Boolean = {
+  private def isWaitingForSerialization(
+    module: Module
+  ): Boolean = {
     isWaitingForSerialization(module.getName)
   }
 
@@ -572,7 +576,7 @@ final class SerializationManager(
     */
   private def doSerializeModule(
     cache: ModuleCache,
-    ir: IR.Module,
+    ir: IRModule,
     stage: CompilationStage,
     name: QualifiedName,
     source: Source,

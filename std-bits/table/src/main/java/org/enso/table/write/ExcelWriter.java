@@ -1,21 +1,25 @@
 package org.enso.table.write;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Name;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.error.*;
+import org.enso.table.error.ColumnCountMismatchException;
+import org.enso.table.error.ColumnNameMismatchException;
+import org.enso.table.error.ExistingDataException;
+import org.enso.table.error.InvalidLocationException;
+import org.enso.table.error.RangeExceededException;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
@@ -159,7 +163,7 @@ public class ExcelWriter {
           throw new IllegalArgumentException("Cannot append by name when headers are not present in the existing data.");
         }
         String[] currentHeaders = sheet.get(expanded.getTopRow()).getCellsAsText(expanded.getLeftColumn(), expanded.getRightColumn());
-        yield ColumnMapper.mapColumnsByName(table, new NameDeduplicator().makeUniqueArray(currentHeaders));
+        yield ColumnMapper.mapColumnsByName(table, NameDeduplicator.createIgnoringProblems().makeUniqueArray(currentHeaders));
       }
       default ->
           throw new IllegalArgumentException("Internal Error: appendRangeWithTable called with illegal existing data mode '" + existingDataMode + "'.");
@@ -310,8 +314,8 @@ public class ExcelWriter {
     if (storage.isNa(j)) {
       cell.setBlank();
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      cell.setCellValue(doubleStorage.getItem(j));
-    } else if (storage instanceof LongStorage longStorage) {
+      cell.setCellValue(doubleStorage.getItemAsDouble(j));
+    } else if (storage instanceof AbstractLongStorage longStorage) {
       cell.setCellValue(longStorage.getItem(j));
     } else if (storage instanceof BoolStorage boolStorage) {
       cell.setCellValue(boolStorage.getItem(j));

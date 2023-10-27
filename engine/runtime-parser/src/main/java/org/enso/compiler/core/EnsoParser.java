@@ -1,5 +1,7 @@
 package org.enso.compiler.core;
 
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Module;
 import org.enso.syntax2.Parser;
 import org.enso.syntax2.Tree;
 
@@ -24,7 +26,7 @@ public final class EnsoParser implements AutoCloseable {
     }
   }
 
-  public IR.Module compile(CharSequence src) {
+  public Module compile(CharSequence src) {
     var tree = parser.parse(src);
     return generateIR(tree);
   }
@@ -33,11 +35,11 @@ public final class EnsoParser implements AutoCloseable {
     return parser.parse(src);
   }
 
-  public IR.Module generateIR(Tree t) {
+  public Module generateIR(Tree t) {
     return TreeToIr.MODULE.translate(t);
   }
 
-  public scala.Option<IR.Expression> generateIRInline(Tree t) {
+  public scala.Option<Expression> generateIRInline(Tree t) {
     return TreeToIr.MODULE.translateInline(t);
   }
 }

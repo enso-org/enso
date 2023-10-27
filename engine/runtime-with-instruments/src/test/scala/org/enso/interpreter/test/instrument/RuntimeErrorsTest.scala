@@ -18,6 +18,9 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import java.util.logging.ConsoleHandler
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeErrorsTest
@@ -44,13 +47,16 @@ class RuntimeErrorsTest
         namespace = "Enso_Test"
       )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val logHandler                 = new ConsoleHandler()
+    val defaultLogLevel            = java.util.logging.Level.WARNING;
+    logHandler.setLevel(defaultLogLevel)
+
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
@@ -69,6 +75,8 @@ class RuntimeErrorsTest
             .getAbsolutePath
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+        .logHandler(logHandler)
+        .option(RuntimeOptions.LOG_LEVEL, defaultLogLevel.getName)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -108,7 +116,7 @@ class RuntimeErrorsTest
 
   override protected def afterEach(): Unit = {
     context.executionContext.context.close()
-    context.runtimeServerEmulator.terminate()
+    Await.ready(context.runtimeServerEmulator.terminate(), 5.seconds)
   }
 
   it should "return panic sentinels in method body" in {
@@ -159,9 +167,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -256,9 +263,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -346,9 +352,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -374,6 +379,78 @@ class RuntimeErrorsTest
           Seq(mainBodyId)
         ),
         builtin = true
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return panic sentinel in type check" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val mainBodyId = metadata.addItem(73, 30)
+
+    val code =
+      """from Standard.Base import Integer
+        |
+        |my_func (x : Integer) = x + 1
+        |
+        |main = my_func (Non_Existing_Func 23)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "The name `Non_Existing_Func` could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(4, 16), model.Position(4, 33))),
+              None
+            )
+          )
+        )
+      ),
+      TestMessages.panic(
+        contextId,
+        mainBodyId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile error: The name `Non_Existing_Func` could not be found.",
+          Seq(mainBodyId)
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -422,9 +499,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -507,9 +583,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -584,9 +659,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -670,9 +744,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -754,9 +827,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -929,9 +1001,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1032,9 +1103,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1122,9 +1192,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xId, ConstantsGen.VECTOR),
       TestMessages.update(
@@ -1203,9 +1272,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1317,9 +1385,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      7
+      6
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -1439,9 +1506,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1587,9 +1653,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1706,9 +1771,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      3
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1775,9 +1839,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1880,9 +1943,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -1992,9 +2054,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      6
+      5
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -2105,9 +2166,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      5
+      4
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -2204,8 +2264,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,

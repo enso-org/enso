@@ -26,6 +26,7 @@ use double_representation::node::NodeAst;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
+use engine_protocol::language_server::ExecutionEnvironment;
 use parser::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
@@ -43,6 +44,10 @@ pub mod widget;
 
 pub use double_representation::graph::Id;
 pub use double_representation::graph::LocationHint;
+
+
+
+mod clipboard;
 
 
 
@@ -930,6 +935,22 @@ impl Handle {
         Ok(())
     }
 
+    /// Copy the node to clipboard. See `clipboard` module documentation for details.
+    pub fn copy_node(&self, id: ast::Id) -> FallibleResult {
+        let graph = GraphInfo::from_definition(self.definition()?.item);
+        let node = graph.locate_node(id)?;
+        let expression = node.whole_expression().repr();
+        let metadata = self.module.node_metadata(id).ok();
+        clipboard::copy_node(expression, metadata)?;
+        Ok(())
+    }
+
+    /// Paste a node from clipboard at cursor position. See `clipboard` module documentation for
+    /// details.
+    pub fn paste_node(&self, cursor_pos: Vector2, on_error: fn(String)) {
+        clipboard::paste_node(self, cursor_pos, on_error);
+    }
+
     /// Sets the given's node expression.
     #[profile(Debug)]
     pub fn set_expression(&self, id: ast::Id, expression_text: impl Str) -> FallibleResult {
@@ -945,6 +966,24 @@ impl Handle {
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
             graph.edit_node(id, expression)?;
+            Ok(graph.source)
+        })
+    }
+
+    /// Sets the previewed node expression. Similar to `set_expression_ast`, but also adds an
+    /// execution context switch to the expression to disable the output context of the node.
+    /// This way the execution of the previewed node will not produce unwanted side effects.
+    #[profile(Debug)]
+    pub fn set_preview_expression_ast(
+        &self,
+        id: ast::Id,
+        expression: Ast,
+        execution_enviroment: ExecutionEnvironment,
+    ) -> FallibleResult {
+        info!("Setting previewed node {id} expression to `{}`", expression.repr());
+        self.update_definition_ast(|definition| {
+            let mut graph = GraphInfo::from_definition(definition);
+            graph.edit_preview_node(id, expression, execution_enviroment)?;
             Ok(graph.source)
         })
     }

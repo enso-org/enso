@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Array.Array
-import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
@@ -11,8 +10,11 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
+import project.Errors.Common.Not_Found
 import project.Nothing.Nothing
+import project.Function.Function
 import project.Polyglot.Java
+from project.Runtime.Managed_Resource import Managed_Resource
 from project.Data.Boolean import Boolean, False, True
 
 type Type
@@ -33,6 +35,7 @@ type Type
         Vector.from_polyglot_array (get_type_constructors self.value Meta.Constructor.Value)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of method names that can be invoked
        on instances of this type.
@@ -59,6 +62,7 @@ type Type
         Vector.from_polyglot_array (get_type_methods self.value)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the fully qualified name of the type.
     qualified_name : Text
@@ -67,12 +71,29 @@ type Type
         get_qualified_type_name c
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the short name of the type.
     name : Text
     name self =
         c = self.value
         get_short_type_name c
+
+    ## ADVANCED
+       GROUP Metadata
+
+       Finds type specified by fully qualified name. Searches
+       all the types known to the system by transitive closure
+       of import statements in executing modules.
+
+       Arguments:
+       - qualified_name: fully qualified name.
+    find : Text -> Type ! Not_Found
+    find qualified_name =
+        raw = find_type_by_qualified_name qualified_name
+        case Meta.meta raw of
+            t:Meta.Type -> t
+            _ -> Base_Error.throw Not_Found
 
 type Atom
     ## PRIVATE
@@ -85,6 +106,7 @@ type Atom
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of field values of the given atom.
     fields : Vector
@@ -109,6 +131,7 @@ type Constructor
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns a vector of field names defined by a constructor.
     fields : Vector
@@ -117,6 +140,7 @@ type Constructor
         Vector.from_polyglot_array (get_constructor_fields c)
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the name of a constructor.
     name : Text
@@ -137,6 +161,7 @@ type Constructor
         new_atom ctor fields
 
     ## ADVANCED
+       GROUP Metadata
        Returns the type that this constructor is a part of.
     declaring_type : Type
     declaring_type self =
@@ -176,16 +201,25 @@ type Unresolved_Symbol
         create_unresolved_symbol new_name self.scope
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the name of an unresolved symbol.
     name : Text
     name self = get_unresolved_symbol_name self.value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the definition scope of an unresolved symbol.
     scope : Any
     scope self = get_unresolved_symbol_scope self.value
+
+    ## ADVANCED
+       GROUP Metadata
+
+       Starts building an instrumentation for a given node
+    instrument : Instrumentor
+    instrument self = Instrumentor.Value (instrumentor_builtin "newBuilder" [ self.value ])
 
 type Error
     ## PRIVATE
@@ -208,6 +242,7 @@ type Polyglot
     Value value
 
     ## ADVANCED
+       GROUP Metadata
 
        Returns the language with which a polyglot value is associated.
     get_language : Language
@@ -552,3 +587,77 @@ get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
    - constructor: the constructor to get the declaring type of.
 get_constructor_declaring_type : Any -> Any
 get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
+
+instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"
+
+## PRIVATE
+   ADVANCED
+
+   Builder to create instrumentation for a function
+type Instrumentor
+    ## PRIVATE
+    Value impl
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed at the begining of node/expression
+       execution. The callback `fn` gets UUID of the node/expression that is
+       being executed and can return `Nothing` to continue regular execution
+       or anything else to skip the execution and just return given value.
+
+       Arguments:
+       - fn: The callback function accepting UUID.
+    on_enter self (fn : Text -> Any | Nothing) =
+        new = instrumentor_builtin "onEnter" [ self.impl, fn ]
+        Instrumentor.Value new
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed when a node/expression evaluation
+       is over. The callback `fn` gets UUID and the computed value. Usually
+       the value is _cached_ and returned from `on_enter` callback next time
+       the same expression is evaluated.
+
+       Arguments:
+       - fn: The callback function accepting UUID and computed value
+    on_return self (fn : Text -> Any -> Nothing) =
+        new = instrumentor_builtin "onReturn" [ self.impl, fn ]
+        Instrumentor.Value new
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed when a node/expression representing function is about to be called.
+       The callback `fn` shall accept three arguments. The UUID to identify the expression, the function to be
+       invoked and the arguments to pass to the function. The callback can return `Nothing`
+       (in such case the function gets executed with provided arguments) or some other value,
+       which is then returned instead of calling the function.
+
+       Arguments:
+       - fn: The callback function accepting UUID and function value
+    on_call self (fn : Text -> Function -> Vector Any -> Any | Nothing) =
+        new = instrumentor_builtin "onCall" [ self.impl, fn ]
+        Instrumentor.Value new
+
+    ## PRIVATE
+       ADVANCED
+
+       Activates configured instrumentor. Returns managed resource to
+       deactivate the instrumentor later.
+
+       Arguments:
+       - value: The value of the atom in the meta representation.
+    activate self =
+        finalize_instrumentor impl = instrumentor_builtin "deactivate" [ impl ]
+        create action = (instrumentor_builtin action [ self.impl, finalize_instrumentor ]) : Managed_Resource
+        create "activate"
+
+## PRIVATE
+   Returns type specified by fully qualified name.
+
+   Arguments:
+   - fqn: fully qualified name.
+find_type_by_qualified_name : Text -> Any
+find_type_by_qualified_name fqn = @Builtin_Method "Meta.find_type_by_qualified_name"

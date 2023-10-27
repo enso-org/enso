@@ -1,19 +1,14 @@
 /** @file Type definitions common between all backends. */
+import type * as React from 'react'
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 import * as permissions from './permissions'
 import * as uniqueString from '../uniqueString'
 
-// =============
-// === Types ===
-// =============
-
-/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
-export enum BackendType {
-    local = 'local',
-    remote = 'remote',
-}
+// ================
+// === Newtypes ===
+// ================
 
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
@@ -50,7 +45,11 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
-/** Unique identifier for a file tag or project tag. */
+/** The name of an asset label. */
+export type LabelName = newtype.Newtype<string, 'LabelName'>
+export const LabelName = newtype.newtypeConstructor<LabelName>()
+
+/** Unique identifier for a label. */
 export type TagId = newtype.Newtype<string, 'TagId'>
 export const TagId = newtype.newtypeConstructor<TagId>()
 
@@ -76,6 +75,16 @@ export const Subject = newtype.newtypeConstructor<Subject>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
+// =============
+// === Types ===
+// =============
+
+/** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
+export enum BackendType {
+    local = 'local',
+    remote = 'remote',
+}
+
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
     id: UserOrOrganizationId
@@ -98,6 +107,7 @@ export enum ProjectState {
     created = 'Created',
     new = 'New',
     openInProgress = 'OpenInProgress',
+    provisioned = 'Provisioned',
     opened = 'Opened',
     closed = 'Closed',
     /** A frontend-specific state, representing a project that should be displayed as
@@ -111,6 +121,28 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
     type: ProjectState
+    /* eslint-disable @typescript-eslint/naming-convention */
+    volume_id: string
+    instance_id?: string
+    execute_async?: boolean
+    address?: string
+    security_group_id?: string
+    ec2_id?: string
+    ec2_public_ip_address?: string
+    current_session_id?: string
+    opened_by?: EmailAddress
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Record<ProjectState, boolean> = {
+    [ProjectState.created]: false,
+    [ProjectState.new]: false,
+    [ProjectState.openInProgress]: true,
+    [ProjectState.provisioned]: true,
+    [ProjectState.opened]: true,
+    [ProjectState.closed]: false,
+    [ProjectState.placeholder]: true,
+    [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -154,14 +186,23 @@ export interface ProjectRaw extends ListedProjectRaw {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
+    ideVersion: VersionNumber | null
+    engineVersion: VersionNumber | null
+    openedBy?: EmailAddress
+}
+
+/** A user/organization's project containing and/or currently executing code. */
+export interface BackendProject extends Project {
     /** This must not be null as it is required to determine the base URL for backend assets. */
     ideVersion: VersionNumber
-    engineVersion: VersionNumber | null
 }
 
 /** Information required to open a project. */
 export interface ProjectStartupInfo {
     project: Project
+    projectAsset: ProjectAsset
+    // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
+    setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
     backendType: BackendType
     accessToken: string | null
 }
@@ -203,29 +244,11 @@ export interface SecretInfo {
     id: SecretId
 }
 
-/** The type of asset a specific tag can be applied to. */
-export enum TagObjectType {
-    file = 'File',
-    project = 'Project',
-}
-
-/** A file tag or project tag. */
-export interface Tag {
-    /* eslint-disable @typescript-eslint/naming-convention */
-    organization_id: UserOrOrganizationId
+/** A label. */
+export interface Label {
     id: TagId
-    name: string
-    value: string
-    object_type: TagObjectType
-    object_id: string
-    /* eslint-enable @typescript-eslint/naming-convention */
-}
-
-/** Metadata uniquely identifying a file tag or project tag. */
-export interface TagInfo {
-    id: TagId
-    name: string
-    value: string
+    value: LabelName
+    color: LChColor
 }
 
 /** Type of application that a {@link Version} applies to.
@@ -291,23 +314,10 @@ export interface SimpleUser {
     email: EmailAddress
 }
 
-/** Backend representation of user permission types. */
-export enum PermissionAction {
-    own = 'Own',
-    admin = 'Admin',
-    edit = 'Edit',
-    read = 'Read',
-    readAndDocs = 'Read_docs',
-    readAndExec = 'Read_exec',
-    view = 'View',
-    viewAndDocs = 'View_docs',
-    viewAndExec = 'View_exec',
-}
-
 /** User permission for a specific user. */
 export interface UserPermission {
     user: User
-    permission: PermissionAction
+    permission: permissions.PermissionAction
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -319,6 +329,55 @@ export interface UpdatedDirectory {
 
 /** The type returned from the "create directory" endpoint. */
 export interface Directory extends DirectoryAsset {}
+
+/** Possible filters for the "list directory" endpoint. */
+export enum FilterBy {
+    all = 'All',
+    active = 'Active',
+    recent = 'Recent',
+    trashed = 'Trashed',
+}
+
+/** A color in the LCh colorspace. */
+export interface LChColor {
+    readonly lightness: number
+    readonly chroma: number
+    readonly hue: number
+    readonly alpha?: number
+}
+
+/** A pre-selected list of colors to be used in color pickers. */
+export const COLORS: readonly LChColor[] = [
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    // Red
+    { lightness: 50, chroma: 66, hue: 7 },
+    // Orange
+    { lightness: 50, chroma: 66, hue: 34 },
+    // Yellow
+    { lightness: 50, chroma: 66, hue: 80 },
+    // Turquoise
+    { lightness: 50, chroma: 66, hue: 139 },
+    // Teal
+    { lightness: 50, chroma: 66, hue: 172 },
+    // Blue
+    { lightness: 50, chroma: 66, hue: 271 },
+    // Lavender
+    { lightness: 50, chroma: 66, hue: 295 },
+    // Pink
+    { lightness: 50, chroma: 66, hue: 332 },
+    // Light blue
+    { lightness: 50, chroma: 22, hue: 252 },
+    // Dark blue
+    { lightness: 22, chroma: 13, hue: 252 },
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+]
+
+/** Converts a {@link LChColor} to a CSS color string. */
+export function lChColorToCssColor(color: LChColor): string {
+    return 'alpha' in color
+        ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
+        : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
+}
 
 // =================
 // === AssetType ===
@@ -386,6 +445,7 @@ export interface BaseAsset {
      * (and currently safe) to assume it is always a {@link DirectoryId}. */
     parentId: DirectoryId
     permissions: UserPermission[] | null
+    labels: LabelName[] | null
 }
 
 /** Metadata uniquely identifying a directory entry.
@@ -422,6 +482,7 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
         parentId: directoryId,
         permissions: [],
         projectState: null,
+        labels: [],
     }
 }
 
@@ -439,6 +500,7 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
         parentId: directoryId,
         permissions: [],
         projectState: null,
+        labels: [],
     }
 }
 
@@ -522,7 +584,7 @@ export interface InviteUserRequestBody {
 export interface CreatePermissionRequestBody {
     userSubjects: Subject[]
     resourceId: AssetId
-    action: PermissionAction | null
+    action: permissions.PermissionAction | null
 }
 
 /** HTTP request body for the "create directory" endpoint. */
@@ -534,6 +596,11 @@ export interface CreateDirectoryRequestBody {
 /** HTTP request body for the "update directory" endpoint. */
 export interface UpdateDirectoryRequestBody {
     title: string
+}
+
+/** HTTP request body for the "update asset" endpoint. */
+export interface UpdateAssetRequestBody {
+    parentDirectoryId: DirectoryId
 }
 
 /** HTTP request body for the "create project" endpoint. */
@@ -554,6 +621,7 @@ export interface ProjectUpdateRequestBody {
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
     forceCreate: boolean
+    executeAsync: boolean
 }
 
 /** HTTP request body for the "create secret" endpoint. */
@@ -565,15 +633,16 @@ export interface CreateSecretRequestBody {
 
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
-    name: string
     value: string
-    objectType: TagObjectType
-    objectId: string
+    color: LChColor
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
     parentId: string | null
+    filterBy: FilterBy | null
+    labels: LabelName[] | null
+    recentProjects: boolean
 }
 
 /** URL query string parameters for the "upload file" endpoint. */
@@ -581,11 +650,6 @@ export interface UploadFileRequestParams {
     fileId: string | null
     fileName: string | null
     parentDirectoryId: DirectoryId | null
-}
-
-/** URL query string parameters for the "list tags" endpoint. */
-export interface ListTagsRequestParams {
-    tagType: TagObjectType
 }
 
 /** URL query string parameters for the "list versions" endpoint. */
@@ -676,33 +740,6 @@ export function stripProjectExtension(name: string) {
 export abstract class Backend {
     abstract readonly type: BackendType
 
-    /** Delete an asset of any type. */
-    async deleteAsset(asset: AnyAsset) {
-        switch (asset.type) {
-            case AssetType.directory: {
-                await this.deleteDirectory(asset.id, asset.title)
-                break
-            }
-            case AssetType.project: {
-                await this.deleteProject(asset.id, asset.title)
-                break
-            }
-            case AssetType.file: {
-                await this.deleteFile(asset.id, asset.title)
-                break
-            }
-            case AssetType.secret: {
-                await this.deleteSecret(asset.id, asset.title)
-                break
-            }
-            case AssetType.specialLoading:
-            case AssetType.specialEmpty: {
-                // Ignored. This should never happen, and because they do not exist on the backend,
-                // there are no negative consequences.
-                break
-            }
-        }
-    }
     /** Return the root directory id for the given user. */
     abstract rootDirectoryId(user: UserOrOrganization | null): DirectoryId
     /** Return a list of all users in the same organization. */
@@ -728,8 +765,16 @@ export abstract class Backend {
         body: UpdateDirectoryRequestBody,
         title: string | null
     ): Promise<UpdatedDirectory>
-    /** Delete a directory. */
-    abstract deleteDirectory(directoryId: DirectoryId, title: string | null): Promise<void>
+    /** Change the parent directory of an asset. */
+    abstract updateAsset(
+        assetId: AssetId,
+        body: UpdateAssetRequestBody,
+        title: string | null
+    ): Promise<void>
+    /** Delete an arbitrary asset. */
+    abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
+    /** Restore an arbitrary asset from the trash. */
+    abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
     /** Return a list of projects belonging to the current user. */
     abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */
@@ -749,30 +794,30 @@ export abstract class Backend {
         body: ProjectUpdateRequestBody,
         title: string | null
     ): Promise<UpdatedProject>
-    /** Delete a project. */
-    abstract deleteProject(projectId: ProjectId, title: string | null): Promise<void>
     /** Return project memory, processor and storage usage. */
     abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
     /** Return a list of files accessible by the current user. */
     abstract listFiles(): Promise<File[]>
     /** Upload a file. */
     abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
-    /** Delete a file. */
-    abstract deleteFile(fileId: FileId, title: string | null): Promise<void>
     /** Create a secret environment variable. */
     abstract createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo>
     /** Return a secret environment variable. */
     abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
     abstract listSecrets(): Promise<SecretInfo[]>
-    /** Delete a secret environment variable. */
-    abstract deleteSecret(secretId: SecretId, title: string | null): Promise<void>
-    /** Create a file tag or project tag. */
-    abstract createTag(body: CreateTagRequestBody): Promise<TagInfo>
-    /** Return file tags or project tags accessible by the user. */
-    abstract listTags(params: ListTagsRequestParams): Promise<Tag[]>
-    /** Delete a file tag or project tag. */
-    abstract deleteTag(tagId: TagId): Promise<void>
+    /** Create a label used for categorizing assets. */
+    abstract createTag(body: CreateTagRequestBody): Promise<Label>
+    /** Return all labels accessible by the user. */
+    abstract listTags(): Promise<Label[]>
+    /** Set the full list of labels for a specific asset. */
+    abstract associateTag(
+        assetId: AssetId,
+        tagIds: LabelName[],
+        title: string | null
+    ): Promise<void>
+    /** Delete a label. */
+    abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
     /** Return a list of backend or IDE versions. */
     abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

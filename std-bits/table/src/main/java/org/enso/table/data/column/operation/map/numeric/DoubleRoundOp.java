@@ -3,11 +3,12 @@ package org.enso.table.data.column.operation.map.numeric;
 import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.DoubleBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
@@ -21,7 +22,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
     }
 
     @Override
-    public Storage<?> runTernaryMap(DoubleStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemBuilder problemBuilder) {
+    public Storage<?> runTernaryMap(DoubleStorage storage, Object decimalPlacesObject, Object useBankersObject, MapOperationProblemAggregator problemAggregator) {
         if (!(decimalPlacesObject instanceof Long decimalPlaces)) {
             throw new UnexpectedTypeException("a long.");
         }
@@ -39,13 +40,13 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
             for (int i = 0; i < storage.size(); i++) {
                 if (!storage.isNa(i)) {
-                    double item = storage.getItem(i);
+                    double item = storage.getItemAsDouble(i);
                     boolean special = Double.isNaN(item) || Double.isInfinite(item);
                     if (!special) {
                         out[i] = (long) Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers);
                     } else {
                         String msg = "Value is " + item;
-                        problemBuilder.reportArithmeticError(msg, i);
+                        problemAggregator.reportArithmeticError(msg, i);
                         isMissing.set(i);
                     }
                 } else {
@@ -54,20 +55,20 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
                 context.safepoint();
             }
-            return new LongStorage(out, storage.size(), isMissing);
+            return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
         } else {
             // Return double storage.
-            DoubleBuilder doubleBuilder = NumericBuilder.createDoubleBuilder(storage.size());
+            DoubleBuilder doubleBuilder = NumericBuilder.createDoubleBuilder(storage.size(), problemAggregator);
 
             for (int i = 0; i < storage.size(); i++) {
                 if (!storage.isNa(i)) {
-                    double item = storage.getItem(i);
+                    double item = storage.getItemAsDouble(i);
                     boolean special = Double.isNaN(item) || Double.isInfinite(item);
                     if (!special) {
                         doubleBuilder.appendDouble(Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
                     } else {
                         String msg = "Value is " + item;
-                        problemBuilder.reportArithmeticError(msg, i);
+                        problemAggregator.reportArithmeticError(msg, i);
                         doubleBuilder.appendNulls(1);
                     }
                 } else {

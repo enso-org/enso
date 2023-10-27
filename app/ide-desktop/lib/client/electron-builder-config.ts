@@ -8,20 +8,20 @@
 
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
 
 import * as electronBuilder from 'electron-builder'
 import * as electronNotarize from 'electron-notarize'
-import * as macOptions from 'app-builder-lib/out/options/macOptions'
+import type * as macOptions from 'app-builder-lib/out/options/macOptions'
 import yargs from 'yargs'
 
 import * as common from 'enso-common'
 
 import * as fileAssociations from './file-associations'
 import * as paths from './paths'
+import computeHashes from './tasks/computeHashes.mjs'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
-import BUILD_INFO from '../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =============
 // === Types ===
@@ -99,7 +99,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         extraMetadata: {
             version: BUILD_INFO.version,
         },
-        copyright: 'Copyright © 2022 ${author}.',
+        copyright: `Copyright © ${new Date().getFullYear()} ${common.COMPANY_NAME}`,
         artifactName: 'enso-${os}-${version}.${ext}',
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *
@@ -213,8 +213,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             // https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
             sign: false,
         },
-        afterAllArtifactBuild: path.join('tasks', 'computeHashes.cjs'),
-
+        afterAllArtifactBuild: computeHashes,
         afterPack: ctx => {
             if (passedArgs.platform === electronBuilder.Platform.MAC) {
                 // Make the subtree writable, so we can sign the binaries.
@@ -260,8 +259,11 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     appBundleId: macBuildOptions.appId!,
                     appPath: `${appOutDir}/${appName}.app`,
-                    appleId: process.env.APPLEID,
-                    appleIdPassword: process.env.APPLEIDPASS,
+                    // It is a mistake for either of these to be undefined.
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    appleId: process.env.APPLEID!,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    appleIdPassword: process.env.APPLEIDPASS!,
                 })
             }
         },

@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.logger.masking.Masking
-import org.enso.loggingservice.LoggingServiceManager
+import org.enso.logging.LoggingServiceManager
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
@@ -36,7 +36,9 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     descriptor: LanguageServerDescriptor,
     progressTracker: ActorRef,
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     lifecycleListener: LanguageServerExecutor.LifecycleListener
   ): Unit = {
     val runnable: Runnable = { () =>
@@ -45,7 +47,9 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
           descriptor,
           progressTracker,
           rpcPort,
+          secureRpcPort,
           dataPort,
+          secureDataPort,
           lifecycleListener
         )
       } catch {
@@ -66,7 +70,9 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     descriptor: LanguageServerDescriptor,
     progressTracker: ActorRef,
     rpcPort: Int,
+    secureRpcPort: Option[Int],
     dataPort: Int,
+    secureDataPort: Option[Int],
     lifecycleListener: LanguageServerExecutor.LifecycleListener
   ): Unit = {
     val distributionConfiguration = descriptor.distributionConfiguration
@@ -76,10 +82,12 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     val inheritedLogLevel =
       LoggingServiceManager.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
-      rootId    = descriptor.rootId,
-      interface = descriptor.networkConfig.interface,
-      rpcPort   = rpcPort,
-      dataPort  = dataPort
+      rootId         = descriptor.rootId,
+      interface      = descriptor.networkConfig.interface,
+      rpcPort        = rpcPort,
+      secureRpcPort  = secureRpcPort,
+      dataPort       = dataPort,
+      secureDataPort = secureDataPort
     )
     val configurationManager = new GlobalRunnerConfigurationManager(
       versionManager,

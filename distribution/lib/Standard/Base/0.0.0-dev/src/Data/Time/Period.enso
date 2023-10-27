@@ -55,7 +55,8 @@ type Period
     between start_date_inclusive end_date_exclusive =
         Period.Value (Java_Period.between start_date_inclusive end_date_exclusive)
 
-    ## Create a new Period from years, months and days.
+    ## GROUP DateTime
+       Create a new Period from years, months and days.
 
        Arguments:
        - years: Amount of years.
@@ -79,24 +80,29 @@ type Period
          java.time.Period.
     Value (internal_period : Java_Period)
 
-    ## Get the portion of the period expressed in years.
+    ## GROUP DateTime
+       Get the portion of the period expressed in years.
     years : Integer
     years self = self.internal_period.getYears
 
-    ## Get the portion of the period expressed in months.
+    ## GROUP DateTime
+       Get the portion of the period expressed in months.
     months : Integer
     months self = self.internal_period.getMonths
 
-    ## Get the portion of the period coming from months and years as months
+    ## GROUP DateTime
+       Get the portion of the period coming from months and years as months
        (every year is translated to 12 months).
     total_months : Integer
     total_months self = self.internal_period.toTotalMonths
 
-    ## Get the portion of the period expressed in days.
+    ## GROUP DateTime
+       Get the portion of the period expressed in days.
     days : Integer
     days self = self.internal_period.getDays
 
-    ## ALIAS Add Period
+    ## ALIAS add period
+       GROUP Operators
        Add the specified amount of time to this period.
 
        Arguments:
@@ -115,7 +121,8 @@ type Period
             catch_java_exceptions "Period.+" <|
                 Period.Value (self.internal_period.plus other_period.internal_period)
 
-    ## ALIAS Subtract Period
+    ## ALIAS subtract period
+       GROUP Operators
        Subtract a specified amount of time from this period.
 
        Arguments:
@@ -135,7 +142,8 @@ type Period
             catch_java_exceptions "Period.-" <|
                 Period.Value (self.internal_period.minus other_period.internal_period)
 
-    ## ALIAS Multiply, Times
+    ## ALIAS multiply, times
+       GROUP Operators
        Multiply the amount of time in this period by the specified scalar.
 
        Arguments:
@@ -152,12 +160,13 @@ type Period
         catch_java_exceptions "Period.*" <|
             Period.Value (self.internal_period.multipliedBy factor)
 
-    ## Negate all amounts in the period.
+    ## GROUP Operators
+       Negate all amounts in the period.
 
        This is useful when a period used for going forward in time needs to be
        used for going backwards instead.
-    negated : Period
-    negated self = Period.Value (self.internal_period.negated)
+    negate : Period
+    negate self = Period.Value (self.internal_period.negated)
 
     ## PRIVATE
        Convert Period to a friendly string.

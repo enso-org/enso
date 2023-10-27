@@ -25,11 +25,16 @@ type Internal_Dialect
          builders for the arguments, and optionally an additional metadata
          argument, and should return a builder yielding code for the whole
          operation.
-       - wrap_identifier: A function that converts an arbitrary supported
+       - wrap_identifier_raw: A function that converts an arbitrary supported
          identifier name in such a way that it can be used in the query; that
          usually consists of wrapping the name in quotes and escaping any quotes
          within it.
-    Value (operation_map:(Map Text (Vector (Builder->Builder)))) (wrap_identifier:(Text->Builder))
+    Value (operation_map:(Map Text (Vector (Builder->Builder)))) (wrap_identifier_raw:(Text->Text))
+
+    ## PRIVATE
+    wrap_identifier : Text -> Builder
+    wrap_identifier self identifier:Text =
+        Builder.code (self.wrap_identifier_raw identifier)
 
     ## PRIVATE
 
@@ -40,7 +45,7 @@ type Internal_Dialect
     extend_with : Vector Any -> Internal_Dialect
     extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect.Value new_map self.wrap_identifier
+        Internal_Dialect.Value new_map self.wrap_identifier_raw
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
@@ -88,7 +93,7 @@ make_unary_op name =
    - function: A function taking exactly one argument: the generated SQL code
      for the argument of the operation, and returning the generated SQL code for
      the whole operation.
-lift_unary_op : Text -> (Builder -> Builder) -> [Text, (Vector Builder -> Builder)]
+lift_unary_op : Text -> (Builder -> Builder) -> Pair Text (Vector Builder -> Builder)
 lift_unary_op name function =
     generator = arguments -> case arguments.length == 1 of
         False -> Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name + ".")
@@ -104,7 +109,7 @@ lift_unary_op name function =
    - function: A function taking exactly two arguments: the generated SQL code
      for the argument of the operation, and returning the generated SQL code for
      the whole operation.
-lift_binary_op : Text -> (Builder -> Builder -> Builder) -> [Text, (Vector Builder -> Builder)]
+lift_binary_op : Text -> (Builder -> Builder -> Builder) -> Pair Text (Vector Builder -> Builder)
 lift_binary_op name function =
     generator = arguments -> case arguments.length == 2 of
         False -> Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name + ".")
@@ -160,10 +165,10 @@ make_constant sql_code =
 
    This is the simplest way of escaping identifiers that should work across most
    dialects.
-wrap_in_quotes : Text -> Builder
+wrap_in_quotes : Text -> Text
 wrap_in_quotes identifier =
     escaped = identifier.replace '"' '""'
-    Builder.code '"'+escaped+'"'
+    '"'+escaped+'"'
 
 ## PRIVATE
 
@@ -457,6 +462,8 @@ generate_query dialect query = case query of
     Query.Drop_Table name if_exists ->
         maybe_if_exists = if if_exists then Builder.code "IF EXISTS " else Builder.empty
         Builder.code "DROP TABLE " ++ maybe_if_exists ++ dialect.wrap_identifier name
+    Query.Truncate_Table name ->
+        Builder.code "DELETE FROM " ++ dialect.wrap_identifier name
     Query.Insert_From_Select table_name column_names select_query -> case select_query of
         Query.Select _ _ ->
             inner_query = generate_query dialect select_query
@@ -482,8 +489,19 @@ generate_query dialect query = case query of
         source = dialect.wrap_identifier source_table_name
         if key_columns.is_empty then
             Panic.throw (Illegal_State.Error "Invalid IR: `Query.Delete_Unmatched_Rows` must have at least one key column. This is a bug in the Database library.")
-        key_part = Builder.join ", " (key_columns.map dialect.wrap_identifier)
-        Builder.code "DELETE FROM " ++ target ++ " WHERE (" ++ key_part ++ ") NOT IN (SELECT " ++ key_part ++ " FROM " ++ source ++ ")"
+        conditions = Builder.join " AND " <| key_columns.map name->
+            id = dialect.wrap_identifier name
+            target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
+        Builder.code "DELETE FROM " ++ target ++ " WHERE NOT EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
+    Query.Delete_Matching_Rows target_table_name source_table_name key_columns ->
+        target = dialect.wrap_identifier target_table_name
+        source = dialect.wrap_identifier source_table_name
+        if key_columns.is_empty then
+            Panic.throw (Illegal_State.Error "Invalid IR: `Query.Delete_Matching_Rows` must have at least one key column. This is a bug in the Database library.")
+        conditions = Builder.join " AND " <| key_columns.map name->
+            id = dialect.wrap_identifier name
+            target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
+        Builder.code "DELETE FROM " ++ target ++ " WHERE EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type: "+query.to_text
 
 ## PRIVATE

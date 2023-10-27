@@ -5,7 +5,7 @@ import project.Data.Matrix.Matrix
 import project.Read_Flag.Read_Flag
 import project.Write_Flag.Write_Flag
 
-export project.Read_Flag.Read_Flag
-export project.Write_Flag.Write_Flag
 export project.Data.Image.Image
 export project.Data.Matrix.Matrix
+export project.Read_Flag.Read_Flag
+export project.Write_Flag.Write_Flag

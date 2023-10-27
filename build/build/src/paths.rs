@@ -29,11 +29,14 @@ ide_ci::define_env_var! {
     /// Arguments to the engine runner.
     /// See: <https://github.com/diab0l/enso/blob/feature/test_with_clue/test/Meta_Test_Suite_Tests/README.md>
     ENSO_META_TEST_ARGS, String;
+
+    /// If Enso-specific assertions should be enabled.
+    ENSO_ENABLE_ASSERTIONS, String;
 }
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
 
-pub const LIBRARIES_TO_TEST: [&str; 6] = [
+pub const LIBRARIES_TO_TEST: [&str; 7] = [
     "Examples_Tests",
     "Geo_Tests",
     "Image_Tests",
@@ -41,6 +44,7 @@ pub const LIBRARIES_TO_TEST: [&str; 6] = [
     // "Meta_Test_Suite_Tests",
     "Table_Tests",
     "Tests",
+    "AWS_Tests",
     "Visualization_Tests",
 ];
 

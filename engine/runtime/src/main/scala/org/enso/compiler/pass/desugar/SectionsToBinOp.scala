@@ -1,9 +1,16 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Application.Operator.Section
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Expression,
+  Function,
+  Module,
+  Name
+}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.expression.{Application, Section}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -20,10 +27,10 @@ case object SectionsToBinOp extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRPass] = List(
     GenerateMethodBodies
   )
-  override val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
     DataflowAnalysis,
@@ -41,14 +48,14 @@ case object SectionsToBinOp extends IRPass {
     *         IR.
     */
   override def runModule(
-    ir: IR.Module,
+    ir: Module,
     moduleContext: ModuleContext
-  ): IR.Module =
+  ): Module =
     ir.mapExpressions(
       runExpression(
         _,
         new InlineContext(
-          moduleContext.module,
+          moduleContext,
           freshNameSupply = moduleContext.freshNameSupply,
           compilerConfig  = moduleContext.compilerConfig
         )
@@ -64,16 +71,16 @@ case object SectionsToBinOp extends IRPass {
     *         IR.
     */
   override def runExpression(
-    ir: IR.Expression,
+    ir: Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
+  ): Expression = {
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
         "A fresh name supply is required for sections desugaring."
       )
     )
 
-    ir.transformExpressions { case sec: IR.Application.Operator.Section =>
+    ir.transformExpressions { case sec: Section =>
       desugarSections(sec, freshNameSupply)
     }
   }
@@ -88,17 +95,16 @@ case object SectionsToBinOp extends IRPass {
     * @param section the section to desugar
     * @return the result of desugaring `section`
     */
-  //noinspection DuplicatedCode
-  def desugarSections(
-    section: IR.Application.Operator.Section,
+  private def desugarSections(
+    section: Section,
     freshNameSupply: FreshNameSupply
-  ): IR.Expression = {
+  ): Expression = {
     section match {
       case Section.Left(arg, op, loc, passData, diagnostics) =>
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
-          IR.CallArgument.Specified(None, rightArgName, None)
-        val rightDefArg = IR.DefinitionArgument.Specified(
+          CallArgument.Specified(None, rightArgName, None)
+        val rightDefArg = DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
           None,
@@ -106,18 +112,18 @@ case object SectionsToBinOp extends IRPass {
           None
         )
 
-        if (arg.value.isInstanceOf[IR.Name.Blank]) {
+        if (arg.value.isInstanceOf[Name.Blank]) {
           val leftArgName = freshNameSupply.newName()
           val leftCallArg =
-            IR.CallArgument.Specified(None, leftArgName, None)
-          val leftDefArg = IR.DefinitionArgument.Specified(
+            CallArgument.Specified(None, leftArgName, None)
+          val leftDefArg = DefinitionArgument.Specified(
             leftArgName.duplicate(),
             None,
             None,
             suspended = false,
             None
           )
-          val opCall = IR.Application.Prefix(
+          val opCall = Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, rightCallArg),
             hasDefaultsSuspended = false,
@@ -126,39 +132,34 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          val rightLam = IR.Function.Lambda(
+          val rightLam = Function.Lambda(
             List(rightDefArg),
             opCall,
             None
           )
 
-          IR.Function.Lambda(
+          Function.Lambda(
             List(leftDefArg),
             rightLam,
             loc
           )
 
         } else {
-          val opCall = IR.Application.Prefix(
+          Application.Prefix(
             function             = op,
-            arguments            = List(arg, rightCallArg),
+            arguments            = List(arg),
             hasDefaultsSuspended = false,
-            location             = None,
+            location             = loc,
             passData,
             diagnostics
           )
-
-          IR.Function.Lambda(
-            List(rightDefArg),
-            opCall,
-            loc
-          )
         }
+
       case Section.Sides(op, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
-          IR.CallArgument.Specified(None, leftArgName, None)
-        val leftDefArg = IR.DefinitionArgument.Specified(
+          CallArgument.Specified(None, leftArgName, None)
+        val leftDefArg = DefinitionArgument.Specified(
           leftArgName.duplicate(),
           None,
           None,
@@ -168,8 +169,8 @@ case object SectionsToBinOp extends IRPass {
 
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
-          IR.CallArgument.Specified(None, rightArgName, None)
-        val rightDefArg = IR.DefinitionArgument.Specified(
+          CallArgument.Specified(None, rightArgName, None)
+        val rightDefArg = DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
           None,
@@ -177,7 +178,7 @@ case object SectionsToBinOp extends IRPass {
           None
         )
 
-        val opCall = IR.Application.Prefix(
+        val opCall = Application.Prefix(
           function             = op,
           arguments            = List(leftCallArg, rightCallArg),
           hasDefaultsSuspended = false,
@@ -186,13 +187,13 @@ case object SectionsToBinOp extends IRPass {
           diagnostics
         )
 
-        val rightLambda = IR.Function.Lambda(
+        val rightLambda = Function.Lambda(
           List(rightDefArg),
           opCall,
           None
         )
 
-        IR.Function.Lambda(
+        Function.Lambda(
           List(leftDefArg),
           rightLambda,
           loc
@@ -220,9 +221,9 @@ case object SectionsToBinOp extends IRPass {
       case Section.Right(op, arg, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
-          IR.CallArgument.Specified(None, leftArgName, None)
+          CallArgument.Specified(None, leftArgName, None)
         val leftDefArg =
-          IR.DefinitionArgument.Specified(
+          DefinitionArgument.Specified(
             leftArgName.duplicate(),
             None,
             None,
@@ -230,12 +231,12 @@ case object SectionsToBinOp extends IRPass {
             None
           )
 
-        if (arg.value.isInstanceOf[IR.Name.Blank]) {
+        if (arg.value.isInstanceOf[Name.Blank]) {
           // Note [Blanks in Sections]
           val rightArgName = freshNameSupply.newName()
           val rightCallArg =
-            IR.CallArgument.Specified(None, rightArgName, None)
-          val rightDefArg = IR.DefinitionArgument.Specified(
+            CallArgument.Specified(None, rightArgName, None)
+          val rightDefArg = DefinitionArgument.Specified(
             rightArgName.duplicate(),
             None,
             None,
@@ -243,7 +244,7 @@ case object SectionsToBinOp extends IRPass {
             None
           )
 
-          val opCall = IR.Application.Prefix(
+          val opCall = Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, rightCallArg),
             hasDefaultsSuspended = false,
@@ -252,19 +253,19 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          val leftLam = IR.Function.Lambda(
+          val leftLam = Function.Lambda(
             List(leftDefArg),
             opCall,
             None
           )
 
-          IR.Function.Lambda(
+          Function.Lambda(
             List(rightDefArg),
             leftLam,
             loc
           )
         } else {
-          val opCall = IR.Application.Prefix(
+          val opCall = Application.Prefix(
             function             = op,
             arguments            = List(leftCallArg, arg),
             hasDefaultsSuspended = false,
@@ -273,7 +274,7 @@ case object SectionsToBinOp extends IRPass {
             diagnostics
           )
 
-          IR.Function.Lambda(
+          Function.Lambda(
             List(leftDefArg),
             opCall,
             loc

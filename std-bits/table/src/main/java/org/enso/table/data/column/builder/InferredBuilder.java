@@ -1,11 +1,13 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
@@ -14,7 +16,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 
 /**
  * A builder performing type inference on the appended elements, choosing the best possible storage.
@@ -23,14 +25,16 @@ public class InferredBuilder extends Builder {
   private TypedBuilder currentBuilder = null;
   private int currentSize = 0;
   private final int initialSize;
+  private final ProblemAggregator problemAggregator;
 
   /**
    * Creates a new instance of this builder, with the given known result length.
    *
    * @param initialSize the result length
    */
-  public InferredBuilder(int initialSize) {
+  public InferredBuilder(int initialSize, ProblemAggregator problemAggregator) {
     this.initialSize = initialSize;
+    this.problemAggregator = problemAggregator;
   }
 
   @Override
@@ -97,17 +101,22 @@ public class InferredBuilder extends Builder {
     if (o instanceof Boolean) {
       currentBuilder = new BoolBuilder();
     } else if (NumericConverter.isCoercibleToLong(o)) {
-      currentBuilder = NumericBuilder.createLongBuilder(initialCapacity);
-    } else if (NumericConverter.isCoercibleToDouble(o)) {
-      currentBuilder = NumericBuilder.createDoubleBuilder(initialCapacity);
+      // In inferred builder, we always default to 64-bits.
+      currentBuilder =
+          NumericBuilder.createLongBuilder(initialCapacity, IntegerType.INT_64, problemAggregator);
+    } else if (NumericConverter.isFloatLike(o)) {
+      currentBuilder =
+          NumericBuilder.createInferringDoubleBuilder(initialCapacity, problemAggregator);
+    } else if (o instanceof String) {
+      currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
+    } else if (o instanceof BigInteger) {
+      currentBuilder = new BigIntegerBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {
       currentBuilder = new TimeOfDayBuilder(initialCapacity);
     } else if (o instanceof ZonedDateTime) {
       currentBuilder = new DateTimeBuilder(initialCapacity);
-    } else if (o instanceof String) {
-      currentBuilder = new StringBuilder(initialCapacity);
     } else {
       currentBuilder = new MixedBuilder(initialCapacity);
     }
@@ -133,7 +142,8 @@ public class InferredBuilder extends Builder {
           // not apply only if a specific type is requested (so not in inferred builder).
           new RetypeInfo(Integer.class, IntegerType.INT_64),
           new RetypeInfo(Short.class, IntegerType.INT_64),
-          new RetypeInfo(Byte.class, IntegerType.INT_64));
+          new RetypeInfo(Byte.class, IntegerType.INT_64),
+          new RetypeInfo(BigInteger.class, BigIntegerType.INSTANCE));
 
   private void retypeAndAppend(Object o) {
     for (RetypeInfo info : retypePairs) {
@@ -149,10 +159,15 @@ public class InferredBuilder extends Builder {
   }
 
   private void retypeToMixed() {
-    ObjectBuilder objectBuilder = new MixedBuilder(initialSize);
-    currentBuilder.writeTo(objectBuilder.getData());
+    // The new internal builder must be at least `currentSize` so it can store
+    // all the current values. It must also be at least 'initialSize' since the
+    // caller might be using appendNoGrow and is expecting to write at least
+    // that many values.
+    int capacity = Math.max(initialSize, currentSize);
+
+    ObjectBuilder objectBuilder = new MixedBuilder(capacity);
+    currentBuilder.retypeToMixed(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
-    objectBuilder.setPreExistingProblems(currentBuilder.getProblems());
     currentBuilder = objectBuilder;
   }
 
@@ -173,14 +188,5 @@ public class InferredBuilder extends Builder {
   public StorageType getType() {
     // The type of InferredBuilder can change over time, so we do not report any stable type here.
     return null;
-  }
-
-  @Override
-  public AggregatedProblems getProblems() {
-    if (currentBuilder == null) {
-      return AggregatedProblems.of();
-    } else {
-      return currentBuilder.getProblems();
-    }
   }
 }

@@ -25,6 +25,6 @@ public abstract class IsLanguageInstalledNode extends Node {
   @CompilerDirectives.TruffleBoundary
   boolean doExecute(Object language_name, @Cached ExpectStringNode expectStringNode) {
     String name = expectStringNode.execute(language_name);
-    return EnsoContext.get(this).getEnvironment().getPublicLanguages().get(name) != null;
+    return EnsoContext.get(this).isLanguageInstalled(name);
   }
 }

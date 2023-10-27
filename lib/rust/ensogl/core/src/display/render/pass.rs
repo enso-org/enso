@@ -4,7 +4,7 @@ use crate::prelude::*;
 use crate::system::gpu::*;
 
 use crate::display::scene::UpdateStatus;
-use crate::system::gpu::data::texture::class::TextureOps;
+use crate::system::gpu::context::ContextLost;
 
 
 
@@ -12,20 +12,20 @@ use crate::system::gpu::data::texture::class::TextureOps;
 // === Definition ===
 // ==================
 
-/// Render pass definition. When used, the [`Composer`] will clone it and then will call the
-/// [`init`] method before it's first usage. It will happen everytime the [`Composer`] will be
-/// re-initialized (e.g. after changing scene size). Then, the function [`run`] will be called for
-/// every registered pass.
-#[allow(missing_docs)]
-pub trait Definition: CloneBoxedForDefinition + Debug + 'static {
-    fn initialize(&mut self, _instance: &Instance) {}
-    fn run(&mut self, _instance: &Instance, update_status: UpdateStatus);
-    fn is_screen_size_independent(&self) -> bool {
-        false
-    }
+/// Render pass definition. Supports creation of render pass instances.
+pub trait Definition: Debug + 'static {
+    /// Return a new instance of the pass, with the specified parameters.
+    fn instantiate(&self, instance: InstanceInfo) -> Result<Box<dyn Instance>, ContextLost>;
 }
 
-clone_boxed!(Definition);
+/// Render pass instance.
+pub trait Instance: Debug + 'static {
+    /// Run the pass.
+    fn run(&mut self, update_status: UpdateStatus);
+
+    /// Update the pass for the new screen size.
+    fn resize(&mut self, width: i32, height: i32, pixel_ratio: f32);
+}
 
 
 
@@ -34,27 +34,27 @@ clone_boxed!(Definition);
 // ================
 
 /// Instance of a render pass. Every render pass will be initialized by the [`Composer`] before its
-/// first run (see the [`Definition::run`] method. During such initialization a new [`Instance`]
+/// first run (see the [`Definition::run`] method. During such initialization a new [`InstanceInfo`]
 /// will be created. Please note that a new instance will be generated everytime a pass will be
 /// instantiated (e.g. after changing the scene size).
 ///
 /// The main purpose of this structure is to provide passes with common information and utilities.
 /// For example, it streamlines the creation of new framebuffers and textures.
 #[allow(missing_docs)]
-#[derive(Debug)]
-pub struct Instance {
-    pub variables:   UniformScope,
+#[derive(Debug, Clone)]
+pub struct InstanceInfo {
+    pub variables:   Rc<RefCell<UniformScope>>,
     pub context:     Context,
     pub width:       i32,
     pub height:      i32,
     pub pixel_ratio: f32,
 }
 
-impl Instance {
+impl InstanceInfo {
     /// Constructor
     pub fn new(
         context: &Context,
-        variables: &UniformScope,
+        variables: &Rc<RefCell<UniformScope>>,
         width: i32,
         height: i32,
         pixel_ratio: f32,
@@ -81,27 +81,29 @@ impl Instance {
         let context = &self.context;
         let variables = &self.variables;
         let name = format!("pass_{}", output.name);
-        let args = (width, height);
         let format = output.internal_format;
         let item_type = output.item_type;
-        let params = Some(output.texture_parameters);
-        uniform::get_or_add_gpu_texture_dyn(
-            context, variables, &name, format, item_type, args, params,
-        )
+        let texture =
+            Texture::new(context, format, item_type, width, height, 0, output.texture_parameters);
+        let uniform = variables.borrow_mut().set(name, texture.ok()).unwrap();
+        uniform.into()
     }
 
     /// Create a new framebuffer from the provided textures.
-    pub fn new_framebuffer(&self, textures: &[&AnyTextureUniform]) -> Framebuffer {
+    pub fn new_framebuffer(
+        &self,
+        textures: &[&AnyTextureUniform],
+    ) -> Result<Framebuffer, ContextLost> {
         let context = self.context.clone();
-        let native = self.context.create_framebuffer().unwrap();
+        let native = self.context.create_framebuffer()?;
         let target = Context::FRAMEBUFFER;
         let draw_buffers = js_sys::Array::new();
         context.bind_framebuffer(*target, Some(&native));
         for (index, texture) in textures.iter().enumerate() {
+            let texture = texture.texture().ok_or(ContextLost)?;
             let texture_target = Context::TEXTURE_2D;
             let attachment_point = *Context::COLOR_ATTACHMENT0 + index as u32;
-            let gl_texture = texture.gl_texture();
-            let gl_texture = Some(&gl_texture);
+            let gl_texture = Some(texture.as_gl_texture());
             let level = 0;
             draw_buffers.push(&attachment_point.into());
             context.framebuffer_texture_2d(
@@ -118,7 +120,7 @@ impl Instance {
         if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
             warn!("Framebuffer incomplete (status: {framebuffer_status}).")
         }
-        Framebuffer { context, native }
+        Ok(Framebuffer { context, native })
     }
 
     /// Run a closure with different viewport set in context.
@@ -186,7 +188,9 @@ impl OutputDefinition {
 // ===================
 
 /// A native WebGL framebuffer object bound to the gl context.
-#[derive(Debug, Clone)]
+// NOTE: This type must not derive `Clone`, as the resulting shared `native` would be deleted when
+// either instance is dropped.
+#[derive(Debug)]
 pub struct Framebuffer {
     context: Context,
     native:  web_sys::WebGlFramebuffer,

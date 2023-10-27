@@ -8,21 +8,34 @@ import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
 
 import ContextMenu from './contextMenu'
-import ContextMenuEntry from './contextMenuEntry'
+import MenuEntry from './menuEntry'
+import NewDataConnectorModal from './newDataConnectorModal'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
     hidden?: boolean
+    hasCopyData: boolean
     directoryKey: backendModule.DirectoryId | null
     directoryId: backendModule.DirectoryId | null
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+    doPaste: (
+        newParentKey: backendModule.AssetId | null,
+        newParentId: backendModule.DirectoryId | null
+    ) => void
 }
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-    const { hidden = false, directoryKey, directoryId, dispatchAssetListEvent } = props
+    const {
+        hidden = false,
+        hasCopyData,
+        directoryKey,
+        directoryId,
+        dispatchAssetListEvent,
+        doPaste,
+    } = props
     const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     return (
         <ContextMenu hidden={hidden}>
@@ -49,9 +62,13 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }}
                 ></input>
             )}
-            <ContextMenuEntry
+            <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.uploadFiles}
+                action={
+                    backend.type === backendModule.BackendType.local
+                        ? shortcuts.KeyboardAction.uploadProjects
+                        : shortcuts.KeyboardAction.uploadFiles
+                }
                 doAction={() => {
                     if (filesInputRef.current?.isConnected === true) {
                         filesInputRef.current.click()
@@ -76,7 +93,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     }
                 }}
             />
-            <ContextMenuEntry
+            <MenuEntry
                 hidden={hidden}
                 action={shortcuts.KeyboardAction.newProject}
                 doAction={() => {
@@ -91,7 +108,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 }}
             />
             {backend.type !== backendModule.BackendType.local && (
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
                     action={shortcuts.KeyboardAction.newFolder}
                     doAction={() => {
@@ -105,12 +122,34 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 />
             )}
             {backend.type !== backendModule.BackendType.local && (
-                <ContextMenuEntry
+                <MenuEntry
                     hidden={hidden}
-                    disabled
                     action={shortcuts.KeyboardAction.newDataConnector}
                     doAction={() => {
-                        // No backend support yet.
+                        setModal(
+                            <NewDataConnectorModal
+                                doCreate={(name, value) => {
+                                    dispatchAssetListEvent({
+                                        type: assetListEventModule.AssetListEventType
+                                            .newDataConnector,
+                                        parentKey: directoryKey,
+                                        parentId: directoryId,
+                                        name,
+                                        value,
+                                    })
+                                }}
+                            />
+                        )
+                    }}
+                />
+            )}
+            {directoryKey == null && hasCopyData && (
+                <MenuEntry
+                    hidden={hidden}
+                    action={shortcuts.KeyboardAction.paste}
+                    doAction={() => {
+                        unsetModal()
+                        doPaste(null, null)
                     }}
                 />
             )}

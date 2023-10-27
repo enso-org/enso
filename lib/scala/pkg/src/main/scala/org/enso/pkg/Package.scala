@@ -181,16 +181,16 @@ class Package[F](
     */
   def name: String = config.name
 
-  /** Returns the module of this package.
-    * @return the module of this package.
+  /** Returns the normalized name of this package.
+    * @return the normalized name of this package.
     */
-  def module: String =
+  def normalizedName: String =
     config.normalizedName.getOrElse(NameValidation.normalizeName(name))
 
   def namespace: String = config.namespace
 
   /** A [[LibraryName]] associated with the package. */
-  def libraryName: LibraryName = LibraryName(config.namespace, module)
+  def libraryName: LibraryName = LibraryName(config.namespace, normalizedName)
 
   /** Parses a file path into a qualified module name belonging to this
     * package.
@@ -202,7 +202,10 @@ class Package[F](
     val segments                 = sourceDir.relativize(file).getSegments.asScala.toList
     val dirSegments              = segments.take(segments.length - 1)
     val fileNameWithoutExtension = file.getName.takeWhile(_ != '.')
-    QualifiedName(namespace :: module :: dirSegments, fileNameWithoutExtension)
+    QualifiedName(
+      namespace :: normalizedName :: dirSegments,
+      fileNameWithoutExtension
+    )
   }
 
   /** Lists the source files in this package.
@@ -334,9 +337,11 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
           else Failure(PackageManager.PackageNotFound())
 
         val configFile = root.getChild(Package.configFileName)
-        for {
-          result <- readConfig(configFile)
-        } yield new Package(root, result, fileSystem)
+        if (configFile.exists) {
+          for {
+            result <- readConfig(configFile)
+          } yield new Package(root, result, fileSystem)
+        } else Failure(PackageManager.PackageNotFound())
       }
     result.recoverWith {
       case packageLoadingException: PackageManager.PackageLoadingException =>

@@ -1,10 +1,11 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import java.util.BitSet;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.graalvm.polyglot.Context;
 
 public abstract class DoubleLongMapOpWithSpecialNumericHandling
@@ -16,20 +17,21 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
   protected abstract long doOperation(double a);
 
   @Override
-  public LongStorage runUnaryMap(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
+  public LongStorage runUnaryMap(
+      DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     long[] out = new long[storage.size()];
     BitSet isMissing = new BitSet();
 
     for (int i = 0; i < storage.size(); i++) {
       if (!storage.isNa(i)) {
-        double item = storage.getItem(i);
+        double item = storage.getItemAsDouble(i);
         boolean special = Double.isNaN(item) || Double.isInfinite(item);
         if (!special) {
           out[i] = doOperation(item);
         } else {
           String msg = "Value is " + item;
-          problemBuilder.reportArithmeticError(msg, i);
+          problemAggregator.reportArithmeticError(msg, i);
           isMissing.set(i);
         }
       } else {
@@ -38,6 +40,6 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
 
       context.safepoint();
     }
-    return new LongStorage(out, storage.size(), isMissing);
+    return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
   }
 }

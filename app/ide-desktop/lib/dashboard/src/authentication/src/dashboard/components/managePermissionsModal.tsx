@@ -7,6 +7,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
+import * as permissionsModule from '../permissions'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
@@ -26,20 +27,25 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 // ==============================
 
 /** Props for a {@link ManagePermissionsModal}. */
-export interface ManagePermissionsModalProps {
-    item: backendModule.AnyAsset
-    setItem: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>>
+export interface ManagePermissionsModalProps<
+    Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
+> {
+    item: Asset
+    setItem: React.Dispatch<React.SetStateAction<Asset>>
     self: backendModule.UserPermission
     /** Remove the current user's permissions from this asset. This MUST be a prop because it should
      * change the assets list. */
     doRemoveSelf: () => void
+    /** If this is `null`, this modal will be centered. */
     eventTarget: HTMLElement | null
 }
 
 /** A modal with inputs for user email and permission level.
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
-export default function ManagePermissionsModal(props: ManagePermissionsModalProps) {
+export default function ManagePermissionsModal<
+    Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
+>(props: ManagePermissionsModalProps<Asset>) {
     const { item, setItem, self, doRemoveSelf, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -48,15 +54,15 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const [permissions, setPermissions] = React.useState(item.permissions ?? [])
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [email, setEmail] = React.useState<string | null>(null)
-    const [action, setAction] = React.useState(backendModule.PermissionAction.view)
+    const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
     const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const editablePermissions = React.useMemo(
         () =>
-            self.permission === backendModule.PermissionAction.own
+            self.permission === permissionsModule.PermissionAction.own
                 ? permissions
                 : permissions.filter(
-                      permission => permission.permission !== backendModule.PermissionAction.own
+                      permission => permission.permission !== permissionsModule.PermissionAction.own
                   ),
         [permissions, self.permission]
     )
@@ -73,10 +79,10 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     )
     const isOnlyOwner = React.useMemo(
         () =>
-            self.permission === backendModule.PermissionAction.own &&
+            self.permission === permissionsModule.PermissionAction.own &&
             permissions.every(
                 permission =>
-                    permission.permission !== backendModule.PermissionAction.own ||
+                    permission.permission !== permissionsModule.PermissionAction.own ||
                     permission.user.user_email === organization?.email
             ),
         [organization?.email, permissions, self.permission]
@@ -91,7 +97,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         // and `organization` is absent only when offline - in which case the user should only
         // be able to access the local backend.
         // This MUST be an error, otherwise the hooks below are considered as conditionally called.
-        throw new Error('Unable to share projects on the local backend.')
+        throw new Error('Cannot share assets on the local backend.')
     } else {
         const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
         const allUsers = React.useMemo(
@@ -190,7 +196,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     const usernames = addedUsersPermissions.map(
                         userPermissions => userPermissions.user.user_name
                     )
-                    toastAndLog(`Unable to set permissions for ${usernames.join(', ')}`, error)
+                    toastAndLog(`Could not set permissions for ${usernames.join(', ')}`, error)
                 }
             }
         }
@@ -221,7 +227,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             )
                         )
                     }
-                    toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
+                    toastAndLog(`Could not set permissions of '${userToDelete.user_email}'`, error)
                 }
             }
         }
@@ -229,12 +235,9 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         return (
             <Modal
                 centered={eventTarget == null}
-                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-1"
+                className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0"
             >
                 <div
-                    ref={element => {
-                        element?.focus()
-                    }}
                     tabIndex={-1}
                     style={
                         position != null
@@ -244,7 +247,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                               }
                             : {}
                     }
-                    className="sticky w-115.25"
+                    className="sticky w-115.25 rounded-2xl before:absolute before:bg-frame-selected before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
                     onClick={mouseEvent => {
                         mouseEvent.stopPropagation()
                     }}
@@ -258,7 +261,6 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         }
                     }}
                 >
-                    <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
                     <div className="relative flex flex-col rounded-2xl gap-2 p-2">
                         <div>
                             <h2 className="text-sm font-bold">Invite</h2>
@@ -276,7 +278,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                     disabled={willInviteNewUser}
                                     selfPermission={self.permission}
                                     typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
-                                    action={backendModule.PermissionAction.view}
+                                    action={permissionsModule.PermissionAction.view}
                                     assetType={item.type}
                                     onChange={setAction}
                                 />

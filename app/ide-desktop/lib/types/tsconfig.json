@@ -1,6 +1,10 @@
 {
+  "include": ["./*"],
   "compilerOptions": {
-    "skipLibCheck": false
+    "types": ["node"],
+    "lib": ["ES2015", "DOM"],
+    "skipLibCheck": false,
+    "outDir": "../../../../node_modules/.cache/tsc"
   },
   "extends": "../../tsconfig.json"
 }

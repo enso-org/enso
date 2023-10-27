@@ -1,5 +1,5 @@
 /** @file Contains useful error types common across the module. */
-import * as toastify from 'react-toastify'
+import type * as toastify from 'react-toastify'
 
 // =====================
 // === tryGetMessage ===
@@ -76,7 +76,7 @@ export class UnreachableCaseError extends Error {
 }
 
 /** A function that throws an {@link UnreachableCaseError} so that it can be used
- * in an expresison.
+ * in an expression.
  * @throws {UnreachableCaseError} Always. */
 export function unreachable(value: never): never {
     throw new UnreachableCaseError(value)

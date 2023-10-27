@@ -1,10 +1,14 @@
 package org.enso.compiler.refactoring
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.{ExternalID, IR, Identifier}
+import org.enso.compiler.core.ir.Name
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.resolve.MethodCalls
 import org.enso.pkg.QualifiedName
+
+import java.util.UUID
 
 trait IRUtils {
 
@@ -14,7 +18,7 @@ trait IRUtils {
     * @param externalId the external id to look for
     * @return the first node with the given external id in `ir`
     */
-  def findByExternalId(ir: IR, externalId: IR.ExternalId): Option[IR] = {
+  def findByExternalId(ir: IR, externalId: UUID @ExternalID): Option[IR] = {
     ir.preorder.find(_.getExternalId.contains(externalId))
   }
 
@@ -26,13 +30,13 @@ trait IRUtils {
     */
   def findLocalUsages(
     ir: IR,
-    literal: IR.Name.Literal
-  ): Option[Set[IR.Name.Literal]] = {
+    literal: Name.Literal
+  ): Option[Set[Name.Literal]] = {
     for {
       usages <- findStaticUsages(ir, literal)
     } yield {
       usages.collect {
-        case usage: IR.Name.Literal if usage.name == literal.name => usage
+        case usage: Name.Literal if usage.name == literal.name => usage
       }
     }
   }
@@ -47,14 +51,14 @@ trait IRUtils {
   def findModuleMethodUsages(
     moduleName: QualifiedName,
     ir: IR,
-    node: IR.Name
-  ): Option[Set[IR.Name.Literal]] =
+    node: Name
+  ): Option[Set[Name.Literal]] =
     for {
       usages <- findDynamicUsages(ir, node)
     } yield {
       usages
         .collect {
-          case usage: IR.Name.Literal
+          case usage: Name.Literal
               if usage.isMethod && usage.name == node.name =>
             usage
         }
@@ -79,7 +83,7 @@ trait IRUtils {
     */
   private def findStaticUsages(
     ir: IR,
-    literal: IR.Name.Literal
+    literal: Name.Literal
   ): Option[Set[IR]] = {
     for {
       metadata <- ir.getMetadata(DataflowAnalysis)
@@ -105,7 +109,7 @@ trait IRUtils {
     */
   private def findDynamicUsages(
     ir: IR,
-    node: IR.Name
+    node: Name
   ): Option[Set[IR]] = {
     for {
       metadata <- ir.getMetadata(DataflowAnalysis)
@@ -128,7 +132,7 @@ trait IRUtils {
     * @param id the identifier to look for
     * @return the `ir` node with the given identifier
     */
-  private def findById(ir: IR, id: IR.Identifier): Option[IR] = {
+  private def findById(ir: IR, id: UUID @Identifier): Option[IR] = {
     ir.preorder.find(_.getId == id)
   }
 }

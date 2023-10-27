@@ -6,7 +6,8 @@ import * as reactDOM from 'react-dom/client'
 
 import * as detect from 'enso-common/src/detect'
 
-import App, * as app from './components/app'
+import type * as app from './components/app'
+import App from './components/app'
 
 // =================
 // === Constants ===
@@ -14,8 +15,6 @@ import App, * as app from './components/app'
 
 /** The `id` attribute of the root element that the app will be rendered into. */
 const ROOT_ELEMENT_ID = 'enso-dashboard'
-/** The `id` attribute of the element that the IDE will be rendered into. */
-const IDE_ELEMENT_ID = 'root'
 
 // ===========
 // === run ===
@@ -34,19 +33,14 @@ function run(props: app.AppProps) {
     logger.log('Starting authentication/dashboard UI.')
     /** The root element into which the authentication/dashboard app will be rendered. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
-    const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (root == null) {
         logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
-    } else if (ideElement == null) {
-        logger.error(`Could not find IDE element with ID '${IDE_ELEMENT_ID}'.`)
     } else {
-        ideElement.style.top = '-100vh'
-        ideElement.style.display = 'fixed'
         // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
         // via the browser.
-        const actuallySupportsDeepLinks = supportsDeepLinks && detect.isRunningInElectron()
+        const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
         reactDOM.createRoot(root).render(
-            IS_DEV_MODE ? (
+            detect.IS_DEV_MODE ? (
                 <React.StrictMode>
                     <App {...props} />
                 </React.StrictMode>

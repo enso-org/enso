@@ -2,8 +2,8 @@ package org.enso.table_test_helpers;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -71,19 +71,25 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runVectorizedUnaryMap(
+      String name, MapOperationProblemAggregator problemAggregator) {
     return null;
   }
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
     return null;
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
+    return null;
+  }
+
+  @Override
+  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
     return null;
   }
 
@@ -108,7 +114,7 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
+  public Storage<?> appendNulls(int count) {
     return null;
   }
 

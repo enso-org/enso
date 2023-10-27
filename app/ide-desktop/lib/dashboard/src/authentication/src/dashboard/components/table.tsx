@@ -7,9 +7,10 @@ import * as set from '../../set'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 
-import * as tableColumn from './tableColumn'
+import type * as tableColumn from './tableColumn'
+import type * as tableRow from './tableRow'
 import Spinner, * as spinner from './spinner'
-import TableRow, * as tableRow from './tableRow'
+import TableRow from './tableRow'
 
 // =================
 // === Constants ===
@@ -50,8 +51,10 @@ interface InternalNoSelectedKeysProps {
 
 /** Props for a {@link Table}. */
 interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
-    footer?: JSX.Element
     rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element | null
+    scrollContainerRef?: React.RefObject<HTMLDivElement>
+    headerRowRef?: React.RefObject<HTMLTableRowElement>
+    footer?: React.ReactNode
     items: T[]
     filter?: ((item: T) => boolean) | null
     state?: State
@@ -65,9 +68,16 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     className?: string
     onContextMenu: (
         selectedKeys: Set<Key>,
-        event: React.MouseEvent<HTMLTableElement>,
+        event: React.MouseEvent<HTMLDivElement>,
         setSelectedKeys: (items: Set<Key>) => void
     ) => void
+    draggableRows?: boolean
+    onDragLeave?: React.DragEventHandler
+    onRowDragStart?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDrag?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDragOver?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDragEnd?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
+    onRowDrop?: (event: React.DragEvent<HTMLTableRowElement>, item: T, key: Key) => void
 }
 
 /** Props for a {@link Table}. */
@@ -75,7 +85,7 @@ export type TableProps<
     T,
     State = never,
     RowState = never,
-    Key extends string = string
+    Key extends string = string,
 > = InternalTableProps<T, State, RowState, Key> &
     ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
     ([State] extends [never] ? unknown : StateProp<State>) &
@@ -86,8 +96,10 @@ export default function Table<T, State = never, RowState = never, Key extends st
     props: TableProps<T, State, RowState, Key>
 ) {
     const {
-        footer,
         rowComponent: RowComponent = TableRow,
+        scrollContainerRef,
+        headerRowRef,
+        footer,
         items,
         filter,
         getKey,
@@ -97,6 +109,13 @@ export default function Table<T, State = never, RowState = never, Key extends st
         isLoading,
         placeholder,
         onContextMenu,
+        draggableRows,
+        onDragLeave,
+        onRowDragStart,
+        onRowDrag,
+        onRowDragOver,
+        onRowDragEnd,
+        onRowDrop,
         ...rowProps
     } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
@@ -110,6 +129,34 @@ export default function Table<T, State = never, RowState = never, Key extends st
             ? [rawSelectedKeys, rawSetSelectedKeys]
             : [fallbackSelectedKeys, fallbackSetSelectedKeys]
     const [previouslySelectedKey, setPreviouslySelectedKey] = React.useState<Key | null>(null)
+    const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+
+    // This is required to prevent the table body from overlapping the table header, because
+    // the table header is transparent.
+    React.useEffect(() => {
+        const body = bodyRef.current
+        const scrollContainer = scrollContainerRef?.current
+        if (body != null && scrollContainer != null) {
+            let isClipPathUpdateQueued = false
+            const updateClipPath = () => {
+                isClipPathUpdateQueued = false
+                body.style.clipPath = `inset(${scrollContainer.scrollTop}px 0 0 0)`
+            }
+            const onScroll = () => {
+                if (!isClipPathUpdateQueued) {
+                    isClipPathUpdateQueued = true
+                    requestAnimationFrame(updateClipPath)
+                }
+            }
+            updateClipPath()
+            scrollContainer.addEventListener('scroll', onScroll)
+            return () => {
+                scrollContainer.removeEventListener('scroll', onScroll)
+            }
+        } else {
+            return
+        }
+    }, [/* should never change */ scrollContainerRef])
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
@@ -205,7 +252,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const headerRow = (
-        <tr>
+        <tr ref={headerRowRef} className="sticky top-0">
             {columns.map(column => {
                 // This is a React component, even though it does not contain JSX.
                 // eslint-disable-next-line no-restricted-syntax
@@ -227,7 +274,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const itemRows = isLoading ? (
-        <tr className="h-10">
+        <tr className="h-8">
             <td colSpan={columns.length} className="bg-transparent">
                 <div className="grid justify-around w-full">
                     <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
@@ -270,30 +317,55 @@ export default function Table<T, State = never, RowState = never, Key extends st
                             setSelectedKeys(new Set([key]))
                         }
                     }}
+                    draggable={draggableRows}
+                    onDragStart={event => {
+                        if (onRowDragStart != null) {
+                            if (!selectedKeys.has(key)) {
+                                setPreviouslySelectedKey(key)
+                                setSelectedKeys(new Set([key]))
+                            }
+                            onRowDragStart(event, item, key)
+                        }
+                    }}
+                    onDrag={event => {
+                        onRowDrag?.(event, item, key)
+                    }}
+                    onDragOver={event => {
+                        onRowDragOver?.(event, item, key)
+                    }}
+                    onDragEnd={event => {
+                        onRowDragEnd?.(event, item, key)
+                    }}
+                    onDrop={event => {
+                        onRowDrop?.(event, item, key)
+                    }}
                 />
             )
         })
     )
 
     return (
-        <table
-            className="grow rounded-rows self-start table-fixed border-collapse"
+        <div
+            className="grow flex flex-col"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
+            onDragLeave={onDragLeave}
         >
-            <thead>{headerRow}</thead>
-            <tbody>
-                {itemRows}
-                {placeholder && (
-                    <tr className="h-10 hidden first:table-row">
-                        <td colSpan={columns.length} className="bg-transparent">
-                            {placeholder}
-                        </td>
-                    </tr>
-                )}
-            </tbody>
+            <table className="rounded-rows table-fixed border-collapse">
+                <thead>{headerRow}</thead>
+                <tbody ref={bodyRef}>
+                    {itemRows}
+                    {placeholder && (
+                        <tr className="h-8 hidden first:table-row">
+                            <td colSpan={columns.length} className="bg-transparent">
+                                {placeholder}
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
             {footer}
-        </table>
+        </div>
     )
 }

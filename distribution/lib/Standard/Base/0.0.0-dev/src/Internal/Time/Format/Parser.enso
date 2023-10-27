@@ -1,0 +1,289 @@
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Number_Parse_Error
+import project.Data.Text.Case.Case
+import project.Data.Text.Text
+import project.Data.Time.Errors.Date_Time_Format_Parse_Error
+import project.Data.Vector.Builder as Vector_Builder
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Internal.Time.Format.Tokenizer.Format_Token
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Runtime.Ref.Ref
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+
+## PRIVATE
+type Text_Representation
+    ## PRIVATE
+    Short_Form
+
+    ## PRIVATE
+    Long_Form
+
+## PRIVATE
+type Numeric_Representation
+    ## PRIVATE
+    Value digits:Integer
+
+## PRIVATE
+type Two_Digit_Year_Representation
+    ## PRIVATE
+    Value max_year:Integer
+
+## PRIVATE
+type Common_Nodes
+    ## PRIVATE
+    Literal text:Text
+
+    ## PRIVATE
+    Optional_Section inner_nodes:Vector
+
+## PRIVATE
+type Standard_Date_Patterns
+    ## PRIVATE
+    Year (representation : Numeric_Representation | Two_Digit_Year_Representation)
+
+    ## PRIVATE
+    Quarter (representation : Numeric_Representation)
+
+    ## PRIVATE
+    Month (representation : Numeric_Representation | Text_Representation)
+
+    ## PRIVATE
+    Day_Of_Month (representation : Numeric_Representation)
+
+    ## PRIVATE
+    Day_Of_Week (representation : Text_Representation)
+
+## PRIVATE
+type ISO_Week_Year_Patterns
+    ## PRIVATE
+    Week_Based_Year (representation : Numeric_Representation | Two_Digit_Year_Representation)
+
+    ## PRIVATE
+    Week_Of_Year (representation : Numeric_Representation)
+
+    ## PRIVATE
+    Day_Of_Week (representation : Numeric_Representation | Text_Representation)
+
+## PRIVATE
+type Time_Patterns
+    ## PRIVATE
+    Hour (representation : Numeric_Representation) is_24h:Boolean
+
+    ## PRIVATE
+    AM_PM
+
+    ## PRIVATE
+    Minute (representation : Numeric_Representation)
+
+    ## PRIVATE
+    Second (representation : Numeric_Representation)
+
+    ## PRIVATE
+    Fraction_Of_Second (representation : Numeric_Representation)
+
+## PRIVATE
+type Time_Zone_Patterns
+    ## PRIVATE
+    Time_Zone_Name representation:Text_Representation
+
+    ## PRIVATE
+    Time_Zone_ID
+
+    ## PRIVATE
+    Time_Zone_Offset pattern:Text zero:Text
+
+    ## PRIVATE
+    Time_Zone_Localized_Offset representation:Text_Representation
+
+## PRIVATE
+type Parser_Mode
+    ## PRIVATE
+    Simple
+
+    ## PRIVATE
+    ISO_Week_Year
+
+    ## PRIVATE
+    pattern_format_name self = case self of
+        Parser_Mode.Simple -> "Simple"
+        Parser_Mode.ISO_Week_Year -> "ISO Week-Date"
+
+## PRIVATE
+type Parser
+    ## PRIVATE
+    Instance (tokens : Vector (Format_Token | Nothing)) (position : Ref Integer) (mode : Parser_Mode)
+
+    ## PRIVATE
+    new tokens mode =
+        Parser.Instance tokens=tokens+[Nothing] position=(Ref.new 0) mode=mode
+
+    ## PRIVATE
+    run self = Panic.recover Date_Time_Format_Parse_Error <|
+        go current_builder optional_nesting_level = case self.consume_token of
+            Nothing ->
+                if optional_nesting_level > 0 then
+                    Panic.throw (Illegal_State.Error "Unterminated optional section. This should have been caught by the tokenizer.")
+            Format_Token.Optional_Section_Start ->
+                inner_builder = Vector.new_builder
+                go inner_builder (optional_nesting_level+1)
+                current_builder.append (Common_Nodes.Optional_Section inner_builder.to_vector)
+                @Tail_Call go current_builder optional_nesting_level
+            Format_Token.Optional_Section_End ->
+                if optional_nesting_level <= 0 then
+                    Panic.throw (Illegal_State.Error "Unexpected end of optional section. This should have been caught by the tokenizer.")
+            other_token ->
+                parsed_node = self.parse_common_token other_token
+                current_builder.append parsed_node
+                @Tail_Call go current_builder optional_nesting_level
+        root_builder = Vector.new_builder
+        go root_builder 0
+        root_builder.to_vector
+
+    ## PRIVATE
+    parse_common_token self token = case token of
+        Format_Token.Literal text ->
+            Common_Nodes.Literal text
+        Format_Token.Curly_Section inner_text ->
+            Panic.throw (Date_Time_Format_Parse_Error.Error "Unexpected section in curly braces: {"+inner_text+"}. If you want to include a curly brace as literal, escape it with single quotes like '{"+inner_text+"}'")
+        Format_Token.Pattern character count ->
+            date_pattern = case self.mode of
+                Parser_Mode.Simple -> self.parse_simple_date_pattern character count
+                Parser_Mode.ISO_Week_Year -> self.parse_iso_week_year_pattern character count
+            any_pattern = date_pattern.if_nothing <|
+                self.parse_time_or_timezone_pattern character count
+            any_pattern.if_nothing <|
+                self.fail_invalid_pattern character count
+            any_pattern
+        _ -> Panic.throw (Illegal_State.Error "Unexpected (here) token type: "+token.to_text)
+
+    ## PRIVATE
+    fail_invalid_pattern self character count extra_message="" =
+        Panic.throw (Date_Time_Format_Parse_Error.Error "The pattern "+(character*count)+" is not a valid pattern for the "+self.mode.pattern_format_name+" format."+extra_message)
+
+    ## PRIVATE
+    consume_token self =
+        current_position = self.position.get
+        self.position.put current_position+1
+        self.tokens.at current_position
+
+    ## PRIVATE
+       Checks if the next token is a curly brace parameter.
+       If it is, it is consumed and its value (as Text) is returned.
+       Otherwise, returns Nothing and does not move the cursor.
+    consume_curly_parameter_if_exists : Text | Nothing
+    consume_curly_parameter_if_exists self =
+        current_position = self.position.get
+        case self.tokens.at current_position of
+            Format_Token.Curly_Section inner_text ->
+                self.position.put current_position+1
+                inner_text
+            _ ->
+                # If no Curly_Section is set, do not advance the pointer and return Nothing.
+                Nothing
+
+    ## PRIVATE
+    resolve_year_representation self count = case count of
+        2 ->
+            max_year = case self.consume_curly_parameter_if_exists of
+                Nothing -> default_max_year
+                parameter_text ->
+                    Integer.parse parameter_text . catch Number_Parse_Error _->
+                        Panic.throw (Date_Time_Format_Parse_Error.Error "The curly braces setting the maximum year for `yy` must be an integer, but got: {"+parameter_text+"}.")
+            Two_Digit_Year_Representation.Value max_year=max_year
+        _ ->
+            Numeric_Representation.Value count
+
+    ## PRIVATE
+    parse_simple_date_pattern self character count =
+        lowercase = character.to_case Case.Lower
+        case lowercase of
+            "y" -> Standard_Date_Patterns.Year (self.resolve_year_representation count)
+            "q" -> Standard_Date_Patterns.Quarter (Numeric_Representation.Value count)
+            "m" -> case character of
+                "M" ->
+                    representation = case count of
+                        1 -> Numeric_Representation.Value 1
+                        2 -> Numeric_Representation.Value 2
+                        3 -> Text_Representation.Short_Form
+                        4 -> Text_Representation.Long_Form
+                        _ -> self.fail_invalid_pattern character count " The month pattern takes at most 4 letters."
+                    Standard_Date_Patterns.Month representation
+                # Lowercase form is reserved for minutes - handled elsewhere.
+                "m" -> Nothing
+            "d" -> case count of
+                1 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 1)
+                2 -> Standard_Date_Patterns.Day_Of_Month (Numeric_Representation.Value 2)
+                3 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
+                4 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+                _ -> self.fail_invalid_pattern character count " The day pattern takes at most 4 letters."
+            "e" -> case count of
+                1 -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Short_Form)
+                _ -> Standard_Date_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+            "l" -> self.fail_invalid_pattern character count " If you want to represent the month as text use `MMM` for the short form and `MMMM` for the long form, or use `from_java` for the Java syntax."
+            "w" -> self.fail_invalid_pattern character count " If you want to use the week of year, consider using `from_iso_week_date_pattern` that handles the ISO 8601 leap week calendar."
+            _ -> Nothing
+
+    ## PRIVATE
+    parse_iso_week_year_pattern self character count =
+        lowercase = character.to_case Case.Lower
+        case lowercase of
+            "y" -> ISO_Week_Year_Patterns.Week_Based_Year (self.resolve_year_representation count)
+            "w" -> ISO_Week_Year_Patterns.Week_Of_Year (Numeric_Representation.Value count)
+            "d" -> case count of
+                1 -> ISO_Week_Year_Patterns.Day_Of_Week (Numeric_Representation.Value 1)
+                2 -> ISO_Week_Year_Patterns.Day_Of_Week (Numeric_Representation.Value 2)
+                3 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Short_Form)
+                4 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+                _ -> self.fail_invalid_pattern character count " The day pattern takes at most 4 letters."
+            "e" -> case count of
+                1 -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Short_Form)
+                _ -> ISO_Week_Year_Patterns.Day_Of_Week (Text_Representation.Long_Form)
+            _ -> Nothing
+
+    ## PRIVATE
+    parse_time_or_timezone_pattern self character count =
+        lowercase = character.to_case Case.Lower
+        text_representation = if count <= 3 then Text_Representation.Short_Form else Text_Representation.Long_Form
+        case lowercase of
+            "h" -> case character of
+                "H" -> Time_Patterns.Hour (Numeric_Representation.Value count) is_24h=True
+                "h" -> Time_Patterns.Hour (Numeric_Representation.Value count) is_24h=False
+            "m" -> case character of
+                "m" -> Time_Patterns.Minute (Numeric_Representation.Value count)
+                # Lowercase form is reserved for months - handled elsewhere.
+                "M" -> Nothing
+            "s" -> Time_Patterns.Second (Numeric_Representation.Value count)
+            "f" ->
+                if count > 9 then
+                    Panic.throw (Date_Time_Format_Parse_Error.Error "It is meaningless to have more than 9 digits in the fractional-of-second pattern, because at most nanosecond precision of seconds is currently supported.")
+                Time_Patterns.Fraction_Of_Second (Numeric_Representation.Value count)
+            "a" -> Time_Patterns.AM_PM
+            "t" -> if count <= 3 then Time_Zone_Patterns.Time_Zone_ID else Time_Zone_Patterns.Time_Zone_Name text_representation
+            "v" -> case character of
+                "V" -> Time_Zone_Patterns.Time_Zone_ID
+                "v" -> Time_Zone_Patterns.Time_Zone_Name text_representation
+            "z" -> case count of
+                4 -> Time_Zone_Patterns.Time_Zone_Localized_Offset Text_Representation.Long_Form
+                5 ->
+                    no_offset_string = self.consume_curly_parameter_if_exists.if_nothing "Z"
+                    Time_Zone_Patterns.Time_Zone_Offset "+HH:MM:ss" no_offset_string
+                _ -> if count > 5 then self.fail_invalid_pattern character count " Too many characters for timezone format, 5 is a maximum." else
+                    no_offset_string = self.consume_curly_parameter_if_exists.if_nothing "+0000"
+                    Time_Zone_Patterns.Time_Zone_Offset "+HHMM" no_offset_string
+            "x" -> self.fail_invalid_pattern character count " If you want to represent the time zone offset use `zz`, or use `from_java` for the Java syntax."
+            _ -> Nothing
+
+## PRIVATE
+default_max_year = 2049
+
+## PRIVATE
+parse_simple_date_pattern tokens =
+    Parser.new tokens mode=Parser_Mode.Simple . run
+
+## PRIVATE
+parse_iso_week_year_pattern tokens =
+    Parser.new tokens mode=Parser_Mode.ISO_Week_Year . run

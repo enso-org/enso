@@ -8,9 +8,10 @@ import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
 import * as app from '../../components/app'
-import * as authServiceModule from '../service'
+import type * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
+import * as cognitoModule from '../cognito'
 import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
@@ -108,7 +109,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  * signing out, etc. All interactions with the authentication API should be done through this
  * interface.
  *
- * See {@link Cognito} for details on each of the authentication functions. */
+ * See {@link cognito.Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
     goOffline: (shouldShowToast?: boolean) => Promise<boolean>
     signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
@@ -170,6 +171,7 @@ export interface AuthProviderProps {
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: (accessToken: string | null) => void
     children: React.ReactNode
+    projectManagerUrl: string | null
 }
 
 /** A React provider for the Cognito API. */
@@ -180,6 +182,7 @@ export function AuthProvider(props: AuthProviderProps) {
         authService,
         onAuthenticated,
         children,
+        projectManagerUrl,
     } = props
     const logger = loggerProvider.useLogger()
     const { cognito } = authService
@@ -199,7 +202,7 @@ export function AuthProvider(props: AuthProviderProps) {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
         if (supportsLocalBackend) {
-            setBackendWithoutSavingType(new localBackend.LocalBackend(null))
+            setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl))
         } else {
             // Provide dummy headers to avoid errors. This `Backend` will never be called as
             // the entire UI will be disabled.
@@ -207,6 +210,7 @@ export function AuthProvider(props: AuthProviderProps) {
             setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
         }
     }, [
+        /* should never change */ projectManagerUrl,
         /* should never change */ supportsLocalBackend,
         /* should never change */ logger,
         /* should never change */ setBackendWithoutSavingType,
@@ -290,7 +294,9 @@ export function AuthProvider(props: AuthProviderProps) {
                         // This prevents a busy loop when request blocking is enabled in DevTools.
                         // The UI will be blank indefinitely. This is intentional, since for real
                         // network outages, `navigator.onLine` will be false.
-                        await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS))
+                        await new Promise<void>(resolve => {
+                            window.setTimeout(resolve, REQUEST_DELAY_MS)
+                        })
                     }
                 }
                 const url = new URL(location.href)
@@ -395,7 +401,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.confirmSignUp(email, code)
         if (result.err) {
             switch (result.val.kind) {
-                case 'UserAlreadyConfirmed':
+                case cognitoModule.ConfirmSignUpErrorKind.userAlreadyConfirmed:
                     break
                 default:
                     throw new errorModule.UnreachableCaseError(result.val.kind)
@@ -411,7 +417,7 @@ export function AuthProvider(props: AuthProviderProps) {
         if (result.ok) {
             toastSuccess(MESSAGES.signInWithPasswordSuccess)
         } else {
-            if (result.val.kind === 'UserNotFound') {
+            if (result.val.kind === cognitoModule.SignInWithPasswordErrorKind.userNotFound) {
                 navigate(app.REGISTRATION_PATH)
             }
             toastError(result.val.message)
@@ -487,7 +493,7 @@ export function AuthProvider(props: AuthProviderProps) {
         deinitializeSession()
         setInitialized(false)
         setUserSession(null)
-        localStorage.clear()
+        localStorage.clearUserSpecificEntries()
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
         await toast.toast.promise(cognito.signOut(), {

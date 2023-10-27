@@ -219,6 +219,12 @@
   <kbd>enter</kbd>][7527]
 - [Connections to lamdas are displayed correctly][7550]. It is possible to drag
   a connection to any expression inside the lambda body.
+- [Atom types in dropdowns do not produce redundant imports][#7670]. The
+  possibility of imports conflicts is reduced.
+- [Copying and pasting a single node][7618]. Using the common
+  <kbd>cmd</kbd>+<kbd>C</kbd> and <kbd>cmd</kbd>+<kbd>V</kbd> shortcuts, it is
+  now possible to copy a single selected node and paste its code to the graph or
+  another program.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -245,6 +251,8 @@
 [7311]: https://github.com/enso-org/enso/pull/7311
 [7527]: https://github.com/enso-org/enso/pull/7527
 [7550]: https://github.com/enso-org/enso/pull/7550
+[7670]: https://github.com/enso-org/enso/pull/7670
+[7618]: https://github.com/enso-org/enso/pull/7618
 
 #### EnsoGL (rendering engine)
 
@@ -300,6 +308,9 @@
   centered and the delay before showing them was extended.
 - [Accurate GPU performance measurements have been implemented][6595]. It is
   possible now to track both the time spent on both the CPU and the GPU sides.
+- [Support recovery from GL context loss][7662]. This allows the application to
+  continue after an interruption to rendering, such as hibernation or movement
+  of the application window to a display rendered by a different GPU.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
@@ -315,6 +326,7 @@
 [6595]: https://github.com/enso-org/enso/pull/6595
 [6487]: https://github.com/enso-org/enso/pull/6487
 [6512]: https://github.com/enso-org/enso/pull/6512
+[7662]: https://github.com/enso-org/enso/pull/7662
 
 #### Enso Standard Library
 
@@ -553,6 +565,29 @@
 - [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 - [`Text.parse_to_table` can take a `Regex`.][7297]
 - [Expose `Text.normalize`.][7425]
+- [Implemented new value types (various sizes of `Integer` type, fixed-length
+  and length-limited `Char` type) for the in-memory `Table` backend.][7557]
+- [Introducing generic `Any.to` conversion method][7704]
+- [Added `take` and `drop` to database tables.][7615]
+- [Added ability to specify expected value type in `Column.from_vector`,
+  `Column.map` and `Column.zip`.][7637]
+- [Added `delete_rows` method to Database Table, changed the
+  `update_database_table` API into `update_rows`.][7709]
+- [Added `Data.post` method to write to HTTP endpoints.][7700]
+- [Added support for S3. Using `Input_Stream` more for reading.][7776]
+- [Renamed `Decimal` to `Float`.][7807]
+- [Implemented `Date_Time_Formatter` for more user-friendly date/time format
+  parsing.][7826]
+- [Added `Table.expand_column` and improved JSON deserialization.][7859]
+- [Implemented `Table.auto_value_types` for in-memory tables.][7908]
+- [Implemented Text.substring to easily select part of a Text field][7913]
+- [Implemented basic XML support][7947]
+- [Implemented `Table.lookup_and_replace` for the in-memory backend.][7979]
+- [Added `Column_Operation` to `Table.set` allowing for more streamlined flow of
+  deriving column values in the GUI.][8005]
+- [Implemented `Table.expand_to_rows` for the in-memory backend.][8029]
+- [Added XML support for `.to Table` and `.expand_column`.][8083]
+- [Added `Previous_Value` option to `fill_nothing` and `fill_empty`.][8105]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -786,6 +821,24 @@
 [7295]: https://github.com/enso-org/enso/pull/7295
 [7297]: https://github.com/enso-org/enso/pull/7297
 [7425]: https://github.com/enso-org/enso/pull/7425
+[7557]: https://github.com/enso-org/enso/pull/7557
+[7704]: https://github.com/enso-org/enso/pull/7704
+[7615]: https://github.com/enso-org/enso/pull/7615
+[7637]: https://github.com/enso-org/enso/pull/7637
+[7700]: https://github.com/enso-org/enso/pull/7700
+[7709]: https://github.com/enso-org/enso/pull/7709
+[7776]: https://github.com/enso-org/enso/pull/7776
+[7807]: https://github.com/enso-org/enso/pull/7807
+[7826]: https://github.com/enso-org/enso/pull/7826
+[7859]: https://github.com/enso-org/enso/pull/7859
+[7908]: https://github.com/enso-org/enso/pull/7908
+[7913]: https://github.com/enso-org/enso/pull/7913
+[7947]: https://github.com/enso-org/enso/pull/7947
+[7979]: https://github.com/enso-org/enso/pull/7979
+[8005]: https://github.com/enso-org/enso/pull/8005
+[8029]: https://github.com/enso-org/enso/pull/8029
+[8083]: https://github.com/enso-org/enso/pull/8083
+[8105]: https://github.com/enso-org/enso/pull/8105
 
 #### Enso Compiler
 
@@ -896,6 +949,7 @@
 - [Warning.get_all returns only unique warnings][6372]
 - [Reimplement `enso_project` as a proper builtin][6352]
 - [Limit number of reported warnings per value][6577]
+- [Experimental support for Espresso Java interpreter][6966]
 - [Suggestions are updated only when the type of the expression changes][6755]
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
@@ -917,7 +971,24 @@
 - [Using official BigInteger support][7420]
 - [Allow users to give a project other than Upper_Snake_Case name][7397]
 - [Support renaming variable or function][7515]
+- [Replace custom logging service with off the shelf library][7559]
 - [Only use types as State keys][7585]
+- [Allow Java Enums in case of branches][7607]
+- [Notification about the project rename action][7613]
+- [Use `numpy` & co. from Enso!][7678]
+- [Changed layout of local libraries directory, making it easier to reference
+  projects next to each other][7634]
+- [Support runtime checks of intersection types][7769]
+- [Merge `Small_Integer` and `Big_Integer` types][7636]
+- [Inline type ascriptions][7796]
+- [Always persist `TRACE` level logs to a file][7825]
+- [Meta.instrument & Instrumentor API][7833]
+- [Downloadable VSCode extension][7861]
+- [New `project/status` route for reporting LS state][7801]
+- [Add Enso-specific assertions][7883]
+- [Modules can be `private`][7840]
+- [HTTPS and WSS support in Language Server][7937]
+- [Export of non-existing symbols results in error][7960]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1028,6 +1099,7 @@
 [6372]: https://github.com/enso-org/enso/pull/6372
 [6352]: https://github.com/enso-org/enso/pull/6352
 [6577]: https://github.com/enso-org/enso/pull/6577
+[6966]: https://github.com/enso-org/enso/pull/6966
 [6750]: https://github.com/enso-org/enso/pull/6750
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
@@ -1049,7 +1121,23 @@
 [7420]: https://github.com/enso-org/enso/pull/7420
 [7397]: https://github.com/enso-org/enso/pull/7397
 [7515]: https://github.com/enso-org/enso/pull/7515
+[7559]: https://github.com/enso-org/enso/pull/7559
 [7585]: https://github.com/enso-org/enso/pull/7585
+[7607]: https://github.com/enso-org/enso/pull/7607
+[7613]: https://github.com/enso-org/enso/pull/7613
+[7678]: https://github.com/enso-org/enso/pull/7678
+[7634]: https://github.com/enso-org/enso/pull/7634
+[7769]: https://github.com/enso-org/enso/pull/7769
+[7636]: https://github.com/enso-org/enso/pull/7636
+[7796]: https://github.com/enso-org/enso/pull/7796
+[7801]: https://github.com/enso-org/enso/pull/7801
+[7825]: https://github.com/enso-org/enso/pull/7825
+[7833]: https://github.com/enso-org/enso/pull/7833
+[7861]: https://github.com/enso-org/enso/pull/7861
+[7883]: https://github.com/enso-org/enso/pull/7883
+[7840]: https://github.com/enso-org/enso/pull/7840
+[7937]: https://github.com/enso-org/enso/pull/7937
+[7960]: https://github.com/enso-org/enso/pull/7960
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

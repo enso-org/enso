@@ -10,7 +10,10 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.problems.ProblemAggregator;
 
 public class MapHelpers {
   public static StringStorage stringConcatBimap(StringStorage storage1, StringStorage storage2) {
@@ -27,7 +30,7 @@ public class MapHelpers {
         result[i] = null;
       }
     }
-    return new StringStorage(result, n);
+    return new StringStorage(result, n, TextType.VARIABLE_LENGTH);
   }
 
   public static LongStorage longAddBimap(LongStorage storage1, LongStorage storage2) {
@@ -45,7 +48,7 @@ public class MapHelpers {
         missing.set(i);
       }
     }
-    return new LongStorage(result, n, missing);
+    return new LongStorage(result, n, missing, IntegerType.INT_64);
   }
 
   public static BoolStorage textEndsWith(StringStorage storage, String suffix) {
@@ -75,7 +78,7 @@ public class MapHelpers {
         missing.set(i);
       }
     }
-    return new LongStorage(result, n, missing);
+    return new LongStorage(result, n, missing, IntegerType.INT_64);
   }
 
   public static LongStorage getYear(DateStorage storage) {
@@ -89,14 +92,19 @@ public class MapHelpers {
         missing.set(i);
       }
     }
-    return new LongStorage(result, n, missing);
+    return new LongStorage(result, n, missing, IntegerType.INT_64);
   }
 
   public static Storage<?> mapCallback(
-      Storage<?> storage, Function<Object, Object> fn, StorageType expectedType) {
+      Storage<?> storage,
+      Function<Object, Object> fn,
+      StorageType expectedType,
+      ProblemAggregator problemAggregator) {
     int n = storage.size();
     Builder builder =
-        expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+        expectedType == null
+            ? new InferredBuilder(n, problemAggregator)
+            : Builder.getForType(expectedType, n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (!storage.isNa(i)) {
         builder.append(fn.apply(storage.getItemBoxed(i)));

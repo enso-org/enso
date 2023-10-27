@@ -6,7 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.math.BigInteger;
 import java.util.function.Predicate;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -84,7 +84,7 @@ public class LiteralNode extends ExpressionNode implements Patchable {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <N extends Node & Predicate<IR.Expression>> N asPatchableNode() {
+  public <N extends Node & Predicate<Expression>> N asPatchableNode() {
     var p = PatchableLiteralNode.build(this);
     notifyInserted(replace(p));
     return (N) p;

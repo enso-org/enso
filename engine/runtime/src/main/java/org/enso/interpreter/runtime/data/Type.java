@@ -68,6 +68,10 @@ public final class Type implements EnsoObject {
     return result;
   }
 
+  public static Type noType() {
+    return new Type("null", null, null, null, false);
+  }
+
   private void generateQualifiedAccessor() {
     var node = new ConstantNode(null, this);
     var function =
@@ -94,10 +98,7 @@ public final class Type implements EnsoObject {
       // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
       // check.
       CompilerAsserts.neverPartOfCompilation();
-      Map<String, Function> methods = this.definitionScope.getMethods().get(this);
-      if (methods != null) {
-        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
-      }
+      this.definitionScope.registerAllMethodsOfTypeToScope(this, scope);
       this.definitionScope = scope;
       if (generateAccessorsInTarget) {
         generateQualifiedAccessor();
@@ -123,7 +124,7 @@ public final class Type implements EnsoObject {
     return builtin;
   }
 
-  public Type getSupertype() {
+  private Type getSupertype() {
     if (supertype == null) {
       if (builtin) {
         return null;
@@ -132,6 +133,23 @@ public final class Type implements EnsoObject {
       return ctx.getBuiltins().any();
     }
     return supertype;
+  }
+
+  public final Type[] allTypes(EnsoContext ctx) {
+    if (supertype == null) {
+      if (builtin) {
+        return new Type[] {this};
+      }
+      return new Type[] {this, ctx.getBuiltins().any()};
+    }
+    if (supertype == ctx.getBuiltins().any()) {
+      return new Type[] {this, ctx.getBuiltins().any()};
+    }
+    var superTypes = supertype.allTypes(ctx);
+    var allTypes = new Type[superTypes.length + 1];
+    System.arraycopy(superTypes, 0, allTypes, 1, superTypes.length);
+    allTypes[0] = this;
+    return allTypes;
   }
 
   public void generateGetters(EnsoLanguage language) {
