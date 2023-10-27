@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.logging.Level;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
@@ -29,6 +30,7 @@ public class ModuleSourcesTest {
     Engine eng =
         Engine.newBuilder()
             .allowExperimentalOptions(true)
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
             .logHandler(new ByteArrayOutputStream())
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,

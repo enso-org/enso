@@ -2,6 +2,7 @@ package org.enso.compiler;
 
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.logging.Level;
 
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -28,6 +29,10 @@ public class ExecCompilerTest {
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
         )
         .option(RuntimeOptions.STRICT_ERRORS, "false")
+        .option(
+                RuntimeOptions.LOG_LEVEL,
+                Level.WARNING.getName()
+        )
         .logHandler(OutputStream.nullOutputStream())
         .allowAllAccess(true)
         .build();

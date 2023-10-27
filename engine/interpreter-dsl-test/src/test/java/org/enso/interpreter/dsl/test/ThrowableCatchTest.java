@@ -8,6 +8,8 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -70,6 +72,10 @@ public class ThrowableCatchTest {
             .allowAllAccess(true)
             .logHandler(new ByteArrayOutputStream())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
+            .option(
+                    RuntimeOptions.LOG_LEVEL,
+                    Level.WARNING.getName()
+            )
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())

@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.MethodNames.Module;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
@@ -49,6 +51,10 @@ public class IfVsCaseBenchmarks extends TestBase {
   public void initializeBench(BenchmarkParams params) throws IOException {
     ctx = Context.newBuilder("enso")
         .allowAllAccess(true)
+        .option(
+                RuntimeOptions.LOG_LEVEL,
+                Level.WARNING.getName()
+        )
         .logHandler(out)
         .out(out)
         .err(out)

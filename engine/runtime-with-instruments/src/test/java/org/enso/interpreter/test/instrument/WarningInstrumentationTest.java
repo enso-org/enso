@@ -21,6 +21,7 @@ import org.junit.Test;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class WarningInstrumentationTest {
 
@@ -34,6 +35,10 @@ public class WarningInstrumentationTest {
                 .option(
                         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                         Paths.get("../../distribution/component").toFile().getAbsolutePath()
+                )
+                .option(
+                        RuntimeOptions.LOG_LEVEL,
+                        Level.WARNING.getName()
                 )
                 .logHandler(OutputStream.nullOutputStream())
                 .allowExperimentalOptions(true)

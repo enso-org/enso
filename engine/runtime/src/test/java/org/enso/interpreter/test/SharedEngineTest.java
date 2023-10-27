@@ -2,6 +2,7 @@ package org.enso.interpreter.test;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
+import java.util.logging.Level;
 
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -21,6 +22,10 @@ public class SharedEngineTest extends TestBase {
     var out = new ByteArrayOutputStream();
     sharedEngine = Engine.newBuilder()
       .allowExperimentalOptions(true)
+      .option(
+              RuntimeOptions.LOG_LEVEL,
+              Level.WARNING.getName()
+      )
       .logHandler(out)
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(

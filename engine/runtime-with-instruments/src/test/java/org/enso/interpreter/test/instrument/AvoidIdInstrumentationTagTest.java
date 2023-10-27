@@ -7,6 +7,8 @@ import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.logging.Level;
+
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -37,6 +39,10 @@ public class AvoidIdInstrumentationTagTest {
         .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
+        )
+        .option(
+                RuntimeOptions.LOG_LEVEL,
+                Level.WARNING.getName()
         )
         .logHandler(OutputStream.nullOutputStream())
         .allowExperimentalOptions(true)

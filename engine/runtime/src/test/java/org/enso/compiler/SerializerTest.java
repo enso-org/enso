@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.pkg.PackageManager;
@@ -28,6 +29,7 @@ public class SerializerTest {
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
             .logHandler(OutputStream.nullOutputStream())
             .allowAllAccess(true)
             .build();

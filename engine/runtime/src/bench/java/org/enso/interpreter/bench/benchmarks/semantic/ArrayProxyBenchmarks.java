@@ -4,6 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.logging.Level;
+
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Value;
@@ -35,6 +38,10 @@ public class ArrayProxyBenchmarks {
     Engine eng =
         Engine.newBuilder()
             .allowExperimentalOptions(true)
+            .option(
+                    RuntimeOptions.LOG_LEVEL,
+                    Level.WARNING.getName()
+            )
             .logHandler(new ByteArrayOutputStream())
             .option(
                 "enso.languageHomeOverride",
