@@ -227,15 +227,3 @@ type Invariant_Violation
     to_display_text : Text
     to_display_text self =
         "The database has been modified between the time the query was prepared and executed, leading to possibly incorrect results. Please re-run the workflow to retry."
-
-## Indicates that the query may not have downloaded all rows that were available.
-
-   The count of extra rows is not included, because computing it would add too much additional cost.
-type Not_All_Rows_Downloaded
-    ## PRIVATE
-    Warning (max_rows:Integer)
-
-    ## PRIVATE
-    to_display_text : Text
-    to_display_text self =
-        "The query was set to download at most "+self.max_rows.to_text+" rows, but more rows than that limit were available in the result and were discarded. If you want to know the full result, change the `read` limit."

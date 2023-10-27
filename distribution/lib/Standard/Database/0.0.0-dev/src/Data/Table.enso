@@ -2147,7 +2147,8 @@ type Table
          result if the number of rows returned by the query exceeds `max_rows`.
     read : (Integer | Nothing) -> Boolean -> Materialized_Table
     read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
-        preprocessed = if warn_if_more_rows then self.limit max_rows+1 else self.limit max_rows
+        preprocessed = if max_rows.is_nothing then self else
+            if warn_if_more_rows then self.limit max_rows+1 else self.limit max_rows
         case preprocessed.internal_columns.is_empty of
             True ->
                 Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
@@ -2170,7 +2171,7 @@ type Table
                            However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
                         if expected_type_kind == actual_type_kind then Nothing else
                             warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
-                result = if materialized_table.row_count <= max_rows then materialized_table else
+                result = if max_rows.is_nothing || materialized_table.row_count <= max_rows then materialized_table else
                     assert warn_if_more_rows "We may get more rows than we asked for _only_ if warn_if_more_rows=True"
                     warnings_builder.append (Not_All_Rows_Downloaded.Warning max_rows)
                     materialized_table.take max_rows
