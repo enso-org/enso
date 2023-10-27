@@ -63,8 +63,8 @@ public class TestSpecCollector {
 
   /**
    * Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
-   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the
-   * "enso" name, as users are free to name their cloned directories however they like.
+   * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+   * name, as users are free to name their cloned directories however they like.
    */
   private File locateRootDirectory() {
     File rootDir = null;
