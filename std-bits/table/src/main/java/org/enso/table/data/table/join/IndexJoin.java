@@ -74,17 +74,11 @@ public class IndexJoin implements JoinStrategy {
   }
 
   private static boolean isSupported(JoinCondition condition) {
-    switch (condition) {
-      case Equals eq -> {
-        return isBuiltinType(eq.left().getStorage()) && isBuiltinType(eq.right().getStorage());
-      }
-      case EqualsIgnoreCase ignored -> {
-        return true;
-      }
-      default -> {
-        return false;
-      }
-    }
+    return switch (condition) {
+      case Equals ignored -> true;
+      case EqualsIgnoreCase ignored -> true;
+      default -> false;
+    };
   }
 
   private static HashEqualityCondition makeHashEqualityCondition(JoinCondition eq) {
@@ -103,10 +97,5 @@ public class IndexJoin implements JoinStrategy {
               + " to a HashEqualityCondition, but it should not be marked as supported. This is a"
               + " bug in the Table library.");
     }
-  }
-
-  private static boolean isBuiltinType(Storage<?> storage) {
-    // TODO: this should be removed when #5626 and #5259 are implemented
-    return !storage.getType().equals(AnyObjectType.INSTANCE);
   }
 }
