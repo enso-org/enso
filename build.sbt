@@ -1122,29 +1122,32 @@ lazy val `interpreter-dsl-test` =
 // === Sub-Projects ===========================================================
 // ============================================================================
 
-val truffleRunOptionsNoAssert =
-  if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
-    Seq(
-      "-Dpolyglot.engine.IterativePartialEscape=true",
-      "-Dpolyglot.engine.BackgroundCompilation=false",
-      "-Dbench.compileOnly=true"
-    )
-  } else {
-    Seq(
-      "-Dpolyglot.engine.IterativePartialEscape=true",
-      "-Dpolyglot.engine.BackgroundCompilation=false"
-    )
-  }
-val truffleRunOptions = "-ea" +: truffleRunOptionsNoAssert
+val benchOnlyOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
+  Seq(
+    "-Dbench.compileOnly=true"
+  )
+} else {
+  Seq(
+    "-Dbench.compileOnly=false"
+  )
+}
+
+/**
+ * Truffle-related settings for test running.
+ */
+val truffleRunOpts = Seq(
+  "-Dpolyglot.engine.IterativePartialEscape=true",
+  "-Dpolyglot.engine.BackgroundCompilation=false"
+)
 
 val truffleRunOptionsNoAssertSettings = Seq(
   fork := true,
-  javaOptions ++= truffleRunOptionsNoAssert
+  javaOptions ++= benchOnlyOptions
 )
 
 val truffleRunOptionsSettings = Seq(
   fork := true,
-  javaOptions ++= truffleRunOptions
+  javaOptions ++= "-ea" +: benchOnlyOptions
 )
 
 val testLogProviderOptions = Seq(
@@ -1397,10 +1400,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.sdk" % "jniutils" % graalMavenPackagesVersion % Runtime,
       "org.graalvm.sdk" % "collections" % graalMavenPackagesVersion % Runtime,
     ),
-    // Note [Classpath Separation]
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
-      "-Dgraalvm.locatorDisabled=true",
-      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      "-Dpolyglotimpl.DisableClassPathIsolation=true"
     ),
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
