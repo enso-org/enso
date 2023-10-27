@@ -1638,11 +1638,8 @@ lazy val `runtime-with-instruments` =
 
 /* runtime-with-polyglot
  * ~~~~~~~~~~~~~~~~~~~~~
- * A project that allows loading polyglot languages by not disabling
- * the GraalVM locator explicitly with `-Dgraalvm.locatorDisabled=true` like the
- * `runtime-with-instruments` project does. It means that the test classes and
- * runtime classes are loaded using different classloaders, and the test code
- * cannot access the `EnsoContext`.
+ * Unlike `runtime`, this project includes the truffle language JARs on the
+ * class-path.
  */
 
 lazy val `runtime-with-polyglot` =
@@ -1658,29 +1655,17 @@ lazy val `runtime-with-polyglot` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
-      Test / javaOptions ++= {
-        // Note [Classpath Separation]
-        val runtimeClasspath =
-          (LocalProject("runtime") / Compile / fullClasspath).value
-        val runtimeInstrumentsClasspath =
-          (LocalProject(
-            "runtime-with-instruments"
-          ) / Compile / fullClasspath).value
-        val appendClasspath =
-          (runtimeClasspath ++ runtimeInstrumentsClasspath)
-            .map(_.data)
-            .mkString(File.pathSeparator)
-        Seq(
-          s"-Dtruffle.class.path.append=$appendClasspath"
-        )
-      },
+      Test / javaOptions ++= testLogProviderOptions ++ Seq(
+        "-Dpolyglotimpl.DisableClassPathIsolation=true"
+      ),
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
-      libraryDependencies ++= Seq(
-        "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion % "provided",
-        "org.scalatest"       %% "scalatest" % scalatestVersion          % Test
+      libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
+        "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion % "provided",
+        "org.graalvm.tools"    % "insight-tool"  % graalMavenPackagesVersion % "provided",
+        "org.scalatest"       %% "scalatest"     % scalatestVersion          % Test
       )
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
