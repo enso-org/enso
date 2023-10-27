@@ -311,6 +311,9 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public void close() {
       if (map != null) {
+        if (compilerModule.bindings != null) {
+          throw new IllegalStateException("Reassigining bindings to " + compilerModule);
+        }
         compilerModule.bindings = map;
       }
       if (ir != null) {

@@ -111,7 +111,10 @@ class ImportResolver(compiler: Compiler) {
                   .map { concreteBindings =>
                     compiler.context.updateModule(
                       current,
-                      _.bindingsMap(concreteBindings)
+                      { u =>
+                        u.bindingsMap(concreteBindings)
+                        u.loadedFromCache(true)
+                      }
                     )
                     concreteBindings
                   }
@@ -143,7 +146,6 @@ class ImportResolver(compiler: Compiler) {
         }
       }
     }
-
     go(mutable.Stack(module), mutable.Set(), mutable.Set())
   }
 
