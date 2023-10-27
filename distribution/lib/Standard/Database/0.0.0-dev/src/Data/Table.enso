@@ -1898,8 +1898,9 @@ type Table
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
-           `Missing_Input_Columns` is raised as an error or problem
-           following the `error_on_missing_columns` rules.
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
          - If a provided `format` value is not compatible with all selected
            columns, and error will be thrown. The error will depend on the
            mismatch between the format and the column.
