@@ -1990,8 +1990,8 @@ type Column
          result if the number of rows returned by the query exceeds `max_rows`.
     read : (Nothing | Integer) -> Boolean -> Column
     read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) =
-        # TODO warning
-        if max_rows.is_nothing then self else self.slice 0 max_rows
+        if max_rows.is_nothing then self else
+            self.to_table.read max_rows warn_if_more_rows . at 0
 
     ## GROUP Standard.Base.Conversions
        Returns a vector containing all the elements in this column.
