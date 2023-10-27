@@ -100,7 +100,7 @@ type Column
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
     read : (Nothing | Integer) -> Boolean -> Materialized_Column
-    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) =
+    read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
         self.to_table.read max_rows warn_if_more_rows . at 0
 
     ## GROUP Standard.Base.Conversions

@@ -321,6 +321,35 @@ spec setup =
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
+        Test.specify "should also work as Column.read" <|
+            c1 = t_big.at "X"
+            c1.length . should_equal 1500
+
+            r2 = c1.read
+            case has_default_row_limit of
+                True ->
+                    r2.length . should_equal 1000
+                    w2 = Problems.expect_only_warning Not_All_Rows_Downloaded r2
+                    w2.max_rows . should_equal 1000
+                False ->
+                    r2.length . should_equal 1500
+                    Problems.assume_no_problems r2
+
+            # to_vector always downloads the whole column, even if its large
+            c1.to_vector.length . should_equal 1500
+
+            r3 = c1.read max_rows=10
+            r3.length . should_equal 10
+            Problems.expect_only_warning Not_All_Rows_Downloaded r3
+
+            r4 = c1.read max_rows=Nothing
+            r4.length . should_equal 1500
+            Problems.assume_no_problems r4
+
+            r5 = c1.read max_rows=3 warn_if_more_rows=False
+            r5.length . should_equal 3
+            Problems.assume_no_problems r5
+
         if setup.is_database then Test.specify "should allow similar API on Connection.read" <|
             connection = setup.connection
             connection.query t_big.name . row_count . should_equal 1500
