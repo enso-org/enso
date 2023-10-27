@@ -1840,8 +1840,9 @@ type Table
          `Nothing` is provided, the default formatting settings of the backend
          will be used. `Nothing` is currently the only setting accepted by the
          Database backends.
-       - error_on_missing_columns: if `True` (the default) raises an error if
-         any column is missing. Otherwise, reported as a problem.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
