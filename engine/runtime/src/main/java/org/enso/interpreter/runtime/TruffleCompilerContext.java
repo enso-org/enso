@@ -258,8 +258,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
 
   private final class ModuleUpdater implements Updater, AutoCloseable {
-    private final Module compilerModule;
-    private final org.enso.interpreter.runtime.Module module;
+    private final Module module;
     private BindingsMap map;
     private org.enso.compiler.core.ir.Module ir;
     private CompilationStage stage;
@@ -269,8 +268,7 @@ final class TruffleCompilerContext implements CompilerContext {
     private boolean invalidateCache;
 
     private ModuleUpdater(Module module) {
-      this.compilerModule = module;
-      this.module = module.module;
+      this.module = module;
     }
 
     @Override
@@ -311,29 +309,29 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public void close() {
       if (map != null) {
-        if (compilerModule.bindings != null) {
-          throw new IllegalStateException("Reassigining bindings to " + compilerModule);
+        if (module.bindings != null) {
+          throw new IllegalStateException("Reassigining bindings to " + module);
         }
-        compilerModule.bindings = map;
+        module.bindings = map;
       }
       if (ir != null) {
-        module.unsafeSetIr(ir);
+        module.module.unsafeSetIr(ir);
       }
       if (stage != null) {
-        module.unsafeSetCompilationStage(stage);
+        module.module.unsafeSetCompilationStage(stage);
       }
       if (loadedFromCache != null) {
-        module.setLoadedFromCache(loadedFromCache);
+        module.module.setLoadedFromCache(loadedFromCache);
       }
       if (hasCrossModuleLinks != null) {
-        module.setHasCrossModuleLinks(hasCrossModuleLinks);
+        module.module.setHasCrossModuleLinks(hasCrossModuleLinks);
       }
       if (resetScope) {
-        module.ensureScopeExists();
-        module.getScope().reset();
+        module.module.ensureScopeExists();
+        module.module.getScope().reset();
       }
       if (invalidateCache) {
-        module.getCache().invalidate(context);
+        module.module.getCache().invalidate(context);
       }
     }
   }
