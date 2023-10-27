@@ -18,11 +18,14 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.effect._
 import org.enso.languageserver.event.JsonSessionTerminated
+import org.enso.languageserver.filemanager.PathWatcher.{
+  ForwardRequest,
+  ForwardResponse
+}
 import org.enso.languageserver.util.UnhandledLogging
 import zio._
 
 import java.io.File
-
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
@@ -108,9 +111,14 @@ final class PathWatcher(
       sender() ! CapabilityAcquired
       context.become(initializedStage(root, base, clients ++ newClients))
 
-    case UnwatchPath(client) =>
-      sender() ! CapabilityReleased
-      unregisterClient(root, base, clients - client)
+    case ForwardRequest(originalSender, UnwatchPath(client)) =>
+      val newClients = clients - client
+      sender() ! ForwardResponse(
+        originalSender,
+        CapabilityReleased,
+        newClients.isEmpty
+      )
+      unregisterClient(root, base, newClients)
 
     case JsonSessionTerminated(client)
         if clients.contains(client.rpcController) =>
@@ -222,6 +230,21 @@ object PathWatcher {
     def canRestart: Boolean =
       restartCount < maxRestarts
   }
+
+  /** A PathWatcher request that should be replied to the handler rather than sender.
+    *
+    * @param sender the original sender of the request
+    * @param request the request to be handled by `PathWatcher`
+    */
+  case class ForwardRequest(sender: ActorRef, request: Any)
+
+  /** A PathWatcher response to the proxy (handler) containing information about the original sender.
+    *
+    * @param sender the original sender of the request
+    * @param response response that should be sent to the `sender`
+    * @param last true, if the handling path watcher will shutdown after serving this request, false otherwise
+    */
+  case class ForwardResponse(sender: ActorRef, response: Any, last: Boolean)
 
   /** Creates a configuration object used to create a [[PathWatcher]].
     *
