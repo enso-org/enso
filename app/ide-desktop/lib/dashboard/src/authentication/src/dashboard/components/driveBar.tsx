@@ -70,11 +70,11 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-8 py-0.5">
             <div className="flex gap-2.5">
                 <button
-                    disabled={category === categorySwitcher.Category.trash}
+                    disabled={category !== categorySwitcher.Category.home}
                     className="flex items-center bg-frame rounded-full h-8 px-2.5"
-                    {...(category === categorySwitcher.Category.trash
+                    {...(category !== categorySwitcher.Category.home
                         ? {
-                              title: 'Cannot create a new project in Trash.',
+                              title: 'You can only create a new project in Home.',
                           }
                         : {})}
                     onClick={() => {
@@ -84,7 +84,7 @@ export default function DriveBar(props: DriveBarProps) {
                 >
                     <span
                         className={`font-semibold whitespace-nowrap leading-5 h-6 py-px ${
-                            category === categorySwitcher.Category.trash ? 'opacity-50' : ''
+                            category !== categorySwitcher.Category.home ? 'opacity-50' : ''
                         }`}
                     >
                         New Project
@@ -93,9 +93,9 @@ export default function DriveBar(props: DriveBarProps) {
                 <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
-                            active={category !== categorySwitcher.Category.trash}
-                            disabled={category === categorySwitcher.Category.trash}
-                            error="Cannot create a new folder in Trash."
+                            active={category === categorySwitcher.Category.home}
+                            disabled={category !== categorySwitcher.Category.home}
+                            error="You can only create a new folder in Home."
                             image={AddFolderIcon}
                             disabledOpacityClassName="opacity-20"
                             onClick={() => {
@@ -106,9 +106,9 @@ export default function DriveBar(props: DriveBarProps) {
                     )}
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
-                            active={category !== categorySwitcher.Category.trash}
-                            disabled={category === categorySwitcher.Category.trash}
-                            error="Cannot create a new data connector in Trash."
+                            active={category === categorySwitcher.Category.home}
+                            disabled={category !== categorySwitcher.Category.home}
+                            error="You can only create a new data connector in Home."
                             image={AddConnectorIcon}
                             disabledOpacityClassName="opacity-20"
                             onClick={event => {
@@ -137,9 +137,9 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active={category !== categorySwitcher.Category.trash}
-                        disabled={category === categorySwitcher.Category.trash}
-                        error="Cannot upload files to Trash."
+                        active={category === categorySwitcher.Category.home}
+                        disabled={category !== categorySwitcher.Category.home}
+                        error="You can only upload files to Home."
                         image={DataUploadIcon}
                         disabledOpacityClassName="opacity-20"
                         onClick={() => {
@@ -159,7 +159,7 @@ export default function DriveBar(props: DriveBarProps) {
                         image={DataDownloadIcon}
                         error={
                             category === categorySwitcher.Category.trash
-                                ? 'Cannot download files from Trash.'
+                                ? 'You cannot download files from Trash.'
                                 : 'Not implemented yet.'
                         }
                         disabledOpacityClassName="opacity-20"

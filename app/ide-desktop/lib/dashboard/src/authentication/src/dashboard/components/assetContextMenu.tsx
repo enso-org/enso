@@ -354,7 +354,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     />
                 )}
             </ContextMenu>
-            <GlobalContextMenu
+            {category === categorySwitcher.Category.home && <GlobalContextMenu
                 hidden={hidden}
                 hasCopyData={hasCopyData}
                 directoryKey={
@@ -369,7 +369,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 }
                 dispatchAssetListEvent={dispatchAssetListEvent}
                 doPaste={doPaste}
-            />
+            />}
         </ContextMenus>
     )
 }

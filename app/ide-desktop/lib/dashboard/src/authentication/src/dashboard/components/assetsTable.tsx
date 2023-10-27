@@ -1203,6 +1203,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                         </ContextMenu>
                     </ContextMenus>
                 )
+            } else if (category !== categorySwitcher.Category.home) {
+                return null
             } else {
                 const deleteAction =
                     backend.type === backendModule.BackendType.local
@@ -1400,14 +1402,15 @@ export default function AssetsTable(props: AssetsTableProps) {
                     onContextMenu={(innerSelectedKeys, event, innerSetSelectedKeys) => {
                         event.preventDefault()
                         event.stopPropagation()
-                        setModal(
-                            doRenderContextMenu(
-                                innerSelectedKeys,
-                                event,
-                                innerSetSelectedKeys,
-                                false
-                            )
+                        const modal = doRenderContextMenu(
+                            innerSelectedKeys,
+                            event,
+                            innerSetSelectedKeys,
+                            false
                         )
+                        if (modal != null) {
+                            setModal(modal)
+                        }
                     }}
                     draggableRows
                     onRowDragStart={event => {
