@@ -21,7 +21,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion = "2.13.11"
-val javaVersion   = "21"
+val graalVersion   = "21"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
@@ -163,7 +163,7 @@ analyzeDependency := GatherLicenses.analyzeDependency.evaluated
 val packageBuilder = new DistributionPackage.Builder(
   ensoVersion      = ensoVersion,
   graalVersion     = graalMavenPackagesVersion,
-  graalJavaVersion = javaVersion,
+  graalJavaVersion = graalVersion,
   artifactRoot     = file("built-distribution")
 )
 
@@ -890,7 +890,7 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           defaultDevEnsoVersion = defaultDevEnsoVersion,
           ensoVersion           = ensoVersion,
           scalacVersion         = scalacVersion,
-          graalVersion          = javaVersion,
+          graalVersion          = graalVersion,
           currentEdition        = currentEdition
         )
     }.taskValue
@@ -1108,8 +1108,7 @@ lazy val `interpreter-dsl-test` =
       frgaalJavaCompilerSetting,
       Test / fork := true,
       Test / javaOptions ++= Seq(
-        "-Dgraalvm.locatorDisabled=true",
-        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+        "-Dpolyglotimpl.DisableClassPathIsolation=true"
       ),
       Test / javacOptions ++= Seq(
         "-s",
@@ -1495,8 +1494,7 @@ lazy val `runtime-instrument-common` =
       inConfig(Benchmark)(Defaults.testSettings),
       instrumentationSettings,
       Test / javaOptions ++= Seq(
-        "-Dgraalvm.locatorDisabled=true",
-        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+        "-Dpolyglotimpl.DisableClassPathIsolation=true"
       ),
       bench := (Benchmark / test).tag(Exclusive).value,
       Benchmark / parallelExecution := false,
@@ -1552,8 +1550,7 @@ lazy val `runtime-with-instruments` =
         "--enable-preview"
       ),
       Test / javaOptions ++= testLogProviderOptions ++ Seq(
-        "-Dgraalvm.locatorDisabled=true",
-        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+        "-Dpolyglotimpl.DisableClassPathIsolation=true"
       ),
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
@@ -2539,7 +2536,7 @@ buildEngineDistribution := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = javaVersion,
+    javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
@@ -2572,7 +2569,7 @@ buildEngineDistributionNoIndex := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = javaVersion,
+    javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
