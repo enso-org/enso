@@ -40,7 +40,9 @@ object StdBits {
       // module-path, and so, they must not be included anywhere else.
       val graalModuleFilter = DependencyFilter.moduleFilter(
         name = new SimpleFilter(name => {
-          !GraalVM.modules.exists(graalModule => name.contains(graalModule.name))
+          !GraalVM.modules.exists(graalModule =>
+            name.contains(graalModule.name)
+          )
         })
       )
       val relevantFiles =

@@ -8,7 +8,10 @@ import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
-import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 import com.sandinh.javamodule.moduleinfo.{JpmsModule}
 
 import java.io.File
@@ -18,7 +21,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion = "2.13.11"
-val javaVersion  = "21"
+val javaVersion   = "21"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
@@ -490,47 +493,52 @@ val httpComponentsVersion   = "4.4.1"
 // === Utility methods =====================================================
 // ============================================================================
 
-/**
- * The list of modules that are included in the `component` directory in engine distribution.
- * When invoking the `java` command, these modules need to be put on the module-path.
- */
-val componentModules: Seq[ModuleID] = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-  "org.slf4j" % "slf4j-api" % slf4jVersion,
-  "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-  "ch.qos.logback" % "logback-core" % logbackClassicVersion
-)
+/** The list of modules that are included in the `component` directory in engine distribution.
+  * When invoking the `java` command, these modules need to be put on the module-path.
+  */
+val componentModules: Seq[ModuleID] =
+  GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+    "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+    "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+    "ch.qos.logback" % "logback-core"    % logbackClassicVersion
+  )
 
 lazy val componentModulesPaths =
-  taskKey[Def.Classpath]("Gathers all component modules (Jar archives that should be put on module-path" +
-    " as files")
+  taskKey[Def.Classpath](
+    "Gathers all component modules (Jar archives that should be put on module-path" +
+    " as files"
+  )
 (ThisBuild / componentModulesPaths) := {
-  val runnerCp = (`engine-runner` / Runtime / fullClasspath).value
+  val runnerCp  = (`engine-runner` / Runtime / fullClasspath).value
   val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
-  val fullCp = (runnerCp ++ runtimeCp).distinct
-  val log = streams.value.log
-  filterModulesFromClasspath(fullCp, componentModules, log, shouldContainAll = true)
+  val fullCp    = (runnerCp ++ runtimeCp).distinct
+  val log       = streams.value.log
+  filterModulesFromClasspath(
+    fullCp,
+    componentModules,
+    log,
+    shouldContainAll = true
+  )
 }
 
-/**
- * Filters modules by their IDs from the given classpath.
- * @param cp The classpath to filter
- * @param modules These modules are looked for in the class path
- * @param shouldContainAll If true, the method will throw an exception if not all modules were found
- *                         in the classpath.
- * @return The classpath with only the provided modules searched by their IDs.
- */
+/** Filters modules by their IDs from the given classpath.
+  * @param cp The classpath to filter
+  * @param modules These modules are looked for in the class path
+  * @param shouldContainAll If true, the method will throw an exception if not all modules were found
+  *                         in the classpath.
+  * @return The classpath with only the provided modules searched by their IDs.
+  */
 def filterModulesFromClasspath(
   cp: Def.Classpath,
   modules: Seq[ModuleID],
   log: sbt.util.Logger,
-  shouldContainAll: Boolean = false,
+  shouldContainAll: Boolean = false
 ): Def.Classpath = {
   def shouldFilterModule(module: ModuleID): Boolean = {
-    modules.exists(
-      m =>
-        m.organization == module.organization &&
-          m.name         == module.name &&
-          m.revision     == module.revision
+    modules.exists(m =>
+      m.organization == module.organization &&
+      m.name == module.name &&
+      m.revision == module.revision
     )
   }
   val ret = cp.filter(dep => {
@@ -695,11 +703,11 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion,
-      "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
-      "io.circe"          %% "circe-yaml"       % circeYamlVersion,
-      "org.apache.commons" % "commons-compress" % commonsCompressVersion,
-      "commons-io"         % "commons-io"       % commonsIoVersion
+      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
+      "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
+      "io.circe"           %% "circe-yaml"       % circeYamlVersion,
+      "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
+      "commons-io"          % "commons-io"       % commonsIoVersion
     )
   )
   .dependsOn(editions)
@@ -1079,13 +1087,12 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     version := "0.1",
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value ++
-      // Only run ServiceProvider processor and ignore those defined in META-INF, thus
-      // fixing incremental compilation setup
-      Seq(
-        "-processor",
-        "org.netbeans.modules.openide.util.ServiceProviderProcessor"
-      )
-    ),
+    // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+    // fixing incremental compilation setup
+    Seq(
+      "-processor",
+      "org.netbeans.modules.openide.util.ServiceProviderProcessor"
+    )),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
       "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion,
@@ -1138,9 +1145,8 @@ val benchOnlyOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
   )
 }
 
-/**
- * Truffle-related settings for test running.
- */
+/** Truffle-related settings for test running.
+  */
 val truffleRunOpts = Seq(
   "-Dpolyglot.engine.IterativePartialEscape=true",
   "-Dpolyglot.engine.BackgroundCompilation=false"
@@ -1378,33 +1384,33 @@ lazy val runtime = (project in file("engine/runtime"))
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ GraalVM.langsPkgs ++ Seq(
-      "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
-      "org.apache.tika"     % "tika-core"             % tikaVersion,
-      "org.graalvm.polyglot"     % "polyglot"             % graalMavenPackagesVersion % "provided",
-      "org.graalvm.sdk"     % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-tck"           % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle" % "truffle-tck-common"    % graalMavenPackagesVersion % "provided",
-      "org.scalacheck"     %% "scalacheck"            % scalacheckVersion         % Test,
-      "org.scalactic"      %% "scalactic"             % scalacticVersion          % Test,
-      "org.scalatest"      %% "scalatest"             % scalatestVersion          % Test,
-      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % Benchmark,
-      "org.typelevel"      %% "cats-core"             % catsVersion,
-      "junit"               % "junit"                 % junitVersion              % Test,
-      "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
-      "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
-      "com.lihaoyi"        %% "fansi"                 % fansiVersion
+      "org.apache.commons"   % "commons-lang3"         % commonsLangVersion,
+      "org.apache.tika"      % "tika-core"             % tikaVersion,
+      "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
+      "org.graalvm.sdk"      % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"  % "truffle-tck"           % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"  % "truffle-tck-common"    % graalMavenPackagesVersion % "provided",
+      "org.scalacheck"      %% "scalacheck"            % scalacheckVersion         % Test,
+      "org.scalactic"       %% "scalactic"             % scalacticVersion          % Test,
+      "org.scalatest"       %% "scalatest"             % scalatestVersion          % Test,
+      "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % Benchmark,
+      "org.typelevel"       %% "cats-core"             % catsVersion,
+      "junit"                % "junit"                 % junitVersion              % Test,
+      "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
+      "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test,
+      "com.lihaoyi"         %% "fansi"                 % fansiVersion
     ),
     // Dependencies with "Runtime" scope - we don't need them for compilation, just provide them
     // at runtime (in module-path).
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-runtime"       % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.truffle" % "truffle-compiler"      % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.sdk"     % "nativeimage" % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.sdk" % "word" % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.sdk" % "jniutils" % graalMavenPackagesVersion % Runtime,
-      "org.graalvm.sdk" % "collections" % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.truffle" % "truffle-runtime"  % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.truffle" % "truffle-compiler" % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.sdk"     % "nativeimage"      % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.sdk"     % "word"             % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.sdk"     % "jniutils"         % graalMavenPackagesVersion % Runtime,
+      "org.graalvm.sdk"     % "collections"      % graalMavenPackagesVersion % Runtime
     ),
     Test / javaOptions ++= testLogProviderOptions ++ Seq(
       "-Dpolyglotimpl.DisableClassPathIsolation=true"
@@ -1412,7 +1418,7 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-    ),
+    )
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -1568,25 +1574,27 @@ lazy val `runtime-with-instruments` =
         )
       ),
       // Filter module-info.java from the compilation
-      excludeFilter := excludeFilter.value || "module-info.java",
+      excludeFilter := excludeFilter.value || "module-info.java"
     )
     /** Assembling Uber Jar */
     .settings(
       assembly := assembly
-        .dependsOn(JPMSUtils.compileModuleInfo(
-          copyDepsFilter = ScopeFilter(
-            inProjects(
-              LocalProject("runtime"),
-              LocalProject("runtime-language-epb"),
-              LocalProject("runtime-instrument-common"),
-              LocalProject("runtime-instrument-id-execution"),
-              LocalProject("runtime-instrument-repl-debugger"),
-              LocalProject("runtime-instrument-runtime-server"),
+        .dependsOn(
+          JPMSUtils.compileModuleInfo(
+            copyDepsFilter = ScopeFilter(
+              inProjects(
+                LocalProject("runtime"),
+                LocalProject("runtime-language-epb"),
+                LocalProject("runtime-instrument-common"),
+                LocalProject("runtime-instrument-id-execution"),
+                LocalProject("runtime-instrument-repl-debugger"),
+                LocalProject("runtime-instrument-runtime-server")
+              ),
+              inConfigurations(Compile)
             ),
-            inConfigurations(Compile)
-          ),
-          modulePath = componentModules
-        ))
+            modulePath = componentModules
+          )
+        )
         .value,
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
@@ -1604,7 +1612,8 @@ lazy val `runtime-with-instruments` =
           }
         }
         ourFullCp.filter { pkg =>
-          val pkgModuleID = pkg.metadata.get(AttributeKey[ModuleID]("moduleID")).get
+          val pkgModuleID =
+            pkg.metadata.get(AttributeKey[ModuleID]("moduleID")).get
           shouldPkgBeExcluded(pkgModuleID)
         }
       },
@@ -1673,8 +1682,8 @@ lazy val `runtime-with-polyglot` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
-        "org.scalatest"  %% "scalatest" % scalatestVersion          % Test
+        "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion % "provided",
+        "org.scalatest"       %% "scalatest" % scalatestVersion          % Test
       )
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
@@ -1898,15 +1907,15 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
-      "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
-      "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % "provided",
-      "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup"  % netbeansApiVersion        % "provided",
-      "org.graalvm.polyglot"     % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "junit"               % "junit"                    % junitVersion              % Test,
-      "com.github.sbt"      % "junit-interface"          % junitIfVersion            % Test,
-      "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Test
+      "jakarta.xml.bind"     % "jakarta.xml.bind-api"     % jaxbVersion,
+      "com.sun.xml.bind"     % "jaxb-impl"                % jaxbVersion,
+      "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion                % "provided",
+      "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion                % "provided",
+      "org.netbeans.api"     % "org-openide-util-lookup"  % netbeansApiVersion        % "provided",
+      "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % "provided",
+      "junit"                % "junit"                    % junitVersion              % Test,
+      "com.github.sbt"       % "junit-interface"          % junitIfVersion            % Test,
+      "org.graalvm.truffle"  % "truffle-api"              % graalMavenPackagesVersion % Test
     ),
     Compile / javacOptions := ((Compile / javacOptions).value ++
     // Only run ServiceProvider processor and ignore those defined in META-INF, thus
@@ -1934,9 +1943,9 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= jmh ++ Seq(
-      "org.openjdk.jmh" % "jmh-core"                 % jmhVersion                % Benchmark,
-      "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Benchmark
+      "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion                % Benchmark,
+      "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
+      "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % Benchmark
     ),
     commands += WithDebugCommand.withDebug,
     (Compile / logManager) :=
@@ -2212,8 +2221,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"  % "polyglot"               % graalMavenPackagesVersion,
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2239,7 +2248,7 @@ lazy val `common-polyglot-core-utils` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "common-polyglot-core-utils.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"     % "icu4j"     % icuVersion,
+      "com.ibm.icu"          % "icu4j"    % icuVersion,
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     )
   )
@@ -2328,7 +2337,7 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"          % "polyglot"               % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"     % "polyglot"                % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
@@ -2361,9 +2370,9 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"  % "polyglot"               % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.openpnp"      % "opencv"                  % "4.7.0-0"
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "org.openpnp"          % "opencv"                  % "4.7.0-0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2417,10 +2426,10 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"  % "polyglot"               % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"   % "postgresql"              % "42.4.0"
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
+      "org.postgresql"       % "postgresql"              % "42.4.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2521,9 +2530,9 @@ buildEngineDistribution := {
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value.map(_.data)
   val engineModules = Seq(file("runtime.jar"))
-  val root         = engineDistributionRoot.value
-  val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
+  val root          = engineDistributionRoot.value
+  val log           = streams.value.log
+  val cacheFactory  = streams.value.cacheStoreFactory
   DistributionPackage.createEnginePackage(
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
@@ -2554,9 +2563,9 @@ buildEngineDistributionNoIndex := {
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value.map(_.data)
   val engineModules = Seq(file("runtime.jar"))
-  val root         = engineDistributionRoot.value
-  val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
+  val root          = engineDistributionRoot.value
+  val log           = streams.value.log
+  val cacheFactory  = streams.value.cacheStoreFactory
   DistributionPackage.createEnginePackage(
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
@@ -2766,13 +2775,14 @@ updateLibraryManifests := {
   val libraries = Editions.standardLibraries.map(libName =>
     BundledLibrary(libName, stdLibVersion)
   )
-  val runnerCp = (LocalProject("engine-runner") / Compile / fullClasspath).value
+  val runnerCp  = (LocalProject("engine-runner") / Compile / fullClasspath).value
   val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
-  val fullCp = (runnerCp ++ runtimeCp).distinct
-  val modulesOnModulePath = filterModulesFromClasspath(fullCp, componentModules, log)
-    .map(_.data)
+  val fullCp    = (runnerCp ++ runtimeCp).distinct
+  val modulesOnModulePath =
+    filterModulesFromClasspath(fullCp, componentModules, log)
+      .map(_.data)
   val modulePath = modulesOnModulePath ++ Seq(file("runtime.jar"))
-  val runnerJar = (LocalProject("engine-runner") / assembly).value
+  val runnerJar  = (LocalProject("engine-runner") / assembly).value
   val javaOpts = Seq(
     "-Denso.runner=" + runnerJar.getAbsolutePath,
     "--module-path",

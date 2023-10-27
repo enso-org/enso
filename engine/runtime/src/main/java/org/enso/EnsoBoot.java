@@ -12,7 +12,8 @@ public final class EnsoBoot {
 
   public static void main(String[] args) throws Exception {
     var ensoRunnerProp = System.getProperty("enso.runner");
-    var runnerJarPath = ensoRunnerProp != null ? Path.of(ensoRunnerProp) : getDefaultRunnerJarPath();
+    var runnerJarPath =
+        ensoRunnerProp != null ? Path.of(ensoRunnerProp) : getDefaultRunnerJarPath();
     if (!runnerJarPath.toFile().exists()) {
       throw new IllegalStateException("Cannot find runner fat jar at " + runnerJarPath);
     }

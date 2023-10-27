@@ -6,9 +6,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Host class loader that serves as a replacement for {@link com.oracle.truffle.host.HostClassLoader}.
- * Add URLs to Jar archives with {@link #add(URL)}. All the classes that are loded via this class
- * loader are first searched inside those archives. If not found, delegates to parent class loaders.
+ * Host class loader that serves as a replacement for {@link
+ * com.oracle.truffle.host.HostClassLoader}. Add URLs to Jar archives with {@link #add(URL)}. All
+ * the classes that are loded via this class loader are first searched inside those archives. If not
+ * found, delegates to parent class loaders.
  */
 public class HostClassLoader extends URLClassLoader {
 
@@ -21,7 +22,6 @@ public class HostClassLoader extends URLClassLoader {
   void add(URL u) {
     addURL(u);
   }
-
 
   @Override
   public Class<?> loadClass(String name) throws ClassNotFoundException {

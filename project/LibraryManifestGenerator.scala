@@ -13,8 +13,8 @@ object LibraryManifestGenerator {
     *
     * It assumes that the engine-runner/assembly task is up to date (as it uses
     * its artifacts).
-   *
-   * @param javaOpts The java options to pass to the manifest generator.
+    *
+    * @param javaOpts The java options to pass to the manifest generator.
     */
   def generateManifests(
     libraries: Seq[BundledLibrary],
@@ -48,11 +48,15 @@ object LibraryManifestGenerator {
       }
     }
 
-  private def runGenerator(projectPath: File, javaOpts: Seq[String], log: Logger): Unit = {
+  private def runGenerator(
+    projectPath: File,
+    javaOpts: Seq[String],
+    log: Logger
+  ): Unit = {
     val javaCommand =
       ProcessHandle.current().info().command().asScala.getOrElse("java")
     val command = Seq(
-      javaCommand,
+      javaCommand
     ) ++ javaOpts ++ Seq(
       "--update-manifest",
       "--in-project",
