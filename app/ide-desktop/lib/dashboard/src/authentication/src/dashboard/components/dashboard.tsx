@@ -239,6 +239,13 @@ export default function Dashboard(props: DashboardProps) {
     }, [projectStartupInfo, /* should never change */ localStorage])
 
     React.useEffect(() => {
+        localStorage.set(
+            localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible,
+            isAssetSettingsPanelVisible
+        )
+    }, [isAssetSettingsPanelVisible, /* should never change */ localStorage])
+
+    React.useEffect(() => {
         localStorage.set(localStorageModule.LocalStorageKey.page, page)
     }, [page, /* should never change */ localStorage])
 
@@ -387,75 +394,82 @@ export default function Dashboard(props: DashboardProps) {
 
     return (
         <>
-            <div
-                className={`flex flex-col relative select-none text-primary text-xs h-screen pb-2 ${
-                    page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
-                }`}
-                onContextMenu={event => {
-                    event.preventDefault()
-                    unsetModal()
-                }}
-            >
-                <TopBar
-                    supportsLocalBackend={supportsLocalBackend}
-                    projectAsset={projectStartupInfo?.projectAsset ?? null}
-                    setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
-                    page={page}
-                    setPage={setPage}
-                    isEditorDisabled={projectStartupInfo == null}
-                    isHelpChatOpen={isHelpChatOpen}
-                    setIsHelpChatOpen={setIsHelpChatOpen}
-                    setBackendType={setBackendType}
-                    query={query}
-                    setQuery={setQuery}
-                    canToggleSettingsPanel={assetSettingsPanelProps != null}
-                    isSettingsPanelVisible={isAssetSettingsPanelVisible}
-                    setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
-                    doRemoveSelf={doRemoveSelf}
-                    onSignOut={() => {
-                        if (page === pageSwitcher.Page.editor) {
-                            setPage(pageSwitcher.Page.drive)
-                        }
-                        setProjectStartupInfo(null)
+            <div className="flex text-primary text-xs">
+                <div
+                    className={`flex flex-col grow container-size gap-2 overflow-hidden relative select-none h-screen pb-2 ${
+                        page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+                    }`}
+                    onContextMenu={event => {
+                        event.preventDefault()
+                        unsetModal()
                     }}
-                />
-                <Home hidden={page !== pageSwitcher.Page.home} onTemplateClick={doCreateProject} />
-                <Drive
-                    hidden={page !== pageSwitcher.Page.drive}
-                    page={page}
-                    initialProjectName={initialProjectName}
-                    query={query}
-                    projectStartupInfo={projectStartupInfo}
-                    queuedAssetEvents={queuedAssetEvents}
-                    assetListEvents={assetListEvents}
-                    dispatchAssetListEvent={dispatchAssetListEvent}
-                    assetEvents={assetEvents}
-                    dispatchAssetEvent={dispatchAssetEvent}
-                    setAssetSettingsPanelProps={setAssetSettingsPanelProps}
-                    doCreateProject={doCreateProject}
-                    doOpenEditor={openEditor}
-                    doCloseEditor={closeEditor}
-                    loadingProjectManagerDidFail={loadingProjectManagerDidFail}
-                    isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
-                    isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
-                    isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
-                />
-                <Editor
-                    hidden={page !== pageSwitcher.Page.editor}
-                    supportsLocalBackend={supportsLocalBackend}
-                    projectStartupInfo={projectStartupInfo}
-                    appRunner={appRunner}
-                />
-                {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-                {isHelpChatVisible && session.accessToken != null && (
-                    <Chat
+                >
+                    <TopBar
+                        supportsLocalBackend={supportsLocalBackend}
+                        projectAsset={projectStartupInfo?.projectAsset ?? null}
+                        setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
                         page={page}
-                        isOpen={isHelpChatOpen}
-                        doClose={() => {
-                            setIsHelpChatOpen(false)
+                        setPage={setPage}
+                        isEditorDisabled={projectStartupInfo == null}
+                        isHelpChatOpen={isHelpChatOpen}
+                        setIsHelpChatOpen={setIsHelpChatOpen}
+                        setBackendType={setBackendType}
+                        query={query}
+                        setQuery={setQuery}
+                        canToggleSettingsPanel={assetSettingsPanelProps != null}
+                        isSettingsPanelVisible={
+                            isAssetSettingsPanelVisible && assetSettingsPanelProps != null
+                        }
+                        setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
+                        doRemoveSelf={doRemoveSelf}
+                        onSignOut={() => {
+                            if (page === pageSwitcher.Page.editor) {
+                                setPage(pageSwitcher.Page.drive)
+                            }
+                            setProjectStartupInfo(null)
                         }}
                     />
-                )}
+                    <Home
+                        hidden={page !== pageSwitcher.Page.home}
+                        onTemplateClick={doCreateProject}
+                    />
+                    <Drive
+                        hidden={page !== pageSwitcher.Page.drive}
+                        page={page}
+                        initialProjectName={initialProjectName}
+                        query={query}
+                        projectStartupInfo={projectStartupInfo}
+                        queuedAssetEvents={queuedAssetEvents}
+                        assetListEvents={assetListEvents}
+                        dispatchAssetListEvent={dispatchAssetListEvent}
+                        assetEvents={assetEvents}
+                        dispatchAssetEvent={dispatchAssetEvent}
+                        setAssetSettingsPanelProps={setAssetSettingsPanelProps}
+                        doCreateProject={doCreateProject}
+                        doOpenEditor={openEditor}
+                        doCloseEditor={closeEditor}
+                        loadingProjectManagerDidFail={loadingProjectManagerDidFail}
+                        isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
+                        isListingLocalDirectoryAndWillFail={isListingLocalDirectoryAndWillFail}
+                        isListingRemoteDirectoryAndWillFail={isListingRemoteDirectoryAndWillFail}
+                    />
+                    <Editor
+                        hidden={page !== pageSwitcher.Page.editor}
+                        supportsLocalBackend={supportsLocalBackend}
+                        projectStartupInfo={projectStartupInfo}
+                        appRunner={appRunner}
+                    />
+                    {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
+                    {isHelpChatVisible && session.accessToken != null && (
+                        <Chat
+                            page={page}
+                            isOpen={isHelpChatOpen}
+                            doClose={() => {
+                                setIsHelpChatOpen(false)
+                            }}
+                        />
+                    )}
+                </div>
                 <div
                     className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
                         isAssetSettingsPanelVisible && assetSettingsPanelProps != null

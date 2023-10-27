@@ -19,7 +19,6 @@ import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as sorting from '../sorting'
 import * as string from '../../string'
-import * as style from '../style'
 import * as uniqueString from '../../uniqueString'
 import type * as visibilityModule from '../visibility'
 
@@ -44,8 +43,8 @@ import Table from './table'
 // === Constants ===
 // =================
 
-/** The number of pixels the header bar should shrink when the extra tab selector is visible. */
-const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 274
+/** The number of pixels the header bar should shrink when the extra column selector is visible. */
+const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** A value that represents that the first argument is less than the second argument, in a
  * sorting function. */
 const COMPARE_LESS_THAN = -1
@@ -621,12 +620,11 @@ export default function AssetsTable(props: AssetsTableProps) {
             let isClipPathUpdateQueued = false
             const updateClipPath = () => {
                 isClipPathUpdateQueued = false
-                const hasVerticalScrollbar =
-                    scrollContainer.scrollHeight > scrollContainer.clientHeight
-                const shrinkage =
-                    TABLE_HEADER_WIDTH_SHRINKAGE_PX +
-                    (hasVerticalScrollbar ? style.SCROLLBAR_WIDTH_PX : 0)
-                const rightOffset = `calc(100vw - ${shrinkage}px + ${scrollContainer.scrollLeft}px)`
+                const rightOffset = `${
+                    scrollContainer.clientWidth +
+                    scrollContainer.scrollLeft -
+                    TABLE_HEADER_WIDTH_SHRINKAGE_PX
+                }px`
                 headerRow.style.clipPath = `polygon(0 0, ${rightOffset} 0, ${rightOffset} 100%, 0 100%)`
             }
             const onScroll = () => {
@@ -636,8 +634,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
             }
             updateClipPath()
+            const observer = new ResizeObserver(onScroll)
+            observer.observe(scrollContainer)
             scrollContainer.addEventListener('scroll', onScroll)
             return () => {
+                observer.unobserve(scrollContainer)
                 scrollContainer.removeEventListener('scroll', onScroll)
             }
         } else {
@@ -1340,7 +1341,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         key={column}
                                         active={extraColumns.has(column)}
                                         image={columnModule.EXTRA_COLUMN_IMAGES[column]}
-                                        onClick={() => {
+                                        onClick={event => {
+                                            event.stopPropagation()
                                             const newExtraColumns = new Set(extraColumns)
                                             if (extraColumns.has(column)) {
                                                 newExtraColumns.delete(column)

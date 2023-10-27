@@ -17,9 +17,9 @@ export enum LocalStorageKey {
     page = 'page',
     backendType = 'backend-type',
     extraColumns = 'extra-columns',
-    isTemplatesListOpen = 'is-templates-list-open',
-    projectStartupInfo = 'project-startup-info',
+    isAssetSettingsPanelVisible = 'is-asset-settings-panel-visible',
     driveCategory = 'drive-category',
+    projectStartupInfo = 'project-startup-info',
 }
 
 /** The data that can be stored in a {@link LocalStorage}. */
@@ -27,9 +27,9 @@ interface LocalStorageData {
     [LocalStorageKey.page]: pageSwitcher.Page
     [LocalStorageKey.backendType]: backend.BackendType
     [LocalStorageKey.extraColumns]: column.ExtraColumn[]
-    [LocalStorageKey.isTemplatesListOpen]: boolean
-    [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
+    [LocalStorageKey.isAssetSettingsPanelVisible]: boolean
     [LocalStorageKey.driveCategory]: categorySwitcher.Category
+    [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
 }
 
 /** Whether each {@link LocalStorageKey} is user specific.
@@ -39,9 +39,9 @@ const IS_USER_SPECIFIC: Record<LocalStorageKey, boolean> = {
     [LocalStorageKey.page]: false,
     [LocalStorageKey.backendType]: false,
     [LocalStorageKey.extraColumns]: false,
-    [LocalStorageKey.isTemplatesListOpen]: false,
-    [LocalStorageKey.projectStartupInfo]: true,
+    [LocalStorageKey.isAssetSettingsPanelVisible]: false,
     [LocalStorageKey.driveCategory]: false,
+    [LocalStorageKey.projectStartupInfo]: true,
 }
 
 /** A LocalStorage data manager. */
@@ -77,10 +77,19 @@ export class LocalStorage {
                     LocalStorageKey.extraColumns
                 ].filter(array.includesPredicate(column.EXTRA_COLUMNS))
             }
-            if (LocalStorageKey.isTemplatesListOpen in savedValues) {
-                this.values[LocalStorageKey.isTemplatesListOpen] = Boolean(
-                    savedValues[LocalStorageKey.isTemplatesListOpen]
+            if (LocalStorageKey.isAssetSettingsPanelVisible in savedValues) {
+                this.values[LocalStorageKey.isAssetSettingsPanelVisible] = Boolean(
+                    savedValues[LocalStorageKey.isAssetSettingsPanelVisible]
                 )
+            }
+            if (LocalStorageKey.driveCategory in savedValues) {
+                const categories = Object.values(categorySwitcher.Category)
+                if (
+                    array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])
+                ) {
+                    this.values[LocalStorageKey.driveCategory] =
+                        savedValues[LocalStorageKey.driveCategory]
+                }
             }
             if (LocalStorageKey.projectStartupInfo in savedValues) {
                 const savedInfo = savedValues[LocalStorageKey.projectStartupInfo]
@@ -109,15 +118,6 @@ export class LocalStorage {
                         backendType: savedInfo.backendType,
                         accessToken: savedInfo.accessToken,
                     }
-                }
-            }
-            if (LocalStorageKey.driveCategory in savedValues) {
-                const categories = Object.values(categorySwitcher.Category)
-                if (
-                    array.includesPredicate(categories)(savedValues[LocalStorageKey.driveCategory])
-                ) {
-                    this.values[LocalStorageKey.driveCategory] =
-                        savedValues[LocalStorageKey.driveCategory]
                 }
             }
             if (
