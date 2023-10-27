@@ -85,7 +85,7 @@ spec =
             if runtime_ms > expected_max_time_ms then
                 Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 3x"+n.to_text+" with the same result size took "+base_ms.to_text+"ms. The maximum time threshold for this operation to be deemed efficient has been estimated at "+expected_max_time_ms.to_text+"ms."
 
-        Test.specify "should efficiently compute Between joins" pending="TODO in task https://www.pivotaltracker.com/story/show/183913337" <|
+        Test.specify "should efficiently compute Between joins" <|
             xs = 0.up_to n . map x-> x * 20
             ls = 0.up_to n . map x-> x * 20 - 20
             us = 0.up_to n . map x-> x * 20 + 5
