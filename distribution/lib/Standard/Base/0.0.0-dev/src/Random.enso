@@ -4,6 +4,7 @@ import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Range.Date_Range
+import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Map.Map
@@ -153,8 +154,8 @@ type Random
              import Standard.Base.Random.Random
 
              d = Random.date (Date.new 2023 03 01) (Date.new 2023 10 15)
-    date : Date -> Date -> Date
-    date start_date:Date end_date:Date = Random_Generator.global_random_generator.date start_date end_date
+    date : Date -> Date -> Boolean -> Date
+    date start_date:Date end_date:Date end_exclusive=True = Random_Generator.global_random_generator.date start_date end_date end_exclusive
 
     ## GROUP Random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
@@ -298,9 +299,10 @@ type Random_Generator
         Vector.from_polyglot_array array
 
     ## PRIVATE
-    date : Date -> Date -> Date
-    date self start_date:Date end_date:Date =
-        date_range = Date_Range.new start_date end_date
+    date : Date -> Date -> Boolean -> Date
+    date self start_date:Date end_date:Date end_exclusive=True =
+        end = if end_exclusive then end_date else (end_date+(Period.new 0 0 1))
+        date_range = Date_Range.new start_date end
         date_range.at (self.integer 0 date_range.length)
 
     ## PRIVATE
