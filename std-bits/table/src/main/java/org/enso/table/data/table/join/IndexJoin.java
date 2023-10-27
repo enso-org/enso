@@ -4,6 +4,7 @@ import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.index.MultiValueIndex;
+import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.join.scan.Matcher;
@@ -52,10 +53,14 @@ public class IndexJoin implements JoinStrategy {
     );
 
     JoinResult.Builder resultBuilder = new JoinResult.Builder();
-    for (var leftKey : leftIndex.keys()) {
-      if (rightIndex.contains(leftKey)) {
-        for (var leftRow : leftIndex.get(leftKey)) {
-          for (var rightRow : rightIndex.get(leftKey)) {
+    for (var leftEntry : leftIndex.mapping().entrySet()) {
+      UnorderedMultiValueKey leftKey = leftEntry.getKey();
+      List<Integer> leftRows = leftEntry.getValue();
+      List<Integer> rightRows = rightIndex.get(leftKey);
+
+      if (rightRows != null) {
+        for (var leftRow : leftRows) {
+          for (var rightRow : rightRows) {
             if (remainingMatcher.matches(leftRow, rightRow)) {
               resultBuilder.addRow(leftRow, rightRow);
             }
