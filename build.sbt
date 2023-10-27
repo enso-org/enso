@@ -20,12 +20,13 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = "2.13.11"
-val graalVersion   = "21"
+val scalacVersion  = "2.13.11"
+val javaVersion    = "21"
+val graalVersion   = "23.1.0"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
-val graalMavenPackagesVersion = "23.1.0"
+val graalMavenPackagesVersion = graalVersion
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -2521,7 +2522,7 @@ buildEngineDistribution := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = graalVersion,
+    javaVersion         = javaVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
@@ -2554,7 +2555,7 @@ buildEngineDistributionNoIndex := {
     log                 = log,
     jarModulesToCopy    = modulesToCopy ++ engineModules,
     graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = graalVersion,
+    javaVersion         = javaVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
