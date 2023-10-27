@@ -17,11 +17,13 @@ public final class EnsoBoot {
       throw new IllegalStateException("Cannot find runner fat jar at " + runnerJarPath);
     }
     var url = runnerJarPath.toUri().toURL();
+    var parentLoader = ClassLoader.getSystemClassLoader();
 
-    var loader = new PrefferingLoader(new URL[] {url});
-    var clazz = loader.loadClass("org.enso.runner.Main");
-    var main = clazz.getMethod("main", String[].class);
-    main.invoke(null, (Object) args);
+    try (var loader = new PrefferingLoader(new URL[] {url}, parentLoader)) {
+      var clazz = loader.loadClass("org.enso.runner.Main");
+      var main = clazz.getMethod("main", String[].class);
+      main.invoke(null, (Object) args);
+    }
   }
 
   private static Path getDefaultRunnerJarPath() {
@@ -35,8 +37,8 @@ public final class EnsoBoot {
   }
 
   private static class PrefferingLoader extends URLClassLoader {
-    PrefferingLoader(URL[] urls) {
-      super(urls);
+    PrefferingLoader(URL[] urls, ClassLoader parentLoader) {
+      super(urls, parentLoader);
     }
 
     @Override
