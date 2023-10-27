@@ -96,7 +96,7 @@ final class SerializationManager(compiler: Compiler) {
     useThreadPool: Boolean = true
   ): Future[Boolean] = {
     if (module.isSynthetic) {
-      throw new IllegalStateException();
+      throw new IllegalStateException("Cannot serialize synthetic module [" + module.getName + "]");
     }
     compiler.context.logSerializationManager(
       debugLogLevel,
