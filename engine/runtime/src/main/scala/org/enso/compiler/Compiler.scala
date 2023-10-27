@@ -436,9 +436,8 @@ class Compiler(
           val shouldStoreCache =
             irCachingEnabled && !context.wasLoadedFromCache(module)
           if (
-            shouldStoreCache && !hasErrors(module) && !context.isInteractive(
-              module
-            )
+            shouldStoreCache && !hasErrors(module) &&
+            !context.isInteractive(module) && !context.isSynthetic(module)
           ) {
             if (isInteractiveMode) {
               context.notifySerializeModule(context.getModuleName(module))

@@ -95,6 +95,9 @@ final class SerializationManager(compiler: Compiler) {
     useGlobalCacheLocations: Boolean,
     useThreadPool: Boolean = true
   ): Future[Boolean] = {
+    if (module.isSynthetic) {
+      throw new IllegalStateException();
+    }
     compiler.context.logSerializationManager(
       debugLogLevel,
       "Requesting serialization for module [{0}].",
