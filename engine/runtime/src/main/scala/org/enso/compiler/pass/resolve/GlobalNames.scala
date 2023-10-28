@@ -23,10 +23,10 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule
 }
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
-import org.enso.interpreter.Constants
 
 /** Resolves name occurences in non-pattern contexts.
   *
@@ -401,7 +401,7 @@ case object GlobalNames extends IRPass {
   private def findThisPosition(args: List[CallArgument]): Option[Int] = {
     val ix = args.indexWhere(arg =>
       arg.name.exists(
-        _.name == Constants.Names.SELF_ARGUMENT
+        _.name == ConstantsNames.SELF_ARGUMENT
       ) || arg.name.isEmpty
     )
     if (ix == -1) None else Some(ix)

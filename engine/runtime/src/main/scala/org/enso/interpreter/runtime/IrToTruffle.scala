@@ -4,6 +4,7 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
@@ -873,7 +874,7 @@ class IrToTruffle(
         new FunctionSchema(
           new ArgumentDefinition(
             0,
-            Constants.Names.SELF_ARGUMENT,
+            ConstantsNames.SELF_ARGUMENT,
             null,
             null,
             ArgumentDefinition.ExecutionMode.EXECUTE
@@ -889,7 +890,7 @@ class IrToTruffle(
         new FunctionSchema(
           new ArgumentDefinition(
             0,
-            Constants.Names.SELF_ARGUMENT,
+            ConstantsNames.SELF_ARGUMENT,
             null,
             null,
             ArgumentDefinition.ExecutionMode.EXECUTE
@@ -1650,7 +1651,7 @@ class IrToTruffle(
           } else if (global.isDefined) {
             val resolution = global.get.target
             nodeForResolution(resolution)
-          } else if (nameStr == Constants.Names.FROM_MEMBER) {
+          } else if (nameStr == ConstantsNames.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
           } else {
             DynamicSymbolNode.build(
@@ -1660,7 +1661,7 @@ class IrToTruffle(
         case Name.Self(location, _, passData, _) =>
           processName(
             Name.Literal(
-              Constants.Names.SELF_ARGUMENT,
+              ConstantsNames.SELF_ARGUMENT,
               isMethod = false,
               location,
               None,
@@ -1916,7 +1917,7 @@ class IrToTruffle(
             val argName = arg.getName
 
             if (
-              argName != Constants.Names.SELF_ARGUMENT && seenArgNames.contains(
+              argName != ConstantsNames.SELF_ARGUMENT && seenArgNames.contains(
                 argName
               )
             ) {

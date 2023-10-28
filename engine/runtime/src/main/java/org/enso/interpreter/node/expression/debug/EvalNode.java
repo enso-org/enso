@@ -66,7 +66,10 @@ public abstract class EvalNode extends BaseNode {
     LocalScope localScope = scope.createChild();
     InlineContext inlineContext =
         InlineContext.fromJava(
-            localScope, moduleScope, getTailStatus(), context.getCompilerConfig());
+            localScope,
+            moduleScope,
+            scala.Option.apply(getTailStatus() != TailStatus.NOT_TAIL),
+            context.getCompilerConfig());
     var compiler = context.getCompiler();
     var tuppleOption = compiler.runInline(expression, inlineContext);
     if (tuppleOption.isEmpty()) {

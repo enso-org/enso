@@ -3,7 +3,6 @@ package org.enso.compiler.context
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
-import org.enso.interpreter.node.BaseNode.TailStatus
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** A type containing the information about the execution context for an inline
@@ -43,7 +42,7 @@ object InlineContext {
   def fromJava(
     localScope: LocalScope,
     moduleScope: ModuleScope,
-    isInTailPosition: TailStatus,
+    isInTailPosition: Option[Boolean],
     compilerConfig: CompilerConfig
   ): InlineContext = {
     InlineContext(
@@ -52,7 +51,7 @@ object InlineContext {
         moduleScope.getModule().asCompilerModule(),
         compilerConfig
       ),
-      isInTailPosition = Option(isInTailPosition != TailStatus.NOT_TAIL),
+      isInTailPosition = isInTailPosition,
       compilerConfig   = compilerConfig
     )
   }
