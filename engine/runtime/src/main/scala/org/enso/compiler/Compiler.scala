@@ -524,6 +524,7 @@ class Compiler(
             .map { concreteBindings =>
               concreteBindings
             }
+          ensureParsed(module)
           val currentLocal = module.getBindingsMap()
           currentLocal.resolvedImports =
             converted.map(_.resolvedImports).getOrElse(Nil)
