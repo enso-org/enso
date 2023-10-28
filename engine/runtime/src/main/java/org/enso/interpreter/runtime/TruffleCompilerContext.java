@@ -170,7 +170,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void updateModule(CompilerContext.Module module, Consumer<Updater> callback) {
-    try (var u = new ModuleUpdater(((Module)module).unsafeModule())) {
+    try (var u = new ModuleUpdater((Module)module)) {
       callback.accept(u);
     }
   }
@@ -258,8 +258,8 @@ final class TruffleCompilerContext implements CompilerContext {
 
 
   private final class ModuleUpdater implements Updater, AutoCloseable {
-
-    private final org.enso.interpreter.runtime.Module module;
+    private final Module module;
+    private BindingsMap map;
     private org.enso.compiler.core.ir.Module ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
@@ -267,8 +267,13 @@ final class TruffleCompilerContext implements CompilerContext {
     private boolean resetScope;
     private boolean invalidateCache;
 
-    private ModuleUpdater(org.enso.interpreter.runtime.Module module) {
+    private ModuleUpdater(Module module) {
       this.module = module;
+    }
+
+    @Override
+    public void bindingsMap(BindingsMap map) {
+      this.map = map;
     }
 
     @Override
@@ -303,52 +308,63 @@ final class TruffleCompilerContext implements CompilerContext {
 
     @Override
     public void close() {
+      if (map != null) {
+        if (module.bindings != null) {
+          throw new IllegalStateException("Reassigining bindings to " + module);
+        }
+        module.bindings = map;
+      }
       if (ir != null) {
-        module.unsafeSetIr(ir);
+        module.module.unsafeSetIr(ir);
       }
       if (stage != null) {
-        module.unsafeSetCompilationStage(stage);
+        module.module.unsafeSetCompilationStage(stage);
       }
       if (loadedFromCache != null) {
-        module.setLoadedFromCache(loadedFromCache);
+        module.module.setLoadedFromCache(loadedFromCache);
       }
       if (hasCrossModuleLinks != null) {
-        module.setHasCrossModuleLinks(hasCrossModuleLinks);
+        module.module.setHasCrossModuleLinks(hasCrossModuleLinks);
       }
       if (resetScope) {
-        module.ensureScopeExists();
-        module.getScope().reset();
+        module.module.ensureScopeExists();
+        module.module.getScope().reset();
       }
       if (invalidateCache) {
-        module.getCache().invalidate(context);
+        module.module.getCache().invalidate(context);
       }
     }
   }
 
   public static final class Module extends CompilerContext.Module {
     private final org.enso.interpreter.runtime.Module module;
+    private BindingsMap bindings;
 
     public Module(org.enso.interpreter.runtime.Module module) {
       this.module = module;
     }
 
+    @Override
     public Source getSource() throws IOException {
       return module.getSource();
     }
 
+    @Override
     public String getPath() {
       return module.getPath();
     }
 
+    @Override
     public Package<TruffleFile> getPackage() {
       return module.getPackage();
     }
 
-    // XXX
-    public org.enso.interpreter.runtime.Module unsafeModule() {
+    /** Intentionally not public. */
+    final org.enso.interpreter.runtime.Module unsafeModule() {
       return module;
     }
 
+    @Override
     public boolean isSameAs(org.enso.interpreter.runtime.Module m) {
       return module == m;
     }
@@ -358,48 +374,63 @@ final class TruffleCompilerContext implements CompilerContext {
       return module.getScope();
     }
 
+    @Override
     public QualifiedName getName() {
       return module.getName();
     }
 
+    @Override
     public Type findType(String name) {
       return module.getScope().getTypes().get(name);
     }
 
+    @Override
     public BindingsMap getBindingsMap() {
-      var meta = module.getIr().passData();
-      var pass = meta.get(BindingAnalysis$.MODULE$);
-      return (BindingsMap) pass.get();
+      if (module.getIr() != null) {
+        var meta = module.getIr().passData();
+        var pass = meta.get(BindingAnalysis$.MODULE$);
+        return (BindingsMap) pass.get();
+      } else {
+        return bindings;
+      }
     }
 
+    @Override
     public TruffleFile getSourceFile() {
       return module.getSourceFile();
     }
 
+    @Override
     public List<QualifiedName> getDirectModulesRefs() {
       return module.getDirectModulesRefs();
     }
 
+    @Override
     public ModuleCache getCache() {
       return module.getCache();
     }
 
+    @Override
     public CompilationStage getCompilationStage() {
       return module.getCompilationStage();
     }
 
+    @Override
     public boolean isSynthetic() {
       return module.isSynthetic();
     }
 
+    @Override
     public boolean hasCrossModuleLinks() {
       return module.hasCrossModuleLinks();
     }
 
+    @Override
     public org.enso.compiler.core.ir.Module getIr() {
       return module.getIr();
     }
 
+    @Override
     public boolean isPrivate() {
       return module.isPrivate();
     }
@@ -425,6 +456,14 @@ final class TruffleCompilerContext implements CompilerContext {
       final Module other = (Module) obj;
       return Objects.equals(this.module, other.module);
     }
-  }
 
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append("CompilerContext.Module{");
+      sb.append("module=").append(module);
+      sb.append('}');
+      return sb.toString();
+    }
+  }
 }

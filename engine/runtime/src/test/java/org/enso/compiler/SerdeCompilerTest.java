@@ -90,7 +90,8 @@ public class SerdeCompilerTest {
       mockHandler.assertNoFailureMessage();
       assertEquals(result.compiledModules().exists(m -> m == module), true);
 
-      var methods = module.getScope().getAllMethods();
+      var methods =
+          org.enso.interpreter.runtime.Module.fromCompilerModule(module).getScope().getAllMethods();
       var main = methods.get(0);
 
       assertEquals("Main.main", main.getName());

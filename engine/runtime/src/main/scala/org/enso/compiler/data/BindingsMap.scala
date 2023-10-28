@@ -23,7 +23,7 @@ import scala.annotation.unused
   */
 
 @SerialVersionUID(
-  8145L // Scala to Java
+  8160L // Use BindingsMap
 )
 case class BindingsMap(
   definedEntities: List[DefinedEntity],

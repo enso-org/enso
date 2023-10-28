@@ -109,6 +109,13 @@ class ImportResolver(compiler: Compiler) {
                 val converted = bindings
                   .toConcrete(compiler.packageRepository.getModuleMap)
                   .map { concreteBindings =>
+                    compiler.context.updateModule(
+                      current,
+                      { u =>
+                        u.bindingsMap(concreteBindings)
+                        u.loadedFromCache(true)
+                      }
+                    )
                     concreteBindings
                   }
                 (
@@ -139,7 +146,6 @@ class ImportResolver(compiler: Compiler) {
         }
       }
     }
-
     go(mutable.Stack(module), mutable.Set(), mutable.Set())
   }
 

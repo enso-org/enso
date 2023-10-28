@@ -104,6 +104,8 @@ public interface CompilerContext {
   <T> Optional<TruffleFile> saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations);
 
   public static interface Updater {
+    void bindingsMap(BindingsMap map);
+
     void ir(org.enso.compiler.core.ir.Module ir);
 
     void compilationStage(CompilationStage stage);
