@@ -16,7 +16,6 @@ import org.enso.compiler.Passes;
 import org.enso.compiler.SerializationManager;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.interpreter.runtime.data.Type;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
@@ -119,8 +118,6 @@ public interface CompilerContext {
     public abstract boolean isSameAs(org.enso.interpreter.runtime.Module m);
 
     public abstract QualifiedName getName();
-
-    public abstract Type findType(String name);
 
     public abstract BindingsMap getBindingsMap();
 

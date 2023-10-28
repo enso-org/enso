@@ -363,11 +363,6 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     @Override
-    public Type findType(String name) {
-      return module.getScope().getTypes().get(name);
-    }
-
-    @Override
     public BindingsMap getBindingsMap() {
       if (module.getIr() != null) {
         var meta = module.getIr().passData();

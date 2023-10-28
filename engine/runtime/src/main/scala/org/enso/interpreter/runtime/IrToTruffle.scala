@@ -251,10 +251,10 @@ class IrToTruffle(
     val typeDefs = module.bindings.collect { case tp: Definition.Type => tp }
     typeDefs.foreach { tpDef =>
       // Register the atoms and their constructors in scope
-      val atomDefs    = tpDef.members
-      val runtimeType = moduleScope.getTypes.get(tpDef.name.name)
+      val atomDefs = tpDef.members
+      val asType   = moduleScope.getTypes.get(tpDef.name.name)
       val atomConstructors =
-        atomDefs.map(cons => runtimeType.getConstructors.get(cons.name.name))
+        atomDefs.map(cons => asType.getConstructors.get(cons.name.name))
       atomConstructors
         .zip(atomDefs)
         .foreach { case (atomCons, atomDefn) =>
@@ -287,7 +287,7 @@ class IrToTruffle(
 
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
-            val checkNode      = checkRuntimeTypes(unprocessedArg)
+            val checkNode      = checkAsTypes(unprocessedArg)
             val arg            = argFactory.run(unprocessedArg, idx, checkNode)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
@@ -352,7 +352,7 @@ class IrToTruffle(
             )
           }
         }
-      runtimeType.generateGetters(language)
+      asType.generateGetters(language)
     }
 
     // Register the method definitions in scope
@@ -755,7 +755,7 @@ class IrToTruffle(
     }
   }
 
-  private def checkRuntimeTypes(
+  private def checkAsTypes(
     arg: DefinitionArgument
   ): ReadArgumentCheckNode = {
     arg.ascribedType.map(extractAscribedType(arg.name, _)).getOrElse(null)
@@ -924,9 +924,7 @@ class IrToTruffle(
                 fun
               )
             case BindingsMap.ResolvedConstructor(definitionType, cons) =>
-              val runtimeCons = definitionType
-                .unsafeToRuntimeType()
-                .getConstructors
+              val runtimeCons = asType(definitionType).getConstructors
                 .get(cons.name)
               val fun = mkConsGetter(runtimeCons)
               moduleScope.registerMethod(
@@ -1274,7 +1272,7 @@ class IrToTruffle(
                       )
                     ) =>
                   val atomCons =
-                    tp.unsafeToRuntimeType().getConstructors.get(cons.name)
+                    asType(tp).getConstructors.get(cons.name)
                   val r = if (atomCons == context.getBuiltins.bool().getTrue) {
                     BooleanBranchNode.build(
                       true,
@@ -1722,9 +1720,7 @@ class IrToTruffle(
               .get(tp.tp.name)
           )
         case BindingsMap.ResolvedConstructor(definitionType, cons) =>
-          val c = definitionType
-            .unsafeToRuntimeType()
-            .getConstructors
+          val c = asType(definitionType).getConstructors
             .get(cons.name)
           if (c == null) {
             throw new CompilerError(s"Constructor for $cons is null")
@@ -1896,7 +1892,7 @@ class IrToTruffle(
         // Note [Rewriting Arguments]
         val argSlots = arguments.zipWithIndex.map {
           case (unprocessedArg, idx) =>
-            val checkNode = checkRuntimeTypes(unprocessedArg)
+            val checkNode = checkAsTypes(unprocessedArg)
             val arg       = argFactory.run(unprocessedArg, idx, checkNode)
             argDefinitions(idx) = arg
             val occInfo = unprocessedArg
@@ -2282,5 +2278,9 @@ class IrToTruffle(
   private def asScope(module: CompilerContext.Module): ModuleScope = {
     val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
     m.getScope()
+  }
+
+  private def asType(typ: BindingsMap.ResolvedType): Type = {
+    asScope(typ.module.unsafeAsModule()).getTypes().get(typ.tp.name)
   }
 }

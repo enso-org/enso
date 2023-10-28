@@ -787,9 +787,6 @@ object BindingsMap {
 
     override lazy val exportedSymbols: Map[String, List[ResolvedName]] =
       tp.members.map(m => (m.name, List(ResolvedConstructor(this, m)))).toMap
-
-    def unsafeToRuntimeType(): org.enso.interpreter.runtime.data.Type =
-      module.unsafeAsModule().findType(tp.name)
   }
 
   /** A result of successful name resolution.
