@@ -14,13 +14,9 @@ import org.enso.compiler.ModuleCache;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.SerializationManager;
-import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
@@ -62,12 +58,6 @@ public interface CompilerContext {
   // Truffle related
 
   void truffleRunCodegen(Module module, CompilerConfig config) throws IOException;
-
-  void truffleRunCodegen(
-      Source source, ModuleScope scope, CompilerConfig config, org.enso.compiler.core.ir.Module ir);
-
-  ExpressionNode truffleRunInline(
-      Source source, LocalScope localScope, Module module, CompilerConfig config, Expression ir);
 
   // module related
 
@@ -127,8 +117,6 @@ public interface CompilerContext {
     public abstract Package<TruffleFile> getPackage();
 
     public abstract boolean isSameAs(org.enso.interpreter.runtime.Module m);
-
-    public abstract org.enso.interpreter.runtime.scope.ModuleScope getScope();
 
     public abstract QualifiedName getName();
 

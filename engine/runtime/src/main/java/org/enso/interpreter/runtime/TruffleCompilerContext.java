@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime;
 
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
-import org.enso.compiler.codegen.IrToTruffle;
-import org.enso.compiler.codegen.RuntimeStubsGenerator;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
 
@@ -113,18 +111,8 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config) throws IOException {
-    truffleRunCodegen(module.getSource(), module.getScope(), config, module.getIr());
-  }
-
-  @Override
-  public void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, org.enso.compiler.core.ir.Module ir) {
-    new IrToTruffle(context, source, scope, config).run(ir);
-  }
-
-  @Override
-  public ExpressionNode truffleRunInline(Source source, LocalScope localScope, CompilerContext.Module module, CompilerConfig config, Expression ir) {
-    return new IrToTruffle(context, source, module.getScope(), config)
-            .runInline(ir, localScope, "<inline_source>");
+    var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
+    new IrToTruffle(context, module.getSource(), m.getScope(), config).run(module.getIr());
   }
 
   // module related
@@ -367,11 +355,6 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public boolean isSameAs(org.enso.interpreter.runtime.Module m) {
       return module == m;
-    }
-
-    // XXX
-    public org.enso.interpreter.runtime.scope.ModuleScope getScope() {
-      return module.getScope();
     }
 
     @Override

@@ -34,8 +34,6 @@ import org.enso.compiler.phase.{
   ImportResolver
 }
 import org.enso.editions.LibraryName
-import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
-import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.CompilationStage
@@ -691,7 +689,7 @@ class Compiler(
   def runInline(
     srcString: String,
     inlineContext: InlineContext
-  ): Option[RuntimeExpression] = {
+  ): Option[(InlineContext, Expression, Source)] = {
     val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
     val source = Source
       .newBuilder(
@@ -705,7 +703,7 @@ class Compiler(
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
-      Some(newContext.truffleRunInline(context, source, config, compilerOutput))
+      Some((newContext, compilerOutput, source))
     }
   }
 
@@ -722,7 +720,7 @@ class Compiler(
     qualifiedName: String,
     loc: Option[IdentifiedLocation],
     source: Source
-  ): ModuleScope = {
+  ): Unit = {
     val module = Option(context.findTopScopeModule(qualifiedName))
       .getOrElse {
         val locStr = fileLocationFromSection(loc, source)
@@ -740,7 +738,6 @@ class Compiler(
         "Trying to use a module in codegen without generating runtime stubs"
       )
     }
-    module.getScope
   }
 
   /** Parses the given source with the new Rust parser.
@@ -1229,20 +1226,6 @@ class Compiler(
       }
       .getOrElse("")
     source.getPath + ":" + srcLocation
-  }
-
-  /** Generates code for the truffle interpreter.
-    *
-    * @param ir the program to translate
-    * @param source the source code of the program represented by `ir`
-    * @param scope the module scope in which the code is to be generated
-    */
-  def truffleCodegen(
-    ir: IRModule,
-    source: Source,
-    scope: ModuleScope
-  ): Unit = {
-    context.truffleRunCodegen(source, scope, config, ir)
   }
 
   /** Performs shutdown actions for the compiler.

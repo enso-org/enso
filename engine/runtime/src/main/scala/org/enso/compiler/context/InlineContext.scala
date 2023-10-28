@@ -1,13 +1,10 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
 import org.enso.interpreter.node.BaseNode.TailStatus
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-import org.enso.interpreter.node.ExpressionNode
-import com.oracle.truffle.api.source.Source
 
 /** A type containing the information about the execution context for an inline
   * expression.
@@ -31,16 +28,6 @@ case class InlineContext(
   pkgRepo: Option[PackageRepository]           = None
 ) {
   def bindingsAnalysis() = module.bindingsAnalysis()
-
-  def truffleRunInline(
-    context: CompilerContext,
-    source: Source,
-    config: CompilerConfig,
-    ir: Expression
-  ): ExpressionNode = {
-    val s = localScope.getOrElse(LocalScope.root)
-    return module.truffleRunInline(context, source, s, config, ir)
-  }
 }
 object InlineContext {
 
