@@ -19,6 +19,7 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
+import org.enso.polyglot.data.TypeGraph;
 
 /**
  * Interface that encapsulate all services {@link Compiler} needs from Truffle or other environment.
@@ -91,6 +92,8 @@ public interface CompilerContext {
   <T> Optional<T> loadCache(Cache<T, ?> cache);
 
   <T> Optional<TruffleFile> saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations);
+
+  TypeGraph getTypeHierarchy();
 
   public static interface Updater {
     void bindingsMap(BindingsMap map);

@@ -28,10 +28,11 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
+import org.enso.polyglot.data.TypeGraph;
 
 import scala.Option;
 
@@ -154,6 +155,11 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public CompilationStage getCompilationStage(CompilerContext.Module module) {
     return module.getCompilationStage();
+  }
+
+  @Override
+  public TypeGraph getTypeHierarchy() {
+    return Types.getTypeHierarchy();
   }
 
   @Override
