@@ -38,7 +38,7 @@ class ModifyVisualizationCmd(
         val jobFilter: PartialFunction[Job[_], Option[ExpressionId]] = {
           case upsert: UpsertVisualizationJob
               if upsert.visualizationId == request.visualizationId =>
-            Some(upsert.key)
+            Some(upsert.expressionId)
         }
         ctx.jobControlPlane.jobInProgress(jobFilter)
       }

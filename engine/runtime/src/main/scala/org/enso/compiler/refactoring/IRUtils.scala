@@ -1,11 +1,14 @@
 package org.enso.compiler.refactoring
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.resolve.MethodCalls
 import org.enso.pkg.QualifiedName
+
+import java.util.UUID
 
 trait IRUtils {
 
@@ -15,7 +18,7 @@ trait IRUtils {
     * @param externalId the external id to look for
     * @return the first node with the given external id in `ir`
     */
-  def findByExternalId(ir: IR, externalId: IR.ExternalId): Option[IR] = {
+  def findByExternalId(ir: IR, externalId: UUID @ExternalID): Option[IR] = {
     ir.preorder.find(_.getExternalId.contains(externalId))
   }
 
@@ -129,7 +132,7 @@ trait IRUtils {
     * @param id the identifier to look for
     * @return the `ir` node with the given identifier
     */
-  private def findById(ir: IR, id: IR.Identifier): Option[IR] = {
+  private def findById(ir: IR, id: UUID @Identifier): Option[IR] = {
     ir.preorder.find(_.getId == id)
   }
 }

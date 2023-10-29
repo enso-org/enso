@@ -19,7 +19,7 @@ function onDocumentClick(event: MouseEvent) {
   }
 }
 
-useEvent(document, 'click', onDocumentClick)
+useEvent(document, 'pointerdown', onDocumentClick)
 </script>
 
 <template>

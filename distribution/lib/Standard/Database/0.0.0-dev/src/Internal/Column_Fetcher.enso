@@ -6,6 +6,8 @@ import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Java_Exports
 
+from project.Errors import Unsupported_Database_Operation
+
 polyglot java import java.sql.ResultSet
 polyglot java import java.time.LocalTime as Java_Local_Time
 
@@ -146,6 +148,17 @@ date_time_fetcher =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
+   A column fetcher that fetches the database column without timezone,
+   interpreting it as LocalDateTime and then converting to Enso Date_Time by
+   adding the default system timezone.
+local_date_time_fetcher =
+    fetch_value rs i = JDBCUtils.getLocalDateTimeAsZoned rs i
+    make_builder initial_size _ =
+        java_builder = Java_Exports.make_date_time_builder initial_size
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
    A default implementation that will assign specialized fetchers for the
    Integer, Float, Char and Boolean value types and a fallback for any other
    type.
@@ -160,14 +173,15 @@ default_fetcher_for_value_type value_type =
         Value_Type.Boolean -> boolean_fetcher
         Value_Type.Time -> time_fetcher
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
-        Value_Type.Date_Time _ -> date_time_fetcher
+        Value_Type.Date_Time has_timezone ->
+            if has_timezone then date_time_fetcher else local_date_time_fetcher
         # If we can determine that scale = 0
         Value_Type.Decimal _ scale ->
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
             case is_guaranteed_integer of
                 True  -> big_integer_fetcher
                 # If we cannot guarantee that the column is integer, we will fall back to Float values, since there is no BigDecimal implementation yet.
-                # TODO I think we should add a warning somewhere
+                # In another place this will trigger a Inexact_Type_Coercion warning.
                 False -> double_fetcher
         _ -> fallback_fetcher
 

@@ -167,7 +167,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                             event.preventDefault()
                             event.stopPropagation()
                             unsetModal()
-                            const payload = drag.tryGetAssetRowsDragPayload(event.dataTransfer)
+                            const payload = drag.ASSET_ROWS.lookup(event)
                             if (payload != null) {
                                 dispatchAssetEvent({
                                     type:

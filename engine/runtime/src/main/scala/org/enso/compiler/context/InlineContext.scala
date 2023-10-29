@@ -60,8 +60,11 @@ object InlineContext {
     compilerConfig: CompilerConfig
   ): InlineContext = {
     InlineContext(
-      localScope       = Option(localScope),
-      module           = ModuleContext(moduleScope.getModule, compilerConfig),
+      localScope = Option(localScope),
+      module = ModuleContext(
+        moduleScope.getModule().asCompilerModule(),
+        compilerConfig
+      ),
       isInTailPosition = Option(isInTailPosition != TailStatus.NOT_TAIL),
       compilerConfig   = compilerConfig
     )

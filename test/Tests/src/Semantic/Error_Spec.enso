@@ -96,6 +96,8 @@ spec =
             error = throw_a_bar
             error.catch . should_equal "bar"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar"
+            error.stack_trace.second.source_location.file.name . should_equal "Error_Spec.enso"
+            error.stack_trace.second.source_location.start_line . should_equal 23
 
         Test.specify "should allow to inspect the stack trace of a recovered panic" <|
             error = Panic.recover Any <| throw_a_bar_panicking

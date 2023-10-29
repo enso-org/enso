@@ -97,6 +97,16 @@ make_column_ref_or_text_value_selector table display=Display.Always =
     Single_Choice values=(col_names_options+[custom_text_option]) display=display
 
 ## PRIVATE
+   If `column_source` is Nothing, `Column_Ref` options will not be added.
+make_fill_default_value_selector : Table | Nothing -> Boolean -> Display -> Widget
+make_fill_default_value_selector column_source=Nothing include_custom_text=False display=Display.Always =
+    col_names_options = if column_source.is_nothing then [] else
+        column_source.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
+    custom_text_option = if include_custom_text then [Option "'custom text'" "''"] else []
+    previous_value_option = [Option 'Previous Value' 'Previous_Value']
+    Single_Choice values=(previous_value_option+col_names_options+custom_text_option) display=display
+
+## PRIVATE
    Make a filter condition selector.
 make_filter_condition_selector : Table -> Display -> Widget
 make_filter_condition_selector table display=Display.Always =

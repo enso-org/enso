@@ -1,6 +1,6 @@
 package org.enso.compiler
 
-import org.enso.interpreter.runtime.Module
+import org.enso.compiler.context.CompilerContext.Module
 
 /** The result of running the compiler.
   *

@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument.job
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.RuntimeContext
@@ -191,13 +191,13 @@ final class RefactoringRenameJob(
 
 object RefactoringRenameJob {
 
-  final private class ExpressionNotFound(val expressionId: IR.ExternalId)
+  final private class ExpressionNotFound(val expressionId: UUID @ExternalID)
       extends Exception(s"Expression was not found by id [$expressionId].")
 
   final private class FailedToApplyEdits(val module: String)
       extends Exception(s"Failed to apply edits to module [$module]")
 
-  final private class OperationNotSupported(val expressionId: IR.ExternalId)
+  final private class OperationNotSupported(val expressionId: UUID @ExternalID)
       extends Exception(
         s"Operation not supported for expression [$expressionId]"
       )

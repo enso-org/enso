@@ -55,6 +55,10 @@ type Postgres_Type_Mapping
                 type_name = if with_timezone then "timestamptz" else "timestamp"
                 SQL_Type.Value Types.TIMESTAMP type_name
             Value_Type.Binary _ _ ->
+                ## `bytea` is the compact storage for binary data, but it does not allow setting fixed size.
+                   We currently do not use Binary datatype much, so it is hard to decide which one is more appropriate,
+                   but we may also consider using the standard SQL `bit(n)` and `bit varying(n)` types.
+                   See: https://www.postgresql.org/docs/current/datatype-bit.html
                 SQL_Type.Value Types.BINARY "bytea" precision=max_precision
             Value_Type.Mixed ->
                 Error.throw (Unsupported_Database_Operation.Error "Postgres tables do not support Mixed types.")

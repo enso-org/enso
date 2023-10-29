@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.FreshNameSupply
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{CallArgument, Empty, Expression, Name}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassConfiguration._
