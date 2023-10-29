@@ -36,6 +36,8 @@ export const useGraphStore = defineStore('graph', () => {
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
 
+  const unconnectedEdge = ref<UnconnectedEdge>()
+
   useObserveYjs(text, (event) => {
     const delta = event.changes.delta
     if (delta.length === 0) return
@@ -205,16 +207,39 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const edges = computed(() => {
+    const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
     const edges = []
     for (const [ident, usages] of identUsages) {
       const source = identDefinitions.get(ident)
       if (source == null) continue
       for (const target of usages) {
+        if (target === disconnectedEdgeTarget) continue
         edges.push({ source, target })
       }
     }
+    if (unconnectedEdge.value != null) {
+      edges.push({
+        source: unconnectedEdge.value.source,
+        target: unconnectedEdge.value.target,
+      })
+    }
     return edges
   })
+
+  function createEdgeFromOutput(source: ExprId) {
+    unconnectedEdge.value = { source }
+  }
+  function disconnectSource(edge: Edge) {
+    if (edge.target != null)
+      unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
+  }
+  function disconnectTarget(edge: Edge) {
+    if (edge.source != null && edge.target != null)
+      unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
+  }
+  function clearUnconnected() {
+    unconnectedEdge.value = undefined
+  }
 
   function createNode(position: Vec2, expression: string): Opt<ExprId> {
     const mod = proj.module
@@ -308,9 +333,14 @@ export const useGraphStore = defineStore('graph', () => {
     transact,
     nodes,
     exprNodes,
+    unconnectedEdge,
     edges,
     nodeRects,
     exprRects,
+    createEdgeFromOutput,
+    disconnectSource,
+    disconnectTarget,
+    clearUnconnected,
     identDefinitions,
     identUsages,
     createNode,
@@ -359,9 +389,17 @@ function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
   }
 }
 
-export interface Edge {
-  source: ExprId
-  target: ExprId
+/** An edge, which may be connected or unconnected. */
+export type Edge = {
+  source: ExprId | undefined
+  target: ExprId | undefined
+}
+
+export type UnconnectedEdge = {
+  source?: ExprId
+  target?: ExprId
+  /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
+  disconnectedEdgeTarget?: ExprId
 }
 
 function getExecutedMethodAst(

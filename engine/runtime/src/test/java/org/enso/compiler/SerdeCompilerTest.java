@@ -47,7 +47,7 @@ public class SerdeCompilerTest {
               ctx.getBindings(LanguageInfo.ID)
                   .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                   .asHostObject();
-      var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
+      var module = ensoContext.getModuleForFile(pkg.mainFile()).get().asCompilerModule();
       var compiler = ensoContext.getCompiler();
 
       ctx.enter();
@@ -82,7 +82,7 @@ public class SerdeCompilerTest {
               ctx.getBindings(LanguageInfo.ID)
                   .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                   .asHostObject();
-      var module = ensoContext.getModuleForFile(pkg.mainFile()).get();
+      var module = ensoContext.getModuleForFile(pkg.mainFile()).get().asCompilerModule();
       var compiler = ensoContext.getCompiler();
 
       ctx.enter();
@@ -90,7 +90,8 @@ public class SerdeCompilerTest {
       mockHandler.assertNoFailureMessage();
       assertEquals(result.compiledModules().exists(m -> m == module), true);
 
-      var methods = module.getScope().getAllMethods();
+      var methods =
+          org.enso.interpreter.runtime.Module.fromCompilerModule(module).getScope().getAllMethods();
       var main = methods.get(0);
 
       assertEquals("Main.main", main.getName());

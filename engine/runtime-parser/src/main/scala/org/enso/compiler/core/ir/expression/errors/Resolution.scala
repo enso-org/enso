@@ -3,8 +3,10 @@ package expression
 package errors
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
+
+import java.util.UUID
 
 /** A representation of an error resulting from name resolution.
   *
@@ -16,15 +18,17 @@ import org.enso.compiler.core.IR.{randomId, Identifier}
 sealed case class Resolution(
   originalName: Name,
   reason: Resolution.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage      = MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with IRKind.Primitive
     with Name {
   override val name: String = originalName.name
 
-  override def mapExpressions(fn: Expression => Expression): Resolution =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Resolution =
     this
 
   override def setLocation(
@@ -46,7 +50,7 @@ sealed case class Resolution(
     reason: Resolution.Reason      = reason,
     passData: MetadataStorage      = passData,
     diagnostics: DiagnosticStorage = diagnostics,
-    id: Identifier                 = id
+    id: UUID @Identifier           = id
   ): Resolution = {
     val res = Resolution(originalName, reason, passData, diagnostics)
     res.id = id
@@ -78,7 +82,7 @@ sealed case class Resolution(
   override def children: List[IR] = List(originalName)
 
   /** @inheritdoc */
-  override protected var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** @inheritdoc */
   override def showCode(indent: Int): String = originalName.showCode(indent)

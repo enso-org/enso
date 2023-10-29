@@ -3,18 +3,10 @@ import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import {
-  DEFAULT_VISUALIZATION_CONFIGURATION,
-  DEFAULT_VISUALIZATION_IDENTIFIER,
-  useVisualizationStore,
-  type Visualization,
-} from '@/stores/visualization'
 import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
@@ -24,7 +16,8 @@ import { Rect } from '@/util/rect'
 import { unwrap } from '@/util/result'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
+import GraphVisualization from './GraphVisualization.vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -41,9 +34,11 @@ const emit = defineEmits<{
   setVisualizationId: [id: Opt<VisualizationIdentifier>]
   setVisualizationVisible: [visible: boolean]
   delete: []
+  replaceSelection: []
+  'update:selected': [selected: boolean]
+  outputPortAction: []
 }>()
 
-const visualizationStore = useVisualizationStore()
 const nodeSelection = injectGraphSelection(true)
 
 const nodeId = computed(() => props.node.rootSpan.astId)
@@ -56,23 +51,12 @@ const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? fal
 watch(isSelected, (selected) => {
   menuVisible.value = menuVisible.value && selected
 })
-const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
-const visualization = shallowRef<Visualization>()
-
 const projectStore = useProjectStore()
-
-const visualizationData = projectStore.useVisualizationData(() => {
-  if (!isVisualizationVisible.value || !visPreprocessor.value) return
-  return {
-    ...visPreprocessor.value,
-    expressionId: props.node.rootSpan.astId,
-  }
-})
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -292,63 +276,6 @@ onUpdated(() => {
     }
   }
 })
-
-function updatePreprocessor(
-  visualizationModule: string,
-  expression: string,
-  ...positionalArgumentsExpressions: string[]
-) {
-  visPreprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
-}
-
-function switchToDefaultPreprocessor() {
-  visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
-}
-
-provideVisualizationConfig({
-  fullscreen: false,
-  width: null,
-  height: 150,
-  get types() {
-    return visualizationStore.types(expressionInfo.value?.typename)
-  },
-  get isCircularMenuVisible() {
-    return menuVisible.value
-  },
-  get nodeSize() {
-    return nodeSize.value
-  },
-  get currentType() {
-    return props.node.vis ?? DEFAULT_VISUALIZATION_IDENTIFIER
-  },
-  hide: () => emit('setVisualizationVisible', false),
-  updateType: (id) => emit('setVisualizationId', id),
-})
-
-watchEffect(async () => {
-  if (props.node.vis == null) {
-    return
-  }
-
-  visualization.value = undefined
-  const module = await visualizationStore.get(props.node.vis)
-  if (module) {
-    if (module.defaultPreprocessor != null) {
-      updatePreprocessor(...module.defaultPreprocessor)
-    } else {
-      switchToDefaultPreprocessor()
-    }
-    visualization.value = module.default
-  }
-})
-
-const effectiveVisualization = computed(() => {
-  if (!visualization.value || visualizationData.value == null) {
-    return LoadingVisualization
-  }
-  return visualization.value
-})
-
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
@@ -433,6 +360,10 @@ const color = computed(() =>
     ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
     : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
 )
+
+function hoverExpr(id: ExprId | undefined) {
+  if (nodeSelection != null) nodeSelection.hoveredExpr = id
+}
 </script>
 
 <template>
@@ -461,15 +392,19 @@ const color = computed(() =>
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
-    <component
-      :is="effectiveVisualization"
-      v-if="isVisualizationVisible && effectiveVisualization != null"
-      :data="visualizationData"
-      @update:preprocessor="updatePreprocessor"
+    <GraphVisualization
+      v-if="isVisualizationVisible"
+      :nodeSize="nodeSize"
+      :isCircularMenuVisible="menuVisible"
+      :currentType="props.node.vis"
+      :expressionId="props.node.rootSpan.astId"
+      :typename="expressionInfo?.typename"
+      @setVisualizationId="emit('setVisualizationId', $event)"
+      @setVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
     <div class="node" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <span
+      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
+      ><span
         ref="editableRootNode"
         class="editable"
         contenteditable
@@ -482,16 +417,78 @@ const color = computed(() =>
           :ast="node.rootSpan"
           :nodeSpanStart="node.rootSpan.span()[0]"
           @updateExprRect="updateExprRect"
+          @updateHoveredExpr="hoverExpr($event)"
       /></span>
+    </div>
+    <div key="outputPort" class="outputPort" @pointerdown="emit('outputPortAction')">
+      <svg viewBox="-22 -35 22 38" xmlns="http://www.w3.org/2000/svg" class="outputPortCap">
+        <path d="M 0 0 a 19 19 0 0 1 -19 -19" class="outputPortCapLine" />
+        <rect height="6" width="6" x="0" y="-3" class="outputPortCapButt" />
+      </svg>
+      <svg
+        viewBox="0 -35 1 38"
+        preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg"
+        class="outputPortBar"
+      >
+        <path d="M 0 0 h 1" class="outputPortBarLine" />
+      </svg>
+      <svg viewBox="0 -35 22 38" xmlns="http://www.w3.org/2000/svg" class="outputPortCap">
+        <path d="M 0 0 a 19 19 0 0 0 19 -19" class="outputPortCapLine" />
+        <rect height="6" width="6" x="-6" y="-3" class="outputPortCapButt" />
+      </svg>
+      />
     </div>
     <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>
 </template>
 
 <style scoped>
+.outputPort {
+  width: 100%;
+  margin: 0;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  display: flex;
+  opacity: 0;
+}
+.outputPort:hover {
+  opacity: 1;
+}
+.outputPortCap {
+  flex: none;
+  height: 38px;
+  width: 22px;
+}
+.outputPortCapLine {
+  fill: none;
+  stroke: var(--node-group-color);
+  opacity: 30%;
+  stroke-width: 6px;
+  stroke-linecap: round;
+}
+.outputPortCapButt {
+  fill: var(--node-group-color);
+  opacity: 30%;
+}
+.outputPortBar {
+  height: 38px;
+  width: 100%;
+}
+.outputPortBarLine {
+  fill: none;
+  stroke: var(--node-group-color);
+  opacity: 30%;
+  /* 6px + extra width to prevent antialiasing issues:
+     The 1px on the top will draw mostly under the node, but will ensure the line meets the node.
+     (The 1px on the bottom will be clipped.) */
+  stroke-width: 8px;
+}
 .GraphNode {
   --node-height: 32px;
   --node-border-radius: calc(var(--node-height) * 0.5);
+  --output-port-padding: 6px;
 
   --node-group-color: #357ab9;
 
@@ -510,6 +507,9 @@ const color = computed(() =>
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
+
+  padding-left: var(--output-port-padding);
+  padding-right: var(--output-port-padding);
 }
 
 .node {
@@ -534,7 +534,7 @@ const color = computed(() =>
 }
 .GraphNode .selection {
   position: absolute;
-  inset: calc(0px - var(--selected-node-border-width));
+  inset: calc(0px - var(--selected-node-border-width) + var(--output-port-padding));
   --node-current-selection-width: 0px;
 
   &:before {
@@ -615,6 +615,7 @@ const color = computed(() =>
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
   pointer-events: none;
+  z-index: 10;
   color: var(--node-color-primary);
 }
 

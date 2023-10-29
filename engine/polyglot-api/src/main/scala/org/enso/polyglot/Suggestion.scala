@@ -45,7 +45,7 @@ import java.util.UUID
 )
 sealed trait Suggestion extends ToLogString {
 
-  def externalId:    Option[Suggestion.ExternalId]
+  def externalId:    Option[Suggestion.ExternalID]
   def module:        String
   def name:          String
   def returnType:    String
@@ -57,7 +57,7 @@ sealed trait Suggestion extends ToLogString {
 
 object Suggestion {
 
-  type ExternalId = UUID
+  type ExternalID = UUID
 
   /** @return `true` if the suggestion id defined in the global (module) scope.
     */
@@ -235,7 +235,7 @@ object Suggestion {
     override def name: String =
       module
 
-    override def externalId: Option[ExternalId] =
+    override def externalId: Option[ExternalID] =
       None
 
     override def returnType: String =
@@ -264,7 +264,7 @@ object Suggestion {
     * @param reexport the module re-exporting this atom
     */
   case class Type(
-    externalId: Option[ExternalId],
+    externalId: Option[ExternalID],
     module: String,
     name: String,
     params: Seq[Argument],
@@ -305,7 +305,7 @@ object Suggestion {
     * @param reexport the module re-exporting this atom
     */
   case class Constructor(
-    externalId: Option[ExternalId],
+    externalId: Option[ExternalID],
     module: String,
     name: String,
     arguments: Seq[Argument],
@@ -372,7 +372,7 @@ object Suggestion {
     * @param reexport the module re-exporting this method
     */
   case class Getter(
-    externalId: Option[ExternalId],
+    externalId: Option[ExternalID],
     module: String,
     name: String,
     arguments: Seq[Argument],
@@ -419,7 +419,7 @@ object Suggestion {
     * @param reexport the module re-exporting this method
     */
   case class DefinedMethod(
-    externalId: Option[ExternalId],
+    externalId: Option[ExternalID],
     module: String,
     name: String,
     arguments: Seq[Argument],
@@ -461,7 +461,7 @@ object Suggestion {
     * @param reexport the module re-exporting this conversion
     */
   case class Conversion(
-    externalId: Option[ExternalId],
+    externalId: Option[ExternalID],
     module: String,
     arguments: Seq[Argument],
     selfType: String,
@@ -510,7 +510,7 @@ object Suggestion {
     * @param documentation the documentation string
     */
   case class Function(
-    externalId: Option[ExternalId],
+    externalId: Option[ExternalID],
     module: String,
     name: String,
     arguments: Seq[Argument],
@@ -547,7 +547,7 @@ object Suggestion {
     * @param documentation the documentation string
     */
   case class Local(
-    externalId: Option[ExternalId],
+    externalId: Option[ExternalID],
     module: String,
     name: String,
     returnType: String,

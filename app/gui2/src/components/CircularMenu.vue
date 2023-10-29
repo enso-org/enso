@@ -15,7 +15,6 @@ const emit = defineEmits<{
 
 <template>
   <div class="CircularMenu">
-    <div class="background"></div>
     <ToggleIcon
       icon="no_auto_replay"
       class="icon-container button no-auto-evaluate-button"
@@ -44,15 +43,16 @@ const emit = defineEmits<{
   left: -36px;
   width: 76px;
   height: 76px;
-}
 
-.CircularMenu > .background {
-  position: absolute;
-  clip-path: path('m0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0');
-  background: var(--color-app-bg);
-  backdrop-filter: var(--blur-app-bg);
-  width: 100%;
-  height: 100%;
+  &:before {
+    content: '';
+    position: absolute;
+    clip-path: path('m0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0');
+    backdrop-filter: var(--blur-app-bg);
+    background: var(--color-app-bg);
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .icon-container {

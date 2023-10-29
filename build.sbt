@@ -309,7 +309,8 @@ lazy val enso = (project in file("."))
     `simple-httpbin`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
-    `benchmark-java-helpers`
+    `benchmark-java-helpers`,
+    `bench-processor`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(

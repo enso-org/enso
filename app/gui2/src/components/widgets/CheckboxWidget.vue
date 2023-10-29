@@ -14,12 +14,12 @@ const emit = defineEmits<{ 'update:modelValue': [modelValue: boolean] }>()
   cursor: pointer;
   width: 24px;
   height: 24px;
+  padding: 6px;
   border-radius: var(--radius-full);
   background: var(--color-widget);
 }
 
 .Checkbox > div {
-  margin: 6px;
   width: 12px;
   height: 12px;
   border-radius: var(--radius-full);

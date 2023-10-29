@@ -257,8 +257,14 @@ public abstract class Cache<T, M extends Cache.Metadata> {
       if (sourceDigestValid && blobDigestValid) {
         T cachedObject = null;
         try {
+          long now = System.currentTimeMillis();
           cachedObject = deserialize(context, blobBytes, meta, logger);
+          long took = System.currentTimeMillis() - now;
           if (cachedObject != null) {
+            logger.log(
+                Level.FINEST,
+                "Loaded cache for {0} with {1} bytes in {2} ms",
+                new Object[] {logName, blobBytes.length, took});
             return Optional.of(cachedObject);
           } else {
             logger.log(logLevel, "`{0}` was corrupt on disk.", logName);

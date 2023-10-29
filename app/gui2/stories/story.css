@@ -1,0 +1,29 @@
+.histoire-story-viewer .__histoire-render-story > [data-v-app] {
+  height: 100%;
+  font-family: 'M PLUS 1', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 20px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.viewport {
+  height: 100%;
+  width: 100%;
+}
+
+.image-button {
+  cursor: pointer !important;
+}
+
+.VisualizationContainer {
+  z-index: 0 !important;
+  min-width: 0 !important;
+}
+
+.CodeEditor.standalone {
+  width: 100% !important;
+  height: 100% !important;
+}

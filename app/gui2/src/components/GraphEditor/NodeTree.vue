@@ -11,6 +11,7 @@ const props = defineProps<{ nodeSpanStart: number; ast: AstExtended<Ast.Tree> }>
 
 const emit = defineEmits<{
   updateExprRect: [expr: ExprId, rect: Rect]
+  updateHoveredExpr: [id: ExprId | undefined]
 }>()
 
 const rootNode = ref<HTMLElement>()
@@ -19,12 +20,13 @@ const exprRect = shallowRef<Rect>()
 
 const spanClass = computed(() => Ast.Tree.typeNames[props.ast.inner.type])
 const children = computed(() => [...props.ast.children()])
-const whitespace = computed(() => ' '.repeat(props.ast.inner.whitespaceLengthInCodeParsed))
+const isOnStart = computed(() => props.nodeSpanStart === props.ast.span()[0])
+const whitespace = computed(() =>
+  isOnStart.value ? '' : ' '.repeat(props.ast.inner.whitespaceLengthInCodeParsed),
+)
 
 const singularToken = computed(() =>
-  props.ast.inner.whitespaceLengthInCodeParsed === 0 &&
-  children.value.length === 1 &&
-  children.value[0]!.isToken()
+  whitespace.value.length === 0 && children.value.length === 1 && children.value[0]!.isToken()
     ? children.value[0]
     : null,
 )
@@ -42,6 +44,65 @@ function updateRect() {
 watch(nodeSize, updateRect)
 onUpdated(updateRect)
 watch(exprRect, (rect) => rect && emit('updateExprRect', props.ast.astId, rect))
+
+// Return whether this node should interact with the mouse, e.g. when seeking an edge target.
+function isHoverable(): boolean | 'tokensOnly' {
+  switch (props.ast.treeTypeName()) {
+    case 'Invalid':
+    case 'BodyBlock':
+    case 'Ident':
+    case 'Number':
+    case 'Wildcard':
+    case 'TextLiteral':
+      return true
+    case 'DefaultApp':
+      return 'tokensOnly'
+    // Application should not be hoverable; typically their child nodes will be.
+    case 'ArgumentBlockApplication':
+    case 'OperatorBlockApplication':
+    case 'OprApp':
+    case 'UnaryOprApp':
+    case 'MultiSegmentApp':
+    case 'App':
+    case 'NamedApp':
+      return false
+    // Other composite expressions.
+    case 'Group':
+    case 'TypeAnnotated':
+    case 'CaseOf':
+    case 'Lambda':
+    case 'Array':
+    case 'Tuple':
+    case 'Documented':
+    case 'OprSectionBoundary':
+    case 'TemplateFunction':
+      return false
+    // Declarations; we won't generally display these within a node anyway.
+    case 'Private':
+    case 'TypeDef':
+    case 'Assignment':
+    case 'Function':
+    case 'ForeignFunction':
+    case 'Import':
+    case 'Export':
+    case 'TypeSignature':
+    case 'Annotated':
+    case 'AnnotatedBuiltin':
+    case 'ConstructorDefinition':
+      return false
+    // Misc.
+    case 'AutoScope':
+      return false
+  }
+  console.log('Unexpected tree type', props.ast.treeTypeName())
+  return true
+}
+
+function hover(part: 'tree' | 'token', isHovered: boolean) {
+  const hoverable = isHoverable()
+  if (hoverable == true || (hoverable == 'tokensOnly' && part == 'token'))
+    emit('updateHoveredExpr', isHovered ? props.ast.astId : undefined)
+}
 </script>
 
 <template>
@@ -50,6 +111,8 @@ watch(exprRect, (rect) => rect && emit('updateExprRect', props.ast.astId, rect))
     :ast="singularToken"
     :nodeSpanStart="props.nodeSpanStart"
     @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)"
+    @pointerenter="hover('token', true)"
+    @pointerleave="hover('token', false)"
   />
   <span
     v-else
@@ -63,12 +126,18 @@ watch(exprRect, (rect) => rect && emit('updateExprRect', props.ast.astId, rect))
         :ast="child"
         :nodeSpanStart="props.nodeSpanStart"
         @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)"
+        @updateHoveredExpr="emit('updateHoveredExpr', $event)"
+        @pointerenter="hover('tree', true)"
+        @pointerleave="hover('tree', false)"
       />
       <NodeToken
         v-else-if="child.isToken()"
         :ast="child"
         :nodeSpanStart="props.nodeSpanStart"
         @updateExprRect="(id, rect) => emit('updateExprRect', id, rect)"
+        @updateHoveredExpr="emit('updateHoveredExpr', $event)"
+        @pointerenter="hover('token', true)"
+        @pointerleave="hover('token', false)"
       />
     </template>
   </span>

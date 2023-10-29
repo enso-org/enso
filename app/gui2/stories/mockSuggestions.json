@@ -1,0 +1,1026 @@
+[
+  {
+    "type": "module",
+    "module": "Standard.Base.Data",
+    "documentation": null,
+    "reexport": "Standard.Base.Main"
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data",
+    "name": "read",
+    "arguments": [
+      {
+        "name": "path",
+        "reprType": "Standard.Base.Data.Text.Text | Standard.Base.System.File.File",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "format",
+        "reprType": "Standard.Base.System.File_Format.File_Format",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Auto_Detect",
+        "tagValues": ["Standard.Base.System.File_Format.File_Format"]
+      },
+      {
+        "name": "on_problems",
+        "reprType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Problem_Behavior.Report_Warning",
+        "tagValues": [
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Ignore",
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Report_Warning",
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Report_Error"
+        ]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ALIAS load, open\nGROUP Input\nReads a file into Enso.\nUses the specified file format to parse the file into an Enso type. If not\nspecified will use the file's extension to determine the file format.\n\nArguments:\n- path: The path to the file to read. If the path is a URI, then the data\n will be fetched if from a supported protocol.\n- format: A `File_Format` object used to read file into memory.\n If `Auto_Detect` is specified; the provided file determines the specific\n type and configures it appropriately. If there is no matching type then\n a `File_Error.Unsupported_Type` error is returned.\n You can use `File_Format.all` to get a list of currently loaded\n formats.\n- on_problems: Specifies the behavior when a problem occurs during the\n function.\n By default, a warning is issued, but the operation proceeds.\n If set to `Report_Error`, the operation fails with a dataflow error.\n If set to `Ignore`, the operation proceeds without errors or warnings.\n\n> Example\n Read the first sheet of an XLSX from disk and convert it into a table.\n\n     from Standard.Table import all\n     import Standard.Examples\n\n     example_xlsx_to_table = Data.read Examples.xlsx\n\n> Example\n Read the sheet named `Dates` from an XLS and convert it to a table.\n\n     from Standard.Table import all\n     from Standard.Table import Excel, Worksheet\n     import Standard.Examples\n\n     example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))",
+    "annotations": ["format"]
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data",
+    "name": "read_text",
+    "arguments": [
+      {
+        "name": "path",
+        "reprType": "Standard.Base.Data.Text.Text | Standard.Base.System.File.File",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "encoding",
+        "reprType": "Standard.Base.Data.Text.Encoding.Encoding",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Encoding.utf_8",
+        "tagValues": null
+      },
+      {
+        "name": "on_problems",
+        "reprType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Problem_Behavior.Report_Warning",
+        "tagValues": [
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Ignore",
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Report_Warning",
+          "Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Report_Error"
+        ]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Data.Text.Text",
+    "isStatic": true,
+    "documentation": " ALIAS load text, open text\nGROUP Input\nOpen and read the file at the provided `path`.\n\nArguments:\n- path: The path of the file to open and read the contents of. It will\n accept a textual path or a file.\n- encoding: The text encoding to decode the file with. Defaults to UTF-8.\n- on_problems: Specifies the behavior when a problem occurs during the\n function.\n By default, a warning is issued, but the operation proceeds.\n If set to `Report_Error`, the operation fails with a dataflow error.\n If set to `Ignore`, the operation proceeds without errors or warnings.\n\n> Example\n Read the `data.csv` file in the project directory's `data` directory. You\n will need to create the file `data.csv` manually in that directory.\n\n     import Standard.Base.Data\n     import Standard.Examples\n\n     example_read = Data.read_text Examples.csv_path",
+    "annotations": ["encoding"]
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data",
+    "name": "list_directory",
+    "arguments": [
+      {
+        "name": "directory",
+        "reprType": "Standard.Base.System.File.File | Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "name_filter",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Nothing",
+        "tagValues": null
+      },
+      {
+        "name": "recursive",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "False",
+        "tagValues": [
+          "Standard.Base.Data.Boolean.Boolean.True",
+          "Standard.Base.Data.Boolean.Boolean.False"
+        ]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Data.Vector.Vector Standard.Base.System.File.File",
+    "isStatic": true,
+    "documentation": " GROUP Input\nLists files contained in the provided directory.\n\nArguments:\n- name_filter: A glob pattern that can be used to filter the returned files.\n If it is not specified, all files are returned.\n- recursive: Specifies whether the returned list of files should include also\n files from the subdirectories. If set to `False` (the default), only the\n immediate children of the listed directory are considered.\n\nThe `name_filter` can contain the following special characters:\n- `\"?\"` - which matches a single filename character (so it will not match a\n `\"/\"`).\n- `\"*\"` - which matches any number of characters, but again does not cross\n directories.\n- `\"**\"` - which matches any number of characters and can cross directories.\n- `\"\\\"` - can be used to escape the characters with special meaning; to get a\n single backslash, you need to specify it twice; you also need to keep in\n mind that the interpolating string literal also uses `\"\\\"` as an escape\n sequence, so you need to type `'\\\\\\\\'` to get a single backslash for the\n glob pattern, unless you use the raw strings, where you only need to escape\n once: `\"\\\\\"`.\n- Brackets can be used to match exactly one character from some set of\n characters. For example `\"[xy]\"` matches `\"x\"` or `\"y\"`. Character ranges\n can also be specified: `\"[a-z]\"` matches any character from `\"a\"` to `\"z\"`.\n An exclamation mark can be used to negate the match, i.e. `\"[!xz]\"` will\n match any characters except for `\"x\"` and `\"z\"`. Moreover the ranges and\n single characters can be used together, so for example `\"[a-cxy]\"` will\n match `\"a\"`, `\"b\"`, `\"c\"`, `\"x\"` or `\"y\"`. Within the brackets, the special\n characters `\"*\"`, `\"?\"` and `\"\\\"` stand for themselves instead of their\n special meanings.\n- Braces allow to specify multiple patterns (separated with a comma), one of\n which must be matched. For example: `\"{abc,x*}\"` will match either the name\n `\"abc\"` or any name starting with `\"x\"`. The groups cannot be nested.\n\nKeep in mind that if `recursive` is set to True and a `name_filter` is used,\nthe function will return files from subdirectories only if the set\n`name_filter` allows crossing directories. So even with `recursive=True` a\nfilter `\"*.txt\"` will only return files that are immediate children of the\nlisted directory, to list files recursively you need to use a filter like\n`\"**.txt\"` or `\"*/*\"` (which will match only files that are exactly one\ndirectory down from the listed directory) or no filter at all.\n\n> Example\n List all files with `.md` extension in the example directory and any of its\n subdirectories.\n\n     import Standard.Examples\n\n     example_list_files =\n         Data.list_directory Examples.data_dir name_filter=\"**.md\" recursive=True",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data",
+    "name": "fetch",
+    "arguments": [
+      {
+        "name": "uri",
+        "reprType": "Standard.Base.Network.URI.URI | Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "method",
+        "reprType": "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "HTTP_Method.Get",
+        "tagValues": [
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Options",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Get",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Head",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Post",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Put",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Patch",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Delete",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Trace",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Connect",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Custom"
+        ]
+      },
+      {
+        "name": "headers",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Network.HTTP.Header.Header | (Standard.Base.Data.Pair.Pair Standard.Base.Data.Text.Text Standard.Base.Data.Text.Text)",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "[]",
+        "tagValues": null
+      },
+      {
+        "name": "try_auto_parse_response",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "True",
+        "tagValues": [
+          "Standard.Base.Data.Boolean.Boolean.True",
+          "Standard.Base.Data.Boolean.Boolean.False"
+        ]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ALIAS download, http get\nGROUP Input\nFetches from the provided URI and returns the response, parsing the body if\nthe content-type is recognised. Returns an  error if the status code does not\nrepresent a successful response.\n\nArguments:\n- uri: The URI to fetch.\n- method: The HTTP method to use. Must be one of `HTTP_Method.Get`,\n `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.\n Defaults to `HTTP_Method.Get`.\n- headers: The headers to send with the request. Defaults to an empty vector.\n- try_auto_parse_response:  If successful should the body be attempted to be\n parsed to an Enso native object.\n\n> Example\n Read from an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.fetch URL\n\n> Example\n Read from an HTTP endpoint and write the results to a file.\n\n     import Standard.Base.Data\n     file = enso_project.data / \"spreadsheet.xls\"\n     Data.fetch URL . body . to_file file",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data",
+    "name": "post",
+    "arguments": [
+      {
+        "name": "uri",
+        "reprType": "Standard.Base.Network.URI.URI | Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "body",
+        "reprType": "Standard.Base.Network.HTTP.Request_Body.Request_Body",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Request_Body.Empty",
+        "tagValues": [
+          "Standard.Base.Network.HTTP.Request_Body.Request_Body.Text",
+          "Standard.Base.Network.HTTP.Request_Body.Request_Body.Json",
+          "Standard.Base.Network.HTTP.Request_Body.Request_Body.Binary",
+          "Standard.Base.Network.HTTP.Request_Body.Request_Body.Form_Data",
+          "Standard.Base.Network.HTTP.Request_Body.Request_Body.Empty"
+        ]
+      },
+      {
+        "name": "method",
+        "reprType": "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "HTTP_Method.Post",
+        "tagValues": [
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Options",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Get",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Head",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Post",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Put",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Patch",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Delete",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Trace",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Connect",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Custom"
+        ]
+      },
+      {
+        "name": "headers",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Network.HTTP.Header.Header | (Standard.Base.Data.Pair.Pair Standard.Base.Data.Text.Text Standard.Base.Data.Text.Text)",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "[]",
+        "tagValues": null
+      },
+      {
+        "name": "try_auto_parse_response",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "True",
+        "tagValues": [
+          "Standard.Base.Data.Boolean.Boolean.True",
+          "Standard.Base.Data.Boolean.Boolean.False"
+        ]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ALIAS http post, upload\nGROUP Input\nWrites the provided data to the provided URI. Returns the response,\nparsing the body if the content-type is recognised. Returns an  error if the\nstatus code does not represent a successful response.\n\nArguments:\n- uri: The URI to fetch.\n- body: The data to write. See `Supported Body Types` below.\n- method: The HTTP method to use. Must be one of `HTTP_Method.Post`,\n `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.\n- headers: The headers to send with the request. Defaults to an empty vector.\n- try_auto_parse:  If successful should the body be attempted to be parsed to\n an Enso native object.\n\n! Supported Body Types\n\n - Request_Body.Text: Sends a text string, with optional encoding and content\n   type.\n - Request_Body.Json: Sends an Enso object, after converting it to JSON.\n - Request_Body.Binary: Sends a file.\n - Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys\n   must be `Text`, and the values must be `Text` or `File`.\n - Request_Body.Empty: Sends an empty body.\n\n Additionally, the following types are allowed as the `body` parameter:\n\n - Text: shorthand for `Request_Body.Text that_text`.\n - File: shorthand for `Request_Body.Binary that_file`.\n - Any other Enso object: shorthand for `Request_Body.Json that_object`.\n\n! Specifying Content Types\n\n If the `body` parameter specifies an explicit content type, then it is an\n error to also specify additional `Content-Type` headers in the `headers`\n parameter. (It is not an error to specify multiple `Content-Type` values in\n `headers`, however.)\n\n! Default Content Types\n\n The following specifies the default content type for each `Request_Body`\n type.\n\n - Request_Body.Text: `text/plain`\n - Request_Body.Json: `application/json`\n - Request_Body.Binary: `application/octet-stream`\n - Request_Body.Form_Data:\n       If `url_encoded` is True: `application/x-www-form-urlencoded`\n       If `url_encoded` is False: `multipart/form-data`\n - Request_Body.Empty: No content type is sent\n - Text: `text/plain`\n - File: `application/octet-stream`\n - Any other Enso object: `application/json`\n\n! Specifying Text Encodings\n\n Text encoding can be specified in the `encoding` parameter to the\n `Request_Body.Text` constructor. This value will be added to the\n `Content-Type` header.\n\n If a value for `encoding` is specified, but no value for `content_type` is\n specified, then `\"text/plain\"` is used as the content type.\n\n> Example\n Write a text string to an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.post url_post (Request_Body.Text \"hello world\")\n\n> Example\n Write JSON to an HTTP endpoint.\n\n     import Standard.Base.Data\n     json = Json.parse '{\"a\": \"asdf\", \"b\": 123}'\n     response = Data.post url_post json\n\n> Example\n Write an Enso object to an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.post url_post (My_Type.Value 12)\n\n> Example\n Write a text string to an HTTP endpoint, with a specific text encoding.\n\n     import Standard.Base.Data\n     body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le\n     response = Data.post url_post body\n\n> Example\n Write a text string to an HTTP endpoint, with a specific content type.\n\n     import Standard.Base.Data\n     body = Request_Body.Text 'a,b,c\\n' content_type=\"text/csv\"\n     response = Data.post url_post body\n\n> Example\n Write the contents of a file to an HTTP endpoint.\n\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.png\"\n     response = Data.post url_post (Request_Body.Binary test_file)\n\n> Example\n Write a multipart form to an HTTP endpoint.\n\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.png\"\n     form_data = Map.from_vector [[\"key\", \"val\"], [\"a_file\", test_file]]\n     response = Data.post url_post (Request_Body.Form_Data form_data)\n\n> Example\n Write a URL-encoded form to an HTTP endpoint.\n\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.txt\"\n     form_data = Map.from_vector [[\"key\", \"val\"], [\"a_file\", test_file]]\n     response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data",
+    "name": "fetch",
+    "arguments": [
+      {
+        "name": "uri",
+        "reprType": "Standard.Base.Network.URI.URI | Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "method",
+        "reprType": "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "HTTP_Method.Get",
+        "tagValues": [
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Options",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Get",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Head",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Post",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Put",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Patch",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Delete",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Trace",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Connect",
+          "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method.Custom"
+        ]
+      },
+      {
+        "name": "headers",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Network.HTTP.Header.Header | (Standard.Base.Data.Pair.Pair Standard.Base.Data.Text.Text Standard.Base.Data.Text.Text)",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "[]",
+        "tagValues": null
+      },
+      {
+        "name": "try_auto_parse_response",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "True",
+        "tagValues": [
+          "Standard.Base.Data.Boolean.Boolean.True",
+          "Standard.Base.Data.Boolean.Boolean.False"
+        ]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ALIAS download, http get\nGROUP Input\nFetches from the provided URI and returns the response, parsing the body if\nthe content-type is recognised. Returns an  error if the status code does not\nrepresent a successful response.\n\nArguments:\n- uri: The URI to fetch.\n- method: The HTTP method to use. Must be one of `HTTP_Method.Get`,\n `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.\n Defaults to `HTTP_Method.Get`.\n- headers: The headers to send with the request. Defaults to an empty vector.\n- try_auto_parse_response:  If successful should the body be attempted to be\n parsed to an Enso native object.\n\n> Example\n Read from an HTTP endpoint.\n\n     import Standard.Base.Data\n     response = Data.fetch URL\n\n> Example\n Read from an HTTP endpoint and write the results to a file.\n\n     import Standard.Base.Data\n     file = enso_project.data / \"spreadsheet.xls\"\n     Data.fetch URL . body . to_file file",
+    "annotations": []
+  },
+  {
+    "type": "module",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "documentation": null,
+    "reexport": "Standard.Base.Data.Time"
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "unix_epoch_start",
+    "arguments": [],
+    "selfType": "Standard.Base.Data.Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " PRIVATE",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "ensure_in_epoch",
+    "arguments": [
+      {
+        "name": "date",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time | Standard.Base.Data.Time.Date.Date",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "action",
+        "reprType": "Standard.Base.Any.Any -> Standard.Base.Any.Any",
+        "isSuspended": true,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " PRIVATE",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "new_builtin",
+    "arguments": [
+      {
+        "name": "year",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "month",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "day",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "hour",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "minute",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "second",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "nanosecond",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "zone",
+        "reprType": "Standard.Base.Data.Time.Time_Zone.Time_Zone",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " PRIVATE\n\nObtains an instance of `Date_Time` from a year, month, day, hour, minute,\nsecond, nanosecond and timezone.\n\nArguments:\n- year: The year to represent, any Integer is valid.\n- month: the month-of-year to represent, from 1 (January) to 12 (December)\n- day: the day-of-month to represent, from 1 to 31 and must be valid for the\n year and month\n- hour: the hour-of-day to represent, from 0 to 23\n- minute: the minute-of-hour to represent, from 0 to 59\n- second: the second-of-minute to represent, from 0 to 59\n- nanosecond: the nano-of-second to represent, from 0 to 999,999,999\n- zone: the timezone\n\nRecommended to use `Date_Time.new` instead which handles potential exceptions.",
+    "annotations": []
+  },
+  {
+    "type": "type",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "Date_Time",
+    "params": [],
+    "parentType": "Standard.Base.Any.Any",
+    "documentation": " PRIVATE\n\nA date-time with a timezone in the ISO-8601 calendar system, such as\n\"2007-12-03T10:15:30+01:00 Europe/Paris\".\n\nTime is a representation of a date-time with a timezone. This class\nstores all date and time fields, to a precision of nanoseconds, and a\ntimezone, with a zone offset used to handle ambiguous local\ndate-times.\n\nFor example, the value \"2nd October 2007 at 13:45.30.123456789 +02:00 in\nthe Europe/Paris timezone\" can be stored as `Time`.",
+    "reexport": "Standard.Base.Main"
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "enso_epoch_start",
+    "arguments": [],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " Obtains the start of the epoch for Enso.\n\n? Start of the epoch\nFor Enso, start of the epoch is equal to the start of the Gregorian calendar,\nwhich is on 15th October 1582.\n\nInvoking some Gregorian calendar related functionalities, like `is_leap_year`,\nis computed for all the date times, including those before an epoch start,\nwith today's rules. Trying to get some Gregorian calendar related properties\nfor a historical date times that is defined before the epoch is likely an error,\nas the Gregorian calendar had not yet been introduced. Therefore, for such\nhistorical date times, a warning is attached to the result.",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "now",
+    "arguments": [],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " ALIAS current time\nGROUP DateTime\n\nObtains the current date-time from the system clock in the system timezone.\n\n> Example\n Get the current time\n\n     from Standard.Base import Date_Time\n\n     example_now = Date_Time.now",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "new",
+    "arguments": [
+      {
+        "name": "year",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "month",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "1",
+        "tagValues": null
+      },
+      {
+        "name": "day",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "1",
+        "tagValues": null
+      },
+      {
+        "name": "hour",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "minute",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "second",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "millisecond",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "microsecond",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "nanosecond",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "zone",
+        "reprType": "Standard.Base.Data.Time.Time_Zone.Time_Zone",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Time_Zone.system",
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " GROUP DateTime\nObtains an instance of `Date_Time` from a year, month, day, hour, minute,\nsecond, nanosecond and timezone.\n\nArguments:\n- year: The year to represent, any Integer is valid.\n- month: the month-of-year to represent, from 1 (January) to 12 (December)\n- day: the day-of-month to represent, from 1 to 31 and must be valid for the\n year and month\n- hour: the hour-of-day to represent, from 0 to 23\n- minute: the minute-of-hour to represent, from 0 to 59\n- second: the second-of-minute to represent, from 0 to 59\n- millisecond: the millisecond-of-second to represent, from 0 to 999.\n- microsecond: the microsecond-of-second to represent, from 0 to 999,999.\n- nanosecond: The nano-of-second to represent, from 0 to 999,999,999.\n- zone: the timezone\n\nReturns a `Time_Error` if the provided time cannot be represented.\n\n> Example\n Create a new zoned date time at Unix epoch.\n\n     from Standard.Base import Date_Time, Time_Zone\n\n     example_new = Date_Time.new 1970 (zone = Time_Zone.utc)\n\n> Example\n Get the 5 August 1986 at midnight.\n\n     from Standard.Base import Date_Time, Time_Zone\n\n     example_new = Date_Time.new 1986 8 5",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "parse",
+    "arguments": [
+      {
+        "name": "text",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "format",
+        "reprType": "Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Date_Time_Formatter.default_enso_zoned_date_time",
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ALIAS time from text\nGROUP Conversions\n\nObtains an instance of `Time` from a text such as\n\"2007-12-03T10:15:30+01:00 Europe/Paris\".\n\nThis method will return a `Time_Error` if the provided time cannot be\nparsed.\n\nArguments:\n- text: The text representing the time to be parsed.\n- format: A pattern describing how to parse the text,\n or a `Date_Time_Formatter`.\n\n? Pattern Syntax\n If the pattern is provided as `Text`, it is parsed using the format\n described below. See `Date_Time_Formatter` for more options.\n - y: Year. The number of pattern letters determines the minimum number of\n   digits.\n   - y: The year using any number of digits.\n   - yy: The year, using at most two digits. The default range is\n     1950-2049, but this can be changed by including the end year in\n     braces e.g. `yy{2099}`.\n   - yyyy: The year, using exactly four digits.\n - M: Month of year. The number of pattern letters determines the format:\n   - M: Any number (1-12).\n   - MM: Month number with zero padding required (01-12).\n   - MMM: Short name of the month (Jan-Dec).\n   - MMMM: Full name of the month (January-December).\n   The month names depend on the selected locale.\n - d: Day. The number of pattern letters determines the format:\n   - d: Any number (1-31).\n   - dd: Day number with zero padding required (01-31).\n   - ddd: Short name of the day of week (Mon-Sun).\n   - dddd: Full name of the day of week (Monday-Sunday).\n   The weekday names depend on the selected locale.\n   Both day of week and day of month may be included in a single pattern -\n   in such case the day of week is used as a sanity check.\n - Q: Quarter of year.\n   If only year and quarter are provided in the pattern, when parsing a\n   date, the result will be the first day of that quarter.\n - H: 24h hour of day (0-23).\n - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate\n   between AM and PM.\n - m: Minute of hour.\n - s: Second of minute.\n - f: Fractional part of the second. The number of pattern letters\n   determines the number of digits. If one letter is used, any number of\n   digits will be accepted.\n - a: AM/PM marker.\n - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,\n   -08:30), otherwise - Time zone name (e.g. Central European Time, CET).\n - Z: Zone offset.\n   - Z, ZZ, ZZZ: A short offset form (+HHmm).\n     No offset is indicated by \"+0000\". This can be customized by setting\n     an alternative no offset string in curly braces, e.g. `zz{Z}`.\n   - ZZZZ: Localized offset (e.g. GMT-08:00).\n   - ZZZZZ: A full offset form (+HH:mm:ss).\n     No offset is indicated by \"Z\". This can be customized as above, e.g.\n     `ZZZZZ{0}`.\n\n? Default Date_Time Format\n Unless you provide a custom format, the text must represent a valid\n date-time as defined by the ISO-8601 format (see https://en.wikipedia.org/wiki/ISO_8601).\n If a time zone is present, it must be in the ISO-8601 Extended\n Date/Time Format (EDTF) (see https://en.wikipedia.org/wiki/ISO_8601#EDTF).\n The time zone format consists of:\n\n - The ISO offset date time.\n - If the zone ID is not available or is a zone offset then the format is\n   complete.\n - An open square bracket '['.\n - The zone ID. This is not part of the ISO-8601 standard. Parsing is case\n   sensitive.\n - A close square bracket ']'.\n\n> Example\n Parse UTC time.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12Z\"\n\n> Example\n Parse UTC-04:00 time.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12-04:00\"\n\n> Example\n Parse UTC-04:00 time specifying New York timezone.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12-04:00[America/New_York]\"\n\n> Example\n Parse UTC-04:00 time with nanoseconds.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12.177528-04:00\"\n\n> Example\n Recover from the parse error.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01\" . catch Time_Error (_->Date_Time.now)\n\n> Example\n Parse \"2020-05-06 04:30:20\" as Date_Time\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-05-06 04:30:20\" \"yyyy-MM-dd HH:mm:ss\"\n\n> Example\n Parse \"06 of May 2020 at 04:30AM\" as Date_Tme\n\n     from Standard.Base import Date_Time\n\n     example_parse =\n        Date_Time.parse \"06 of May 2020 at 04:30AM\" \"dd 'of' MMMM yyyy 'at' hh:mma\"",
+    "annotations": ["format"]
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "year",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the year portion of the time.\n\n> Example\n Get the current year.\n\n     from Standard.Base import Date_Time\n\n     example_year = Date_Time.now.year",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "month",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the month portion of the time as a number from 1 to 12.\n\n> Example\n Get the current month.\n\n     from Standard.Base import Date_Time\n\n     example_month = Date_Time.now.month",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "day",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the day portion of the time.\n\n> Example\n Get the current day.\n\n     from Standard.Base import Date_Time\n\n     example_day = Date_Time.now.day",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "hour",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the hour portion of the time.\n\n> Example\n Get the current hour.\n\n     from Standard.Base import Date_Time\n\n     example_hour = Date_Time.now.hour",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "minute",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the minute portion of the time.\n\n> Example\n Get the current minute.\n\n     from Standard.Base import Date_Time\n\n     example_minute = Date_Time.now.minute",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "second",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the second portion of the time.\n\n> Example\n Get the current second.\n\n     from Standard.Base import Date_Time\n\n     example_second = Date_Time.now.second",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "millisecond",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the millisecond portion of the time.\n\n> Example\n Get the current millisecond.\n\n     from Standard.Base import Date_Time\n\n     example_millisecond = Date_Time.now.millisecond",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "microsecond",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the microsecond portion of the time.\n\n> Example\n Get the current microsecond.\n\n     from Standard.Base import Date_Time\n\n     example_microsecond = Date_Time.now.microsecond",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "nanosecond",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "include_milliseconds",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "False",
+        "tagValues": [
+          "Standard.Base.Data.Boolean.Boolean.True",
+          "Standard.Base.Data.Boolean.Boolean.False"
+        ]
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nGet the nanosecond portion of the time.\n\nArguments:\n- include_milliseconds: Specifies if the whole fractional part of the\n second should be returned as nanoseconds. Defaults to `False`, meaning\n it will only return the nanosecond part in the range 0-999.\n\n> Example\n Get the current nanosecond.\n\n     from Standard.Base import Date_Time\n\n     example_nanosecond = Date_Time.now.nanosecond",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "zone",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Time_Zone.Time_Zone",
+    "isStatic": false,
+    "documentation": " GROUP DateTime\nGet the timezone for the time.\n\n> Example\n Get the current timezone.\n\n     from Standard.Base import Date_Time\n\n     example_zone = Date_Time.now.zone",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "to_unix_epoch_seconds",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " Return the number of seconds from the Unix epoch start (1.1.1970)\n\nIf this Date_Time is before the epoch start, returns a negative number.\n\n> Example\n Get the current number of seconds from the Unix epoch.\n\n     from Standard.Base import Date_Time\n\n     example_epoch = Date_Time.now.to_unix_epoch_seconds",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "to_unix_epoch_milliseconds",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " Return the number of milliseconds from the Unix epoch start.\n\nIf this Date_Time is before an epoch start, returns a negative number.\n\n> Example\n Get the current number of milliseconds from the Enso epoch.\n\n     from Standard.Base import Date_Time\n\n     example_epoch = Date_Time.now.to_unix_epoch_milliseconds",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "to_enso_epoch_seconds",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " Return the number of seconds from the Enso epoch start.\n\nSee `Date_Time.enso_epoch_start`.",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "to_enso_epoch_milliseconds",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " Return the number of milliseconds from the Enso epoch start.\n\nSee `Date_Time.enso_epoch_start`.",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "time_of_day",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day",
+    "isStatic": false,
+    "documentation": " GROUP DateTime\nConvert this point in time to time of day, discarding the time zone\ninformation.\n\n> Example\n Convert the current time to a time of day.\n\n     from Standard.Base import Date_Time\n\n     example_time_of_day = Date_Time.now.time_of_day",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "week_of_year",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "locale",
+        "reprType": "Standard.Base.Data.Locale.Locale | Standard.Base.Nothing.Nothing",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Nothing",
+        "tagValues": ["Standard.Base.Nothing.Nothing"]
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " Returns the number of week of year this date falls into.\n\nProduces a warning for a Date that is before epoch start.\n\nArguments:\n- locale: the locale used to define the notion of weeks of year.\n If no locale is provided, then the ISO 8601 week of year is used.\n\n! Locale Dependency\n Note that this operation is locale-specific. It varies both by the\n local definition of the first day of week and the definition of the\n first week of year. For example, in the US, the first day of the week\n is Sunday and week 1 is the week containing January 1. In the UK on the\n other hand, the first day of the week is Monday, and week 1 is the week\n containing the first Thursday of the year. Therefore it is important to\n properly specify the `locale` argument.",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "is_leap_year",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Boolean.Boolean",
+    "isStatic": false,
+    "documentation": " GROUP DateTime\nReturns if the date is in a leap year.\n\nProduces a warning for a Date that is before epoch start.",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "length_of_year",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP DateTime\nReturns the number of days in the year represented by this date.\n\nProduces a warning for a Date that is before epoch start.",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "century",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " Returns the century of the date.",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "quarter",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP Metadata\nReturns the quarter of the year the date falls into.",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "length_of_month",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " GROUP DateTime\nReturns the number of days in the month represented by this date.\n\nProduces a warning for a Date that is before epoch start.",
+    "annotations": []
+  }
+]

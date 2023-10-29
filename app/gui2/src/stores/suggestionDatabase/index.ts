@@ -103,7 +103,7 @@ class Synchronizer {
         }
       })
     })
-    lsRpc.once('executionContext/executionComplete', async () => {
+    this.queue.pushTask(async ({ currentVersion }) => {
       const groups = await lsRpc.getComponentGroups()
       this.groups.value = groups.componentGroups.map(
         (group): Group => ({
@@ -112,6 +112,7 @@ class Synchronizer {
           project: group.library as QualifiedName,
         }),
       )
+      return { currentVersion }
     })
   }
 }
