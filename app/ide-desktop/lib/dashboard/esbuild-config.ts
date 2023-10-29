@@ -97,6 +97,7 @@ export function bundlerOptions(args: Arguments) {
             /* eslint-disable @typescript-eslint/naming-convention */
             // The `file` loader copies the file, and replaces the import with the path to the file.
             '.png': 'file',
+            '.jpg': 'file',
             /* eslint-enable @typescript-eslint/naming-convention */
         },
         plugins: [
