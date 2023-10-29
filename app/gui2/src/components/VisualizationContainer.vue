@@ -134,7 +134,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             />
           </div>
         </div>
-        <div class="toolbar">
+        <div v-if="$slots.toolbar" class="toolbar">
           <slot name="toolbar"></slot>
         </div>
       </div>

@@ -153,13 +153,11 @@ const groupColors = computed(() => {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="console.log('\'execute\' button clicked.')"
     />
-    <div ref="codeEditorArea">
-      <Suspense>
-        <Transition>
-          <CodeEditor v-if="showCodeEditor" />
-        </Transition>
+    <Transition>
+      <Suspense ref="codeEditorArea">
+        <CodeEditor v-if="showCodeEditor" />
       </Suspense>
-    </div>
+    </Transition>
     <SelectionBrush
       v-if="scaledMousePos"
       :position="scaledMousePos"

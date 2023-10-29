@@ -29,6 +29,10 @@
     "generate-icon-metadata": "node scripts/generateIcons.js"
   },
   "dependencies": {
+    "@ag-grid-community/client-side-row-model": "^30.2.0",
+    "@ag-grid-community/core": "^30.2.0",
+    "@ag-grid-community/styles": "^30.2.0",
+    "@ag-grid-enterprise/core": "^30.2.0",
     "@babel/parser": "^7.22.16",
     "@fast-check/vitest": "^0.0.8",
     "@lezer/common": "^1.1.0",
@@ -84,8 +88,6 @@
     "@vue/eslint-config-typescript": "^12.0.0",
     "@vue/test-utils": "^2.4.1",
     "@vue/tsconfig": "^0.4.0",
-    "ag-grid-community": "^30.1.0",
-    "ag-grid-enterprise": "^30.1.0",
     "change-case": "^4.1.2",
     "d3": "^7.4.0",
     "esbuild": "^0.19.3",
