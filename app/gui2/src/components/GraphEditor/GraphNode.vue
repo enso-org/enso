@@ -464,8 +464,8 @@ function hoverExpr(id: ExprId | undefined) {
 .outputPortHoverArea {
   x: calc(0px - var(--output-port-width) / 2);
   y: calc(0px - var(--output-port-width) / 2);
-  width: calc(100% + var(--output-port-width));
-  height: calc(100% + var(--output-port-width));
+  width: calc(var(--node-width) + var(--output-port-width));
+  height: calc(var(--node-height) + var(--output-port-width));
   rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
 
   fill: none;
@@ -499,8 +499,8 @@ function hoverExpr(id: ExprId | undefined) {
 }
 
 .bgFill {
-  width: 100%;
-  height: 100%;
+  width: var(--node-width);
+  height: var(--node-height);
   rx: var(--node-border-radius);
 
   fill: var(--node-color-primary);

@@ -118,7 +118,7 @@ function hover(part: 'tree' | 'token', isHovered: boolean) {
     v-else
     ref="rootNode"
     :class="['Tree', spanClass]"
-    :data-span-start="props.ast.span()[0] - nodeSpanStart"
+    :data-span-start="props.ast.span()[0] - nodeSpanStart - whitespace.length"
     >{{ whitespace
     }}<template v-for="child in children" :key="child.astId">
       <NodeTree
