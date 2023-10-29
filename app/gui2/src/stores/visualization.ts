@@ -157,10 +157,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return ret
   }
 
-  function register(module: VisualizationModule) {
-    console.log(`registering visualization: name=${module.name}, inputType=${module.inputType}`)
-  }
-
   function postMessage<T>(worker: Worker, message: T) {
     worker.postMessage(message)
   }

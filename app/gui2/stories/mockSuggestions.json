@@ -24,9 +24,7 @@
         "isSuspended": false,
         "hasDefault": true,
         "defaultValue": "Auto_Detect",
-        "tagValues": [
-          "Standard.Base.System.File_Format.File_Format"
-        ]
+        "tagValues": ["Standard.Base.System.File_Format.File_Format"]
       },
       {
         "name": "on_problems",
@@ -45,9 +43,7 @@
     "returnType": "Standard.Base.Any.Any",
     "isStatic": true,
     "documentation": " ALIAS load, open\nGROUP Input\nReads a file into Enso.\nUses the specified file format to parse the file into an Enso type. If not\nspecified will use the file's extension to determine the file format.\n\nArguments:\n- path: The path to the file to read. If the path is a URI, then the data\n will be fetched if from a supported protocol.\n- format: A `File_Format` object used to read file into memory.\n If `Auto_Detect` is specified; the provided file determines the specific\n type and configures it appropriately. If there is no matching type then\n a `File_Error.Unsupported_Type` error is returned.\n You can use `File_Format.all` to get a list of currently loaded\n formats.\n- on_problems: Specifies the behavior when a problem occurs during the\n function.\n By default, a warning is issued, but the operation proceeds.\n If set to `Report_Error`, the operation fails with a dataflow error.\n If set to `Ignore`, the operation proceeds without errors or warnings.\n\n> Example\n Read the first sheet of an XLSX from disk and convert it into a table.\n\n     from Standard.Table import all\n     import Standard.Examples\n\n     example_xlsx_to_table = Data.read Examples.xlsx\n\n> Example\n Read the sheet named `Dates` from an XLS and convert it to a table.\n\n     from Standard.Table import all\n     from Standard.Table import Excel, Worksheet\n     import Standard.Examples\n\n     example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))",
-    "annotations": [
-      "format"
-    ]
+    "annotations": ["format"]
   },
   {
     "type": "method",
@@ -87,9 +83,7 @@
     "returnType": "Standard.Base.Data.Text.Text",
     "isStatic": true,
     "documentation": " ALIAS load text, open text\nGROUP Input\nOpen and read the file at the provided `path`.\n\nArguments:\n- path: The path of the file to open and read the contents of. It will\n accept a textual path or a file.\n- encoding: The text encoding to decode the file with. Defaults to UTF-8.\n- on_problems: Specifies the behavior when a problem occurs during the\n function.\n By default, a warning is issued, but the operation proceeds.\n If set to `Report_Error`, the operation fails with a dataflow error.\n If set to `Ignore`, the operation proceeds without errors or warnings.\n\n> Example\n Read the `data.csv` file in the project directory's `data` directory. You\n will need to create the file `data.csv` manually in that directory.\n\n     import Standard.Base.Data\n     import Standard.Examples\n\n     example_read = Data.read_text Examples.csv_path",
-    "annotations": [
-      "encoding"
-    ]
+    "annotations": ["encoding"]
   },
   {
     "type": "method",
@@ -588,9 +582,7 @@
     "returnType": "Standard.Base.Any.Any",
     "isStatic": true,
     "documentation": " ALIAS time from text\nGROUP Conversions\n\nObtains an instance of `Time` from a text such as\n\"2007-12-03T10:15:30+01:00 Europe/Paris\".\n\nThis method will return a `Time_Error` if the provided time cannot be\nparsed.\n\nArguments:\n- text: The text representing the time to be parsed.\n- format: A pattern describing how to parse the text,\n or a `Date_Time_Formatter`.\n\n? Pattern Syntax\n If the pattern is provided as `Text`, it is parsed using the format\n described below. See `Date_Time_Formatter` for more options.\n - y: Year. The number of pattern letters determines the minimum number of\n   digits.\n   - y: The year using any number of digits.\n   - yy: The year, using at most two digits. The default range is\n     1950-2049, but this can be changed by including the end year in\n     braces e.g. `yy{2099}`.\n   - yyyy: The year, using exactly four digits.\n - M: Month of year. The number of pattern letters determines the format:\n   - M: Any number (1-12).\n   - MM: Month number with zero padding required (01-12).\n   - MMM: Short name of the month (Jan-Dec).\n   - MMMM: Full name of the month (January-December).\n   The month names depend on the selected locale.\n - d: Day. The number of pattern letters determines the format:\n   - d: Any number (1-31).\n   - dd: Day number with zero padding required (01-31).\n   - ddd: Short name of the day of week (Mon-Sun).\n   - dddd: Full name of the day of week (Monday-Sunday).\n   The weekday names depend on the selected locale.\n   Both day of week and day of month may be included in a single pattern -\n   in such case the day of week is used as a sanity check.\n - Q: Quarter of year.\n   If only year and quarter are provided in the pattern, when parsing a\n   date, the result will be the first day of that quarter.\n - H: 24h hour of day (0-23).\n - h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate\n   between AM and PM.\n - m: Minute of hour.\n - s: Second of minute.\n - f: Fractional part of the second. The number of pattern letters\n   determines the number of digits. If one letter is used, any number of\n   digits will be accepted.\n - a: AM/PM marker.\n - T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,\n   -08:30), otherwise - Time zone name (e.g. Central European Time, CET).\n - Z: Zone offset.\n   - Z, ZZ, ZZZ: A short offset form (+HHmm).\n     No offset is indicated by \"+0000\". This can be customized by setting\n     an alternative no offset string in curly braces, e.g. `zz{Z}`.\n   - ZZZZ: Localized offset (e.g. GMT-08:00).\n   - ZZZZZ: A full offset form (+HH:mm:ss).\n     No offset is indicated by \"Z\". This can be customized as above, e.g.\n     `ZZZZZ{0}`.\n\n? Default Date_Time Format\n Unless you provide a custom format, the text must represent a valid\n date-time as defined by the ISO-8601 format (see https://en.wikipedia.org/wiki/ISO_8601).\n If a time zone is present, it must be in the ISO-8601 Extended\n Date/Time Format (EDTF) (see https://en.wikipedia.org/wiki/ISO_8601#EDTF).\n The time zone format consists of:\n\n - The ISO offset date time.\n - If the zone ID is not available or is a zone offset then the format is\n   complete.\n - An open square bracket '['.\n - The zone ID. This is not part of the ISO-8601 standard. Parsing is case\n   sensitive.\n - A close square bracket ']'.\n\n> Example\n Parse UTC time.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12Z\"\n\n> Example\n Parse UTC-04:00 time.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12-04:00\"\n\n> Example\n Parse UTC-04:00 time specifying New York timezone.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12-04:00[America/New_York]\"\n\n> Example\n Parse UTC-04:00 time with nanoseconds.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12.177528-04:00\"\n\n> Example\n Recover from the parse error.\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01\" . catch Time_Error (_->Date_Time.now)\n\n> Example\n Parse \"2020-05-06 04:30:20\" as Date_Time\n\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-05-06 04:30:20\" \"yyyy-MM-dd HH:mm:ss\"\n\n> Example\n Parse \"06 of May 2020 at 04:30AM\" as Date_Tme\n\n     from Standard.Base import Date_Time\n\n     example_parse =\n        Date_Time.parse \"06 of May 2020 at 04:30AM\" \"dd 'of' MMMM yyyy 'at' hh:mma\"",
-    "annotations": [
-      "format"
-    ]
+    "annotations": ["format"]
   },
   {
     "type": "method",
@@ -922,9 +914,7 @@
         "isSuspended": false,
         "hasDefault": true,
         "defaultValue": "Nothing",
-        "tagValues": [
-          "Standard.Base.Nothing.Nothing"
-        ]
+        "tagValues": ["Standard.Base.Nothing.Nothing"]
       }
     ],
     "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
