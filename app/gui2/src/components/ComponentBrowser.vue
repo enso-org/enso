@@ -244,6 +244,20 @@ function updateScroll() {
 
 const docsVisible = ref(true)
 
+const displayedDocs: Ref<Opt<SuggestionId>> = ref(null)
+const docEntry = computed({
+  get() {
+    return displayedDocs.value
+  },
+  set(value) {
+    displayedDocs.value = value
+  },
+})
+
+watch(selectedSuggestionId, (id) => {
+  docEntry.value = id
+})
+
 // === Accepting Entry ===
 
 function applySuggestion(component: Opt<Component> = null): SuggestionEntry | null {
