@@ -6,6 +6,7 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
+import type { Icon } from '@/util/iconName'
 import { isSome } from '@/util/opt'
 import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
 import type { Range } from '@/util/range'
@@ -18,7 +19,7 @@ interface ComponentLabel {
 
 export interface Component extends ComponentLabel {
   suggestionId: SuggestionId
-  icon: string
+  icon: Icon
   group?: number | undefined
 }
 

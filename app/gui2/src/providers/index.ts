@@ -1,4 +1,4 @@
-import { inject, provide, type InjectionKey } from 'vue'
+import { inject, provide, type App, type InjectionKey } from 'vue'
 
 const MISSING = Symbol('MISSING')
 
@@ -43,6 +43,24 @@ export function createContextStore<F extends (...args: any[]) => any>(name: stri
   function provideFn(...args: Parameters<F>): ReturnType<F> {
     const constructed = factory(...args)
     provide(provideKey, constructed)
+    return constructed
+  }
+
+  /**
+   * An method allowing to directly provide a store value to any app or component context, possibly
+   * skipping invoking the factory function. **Do not use in application code.**
+   */
+  provideFn._mock = function (
+    valueOrArgs: Parameters<F> | ReturnType<F>,
+    app?: App,
+  ): ReturnType<F> {
+    // Right now this function assumes that an array always represents the arguments to the factory.
+    // If we ever need to mock an array as the context value, we'll worry about it then.
+    const constructed: ReturnType<F> = Array.isArray(valueOrArgs)
+      ? factory(...valueOrArgs)
+      : valueOrArgs
+    if (app != null) app.provide(provideKey, constructed)
+    else provide(provideKey, constructed)
     return constructed
   }
 

@@ -20,12 +20,13 @@ const exprRect = shallowRef<Rect>()
 
 const spanClass = computed(() => Ast.Tree.typeNames[props.ast.inner.type])
 const children = computed(() => [...props.ast.children()])
-const whitespace = computed(() => ' '.repeat(props.ast.inner.whitespaceLengthInCodeParsed))
+const isOnStart = computed(() => props.nodeSpanStart === props.ast.span()[0])
+const whitespace = computed(() =>
+  isOnStart.value ? '' : ' '.repeat(props.ast.inner.whitespaceLengthInCodeParsed),
+)
 
 const singularToken = computed(() =>
-  props.ast.inner.whitespaceLengthInCodeParsed === 0 &&
-  children.value.length === 1 &&
-  children.value[0]!.isToken()
+  whitespace.value.length === 0 && children.value.length === 1 && children.value[0]!.isToken()
     ? children.value[0]
     : null,
 )

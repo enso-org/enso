@@ -2,11 +2,16 @@ import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider } from '@/util/crdt'
-import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
+import {
+  AsyncQueue,
+  createRpcTransport,
+  createWebsocketClient,
+  rpcWithRetries as lsRpcWithRetries,
+} from '@/util/net'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
-import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
+import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
 import * as object from 'lib0/object'
@@ -26,7 +31,6 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { WebsocketClient } from 'shared/websocket'
 import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
@@ -68,7 +72,7 @@ async function initializeLsRpcConnection(
   connection: LanguageServer
   contentRoots: ContentRoot[]
 }> {
-  const transport = new WebSocketTransport(url)
+  const transport = createRpcTransport(url)
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
@@ -86,7 +90,7 @@ async function initializeLsRpcConnection(
 }
 
 async function initializeDataConnection(clientId: Uuid, url: string) {
-  const client = new WebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
+  const client = createWebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
   const connection = new DataServer(client)
   await connection.initialize(clientId)
   return connection
@@ -434,7 +438,7 @@ export const useProjectStore = defineStore('project', () => {
   const namespace = computed(() => config.value.engine?.namespace)
   const fullName = computed(() => {
     const ns = namespace.value
-    if (ns == null) {
+    if (import.meta.env.PROD && ns == null) {
       console.warn(
         'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
       )
@@ -458,6 +462,11 @@ export const useProjectStore = defineStore('project', () => {
   })
 
   watchEffect((onCleanup) => {
+    if (lsUrls.rpcUrl.startsWith('mock://')) {
+      doc.load()
+      doc.emit('load', [])
+      return
+    }
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
     const socketUrl = new URL(location.origin)
@@ -546,6 +555,7 @@ export const useProjectStore = defineStore('project', () => {
     executionContext,
     module,
     modulePath,
+    projectModel,
     contentRoots,
     awareness,
     computedValueRegistry,
