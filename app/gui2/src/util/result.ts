@@ -55,6 +55,9 @@ export class ResultError<E = string> {
 
 export function withContext<T, E>(context: () => string, f: () => Result<T, E>): Result<T, E> {
   const result = f()
+  if (result == null) {
+    throw new Error('withContext: f() returned null or undefined')
+  }
   if (!result.ok) result.error.context.splice(0, 0, context)
   return result
 }

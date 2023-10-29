@@ -3,18 +3,10 @@ import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import {
-  DEFAULT_VISUALIZATION_CONFIGURATION,
-  DEFAULT_VISUALIZATION_IDENTIFIER,
-  useVisualizationStore,
-  type Visualization,
-} from '@/stores/visualization'
 import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
@@ -24,7 +16,8 @@ import { Rect } from '@/util/rect'
 import { unwrap } from '@/util/result'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
+import GraphVisualization from './GraphVisualization.vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -46,7 +39,6 @@ const emit = defineEmits<{
   outputPortAction: []
 }>()
 
-const visualizationStore = useVisualizationStore()
 const nodeSelection = injectGraphSelection(true)
 
 const nodeId = computed(() => props.node.rootSpan.astId)
@@ -59,23 +51,12 @@ const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? fal
 watch(isSelected, (selected) => {
   menuVisible.value = menuVisible.value && selected
 })
-const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
-const visualization = shallowRef<Visualization>()
-
 const projectStore = useProjectStore()
-
-const visualizationData = projectStore.useVisualizationData(() => {
-  if (!isVisualizationVisible.value || !visPreprocessor.value) return
-  return {
-    ...visPreprocessor.value,
-    expressionId: props.node.rootSpan.astId,
-  }
-})
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -295,63 +276,6 @@ onUpdated(() => {
     }
   }
 })
-
-function updatePreprocessor(
-  visualizationModule: string,
-  expression: string,
-  ...positionalArgumentsExpressions: string[]
-) {
-  visPreprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
-}
-
-function switchToDefaultPreprocessor() {
-  visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
-}
-
-provideVisualizationConfig({
-  fullscreen: false,
-  width: null,
-  height: 150,
-  get types() {
-    return visualizationStore.types(expressionInfo.value?.typename)
-  },
-  get isCircularMenuVisible() {
-    return menuVisible.value
-  },
-  get nodeSize() {
-    return nodeSize.value
-  },
-  get currentType() {
-    return props.node.vis ?? DEFAULT_VISUALIZATION_IDENTIFIER
-  },
-  hide: () => emit('setVisualizationVisible', false),
-  updateType: (id) => emit('setVisualizationId', id),
-})
-
-watchEffect(async () => {
-  if (props.node.vis == null) {
-    return
-  }
-
-  visualization.value = undefined
-  const module = await visualizationStore.get(props.node.vis)
-  if (module) {
-    if (module.defaultPreprocessor != null) {
-      updatePreprocessor(...module.defaultPreprocessor)
-    } else {
-      switchToDefaultPreprocessor()
-    }
-    visualization.value = module.default
-  }
-})
-
-const effectiveVisualization = computed(() => {
-  if (!visualization.value || visualizationData.value == null) {
-    return LoadingVisualization
-  }
-  return visualization.value
-})
-
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
@@ -468,15 +392,19 @@ function hoverExpr(id: ExprId | undefined) {
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
-    <component
-      :is="effectiveVisualization"
-      v-if="isVisualizationVisible && effectiveVisualization != null"
-      :data="visualizationData"
-      @update:preprocessor="updatePreprocessor"
+    <GraphVisualization
+      v-if="isVisualizationVisible"
+      :nodeSize="nodeSize"
+      :isCircularMenuVisible="menuVisible"
+      :currentType="props.node.vis"
+      :expressionId="props.node.rootSpan.astId"
+      :typename="expressionInfo?.typename"
+      @setVisualizationId="emit('setVisualizationId', $event)"
+      @setVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
     <div class="node" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <span
+      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
+      ><span
         ref="editableRootNode"
         class="editable"
         contenteditable

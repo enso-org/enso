@@ -127,10 +127,7 @@ const visibleComponents = computed(() => {
   if (scroller.value == null) return []
   const scrollPosition = animatedScrollPosition.value
   const topmostVisible = componentAtY(scrollPosition)
-  const bottommostVisible = Math.max(
-    0,
-    componentAtY(animatedScrollPosition.value + scrollerSize.value.y),
-  )
+  const bottommostVisible = Math.max(0, componentAtY(scrollPosition + scrollerSize.value.y))
   return components.value.slice(bottommostVisible, topmostVisible + 1).map((component, i) => {
     return { component, index: i + bottommostVisible }
   })

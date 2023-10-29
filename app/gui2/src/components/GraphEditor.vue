@@ -215,13 +215,11 @@ watch(componentBrowserVisible, (visible) => {
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="onPlayButtonPress()"
     />
-    <div ref="codeEditorArea">
-      <Suspense>
-        <Transition>
-          <CodeEditor v-if="showCodeEditor" />
-        </Transition>
+    <Transition>
+      <Suspense ref="codeEditorArea">
+        <CodeEditor v-if="showCodeEditor" />
       </Suspense>
-    </div>
+    </Transition>
     <SelectionBrush
       v-if="scaledMousePos"
       :position="scaledMousePos"
