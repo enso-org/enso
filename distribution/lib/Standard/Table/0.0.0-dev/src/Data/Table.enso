@@ -54,7 +54,6 @@ import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Widget_Helpers
 
-from project.Data.Blank_Selector import Blank_Selector
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
@@ -2015,7 +2014,7 @@ type Table
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     filter_blank_rows : Blank_Selector -> Boolean -> Table
-    filter_blank_rows self when=Any_Cell_Blank treat_nans_as_blank=False =
+    filter_blank_rows self when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
     ## ALIAS count
