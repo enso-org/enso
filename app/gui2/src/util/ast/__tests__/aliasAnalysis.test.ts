@@ -25,7 +25,7 @@
  * All unannotated identifiers are assumed to preexist in the environment (captured from an external scope or imports).
  */
 
-import {assert, assertDefined, assertEqual, assertLength, assertNotEqual} from '@/util/assert'
+import { assert, assertDefined, assertEqual, assertLength, assertNotEqual } from '@/util/assert'
 import { ObjectKeyedMap, ObjectKeyedSet } from '@/util/containers'
 import type { ContentRange } from '../../../../shared/yjsModel'
 import { AliasAnalyzer } from '../aliasAnalysis'

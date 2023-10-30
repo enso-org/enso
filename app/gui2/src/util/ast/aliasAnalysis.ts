@@ -1,16 +1,16 @@
-import {TextElement, Token, Tree} from '@/generated/ast'
-import {assert} from '@/util/assert'
+import { TextElement, Token, Tree } from '@/generated/ast'
+import { assert } from '@/util/assert'
 import {
   astPrettyPrintType,
   childrenAstNodes,
-  parsedTreeOrTokenRange,
   parseEnso,
+  parsedTreeOrTokenRange,
   readAstOrTokenSpan,
   readTokenSpan,
 } from '@/util/ast'
 
-import {NonEmptyStack, ObjectKeyedMap, ObjectKeyedSet} from '@/util/containers'
-import type {ContentRange} from '../../../shared/yjsModel'
+import { NonEmptyStack, ObjectKeyedMap, ObjectKeyedSet } from '@/util/containers'
+import type { ContentRange } from '../../../shared/yjsModel'
 
 /** Whether the debug logs of the alias analyzer should be enabled.
  *
@@ -183,19 +183,19 @@ export class AliasAnalyzer {
       })
     } else if (node.type === Tree.Type.Ident) {
       this.processToken(node.token)
-    } else if(node.type === Tree.Type.TextLiteral) {
-      for(const element of node.elements) {
-        if(element.type === TextElement.Type.Splice) {
-            this.processNode(element.expression)
+    } else if (node.type === Tree.Type.TextLiteral) {
+      for (const element of node.elements) {
+        if (element.type === TextElement.Type.Splice) {
+          this.processNode(element.expression)
         }
       }
-    } else if(node.type === Tree.Type.NamedApp) {
-        this.processNode(node.func)
-        // Intentionally omit name, as it is not a variable usage.
-        this.processNode(node.arg)
+    } else if (node.type === Tree.Type.NamedApp) {
+      this.processNode(node.func)
+      // Intentionally omit name, as it is not a variable usage.
+      this.processNode(node.arg)
     } else if (node.type === Tree.Type.DefaultApp) {
-        this.processNode(node.func)
-        // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
+      this.processNode(node.func)
+      // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
     } else if (
       node.type === Tree.Type.OprApp &&
       node.opr.ok &&
@@ -231,12 +231,12 @@ export class AliasAnalyzer {
         this.processNode(node.name)
       })
       this.withNewScopeOver(node, () => {
-          for (const argument of node.args) {
-            this.withContext(Context.Pattern, () => {
-              this.processNode(argument.pattern)
-            })
-            this.processNode(argument.default?.expression)
-          }
+        for (const argument of node.args) {
+          this.withContext(Context.Pattern, () => {
+            this.processNode(argument.pattern)
+          })
+          this.processNode(argument.default?.expression)
+        }
         this.processNode(node.body)
       })
     } else if (node.type === Tree.Type.CaseOf) {
