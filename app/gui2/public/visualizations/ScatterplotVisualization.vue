@@ -1,7 +1,7 @@
 <script lang="ts">
 import { defineKeybinds } from 'builtins'
 
-export const name = 'Scatterplot'
+export const name = 'Scatter Plot'
 export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
 const DEFAULT_LIMIT = 1024
 export const defaultPreprocessor = [

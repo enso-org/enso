@@ -1,12 +1,14 @@
 import * as vue from 'vue'
-import { computed, reactive, ref, type DefineComponent, type PropType } from 'vue'
+import { computed, reactive, type DefineComponent, type PropType } from 'vue'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
 import { assertNever } from '@/util/assert'
 import { rpcWithRetries } from '@/util/net'
+import type { Opt } from '@/util/opt'
 import { defineKeybinds } from '@/util/shortcuts'
+import builtinVisualizationMetadata from '@/util/visualizationMetadata.json'
 import type {
   AddImportNotification,
   AddRawImportNotification,
@@ -107,7 +109,7 @@ const builtinVisualizationImports: Record<string, () => Promise<VisualizationMod
 }
 
 const dynamicVisualizationPaths: Record<string, string> = {
-  Scatterplot: '/visualizations/ScatterplotVisualization.vue',
+  'Scatter Plot': '/visualizations/ScatterplotVisualization.vue',
   'Geo Map': '/visualizations/GeoMapVisualization.vue',
 }
 
@@ -128,16 +130,15 @@ export const useVisualizationStore = defineStore('visualization', () => {
     number,
     { resolve: (result: VisualizationModule) => void; reject: (error: Error) => void }
   >()
-  const allVisualizations = [
+  const allBuiltinVisualizations = [
     ...Object.keys(imports),
     ...Object.keys(paths),
   ].map<VisualizationIdentifier>((name) => ({
     module: { kind: 'Builtin' },
     name,
   }))
-  const visualizationsForType = reactive(new Map<string, readonly VisualizationIdentifier[]>())
-  const visualizationsForAny = ref<readonly VisualizationIdentifier[]>([])
-  let isTypesLookupInitialized = false
+  const visualizationsForType = reactive(new Map<string, Set<VisualizationIdentifier>>())
+  const typesForVisualization = reactive(new Map<string, ReadonlySet<string>>())
   const proj = useProjectStore()
   const ls = proj.lsRpcConnection
   const data = proj.dataConnection
@@ -145,53 +146,54 @@ export const useVisualizationStore = defineStore('visualization', () => {
     (roots) => roots.find((root) => root.type === 'Project') ?? null,
   )
 
-  Promise.all([
-    ...Object.values(builtinVisualizationImports).map((importer) => importer()),
-    ...Object.values(dynamicVisualizationPaths).map(compile),
-  ])
-    .then((modules) =>
-      Object.fromEntries(
-        modules.map((module) => [
-          module.name,
-          new Set(
-            module.inputType == null
-              ? ['Any']
-              : module.inputType.split('|').map((type) => type.trim()),
-          ),
-        ]),
-      ),
-    )
-    .then((moduleInputTypes) => {
-      const types = Object.values(moduleInputTypes).flatMap((set) => Array.from(set))
+  function getTypesFromUnion(inputType: Opt<string>) {
+    return new Set(inputType?.split('|').map((type) => type.trim()) ?? ['Any'])
+  }
+
+  function updateVisualizationTypes(
+    id: VisualizationIdentifier,
+    name: string,
+    inputType: Opt<string>,
+  ) {
+    const newTypes = getTypesFromUnion(inputType)
+    const types = typesForVisualization.get(name)
+    typesForVisualization.set(name, newTypes)
+    if (types) {
       for (const type of types) {
-        if (visualizationsForType.has(type)) {
-          continue
+        if (!newTypes.has(type)) {
+          // FIXME: this doesn't work because `id` is an object
+          visualizationsForType.get(type)?.delete(id)
         }
-        const matchingTypes = Object.entries(moduleInputTypes).flatMap<VisualizationIdentifier>(
-          ([name, inputTypes]) =>
-            inputTypes.has(type) || inputTypes.has('Any')
-              ? [
-                  {
-                    module: { kind: 'Builtin' },
-                    name,
-                  },
-                ]
-              : [],
-        )
-        if (type === 'Any') {
-          visualizationsForAny.value = matchingTypes
-        }
-        visualizationsForType.set(type, matchingTypes)
       }
-      isTypesLookupInitialized = true
-    })
+    } else {
+      for (const type of newTypes) {
+        let set = visualizationsForType.get(type)
+        if (!set) {
+          set = new Set()
+          visualizationsForType.set(type, set)
+        }
+        set.add(id)
+      }
+    }
+  }
+
+  for (const { name, inputType } of builtinVisualizationMetadata) {
+    if (name === 'Loading') continue
+    updateVisualizationTypes(
+      {
+        module: { kind: 'Builtin' },
+        name,
+      },
+      name,
+      inputType,
+    )
+  }
 
   function types(type: string | undefined) {
-    if (!isTypesLookupInitialized) return allVisualizations
     const ret =
       type === undefined
-        ? allVisualizations
-        : visualizationsForType.get(type) ?? visualizationsForAny.value
+        ? allBuiltinVisualizations
+        : [...(visualizationsForType.get(type) ?? []), ...(visualizationsForType.get('Any') ?? [])]
     return ret
   }
 

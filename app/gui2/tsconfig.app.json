@@ -4,6 +4,7 @@
     "env.d.ts",
     "src/**/*",
     "src/**/*.vue",
+    "src/**/*.json",
     "shared/**/*",
     "shared/**/*.vue",
     "public/**/*",
