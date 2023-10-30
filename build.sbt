@@ -352,7 +352,7 @@ val akkaURL                   = "com.typesafe.akka"
 val akkaVersion               = "2.6.20"
 val akkaHTTPVersion           = "10.2.10"
 val akkaMockSchedulerVersion  = "0.5.5"
-val logbackClassicVersion     = "1.3.7"
+val logbackClassicVersion     = JPMSUtils.logbackClassicVersion
 val logbackPkg = Seq(
   "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
   "ch.qos.logback" % "logback-core"    % logbackClassicVersion
@@ -480,7 +480,7 @@ val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
 val scalatestVersion        = "3.3.0-SNAP4"
 val shapelessVersion        = "2.3.10"
-val slf4jVersion            = "2.0.9"
+val slf4jVersion            = JPMSUtils.slf4jVersion
 val slickVersion            = "3.4.1"
 val sqliteVersion           = "3.42.0.0"
 val tikaVersion             = "2.4.1"
@@ -496,16 +496,6 @@ val httpComponentsVersion   = "4.4.1"
 // === Utility methods =====================================================
 // ============================================================================
 
-/** The list of modules that are included in the `component` directory in engine distribution.
-  * When invoking the `java` command, these modules need to be put on the module-path.
-  */
-val componentModules: Seq[ModuleID] =
-  GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-    "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-    "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-    "ch.qos.logback" % "logback-core"    % logbackClassicVersion
-  )
-
 lazy val componentModulesPaths =
   taskKey[Def.Classpath](
     "Gathers all component modules (Jar archives that should be put on module-path" +
@@ -516,47 +506,14 @@ lazy val componentModulesPaths =
   val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
   val fullCp    = (runnerCp ++ runtimeCp).distinct
   val log       = streams.value.log
-  filterModulesFromClasspath(
+  JPMSUtils.filterModulesFromClasspath(
     fullCp,
-    componentModules,
+    JPMSUtils.componentModules,
     log,
     shouldContainAll = true
   )
 }
 
-/** Filters modules by their IDs from the given classpath.
-  * @param cp The classpath to filter
-  * @param modules These modules are looked for in the class path
-  * @param shouldContainAll If true, the method will throw an exception if not all modules were found
-  *                         in the classpath.
-  * @return The classpath with only the provided modules searched by their IDs.
-  */
-def filterModulesFromClasspath(
-  cp: Def.Classpath,
-  modules: Seq[ModuleID],
-  log: sbt.util.Logger,
-  shouldContainAll: Boolean = false
-): Def.Classpath = {
-  def shouldFilterModule(module: ModuleID): Boolean = {
-    modules.exists(m =>
-      m.organization == module.organization &&
-      m.name == module.name &&
-      m.revision == module.revision
-    )
-  }
-  val ret = cp.filter(dep => {
-    val moduleID = dep.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-    shouldFilterModule(moduleID)
-  })
-  if (shouldContainAll) {
-    if (ret.size < modules.size) {
-      log.error("Not all modules from classpath were found")
-      log.error(s"Returned (${ret.size}): $ret")
-      log.error(s"Expected: (${modules.size}): $modules")
-    }
-  }
-  ret
-}
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -1592,7 +1549,7 @@ lazy val `runtime-with-instruments` =
               ),
               inConfigurations(Compile)
             ),
-            modulePath = componentModules
+            modulePath = JPMSUtils.componentModules
           )
         )
         .value,
@@ -1600,7 +1557,7 @@ lazy val `runtime-with-instruments` =
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
       assembly / assemblyExcludedJars := {
-        val pkgsToExclude = componentModules
+        val pkgsToExclude = JPMSUtils.componentModules
 
         val ourFullCp = (Runtime / fullClasspath).value
 
@@ -2764,7 +2721,7 @@ updateLibraryManifests := {
   val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
   val fullCp    = (runnerCp ++ runtimeCp).distinct
   val modulesOnModulePath =
-    filterModulesFromClasspath(fullCp, componentModules, log)
+    JPMSUtils.filterModulesFromClasspath(fullCp, JPMSUtils.componentModules, log)
       .map(_.data)
   val modulePath = modulesOnModulePath ++ Seq(file("runtime.jar"))
   val runnerJar  = (LocalProject("engine-runner") / assembly).value
