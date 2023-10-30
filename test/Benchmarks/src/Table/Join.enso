@@ -5,9 +5,9 @@ from Standard.Table import Table, Join_Condition
 
 from Standard.Test import Bench
 
-#from project.Config import extended_tests
+from project.Config import extended_tests
 
-options = Bench.options . set_warmup (Bench.phase_conf 2 4) . set_measure (Bench.phase_conf 2 5)
+options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 2 10)
 
 type Scenario
     Value table1 table2
@@ -80,13 +80,67 @@ create_scenario_mixed num_rows =
 
     Scenario.Value table1 table2
 
-type Data
-    Value ~equals ~equals_medium_groups ~equals_ignore_case ~between ~mixed
+## The 2d equality scenario matches rows based on 2 keys -
+   it matches corresponding points on a 2d grid.
 
-    create num_rows = Data.Value (create_scenario_equals num_rows) (create_scenario_equals_medium_groups num_rows) (create_scenario_equals_ignore_case num_rows) (create_scenario_between num_rows) (create_scenario_mixed num_rows)
+   This is used to verify that multi-key joins are efficient too.
+create_scenario_equals_2d num_rows =
+    n = num_rows.sqrt.ceil
+    pts = (0.up_to n).to_vector.flat_map x->
+        (0.up_to n).map y-> [x, y]
+
+    shuffled_pts = shuffle pts
+
+    table1 = Table.new [["x", shuffled_pts.map .first], ["y", shuffled_pts.map .second]]
+    table2 = Table.new [["x", pts.map .first], ["y", pts.map .second]]
+    Scenario.Value table1 table2
+
+## Similarly to the example with equality, this creates a 2d grid of points, but
+   they are matched using the Between condition.
+create_scenario_between_2d num_rows =
+    n = num_rows.sqrt.ceil
+    pts = (0.up_to n).to_vector.flat_map x->
+        (0.up_to n).map y-> [x, y]
+
+    shuffled_pts = shuffle pts
+    table1 = Table.new [["x", shuffled_pts.map .first], ["y", shuffled_pts.map .second]]
+
+    lows = pts.map p-> [p.first - 0.1, p.second - 0.1]
+    highs = pts.map p-> [p.first + 0.1, p.second + 0.1]
+
+    table2 = Table.new [["x_lows", lows.map .first], ["y_lows", lows.map .second], ["x_highs", highs.map .first], ["y_highs", highs.map .second]]
+    Scenario.Value table1 table2
+
+## This one creates a scenario with a 2d grid of points for the left table, but
+   the right table contains pairs of coordinates that denote belts of size 2 x n
+   on that grid.
+
+   Some of them will be horizontal and some vertical, to see how the order of
+   Between arguments affects performance.
+create_scenario_between_2d_belts num_rows =
+    n = num_rows.sqrt.ceil
+    pts = (0.up_to n).to_vector.flat_map x->
+        (0.up_to n).map y-> [x, y]
+
+    shuffled_pts = shuffle pts
+    table1 = Table.new [["x", shuffled_pts.map .first], ["y", shuffled_pts.map .second]]
+
+    horizontal_belts = Vector.new n x->
+        [x, x+1, 0, n, False]
+    vertical_belts = Vector.new n y->
+        [0, n, y, y+1, True]
+
+    table2 = Table.from_rows ["x_lows", "x_highs", "y_lows", "y_highs", "is_vertical"] (horizontal_belts + vertical_belts)
+    Scenario.Value table1 table2
+
+type Data
+    Value ~equals ~equals_medium_groups ~equals_ignore_case ~between ~mixed ~equals2d ~between2d ~between2d_belts
+
+    create num_rows =
+        Data.Value (create_scenario_equals num_rows) (create_scenario_equals_medium_groups num_rows) (create_scenario_equals_ignore_case num_rows) (create_scenario_between num_rows) (create_scenario_mixed num_rows) (create_scenario_equals_2d num_rows) (create_scenario_between_2d num_rows) (create_scenario_between_2d_belts num_rows)
 
 collect_benches = Bench.build builder->
-    num_rows = 20000
+    num_rows = 100000
     data = Data.create num_rows
 
     builder.group ("Join_" + num_rows.to_text) options group_builder->
@@ -114,5 +168,33 @@ collect_benches = Bench.build builder->
             r = scenario.table1.join scenario.table2 on=[Join_Condition.Equals "EQ", Join_Condition.Equals_Ignore_Case "case_insensitive", Join_Condition.Between "x" "lows" "highs"]
             expected_rows = data.mixed.table1.row_count
             assert (r.row_count == expected_rows)
+
+        group_builder.specify "Equals_2D" <|
+            scenario = data.equals2d
+            r = scenario.table1.join scenario.table2 on=["x", "y"]
+            assert (r.row_count == scenario.table1.row_count)
+
+        group_builder.specify "Between_2D" <|
+            scenario = data.between2d
+            r = scenario.table1.join scenario.table2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
+            assert (r.row_count == scenario.table1.row_count)
+
+        # TODO further tuning needed to show the real issue in these tests
+        group_builder.specify "Between_2D_Belts_All" <|
+            scenario = data.between2d_belts
+            r = scenario.table1.join scenario.table2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
+            assert (r.row_count == scenario.table1.row_count)
+
+        if extended_tests then group_builder.specify "Between_2D_Belts_V" <|
+            scenario = data.between2d_belts
+            t2 = scenario.table2.filter "is_vertical" Filter_Condition.Is_True
+            r = scenario.table1.join t2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
+            assert (r.row_count == scenario.table1.row_count)
+
+        if extended_tests then group_builder.specify "Between_2D_Belts_H" <|
+            scenario = data.between2d_belts
+            t2 = scenario.table2.filter "is_vertical" Filter_Condition.Is_False
+            r = scenario.table1.join t2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
+            assert (r.row_count == scenario.table1.row_count)
 
 main = collect_benches . run_main
