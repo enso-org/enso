@@ -1,12 +1,5 @@
 package org.enso.table.operations;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -18,7 +11,13 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
-import org.graalvm.collections.Pair;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 public class AddRowNumber {
 
@@ -62,18 +61,17 @@ public class AddRowNumber {
     Storage<?>[] orderingStorages =
         Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
     long[] numbers = new long[n];
-    List<Pair<OrderedMultiValueKey, Integer>> keys =
-        new ArrayList<>(
-            IntStream.range(0, n)
-                .mapToObj(
-                    i -> Pair.create(new OrderedMultiValueKey(orderingStorages, i, directions), i))
-                .toList());
+    List<OrderedMultiValueKey> keys = new ArrayList<>(
+        IntStream.range(0, n)
+            .mapToObj(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
+            .toList()
+    );
 
-    keys.sort(OrderedPairComparator.INSTANCE);
+    keys.sort(null);
 
     RangeIterator it = new RangeIterator(start, step);
     for (var key : keys) {
-      numbers[key.getRight()] = it.next();
+      numbers[key.getRowIndex()] = it.next();
     }
     return new LongStorage(numbers, IntegerType.INT_64);
   }
@@ -103,47 +101,24 @@ public class AddRowNumber {
 
     for (var entry : groupIndex.mapping().entrySet()) {
       List<Integer> indices = entry.getValue();
-      List<Pair<OrderedMultiValueKey, Integer>> orderingKeys =
+      List<OrderedMultiValueKey> orderingKeys =
           new ArrayList<>(
               indices.stream()
-                  .map(
-                      i ->
-                          Pair.create(new OrderedMultiValueKey(orderingStorages, i, directions), i))
+                  .map(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
                   .toList());
-      orderingKeys.sort(OrderedPairComparator.INSTANCE);
+      orderingKeys.sort(null);
       RangeIterator it = new RangeIterator(start, step);
-      for (var key : orderingKeys) {
-        numbers[key.getRight()] = it.next();
+      for (OrderedMultiValueKey key : orderingKeys) {
+        numbers[key.getRowIndex()] = it.next();
       }
     }
 
     return new LongStorage(numbers, IntegerType.INT_64);
   }
 
-  private static class OrderedPairComparator
-      implements Comparator<Pair<OrderedMultiValueKey, Integer>> {
-    @Override
-    public int compare(
-        Pair<OrderedMultiValueKey, Integer> o1, Pair<OrderedMultiValueKey, Integer> o2) {
-      int p1 = o1.getLeft().compareTo(o2.getLeft());
-      if (p1 != 0) {
-        return p1;
-      }
-
-      return o1.getRight().compareTo(o2.getRight());
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      return obj instanceof OrderedPairComparator;
-    }
-
-    static OrderedPairComparator INSTANCE = new OrderedPairComparator();
-  }
-
   /**
-   * A helper for computing consecutive numbers based on a start and step. It will throw an {@link
-   * java.lang.ArithmeticException} if the next number overflows.
+   * A helper for computing consecutive numbers based on a start and step. It will throw an
+   * {@link java.lang.ArithmeticException} if the next number overflows.
    */
   private static class RangeIterator {
     private final long start;
