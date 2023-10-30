@@ -765,23 +765,13 @@ public final class EnsoContext {
   }
 
   /**
-   * Gets a logger for the specified class.
-   *
-   * @param klass the class to name log entries with
-   * @return a new logger for the specified {@code path}
-   */
-  public TruffleLogger getLogger(Class<?> klass) {
-    return TruffleLogger.getLogger(LanguageInfo.ID, klass);
-  }
-
-  /**
    * Gets a logger for the specified class that is bound to this engine.
    * Such logger may then be safely used in threads defined in a thread-pool.
    *
    * @param clazz the class to name log entries with
    * @return a new logger for the specified {@code path}
    */
-  public TruffleLogger getLoggerBoundToEngine(Class<?> clazz) {
+  public TruffleLogger getLogger(Class<?> clazz) {
     return environment.getLogger(clazz);
   }
 

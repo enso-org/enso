@@ -40,7 +40,7 @@ public class WarningInstrumentationTest {
                         RuntimeOptions.LOG_LEVEL,
                         Level.WARNING.getName()
                 )
-                .logHandler(OutputStream.nullOutputStream())
+                .logHandler(System.err)
                 .allowExperimentalOptions(true)
                 .allowIO(IOAccess.ALL)
                 .allowAllAccess(true)

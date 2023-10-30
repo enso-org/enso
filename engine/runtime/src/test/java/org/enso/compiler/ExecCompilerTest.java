@@ -33,7 +33,7 @@ public class ExecCompilerTest {
                 RuntimeOptions.LOG_LEVEL,
                 Level.WARNING.getName()
         )
-        .logHandler(OutputStream.nullOutputStream())
+        .logHandler(System.err)
         .allowAllAccess(true)
         .build();
     assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));

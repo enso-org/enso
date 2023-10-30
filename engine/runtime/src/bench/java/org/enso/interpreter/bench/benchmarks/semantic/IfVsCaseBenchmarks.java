@@ -45,7 +45,6 @@ public class IfVsCaseBenchmarks extends TestBase {
   private Value caseBench6;
   private Value createVec;
   private Value inputVec;
-  private OutputStream out = new ByteArrayOutputStream();
 
   @Setup
   public void initializeBench(BenchmarkParams params) throws IOException {

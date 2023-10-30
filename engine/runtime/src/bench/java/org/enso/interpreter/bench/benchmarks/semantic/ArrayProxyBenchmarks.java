@@ -42,7 +42,7 @@ public class ArrayProxyBenchmarks {
                     RuntimeOptions.LOG_LEVEL,
                     Level.WARNING.getName()
             )
-            .logHandler(new ByteArrayOutputStream())
+            .logHandler(System.err)
             .option(
                 "enso.languageHomeOverride",
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())

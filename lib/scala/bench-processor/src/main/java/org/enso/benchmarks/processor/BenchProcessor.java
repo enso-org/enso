@@ -119,7 +119,7 @@ public class BenchProcessor extends AbstractProcessor {
                       RuntimeOptions.LOG_LEVEL,
                       Level.WARNING.getName()
               )
-              .logHandler(new ByteArrayOutputStream())
+              .logHandler(System.err)
               .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
               .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
               .build()) {
@@ -249,7 +249,7 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("      .allowIO(IOAccess.ALL)");
     out.println("      .allowAllAccess(true)");
     out.println("      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())");
-    out.println("      .logHandler(new ByteArrayOutputStream())");
+    out.println("      .logHandler(System.err)");
     out.println("      .option(");
     out.println("        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,");
     out.println("        languageHomeOverride.getAbsolutePath()");

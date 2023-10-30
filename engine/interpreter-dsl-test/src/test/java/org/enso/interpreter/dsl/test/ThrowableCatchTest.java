@@ -70,7 +70,7 @@ public class ThrowableCatchTest {
             .allowExperimentalOptions(true)
             .allowIO(IOAccess.ALL)
             .allowAllAccess(true)
-            .logHandler(new ByteArrayOutputStream())
+            .logHandler(System.err)
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(
                     RuntimeOptions.LOG_LEVEL,

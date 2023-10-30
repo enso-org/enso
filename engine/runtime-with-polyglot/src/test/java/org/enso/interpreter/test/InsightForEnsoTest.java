@@ -36,7 +36,7 @@ public class InsightForEnsoTest {
                         RuntimeOptions.LOG_LEVEL,
                         Level.WARNING.getName()
                 )
-                .logHandler(OutputStream.nullOutputStream())
+                .logHandler(System.err)
                 .allowExperimentalOptions(true)
                 .allowIO(IOAccess.ALL)
                 .out(out)

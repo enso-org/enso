@@ -61,7 +61,7 @@ public class DebuggingEnsoTest {
                 RuntimeOptions.LOG_LEVEL,
                 Level.FINEST.getName()
         )
-        .logHandler(OutputStream.nullOutputStream())
+        .logHandler(System.err)
         .build();
 
     context = Context.newBuilder()

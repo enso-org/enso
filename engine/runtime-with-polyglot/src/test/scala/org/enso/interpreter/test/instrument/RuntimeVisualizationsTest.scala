@@ -39,8 +39,7 @@ class RuntimeVisualizationsTest
 
     val pkg: Package[File] =
       PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
-    val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
-    val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder()
@@ -62,7 +61,7 @@ class RuntimeVisualizationsTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           Paths.get("../../distribution/component").toFile.getAbsolutePath
         )
-        .logHandler(logOut)
+        .logHandler(System.err)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()

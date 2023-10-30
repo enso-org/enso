@@ -42,7 +42,7 @@ public class CurriedFunctionBenchmarks {
               RuntimeOptions.LOG_LEVEL,
               Level.WARNING.getName()
       )
-      .logHandler(new ByteArrayOutputStream())
+      .logHandler(System.err)
       .allowIO(IOAccess.ALL)
       .allowAllAccess(true)
       .option(

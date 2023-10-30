@@ -9,7 +9,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -46,7 +45,7 @@ public abstract class TestBase {
         .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-        .logHandler(new ByteArrayOutputStream())
+        .logHandler(System.err)
         .option(RuntimeOptions.STRICT_ERRORS, "true")
         .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,

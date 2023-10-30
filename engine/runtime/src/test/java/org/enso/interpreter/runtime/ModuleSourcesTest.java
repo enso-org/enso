@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -31,7 +30,7 @@ public class ModuleSourcesTest {
         Engine.newBuilder()
             .allowExperimentalOptions(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(new ByteArrayOutputStream())
+            .logHandler(System.err)
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())

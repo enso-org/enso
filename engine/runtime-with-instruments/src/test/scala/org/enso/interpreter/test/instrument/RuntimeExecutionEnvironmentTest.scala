@@ -59,8 +59,7 @@ class RuntimeExecutionEnvironmentTest
         "Enso_Test",
         edition = Some(edition)
       )
-    val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
-    val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
@@ -82,7 +81,7 @@ class RuntimeExecutionEnvironmentTest
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE
         )
-        //.logHandler(logOut)
+        .logHandler(System.err)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()

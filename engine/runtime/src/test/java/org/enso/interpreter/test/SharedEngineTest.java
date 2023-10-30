@@ -19,14 +19,13 @@ public class SharedEngineTest extends TestBase {
 
   @BeforeClass
   public static void initializeSharedEngine() {
-    var out = new ByteArrayOutputStream();
     sharedEngine = Engine.newBuilder()
       .allowExperimentalOptions(true)
       .option(
               RuntimeOptions.LOG_LEVEL,
               Level.WARNING.getName()
       )
-      .logHandler(out)
+      .logHandler(System.err)
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
