@@ -6,45 +6,21 @@ import DocsHeader from '@/components/DocumentationPanel/DocsHeader.vue'
 import DocsList from '@/components/DocumentationPanel/DocsList.vue'
 import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
 import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
+import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
+import type { Icon as IconName } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
 import type { QualifiedName } from '@/util/qualifiedName'
-import { qnSegments, tryQualifiedName } from '@/util/qualifiedName'
+import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
-import { HistoryStack } from '@/components/DocumentationPanel/history'
 
 const props = defineProps<{ selectedEntry: Opt<SuggestionId> }>()
 const emit = defineEmits<{ 'update:selectedEntry': [id: SuggestionId] }>()
 const db = useSuggestionDbStore()
 
-const color = computed<string>(() => {
-  const id = props.selectedEntry
-  if (id) {
-    const entry = db.entries.get(id)
-    const groupIndex = entry?.groupIndex ?? -1
-    const group = db.groups[groupIndex]
-    if (group) {
-      const name = group.name.replace(/\s/g, '-')
-      return `var(--group-color-${name})`
-    } else {
-      return 'var(--group-color-fallback)'
-    }
-  } else {
-    return ''
-  }
-})
-const icon = computed<string>(() => {
-  const id = props.selectedEntry
-  if (id) {
-    const entry = db.entries.get(id)
-    return entry?.iconName ?? 'marketplace'
-  } else {
-    return ''
-  }
-})
 const documentation = computed<Docs>(() => {
   const entry = props.selectedEntry
   return entry ? lookupDocumentation(db.entries, entry) : placeholder('No suggestion selected.')
@@ -70,16 +46,53 @@ const types = computed<TypeDocs[]>(() => {
   const docs = documentation.value
   return docs.kind === 'Module' ? docs.types : []
 })
+
 const isPlaceholder = computed(() => 'Placeholder' in documentation.value)
+
 const name = computed<Opt<QualifiedName>>(() => {
   const docs = documentation.value
-  return docs.kind === 'Placeholder' ? null : docs.qName
+  return docs.kind === 'Placeholder' ? null : docs.name
 })
-
 
 // === Breadcrumbs ===
 
+const color = computed<string>(() => {
+  const id = props.selectedEntry
+  if (id) {
+    const entry = db.entries.get(id)
+    const groupIndex = entry?.groupIndex ?? -1
+    const group = db.groups[groupIndex]
+    if (group) {
+      const name = group.name.replace(/\s/g, '-')
+      return `var(--group-color-${name})`
+    }
+  }
+  return 'var(--group-color-fallback)'
+})
+
+const icon = computed<IconName>(() => {
+  const id = props.selectedEntry
+  if (id) {
+    const entry = db.entries.get(id)
+    return entry?.iconName ?? 'marketplace'
+  } else {
+    return 'marketplace'
+  }
+})
+
 const historyStack = new HistoryStack()
+
+// Reset breadcrumbs history when the user selects the entry from the component list.
+watch(
+  () => props.selectedEntry,
+  (entry) => {
+    if (entry && historyStack.current.value !== entry) {
+      historyStack.reset(entry)
+    }
+  },
+)
+
+// Update displayed documentation page when the user uses breadcrumbs.
 watch(historyStack.current, (current) => {
   if (current) {
     emit('update:selectedEntry', current)
@@ -89,24 +102,19 @@ watch(historyStack.current, (current) => {
 const breadcrumbs = computed<Breadcrumb[]>(() => {
   if (name.value) {
     const segments = qnSegments(name.value)
-    return segments.ok
-      ? segments.value.slice(1).map((s) => ({ label: s.toLowerCase(), icon: icon.value }))
-      : []
+    return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
   } else {
     return []
   }
 })
+
 function handleBreadcrumbClick(index: number) {
   if (name.value) {
-    const segments = qnSegments(name.value)
-    if (segments.ok) {
-      const name = segments.value.slice(0, index + 2)
-      const qName = tryQualifiedName(name.join('.'))
-      if (qName.ok) {
-        const [id] = db.entries.nameToId.lookup(qName.value)
-        if (id) {
-          historyStack.record(id)
-        }
+    const qName = qnSlice(name.value, 0, index + 2)
+    if (qName.ok) {
+      const [id] = db.entries.nameToId.lookup(qName.value)
+      if (id) {
+        historyStack.record(id)
       }
     }
   }
@@ -120,6 +128,7 @@ function handleBreadcrumbClick(index: number) {
       v-if="!isPlaceholder"
       :breadcrumbs="breadcrumbs"
       :color="color"
+      :icon="icon"
       :canGoForward="historyStack.canGoForward()"
       :canGoBackward="historyStack.canGoBackward()"
       @click="(index) => handleBreadcrumbClick(index)"
@@ -133,17 +142,17 @@ function handleBreadcrumbClick(index: number) {
       <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
       <DocsList
         :items="{ kind: 'Types', items: types }"
-        @linkClicked="emit('update:selectedEntry', $event)"
+        @linkClicked="historyStack.record($event)"
       />
       <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
       <DocsList
         :items="{ kind: 'Constructors', items: constructors }"
-        @linkClicked="emit('update:selectedEntry', $event)"
+        @linkClicked="historyStack.record($event)"
       />
       <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
       <DocsList
         :items="{ kind: 'Methods', items: methods }"
-        @linkClicked="emit('update:selectedEntry', $event)"
+        @linkClicked="historyStack.record($event)"
       />
       <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
       <DocsExamples :examples="sections.examples" />

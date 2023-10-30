@@ -1,10 +1,10 @@
-import type { SuggestionId } from "@/stores/suggestionDatabase/entry"
-import type { Ref, ComputedRef } from 'vue'
+import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
+import type { ComputedRef, Ref } from 'vue'
 import { computed, reactive, ref } from 'vue'
 
 /**
-  * Simple stack for going forward and backward through the history of visited documentation pages
-  */
+ * Simple stack for going forward and backward through the history of visited documentation pages
+ */
 export class HistoryStack {
   private stack: SuggestionId[]
   private index: Ref<number>

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-const props = defineProps<{ text: string; icon?: string | undefined }>()
+import type { Icon } from '@/util/iconName'
+
+const props = defineProps<{ text: string; icon?: Icon | undefined }>()
 const emit = defineEmits<{ click: [] }>()
 </script>
 
 <template>
   <div class="Breadcrumb">
-    <SvgIcon v-if="props.icon" :name="props.icon" />
+    <SvgIcon v-if="props.icon" :name="props.icon || ''" />
     <span @pointerdown="emit('click')" v-text="props.text"></span>
   </div>
 </template>

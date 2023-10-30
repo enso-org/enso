@@ -63,12 +63,16 @@ export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName
   return `${left}.${right}` as QualifiedName
 }
 
-export function qnSegments(name: QualifiedName): Result<Identifier[]> {
-  try {
-    return Ok(name.split('.').map((segment) => unwrap(tryIdentifier(segment))))
-  } catch (err) {
-    return Err(`Unable to split qualified name. ${err}`)
-  }
+export function qnSegments(name: QualifiedName): Identifier[] {
+  return name.split('.').map((segment) => segment as Identifier)
+}
+
+export function qnSlice(
+  name: QualifiedName,
+  start?: number | undefined,
+  end?: number | undefined,
+): Result<QualifiedName> {
+  return tryQualifiedName(qnSegments(name).slice(start, end).join('.'))
 }
 
 /** Checks if given full qualified name is considered a top element of some project.

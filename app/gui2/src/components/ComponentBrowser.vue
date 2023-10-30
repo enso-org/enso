@@ -257,7 +257,6 @@ watch(selectedSuggestionId, (id) => {
   docEntry.value = id
 })
 
-
 // === Accepting Entry ===
 
 function applySuggestion(component: Opt<Component> = null): SuggestionEntry | null {
