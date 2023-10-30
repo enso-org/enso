@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.interpreter.caches;
 
 import buildinfo.Info;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -175,27 +175,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
       return byteStream.toByteArray();
     }
 
-    // CachedModule is not a record **on purpose**. There appears to be a Frgaal bug leading to invalid compilation error.
-    static class CachedModule {
-        private final Module _moduleIR;
-        private final CompilationStage _compilationStage;
-        private final Source _source;
-        public CachedModule(Module moduleIR, CompilationStage compilationStage, Source source) {
-            this._moduleIR = moduleIR;
-            this._compilationStage = compilationStage;
-            this._source = source;
-        }
-
-        Module moduleIR() {
-            return _moduleIR;
-        }
-        CompilationStage compilationStage() {
-            return _compilationStage;
-        }
-        Source source() {
-            return _source;
-        }
-
+    public record CachedModule(Module moduleIR, CompilationStage compilationStage, Source source) {
     }
 
     public record Metadata(
