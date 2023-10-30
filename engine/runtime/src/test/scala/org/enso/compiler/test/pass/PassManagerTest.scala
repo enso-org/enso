@@ -17,7 +17,6 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.{
-  ApplicationSaturation,
   LambdaConsolidate
 }
 import org.enso.compiler.pass.resolve.{IgnoredBindings, OverloadsResolution}
@@ -39,7 +38,6 @@ class PassManagerTest extends CompilerTest {
     LambdaConsolidate,
     OverloadsResolution,
     DemandAnalysis,
-    ApplicationSaturation,
     TailCall,
     AliasAnalysis,
     DataflowAnalysis,
