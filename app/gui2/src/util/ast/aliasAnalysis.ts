@@ -12,6 +12,12 @@ import {
 import { NonEmptyStack, ObjectKeyedMap, ObjectKeyedSet } from '@/util/containers'
 import type { ContentRange } from '../../../shared/yjsModel'
 
+/** Whether the debug logs of the alias analyzer should be enabled.
+ *
+ * It is recommended to keep them disabled (unless debugging this module), as they are very noisy and can.
+ */
+const LOGGING_ENABLED = false
+
 class Scope {
   /** The variables defined in this scope. */
   bindings: ObjectKeyedMap<string, Token> = new ObjectKeyedMap()
@@ -57,7 +63,7 @@ export class AliasAnalyzer {
   /** The stack for keeping track whether we are in a pattern or expression context. */
   private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
 
-  readonly aliases: ObjectKeyedMap<ContentRange, ObjectKeyedSet<ContentRange>> =
+  public readonly aliases: ObjectKeyedMap<ContentRange, ObjectKeyedSet<ContentRange>> =
     new ObjectKeyedMap()
 
   /**
@@ -76,7 +82,7 @@ export class AliasAnalyzer {
   /** Invoke the given function in a new temporary scope. */
   withNewScopeOver(nodeOrRange: ContentRange | Tree | Token, f: () => undefined) {
     const range = parsedTreeOrTokenRange(nodeOrRange)
-    const scope = new Scope(range)
+    const scope = new Scope(range, this.scopes.top)
     this.scopes.withPushed(scope, f)
   }
 
@@ -90,7 +96,7 @@ export class AliasAnalyzer {
     const scope = this.scopes.top
     const identifier = readTokenSpan(token, this.code)
     const range = parsedTreeOrTokenRange(token)
-    console.debug(`Binding ${identifier}@[${range}]`)
+    log(`Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
     assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
     this.aliases.set(range, new ObjectKeyedSet())
@@ -101,7 +107,7 @@ export class AliasAnalyzer {
     const targetRange = parsedTreeOrTokenRange(target)
     const targets = this.aliases.get(sourceRange)
     if (targets != null) {
-      console.log(
+      log(
         `Usage of ${readTokenSpan(
           source,
           this.code,
@@ -126,7 +132,7 @@ export class AliasAnalyzer {
       }
     }
 
-    console.debug(`Usage of ${identifier}@[${range}] is unresolved.`)
+    log(`Usage of ${identifier}@[${range}] is unresolved.`)
     this.unresolvedSymbols.add(range)
   }
 
@@ -144,7 +150,7 @@ export class AliasAnalyzer {
     const range = parsedTreeOrTokenRange(node)
     const repr = readAstOrTokenSpan(node, this.code)
 
-    console.log(
+    log(
       '\nprocessNode',
       astPrettyPrintType(node),
       '\n====\n',
@@ -158,13 +164,14 @@ export class AliasAnalyzer {
           this.processNode(child)
         }
       })
-    }
-    ///
-    else if (node.type === Tree.Type.Ident) {
-      if (this.contexts.top === Context.Pattern) {
-        this.bind(node.token)
-      } else {
-        this.use(node.token)
+    } else if (node.type === Tree.Type.Ident) {
+      // We require first character to be lowercase, to avoid working with type names.
+      if(repr.length > 0 && repr.charAt(0) !== repr.charAt(0).toUpperCase()) {
+        if (this.contexts.top === Context.Pattern) {
+          this.bind(node.token)
+        } else {
+          this.use(node.token)
+        }
       }
     } else if (
       node.type === Tree.Type.OprApp &&
@@ -172,6 +179,7 @@ export class AliasAnalyzer {
       readAstOrTokenSpan(node.opr.value, this.code) === '->'
     ) {
       // Lambda expression.
+      // Note that this is not a Tree.Type.Lambda, as that is for "new" lambdas syntax, like `\x -> x`.
       this.withNewScopeOver(node, () => {
         this.withContext(Context.Pattern, () => {
           this.processNode(node.lhs)
@@ -199,7 +207,6 @@ export class AliasAnalyzer {
       this.withContext(Context.Pattern, () => {
         this.processNode(node.name)
       })
-
       this.withNewScopeOver(node, () => {
         this.withContext(Context.Pattern, () => {
           for (const argument of node.args) {
@@ -222,15 +229,24 @@ export class AliasAnalyzer {
       }
     } else if (node.type === Tree.Type.Documented) {
       this.processNode(node.expression)
-    }
-    ///
-    else {
+    } else {
       node.visitChildren((child) => {
         if (Tree.isInstance(child)) {
           this.processNode(child)
         }
       })
-      console.warn(`Catch-all for ${astPrettyPrintType(node)} at ${range}:\n${repr}\n`)
+      log(`Catch-all for ${astPrettyPrintType(node)} at ${range}:\n${repr}\n`)
     }
+  }
+}
+
+
+
+// ===========
+// === LOG ===
+// ===========
+function log(...args: any[]) {
+  if(LOGGING_ENABLED ?? false) {
+    log(...args)
   }
 }
