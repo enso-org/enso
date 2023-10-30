@@ -68,7 +68,7 @@ import scala.reflect.ClassTag
   *
   * - A [[org.enso.compiler.pass.PassConfiguration]] containing an instance of
   *   [[AliasAnalysis.Configuration]].
-  * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
+  * - A [[LocalScope]], where relevant.
   */
 case object AliasAnalysis extends IRPass {
 

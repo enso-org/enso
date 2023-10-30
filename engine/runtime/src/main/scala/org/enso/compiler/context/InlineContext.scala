@@ -1,13 +1,9 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
-import org.enso.interpreter.node.BaseNode.TailStatus
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-import org.enso.interpreter.node.ExpressionNode
-import com.oracle.truffle.api.source.Source
+import org.enso.interpreter.runtime.scope.LocalScope
 
 /** A type containing the information about the execution context for an inline
   * expression.
@@ -31,16 +27,6 @@ case class InlineContext(
   pkgRepo: Option[PackageRepository]           = None
 ) {
   def bindingsAnalysis() = module.bindingsAnalysis()
-
-  def truffleRunInline(
-    context: CompilerContext,
-    source: Source,
-    config: CompilerConfig,
-    ir: Expression
-  ): ExpressionNode = {
-    val s = localScope.getOrElse(LocalScope.root)
-    return module.truffleRunInline(context, source, s, config, ir)
-  }
 }
 object InlineContext {
 
@@ -48,24 +34,21 @@ object InlineContext {
     * internally.
     *
     * @param localScope the local scope instance
-    * @param moduleScope the module scope instance
+    * @param module the module defining the context
     * @param isInTailPosition whether or not the inline expression occurs in a
     *                         tail position
     * @return the [[InlineContext]] instance corresponding to the arguments
     */
   def fromJava(
     localScope: LocalScope,
-    moduleScope: ModuleScope,
-    isInTailPosition: TailStatus,
+    module: CompilerContext.Module,
+    isInTailPosition: Option[Boolean],
     compilerConfig: CompilerConfig
   ): InlineContext = {
     InlineContext(
-      localScope = Option(localScope),
-      module = ModuleContext(
-        moduleScope.getModule().asCompilerModule(),
-        compilerConfig
-      ),
-      isInTailPosition = Option(isInTailPosition != TailStatus.NOT_TAIL),
+      localScope       = Option(localScope),
+      module           = ModuleContext(module, compilerConfig),
+      isInTailPosition = isInTailPosition,
       compilerConfig   = compilerConfig
     )
   }

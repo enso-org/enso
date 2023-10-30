@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime;
 
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
-import org.enso.compiler.codegen.IrToTruffle;
-import org.enso.compiler.codegen.RuntimeStubsGenerator;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
 
@@ -30,10 +28,11 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
+import org.enso.polyglot.data.TypeGraph;
 
 import scala.Option;
 
@@ -113,18 +112,8 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config) throws IOException {
-    truffleRunCodegen(module.getSource(), module.getScope(), config, module.getIr());
-  }
-
-  @Override
-  public void truffleRunCodegen(Source source, ModuleScope scope, CompilerConfig config, org.enso.compiler.core.ir.Module ir) {
-    new IrToTruffle(context, source, scope, config).run(ir);
-  }
-
-  @Override
-  public ExpressionNode truffleRunInline(Source source, LocalScope localScope, CompilerContext.Module module, CompilerConfig config, Expression ir) {
-    return new IrToTruffle(context, source, module.getScope(), config)
-            .runInline(ir, localScope, "<inline_source>");
+    var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
+    new IrToTruffle(context, module.getSource(), m.getScope(), config).run(module.getIr());
   }
 
   // module related
@@ -166,6 +155,11 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public CompilationStage getCompilationStage(CompilerContext.Module module) {
     return module.getCompilationStage();
+  }
+
+  @Override
+  public TypeGraph getTypeHierarchy() {
+    return Types.getTypeHierarchy();
   }
 
   @Override
@@ -369,19 +363,9 @@ final class TruffleCompilerContext implements CompilerContext {
       return module == m;
     }
 
-    // XXX
-    public org.enso.interpreter.runtime.scope.ModuleScope getScope() {
-      return module.getScope();
-    }
-
     @Override
     public QualifiedName getName() {
       return module.getName();
-    }
-
-    @Override
-    public Type findType(String name) {
-      return module.getScope().getTypes().get(name);
     }
 
     @Override
