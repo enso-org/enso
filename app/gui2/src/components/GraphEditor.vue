@@ -20,7 +20,6 @@ import GraphNodes from './GraphEditor/GraphNodes.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
-const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = provideGraphNavigator(viewportNode)
 const graphStore = useGraphStore()
@@ -125,7 +124,7 @@ const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigat
 /// Track play button presses.
 function onPlayButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
-    const modeValue = mode.value
+    const modeValue = projectStore.executionMode
     if (modeValue == undefined) {
       return
     }
@@ -135,7 +134,7 @@ function onPlayButtonPress() {
 
 /// Watch for changes in the execution mode.
 watch(
-  () => mode.value,
+  () => projectStore.executionMode,
   (modeValue) => {
     projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
   },
@@ -206,7 +205,7 @@ watch(componentBrowserVisible, (visible) => {
       @finished="componentBrowserVisible = false"
     />
     <TopBar
-      v-model:mode="mode"
+      v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
       :breadcrumbs="['main', 'ad_analytics']"
