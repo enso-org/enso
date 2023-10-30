@@ -48,13 +48,14 @@ public class IfVsCaseBenchmarks extends TestBase {
 
   @Setup
   public void initializeBench(BenchmarkParams params) throws IOException {
+    OutputStream out = new ByteArrayOutputStream();
     ctx = Context.newBuilder("enso")
         .allowAllAccess(true)
         .option(
                 RuntimeOptions.LOG_LEVEL,
                 Level.WARNING.getName()
         )
-        .logHandler(out)
+        .logHandler(System.err)
         .out(out)
         .err(out)
         .allowIO(IOAccess.ALL)
