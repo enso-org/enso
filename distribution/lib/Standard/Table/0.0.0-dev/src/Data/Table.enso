@@ -1980,7 +1980,7 @@ type Table
     union self tables:Vector|Table match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> Table.from t)
-            single_table -> [self, Table.from single_table]
+            single_table -> [self, single_table]
         all_tables.if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder

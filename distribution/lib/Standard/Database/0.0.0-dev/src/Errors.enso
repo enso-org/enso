@@ -226,8 +226,4 @@ type Invariant_Violation
     ## PRIVATE
     to_display_text : Text
     to_display_text self =
-        prefix = "The database has been modified between the time the query was prepared and the time it was executed, breaking an expected invariant. This could cause the query to yield incorrect results - to prevent data corruption the query has failed. Please re-run the workflow to try again and possibly gather more detailed error diagnostics."
-        suffix = case self.message of
-            Nothing -> ""
-            _ -> " The broken invariant was: " + self.message
-        prefix + suffix
+        "The database has been modified between the time the query was prepared and executed, leading to possibly incorrect results. Please re-run the workflow to retry."
