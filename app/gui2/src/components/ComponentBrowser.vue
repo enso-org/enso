@@ -253,6 +253,7 @@ const docEntry = computed({
     displayedDocs.value = value
   },
 })
+
 watch(selectedSuggestionId, (id) => {
   docEntry.value = id
 })
