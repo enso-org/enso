@@ -68,23 +68,6 @@
   margin: 0;
 }
 
-body {
-  min-height: 100vh;
-  color: var(--color-text);
-  /* TEMPORARY. Will be replaced with actual background when it is integrated with the dashboard. */
-  background: #e4d4be;
-  transition:
-    color 0.5s,
-    background-color 0.5s;
-  font-family: 'M PLUS 1', sans-serif;
-  font-size: 11.5px;
-  font-weight: 500;
-  line-height: 20px;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 .icon {
   width: 16px;
   height: 16px;

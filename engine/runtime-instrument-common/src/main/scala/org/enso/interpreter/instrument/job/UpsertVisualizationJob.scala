@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.definition
@@ -38,13 +39,22 @@ import java.util.logging.Level
 class UpsertVisualizationJob(
   requestId: Option[Api.RequestId],
   val visualizationId: Api.VisualizationId,
-  expressionId: Api.ExpressionId,
+  val expressionId: Api.ExpressionId,
   config: Api.VisualizationConfiguration
-) extends UniqueJob[Option[Executable]](
-      expressionId,
+) extends Job[Option[Executable]](
       List(config.executionContextId),
+      false,
       false
-    ) {
+    )
+    with UniqueJob[Option[Executable]] {
+
+  /** @inheritdoc */
+  override def equalsTo(that: UniqueJob[_]): Boolean =
+    that match {
+      case that: UpsertVisualizationJob =>
+        this.expressionId == that.expressionId
+      case _ => false
+    }
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
@@ -588,12 +598,13 @@ object UpsertVisualizationJob {
         module.getIr
           .getMetadata(DataflowAnalysis)
           .foreach { metadata =>
+            val externalId = expressionId
             module.getIr.preorder
-              .find(_.getExternalId.contains(expressionId))
+              .find(_.getExternalId.contains(externalId))
               .collect {
                 case name: Name.Literal =>
                   DataflowAnalysis.DependencyInfo.Type
-                    .Dynamic(name.name, Some(expressionId))
+                    .Dynamic(name.name, Some(externalId))
                 case ir =>
                   DataflowAnalysis.DependencyInfo.Type
                     .Static(ir.getId, ir.getExternalId)

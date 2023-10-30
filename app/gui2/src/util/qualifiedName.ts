@@ -1,4 +1,3 @@
-import type { Opt } from '@/util/opt'
 import { Err, Ok, unwrap, type Result } from '@/util/result'
 
 declare const identifierBrand: unique symbol
@@ -41,7 +40,7 @@ export function qnLastSegmentIndex(name: QualifiedName) {
 }
 
 /** Split the qualified name to parent and last segment (name). */
-export function qnSplit(name: QualifiedName): [Opt<QualifiedName>, Identifier] {
+export function qnSplit(name: QualifiedName): [QualifiedName | null, Identifier] {
   const separator = qnLastSegmentIndex(name)
   const parent = separator > 0 ? (name.substring(0, separator) as QualifiedName) : null
   const lastSegment = name.substring(separator + 1) as Identifier
@@ -55,7 +54,7 @@ export function qnLastSegment(name: QualifiedName): Identifier {
 }
 
 /** Get the parent qualified name (without last segment) */
-export function qnParent(name: QualifiedName): Opt<QualifiedName> {
+export function qnParent(name: QualifiedName): QualifiedName | null {
   const separator = qnLastSegmentIndex(name)
   return separator > 1 ? (name.substring(0, separator) as QualifiedName) : null
 }

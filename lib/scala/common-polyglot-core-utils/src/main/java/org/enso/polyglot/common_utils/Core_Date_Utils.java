@@ -116,4 +116,8 @@ public class Core_Date_Utils {
           "Unable to parse Text '" + dateString + "' to Date_Time due to arithmetic error.", e);
     }
   }
+
+  public static ZoneId defaultSystemZone() {
+    return ZoneId.systemDefault();
+  }
 }

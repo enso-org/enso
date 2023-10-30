@@ -14,6 +14,7 @@ import * as hooks from '../../hooks'
 import * as localStorageModule from '../localStorage'
 import * as localStorageProvider from '../../providers/localStorage'
 import * as permissions from '../permissions'
+import * as set from '../set'
 import * as shortcutsModule from '../shortcuts'
 import * as shortcutsProvider from '../../providers/shortcuts'
 import * as sorting from '../sorting'
@@ -178,16 +179,20 @@ export interface AssetsTableState {
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
-    setVisibility: (presence: visibilityModule.Visibility) => void
+    setVisibility: (visibility: visibilityModule.Visibility) => void
     isEditingName: boolean
+    temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
+    temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
 
 /** The default {@link AssetRowState} associated with a {@link AssetRow}. */
-export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
+export const INITIAL_ROW_STATE = Object.freeze<AssetRowState>({
     setVisibility: () => {
-        // Ignored. This MUST be replaced by the row component. It should also update `presence`.
+        // Ignored. This MUST be replaced by the row component. It should also update `visibility`.
     },
     isEditingName: false,
+    temporarilyAddedLabels: set.EMPTY,
+    temporarilyRemovedLabels: set.EMPTY,
 })
 
 /** Props for a {@link AssetsTable}. */
@@ -1347,7 +1352,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         <div
                             className="grow"
                             onDragOver={event => {
-                                const payload = drag.tryGetAssetRowsDragPayload(event.dataTransfer)
+                                const payload = drag.ASSET_ROWS.lookup(event)
                                 const filtered = payload?.filter(
                                     item => item.asset.parentId !== rootDirectoryId
                                 )
@@ -1356,7 +1361,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 }
                             }}
                             onDrop={event => {
-                                const payload = drag.tryGetAssetRowsDragPayload(event.dataTransfer)
+                                const payload = drag.ASSET_ROWS.lookup(event)
                                 const filtered = payload?.filter(
                                     item => item.asset.parentId !== rootDirectoryId
                                 )
@@ -1414,30 +1419,19 @@ export default function AssetsTable(props: AssetsTableProps) {
                             const nodes = assetTreeNode
                                 .assetTreePreorderTraversal(assetTree)
                                 .filter(node => oldSelectedKeys.has(node.key))
-                            const data: drag.AssetRowsDragPayload = nodes.map(node => ({
+                            const payload: drag.AssetRowsDragPayload = nodes.map(node => ({
                                 key: node.key,
                                 asset: node.item,
                             }))
-                            const id = uniqueString.uniqueString()
-                            event.dataTransfer.setData(
-                                `${drag.ASSET_ROWS_DRAG_PAYLOAD_MIMETYPE}; id=${id}`,
-                                JSON.stringify(data)
-                            )
-                            drag.ASSET_ROWS_DRAG_PAYLOAD_MAP.set(id, data)
-                            const blankElement = document.createElement('div')
-                            const image = new Image()
-                            image.src =
-                                // Blank GIF
-                                'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-                            event.dataTransfer.setDragImage(image, 0, 0)
-                            blankElement.remove()
+                            drag.setDragImageToBlank(event)
+                            drag.ASSET_ROWS.bind(event, payload)
                             queueMicrotask(() => {
                                 setModal(
                                     <DragModal
                                         event={event}
                                         className="flex flex-col bg-frame rounded-2xl bg-frame-selected backdrop-blur-3xl"
                                         doCleanup={() => {
-                                            drag.ASSET_ROWS_DRAG_PAYLOAD_MAP.delete(id)
+                                            drag.ASSET_ROWS.unbind(payload)
                                         }}
                                     >
                                         {nodes.map(node => (
@@ -1460,6 +1454,99 @@ export default function AssetsTable(props: AssetsTableProps) {
                             })
                             return oldSelectedKeys
                         })
+                    }}
+                    onRowDragOver={(event, _, key) => {
+                        setSelectedKeys(oldSelectedKeys => {
+                            const payload = drag.LABELS.lookup(event)
+                            if (payload != null) {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                const ids = oldSelectedKeys.has(key)
+                                    ? oldSelectedKeys
+                                    : new Set([key])
+                                let labelsPresent = 0
+                                for (const selectedKey of ids) {
+                                    const labels = nodeMapRef.current.get(selectedKey)?.item.labels
+                                    if (labels != null) {
+                                        for (const label of labels) {
+                                            if (payload.has(label)) {
+                                                labelsPresent += 1
+                                            }
+                                        }
+                                    }
+                                }
+                                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+                                dispatchAssetEvent({
+                                    type: shouldAdd
+                                        ? assetEventModule.AssetEventType.temporarilyAddLabels
+                                        : assetEventModule.AssetEventType.temporarilyRemoveLabels,
+                                    ids,
+                                    labelNames: payload,
+                                })
+                            }
+                            return oldSelectedKeys
+                        })
+                    }}
+                    onRowDragEnd={() => {
+                        setSelectedKeys(oldSelectedKeys => {
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.temporarilyAddLabels,
+                                ids: oldSelectedKeys,
+                                labelNames: set.EMPTY,
+                            })
+                            return oldSelectedKeys
+                        })
+                    }}
+                    onRowDrop={(event, _, key) => {
+                        setSelectedKeys(oldSelectedKeys => {
+                            const ids = oldSelectedKeys.has(key) ? oldSelectedKeys : new Set([key])
+                            const payload = drag.LABELS.lookup(event)
+                            if (payload != null) {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                let labelsPresent = 0
+                                for (const selectedKey of ids) {
+                                    const labels = nodeMapRef.current.get(selectedKey)?.item.labels
+                                    if (labels != null) {
+                                        for (const label of labels) {
+                                            if (payload.has(label)) {
+                                                labelsPresent += 1
+                                            }
+                                        }
+                                    }
+                                }
+                                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+                                dispatchAssetEvent({
+                                    type: shouldAdd
+                                        ? assetEventModule.AssetEventType.addLabels
+                                        : assetEventModule.AssetEventType.removeLabels,
+                                    ids,
+                                    labelNames: payload,
+                                })
+                            } else {
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
+                                    ids,
+                                    labelNames: set.EMPTY,
+                                })
+                            }
+                            return oldSelectedKeys
+                        })
+                    }}
+                    onDragLeave={event => {
+                        if (
+                            event.relatedTarget instanceof Node &&
+                            !event.currentTarget.contains(event.relatedTarget)
+                        ) {
+                            setSelectedKeys(oldSelectedKeys => {
+                                dispatchAssetEvent({
+                                    type: assetEventModule.AssetEventType.temporarilyAddLabels,
+                                    ids: oldSelectedKeys,
+                                    labelNames: set.EMPTY,
+                                })
+                                return oldSelectedKeys
+                            })
+                        }
                     }}
                 />
             </div>

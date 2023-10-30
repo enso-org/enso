@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, watch, type WatchSource } from 'vue'
+import { onScopeDispose, watch, type WatchSource } from 'vue'
 
 /**
  * Add an event listener for the duration of the component's lifetime.
@@ -30,10 +30,8 @@ export function useEvent(
   handler: (event: unknown) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
-  onMounted(() => {
-    target.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
+  target.addEventListener(event, handler, options)
+  onScopeDispose(() => {
     target.removeEventListener(event, handler, options)
   })
 }

@@ -1,10 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Aggregate_Column, Value_Type
+from Standard.Table import Aggregate_Column, Value_Type, Table
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-from Standard.Database import SQL_Query
+from Standard.Database import all
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
@@ -127,6 +128,51 @@ spec connection =
             t2 = t.cast "b" Value_Type.Byte
             t2.at "b" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
             Problems.expect_warning Inexact_Type_Coercion t2
+
+    Test.group "[PostgreSQL] Type Edge Cases" <|
+        Test.specify "will fail to read a BigDecimal column and suggest to cast it to Float" <|
+            table_name = Name_Generator.random_name "BigDecimal"
+            table = connection.create_table table_name [Column_Description.Value "B" (Value_Type.Decimal precision=100 scale=5)] primary_key=[]
+            Problems.assume_no_problems table
+
+            Problems.expect_only_warning Inexact_Type_Coercion <|
+                table.update_rows (Table.new [["B", [1.5, 2.5]]]) update_action=Update_Action.Insert
+
+            table.at "B" . value_type . should_equal (Value_Type.Decimal precision=100 scale=5)
+
+            m2 = table.read
+            m2.at "B" . value_type . should_equal Value_Type.Float
+            m2.at "B" . to_vector . should_equal [1.5, 2.5]
+            w2 = Problems.expect_only_warning Inexact_Type_Coercion m2
+            w2.requested_type . should_equal (Value_Type.Decimal precision=100 scale=5)
+            w2.actual_type . should_equal Value_Type.Float
+
+        Test.specify "should warn when fetching a Binary column and coercing it to Mixed because in-memory does not support Binary" <|
+            table_name = Name_Generator.random_name "Bin"
+            table = connection.create_table table_name [Column_Description.Value "B" (Value_Type.Binary size=10)] primary_key=[]
+            w0 = Problems.expect_only_warning Inexact_Type_Coercion table
+            w0.requested_type . should_equal (Value_Type.Binary size=10)
+            w0.actual_type . should_equal (Value_Type.Binary variable_length=True size=2147483647)
+            table_clean = table.remove_warnings
+
+            Problems.assume_no_problems <|
+                table_clean.update_rows (connection.query 'SELECT decode(\'ffff\', \'hex\') AS "B"') update_action=Update_Action.Insert
+            Problems.assume_no_problems <|
+                table_clean.update_rows (connection.query 'SELECT decode(\'caffee\', \'hex\') AS "B"') update_action=Update_Action.Insert
+            Problems.assume_no_problems <|
+                table_clean.update_rows (connection.query 'SELECT decode(\'beef\', \'hex\') AS "B"') update_action=Update_Action.Insert
+
+            materialized_table = table_clean.read
+            materialized_table.at "B" . value_type . should_equal Value_Type.Mixed
+            w = Problems.expect_only_warning Inexact_Type_Coercion materialized_table
+            w.requested_type . should_be_a (Value_Type.Binary ...)
+            w.actual_type . should_equal Value_Type.Mixed
+
+            # The materialized data is represented as array of signed bytes
+            ffff = [-1, -1]
+            caffee = [-54, -1, -18]
+            beef = [-66, -17]
+            materialized_table.at "B" . to_vector . should_equal [ffff, caffee, beef]
 
 main = Test_Suite.run_main <|
     connection = create_connection_builder Nothing

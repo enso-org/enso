@@ -85,6 +85,12 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
+  public Storage<?> fillMissingFromPrevious(BoolStorage missingIndicator) {
+    Storage<?> newStorage = underlyingStorage.fillMissingFromPrevious(missingIndicator);
+    return new MixedStorageFacade(newStorage);
+  }
+
+  @Override
   public Storage<Object> mask(BitSet mask, int cardinality) {
     Storage<?> newStorage = underlyingStorage.mask(mask, cardinality);
     return new MixedStorageFacade(newStorage);

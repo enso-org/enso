@@ -41,7 +41,8 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                   return;
                 }
 
-                serializationManager.serializeModule(module, useGlobalCacheLocations, false);
+                serializationManager.serializeModule(
+                    module.asCompilerModule(), useGlobalCacheLocations, false);
               });
     } finally {
       ctx.locking().releaseWriteCompilationLock();
@@ -54,5 +55,10 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                   + " milliseconds");
     }
     return null;
+  }
+
+  @Override
+  public String toString() {
+    return "SerializeModuleJob(" + moduleName.toString() + ")";
   }
 }

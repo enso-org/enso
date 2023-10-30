@@ -309,7 +309,8 @@ lazy val enso = (project in file("."))
     `simple-httpbin`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
-    `benchmark-java-helpers`
+    `benchmark-java-helpers`,
+    `bench-processor`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -2122,6 +2123,9 @@ lazy val `std-base` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
@@ -2228,6 +2232,9 @@ lazy val `std-table` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     Antlr4 / antlr4PackageName := Some("org.enso.table.expressions"),
@@ -2265,6 +2272,9 @@ lazy val `std-image` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
@@ -2291,6 +2301,9 @@ lazy val `std-google-api` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `google-api-polyglot-root` / "std-google-api.jar",
     libraryDependencies ++= Seq(
@@ -2315,6 +2328,9 @@ lazy val `std-database` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
@@ -2343,6 +2359,9 @@ lazy val `std-aws` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
     libraryDependencies ++= Seq(

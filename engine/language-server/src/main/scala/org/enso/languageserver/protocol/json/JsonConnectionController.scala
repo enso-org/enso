@@ -1,14 +1,17 @@
 package org.enso.languageserver.protocol.json
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
-import akka.pattern.pipe
+import akka.pattern.pipeCompletionStage
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.ProgressUnit
 import org.enso.cli.task.notifications.TaskNotificationApi
 import org.enso.jsonrpc._
 import org.enso.languageserver.ai.AICompletion
-import org.enso.languageserver.boot.resource.InitializationComponent
+import org.enso.languageserver.boot.resource.{
+  InitializationComponent,
+  InitializationComponentInitialized
+}
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -173,8 +176,15 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      logger.info("Initializing resources.")
-      mainComponent.init().pipeTo(self)
+      logger.info(
+        "Initializing resources for [{}] [{}].",
+        clientId,
+        mainComponent
+      )
+      mainComponent
+        .init()
+        .thenApply(_ => InitializationComponentInitialized.getInstance)
+        .pipeTo(self)
       context.become(initializing(webActor, clientId, req, sender()))
 
     case Request(_, id, _) =>
@@ -190,7 +200,7 @@ class JsonConnectionController(
     request: Request[_, _],
     receiver: ActorRef
   ): Receive = {
-    case InitializationComponent.Initialized =>
+    case _: InitializationComponentInitialized =>
       logger.info("RPC session initialized for client [{}].", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))

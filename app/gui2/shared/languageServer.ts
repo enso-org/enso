@@ -85,6 +85,10 @@ export class LanguageServer extends ObservableV2<Notifications> {
     return this.acquireCapability('file/receivesTreeUpdates', { path })
   }
 
+  acquireExecutionContextCanModify(contextId: ContextId): Promise<void> {
+    return this.acquireCapability('executionContext/canModify', { contextId })
+  }
+
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#sessioninitprotocolconnection) */
   initProtocolConnection(clientId: Uuid): Promise<response.InitProtocolConnection> {
     return this.request('session/initProtocolConnection', { clientId })

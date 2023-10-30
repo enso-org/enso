@@ -1,8 +1,7 @@
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import type { Doc } from '@/util/docParser'
-import type { QualifiedName } from '@/util/qualifiedName'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
 
 // === Types ===
@@ -22,7 +21,6 @@ export interface FunctionDocs {
   kind: 'Function'
   id: SuggestionId
   name: string
-  qName: QualifiedName
   arguments: SuggestionEntryArgument[]
   sections: Sections
 }
@@ -31,7 +29,6 @@ export interface TypeDocs {
   kind: 'Type'
   id: SuggestionId
   name: string
-  qName: QualifiedName
   arguments: SuggestionEntryArgument[]
   sections: Sections
   methods: FunctionDocs[]
@@ -42,7 +39,6 @@ export interface ModuleDocs {
   kind: 'Module'
   id: SuggestionId
   name: string
-  qName: QualifiedName
   sections: Sections
   types: TypeDocs[]
   methods: FunctionDocs[]
@@ -52,7 +48,6 @@ export interface LocalDocs {
   kind: 'Local'
   id: SuggestionId
   name: string
-  qName: QualifiedName
   sections: Sections
 }
 
@@ -150,7 +145,6 @@ const handleFunction: DocsHandle = (_db, entry, id) => ({
   kind: 'Function',
   id,
   name: entry.name,
-  qName: entryQn(entry),
   arguments: entry.arguments,
   sections: filterSections(entry.documentation),
 })
@@ -163,14 +157,12 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
     kind: 'Local',
     id,
     name: entry.name,
-    qName: entryQn(entry),
     sections: filterSections(entry.documentation),
   }),
   [SuggestionKind.Type]: (db, entry, id) => ({
     kind: 'Type',
     id,
     name: entry.name,
-    qName: entryQn(entry),
     arguments: entry.arguments,
     sections: filterSections(entry.documentation),
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
@@ -180,7 +172,6 @@ const handleDocumentation: Record<SuggestionKind, DocsHandle> = {
     kind: 'Module',
     id,
     name: entry.name,
-    qName: entryQn(entry),
     sections: filterSections(entry.documentation),
     types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),
     methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),

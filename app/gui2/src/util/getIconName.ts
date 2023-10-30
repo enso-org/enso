@@ -1,4 +1,6 @@
-const methodNameToIconLookup: Record<string, string> = {
+import type { Icon } from '@/util/iconName'
+
+const methodNameToIconLookup: Record<string, Icon> = {
   /* eslint-disable camelcase */
   read: 'text',
   join: 'join3',
@@ -12,15 +14,15 @@ const methodNameToIconLookup: Record<string, string> = {
   /* eslint-enable camelcase */
 }
 
-export function methodNameToIcon(methodName: string): string {
+export function methodNameToIcon(methodName: string): Icon {
   return methodNameToIconLookup[methodName] ?? 'in_out'
 }
 
-const typeNameToIconLookup: Record<string, string> = {
+const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Table.Table': 'array_new',
   'Standard.Base.Data.Vector.Vector': 'array_new2',
 }
 
-export function typeNameToIcon(typeName: string): string {
+export function typeNameToIcon(typeName: string): Icon {
   return typeNameToIconLookup[typeName] ?? 'in_out'
 }
