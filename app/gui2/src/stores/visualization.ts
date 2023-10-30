@@ -77,7 +77,9 @@ export type Visualization = DefineComponent<
 >
 
 const VisualizationModule = z.object({
-  default: z.unknown(),
+  // This is UNSAFE, but unavoiable as the type of `Visualization` is too difficult to statically
+  // check.
+  default: z.custom<Visualization>(() => true),
   name: z.string(),
   inputType: z.string().optional(),
   defaultPreprocessor: (
@@ -138,7 +140,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     name,
   }))
   const visualizationsForType = reactive(new Map<string, Set<VisualizationCacheKey>>())
-  const typesForVisualization = reactive(new Map<string, ReadonlySet<string>>())
+  const typesForVisualization = reactive(new Map<VisualizationCacheKey, ReadonlySet<string>>())
   const proj = useProjectStore()
   const ls = proj.lsRpcConnection
   const data = proj.dataConnection
@@ -147,28 +149,25 @@ export const useVisualizationStore = defineStore('visualization', () => {
   )
 
   function getTypesFromUnion(inputType: Opt<string>) {
+    if (inputType === '') return new Set<string>()
     return new Set(inputType?.split('|').map((type) => type.trim()) ?? ['Any'])
   }
 
-  function removeVisualizationTypes(id: VisualizationIdentifier, name: string) {
+  function removeVisualizationTypes(id: VisualizationIdentifier) {
     const key = toVisualizationCacheKey(id)
-    const types = typesForVisualization.get(name)
+    const types = typesForVisualization.get(key)
     if (!types) return
-    typesForVisualization.delete(name)
+    typesForVisualization.delete(key)
     for (const type of types) {
       visualizationsForType.get(type)?.delete(key)
     }
   }
 
-  function updateVisualizationTypes(
-    id: VisualizationIdentifier,
-    name: string,
-    inputType: Opt<string>,
-  ) {
+  function updateVisualizationTypes(id: VisualizationIdentifier, inputType: Opt<string>) {
     const key = toVisualizationCacheKey(id)
     const newTypes = getTypesFromUnion(inputType)
-    const types = typesForVisualization.get(name)
-    typesForVisualization.set(name, newTypes)
+    const types = typesForVisualization.get(key)
+    typesForVisualization.set(key, newTypes)
     if (types) {
       for (const type of types) {
         if (!newTypes.has(type)) {
@@ -189,13 +188,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
   }
 
   for (const { name, inputType } of builtinVisualizationMetadata) {
-    if (name === 'Loading') continue
     updateVisualizationTypes(
       {
         module: { kind: 'Builtin' },
         name,
       },
-      name,
       inputType,
     )
   }
@@ -205,8 +202,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
       type === undefined
         ? allBuiltinVisualizations
         : [
-            ...(visualizationsForType.get(type) ?? []),
-            ...(visualizationsForType.get('Any') ?? []),
+            ...new Set([
+              ...(visualizationsForType.get(type) ?? []),
+              ...(visualizationsForType.get('Any') ?? []),
+            ]),
           ].map(fromVisualizationCacheKey)
     return ret
   }
@@ -466,7 +465,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
               name: viz.name,
             }
             const key = toVisualizationCacheKey(id)
-            updateVisualizationTypes(id, viz.name, viz.inputType)
+            updateVisualizationTypes(id, viz.inputType)
             cache.set(key, vizPromise)
           } catch {
             // Ignored - the file is not a module.
@@ -483,14 +482,13 @@ export const useVisualizationStore = defineStore('visualization', () => {
             const viz = await vizPromise
             if (abortController.signal.aborted) break
             if (viz.name !== id.name) {
-              removeVisualizationTypes(id, id.name)
+              removeVisualizationTypes(id)
               updateVisualizationTypes(
                 { module: { kind: 'CurrentProject' }, name: viz.name },
-                viz.name,
                 viz.inputType,
               )
             } else {
-              updateVisualizationTypes(id, viz.name, viz.inputType)
+              updateVisualizationTypes(id, viz.inputType)
             }
           } catch (error) {
             if (error instanceof InvalidVisualizationModuleError) {
@@ -556,7 +554,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     )
   })
 
-  async function get(meta: VisualizationIdentifier, ignoreCache = false) {
+  function get(meta: VisualizationIdentifier, ignoreCache = false) {
     const key = toVisualizationCacheKey(meta)
     if (!cache.get(key) || ignoreCache) {
       switch (meta.module.kind) {

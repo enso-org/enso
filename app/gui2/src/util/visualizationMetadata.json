@@ -1,7 +1,11 @@
 [
   {
+    "name": "Error Loading Visualization",
+    "inputType": ""
+  },
+  {
     "name": "Loading",
-    "inputType": "Any"
+    "inputType": ""
   },
   {
     "name": "JSON",

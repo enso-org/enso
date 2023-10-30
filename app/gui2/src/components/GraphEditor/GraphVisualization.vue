@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ErrorLoadingVisualizationVisualization from '@/components/visualizations/ErrorLoadingVisualizationVisualization.vue'
+import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
 import {
@@ -10,10 +12,10 @@ import {
 import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, ref, shallowRef, watchEffect } from 'vue'
-import LoadingVisualization from '../visualizations/LoadingVisualization.vue'
+import { computed, onErrorCaptured, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
+const errored = ref(false)
 
 const projectStore = useProjectStore()
 const visualizationStore = useVisualizationStore()
@@ -32,6 +34,10 @@ const emit = defineEmits<{
 }>()
 
 const visualization = shallowRef<Visualization>()
+
+onErrorCaptured(() => {
+  errored.value = true
+})
 
 const visualizationData = projectStore.useVisualizationData(() => {
   return props.data == null && props.expressionId != null
@@ -56,13 +62,20 @@ function switchToDefaultPreprocessor() {
   visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
 }
 
+watch(
+  () => props.currentType,
+  () => {
+    errored.value = false
+  },
+)
+
 watchEffect(async () => {
   if (props.currentType == null) {
     return
   }
 
   visualization.value = undefined
-  const module = await visualizationStore.get(props.currentType)
+  const module = await visualizationStore.get(props.currentType).value
   if (module) {
     if (module.defaultPreprocessor != null) {
       updatePreprocessor(...module.defaultPreprocessor)
@@ -94,6 +107,9 @@ provideVisualizationConfig({
 })
 
 const effectiveVisualization = computed(() => {
+  if (errored.value) {
+    return ErrorLoadingVisualizationVisualization
+  }
   if (!visualization.value || effectiveVisualizationData.value == null) {
     return LoadingVisualization
   }

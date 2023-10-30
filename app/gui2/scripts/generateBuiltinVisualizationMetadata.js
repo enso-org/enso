@@ -24,8 +24,8 @@ for (const path of [
 ]) {
   if (!path.endsWith('Visualization.vue')) continue
   const file = await fs.readFile(path, 'utf-8')
-  const name = file.match(/(?<=export\s+const\s+name\s+=\s+['"])[^'"]+/)?.[0]
-  const inputType = file.match(/(?<=export\s+const\s+inputType\s+=\s+['"])[^'"]+/)?.[0]
+  const name = file.match(/(?<=export\s+const\s+name\s+=\s+['"])[^'"]*/)?.[0]
+  const inputType = file.match(/(?<=export\s+const\s+inputType\s+=\s+['"])[^'"]*/)?.[0]
   visualizationMetadata.push({ name, inputType })
 }
 visualizationMetadata.sort((a, b) => order.indexOf(a.name ?? '') - order.indexOf(b.name ?? ''))
