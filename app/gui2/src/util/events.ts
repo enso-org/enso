@@ -138,7 +138,7 @@ export function useResizeObserver(
   elementRef: Ref<Element | undefined | null>,
   useContentRect = true,
 ): Ref<Vec2> {
-  const sizeRef = shallowRef<Vec2>(Vec2.Zero())
+  const sizeRef = shallowRef<Vec2>(Vec2.Zero)
   if (typeof ResizeObserver === 'undefined') return sizeRef
   const observer = new ResizeObserver((entries) => {
     let rect: { width: number; height: number } | null = null

@@ -156,7 +156,7 @@ function circleIntersection(x: number, r1: number, r2: number): number {
  *  connecting them, and the length of the target attachment bit.
  */
 function junctionPoints(inputs: Inputs): JunctionPoints | null {
-  let halfSourceSize = inputs.sourceSize?.scale(0.5) ?? Vec2.Zero()
+  let halfSourceSize = inputs.sourceSize?.scale(0.5) ?? Vec2.Zero
   // The maximum x-distance from the source (our local coordinate origin) for the point where the
   // edge will begin.
   const sourceMaxXOffset = Math.max(halfSourceSize.x - NODE_CORNER_RADIUS, 0)
@@ -310,7 +310,7 @@ function pathElements(junctions: JunctionPoints): { start: Vec2; elements: Eleme
     }
   }
   const start = junctions.points[0]
-  if (start == null) return { start: Vec2.Zero(), elements: [] }
+  if (start == null) return { start: Vec2.Zero, elements: [] }
   let prev = start
   junctions.points.slice(1).map((j, i) => {
     const d = j.sub(prev)
@@ -387,7 +387,7 @@ function lengthTo(pos: Vec2): number | undefined {
   for (let i = 0; i < totalLength + precision; i += precision) {
     const len = Math.min(i, totalLength)
     const p = path.getPointAtLength(len)
-    const dist = pos.distanceSquare(new Vec2(p.x, p.y))
+    const dist = pos.distanceSquared(new Vec2(p.x, p.y))
     if (bestDist == null || dist < bestDist) {
       best = len
       bestDist = dist
@@ -396,7 +396,7 @@ function lengthTo(pos: Vec2): number | undefined {
   if (best == null || bestDist == null) return undefined
   const tryPos = (len: number) => {
     const point = path.getPointAtLength(len)
-    const dist: number = pos.distanceSquare(new Vec2(point.x, point.y))
+    const dist: number = pos.distanceSquared(new Vec2(point.x, point.y))
     if (bestDist == null || dist < bestDist) {
       best = len
       bestDist = dist
