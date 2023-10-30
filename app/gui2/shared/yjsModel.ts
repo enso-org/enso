@@ -82,12 +82,8 @@ export class DistributedProject {
     return new DistributedModule(doc)
   }
 
-  async createNewModule(name: string): Promise<DistributedModule> {
+  createNewModule(name: string): DistributedModule {
     return this.createUnloadedModule(name, new Y.Doc())
-  }
-
-  async openOrCreateModule(name: string): Promise<DistributedModule> {
-    return (await this.openModule(name)) ?? (await this.createNewModule(name))
   }
 
   deleteModule(name: string): void {

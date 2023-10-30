@@ -21,7 +21,7 @@ import java.util.UUID
   * @param diagnostics compiler diagnostics for this node
   */
 @SerialVersionUID(
-  8145L // Scala to Java
+  8160L // Use BindingsMap
 )       // prevents reading broken caches, see PR-3692 for details
 sealed case class Module(
   imports: List[Import],

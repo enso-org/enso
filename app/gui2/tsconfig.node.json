@@ -5,6 +5,7 @@
     "vitest.config.*",
     "playwright.config.*",
     "eslint.config.js",
+    "histoire.config.ts",
     "e2e/**/*",
     "parser-codegen/**/*",
     "node.env.d.ts"

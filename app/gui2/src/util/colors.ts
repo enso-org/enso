@@ -1,5 +1,4 @@
-import type { Oklch } from 'culori/fn'
-import { formatCss, formatRgb, modeOklch, modeRgb, useMode } from 'culori/fn'
+import { formatCss, formatRgb, modeOklch, modeRgb, useMode, type Oklch } from 'culori/fn'
 import { v3 as hashString } from 'murmurhash'
 
 useMode(modeOklch)
