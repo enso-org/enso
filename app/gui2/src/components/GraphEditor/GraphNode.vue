@@ -1,42 +1,30 @@
 <script setup lang="ts">
-import { nodeEditBindings, nodeSelectionBindings } from '@/bindings'
+import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
-import NodeSpan from '@/components/NodeSpan.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
+import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
-import {
-  provideVisualizationConfig,
-  type VisualizationConfig,
-} from '@/providers/visualizationConfig'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import {
-  DEFAULT_VISUALIZATION_CONFIGURATION,
-  DEFAULT_VISUALIZATION_IDENTIFIER,
-  useVisualizationStore,
-  type Visualization,
-} from '@/stores/visualization'
+import { useApproach } from '@/util/animation'
 import { colorFromString } from '@/util/colors'
 import { usePointer, useResizeObserver } from '@/util/events'
 import { methodNameToIcon, typeNameToIcon } from '@/util/getIconName'
-import type { UnsafeMutable } from '@/util/mutable'
 import type { Opt } from '@/util/opt'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { Rect } from '@/util/rect'
 import { unwrap } from '@/util/result'
-import type { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUpdated, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
+const MAXIMUM_CLICK_DISTANCE_SQ = 50
 
 const props = defineProps<{
   node: Node
-  // id: string & ExprId
-  selected: boolean
-  isLatestSelected: boolean
-  fullscreenVis: boolean
 }>()
 
 const emit = defineEmits<{
@@ -49,41 +37,43 @@ const emit = defineEmits<{
   delete: []
   replaceSelection: []
   'update:selected': [selected: boolean]
+  outputPortAction: []
 }>()
 
-const visualizationStore = useVisualizationStore()
+const nodeSelection = injectGraphSelection(true)
 
+const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const editableRootNode = ref<HTMLElement>()
+const menuVisible = ref(false)
 
-type PreprocessorDef = {
-  visualizationModule: string
-  expression: string
-  positionalArgumentsExpressions: string[]
-}
-const visPreprocessor = ref<PreprocessorDef>(DEFAULT_VISUALIZATION_CONFIGURATION)
+const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+watch(isSelected, (selected) => {
+  menuVisible.value = menuVisible.value && selected
+})
 
 const isAutoEvaluationDisabled = ref(false)
 const isDocsVisible = ref(false)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 
-const visualization = shallowRef<Visualization>()
-
 const projectStore = useProjectStore()
-
-const visualizationData = projectStore.useVisualizationData(() => {
-  if (!isVisualizationVisible.value || !visPreprocessor.value) return
-  return {
-    ...visPreprocessor.value,
-    expressionId: props.node.rootSpan.id,
-  }
-})
 
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
     emit('updateRect', new Rect(props.node.position, nodeSize.value))
+  }
+})
+
+const outputHovered = ref(false)
+const hoverAnimation = useApproach(() => (outputHovered.value ? 1 : 0), 50, 0.01)
+
+const bgStyleVariables = computed(() => {
+  return {
+    '--node-width': `${nodeSize.value.x}px`,
+    '--node-height': `${nodeSize.value.y}px`,
+    '--hover-animation': `${hoverAnimation.value}`,
   }
 })
 
@@ -299,85 +289,12 @@ onUpdated(() => {
   }
 })
 
-function updatePreprocessor(
-  visualizationModule: string,
-  expression: string,
-  ...positionalArgumentsExpressions: string[]
-) {
-  visPreprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
-}
-
-function switchToDefaultPreprocessor() {
-  visPreprocessor.value = DEFAULT_VISUALIZATION_CONFIGURATION
-}
-
-// This usage of `UnsafeMutable` is SAFE, as it is being used on a type without an associated value.
-const visualizationConfig = ref<UnsafeMutable<VisualizationConfig>>({
-  fullscreen: false,
-  // We do not know the type yet.
-  types: visualizationStore.types(undefined),
-  width: null,
-  height: 150,
-  hide() {
-    emit('setVisualizationVisible', false)
-  },
-  updateType: (id) => emit('setVisualizationId', id),
-  isCircularMenuVisible: props.isLatestSelected,
-  get nodeSize() {
-    return nodeSize.value
-  },
-  get currentType() {
-    return props.node.vis ?? DEFAULT_VISUALIZATION_IDENTIFIER
-  },
-})
-provideVisualizationConfig(visualizationConfig)
-
-const module = computed(() =>
-  props.node.vis == null ? undefined : visualizationStore.get(props.node.vis).value,
-)
-
-watchEffect(() => {
-  if (module.value) {
-    if (module.value.defaultPreprocessor != null) {
-      updatePreprocessor(...module.value.defaultPreprocessor)
-    } else {
-      switchToDefaultPreprocessor()
-    }
-    visualization.value = module.value.default
-  }
-})
-
-const effectiveVisualization = computed<Visualization>(() => {
-  if (!visualization.value || visualizationData.value == null) {
-    return LoadingVisualization
-  }
-  return visualization.value
-})
-
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
     rootNode.value?.focus()
   },
 )
-
-const mouseHandler = nodeSelectionBindings.handler({
-  replace() {
-    emit('replaceSelection')
-  },
-  add() {
-    emit('update:selected', true)
-  },
-  remove() {
-    emit('update:selected', false)
-  },
-  toggle() {
-    emit('update:selected', !props.selected)
-  },
-  invert() {
-    emit('update:selected', !props.selected)
-  },
-})
 
 const editableKeydownHandler = nodeEditBindings.handler({
   selectAll() {
@@ -392,24 +309,29 @@ const editableKeydownHandler = nodeEditBindings.handler({
 })
 
 const startEpochMs = ref(0)
-const startEvent = ref<PointerEvent>()
+let startEvent: PointerEvent | null = null
+let startPos = Vec2.Zero()
 
 const dragPointer = usePointer((pos, event, type) => {
   emit('movePosition', pos.delta)
   switch (type) {
     case 'start': {
       startEpochMs.value = Number(new Date())
-      startEvent.value = event
+      startEvent = event
+      startPos = pos.absolute
       event.stopImmediatePropagation()
       break
     }
     case 'stop': {
       if (
         Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
-        startEvent.value != null
+        startEvent != null &&
+        pos.absolute.distanceSquare(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
-        mouseHandler(startEvent.value)
+        nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
+        menuVisible.value = true
       }
+      startEvent = null
       startEpochMs.value = 0
     }
   }
@@ -418,7 +340,7 @@ const dragPointer = usePointer((pos, event, type) => {
 const suggestionDbStore = useSuggestionDbStore()
 
 const expressionInfo = computed(() =>
-  projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.id),
+  projectStore.computedValueRegistry.getExpressionInfo(props.node.rootSpan.astId),
 )
 const outputTypeName = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
@@ -452,9 +374,9 @@ const color = computed(() =>
     : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
 )
 
-watchEffect(() => {
-  visualizationConfig.value.types = visualizationStore.types(expressionInfo.value?.typename)
-})
+function hoverExpr(id: ExprId | undefined) {
+  if (nodeSelection != null) nodeSelection.hoveredExpr = id
+}
 </script>
 
 <template>
@@ -467,7 +389,7 @@ watchEffect(() => {
     }"
     :class="{
       dragging: dragPointer.dragging,
-      selected,
+      selected: nodeSelection?.isSelected(nodeId),
       visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
@@ -477,21 +399,25 @@ watchEffect(() => {
       {{ node.binding }}
     </div>
     <CircularMenu
-      v-if="isLatestSelected"
-      v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
-      v-model:is-docs-visible="isDocsVisible"
+      v-if="menuVisible"
+      v-model:isAutoEvaluationDisabled="isAutoEvaluationDisabled"
+      v-model:isDocsVisible="isDocsVisible"
       :isVisualizationVisible="isVisualizationVisible"
       @update:isVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
-    <component
-      :is="effectiveVisualization"
+    <GraphVisualization
       v-if="isVisualizationVisible"
-      :data="visualizationData"
-      @update:preprocessor="updatePreprocessor"
+      :nodeSize="nodeSize"
+      :isCircularMenuVisible="menuVisible"
+      :currentType="props.node.vis"
+      :expressionId="props.node.rootSpan.astId"
+      :typename="expressionInfo?.typename"
+      @setVisualizationId="emit('setVisualizationId', $event)"
+      @setVisualizationVisible="emit('setVisualizationVisible', $event)"
     />
     <div class="node" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
-      <div
+      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon
+      ><span
         ref="editableRootNode"
         class="editable"
         contenteditable
@@ -500,29 +426,105 @@ watchEffect(() => {
         @keydown="editableKeydownHandler"
         @pointerdown.stop
         @blur="projectStore.stopCapturingUndo()"
-      >
-        <NodeSpan
-          :content="node.content"
-          :span="node.rootSpan"
-          :offset="0"
+        ><NodeTree
+          :ast="node.rootSpan"
+          :nodeSpanStart="node.rootSpan.span()[0]"
           @updateExprRect="updateExprRect"
-        />
-      </div>
+          @updateHoveredExpr="hoverExpr($event)"
+      /></span>
     </div>
+    <svg class="bgPaths" :style="bgStyleVariables">
+      <rect class="bgFill" />
+      <rect
+        class="outputPortHoverArea"
+        @pointerenter="outputHovered = true"
+        @pointerleave="outputHovered = false"
+        @pointerdown="emit('outputPortAction')"
+      />
+      <rect class="outputPort" />
+    </svg>
     <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>
 </template>
 
 <style scoped>
+.bgPaths {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  overflow: visible;
+  top: 0px;
+  left: 0px;
+  display: flex;
+
+  --output-port-max-width: 6px;
+  --output-port-overlap: 0.1px;
+  --output-port-hover-width: 8px;
+}
+.outputPort,
+.outputPortHoverArea {
+  x: calc(0px - var(--output-port-width) / 2);
+  y: calc(0px - var(--output-port-width) / 2);
+  width: calc(var(--node-width) + var(--output-port-width));
+  height: calc(var(--node-height) + var(--output-port-width));
+  rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
+
+  fill: none;
+  stroke: var(--node-color-port);
+  stroke-width: calc(var(--output-port-width) + var(--output-port-overlap));
+  transition: stroke 0.2s ease;
+  --horizontal-line: calc(var(--node-width) - var(--node-border-radius) * 2);
+  --vertical-line: calc(var(--node-height) - var(--node-border-radius) * 2);
+  --radius-arclength: calc(
+    (var(--node-border-radius) + var(--output-port-width) * 0.5) * 2 * 3.141592653589793
+  );
+
+  stroke-dasharray: calc(var(--horizontal-line) + var(--radius-arclength) * 0.5) 10000%;
+  stroke-dashoffset: calc(
+    0px - var(--horizontal-line) - var(--vertical-line) - var(--radius-arclength) * 0.25
+  );
+  stroke-linecap: round;
+}
+
+.outputPort {
+  --output-port-width: calc(
+    var(--output-port-max-width) * var(--hover-animation) - var(--output-port-overlap)
+  );
+  pointer-events: none;
+}
+
+.outputPortHoverArea {
+  --output-port-width: var(--output-port-hover-width);
+  stroke: transparent;
+  pointer-events: all;
+}
+
+.bgFill {
+  width: var(--node-width);
+  height: var(--node-height);
+  rx: var(--node-border-radius);
+
+  fill: var(--node-color-primary);
+  transition: fill 0.2s ease;
+}
+
+.bgPaths .bgPaths:hover {
+  opacity: 1;
+}
+
 .GraphNode {
   --node-height: 32px;
-  --node-border-radius: calc(var(--node-height) * 0.5);
+  --node-border-radius: 16px;
 
   --node-group-color: #357ab9;
 
-  --node-color-primary: color-mix(in oklab, var(--node-group-color) 100%, transparent 0%);
+  --node-color-primary: color-mix(
+    in oklab,
+    var(--node-group-color) 100%,
+    var(--node-group-color) 0%
+  );
   --node-color-port: color-mix(in oklab, var(--node-color-primary) 75%, white 15%);
-  --node-color-error: color-mix(in oklab, var(--node-group-color) 30%, rgba(255, 0, 0) 70%);
+  --node-color-error: color-mix(in oklab, var(--node-group-color) 30%, rgb(255, 0, 0) 70%);
 
   &.executionState-Unknown,
   &.executionState-Pending {
@@ -543,8 +545,6 @@ watchEffect(() => {
   left: 0;
   caret-shape: bar;
   height: var(--node-height);
-  background: var(--node-color-primary);
-  background-clip: padding-box;
   border-radius: var(--node-border-radius);
   display: flex;
   flex-direction: row;
@@ -552,9 +552,7 @@ watchEffect(() => {
   white-space: nowrap;
   padding: 4px 8px;
   z-index: 2;
-  transition:
-    background 0.2s ease,
-    outline 0.2s ease;
+  transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
 .GraphNode .selection {
@@ -640,6 +638,7 @@ watchEffect(() => {
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
   pointer-events: none;
+  z-index: 10;
   color: var(--node-color-primary);
 }
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-
+import type { Icon } from '@/util/iconName'
 import { computed, ref } from 'vue'
 
 enum SortDirection {
@@ -33,7 +33,7 @@ const sortedValuesAndIndices = computed(() => {
   }
 })
 
-const ICON_LOOKUP: Record<SortDirection, string> = {
+const ICON_LOOKUP: Record<SortDirection, Icon> = {
   [SortDirection.none]: 'sort',
   [SortDirection.ascending]: 'sort_ascending',
   [SortDirection.descending]: 'sort_descending',

@@ -82,12 +82,8 @@ export class DistributedProject {
     return new DistributedModule(doc)
   }
 
-  async createNewModule(name: string): Promise<DistributedModule> {
+  createNewModule(name: string): DistributedModule {
     return this.createUnloadedModule(name, new Y.Doc())
-  }
-
-  async openOrCreateModule(name: string): Promise<DistributedModule> {
-    return (await this.openModule(name)) ?? (await this.createNewModule(name))
   }
 
   deleteModule(name: string): void {
@@ -164,7 +160,10 @@ export class DistributedModule {
     const start = range == null ? exprStart : exprStart + range[0]
     const end = range == null ? exprEnd : exprStart + range[1]
     if (start > end) throw new Error('Invalid range')
-    if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
+    if (start < exprStart || end > exprEnd)
+      throw new Error(
+        `Range out of bounds. Got [${start}, ${end}], bounds are [${exprStart}, ${exprEnd}]`,
+      )
     this.transact(() => {
       if (content.length > 0) {
         this.doc.contents.insert(start, content)
@@ -230,7 +229,7 @@ export class IdMap {
     this.finished = false
   }
 
-  private static keyForRange(range: [number, number]): string {
+  private static keyForRange(range: readonly [number, number]): string {
     return `${range[0].toString(16)}:${range[1].toString(16)}`
   }
 
@@ -256,7 +255,12 @@ export class IdMap {
     this.accessed.add(id)
   }
 
-  getOrInsertUniqueId(range: [number, number]): ExprId {
+  getIfExist(range: readonly [number, number]): ExprId | undefined {
+    const key = IdMap.keyForRange(range)
+    return this.rangeToExpr.get(key)
+  }
+
+  getOrInsertUniqueId(range: readonly [number, number]): ExprId {
     if (this.finished) {
       throw new Error('IdMap already finished')
     }
@@ -292,7 +296,7 @@ export class IdMap {
    *
    * Can be called at most once. After calling this method, the ID map is no longer usable.
    */
-  finishAndSynchronize(): void {
+  finishAndSynchronize(): typeof this.yMap {
     if (this.finished) {
       throw new Error('IdMap already finished')
     }
@@ -320,6 +324,7 @@ export class IdMap {
         this.yMap.set(expr, encoded)
       })
     })
+    return this.yMap
   }
 }
 

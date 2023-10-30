@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{Expression, Function, Module, Name}
 import org.enso.compiler.core.ir.expression.errors

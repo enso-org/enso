@@ -17,6 +17,7 @@ import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
@@ -79,14 +80,20 @@ public abstract class AssertNode extends Node {
         throw new PanicException(builtins.error().makeAssertionError(msg), this);
       }
     } catch (UnsupportedMessageException e) {
-      var typeError =
-          builtins
-              .error()
-              .makeTypeError(
-                  builtins.bool().getType(),
-                  TypeOfNode.getUncached().execute(actionRes),
-                  "Result of assert action");
-      throw new PanicException(typeError, this);
+      if (actionRes instanceof DataflowError dataflowError) {
+        var txt = Text.create("Result of assert action is a dataflow error: " + dataflowError);
+        throw new PanicException(
+            builtins.error().makeAssertionError(txt), this);
+      } else {
+        var typeError =
+            builtins
+                .error()
+                .makeTypeError(
+                    builtins.bool().getType(),
+                    TypeOfNode.getUncached().execute(actionRes),
+                    "Result of assert action");
+        throw new PanicException(typeError, this);
+      }
     }
   }
 }

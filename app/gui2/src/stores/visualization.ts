@@ -116,7 +116,10 @@ type VisualizationCacheKey = string & { [visualizationCacheKeyBrand]: never }
 export const useVisualizationStore = defineStore('visualization', () => {
   const imports = { ...builtinVisualizationImports }
   const paths = { ...dynamicVisualizationPaths }
-  const cache = reactive(new Map<VisualizationCacheKey, VisualizationModule>())
+  const cache = reactive(new Map<VisualizationCacheKey, Promise<VisualizationModule>>())
+  const compilationAbortControllers = reactive(
+    new Map<string /* path, excluding leading / */, AbortController>(),
+  )
   const currentProjectVisualizationsByPath = new Map<string, string>()
   let worker: Worker | undefined
   let workerMessageId = 0
@@ -189,10 +192,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
         ? allVisualizations
         : visualizationsForType.get(type) ?? visualizationsForAny.value
     return ret
-  }
-
-  function register(module: VisualizationModule) {
-    console.log(`registering visualization: name=${module.name}, inputType=${module.inputType}`)
   }
 
   function postMessage<T>(worker: Worker, message: T) {
@@ -445,13 +444,17 @@ export const useVisualizationStore = defineStore('visualization', () => {
       if (event.path.segments[0] === 'visualizations') {
         switch (event.kind) {
           case 'Added': {
-            const viz = await compile('enso-current-project:' + pathString)
             try {
+              const abortController = new AbortController()
+              compilationAbortControllers.set(pathString, abortController)
+              const vizPromise = compile('enso-current-project:' + pathString)
+              const viz = await vizPromise
+              if (abortController.signal.aborted) break
               const key = toVisualizationCacheKey({
                 module: { kind: 'CurrentProject' },
                 name: viz.name,
               })
-              cache.set(key, await compile('enso-current-project:' + pathString))
+              cache.set(key, vizPromise)
             } catch {
               // Ignored - the file is not a module.
             }
@@ -460,7 +463,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           case 'Modified': {
             if (!key) break
             try {
-              cache.set(key, await compile('enso-current-project:' + pathString))
+              cache.set(key, compile('enso-current-project:' + pathString))
             } catch (error) {
               if (error instanceof InvalidVisualizationModuleError) {
                 cache.delete(key)
@@ -471,6 +474,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
           }
           case 'Removed': {
             currentProjectVisualizationsByPath.delete(pathString)
+            compilationAbortControllers.get(pathString)?.abort()
+            compilationAbortControllers.delete(pathString)
             if (key) cache.delete(key)
           }
         }
@@ -478,41 +483,42 @@ export const useVisualizationStore = defineStore('visualization', () => {
     })
   })
 
-  // NOTE: Because visualization scripts are cached, they are not guaranteed to be up to date.
-  function get(meta: VisualizationIdentifier, ignoreCache = false) {
+  async function get(meta: VisualizationIdentifier, ignoreCache = false) {
     const key = toVisualizationCacheKey(meta)
-    switch (meta.module.kind) {
-      case 'Builtin': {
-        ;(async () => {
-          const type = meta.name
-          let module = cache.get(key)
-          if (module == null) {
-            module = await imports[type]?.()
-          }
-          if (module == null || ignoreCache) {
-            const path = paths[type]
-            if (path != null) {
-              module = await compile(path)
-            }
-          }
-          if (module != null) {
-            register(module)
-            await loadScripts(module)
-            cache.set(key, module)
-          }
-        })()
-        break
-      }
-      case 'CurrentProject': {
-        // No special handling needed; updates are handled in an external event handler above.
-        break
-      }
-      case 'Library': {
-        console.warn('Library visualization support is not yet implemented:', meta.module)
-        break
+    if (!cache.get(key) || ignoreCache) {
+      switch (meta.module.kind) {
+        case 'Builtin': {
+          cache.set(key, resolveBuiltinVisualization(meta.name))
+          break
+        }
+        case 'CurrentProject': {
+          // No special handling needed; updates are handled in an external event handler above.
+          break
+        }
+        case 'Library': {
+          console.warn('Library visualization support is not yet implemented:', meta.module)
+          break
+        }
       }
     }
     return computed(() => cache.get(key))
+  }
+
+  async function resolveBuiltinVisualization(type: string) {
+    const builtinImport = imports[type]?.()
+    if (builtinImport) {
+      const module = await builtinImport
+      await loadScripts(module)
+      return module
+    }
+    const builtinDynamicPath = paths[type]
+    if (builtinDynamicPath != null) {
+      const module = await compile(builtinDynamicPath)
+      console.log(module)
+      await loadScripts(module)
+      return module
+    }
+    throw new Error(`Unknown visualization type: ${type}`)
   }
 
   return { types, get }

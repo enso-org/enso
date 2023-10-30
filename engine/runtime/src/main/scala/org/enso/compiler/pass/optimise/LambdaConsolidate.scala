@@ -1,7 +1,8 @@
 package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.{CompilerError, IR, Identifier}
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Empty,
@@ -13,7 +14,6 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -24,6 +24,8 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.syntax.text.Location
+
+import java.util.UUID
 
 /** This pass consolidates chains of lambdas into multi-argument lambdas
   * internally.
@@ -268,7 +270,7 @@ case object LambdaConsolidate extends IRPass {
     body: Expression,
     defaults: List[Option[Expression]],
     argument: DefinitionArgument,
-    toReplaceExpressionIds: Set[IR.Identifier]
+    toReplaceExpressionIds: Set[UUID @Identifier]
   ): (Expression, List[Option[Expression]]) = {
     (
       replaceInExpression(body, argument, toReplaceExpressionIds),
@@ -292,7 +294,7 @@ case object LambdaConsolidate extends IRPass {
   def replaceInExpression(
     expr: Expression,
     argument: DefinitionArgument,
-    toReplaceExpressionIds: Set[IR.Identifier]
+    toReplaceExpressionIds: Set[UUID @Identifier]
   ): Expression = {
     expr.transformExpressions { case name: Name =>
       replaceInName(name, argument, toReplaceExpressionIds)
@@ -310,7 +312,7 @@ case object LambdaConsolidate extends IRPass {
   def replaceInName(
     name: Name,
     argument: DefinitionArgument,
-    toReplaceExpressionIds: Set[IR.Identifier]
+    toReplaceExpressionIds: Set[UUID @Identifier]
   ): Name = {
     if (toReplaceExpressionIds.contains(name.getId)) {
       name match {
@@ -371,7 +373,7 @@ case object LambdaConsolidate extends IRPass {
     */
   def usageIdsForShadowedArgs(
     argsWithShadowed: List[(DefinitionArgument, Boolean)]
-  ): List[Set[IR.Identifier]] = {
+  ): List[Set[UUID @Identifier]] = {
     argsWithShadowed.map {
       case (spec: DefinitionArgument.Specified, isShadowed) =>
         val aliasInfo =
@@ -395,7 +397,7 @@ case object LambdaConsolidate extends IRPass {
                     ) =>
                   identifier
               }
-          } else Set[IR.Identifier]()
+          } else Set[UUID @Identifier]()
 
         usageIds
     }
@@ -442,7 +444,7 @@ case object LambdaConsolidate extends IRPass {
   def computeReplacedExpressions(
     args: List[DefinitionArgument],
     body: Expression,
-    usageIdsForShadowed: List[Set[IR.Identifier]]
+    usageIdsForShadowed: List[Set[UUID @Identifier]]
   ): (List[DefinitionArgument], Expression) = {
     var newBody     = body
     var newDefaults = args.map(_.defaultValue)

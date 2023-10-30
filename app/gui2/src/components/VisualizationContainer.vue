@@ -36,7 +36,7 @@ const resizeRight = usePointer((pos, _, type) => {
     return
   }
   const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-  config.value.width = Math.max(config.value.nodeSize.x, width)
+  config.width = Math.max(config.nodeSize.x, width)
 }, PointerButtonMask.Main)
 
 const resizeBottom = usePointer((pos, _, type) => {
@@ -44,7 +44,7 @@ const resizeBottom = usePointer((pos, _, type) => {
     return
   }
   const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-  config.value.height = Math.max(0, height)
+  config.height = Math.max(0, height)
 }, PointerButtonMask.Main)
 
 const resizeBottomRight = usePointer((pos, _, type) => {
@@ -53,11 +53,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   }
   if (pos.delta.x !== 0) {
     const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-    config.value.width = Math.max(config.value.nodeSize.x, width)
+    config.width = Math.max(config.nodeSize.x, width)
   }
   if (pos.delta.y !== 0) {
     const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-    config.value.height = Math.max(0, height)
+    config.height = Math.max(0, height)
   }
 }, PointerButtonMask.Main)
 </script>
@@ -129,7 +129,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             />
           </div>
         </div>
-        <div class="toolbar">
+        <div v-if="$slots.toolbar" class="toolbar">
           <slot name="toolbar"></slot>
         </div>
       </div>
@@ -211,7 +211,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   gap: 12px;
   padding: 8px;
 
-  &::before {
+  &:before {
     content: '';
     position: absolute;
     top: 0;
@@ -224,7 +224,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   }
 }
 
-.toolbar:not(:first-child):not(:has(> :nth-child(2))) {
+.toolbar:not(:first-child):not(:has(> *)) {
   display: none;
 }
 
@@ -281,11 +281,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   display: inline-flex;
 }
 
-.VisualizationContainer > .toolbars > .toolbar > :deep(*) {
+.VisualizationContainer :deep(> .toolbars > .toolbar > *) {
   position: relative;
 }
 
-.VisualizationContainer:not(.fullscreen) :deep(.image-button) {
+:deep(.image-button) {
   cursor: none;
   background: none;
   padding: 0;
@@ -293,11 +293,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   opacity: 30%;
 }
 
-.VisualizationContainer :deep(.image-button.active) {
+:deep(.image-button.active) {
   opacity: unset;
 }
 
-.VisualizationContainer :deep(.image-button > *) {
+:deep(.image-button > *) {
   vertical-align: top;
 }
 </style>

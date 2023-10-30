@@ -4,6 +4,8 @@ import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
+  CapabilityAcquisitionBadRequest,
+  CapabilityReleaseBadRequest,
   ReleaseCapability
 }
 import org.enso.languageserver.data.{
@@ -65,6 +67,10 @@ class CapabilityRouter(
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       suggestionsHandler.forward(msg)
+    case AcquireCapability(_, _) =>
+      sender() ! CapabilityAcquisitionBadRequest
+    case ReleaseCapability(_, _) =>
+      sender() ! CapabilityReleaseBadRequest
   }
 
 }

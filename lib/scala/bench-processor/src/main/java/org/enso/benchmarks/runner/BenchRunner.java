@@ -71,12 +71,10 @@ public class BenchRunner {
     }
   }
 
-  private static Collection<RunResult> runCompileOnly(List<String> includes) throws RunnerException {
+  private static Collection<RunResult> runCompileOnly(List<String> includes)
+      throws RunnerException {
     System.out.println("Running benchmarks " + includes + " in compileOnly mode");
-    var optsBuilder = new OptionsBuilder()
-        .measurementIterations(1)
-        .warmupIterations(0)
-        .forks(0);
+    var optsBuilder = new OptionsBuilder().measurementIterations(1).warmupIterations(0).forks(0);
     includes.forEach(optsBuilder::include);
     var opts = optsBuilder.build();
     var runner = new Runner(opts);
@@ -90,10 +88,11 @@ public class BenchRunner {
       var firstResult = results.iterator().next();
       return reportResult(label, firstResult);
     } else {
-      var opts = new OptionsBuilder()
-          .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
-          .include(includeRegex)
-          .build();
+      var opts =
+          new OptionsBuilder()
+              .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
+              .include(includeRegex)
+              .build();
       RunResult benchmarksResult = new Runner(opts).runSingle();
       return reportResult(label, benchmarksResult);
     }
@@ -107,8 +106,7 @@ public class BenchRunner {
       report = new Report();
     }
 
-    BenchmarkItem benchItem =
-        new BenchmarkResultProcessor().processResult(label, report, result);
+    BenchmarkItem benchItem = new BenchmarkResultProcessor().processResult(label, report, result);
 
     Report.writeToFile(report, REPORT_FILE);
     return benchItem;

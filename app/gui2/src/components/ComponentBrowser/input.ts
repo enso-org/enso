@@ -1,6 +1,13 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { Ast, astContainingChar, astSpan, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
+import {
+  Ast,
+  astContainingChar,
+  parseEnso,
+  parsedTreeRange,
+  readAstSpan,
+  readTokenSpan,
+} from '@/util/ast'
 import { GeneralOprApp } from '@/util/ast/opr'
 import {
   qnLastSegment,
@@ -135,7 +142,7 @@ export class Input {
 
   private static pathAsQualifiedName(accessOpr: GeneralOprApp, code: string): QualifiedName | null {
     const operandsAsIdents = Input.qnIdentifiers(accessOpr, code)
-    const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
+    const segments = operandsAsIdents.map((ident) => readAstSpan(ident, code))
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
@@ -162,10 +169,10 @@ export class Input {
     const changes = Array.from(this.inputChangesAfterApplying(entry)).reverse()
     const newCodeUpToLastChange = changes.reduce(
       (builder, change) => {
-        const oldCodeFragment = oldCode.substring(builder.oldCodeIndex, change.start)
+        const oldCodeFragment = oldCode.substring(builder.oldCodeIndex, change.range[0])
         return {
           code: builder.code + oldCodeFragment + change.str,
-          oldCodeIndex: change.end,
+          oldCodeIndex: change.range[1],
         }
       },
       { code: '', oldCodeIndex: 0 },
@@ -190,20 +197,20 @@ export class Input {
    */
   private *inputChangesAfterApplying(
     entry: SuggestionEntry,
-  ): Generator<{ start: number; end: number; str: string }> {
+  ): Generator<{ range: [number, number]; str: string }> {
     const ctx = this.context.value
     const str = this.codeToBeInserted(entry)
     switch (ctx.type) {
       case 'insert': {
-        yield { start: ctx.position, end: ctx.position, str }
+        yield { range: [ctx.position, ctx.position], str }
         break
       }
       case 'changeIdentifier': {
-        yield { ...astSpan(ctx.identifier), str }
+        yield { range: parsedTreeRange(ctx.identifier), str }
         break
       }
       case 'changeLiteral': {
-        yield { ...astSpan(ctx.literal), str }
+        yield { range: parsedTreeRange(ctx.literal), str }
         break
       }
     }
@@ -240,7 +247,7 @@ export class Input {
    * See `inputChangesAfterApplying`. */
   private *qnChangesAfterApplying(
     entry: SuggestionEntry,
-  ): Generator<{ start: number; end: number; str: string }> {
+  ): Generator<{ range: [number, number]; str: string }> {
     if (entry.selfType != null) return []
     if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function) return []
     if (this.context.value.type === 'changeLiteral') return []
@@ -254,7 +261,7 @@ export class Input {
     for (const ident of writtenQn) {
       if (containingQn == null) break
       const [parent, segment] = qnSplit(containingQn)
-      yield { ...astSpan(ident), str: segment }
+      yield { range: parsedTreeRange(ident), str: segment }
       containingQn = parent
     }
   }

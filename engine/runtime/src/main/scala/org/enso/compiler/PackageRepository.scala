@@ -2,7 +2,7 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.Module
+import org.enso.compiler.context.CompilerContext
 import org.enso.pkg.{ComponentGroups, Package}
 
 import scala.collection.immutable.ListSet
@@ -39,7 +39,7 @@ trait PackageRepository {
   def getLoadedPackagesJava: java.lang.Iterable[Package[TruffleFile]]
 
   /** Get a sequence of currently loaded modules. */
-  def getLoadedModules: Seq[Module]
+  def getLoadedModules: Seq[CompilerContext.Module]
 
   /** Get the mapping from qualified module names (equivalent to
     * [[QualifiedName.toString]]) to modules.
@@ -56,10 +56,10 @@ trait PackageRepository {
   def getComponents: PackageRepository.ComponentsMap
 
   /** Modules required for compilation after loading the component groups. */
-  def getPendingModules: ListSet[Module]
+  def getPendingModules: ListSet[CompilerContext.Module]
 
   /** Get a loaded module by its qualified name. */
-  def getLoadedModule(qualifiedName: String): Option[Module]
+  def getLoadedModule(qualifiedName: String): Option[CompilerContext.Module]
 
   /** Register the main project package. */
   def registerMainProjectPackage(
@@ -74,7 +74,7 @@ trait PackageRepository {
   /** Register a single module, outside of any packages or part of an already
     * loaded package, that has been created manually during runtime.
     */
-  def registerModuleCreatedInRuntime(module: Module): Unit
+  def registerModuleCreatedInRuntime(module: CompilerContext.Module): Unit
 
   /** Register an empty package with the given name. Used for populating artificially,
     * e.g. in tests.
@@ -103,7 +103,9 @@ trait PackageRepository {
     getPackageForLibrary(libraryName).toJava
 
   /** Returns all loaded modules of the requested library */
-  def getModulesForLibrary(libraryName: LibraryName): List[Module]
+  def getModulesForLibrary(
+    libraryName: LibraryName
+  ): List[CompilerContext.Module]
 
   /** Returns a deserialized bindings map for the whole library, if available */
   def getLibraryBindings(
@@ -116,8 +118,8 @@ trait PackageRepository {
 object PackageRepository {
 
   type ModuleName      = String
-  type ModuleMap       = collection.concurrent.Map[ModuleName, Module]
-  type FrozenModuleMap = Map[ModuleName, Module]
+  type ModuleMap       = collection.concurrent.Map[ModuleName, CompilerContext.Module]
+  type FrozenModuleMap = Map[ModuleName, CompilerContext.Module]
   type ComponentsMap   = Map[LibraryName, ComponentGroups]
 
   /** A trait representing errors reported by this system */

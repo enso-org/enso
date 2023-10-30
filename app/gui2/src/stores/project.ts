@@ -1,11 +1,17 @@
-import { useGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { bail } from '@/util/assert'
 import { ComputedValueRegistry } from '@/util/computedValueRegistry'
 import { attachProvider } from '@/util/crdt'
-import { AsyncQueue, rpcWithRetries as lsRpcWithRetries } from '@/util/net'
+import {
+  AsyncQueue,
+  createRpcTransport,
+  createWebsocketClient,
+  rpcWithRetries as lsRpcWithRetries,
+} from '@/util/net'
 import { isSome, type Opt } from '@/util/opt'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { VisualizationDataRegistry } from '@/util/visualizationDataRegistry'
-import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
+import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
 import * as object from 'lib0/object'
@@ -25,11 +31,11 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { WebsocketClient } from 'shared/websocket'
 import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
+  reactive,
   ref,
   shallowRef,
   watch,
@@ -66,7 +72,7 @@ async function initializeLsRpcConnection(
   connection: LanguageServer
   contentRoots: ContentRoot[]
 }> {
-  const transport = new WebSocketTransport(url)
+  const transport = createRpcTransport(url)
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
@@ -84,7 +90,7 @@ async function initializeLsRpcConnection(
 }
 
 async function initializeDataConnection(clientId: Uuid, url: string) {
-  const client = new WebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
+  const client = createWebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
   const connection = new DataServer(client)
   await connection.initialize(clientId)
   return connection
@@ -152,6 +158,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   queue: AsyncQueue<ExecutionContextState>
   taskRunning = false
   visSyncScheduled = false
+  desiredStack: StackItem[] = reactive([])
   visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
   abortCtl = new AbortController()
 
@@ -277,6 +284,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   private pushItem(item: StackItem) {
+    this.desiredStack.push(item)
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
       await this.withBackoff(
@@ -293,11 +301,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   pop() {
+    if (this.desiredStack.length === 1) bail('Cannot pop last item from execution context stack')
+    this.desiredStack.pop()
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
-      if (state.stack.length === 0) {
-        throw new Error('Cannot pop from empty execution context stack')
-      }
+      if (state.stack.length === 1) bail('Cannot pop last item from execution context stack')
       await this.withBackoff(
         () => state.lsRpc.popExecutionContextItem(this.id),
         'Failed to pop item from execution context stack',
@@ -384,6 +392,21 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     })
   }
 
+  getStackBottom(): StackItem {
+    return this.desiredStack[0]!
+  }
+
+  getStackTop(): StackItem {
+    return this.desiredStack[this.desiredStack.length - 1]!
+  }
+
+  setExecutionEnvironment(mode: ExecutionEnvironment) {
+    this.queue.pushTask(async (state) => {
+      await state.lsRpc.setExecutionEnvironment(this.id, mode)
+      return state
+    })
+  }
+
   destroy() {
     this.abortCtl.abort()
   }
@@ -400,7 +423,7 @@ export const useProjectStore = defineStore('project', () => {
   const doc = new Y.Doc()
   const awareness = new Awareness(doc)
 
-  const config = useGuiConfig()
+  const config = injectGuiConfig()
   const projectName = config.value.startup?.project
   if (projectName == null) throw new Error('Missing project name.')
 
@@ -415,7 +438,7 @@ export const useProjectStore = defineStore('project', () => {
   const namespace = computed(() => config.value.engine?.namespace)
   const fullName = computed(() => {
     const ns = namespace.value
-    if (ns == null) {
+    if (import.meta.env.PROD && ns == null) {
       console.warn(
         'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
       )
@@ -439,6 +462,11 @@ export const useProjectStore = defineStore('project', () => {
   })
 
   watchEffect((onCleanup) => {
+    if (lsUrls.rpcUrl.startsWith('mock://')) {
+      doc.load()
+      doc.emit('load', [])
+      return
+    }
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
     const socketUrl = new URL(location.origin)
@@ -527,6 +555,7 @@ export const useProjectStore = defineStore('project', () => {
     executionContext,
     module,
     modulePath,
+    projectModel,
     contentRoots,
     awareness,
     computedValueRegistry,

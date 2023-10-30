@@ -30,6 +30,7 @@
 import { assertNever } from '@/util/assert'
 import { parse as babelParse } from '@babel/parser'
 import hash from 'hash-sum'
+import * as map from 'lib0/map'
 import MagicString from 'magic-string'
 import { transform } from 'sucrase'
 import { compileScript, compileStyle, parse } from 'vue/compiler-sfc'
@@ -198,7 +199,7 @@ export interface CompileError {
 // ================
 
 let builtinModules = new Set<string>()
-const alreadyCompiledModules = new Set<string>()
+const alreadyCompiledModules = new Map<string, Promise<void>>()
 
 const assetMimetypes: Record<string, string> = {
   // === Image formats ===
@@ -404,27 +405,22 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
           if (isBuiltin) {
             // No further action is needed.
           } else {
-            if (alreadyCompiledModules.has(path)) {
-              continue
-            }
-            alreadyCompiledModules.add(path)
-            switch (extension) {
-              case 'ts': {
-                await importTS(path)
-                break
-              }
-              case 'vue': {
-                await importVue(path)
-                break
-              }
-              default: {
-                const mimetype = assetMimetypes[extension]
-                if (mimetype != null) {
-                  await importAsset(path, mimetype)
-                  break
+            await map.setIfUndefined(alreadyCompiledModules, path, () => {
+              switch (extension) {
+                case 'ts':
+                  return importTS(path)
+
+                case 'vue':
+                  return importVue(path)
+
+                default: {
+                  const mimetype = assetMimetypes[extension]
+                  if (mimetype != null) {
+                    return importAsset(path, mimetype)
+                  }
                 }
               }
-            }
+            })
           }
         }
         break
@@ -466,10 +462,8 @@ onmessage = async (
     }
     case 'compile-request': {
       try {
-        if (!alreadyCompiledModules.has(event.data.path)) {
-          alreadyCompiledModules.add(event.data.path)
-          await importVue(event.data.path)
-        }
+        const path = event.data.path
+        await map.setIfUndefined(alreadyCompiledModules, path, () => importVue(path))
         postMessage<CompilationResultResponse>({
           type: 'compilation-result-response',
           id: event.data.id,

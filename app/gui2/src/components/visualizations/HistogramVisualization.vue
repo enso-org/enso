@@ -251,17 +251,17 @@ const margin = computed(() => ({
   bottom: MARGIN + (axis.value?.x?.label ? AXIS_LABEL_HEIGHT : 0),
   left: MARGIN + (axis.value?.y?.label ? AXIS_LABEL_HEIGHT : 0),
 }))
-const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
+const width = ref(Math.max(config.width ?? 0, config.nodeSize.x))
 watchPostEffect(() => {
-  width.value = config.value.fullscreen
+  width.value = config.fullscreen
     ? containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
+    : Math.max(config.width ?? 0, config.nodeSize.x)
 })
-const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+const height = ref(config.height ?? (config.nodeSize.x * 3) / 4)
 watchPostEffect(() => {
-  height.value = config.value.fullscreen
+  height.value = config.fullscreen
     ? containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
+    : config.height ?? (config.nodeSize.x * 3) / 4
 })
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))

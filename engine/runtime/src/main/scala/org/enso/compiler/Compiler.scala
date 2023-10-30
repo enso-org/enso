@@ -7,8 +7,10 @@ import org.enso.compiler.context.{
   InlineContext,
   ModuleContext
 }
+import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   Diagnostic,
   Expression,
@@ -34,7 +36,6 @@ import org.enso.compiler.phase.{
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.scope.ModuleScope
-import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.CompilationStage
@@ -231,7 +232,8 @@ class Compiler(
             generateCode,
             shouldCompileDependencies
           )
-        val pending = packageRepository.getPendingModules.toList
+        val pending =
+          packageRepository.getPendingModules.toList
         go(pending, compiledModules ++ newCompiled)
       }
 
@@ -295,6 +297,7 @@ class Compiler(
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
+        ensureParsed(module)
         if (!context.hasCrossModuleLinks(module)) {
           val flags =
             context
@@ -432,7 +435,10 @@ class Compiler(
         if (shouldCompileDependencies || isModuleInRootPackage(module)) {
           val shouldStoreCache =
             irCachingEnabled && !context.wasLoadedFromCache(module)
-          if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
+          if (
+            shouldStoreCache && !hasErrors(module) &&
+            !context.isInteractive(module) && !context.isSynthetic(module)
+          ) {
             if (isInteractiveMode) {
               context.notifySerializeModule(context.getModuleName(module))
             } else {
@@ -503,7 +509,9 @@ class Compiler(
   }
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
-    ensureParsed(module)
+    if (module.getBindingsMap() == null) {
+      ensureParsed(module)
+    }
     if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
       // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
@@ -516,11 +524,8 @@ class Compiler(
             .map { concreteBindings =>
               concreteBindings
             }
-          val ir = context.getIr(module)
-          val currentLocal = ir.unsafeGetMetadata(
-            BindingAnalysis,
-            "Synthetic parsed module missing bindings"
-          )
+          ensureParsed(module)
+          val currentLocal = module.getBindingsMap()
           currentLocal.resolvedImports =
             converted.map(_.resolvedImports).getOrElse(Nil)
           currentLocal.resolvedExports =
@@ -656,7 +661,7 @@ class Compiler(
     * @return the module corresponding to the provided name, if exists
     */
   def getModule(name: String): Option[Module] = {
-    context.getTopScope.getModule(name).toScala
+    Option(context.findTopScopeModule(name))
   }
 
   /** Ensures the passed module is in at least the parsed compilation stage.
@@ -718,9 +723,7 @@ class Compiler(
     loc: Option[IdentifiedLocation],
     source: Source
   ): ModuleScope = {
-    val module = context.getTopScope
-      .getModule(qualifiedName)
-      .toScala
+    val module = Option(context.findTopScopeModule(qualifiedName))
       .getOrElse {
         val locStr = fileLocationFromSection(loc, source)
         throw new CompilerError(
