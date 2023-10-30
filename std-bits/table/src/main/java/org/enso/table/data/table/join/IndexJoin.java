@@ -14,6 +14,10 @@ import org.graalvm.polyglot.Context;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/** A strategy that uses a hash-map to perform join on the equality conditions.
+ * <p>
+ * It then delegates to ??? to perform the remaining conditions on the matching pairs of row subsets.
+ */
 public class IndexJoin implements JoinStrategy {
   private record HashEqualityCondition(
       Column left, Column right, TextFoldingStrategy textFoldingStrategy) {
