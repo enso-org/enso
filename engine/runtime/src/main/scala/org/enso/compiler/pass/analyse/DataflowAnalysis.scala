@@ -42,7 +42,7 @@ import scala.collection.mutable
   *
   * This pass requires the context to provide:
   *
-  * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
+  * - A [[LocalScope]], where relevant.
   *
   * It requires that all members of [[org.enso.compiler.core.ir.IRKind.Primitive]] have been removed
   * from the IR by the time it runs.

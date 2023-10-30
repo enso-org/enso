@@ -3,7 +3,7 @@ package org.enso.compiler.context
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.LocalScope
 
 /** A type containing the information about the execution context for an inline
   * expression.
@@ -34,23 +34,20 @@ object InlineContext {
     * internally.
     *
     * @param localScope the local scope instance
-    * @param moduleScope the module scope instance
+    * @param module the module defining the context
     * @param isInTailPosition whether or not the inline expression occurs in a
     *                         tail position
     * @return the [[InlineContext]] instance corresponding to the arguments
     */
   def fromJava(
     localScope: LocalScope,
-    moduleScope: ModuleScope,
+    module: CompilerContext.Module,
     isInTailPosition: Option[Boolean],
     compilerConfig: CompilerConfig
   ): InlineContext = {
     InlineContext(
-      localScope = Option(localScope),
-      module = ModuleContext(
-        moduleScope.getModule().asCompilerModule(),
-        compilerConfig
-      ),
+      localScope       = Option(localScope),
+      module           = ModuleContext(module, compilerConfig),
       isInTailPosition = isInTailPosition,
       compilerConfig   = compilerConfig
     )

@@ -67,7 +67,7 @@ public abstract class EvalNode extends BaseNode {
     InlineContext inlineContext =
         InlineContext.fromJava(
             localScope,
-            moduleScope,
+            moduleScope.getModule().asCompilerModule(),
             scala.Option.apply(getTailStatus() != TailStatus.NOT_TAIL),
             context.getCompilerConfig());
     var compiler = context.getCompiler();
