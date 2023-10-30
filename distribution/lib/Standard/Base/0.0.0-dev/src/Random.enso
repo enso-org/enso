@@ -301,8 +301,7 @@ type Random_Generator
     ## PRIVATE
     date : Date -> Date -> Boolean -> Date
     date self start_date:Date end_date:Date end_exclusive=True =
-        end = if end_exclusive then end_date else (end_date+(Period.new 0 0 1))
-        date_range = Date_Range.new start_date end
+        date_range = start_date.up_to end_date include_end=end_exclusive.not
         date_range.at (self.integer 0 date_range.length)
 
     ## PRIVATE
