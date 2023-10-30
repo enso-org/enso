@@ -245,14 +245,18 @@ export const useVisualizationStore = defineStore('visualization', () => {
           switch (event.data.type) {
             // === Responses ===
             case 'compilation-result-response': {
-              const module = await moduleCache[event.data.path]
-              const vizModule = VisualizationModule.parse(module)
-              if (vizModule) {
-                workerCallbacks.get(event.data.id)?.resolve(vizModule)
-              } else {
-                workerCallbacks
-                  .get(event.data.id)
-                  ?.reject(new InvalidVisualizationModuleError(event.data.path))
+              try {
+                const module = await moduleCache[event.data.path]
+                const vizModule = VisualizationModule.parse(module)
+                if (vizModule) {
+                  workerCallbacks.get(event.data.id)?.resolve(vizModule)
+                } else {
+                  workerCallbacks
+                    .get(event.data.id)
+                    ?.reject(new InvalidVisualizationModuleError(event.data.path))
+                }
+              } catch (error: any) {
+                workerCallbacks.get(event.data.id)?.reject(error)
               }
               workerCallbacks.delete(event.data.id)
               break
@@ -353,12 +357,17 @@ export const useVisualizationStore = defineStore('visualization', () => {
               break
             }
             case 'add-import-notification': {
-              const module = import(
-                /* @vite-ignore */
-                URL.createObjectURL(new Blob([event.data.code], { type: 'text/javascript' }))
-              )
-              moduleCache[event.data.path] = module
-              moduleCache[event.data.path] = await module
+              try {
+                const module = import(
+                  /* @vite-ignore */
+                  URL.createObjectURL(new Blob([event.data.code], { type: 'text/javascript' }))
+                )
+                // Required for 'compilation-result-response' handler above.
+                moduleCache[event.data.path] = module
+                moduleCache[event.data.path] = await module
+              } catch {
+                // Ignored - the same promise is awaited elsewhere.
+              }
               break
             }
             // === Errors ===
@@ -468,7 +477,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
             updateVisualizationTypes(id, viz.inputType)
             cache.set(key, vizPromise)
           } catch {
-            // Ignored - the file is not a module.
+            // Ignored - the file is either not a module, or contains an error.
           }
           break
         }
@@ -478,7 +487,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
             const abortController = new AbortController()
             compilationAbortControllers.set(pathString, abortController)
             const vizPromise = compile('enso-current-project:' + pathString)
-            cache.set(key, compile('enso-current-project:' + pathString))
+            cache.set(key, vizPromise)
             const viz = await vizPromise
             if (abortController.signal.aborted) break
             if (viz.name !== id.name) {

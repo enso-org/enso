@@ -15,7 +15,7 @@ import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onErrorCaptured, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
-const errored = ref(false)
+const error = ref<Error>()
 
 const projectStore = useProjectStore()
 const visualizationStore = useVisualizationStore()
@@ -35,8 +35,9 @@ const emit = defineEmits<{
 
 const visualization = shallowRef<Visualization>()
 
-onErrorCaptured(() => {
-  errored.value = true
+onErrorCaptured((vueError) => {
+  error.value = vueError
+  return false
 })
 
 const visualizationData = projectStore.useVisualizationData(() => {
@@ -48,7 +49,11 @@ const visualizationData = projectStore.useVisualizationData(() => {
     : null
 })
 
-const effectiveVisualizationData = computed(() => props.data ?? visualizationData.value)
+const effectiveVisualizationData = computed(() =>
+  error.value
+    ? { name: props.currentType?.name, error: error.value }
+    : props.data ?? visualizationData.value,
+)
 
 function updatePreprocessor(
   visualizationModule: string,
@@ -64,9 +69,7 @@ function switchToDefaultPreprocessor() {
 
 watch(
   () => props.currentType,
-  () => {
-    errored.value = false
-  },
+  () => (error.value = undefined),
 )
 
 watchEffect(async () => {
@@ -75,14 +78,18 @@ watchEffect(async () => {
   }
 
   visualization.value = undefined
-  const module = await visualizationStore.get(props.currentType).value
-  if (module) {
-    if (module.defaultPreprocessor != null) {
-      updatePreprocessor(...module.defaultPreprocessor)
-    } else {
-      switchToDefaultPreprocessor()
+  try {
+    const module = await visualizationStore.get(props.currentType).value
+    if (module) {
+      if (module.defaultPreprocessor != null) {
+        updatePreprocessor(...module.defaultPreprocessor)
+      } else {
+        switchToDefaultPreprocessor()
+      }
+      visualization.value = module.default
     }
-    visualization.value = module.default
+  } catch (error: any) {
+    error.value = error as Error
   }
 })
 
@@ -107,7 +114,7 @@ provideVisualizationConfig({
 })
 
 const effectiveVisualization = computed(() => {
-  if (errored.value) {
+  if (error.value) {
     return ErrorLoadingVisualizationVisualization
   }
   if (!visualization.value || effectiveVisualizationData.value == null) {
