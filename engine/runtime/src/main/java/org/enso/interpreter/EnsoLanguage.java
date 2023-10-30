@@ -23,6 +23,8 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.IrToTruffle;
+import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -260,13 +262,23 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           scala.Option.empty()
       );
       Compiler silentCompiler = context.getCompiler().duplicateWithConfig(redirectConfigWithStrictErrors);
-      scala.Option<ExpressionNode> exprNode;
+      ExpressionNode exprNode;
       try {
-        exprNode = silentCompiler
-            .runInline(
-                request.getSource().getCharacters().toString(),
-                inlineContext
-            );
+        var optionTupple = silentCompiler.runInline(
+          request.getSource().getCharacters().toString(),
+          inlineContext
+        );
+        if (optionTupple.nonEmpty()) {
+          var newInlineContext = optionTupple.get()._1();
+          var ir = optionTupple.get()._2();
+          var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
+          var mod = newInlineContext.module$access$0().module$access$0();
+          var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
+          var toTruffle = new IrToTruffle(context, request.getSource(), m.getScope(), redirectConfigWithStrictErrors);
+          exprNode = toTruffle.runInline(ir, sco, "<inline_source>");
+        } else {
+          exprNode = null;
+        }
       } catch (UnhandledEntity e) {
         throw new InlineParsingException("Unhandled entity: " + e.entity(), e);
       } catch (CompilationAbortedException e) {
@@ -277,8 +289,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         silentCompiler.shutdown(false);
       }
 
-      if (exprNode.isDefined()) {
-        var language = EnsoLanguage.get(exprNode.get());
+      if (exprNode != null) {
+        var language = EnsoLanguage.get(exprNode);
         return new ExecutableNode(language) {
           @Child
           private ExpressionNode expr;
@@ -286,7 +298,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           @Override
           public Object execute(VirtualFrame frame) {
             if (expr == null) {
-              expr = insert(exprNode.get());
+              expr = insert(exprNode);
             }
             return expr.executeGeneric(frame);
           }

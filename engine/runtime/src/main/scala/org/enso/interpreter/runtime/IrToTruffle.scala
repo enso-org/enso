@@ -1,8 +1,10 @@
-package org.enso.compiler.codegen
+package org.enso.interpreter.runtime
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
+import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
@@ -197,7 +199,12 @@ class IrToTruffle(
         module
       }
       .foreach { exp =>
-        moduleScope.addExport(exp.unsafeAsModule().getScope)
+        moduleScope.addExport(
+          asScope(
+            exp
+              .unsafeAsModule()
+          )
+        )
       }
     val importDefs = module.imports
     val methodDefs = module.bindings.collect {
@@ -208,17 +215,18 @@ class IrToTruffle(
       imp.target match {
         case BindingsMap.ResolvedType(_, _) =>
         case ResolvedModule(module) =>
-          val mod = module.unsafeAsModule()
+          val mod = module
+            .unsafeAsModule()
           val scope: ModuleScope = imp.importDef.onlyNames
             .map(only => {
               val requestedTypes = only.map(_.name).asJava
               if (requestedTypes.isEmpty()) {
-                mod.getScope()
+                asScope(mod)
               } else {
-                mod.getScope().withTypes(requestedTypes)
+                asScope(mod).withTypes(requestedTypes)
               }
             })
-            .getOrElse(mod.getScope())
+            .getOrElse(asScope(mod))
           moduleScope.addImport(scope)
       }
     }
@@ -244,10 +252,10 @@ class IrToTruffle(
     val typeDefs = module.bindings.collect { case tp: Definition.Type => tp }
     typeDefs.foreach { tpDef =>
       // Register the atoms and their constructors in scope
-      val atomDefs    = tpDef.members
-      val runtimeType = moduleScope.getTypes.get(tpDef.name.name)
+      val atomDefs = tpDef.members
+      val asType   = moduleScope.getTypes.get(tpDef.name.name)
       val atomConstructors =
-        atomDefs.map(cons => runtimeType.getConstructors.get(cons.name.name))
+        atomDefs.map(cons => asType.getConstructors.get(cons.name.name))
       atomConstructors
         .zip(atomDefs)
         .foreach { case (atomCons, atomDefn) =>
@@ -280,7 +288,7 @@ class IrToTruffle(
 
           for (idx <- atomDefn.arguments.indices) {
             val unprocessedArg = atomDefn.arguments(idx)
-            val checkNode      = checkRuntimeTypes(unprocessedArg)
+            val checkNode      = checkAsTypes(unprocessedArg)
             val arg            = argFactory.run(unprocessedArg, idx, checkNode)
             val occInfo = unprocessedArg
               .unsafeGetMetadata(
@@ -345,7 +353,7 @@ class IrToTruffle(
             )
           }
         }
-      runtimeType.generateGetters(language)
+      asType.generateGetters(language)
     }
 
     // Register the method definitions in scope
@@ -387,9 +395,16 @@ class IrToTruffle(
               .map { res =>
                 res.target match {
                   case BindingsMap.ResolvedType(module, tp) =>
-                    module.unsafeAsModule().getScope.getTypes.get(tp.name)
+                    asScope(
+                      module
+                        .unsafeAsModule()
+                    ).getTypes
+                      .get(tp.name)
                   case BindingsMap.ResolvedModule(module) =>
-                    module.unsafeAsModule().getScope.getAssociatedType
+                    asScope(
+                      module
+                        .unsafeAsModule()
+                    ).getAssociatedType
                   case BindingsMap.ResolvedConstructor(_, _) =>
                     throw new CompilerError(
                       "Impossible, should be caught by MethodDefinitions pass"
@@ -717,7 +732,12 @@ class IrToTruffle(
             ) =>
           ReadArgumentCheckNode.build(
             name,
-            mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+            asScope(
+              mod
+                .unsafeAsModule()
+                .asInstanceOf[TruffleCompilerContext.Module]
+            ).getTypes
+              .get(tpe.name)
           )
         case Some(
               BindingsMap
@@ -725,14 +745,18 @@ class IrToTruffle(
             ) =>
           ReadArgumentCheckNode.meta(
             name,
-            mod.unsafeAsModule().getScope.getPolyglotSymbol(symbol.name)
+            asScope(
+              mod
+                .unsafeAsModule()
+                .asInstanceOf[TruffleCompilerContext.Module]
+            ).getPolyglotSymbol(symbol.name)
           )
         case _ => null
       }
     }
   }
 
-  private def checkRuntimeTypes(
+  private def checkAsTypes(
     arg: DefinitionArgument
   ): ReadArgumentCheckNode = {
     arg.ascribedType.map(extractAscribedType(arg.name, _)).getOrElse(null)
@@ -777,13 +801,16 @@ class IrToTruffle(
     expr.getMetadata(MethodDefinitions).map { res =>
       res.target match {
         case BindingsMap.ResolvedType(definitionModule, tp) =>
-          definitionModule
-            .unsafeAsModule()
-            .getScope
-            .getTypes
+          asScope(
+            definitionModule
+              .unsafeAsModule()
+          ).getTypes
             .get(tp.name)
         case BindingsMap.ResolvedModule(module) =>
-          module.unsafeAsModule().getScope.getAssociatedType
+          asScope(
+            module
+              .unsafeAsModule()
+          ).getAssociatedType
         case BindingsMap.ResolvedConstructor(_, _) =>
           throw new CompilerError(
             "Impossible here, should be caught by MethodDefinitions pass."
@@ -847,7 +874,7 @@ class IrToTruffle(
         new FunctionSchema(
           new ArgumentDefinition(
             0,
-            Constants.Names.SELF_ARGUMENT,
+            ConstantsNames.SELF_ARGUMENT,
             null,
             null,
             ArgumentDefinition.ExecutionMode.EXECUTE
@@ -863,7 +890,7 @@ class IrToTruffle(
         new FunctionSchema(
           new ArgumentDefinition(
             0,
-            Constants.Names.SELF_ARGUMENT,
+            ConstantsNames.SELF_ARGUMENT,
             null,
             null,
             ArgumentDefinition.ExecutionMode.EXECUTE
@@ -886,7 +913,11 @@ class IrToTruffle(
           resolution match {
             case BindingsMap.ResolvedType(module, tp) =>
               val runtimeTp =
-                module.unsafeAsModule().getScope.getTypes.get(tp.name)
+                asScope(
+                  module
+                    .unsafeAsModule()
+                ).getTypes
+                  .get(tp.name)
               val fun = mkTypeGetter(runtimeTp)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
@@ -894,9 +925,7 @@ class IrToTruffle(
                 fun
               )
             case BindingsMap.ResolvedConstructor(definitionType, cons) =>
-              val runtimeCons = definitionType
-                .unsafeToRuntimeType()
-                .getConstructors
+              val runtimeCons = asType(definitionType).getConstructors
                 .get(cons.name)
               val fun = mkConsGetter(runtimeCons)
               moduleScope.registerMethod(
@@ -906,7 +935,10 @@ class IrToTruffle(
               )
             case BindingsMap.ResolvedModule(module) =>
               val runtimeCons =
-                module.unsafeAsModule().getScope.getAssociatedType
+                asScope(
+                  module
+                    .unsafeAsModule()
+                ).getAssociatedType
               val fun = mkTypeGetter(runtimeCons)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
@@ -915,11 +947,10 @@ class IrToTruffle(
               )
             case BindingsMap.ResolvedMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
-              val fun = actualModule.getScope
-                .getMethodForType(
-                  actualModule.getScope.getAssociatedType,
-                  method.name
-                )
+              val fun = asScope(actualModule).getMethodForType(
+                asScope(actualModule).getAssociatedType,
+                method.name
+              )
               assert(
                 fun != null,
                 s"exported symbol `${method.name}` needs to be registered first in the module "
@@ -1229,7 +1260,10 @@ class IrToTruffle(
                   Right(
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
-                      mod.unsafeAsModule().getScope.getAssociatedType,
+                      asScope(
+                        mod
+                          .unsafeAsModule()
+                      ).getAssociatedType,
                       branch.terminalBranch
                     )
                   )
@@ -1239,7 +1273,7 @@ class IrToTruffle(
                       )
                     ) =>
                   val atomCons =
-                    tp.unsafeToRuntimeType().getConstructors.get(cons.name)
+                    asType(tp).getConstructors.get(cons.name)
                   val r = if (atomCons == context.getBuiltins.bool().getTrue) {
                     BooleanBranchNode.build(
                       true,
@@ -1264,7 +1298,11 @@ class IrToTruffle(
                       BindingsMap.Resolution(BindingsMap.ResolvedType(mod, tp))
                     ) =>
                   val tpe =
-                    mod.unsafeAsModule().getScope.getTypes.get(tp.name)
+                    asScope(
+                      mod
+                        .unsafeAsModule()
+                    ).getTypes
+                      .get(tp.name)
                   val polyglot = context.getBuiltins.polyglot
                   val branchNode = if (tpe == polyglot) {
                     PolyglotBranchNode.build(
@@ -1285,10 +1323,10 @@ class IrToTruffle(
                         BindingsMap.ResolvedPolyglotSymbol(mod, symbol)
                       )
                     ) =>
-                  val polyglotSymbol = mod
-                    .unsafeAsModule()
-                    .getScope
-                    .getPolyglotSymbol(symbol.name)
+                  val polyglotSymbol = asScope(
+                    mod
+                      .unsafeAsModule()
+                  ).getPolyglotSymbol(symbol.name)
                   Either.cond(
                     polyglotSymbol != null,
                     ObjectEqualityBranchNode
@@ -1305,10 +1343,10 @@ class IrToTruffle(
                       )
                     ) =>
                   val mod = typ.module
-                  val polyClass = mod
-                    .unsafeAsModule()
-                    .getScope
-                    .getPolyglotSymbol(typ.symbol.name)
+                  val polyClass = asScope(
+                    mod
+                      .unsafeAsModule()
+                  ).getPolyglotSymbol(typ.symbol.name)
 
                   val polyValueOrError =
                     if (polyClass == null)
@@ -1410,7 +1448,11 @@ class IrToTruffle(
                 ) =>
               // Using .getTypes because .getType may return an associated type
               Option(
-                mod.unsafeAsModule().getScope.getTypes.get(tpe.name)
+                asScope(
+                  mod
+                    .unsafeAsModule()
+                ).getTypes
+                  .get(tpe.name)
               ) match {
                 case Some(tpe) =>
                   val argOfType = List(
@@ -1445,10 +1487,10 @@ class IrToTruffle(
                   )
                 ) =>
               val polySymbol =
-                mod
-                  .unsafeAsModule()
-                  .getScope
-                  .getPolyglotSymbol(symbol.name)
+                asScope(
+                  mod
+                    .unsafeAsModule()
+                ).getPolyglotSymbol(symbol.name)
               if (polySymbol != null) {
                 val argOfType = List(
                   DefinitionArgument.Specified(
@@ -1609,7 +1651,7 @@ class IrToTruffle(
           } else if (global.isDefined) {
             val resolution = global.get.target
             nodeForResolution(resolution)
-          } else if (nameStr == Constants.Names.FROM_MEMBER) {
+          } else if (nameStr == ConstantsNames.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
           } else {
             DynamicSymbolNode.build(
@@ -1619,7 +1661,7 @@ class IrToTruffle(
         case Name.Self(location, _, passData, _) =>
           processName(
             Name.Literal(
-              Constants.Names.SELF_ARGUMENT,
+              ConstantsNames.SELF_ARGUMENT,
               isMethod = false,
               location,
               None,
@@ -1672,12 +1714,14 @@ class IrToTruffle(
       resolution match {
         case tp: BindingsMap.ResolvedType =>
           ConstantObjectNode.build(
-            tp.module.unsafeAsModule().getScope.getTypes.get(tp.tp.name)
+            asScope(
+              tp.module
+                .unsafeAsModule()
+            ).getTypes
+              .get(tp.tp.name)
           )
         case BindingsMap.ResolvedConstructor(definitionType, cons) =>
-          val c = definitionType
-            .unsafeToRuntimeType()
-            .getConstructors
+          val c = asType(definitionType).getConstructors
             .get(cons.name)
           if (c == null) {
             throw new CompilerError(s"Constructor for $cons is null")
@@ -1685,13 +1729,16 @@ class IrToTruffle(
           ConstructorNode.build(c)
         case BindingsMap.ResolvedModule(module) =>
           ConstantObjectNode.build(
-            module.unsafeAsModule().getScope.getAssociatedType
+            asScope(
+              module
+                .unsafeAsModule()
+            ).getAssociatedType
           )
         case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
-          val s = module
-            .unsafeAsModule()
-            .getScope
-            .getPolyglotSymbol(symbol.name)
+          val s = asScope(
+            module
+              .unsafeAsModule()
+          ).getPolyglotSymbol(symbol.name)
           if (s == null) {
             throw new CompilerError(
               s"No polyglot symbol for ${symbol.name}"
@@ -1699,10 +1746,10 @@ class IrToTruffle(
           }
           ConstantObjectNode.build(s)
         case BindingsMap.ResolvedPolyglotField(symbol, name) =>
-          val s = symbol.module
-            .unsafeAsModule()
-            .getScope
-            .getPolyglotSymbol(name)
+          val s = asScope(
+            symbol.module
+              .unsafeAsModule()
+          ).getPolyglotSymbol(name)
           if (s == null) {
             throw new CompilerError(
               s"No polyglot field for ${name}"
@@ -1846,7 +1893,7 @@ class IrToTruffle(
         // Note [Rewriting Arguments]
         val argSlots = arguments.zipWithIndex.map {
           case (unprocessedArg, idx) =>
-            val checkNode = checkRuntimeTypes(unprocessedArg)
+            val checkNode = checkAsTypes(unprocessedArg)
             val arg       = argFactory.run(unprocessedArg, idx, checkNode)
             argDefinitions(idx) = arg
             val occInfo = unprocessedArg
@@ -1870,7 +1917,7 @@ class IrToTruffle(
             val argName = arg.getName
 
             if (
-              argName != Constants.Names.SELF_ARGUMENT && seenArgNames.contains(
+              argName != ConstantsNames.SELF_ARGUMENT && seenArgNames.contains(
                 argName
               )
             ) {
@@ -2227,5 +2274,14 @@ class IrToTruffle(
             executionMode
           )
       }
+  }
+
+  private def asScope(module: CompilerContext.Module): ModuleScope = {
+    val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
+    m.getScope()
+  }
+
+  private def asType(typ: BindingsMap.ResolvedType): Type = {
+    asScope(typ.module.unsafeAsModule()).getTypes().get(typ.tp.name)
   }
 }
