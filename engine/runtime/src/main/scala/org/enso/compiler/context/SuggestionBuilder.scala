@@ -2,7 +2,8 @@ package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
@@ -24,13 +25,13 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
-import org.enso.interpreter.runtime.`type`.Types
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.syntax.text.Location
 import org.enso.text.editing.IndexedSource
 
+import java.util.UUID
 import scala.collection.mutable
 
 /** Module that extracts [[Suggestion]] entries from the [[IR]].
@@ -242,7 +243,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
   /** Build a method suggestion. */
   private def buildMethod(
-    externalId: Option[IR.ExternalId],
+    externalId: Option[UUID @ExternalID],
     module: QualifiedName,
     name: String,
     selfType: QualifiedName,
@@ -287,7 +288,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
   /** Build a conversion suggestion. */
   private def buildConversion(
-    externalId: Option[IR.ExternalId],
+    externalId: Option[UUID @ExternalID],
     module: QualifiedName,
     selfType: Option[QualifiedName],
     args: Seq[DefinitionArgument],
@@ -314,7 +315,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
   /** Build a function suggestion. */
   private def buildFunction(
-    externalId: Option[IR.ExternalId],
+    externalId: Option[UUID @ExternalID],
     module: QualifiedName,
     name: Name,
     args: Seq[DefinitionArgument],
@@ -338,7 +339,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
   /** Build a local suggestion. */
   private def buildLocal(
-    externalId: Option[IR.ExternalId],
+    externalId: Option[UUID @ExternalID],
     module: QualifiedName,
     name: String,
     location: Location,
@@ -791,7 +792,11 @@ object SuggestionBuilder {
     source: A,
     compiler: Compiler
   ): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, Types.getTypeHierarchy, compiler)
+    new SuggestionBuilder[A](
+      source,
+      compiler.context.getTypeHierarchy(),
+      compiler
+    )
 
   /** A single level of an `IR`.
     *

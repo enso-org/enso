@@ -1,7 +1,8 @@
-package org.enso.compiler.codegen
+package org.enso.interpreter.runtime
 
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.builtin.Builtins

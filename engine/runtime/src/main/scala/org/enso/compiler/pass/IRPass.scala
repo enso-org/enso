@@ -1,11 +1,10 @@
 package org.enso.compiler.pass
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{CompilerError, IR, Identifier}
 import org.enso.compiler.core.ir.ProcessingPass
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Expression
-import org.enso.compiler.core.CompilerError
 import shapeless.=:!=
 
 import java.util.UUID
@@ -24,7 +23,7 @@ import scala.reflect.ClassTag
 trait IRPass extends ProcessingPass {
 
   /** An identifier for the pass. Useful for keying it in maps. */
-  val key: IRPass.Identifier = IRPass.genId
+  val key: UUID @Identifier = IRPass.genId
 
   /** The type of the metadata object that the pass writes to the IR. */
   type Metadata <: ProcessingPass.Metadata
@@ -84,13 +83,11 @@ trait IRPass extends ProcessingPass {
 }
 object IRPass {
 
-  type Identifier = UUID
-
   /** Generates a pass identifier.
     *
     * @return a new pass identifier
     */
-  def genId: Identifier = {
+  def genId: UUID @Identifier = {
     UUID.randomUUID()
   }
 

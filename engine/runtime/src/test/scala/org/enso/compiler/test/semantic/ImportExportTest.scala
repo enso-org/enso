@@ -1,5 +1,6 @@
 package org.enso.compiler.test.semantic
 
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import

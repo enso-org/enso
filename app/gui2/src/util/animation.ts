@@ -1,5 +1,5 @@
 import { watchSourceToRef } from '@/util/reactivity'
-import { onUnmounted, proxyRefs, ref, watch, type WatchSource } from 'vue'
+import { onScopeDispose, proxyRefs, ref, watch, type WatchSource } from 'vue'
 
 const rafCallbacks: { fn: (t: number, dt: number) => void; priority: number }[] = []
 
@@ -47,7 +47,7 @@ export function useRaf(
       unmountRaf()
     }
   })
-  onUnmounted(unmountRaf)
+  onScopeDispose(unmountRaf)
 }
 
 let rafRunning = false

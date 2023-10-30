@@ -3,6 +3,7 @@ package org.enso.compiler.data
 import org.enso.compiler.{PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.context.CompilerContext.Module
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
@@ -22,7 +23,7 @@ import scala.annotation.unused
   */
 
 @SerialVersionUID(
-  7833L // instrumentor
+  8160L // Use BindingsMap
 )
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
@@ -786,9 +787,6 @@ object BindingsMap {
 
     override lazy val exportedSymbols: Map[String, List[ResolvedName]] =
       tp.members.map(m => (m.name, List(ResolvedConstructor(this, m)))).toMap
-
-    def unsafeToRuntimeType(): org.enso.interpreter.runtime.data.Type =
-      module.unsafeAsModule().findType(tp.name)
   }
 
   /** A result of successful name resolution.

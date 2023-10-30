@@ -1,5 +1,6 @@
 package org.enso.compiler.test.semantic
 
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module, Type}
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.module.scope.definition

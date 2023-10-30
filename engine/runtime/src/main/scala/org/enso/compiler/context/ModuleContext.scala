@@ -1,13 +1,10 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.interpreter.runtime.scope.LocalScope
-import org.enso.interpreter.node.ExpressionNode
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.data.BindingsMap.ModuleReference
 
@@ -28,17 +25,8 @@ case class ModuleContext(
   isGeneratingDocs: Boolean                    = false,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  def isSynthetic()      = module.isSynthetic()
-  def bindingsAnalysis() = module.getBindingsMap()
-  def truffleRunInline(
-    context: CompilerContext,
-    source: Source,
-    s: LocalScope,
-    config: CompilerConfig,
-    ir: Expression
-  ): ExpressionNode = {
-    return context.truffleRunInline(source, s, module, config, ir)
-  }
+  def isSynthetic()            = module.isSynthetic()
+  def bindingsAnalysis()       = module.getBindingsMap()
   def getName(): QualifiedName = module.getName()
   def getPackage(): Package[_] = module.getPackage()
   def getSource(): Source      = module.getSource()

@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.core.Implicits.ListAsIr
 import org.enso.compiler.core.ir.{
   Expression,
   IdentifiedLocation,

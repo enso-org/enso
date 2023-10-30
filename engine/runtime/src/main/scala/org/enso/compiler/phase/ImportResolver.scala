@@ -2,7 +2,7 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.core.IR.AsMetadata
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.expression.errors
@@ -109,6 +109,13 @@ class ImportResolver(compiler: Compiler) {
                 val converted = bindings
                   .toConcrete(compiler.packageRepository.getModuleMap)
                   .map { concreteBindings =>
+                    compiler.context.updateModule(
+                      current,
+                      { u =>
+                        u.bindingsMap(concreteBindings)
+                        u.loadedFromCache(true)
+                      }
+                    )
                     concreteBindings
                   }
                 (
@@ -139,7 +146,6 @@ class ImportResolver(compiler: Compiler) {
         }
       }
     }
-
     go(mutable.Stack(module), mutable.Set(), mutable.Set())
   }
 

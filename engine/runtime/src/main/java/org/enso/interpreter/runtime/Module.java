@@ -46,7 +46,6 @@ import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
-import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
@@ -258,8 +257,8 @@ public final class Module implements EnsoObject {
       }
       if (patchedValues.simpleUpdate(update)) {
         this.sources = this.sources.newWith(source);
-        final Function1<Expression, Expression> fn =
-            new Function1<Expression, Expression>() {
+        final java.util.function.Function<Expression, Expression> fn =
+            new java.util.function.Function<Expression, Expression>() {
               @Override
               public Expression apply(Expression v1) {
                 if (v1 == change) {

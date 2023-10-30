@@ -26,6 +26,7 @@ const conf = [
           './tsconfig.server.json',
           './tsconfig.app.vitest.json',
           './tsconfig.server.vitest.json',
+          './tsconfig.story.json',
         ],
       },
     },
@@ -41,6 +42,12 @@ const conf = [
           argsIgnorePattern: '^_',
         },
       ],
+    },
+  },
+  {
+    files: ['stories/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 0,
     },
   },
 ]
