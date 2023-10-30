@@ -25,7 +25,8 @@ import type {
 } from '@/workers/visualizationCompiler'
 import Compiler from '@/workers/visualizationCompiler?worker'
 import { defineStore } from 'pinia'
-import type { Path, VisualizationConfiguration } from 'shared/languageServerTypes'
+import type { LanguageServer } from 'shared/languageServer'
+import type { FileEventKind, Path, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { z } from 'zod'
 
@@ -140,8 +141,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
   const proj = useProjectStore()
   const ls = proj.lsRpcConnection
   const data = proj.dataConnection
-  const fsRoot = proj.contentRoots.then(
-    (roots) => roots.find((root) => root.type === 'FileSystemRoot') ?? null,
+  const projectRoot = proj.contentRoots.then(
+    (roots) => roots.find((root) => root.type === 'Project') ?? null,
   )
 
   Promise.all([
@@ -198,6 +199,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     worker.postMessage(message)
   }
 
+  // TODO: remove outdated styles
   async function compile(path: string) {
     if (worker == null) {
       const worker_ = (worker = new Compiler())
@@ -228,7 +230,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           switch (event.data.type) {
             // === Responses ===
             case 'compilation-result-response': {
-              const module = moduleCache[event.data.path]
+              const module = await moduleCache[event.data.path]
               const vizModule = VisualizationModule.parse(module)
               if (vizModule) {
                 workerCallbacks.get(event.data.id)?.resolve(vizModule)
@@ -249,10 +251,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
             // === Worker Requests ===
             case 'fetch-worker-request': {
               try {
-                const url = new URL(path, location.href)
+                const url = new URL(event.data.path, location.href)
                 switch (url.protocol) {
-                  case 'http':
-                  case 'https': {
+                  case 'http:':
+                  case 'https:': {
                     const response = await fetch(url)
                     if (response.ok) {
                       postMessage<FetchResultWorkerResponse>(worker_, {
@@ -272,8 +274,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
                     }
                     break
                   }
-                  case 'enso-current-project': {
-                    const rootId = (await fsRoot)?.id
+                  case 'enso-current-project:': {
+                    const rootId = (await projectRoot)?.id
                     if (!rootId) {
                       postMessage<FetchWorkerError>(worker_, {
                         type: 'fetch-worker-error',
@@ -284,7 +286,9 @@ export const useVisualizationStore = defineStore('visualization', () => {
                       })
                       break
                     }
-                    const payload = await (await data).readFile(url.pathname)
+                    const payload = await (
+                      await data
+                    ).readFile({ rootId, segments: url.pathname.split('/') })
                     const contents = payload.contentsArray()
                     if (!contents) {
                       postMessage<FetchWorkerError>(worker_, {
@@ -364,9 +368,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           }
         },
       )
-      worker.addEventListener('error', (event) => {
-        console.error(event.error)
-      })
+      worker.addEventListener('error', (event) => console.error(event.error))
     }
     const id = workerMessageId
     workerMessageId += 1
@@ -422,65 +424,100 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }) as VisualizationCacheKey
   }
 
+  async function onFileEvent(event: { path: Path; kind: FileEventKind }) {
+    const pathString = event.path.segments.join('/')
+    const name = currentProjectVisualizationsByPath.get(pathString)
+    const key =
+      name != null
+        ? toVisualizationCacheKey({ module: { kind: 'CurrentProject' }, name })
+        : undefined
+    if (event.path.segments[0] === 'visualizations' && /\.vue$/.test(pathString)) {
+      switch (event.kind) {
+        case 'Added': {
+          try {
+            const abortController = new AbortController()
+            compilationAbortControllers.set(pathString, abortController)
+            const vizPromise = compile('enso-current-project:' + pathString)
+            const viz = await vizPromise
+            if (abortController.signal.aborted) break
+            const key = toVisualizationCacheKey({
+              module: { kind: 'CurrentProject' },
+              name: viz.name,
+            })
+            cache.set(key, vizPromise)
+          } catch {
+            // Ignored - the file is not a module.
+          }
+          break
+        }
+        case 'Modified': {
+          if (!key) break
+          try {
+            cache.set(key, compile('enso-current-project:' + pathString))
+          } catch (error) {
+            if (error instanceof InvalidVisualizationModuleError) {
+              cache.delete(key)
+            }
+            // Else, ignored - the file is not a module.
+          }
+          break
+        }
+        case 'Removed': {
+          currentProjectVisualizationsByPath.delete(pathString)
+          compilationAbortControllers.get(pathString)?.abort()
+          compilationAbortControllers.delete(pathString)
+          if (key) cache.delete(key)
+        }
+      }
+    }
+  }
+
+  async function walkFiles(ls: LanguageServer, path: Path, cb: (path: Path) => void) {
+    for (const file of (await ls.listFiles(path)).paths) {
+      const filePath: Path = {
+        rootId: file.path.rootId,
+        segments: [...file.path.segments, file.name],
+      }
+      switch (file.type) {
+        case 'Directory':
+        case 'DirectoryTruncated': {
+          await walkFiles(ls, filePath, cb)
+          break
+        }
+        case 'File': {
+          cb(filePath)
+          break
+        }
+        case 'Other':
+        case 'SymlinkLoop': {
+          // Ignored.
+          break
+        }
+        default: {
+          assertNever(file)
+        }
+      }
+    }
+  }
+
   ls.then(async (ls) => {
-    const fsRoot_ = await fsRoot
-    if (!fsRoot_) {
+    const projectRoot_ = await projectRoot
+    if (!projectRoot_) {
       console.error('Could not load custom visualizations: File system content root not found.')
       return
     }
     await rpcWithRetries(() =>
       ls.acquireCapability('file/receivesTreeUpdates', {
-        path: { rootId: fsRoot_.id, segments: [] } satisfies Path,
+        path: { rootId: projectRoot_.id, segments: [] } satisfies Path,
       }),
     )
-    ls.on('file/event', async (event) => {
-      console.log('file/event', event.path)
-      const pathString = event.path.segments.join('/')
-      const name = currentProjectVisualizationsByPath.get(pathString)
-      const key =
-        name != null
-          ? toVisualizationCacheKey({ module: { kind: 'CurrentProject' }, name })
-          : undefined
-      if (event.path.segments[0] === 'visualizations') {
-        switch (event.kind) {
-          case 'Added': {
-            try {
-              const abortController = new AbortController()
-              compilationAbortControllers.set(pathString, abortController)
-              const vizPromise = compile('enso-current-project:' + pathString)
-              const viz = await vizPromise
-              if (abortController.signal.aborted) break
-              const key = toVisualizationCacheKey({
-                module: { kind: 'CurrentProject' },
-                name: viz.name,
-              })
-              cache.set(key, vizPromise)
-            } catch {
-              // Ignored - the file is not a module.
-            }
-            break
-          }
-          case 'Modified': {
-            if (!key) break
-            try {
-              cache.set(key, compile('enso-current-project:' + pathString))
-            } catch (error) {
-              if (error instanceof InvalidVisualizationModuleError) {
-                cache.delete(key)
-              }
-              // Else, ignored - the file is not a module.
-            }
-            break
-          }
-          case 'Removed': {
-            currentProjectVisualizationsByPath.delete(pathString)
-            compilationAbortControllers.get(pathString)?.abort()
-            compilationAbortControllers.delete(pathString)
-            if (key) cache.delete(key)
-          }
-        }
-      }
-    })
+    ls.on('file/event', onFileEvent)
+    await walkFiles(ls, { rootId: projectRoot_.id, segments: ['visualizations'] }, (path) =>
+      onFileEvent({
+        kind: 'Added',
+        path,
+      }),
+    )
   })
 
   async function get(meta: VisualizationIdentifier, ignoreCache = false) {
@@ -514,7 +551,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
     const builtinDynamicPath = paths[type]
     if (builtinDynamicPath != null) {
       const module = await compile(builtinDynamicPath)
-      console.log(module)
       await loadScripts(module)
       return module
     }

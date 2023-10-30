@@ -1,5 +1,6 @@
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
+import type { Path as LSPath } from 'shared/languageServerTypes'
 import {
   Builder,
   ByteBuffer,
@@ -15,6 +16,7 @@ import {
   None,
   OutboundMessage,
   OutboundPayload,
+  Path,
   ReadBytesCommand,
   ReadBytesReply,
   ReadFileCommand,
@@ -145,17 +147,29 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return this.send<Success>(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
   }
 
-  async writeFile(path: string, contents: string | ArrayBuffer | Uint8Array) {
+  async writeFile(path: LSPath, contents: string | ArrayBuffer | Uint8Array) {
     const builder = new Builder()
     const contentsOffset = builder.createString(contents)
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = [...path.segments]
+      .reverse()
+      .map((segment) => builder.createString(segment))
+      .reverse()
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const rootIdOffset = this.createUUID(builder, path.rootId)
+    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
     const command = WriteFileCommand.createWriteFileCommand(builder, pathOffset, contentsOffset)
     return await this.send(builder, InboundPayload.WRITE_FILE_CMD, command)
   }
 
-  async readFile(path: string) {
+  async readFile(path: LSPath) {
     const builder = new Builder()
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = [...path.segments]
+      .reverse()
+      .map((segment) => builder.createString(segment))
+      .reverse()
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const rootIdOffset = this.createUUID(builder, path.rootId)
+    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
     const command = ReadFileCommand.createReadFileCommand(builder, pathOffset)
     return await this.send<FileContentsReply>(builder, InboundPayload.READ_FILE_CMD, command)
   }

@@ -282,13 +282,14 @@ const fetchCallbacks = new Map<
   string,
   {
     resolve: (contents: FetchResponse) => void
-    reject: () => void
+    reject: (error: Error) => void
   }
 >()
 
 function fetch_(path: string) {
   return new Promise<FetchResponse>((resolve, reject) => {
     fetchCallbacks.set(path, { resolve, reject })
+    postMessage<FetchWorkerRequest>({ type: 'fetch-worker-request', path })
   })
 }
 
@@ -458,6 +459,8 @@ onmessage = async (
       break
     }
     case 'fetch-worker-error': {
+      fetchCallbacks.get(event.data.path)?.reject(event.data.error)
+      fetchCallbacks.delete(event.data.path)
       break
     }
     case 'compile-request': {
