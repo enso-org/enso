@@ -34,8 +34,6 @@ import org.enso.compiler.phase.{
   ImportResolver
 }
 import org.enso.editions.LibraryName
-import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
-import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.CompilationStage
@@ -297,6 +295,7 @@ class Compiler(
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
+        ensureParsed(module)
         if (!context.hasCrossModuleLinks(module)) {
           val flags =
             context
@@ -435,9 +434,8 @@ class Compiler(
           val shouldStoreCache =
             irCachingEnabled && !context.wasLoadedFromCache(module)
           if (
-            shouldStoreCache && !hasErrors(module) && !context.isInteractive(
-              module
-            )
+            shouldStoreCache && !hasErrors(module) &&
+            !context.isInteractive(module) && !context.isSynthetic(module)
           ) {
             if (isInteractiveMode) {
               context.notifySerializeModule(context.getModuleName(module))
@@ -509,7 +507,9 @@ class Compiler(
   }
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
-    ensureParsed(module)
+    if (module.getBindingsMap() == null) {
+      ensureParsed(module)
+    }
     if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
       // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
@@ -522,11 +522,8 @@ class Compiler(
             .map { concreteBindings =>
               concreteBindings
             }
-          val ir = context.getIr(module)
-          val currentLocal = ir.unsafeGetMetadata(
-            BindingAnalysis,
-            "Synthetic parsed module missing bindings"
-          )
+          ensureParsed(module)
+          val currentLocal = module.getBindingsMap()
           currentLocal.resolvedImports =
             converted.map(_.resolvedImports).getOrElse(Nil)
           currentLocal.resolvedExports =
@@ -692,7 +689,7 @@ class Compiler(
   def runInline(
     srcString: String,
     inlineContext: InlineContext
-  ): Option[RuntimeExpression] = {
+  ): Option[(InlineContext, Expression, Source)] = {
     val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
     val source = Source
       .newBuilder(
@@ -706,7 +703,7 @@ class Compiler(
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
-      Some(newContext.truffleRunInline(context, source, config, compilerOutput))
+      Some((newContext, compilerOutput, source))
     }
   }
 
@@ -723,7 +720,7 @@ class Compiler(
     qualifiedName: String,
     loc: Option[IdentifiedLocation],
     source: Source
-  ): ModuleScope = {
+  ): Unit = {
     val module = Option(context.findTopScopeModule(qualifiedName))
       .getOrElse {
         val locStr = fileLocationFromSection(loc, source)
@@ -741,7 +738,6 @@ class Compiler(
         "Trying to use a module in codegen without generating runtime stubs"
       )
     }
-    module.getScope
   }
 
   /** Parses the given source with the new Rust parser.
@@ -1230,20 +1226,6 @@ class Compiler(
       }
       .getOrElse("")
     source.getPath + ":" + srcLocation
-  }
-
-  /** Generates code for the truffle interpreter.
-    *
-    * @param ir the program to translate
-    * @param source the source code of the program represented by `ir`
-    * @param scope the module scope in which the code is to be generated
-    */
-  def truffleCodegen(
-    ir: IRModule,
-    source: Source,
-    scope: ModuleScope
-  ): Unit = {
-    context.truffleRunCodegen(source, scope, config, ir)
   }
 
   /** Performs shutdown actions for the compiler.

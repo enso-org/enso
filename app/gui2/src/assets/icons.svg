@@ -1,4 +1,5 @@
 <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <!-- Please run `npm run generate` whenever this file is edited. -->
     <g id="add_column" fill="none">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g id="icon/add_column">
@@ -1162,8 +1163,8 @@
         </svg>
     </g>
     <g id="underscore" fill="none">
-        <svg width="20" height="4" viewBox="0 0 20 4" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="20" height="4" rx="2" fill="white" fill-opacity="0.33" />
+        <svg width="24" height="16" viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="10" width="20" height="4" rx="2" fill="white" fill-opacity="0.33"/>
         </svg>
     </g>
     <g id="sort" fill="none">
@@ -1270,4 +1271,5 @@
                 fill="black" fill-opacity="0.6" />
         </svg>
     </g>
+    <!-- Please run `npm run generate` whenever this file is edited. -->
 </svg>

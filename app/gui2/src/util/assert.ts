@@ -1,5 +1,5 @@
 export function assertNever(x: never): never {
-  bail('Unexpected object: ' + x)
+  bail('Unexpected object: ' + JSON.stringify(x))
 }
 
 export function assert(condition: boolean, message?: string): asserts condition {

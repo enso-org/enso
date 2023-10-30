@@ -6,9 +6,10 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
+import type { Icon } from '@/util/iconName'
 import { isSome } from '@/util/opt'
 import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
-import type { Range } from '@/util/range'
+import { Range } from '@/util/range'
 
 interface ComponentLabel {
   label: string
@@ -18,7 +19,7 @@ interface ComponentLabel {
 
 export interface Component extends ComponentLabel {
   suggestionId: SuggestionId
-  icon: string
+  icon: Icon
   group?: number | undefined
 }
 
@@ -50,16 +51,15 @@ export function labelOfEntry(
           range.end <= lastSegmentStart
             ? []
             : [
-                {
-                  start: Math.max(0, range.start - lastSegmentStart),
-                  end: range.end - lastSegmentStart,
-                },
+                new Range(
+                  Math.max(0, range.start - lastSegmentStart),
+                  range.end - lastSegmentStart,
+                ),
               ],
         ),
-        ...(match.nameRanges ?? []).map((range) => ({
-          start: range.start + nameOffset,
-          end: range.end + nameOffset,
-        })),
+        ...(match.nameRanges ?? []).map(
+          (range) => new Range(range.start + nameOffset, range.end + nameOffset),
+        ),
       ],
     }
   } else
