@@ -1,22 +1,22 @@
-import { Token, Tree } from '@/generated/ast'
-import { assert } from '@/util/assert'
+import {TextElement, Token, Tree} from '@/generated/ast'
+import {assert} from '@/util/assert'
 import {
   astPrettyPrintType,
   childrenAstNodes,
-  parseEnso,
   parsedTreeOrTokenRange,
+  parseEnso,
   readAstOrTokenSpan,
   readTokenSpan,
 } from '@/util/ast'
 
-import { NonEmptyStack, ObjectKeyedMap, ObjectKeyedSet } from '@/util/containers'
-import type { ContentRange } from '../../../shared/yjsModel'
+import {NonEmptyStack, ObjectKeyedMap, ObjectKeyedSet} from '@/util/containers'
+import type {ContentRange} from '../../../shared/yjsModel'
 
 /** Whether the debug logs of the alias analyzer should be enabled.
  *
  * It is recommended to keep them disabled (unless debugging this module), as they are very noisy and can.
  */
-const LOGGING_ENABLED = false
+const LOGGING_ENABLED = true
 
 class Scope {
   /** The variables defined in this scope. */
@@ -141,6 +141,23 @@ export class AliasAnalyzer {
     this.processNode(this.ast)
   }
 
+  processToken(token?: Token): void {
+    if (token == null) {
+      return
+    }
+
+    const repr = readTokenSpan(token, this.code)
+
+    // We require first character to be lowercase, to avoid working with type names.
+    if (repr.length > 0 && repr.charAt(0) !== repr.charAt(0).toUpperCase()) {
+      if (this.contexts.top === Context.Pattern) {
+        this.bind(token)
+      } else {
+        this.use(token)
+      }
+    }
+  }
+
   /** Method that processes a single AST node. */
   processNode(node?: Tree): void {
     if (node == null) {
@@ -165,14 +182,20 @@ export class AliasAnalyzer {
         }
       })
     } else if (node.type === Tree.Type.Ident) {
-      // We require first character to be lowercase, to avoid working with type names.
-      if(repr.length > 0 && repr.charAt(0) !== repr.charAt(0).toUpperCase()) {
-        if (this.contexts.top === Context.Pattern) {
-          this.bind(node.token)
-        } else {
-          this.use(node.token)
+      this.processToken(node.token)
+    } else if(node.type === Tree.Type.TextLiteral) {
+      for(const element of node.elements) {
+        if(element.type === TextElement.Type.Splice) {
+            this.processNode(element.expression)
         }
       }
+    } else if(node.type === Tree.Type.NamedApp) {
+        this.processNode(node.func)
+        // Intentionally omit name, as it is not a variable usage.
+        this.processNode(node.arg)
+    } else if (node.type === Tree.Type.DefaultApp) {
+        this.processNode(node.func)
+        // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
     } else if (
       node.type === Tree.Type.OprApp &&
       node.opr.ok &&
@@ -208,11 +231,12 @@ export class AliasAnalyzer {
         this.processNode(node.name)
       })
       this.withNewScopeOver(node, () => {
-        this.withContext(Context.Pattern, () => {
           for (const argument of node.args) {
-            this.processNode(argument.pattern)
+            this.withContext(Context.Pattern, () => {
+              this.processNode(argument.pattern)
+            })
+            this.processNode(argument.default?.expression)
           }
-        })
         this.processNode(node.body)
       })
     } else if (node.type === Tree.Type.CaseOf) {
@@ -233,6 +257,8 @@ export class AliasAnalyzer {
       node.visitChildren((child) => {
         if (Tree.isInstance(child)) {
           this.processNode(child)
+        } else if (Token.isInstance(child)) {
+          this.processToken(child)
         }
       })
       log(`Catch-all for ${astPrettyPrintType(node)} at ${range}:\n${repr}\n`)
@@ -240,13 +266,11 @@ export class AliasAnalyzer {
   }
 }
 
-
-
 // ===========
 // === LOG ===
 // ===========
 function log(...args: any[]) {
-  if(LOGGING_ENABLED ?? false) {
-    log(...args)
+  if (LOGGING_ENABLED ?? false) {
+    console.log(...args)
   }
 }

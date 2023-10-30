@@ -25,7 +25,7 @@
  * All unannotated identifiers are assumed to preexist in the environment (captured from an external scope or imports).
  */
 
-import { assert, assertDefined, assertEqual, assertNotEqual } from '@/util/assert'
+import {assert, assertDefined, assertEqual, assertLength, assertNotEqual} from '@/util/assert'
 import { ObjectKeyedMap, ObjectKeyedSet } from '@/util/containers'
 import type { ContentRange } from '../../../../shared/yjsModel'
 import { AliasAnalyzer } from '../aliasAnalysis'
@@ -143,7 +143,7 @@ class TestCase {
     return testCase
   }
 
-  run() {
+  run(): AliasAnalyzer {
     const analyzer = new AliasAnalyzer(this.code)
     analyzer.process()
 
@@ -173,11 +173,12 @@ class TestCase {
     }
 
     console.log(analyzer.unresolvedSymbols)
+    return analyzer
   }
 
   static parseAndRun(annotatedCode: string) {
     const testCase = TestCase.parse(annotatedCode)
-    testCase.run()
+    return testCase.run()
   }
 }
 
@@ -274,7 +275,8 @@ if (import.meta.vitest) {
     const code = `main =
     «1,x» = True
     if »1,x« then »2,y« else »3,z«`
-    TestCase.parseAndRun(code)
+    const analyzer = TestCase.parseAndRun(code)
+    assertLength(analyzer.unresolvedSymbols, 2) // `y` and `z` are not in scope.
   })
 
   test('Complex?', () => {
@@ -287,6 +289,31 @@ find_node_from_start «3,list» «4,index» =
     »1,loop« »3,list« »4,index«
     »6,idx«`
 
-    TestCase.parseAndRun(code)
+    const analyzer = TestCase.parseAndRun(code)
+    assertLength(analyzer.unresolvedSymbols, 1) // The last line's `idx` - as it is now out of scope.
+  })
+
+  test('Named argument application', () => {
+    const code = `«1,main» =
+    «2,hundred» = 100
+    »3,summarize_transaction« (price = »2,hundred«)`
+    const analyzer = TestCase.parseAndRun(code)
+    assertLength(analyzer.unresolvedSymbols, 1) // `summarize_transaction`
+    // Note: the `price` argument is not a variable usage and should be ignored by the alias analysis.
+  })
+
+  test('Default argument application', () => {
+    const code = `«1,main» =
+    »3,summarize_transaction« default`
+    const analyzer = TestCase.parseAndRun(code)
+    assertLength(analyzer.unresolvedSymbols, 1) // `summarize_transaction`
+    // Note: the `default` keyword is not a variable usage and should be ignored by the alias analysis.
+  })
+
+  test('Text literals', () => {
+    const code = `«1,main» =
+    «2,fmt_string» = 'Hello, my age is \`»3,time«.now.year - »4,birthday«\`'`
+    const analyzer = TestCase.parseAndRun(code)
+    assertLength(analyzer.unresolvedSymbols, 2) // `time` and `birthday`
   })
 }
