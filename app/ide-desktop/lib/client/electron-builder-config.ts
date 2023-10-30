@@ -10,7 +10,7 @@ import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 
 import * as electronBuilder from 'electron-builder'
-import * as electronNotarize from 'electron-notarize'
+import * as electronNotarize from '@electron/notarize'
 import type * as macOptions from 'app-builder-lib/out/options/macOptions'
 import yargs from 'yargs'
 
