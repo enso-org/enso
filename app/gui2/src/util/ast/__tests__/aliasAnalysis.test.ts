@@ -25,15 +25,14 @@
  * All unannotated identifiers are assumed to preexist in the environment (captured from an external scope or imports).
  */
 
-import { assert, expect, test } from 'vitest'
-import * as aliasAnalysis from '../aliasAnalysis'
-import { AliasAnalyzer, ObjectKeyedMap, ObjectKeyedSet } from '../aliasAnalysis'
-import {ContentRange} from "../../../../shared/yjsModel";
-import {assertDefined, assertEqual, assertNotEqual} from "../../assert";
+import { assert, assertDefined, assertEqual, assertNotEqual } from '@/util/assert'
+import { ObjectKeyedMap, ObjectKeyedSet } from '@/util/containers'
+import type { ContentRange } from '../../../../shared/yjsModel'
+import { AliasAnalyzer } from '../aliasAnalysis'
 
 /** The type of annotation. */
 enum AnnotationType {
-  /** An identifier binding. */
+  /** An identifier binding (introducing variable). */
   Binding = 'Binding',
   /** An identifier usage. */
   Usage = 'Usage',
@@ -43,14 +42,15 @@ enum AnnotationType {
 class Annotation {
   /**
    * @param kind Whether this is an identifier binding or usage.
-   * @param id The numerical prefix of the identifier.
+   * @param id The special user-defined id to disambiguate identifiers with the same name.
    */
   constructor(
-      public kind: AnnotationType,
-      public id: number,
+    public kind: AnnotationType,
+    public id: number,
   ) {}
 }
 
+/** Parse annotations from the annotated code. See the file-top comment for the syntax. */
 function parseAnnotations(annotatedCode: string): {
   unannotatedCode: string
   annotations: ObjectKeyedMap<ContentRange, Annotation>
@@ -59,45 +59,50 @@ function parseAnnotations(annotatedCode: string): {
 
   // Iterate over all annotations (either bindings or usages).
   // I.e. we want to cover both `«1,x»` and `»1,x«` cases, while keeping the track of the annotation type.
-  const annotationRegex = /«(\d+),([^»]+)»|»(\d+),([^»]+)«/g
+  const annotationRegex = /«(\d+),([^«»]+)»|»(\d+),([^«»]+)«/g
 
   // As the annotations are removed from the code, we need to keep track of the offset between the annotated and
   // unannotated code. This is necessary to correctly calculate the start and length of the annotations.
   let accumulatedOffset = 0
 
   const unannotatedCode = annotatedCode.replace(
-      annotationRegex,
-      (match, bindingPrefix, bindingName, usagePrefix, usageName, offset) => {
-        // Sanity check: either both binding prefix and name are present, or both usage prefix and name are present.
-        // Otherwise, we have an internal error in the regex.
-        assertEqual(bindingPrefix != null, bindingName != null)
-        assertEqual(usagePrefix != null, usageName != null)
-        assertNotEqual(bindingPrefix != null, usagePrefix != null)
+    annotationRegex,
+    (match, bindingPrefix, bindingName, usagePrefix, usageName, offset) => {
+      console.log(`Processing annotated identifier ${match}.`)
 
-        const id = parseInt(bindingPrefix ?? usagePrefix, 10)
-        const name = bindingName ?? usageName
-        const kind = bindingPrefix != null ? AnnotationType.Binding : AnnotationType.Usage
+      // Sanity check: either both binding prefix and name are present, or both usage prefix and name are present.
+      // Otherwise, we have an internal error in the regex.
+      assertEqual(bindingPrefix != null, bindingName != null)
+      assertEqual(usagePrefix != null, usageName != null)
+      assertNotEqual(bindingPrefix != null, usagePrefix != null)
 
-        const start = offset - accumulatedOffset
-        const end = start + name.length
-        const range = [start, end]
+      const id = parseInt(bindingPrefix ?? usagePrefix, 10)
+      const name = bindingName ?? usageName
+      const kind = bindingPrefix != null ? AnnotationType.Binding : AnnotationType.Usage
 
-        const annotation = new Annotation(kind, id)
-        accumulatedOffset += match.length - name.length
-        annotations.set(range, annotation)
-        return name
-      },
+      const start = offset - accumulatedOffset
+      const end = start + name.length
+      const range = [start, end]
+
+      const annotation = new Annotation(kind, id)
+      accumulatedOffset += match.length - name.length
+      annotations.set(range, annotation)
+      return name
+    },
   )
+  // Make sure that all annotations were removed. i.e. make sure that there are no unmatched `«` or `»` characters.
+  assert(!unannotatedCode.includes('«'), `Unmatched « character. Full code: ${unannotatedCode}`)
+  assert(!unannotatedCode.includes('»'), `Unmatched » character. Full code: ${unannotatedCode}`)
   return { unannotatedCode, annotations }
 }
 
 /** Alias analysis test case, typically parsed from an annotated code. */
 class TestCase {
   /** The expected aliases. */
-  expectedAliases: Map<ContentRange, ContentRange[]> = new Map()
+  expectedAliases: ObjectKeyedMap<ContentRange, ContentRange[]> = new ObjectKeyedMap()
 
   /** The expected unresolved symbols. */
-  unresolvedSymbols: Set<ContentRange> = new Set()
+  unresolvedSymbols: ObjectKeyedSet<ContentRange> = new ObjectKeyedSet()
 
   /**
    * @param code The code of the program to be tested, without annotations.
@@ -107,13 +112,18 @@ class TestCase {
   /** Parse from the annotated code. */
   static parse(annotatedCode: string): TestCase {
     const { unannotatedCode, annotations } = parseAnnotations(annotatedCode)
-    const testCase = new TestCase(unannotatedCode)
 
+    const testCase = new TestCase(unannotatedCode)
     const prefixBindings = new Map<number, ContentRange>()
 
     for (const [range, annotation] of annotations) {
       if (annotation.kind === AnnotationType.Binding) {
+        assert(
+          !prefixBindings.has(annotation.id),
+          `Duplicate binding with id ${annotation.id} at [${range}].`,
+        )
         prefixBindings.set(annotation.id, range)
+        console.debug(`Binding ${annotation.id}@[${range}]`)
         testCase.expectedAliases.set(range, [])
       }
     }
@@ -140,7 +150,10 @@ class TestCase {
     // Check that each expected connection is present.
     for (const [source, targets] of this.expectedAliases) {
       const foundTargets = analyzer.aliases.get(source)
-      assertDefined(foundTargets, `Expected binding [${source}] not found.`)
+      assertDefined(
+        foundTargets,
+        `Expected binding ${this.code.substring(source[0], source[1])}@[${source}] not found.`,
+      )
       console.log(`Found expected binding [${source}]`)
 
       for (const target of targets) {
@@ -153,11 +166,13 @@ class TestCase {
     // Unresolved symbols
     for (const unresolvedSymbol of this.unresolvedSymbols) {
       assert(
-          analyzer.unresolvedSymbols.has(unresolvedSymbol),
-          `Expected unresolved symbol usage at [${unresolvedSymbol}] not observed.`,
+        analyzer.unresolvedSymbols.has(unresolvedSymbol),
+        `Expected unresolved symbol usage at [${unresolvedSymbol}] not observed.`,
       )
       console.log(`Found expected unresolved symbol usage at [${unresolvedSymbol}]`)
     }
+
+    console.log(analyzer.unresolvedSymbols)
   }
 
   static parseAndRun(annotatedCode: string) {
@@ -167,9 +182,9 @@ class TestCase {
 }
 
 if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
+  const { test } = import.meta.vitest
 
-  test('Annotations parsing', (ctx) => {
+  test('Annotations parsing', () => {
     const annotatedCode = `main =
     «1,x» = 1
     «2,y» = 2
@@ -186,10 +201,10 @@ if (import.meta.vitest) {
     assert(unannotatedCode === expectedUnannotatedCode)
     assert(annotations.size === 7)
     const validateAnnotation = (
-        range: ContentRange,
-        kind: AnnotationType,
-        prefix: number,
-        identifier: string,
+      range: ContentRange,
+      kind: AnnotationType,
+      prefix: number,
+      identifier: string,
     ) => {
       try {
         const a = annotations.get(range)
@@ -197,9 +212,9 @@ if (import.meta.vitest) {
         assertEqual(a.kind, kind, 'Invalid annotation kind.')
         assertEqual(a.id, prefix, 'Invalid annotation prefix.')
         assertEqual(
-            unannotatedCode.substring(range[0], range[1]),
-            identifier,
-            'Invalid annotation identifier.',
+          unannotatedCode.substring(range[0], range[1]),
+          identifier,
+          'Invalid annotation identifier.',
         )
       } catch (e) {
         const message = `Invalid annotation at [${range}]: ${e}`
@@ -216,17 +231,17 @@ if (import.meta.vitest) {
     validateAnnotation([58, 59], AnnotationType.Usage, 2, 'y')
   })
 
-  test('Plain dependency', (ctx) => {
+  test('Plain dependency', () => {
     const code = 'main =\n    «1,x» = 1\n    »1,x«'
     TestCase.parseAndRun(code)
   })
 
-  test('Unresolved dependency', (ctx) => {
+  test('Unresolved dependency', () => {
     const code = 'main =\n    «1,x» = 1\n    »2,y«'
     TestCase.parseAndRun(code)
   })
 
-  test('Shadowing', (ctx) => {
+  test('Local variable shadowed by the lambda argument', () => {
     const code = `main =
     «1,x» = 1
     «2,y» = 2
@@ -247,79 +262,31 @@ if (import.meta.vitest) {
     »1,x«.x.y »2,arg«`
     TestCase.parseAndRun(code)
   })
+
+  test('Function argument', () => {
+    const code = `main =
+    «1,func» «2,arg» = »2,arg« + 1
+    »1,func« »3,arg«`
+    TestCase.parseAndRun(code)
+  })
+
+  test('Multi-segment application', () => {
+    const code = `main =
+    «1,x» = True
+    if »1,x« then »2,y« else »3,z«`
+    TestCase.parseAndRun(code)
+  })
+
+  test('Complex?', () => {
+    const code = `## PRIVATE
+   Given a positive index and a list, returns the node.
+find_node_from_start «3,list» «4,index» =
+    «1,loop» «2,current» «5,idx» = case »2,current« of
+        Nil -> if »5,idx« == 0 then »2,current« else Error.throw (Index_Out_Of_Bounds.Error »4,index« »4,index«-»5,idx«+1)
+        Cons _ «7,xs» -> if »5,idx« == 0 then »2,current« else @Tail_Call »1,loop« »7,xs« (»5,idx« - 1)
+    »1,loop« »3,list« »4,index«
+    »6,idx«`
+
+    TestCase.parseAndRun(code)
+  })
 }
-
-test('MyMap with number[] keys', () => {
-  const map = new ObjectKeyedMap<number[], string>()
-
-  const key1 = [1, 2, 3]
-  const key2 = [4, 5, 6]
-  const key3 = [1, 2, 3]
-
-  expect(map.size).toBe(0)
-
-  expect(map.has(key1)).toBe(false)
-  map.set(key1, 'value1')
-  expect(map.size).toBe(1)
-  expect(map.get(key1)).toBe('value1')
-  expect(map.has(key1)).toBe(true)
-
-  map.set(key2, 'value2')
-  expect(map.size).toBe(2)
-  expect(map.get(key2)).toBe('value2')
-  expect(map.has(key2)).toBe(true)
-
-  expect(map.has(key3)).toBe(true)
-  expect(map.get(key3)).toBe('value1')
-  map.set(key3, 'value3')
-  expect(map.size).toBe(2)
-  expect(map.get(key1)).toBe('value3')
-  expect(map.get(key3)).toBe('value3')
-
-  map.delete(key1)
-  expect(map.size).toBe(1)
-  expect(map.has(key1)).toBe(false)
-  expect(map.get(key1)).toBeUndefined()
-  expect(map.get(key2)).toBe('value2')
-  expect(map.get(key3)).toBeUndefined()
-
-  map.clear()
-  expect(map.size).toBe(0)
-  expect(map.has(key2)).toBe(false)
-  expect(map.get(key2)).toBe(undefined)
-})
-
-test('ObjectKeyedSet', () => {
-  const set = new ObjectKeyedSet<{ a: number }>()
-
-  const key1 = { a: 1 }
-  const key2 = { a: 2 }
-  const key3 = { a: 1 }
-
-  expect(set.size).toBe(0)
-
-  expect(set.has(key1)).toBe(false)
-  set.add(key1)
-  expect(set.size).toBe(1)
-  expect(set.has(key1)).toBe(true)
-
-  set.add(key2)
-  expect(set.size).toBe(2)
-  expect(set.has(key2)).toBe(true)
-
-  expect(set.has(key3)).toBe(true)
-  set.add(key3)
-  expect(set.size).toBe(2)
-
-  const asArray = Array.from(set)
-  expect(asArray).toEqual([key1, key2])
-
-  set.delete(key1)
-  expect(set.size).toBe(1)
-  expect(set.has(key1)).toBe(false)
-  expect(set.has(key2)).toBe(true)
-
-  set.clear()
-  expect(set.size).toBe(0)
-  expect(set.has(key2)).toBe(false)
-})

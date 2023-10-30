@@ -12,6 +12,8 @@ export { AstExtended }
 
 export { Ast }
 
+export type HasAstRange = ContentRange | Tree | Token
+
 export function parseEnso(code: string): Tree {
   const blob = parse(code)
   return Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
@@ -172,9 +174,10 @@ export function parsedTokenRange(token: Token): ContentRange {
   return [start, end]
 }
 
-export function parsedTreeOrTokenRange(node: Tree | Token): ContentRange {
+export function parsedTreeOrTokenRange(node: HasAstRange): ContentRange {
   if (Tree.isInstance(node)) return parsedTreeRange(node)
-  else return parsedTokenRange(node)
+  else if (Token.isInstance(node)) return parsedTokenRange(node)
+  else return node
 }
 
 export function astPrettyPrintType(obj: unknown): string | undefined {
