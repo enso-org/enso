@@ -17,7 +17,6 @@ const emit = defineEmits<{ click: [] }>()
 .Breadcrumb {
   user-select: none;
   cursor: pointer;
-  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   gap: 2px;
