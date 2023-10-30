@@ -48,7 +48,7 @@ class TailCallTest extends CompilerTest {
   val precursorPasses: PassGroup = passes.getPrecursors(TailCall).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
-    AliasAnalysis         -->> AliasAnalysis.Configuration(),
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =

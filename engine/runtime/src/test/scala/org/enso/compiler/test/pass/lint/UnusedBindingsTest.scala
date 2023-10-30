@@ -22,7 +22,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
   val precursorPasses: PassGroup = passes.getPrecursors(UnusedBindings).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
-    AliasAnalysis         -->> AliasAnalysis.Configuration()
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =

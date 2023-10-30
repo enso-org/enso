@@ -27,7 +27,7 @@ class PatternsTest extends CompilerTest {
     passes.getPrecursors(Patterns).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
-    AliasAnalysis         -->> AliasAnalysis.Configuration(),
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =

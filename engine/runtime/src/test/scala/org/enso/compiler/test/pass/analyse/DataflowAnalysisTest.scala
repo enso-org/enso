@@ -43,7 +43,7 @@ class DataflowAnalysisTest extends CompilerTest {
     passes.getPrecursors(DataflowAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
-    AliasAnalysis         -->> AliasAnalysis.Configuration(),
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =
