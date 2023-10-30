@@ -32,13 +32,29 @@ function moveNode(movedId: ExprId, delta: Vec2) {
 function hoverNode(id: ExprId | undefined) {
   if (selection != null) selection.hoveredNode = id
 }
+
+function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
+  if (id == null) {
+    graphStore.editedNodeInfo = null
+    return
+  }
+  if (cursorPosition == null) {
+    console.warn('setEditedNode: cursorPosition is null')
+    return
+  }
+  const range = [cursorPosition, cursorPosition] as ContentRange
+  graphStore.editedNodeInfo = { id, range }
+}
 </script>
 
 <template>
   <GraphNode
     v-for="[id, node] in graphStore.nodes"
+    v-show="id != graphStore.editedNodeInfo?.id"
     :key="id"
     :node="node"
+    :edited="false"
+    @update:edited="setEditedNode(id, $event)"
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
     @updateExprRect="graphStore.updateExprRect"

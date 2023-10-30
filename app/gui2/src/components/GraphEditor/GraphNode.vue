@@ -31,6 +31,7 @@ const MAXIMUM_CLICK_DISTANCE_SQ = 50
 
 const props = defineProps<{
   node: Node
+  edited: boolean
 }>()
 
 const emit = defineEmits<{
@@ -44,6 +45,7 @@ const emit = defineEmits<{
   replaceSelection: []
   'update:selected': [selected: boolean]
   outputPortAction: []
+  'update:edited': [cursorPosition: number]
 }>()
 
 const visualizationStore = useVisualizationStore()
@@ -371,6 +373,45 @@ const editableKeydownHandler = nodeEditBindings.handler({
   },
 })
 
+function startEditingHandler(event: PointerEvent) {
+  console.log('editablePointerdownHandler')
+  event.preventDefault()
+
+  let range, textNode, offset
+  offset = 0
+
+  if ((document as any).caretPositionFromPoint) {
+    range = (document as any).caretPositionFromPoint(event.clientX, event.clientY)
+    textNode = range.offsetNode
+    offset = range.offset
+  } else if (document.caretRangeFromPoint) {
+    range = document.caretRangeFromPoint(event.clientX, event.clientY)
+    if (range == null) {
+      console.error('Could not find caret position when editing node.')
+    } else {
+      textNode = range.startContainer
+      offset = range.startOffset
+    }
+  } else {
+    console.error(
+      'Neither caretPositionFromPoint nor caretRangeFromPoint are supported by this browser',
+    )
+  }
+
+  let newRange = document.createRange()
+  newRange.setStart(textNode, offset)
+
+  let selection = window.getSelection()
+  if (selection != null) {
+    selection.removeAllRanges()
+    selection.addRange(newRange)
+  } else {
+    console.error('Could not set selection when editing node.')
+  }
+
+  emit('update:edited', offset)
+}
+
 const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
 let startPos = Vec2.Zero()
@@ -478,12 +519,10 @@ function hoverExpr(id: ExprId | undefined) {
       <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
       <span
         ref="editableRootNode"
-        class="editable"
-        contenteditable
         spellcheck="false"
         @beforeinput="editContent"
         @keydown="editableKeydownHandler"
-        @pointerdown.stop
+        @pointerdown.stop.prevent="startEditingHandler"
         @blur="projectStore.stopCapturingUndo()"
         ><NodeTree
           :ast="node.rootSpan"

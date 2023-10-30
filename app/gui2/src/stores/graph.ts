@@ -21,6 +21,10 @@ import {
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
 
+export interface NodeEditInfo {
+  id: ExprId
+  range: ContentRange
+}
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
 
@@ -30,7 +34,7 @@ export const useGraphStore = defineStore('graph', () => {
   const metadata = computed(() => proj.module?.doc.metadata)
 
   const textContent = ref('')
-
+  const editedNodeInfo = ref<NodeEditInfo | null>()
   const nodes = reactive(new Map<ExprId, Node>())
   const exprNodes = reactive(new Map<ExprId, ExprId>())
   const nodeRects = reactive(new Map<ExprId, Rect>())
@@ -332,6 +336,7 @@ export const useGraphStore = defineStore('graph', () => {
     _ast,
     transact,
     nodes,
+    editedNodeInfo,
     exprNodes,
     unconnectedEdge,
     edges,

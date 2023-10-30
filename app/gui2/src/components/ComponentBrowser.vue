@@ -15,6 +15,7 @@ import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
 import { LoremIpsum } from 'lorem-ipsum'
+import type { ContentRange } from 'shared/yjsModel.ts'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 const ITEM_SIZE = 32
@@ -23,17 +24,24 @@ const TOP_BAR_HEIGHT = 32
 const props = defineProps<{
   position: Vec2
   navigator: ReturnType<typeof useNavigator>
+  initialContent: string
+  initialCaretPosition: ContentRange
 }>()
 
 const emit = defineEmits<{
-  (e: 'finished'): void
+  finished: [String]
 }>()
 
 onMounted(() => {
-  if (inputField.value != null) {
-    inputField.value.focus({ preventScroll: true })
-    selectLastAfterRefresh()
-  }
+  input.code.value = props.initialContent
+  nextTick(() => {
+    if (inputField.value != null) {
+      inputField.value.selectionStart = props.initialCaretPosition[0]
+      inputField.value.selectionEnd = props.initialCaretPosition[1]
+      inputField.value.focus({ preventScroll: true })
+      selectLastAfterRefresh()
+    }
+  })
 })
 
 const projectStore = useProjectStore()
@@ -79,7 +87,7 @@ function readInputFieldSelection() {
   }
 }
 // HTMLInputElement's same event is not supported in chrome yet. We just react for any
-// selectionchange in the document and check if the input selection chagned.
+// selectionchange in the document and check if the input selection changed.
 // BUT some operations like deleting does not emit 'selectionChange':
 // https://bugs.chromium.org/p/chromium/issues/detail?id=725890
 // Therefore we must also refresh selection after changing input.
@@ -111,7 +119,7 @@ function handleDefocus(e: FocusEvent) {
       inputField.value.focus({ preventScroll: true })
     }
   } else {
-    emit('finished')
+    emit('finished', input.code.value)
   }
 }
 
@@ -255,7 +263,11 @@ function applySuggestion(component: Opt<Component> = null): SuggestionEntry | nu
 function acceptSuggestion(index: Opt<Component> = null) {
   const applied = applySuggestion(index)
   const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
-  if (shouldFinish) emit('finished')
+  if (shouldFinish) emit('finished', input.code.value)
+}
+
+function acceptInput() {
+  emit('finished', input.code.value)
 }
 
 // === Key Events Handler ===
@@ -264,8 +276,8 @@ const handler = componentBrowserBindings.handler({
   applySuggestion() {
     applySuggestion()
   },
-  acceptSuggestion() {
-    acceptSuggestion()
+  acceptInput() {
+    acceptInput()
   },
   moveUp() {
     if (selected.value != null && selected.value < components.value.length - 1) {
@@ -280,6 +292,9 @@ const handler = componentBrowserBindings.handler({
       selected.value -= 1
     }
     scrollToSelected()
+  },
+  cancelEditing() {
+    emit('finished', props.initialContent)
   },
 })
 </script>
