@@ -48,7 +48,6 @@
     "install": "^0.13.0",
     "isomorphic-ws": "^5.0.0",
     "lib0": "^0.2.85",
-    "lorem-ipsum": "^2.0.8",
     "magic-string": "^0.30.3",
     "murmurhash": "^2.0.1",
     "pinia": "^2.1.6",

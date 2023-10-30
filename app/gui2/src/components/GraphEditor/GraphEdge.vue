@@ -417,15 +417,15 @@ const activeStyle = computed(() => {
   if (base.value == null) return {}
   if (navigator?.sceneMousePos == null) return {}
   const length = base.value.getTotalLength()
-  let offset = lengthTo(navigator?.sceneMousePos)
+  let offset = lengthTo(navigator.sceneMousePos)
   if (offset == null) return {}
   offset = length - offset
   if (offset < length / 2) {
     offset += length
   }
   return {
-    'stroke-dasharray': length,
-    'stroke-dashoffset': offset,
+    strokeDasharray: length,
+    strokeDashoffset: offset,
   }
 })
 
@@ -459,22 +459,23 @@ const arrowTransform = computed(() => {
 </script>
 
 <template>
-  <path
-    v-if="basePath"
-    :d="basePath"
-    class="edge io"
-    @pointerdown="click"
-    @pointerenter="hovered = true"
-    @pointerleave="hovered = false"
-  />
-  <path v-if="basePath" ref="base" :d="basePath" class="edge visible base" />
-  <path v-if="activePath" :d="activePath" class="edge visible active" :style="activeStyle" />
-  <polygon
-    v-if="arrowTransform"
-    :transform="arrowTransform"
-    points="0,-9.375 -9.375,9.375 9.375,9.375"
-    class="arrow visible"
-  />
+  <template v-if="basePath">
+    <path
+      :d="basePath"
+      class="edge io"
+      @pointerdown="click"
+      @pointerenter="hovered = true"
+      @pointerleave="hovered = false"
+    />
+    <path ref="base" :d="basePath" class="edge visible base" />
+    <polygon
+      v-if="arrowTransform"
+      :transform="arrowTransform"
+      points="0,-9.375 -9.375,9.375 9.375,9.375"
+      class="arrow visible"
+    />
+    <path v-if="activePath" :d="activePath" class="edge visible active" :style="activeStyle" />
+  </template>
 </template>
 
 <style scoped>
@@ -486,6 +487,7 @@ const arrowTransform = computed(() => {
 }
 .edge {
   fill: none;
+  stroke-linecap: round;
 }
 .edge.io {
   stroke-width: 14;

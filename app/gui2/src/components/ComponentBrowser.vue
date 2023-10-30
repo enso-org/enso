@@ -3,6 +3,7 @@ import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { Input } from '@/components/ComponentBrowser/input'
+import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useProjectStore } from '@/stores/project'
@@ -14,8 +15,8 @@ import type { useNavigator } from '@/util/navigator'
 import type { Opt } from '@/util/opt'
 import { allRanges } from '@/util/range'
 import { Vec2 } from '@/util/vec2'
-import { LoremIpsum } from 'lorem-ipsum'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
+import { computed, nextTick, onMounted, ref, watch, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -44,8 +45,10 @@ const transform = computed(() => {
   const nav = props.navigator
   const translate = nav.translate
   const position = translate.add(props.position).scale(nav.scale)
+  const x = Math.round(position.x)
+  const y = Math.round(position.y)
 
-  return `translate(${position.x}px, ${position.y}px) translateY(-100%)`
+  return `translate(${x}px, ${y}px) translateY(-100%)`
 })
 
 // === Input and Filtering ===
@@ -169,9 +172,13 @@ const highlightHeight = computed(() => (selected.value != null ? ITEM_SIZE : 0))
 const animatedHighlightPosition = useApproach(highlightPosition)
 const animatedHighlightHeight = useApproach(highlightHeight)
 
-const selectedSuggestion = computed(() => {
+const selectedSuggestionId = computed(() => {
   if (selected.value === null) return null
-  const id = components.value[selected.value]?.suggestionId
+  return components.value[selected.value]?.suggestionId ?? null
+})
+
+const selectedSuggestion = computed(() => {
+  const id = selectedSuggestionId.value
   if (id == null) return null
   return suggestionDbStore.entries.get(id) ?? null
 })
@@ -236,7 +243,20 @@ function updateScroll() {
 // === Documentation Panel ===
 
 const docsVisible = ref(true)
-const docs = new LoremIpsum().generateParagraphs(6)
+
+const displayedDocs: Ref<Opt<SuggestionId>> = ref(null)
+const docEntry = computed({
+  get() {
+    return displayedDocs.value
+  },
+  set(value) {
+    displayedDocs.value = value
+  },
+})
+
+watch(selectedSuggestionId, (id) => {
+  docEntry.value = id
+})
 
 // === Accepting Entry ===
 
@@ -376,8 +396,8 @@ const handler = componentBrowserBindings.handler({
           </div>
         </div>
       </div>
-      <div class="panel docs scrollable" :class="{ hidden: !docsVisible }" @wheel.stop.passive>
-        {{ docs }}
+      <div class="panel docs" :class="{ hidden: !docsVisible }">
+        <DocumentationPanel v-model:selectedEntry="docEntry" />
       </div>
     </div>
     <div class="CBInput">
@@ -433,7 +453,6 @@ const handler = componentBrowserBindings.handler({
   width: 406px;
   clip-path: inset(0 0 0 0 round 20px);
   transition: clip-path 0.2s;
-  overflow-y: auto;
 }
 .docs.hidden {
   clip-path: inset(0 100% 0 0 round 20px);
