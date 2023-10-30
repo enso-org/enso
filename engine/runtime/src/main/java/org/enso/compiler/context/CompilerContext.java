@@ -5,17 +5,15 @@ import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-import org.enso.compiler.Cache;
 import org.enso.compiler.Compiler;
-import org.enso.compiler.ModuleCache;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
-import org.enso.compiler.SerializationManager;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.editions.LibraryName;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
@@ -66,10 +64,7 @@ public interface CompilerContext {
   boolean typeContainsValues(String name);
 
   void initializeBuiltinsIr(
-      boolean irCachingEnabled,
-      SerializationManager serializationManager,
-      FreshNameSupply freshNameSupply,
-      Passes passes);
+      Compiler compiler, boolean irCachingEnabled, FreshNameSupply freshNameSupply, Passes passes);
 
   QualifiedName getModuleName(Module module);
 
@@ -89,11 +84,17 @@ public interface CompilerContext {
 
   CompilationStage getCompilationStage(Module module);
 
-  <T> Optional<T> loadCache(Cache<T, ?> cache);
-
-  <T> Optional<TruffleFile> saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations);
-
   TypeGraph getTypeHierarchy();
+
+  Future<Boolean> serializeLibrary(
+      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
+
+  Future<Boolean> serializeModule(
+      Compiler compiler, Module module, boolean useGlobalCacheLocations);
+
+  boolean deserializeModule(Compiler compiler, Module module);
+
+  void shutdown(boolean waitForPendingJobCompletion);
 
   public static interface Updater {
     void bindingsMap(BindingsMap map);
@@ -127,8 +128,6 @@ public interface CompilerContext {
     public abstract TruffleFile getSourceFile();
 
     public abstract List<QualifiedName> getDirectModulesRefs();
-
-    public abstract ModuleCache getCache();
 
     public abstract CompilationStage getCompilationStage();
 

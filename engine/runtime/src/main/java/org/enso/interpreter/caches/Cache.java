@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.interpreter.caches;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;

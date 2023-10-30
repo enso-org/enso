@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import org.enso.compiler.Passes;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
@@ -13,21 +14,17 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
-import org.enso.compiler.Cache;
 import org.enso.compiler.Compiler;
-import org.enso.compiler.ModuleCache;
 import org.enso.compiler.PackageRepository;
-import org.enso.compiler.Passes;
-import org.enso.compiler.SerializationManager;
-import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.editions.LibraryName;
+import org.enso.interpreter.caches.Cache;
+import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -39,14 +36,16 @@ import scala.Option;
 final class TruffleCompilerContext implements CompilerContext {
 
   private final EnsoContext context;
-  private final TruffleLogger compiler;
-  private final TruffleLogger serializationManager;
+  private final TruffleLogger loggerCompiler;
+  private final TruffleLogger loggerManager;
   private final RuntimeStubsGenerator stubsGenerator;
+  private final SerializationManager serializationManager;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
-    this.compiler = context.getLogger(Compiler.class);
-    this.serializationManager = context.getLogger(SerializationManager.class);
+    this.loggerCompiler = context.getLogger(Compiler.class);
+    this.loggerManager = context.getLogger(SerializationManager.class);
+    this.serializationManager = new SerializationManager(this);
     this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
 
@@ -70,6 +69,10 @@ final class TruffleCompilerContext implements CompilerContext {
     return context.getPackageRepository();
   }
 
+  final SerializationManager getSerializationManager() {
+    return serializationManager;
+  }
+
   @Override
   public PrintStream getErr() {
     return context.getErr();
@@ -82,12 +85,12 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void log(Level level, String msg, Object... args) {
-    compiler.log(level, msg, args);
+    loggerCompiler.log(level, msg, args);
   }
 
   @Override
   public void logSerializationManager(Level level, String msg, Object... args) {
-    serializationManager.log(level, msg, args);
+    loggerManager.log(level, msg, args);
   }
 
   @Override
@@ -169,12 +172,10 @@ final class TruffleCompilerContext implements CompilerContext {
     }
   }
 
-  @Override
   public <T> Optional<T> loadCache(Cache<T, ?> cache) {
     return cache.load(context);
   }
 
-  @Override
   public <T> Optional<TruffleFile> saveCache(
           Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations) {
     return cache.save(entry, context, useGlobalCacheLocations);
@@ -191,8 +192,9 @@ final class TruffleCompilerContext implements CompilerContext {
    */
   @Override
   public void initializeBuiltinsIr(
-          boolean irCachingEnabled, SerializationManager serializationManager,
-          FreshNameSupply freshNameSupply, Passes passes
+    Compiler compiler,
+    boolean irCachingEnabled,
+    FreshNameSupply freshNameSupply, Passes passes
   ) {
     var builtins = context.getBuiltins();
     var builtinsModule = builtins.getModule().asCompilerModule();
@@ -207,7 +209,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
       if (irCachingEnabled) {
         if (
-          serializationManager.deserialize(builtinsModule) instanceof Option<?> op &&
+          serializationManager.deserialize(compiler, builtinsModule) instanceof Option<?> op &&
           op.isDefined() &&
           op.get() instanceof Boolean b && b
         ) {
@@ -233,7 +235,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
       if (irCachingEnabled && !wasLoadedFromCache(builtinsModule)) {
         serializationManager.serializeModule(
-                builtinsModule, true, true
+          compiler, builtinsModule, true, true
         );
       }
     }
@@ -250,6 +252,30 @@ final class TruffleCompilerContext implements CompilerContext {
     return option.isEmpty() ? null : option.get().asCompilerModule();
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public Future<Boolean> serializeLibrary(Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+    Object res = serializationManager.serializeLibrary(compiler, libraryName, useGlobalCacheLocations);
+    return (Future<Boolean>) res;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Future<Boolean> serializeModule(Compiler compiler, CompilerContext.Module module, boolean useGlobalCacheLocations) {
+    Object res = serializationManager.serializeModule(compiler, module, useGlobalCacheLocations, true);
+    return (Future<Boolean>) res;
+  }
+
+  @Override
+  public boolean deserializeModule(Compiler compiler, CompilerContext.Module module) {
+    var result = serializationManager.deserialize(compiler, module);
+    return result.nonEmpty();
+  }
+
+  @Override
+  public void shutdown(boolean waitForPendingJobCompletion) {
+    serializationManager.shutdown(waitForPendingJobCompletion);
+  }
 
   private final class ModuleUpdater implements Updater, AutoCloseable {
     private final Module module;
@@ -389,7 +415,6 @@ final class TruffleCompilerContext implements CompilerContext {
       return module.getDirectModulesRefs();
     }
 
-    @Override
     public ModuleCache getCache() {
       return module.getCache();
     }
