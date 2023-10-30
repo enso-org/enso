@@ -137,7 +137,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     module: { kind: 'Builtin' },
     name,
   }))
-  const visualizationsForType = reactive(new Map<string, Set<VisualizationIdentifier>>())
+  const visualizationsForType = reactive(new Map<string, Set<VisualizationCacheKey>>())
   const typesForVisualization = reactive(new Map<string, ReadonlySet<string>>())
   const proj = useProjectStore()
   const ls = proj.lsRpcConnection
@@ -150,29 +150,40 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return new Set(inputType?.split('|').map((type) => type.trim()) ?? ['Any'])
   }
 
+  function removeVisualizationTypes(id: VisualizationIdentifier, name: string) {
+    const key = toVisualizationCacheKey(id)
+    const types = typesForVisualization.get(name)
+    if (!types) return
+    typesForVisualization.delete(name)
+    for (const type of types) {
+      visualizationsForType.get(type)?.delete(key)
+    }
+  }
+
   function updateVisualizationTypes(
     id: VisualizationIdentifier,
     name: string,
     inputType: Opt<string>,
   ) {
+    const key = toVisualizationCacheKey(id)
     const newTypes = getTypesFromUnion(inputType)
     const types = typesForVisualization.get(name)
     typesForVisualization.set(name, newTypes)
     if (types) {
       for (const type of types) {
         if (!newTypes.has(type)) {
-          // FIXME: this doesn't work because `id` is an object
-          visualizationsForType.get(type)?.delete(id)
+          visualizationsForType.get(type)?.delete(key)
         }
       }
-    } else {
-      for (const type of newTypes) {
+    }
+    for (const type of newTypes) {
+      if (!types || !types.has(type)) {
         let set = visualizationsForType.get(type)
         if (!set) {
           set = new Set()
           visualizationsForType.set(type, set)
         }
-        set.add(id)
+        set.add(key)
       }
     }
   }
@@ -193,7 +204,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
     const ret =
       type === undefined
         ? allBuiltinVisualizations
-        : [...(visualizationsForType.get(type) ?? []), ...(visualizationsForType.get('Any') ?? [])]
+        : [
+            ...(visualizationsForType.get(type) ?? []),
+            ...(visualizationsForType.get('Any') ?? []),
+          ].map(fromVisualizationCacheKey)
     return ret
   }
 
@@ -426,14 +440,19 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }) as VisualizationCacheKey
   }
 
+  function fromVisualizationCacheKey(key: VisualizationCacheKey): VisualizationIdentifier {
+    return JSON.parse(key)
+  }
+
   async function onFileEvent(event: { path: Path; kind: FileEventKind }) {
     const pathString = event.path.segments.join('/')
     const name = currentProjectVisualizationsByPath.get(pathString)
-    const key =
-      name != null
-        ? toVisualizationCacheKey({ module: { kind: 'CurrentProject' }, name })
-        : undefined
+    const id: VisualizationIdentifier | undefined =
+      name != null ? { module: { kind: 'CurrentProject' }, name } : undefined
+    const key = id && toVisualizationCacheKey(id)
     if (event.path.segments[0] === 'visualizations' && /\.vue$/.test(pathString)) {
+      compilationAbortControllers.get(pathString)?.abort()
+      compilationAbortControllers.delete(pathString)
       switch (event.kind) {
         case 'Added': {
           try {
@@ -442,10 +461,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
             const vizPromise = compile('enso-current-project:' + pathString)
             const viz = await vizPromise
             if (abortController.signal.aborted) break
-            const key = toVisualizationCacheKey({
+            const id: VisualizationIdentifier = {
               module: { kind: 'CurrentProject' },
               name: viz.name,
-            })
+            }
+            const key = toVisualizationCacheKey(id)
+            updateVisualizationTypes(id, viz.name, viz.inputType)
             cache.set(key, vizPromise)
           } catch {
             // Ignored - the file is not a module.
@@ -455,7 +476,22 @@ export const useVisualizationStore = defineStore('visualization', () => {
         case 'Modified': {
           if (!key) break
           try {
+            const abortController = new AbortController()
+            compilationAbortControllers.set(pathString, abortController)
+            const vizPromise = compile('enso-current-project:' + pathString)
             cache.set(key, compile('enso-current-project:' + pathString))
+            const viz = await vizPromise
+            if (abortController.signal.aborted) break
+            if (viz.name !== id.name) {
+              removeVisualizationTypes(id, id.name)
+              updateVisualizationTypes(
+                { module: { kind: 'CurrentProject' }, name: viz.name },
+                viz.name,
+                viz.inputType,
+              )
+            } else {
+              updateVisualizationTypes(id, viz.name, viz.inputType)
+            }
           } catch (error) {
             if (error instanceof InvalidVisualizationModuleError) {
               cache.delete(key)
@@ -466,8 +502,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
         }
         case 'Removed': {
           currentProjectVisualizationsByPath.delete(pathString)
-          compilationAbortControllers.get(pathString)?.abort()
-          compilationAbortControllers.delete(pathString)
           if (key) cache.delete(key)
         }
       }
