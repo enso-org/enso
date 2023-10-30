@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FunctionDocs, TypeDocs } from '@/components/DocumentationPanel/ir'
 import type { Doc } from '@/util/docParser'
+import { qnSplit } from '@/util/qualifiedName'
 import type { SuggestionEntryArgument, SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
 
@@ -33,7 +34,7 @@ function firstParagraph(synopsis: Doc.Section[]): string | undefined {
 function argumentsList(args: SuggestionEntryArgument[]): string {
   return args
     .map((arg) => {
-      const defaultValue = arg.defaultValue ? ` = ${arg.defaultValue}` : ''
+      const defaultValue = arg.defaultValue ? `=${arg.defaultValue}` : ''
       return `${arg.name}${defaultValue}`
     })
     .join(', ')
@@ -51,7 +52,7 @@ const annotations = computed<Array<string | undefined>>(() => {
         :class="['link', props.items.kind]"
         @pointerdown.stop.prevent="emit('linkClicked', item.id)"
       >
-        <span class="entryName">{{ item.name }}</span>
+        <span class="entryName">{{ qnSplit(item.name)[1] }}</span>
         <span class="arguments">{{ ' ' + argumentsList(item.arguments) }}</span>
       </a>
       <!-- eslint-disable vue/no-v-html -->

@@ -1,15 +1,21 @@
 <script setup lang="ts">
+import type { Item as Breadcrumb } from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
+import Breadcrumbs from '@/components/DocumentationPanel/DocsBreadcrumbs.vue'
 import DocsExamples from '@/components/DocumentationPanel/DocsExamples.vue'
 import DocsHeader from '@/components/DocumentationPanel/DocsHeader.vue'
 import DocsList from '@/components/DocumentationPanel/DocsList.vue'
 import DocsSynopsis from '@/components/DocumentationPanel/DocsSynopsis.vue'
 import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
+import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
+import type { Icon as IconName } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
-import { computed } from 'vue'
+import type { QualifiedName } from '@/util/qualifiedName'
+import { qnSegments, qnSlice } from '@/util/qualifiedName'
+import { computed, watch } from 'vue'
 
 const props = defineProps<{ selectedEntry: Opt<SuggestionId> }>()
 const emit = defineEmits<{ 'update:selectedEntry': [id: SuggestionId] }>()
@@ -40,29 +46,113 @@ const types = computed<TypeDocs[]>(() => {
   const docs = documentation.value
   return docs.kind === 'Module' ? docs.types : []
 })
+
+const isPlaceholder = computed(() => 'Placeholder' in documentation.value)
+
+const name = computed<Opt<QualifiedName>>(() => {
+  const docs = documentation.value
+  return docs.kind === 'Placeholder' ? null : docs.name
+})
+
+// === Breadcrumbs ===
+
+const color = computed<string>(() => {
+  const id = props.selectedEntry
+  if (id) {
+    const entry = db.entries.get(id)
+    const groupIndex = entry?.groupIndex ?? -1
+    const group = db.groups[groupIndex]
+    if (group) {
+      const name = group.name.replace(/\s/g, '-')
+      return `var(--group-color-${name})`
+    }
+  }
+  return 'var(--group-color-fallback)'
+})
+
+const icon = computed<IconName>(() => {
+  const id = props.selectedEntry
+  if (id) {
+    const entry = db.entries.get(id)
+    return entry?.iconName ?? 'marketplace'
+  } else {
+    return 'marketplace'
+  }
+})
+
+const historyStack = new HistoryStack()
+
+// Reset breadcrumbs history when the user selects the entry from the component list.
+watch(
+  () => props.selectedEntry,
+  (entry) => {
+    if (entry && historyStack.current.value !== entry) {
+      historyStack.reset(entry)
+    }
+  },
+)
+
+// Update displayed documentation page when the user uses breadcrumbs.
+watch(historyStack.current, (current) => {
+  if (current) {
+    emit('update:selectedEntry', current)
+  }
+})
+
+const breadcrumbs = computed<Breadcrumb[]>(() => {
+  if (name.value) {
+    const segments = qnSegments(name.value)
+    return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
+  } else {
+    return []
+  }
+})
+
+function handleBreadcrumbClick(index: number) {
+  if (name.value) {
+    const qName = qnSlice(name.value, 0, index + 2)
+    if (qName.ok) {
+      const [id] = db.entries.nameToId.lookup(qName.value)
+      if (id) {
+        historyStack.record(id)
+      }
+    }
+  }
+}
 </script>
 
 <template>
   <div class="DocumentationPanel scrollable" @wheel.stop.passive>
     <h1 v-if="documentation.kind === 'Placeholder'">{{ documentation.text }}</h1>
-    <DocsTags v-if="sections.tags.length > 0" :tags="sections.tags" />
+    <Breadcrumbs
+      v-if="!isPlaceholder"
+      :breadcrumbs="breadcrumbs"
+      :color="color"
+      :icon="icon"
+      :canGoForward="historyStack.canGoForward()"
+      :canGoBackward="historyStack.canGoBackward()"
+      @click="(index) => handleBreadcrumbClick(index)"
+      @forward="historyStack.forward()"
+      @backward="historyStack.backward()"
+    />
+    <DocsTags v-if="sections.tags.length > 0" class="tags" :tags="sections.tags" />
     <div class="sections">
       <span v-if="sections.synopsis.length == 0">{{ 'No documentation available.' }}</span>
       <DocsSynopsis :sections="sections.synopsis" />
       <DocsHeader v-if="types.length > 0" kind="types" label="Types" />
       <DocsList
         :items="{ kind: 'Types', items: types }"
-        @linkClicked="emit('update:selectedEntry', $event)"
+        @linkClicked="historyStack.record($event)"
       />
       <DocsHeader v-if="constructors.length > 0" kind="methods" label="Constructors" />
       <DocsList
         :items="{ kind: 'Constructors', items: constructors }"
-        @linkClicked="emit('update:selectedEntry', $event)"
+        @linkClicked="historyStack.record($event)"
       />
       <DocsHeader v-if="methods.length > 0" kind="methods" label="Methods" />
       <DocsList
         :items="{ kind: 'Methods', items: methods }"
-        @linkClicked="emit('update:selectedEntry', $event)"
+        @linkClicked="historyStack.record($event)"
       />
       <DocsHeader v-if="sections.examples.length > 0" kind="examples" label="Examples" />
       <DocsExamples :examples="sections.examples" />
@@ -89,11 +179,18 @@ const types = computed<TypeDocs[]>(() => {
   line-height: 160%;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);
-  padding: 8px 12px 4px 8px;
+  padding: 4px 12px 4px 4px;
   white-space: normal;
   clip-path: inset(0 0 4px 0);
   height: 100%;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.tags {
+  margin: 4px 0 0 8px;
 }
 
 .sections {
