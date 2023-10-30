@@ -18,6 +18,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.SerializationManager$;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
@@ -54,13 +55,14 @@ public class SerdeCompilerTest {
       var result = compiler.run(module);
       assertEquals("Two library modules are compiled", result.compiledModules().size(), 2);
       assertEquals(result.compiledModules().exists(m -> m == module), true);
-      var serializationManager = ensoContext.getCompiler().getSerializationManager();
+      var serializationManager =
+          SerializationManager$.MODULE$.apply(ensoContext.getCompiler().context());
       var futures = new ArrayList<Future<?>>();
       result
           .compiledModules()
           .foreach(
               (m) -> {
-                var future = serializationManager.serializeModule(m, true, true);
+                var future = serializationManager.serializeModule(compiler, m, true, true);
                 futures.add(future);
                 return null;
               });
