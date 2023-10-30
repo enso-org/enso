@@ -21,12 +21,12 @@ const RENAME = new Map([
   // Rename source references to reflect our usage:
   // - In `Tree`s:
   ['spanLeftOffsetCodeOffsetUtf16', 'whitespaceStartInCodeParsed'],
-  ['spanLeftOffsetCodeUtf16', 'whitespaceLengthInCodeParsed'],
+  ['spanLeftOffsetCodeLenUtf16', 'whitespaceLengthInCodeParsed'],
   ['spanCodeLengthUtf16', 'childrenLengthInCodeParsed'],
   // - In `Tokens`s:
   ['leftOffsetCodeOffsetUtf16', 'whitespaceStartInCodeBuffer'],
-  ['leftOffsetCodeUtf16', 'whitespaceLengthInCodeBuffer'],
-  ['codeUtf16', 'lengthInCodeBuffer'],
+  ['leftOffsetCodeLenUtf16', 'whitespaceLengthInCodeBuffer'],
+  ['codeLenUtf16', 'lengthInCodeBuffer'],
   ['codeOffsetUtf16', 'startInCodeBuffer'],
 ])
 

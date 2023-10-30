@@ -13,98 +13,133 @@ use crate::prelude::*;
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deref)]
 pub struct StrRef<'s>(pub &'s str);
 
-/// A code representation. It can either be a borrowed source code or a modified owned one.
+/// Identifies a location in source code.
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    Eq,
+    PartialEq,
+    Serialize,
+    Reflect,
+    Deserialize,
+    PartialOrd,
+    Ord
+)]
+pub struct Location {
+    /// Offset from the beginning, in UTF-8 code units (bytes).
+    #[reflect(hide)]
+    pub utf8:  u32,
+    /// Offset from the beginning, in UTF-16 code units (two-byte words).
+    #[reflect(hide)]
+    pub utf16: u32,
+    /// Offset from the first line.
+    #[reflect(hide)]
+    pub line:  u32,
+    /// Offset from start of line, in Unicode characters.
+    #[reflect(hide)]
+    pub col:   u32,
+}
+
+impl Add<Length> for Location {
+    type Output = Self;
+
+    fn add(self, rhs: Length) -> Self::Output {
+        Self {
+            utf8:  self.utf8 + rhs.utf8,
+            utf16: self.utf16 + rhs.utf16,
+            line:  self.line + rhs.newlines,
+            col:   if rhs.newlines == 0 { self.col } else { 0 } + rhs.line_chars,
+        }
+    }
+}
+
+/// A code representation.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize, Deref)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
+    /// The borrowed string data.
     #[serde(serialize_with = "crate::serialization::serialize_cow")]
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
     #[reflect(as = "crate::serialization::Code", flatten, hide)]
     #[deref]
-    pub repr:     StrRef<'s>,
-    #[reflect(hide)]
-    offset_utf16: u32,
-    #[reflect(hide)]
-    utf16:        u32,
+    pub repr: StrRef<'s>,
+    #[reflect(flatten)]
+    offset:   Location,
+    /// The length of the source code.
+    #[reflect(flatten)]
+    pub len:  Length,
 }
 
 impl<'s> Code<'s> {
     /// Return a code reference from the given source and offset within the document.
     #[inline(always)]
-    pub fn from_str_at_offset(repr: &'s str, offset_utf16: u32) -> Self {
-        let utf16 = repr.chars().map(|c| c.len_utf16() as u32).sum();
+    pub fn from_str_at_location(repr: &'s str, location: Location) -> Self {
+        let len = Length::of(repr);
         let repr = StrRef(repr);
-        Self { repr, offset_utf16, utf16 }
+        Self { repr, offset: location, len }
     }
 
     /// Return a code reference at the beginning of the document. This can be used in testing, when
     /// accurate code references are not needed.
     #[inline(always)]
     pub fn from_str_without_offset(repr: &'s str) -> Self {
-        Self::from_str_at_offset(repr, 0)
+        Self::from_str_at_location(repr, default())
     }
 
     /// Return a copy of this value, and set this value to a 0-length value following the returned
     /// value.
     #[inline(always)]
     pub fn take_as_prefix(&mut self) -> Self {
-        let end = self.offset_utf16 + self.utf16;
+        let end = self.offset + self.len;
         Self {
-            repr:         mem::take(&mut self.repr),
-            offset_utf16: mem::replace(&mut self.offset_utf16, end),
-            utf16:        mem::take(&mut self.utf16),
+            repr:   mem::take(&mut self.repr),
+            offset: mem::replace(&mut self.offset, end),
+            len:    mem::take(&mut self.len),
         }
     }
 
     /// Return a 0-length `Code` located immediately before the start of this `Code`.
     pub fn position_before(&self) -> Self {
-        Self { repr: default(), offset_utf16: self.offset_utf16, utf16: default() }
+        Self { repr: default(), offset: self.offset, len: default() }
     }
 
     /// Return a 0-length `Code` located immediately after the end of this `Code`.
     pub fn position_after(&self) -> Self {
-        Self {
-            repr:         default(),
-            offset_utf16: self.offset_utf16 + self.utf16,
-            utf16:        default(),
-        }
-    }
-
-    /// Return the length in UTF-16 code units.
-    pub fn len_utf16(&self) -> u32 {
-        self.utf16
+        Self { repr: default(), offset: self.offset + self.len, len: default() }
     }
 
     /// Return the start and end of the UTF-16 source code for this element.
-    pub fn range_utf16(&self) -> Range<u32> {
-        self.offset_utf16..(self.offset_utf16 + self.utf16)
+    pub fn range(&self) -> Range<Location> {
+        self.offset..(self.offset + self.len)
     }
 
     /// Split the code at the given location.
     pub fn split_at(&self, split: Length) -> (Self, Self) {
-        let (left, right) = self.repr.split_at(split.utf8);
-        (
-            Self {
-                repr:         StrRef(left),
-                offset_utf16: self.offset_utf16,
-                utf16:        split.utf16,
-            },
-            Self {
-                repr:         StrRef(right),
-                offset_utf16: self.offset_utf16 + split.utf16,
-                utf16:        self.utf16 - split.utf16,
-            },
-        )
+        let (left, right) = self.repr.split_at(usize::try_from(split.utf8).unwrap());
+        let right_len = Length {
+            utf8:       self.len.utf8 - split.utf8,
+            utf16:      self.len.utf16 - split.utf16,
+            newlines:   self.len.newlines - split.newlines,
+            line_chars: self.len.line_chars
+                - if split.newlines == 0 { split.line_chars } else { 0 },
+        };
+        (Self { repr: StrRef(left), offset: self.offset, len: split }, Self {
+            repr:   StrRef(right),
+            offset: self.offset + split,
+            len:    right_len,
+        })
     }
 
     /// Return a reference to an empty string, not associated with any location in the document.
-    pub fn empty_without_offset() -> Self {
-        Self { repr: StrRef(""), offset_utf16: 0, utf16: 0 }
+    pub fn empty_without_location() -> Self {
+        Self { repr: StrRef(""), offset: default(), len: default() }
     }
 
     /// Return a reference to an empty string.
-    pub fn empty(offset: u32) -> Self {
-        Self { repr: StrRef(""), offset_utf16: offset, utf16: 0 }
+    pub fn empty(location: Location) -> Self {
+        Self { repr: StrRef(""), offset: location, len: default() }
     }
 
     /// Length of the code in bytes.
@@ -116,7 +151,7 @@ impl<'s> Code<'s> {
     /// Length of the code.
     #[inline(always)]
     pub fn length(&self) -> Length {
-        Length { utf8: self.repr.len(), utf16: self.utf16 }
+        self.len
     }
 
     /// True if the code is the empty string.
@@ -127,8 +162,8 @@ impl<'s> Code<'s> {
 
     /// Return this value with its start position removed (set to 0). This can be used to compare
     /// values ignoring offsets.
-    pub fn without_offset(&self) -> Self {
-        Self { repr: self.repr.clone(), offset_utf16: default(), utf16: self.utf16 }
+    pub fn without_location(&self) -> Self {
+        Self { repr: self.repr.clone(), offset: default(), len: self.len }
     }
 }
 
@@ -175,7 +210,7 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
                 // The span builder works by starting with `Span::empty_without_offset()`, and
                 // appending to the right side. In order to ensure every span has an offset: When
                 // the LHS is empty, take the location from the RHS even if the RHS is also empty.
-                self.offset_utf16 = other.offset_utf16;
+                self.offset = other.offset;
             }
             (true, false) => {
                 *self = other.clone();
@@ -193,7 +228,7 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
                     // Concatenating two UTF-8 strings always yields a valid UTF-8 string.
                     self.repr = StrRef(std::str::from_utf8_unchecked(joined));
                 }
-                self.utf16 += other.utf16;
+                self.len += other.len;
             }
         }
     }
@@ -205,17 +240,36 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
 /// The length of a [`Code`] object.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct Length {
+    /// An offset, in UTF-8 code units (bytes).
     #[reflect(skip)]
     #[serde(skip)]
-    utf8:  usize,
-    utf16: u32,
+    pub utf8:       u32,
+    /// An offset, in UTF-16 code units (two-byte words).
+    pub utf16:      u32,
+    /// A difference in line numbers.
+    #[reflect(hide)]
+    pub newlines:   u32,
+    /// If `newlines` is 0, this is the difference in character positions within a line; if
+    /// `newlines` is nonzero, this is the character position within the line ending the range.
+    pub line_chars: u32,
 }
 
 impl Length {
     /// Returns the length of the given input.
     #[inline(always)]
     pub fn of(s: &str) -> Self {
-        Self { utf8: s.len(), utf16: s.encode_utf16().count() as u32 }
+        let mut utf16 = 0;
+        let mut newlines = 0;
+        let mut line_chars = 0;
+        for c in s.chars() {
+            utf16 += c.len_utf16() as u32;
+            line_chars += 1;
+            if c == '\n' {
+                newlines += 1;
+                line_chars = 0;
+            }
+        }
+        Self { utf8: u32::try_from(s.len()).unwrap(), utf16, newlines, line_chars }
     }
 
     /// Returns true if the code is empty.
@@ -226,7 +280,7 @@ impl Length {
 
     /// Return the length in UTF-8 code units (bytes).
     #[inline(always)]
-    pub fn utf8_bytes(&self) -> usize {
+    pub fn utf8_bytes(&self) -> u32 {
         self.utf8
     }
 
@@ -242,8 +296,13 @@ impl Add for Length {
 
     #[inline(always)]
     fn add(self, rhs: Self) -> Self::Output {
-        let Self { utf8, utf16 } = self;
-        Self { utf8: utf8 + rhs.utf8, utf16: utf16 + rhs.utf16 }
+        let Self { utf8, utf16, newlines, line_chars } = self;
+        Self {
+            utf8:       utf8 + rhs.utf8,
+            utf16:      utf16 + rhs.utf16,
+            newlines:   newlines + rhs.newlines,
+            line_chars: if rhs.newlines == 0 { line_chars } else { 0 } + rhs.line_chars,
+        }
     }
 }
 
@@ -257,5 +316,64 @@ impl AddAssign for Length {
 impl Display for Length {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.utf8)
+    }
+}
+
+
+
+// ====================
+// === Test support ===
+// ====================
+
+/// Testing/debugging helpers.
+pub mod debug {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    /// Checks consistency of observed `Location`s. Compares `line:col` values against values found
+    /// in an independent scan of the input source code.
+    #[derive(Debug, Default)]
+    pub struct LocationCheck {
+        locations: BTreeMap<u32, Location>,
+    }
+
+    impl LocationCheck {
+        /// Create a new empty checker.
+        pub fn new() -> Self {
+            Self::default()
+        }
+
+        /// Add the location to the collection waiting to be checked.
+        pub fn add(&mut self, location: Location) {
+            self.locations.insert(location.utf8, location);
+        }
+
+        /// Add multiple locations to the collection waiting to be checked.
+        pub fn extend(&mut self, locations: &[Location]) {
+            self.locations.extend(locations.iter().map(|loc| (loc.utf8, *loc)));
+        }
+
+        /// Check all previously-added locations for consistency with the input.
+        pub fn check(mut self, input: &str) {
+            let mut pos = Location::default();
+            for (i, c) in input.char_indices() {
+                pos.utf8 = i as u32;
+                if let Some(loc) = self.locations.remove(&(i as u32)) {
+                    assert_eq!(loc, pos);
+                }
+                pos.utf16 += c.len_utf16() as u32;
+                pos.col += 1;
+                if c == '\n' {
+                    pos.line += 1;
+                    pos.col = 0;
+                }
+            }
+            if let Some(loc) = self.locations.remove(&(input.len() as u32)) {
+                pos.utf8 = input.len() as u32;
+                assert_eq!(loc, pos);
+            }
+            let non_char_boundary_locations: Vec<_> = self.locations.values().cloned().collect();
+            assert_eq!(&non_char_boundary_locations, &[]);
+        }
     }
 }
