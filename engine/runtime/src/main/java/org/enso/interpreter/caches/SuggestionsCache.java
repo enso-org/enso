@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.interpreter.caches;
 
 import buildinfo.Info;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -115,7 +115,7 @@ public final class SuggestionsCache
   }
 
   // Suggestions class is not a record because of a Frgaal bug leading to invalid compilation error.
-  final static class Suggestions implements Serializable {
+  public final static class Suggestions implements Serializable {
 
     private final List<Suggestion> suggestions;
 

@@ -8,6 +8,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.Paths
+import java.util.logging.Level
 
 trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
   val output = new ByteArrayOutputStream()
@@ -35,7 +36,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .out(output)
       .in(System.in)
-      .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
       .logHandler(System.err)
       .build()
     context.initialize(LanguageInfo.ID)

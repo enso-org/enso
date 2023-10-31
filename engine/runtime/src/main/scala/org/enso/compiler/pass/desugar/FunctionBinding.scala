@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
@@ -24,7 +25,6 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
-import org.enso.interpreter.Constants
 
 /** This pass handles the desugaring of long-form function and method
   * definitions into standard bindings using lambdas.
@@ -185,7 +185,7 @@ case object FunctionBinding extends IRPass {
                   else
                     Name
                       .Literal(
-                        Constants.Names.THAT_ARGUMENT,
+                        ConstantsNames.THAT_ARGUMENT,
                         firstArgumentName.isMethod,
                         firstArgumentName.location
                       )
@@ -203,7 +203,7 @@ case object FunctionBinding extends IRPass {
                 if (sndArgName.isInstanceOf[Name.Blank]) {
                   val newName = Name
                     .Literal(
-                      Constants.Names.THAT_ARGUMENT,
+                      ConstantsNames.THAT_ARGUMENT,
                       sndArgName.isMethod,
                       sndArgName.location
                     )
@@ -217,7 +217,7 @@ case object FunctionBinding extends IRPass {
                     ),
                     rest
                   )
-                } else if (snd.name.name != Constants.Names.THAT_ARGUMENT) {
+                } else if (snd.name.name != ConstantsNames.THAT_ARGUMENT) {
                   (None, restArgs)
                 } else {
                   (Some(snd), rest)
@@ -230,7 +230,7 @@ case object FunctionBinding extends IRPass {
               remainingArgs: List[DefinitionArgument]
             ): Either[Error, definition.Method] = {
               remaining
-                .filter(_.name.name != Constants.Names.SELF_ARGUMENT)
+                .filter(_.name.name != ConstantsNames.SELF_ARGUMENT)
                 .find(_.defaultValue.isEmpty) match {
                 case Some(nonDefaultedArg) =>
                   Left(
@@ -262,9 +262,9 @@ case object FunctionBinding extends IRPass {
             val failures = sndArgument match {
               case Some(newSndArgument) =>
                 if (
-                  newFirstArgument.name.name == Constants.Names.SELF_ARGUMENT
+                  newFirstArgument.name.name == ConstantsNames.SELF_ARGUMENT
                 ) {
-                  if (newSndArgument.name.name != Constants.Names.THAT_ARGUMENT)
+                  if (newSndArgument.name.name != ConstantsNames.THAT_ARGUMENT)
                     Left(
                       errors.Conversion(
                         newSndArgument,
@@ -275,7 +275,7 @@ case object FunctionBinding extends IRPass {
                     )
                   else Right(())
                 } else if (
-                  newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT
+                  newFirstArgument.name.name != ConstantsNames.THAT_ARGUMENT
                 ) {
                   Left(
                     errors.Conversion(
@@ -288,7 +288,7 @@ case object FunctionBinding extends IRPass {
                 } else Right(())
               case None =>
                 if (
-                  newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT
+                  newFirstArgument.name.name != ConstantsNames.THAT_ARGUMENT
                 ) {
                   Left(
                     errors.Conversion(

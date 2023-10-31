@@ -8,13 +8,13 @@ function elemRect(target: Element | undefined): Rect {
     const domRect = target.getBoundingClientRect()
     return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
   }
-  return Rect.Zero()
+  return Rect.Zero
 }
 
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>) {
   const size = useResizeObserver(viewportNode)
-  const center = ref<Vec2>(Vec2.Zero())
+  const center = ref<Vec2>(Vec2.Zero)
   const scale = ref(1)
   const panPointer = usePointer((pos) => {
     center.value = center.value.addScaled(pos.delta, -1 / scale.value)
@@ -34,7 +34,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     )
   }
 
-  let zoomPivot = Vec2.Zero()
+  let zoomPivot = Vec2.Zero
   const zoomPointer = usePointer((pos, _event, ty) => {
     if (ty === 'start') {
       zoomPivot = clientToScenePos(pos.initial)

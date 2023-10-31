@@ -34,8 +34,6 @@ import org.enso.compiler.phase.{
   ImportResolver
 }
 import org.enso.editions.LibraryName
-import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
-import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.CompilationStage
@@ -71,8 +69,6 @@ class Compiler(
   private val irCachingEnabled                 = !context.isIrCachingDisabled
   private val useGlobalCacheLocations          = context.isUseGlobalCacheLocations
   private val isInteractiveMode                = context.isInteractiveMode()
-  private val serializationManager: SerializationManager =
-    new SerializationManager(this)
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
@@ -107,17 +103,13 @@ class Compiler(
   /** Run the initialization sequence. */
   def initialize(): Unit = {
     context.initializeBuiltinsIr(
+      this,
       irCachingEnabled,
-      serializationManager,
       freshNameSupply,
       passes
     )
     packageRepository.initialize().left.foreach(reportPackageError)
   }
-
-  /** @return the serialization manager instance. */
-  def getSerializationManager: SerializationManager =
-    serializationManager
 
   /** @return the package repository instance. */
   def getPackageRepository(): PackageRepository =
@@ -149,7 +141,7 @@ class Compiler(
   def compile(
     shouldCompileDependencies: Boolean,
     useGlobalCacheLocations: Boolean
-  ): Future[Boolean] = {
+  ): Future[java.lang.Boolean] = {
     getPackageRepository().getMainProjectPackage match {
       case None =>
         context.log(
@@ -190,9 +182,10 @@ class Compiler(
               shouldCompileDependencies
             )
 
-            serializationManager.serializeLibrary(
+            context.serializeLibrary(
+              this,
               pkg.libraryName,
-              useGlobalCacheLocations = useGlobalCacheLocations
+              useGlobalCacheLocations
             )
         }
     }
@@ -297,6 +290,7 @@ class Compiler(
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
+        ensureParsed(module)
         if (!context.hasCrossModuleLinks(module)) {
           val flags =
             context
@@ -435,14 +429,14 @@ class Compiler(
           val shouldStoreCache =
             irCachingEnabled && !context.wasLoadedFromCache(module)
           if (
-            shouldStoreCache && !hasErrors(module) && !context.isInteractive(
-              module
-            )
+            shouldStoreCache && !hasErrors(module) &&
+            !context.isInteractive(module) && !context.isSynthetic(module)
           ) {
             if (isInteractiveMode) {
               context.notifySerializeModule(context.getModuleName(module))
             } else {
-              serializationManager.serializeModule(
+              context.serializeModule(
+                this,
                 module,
                 useGlobalCacheLocations
               )
@@ -509,7 +503,9 @@ class Compiler(
   }
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
-    ensureParsed(module)
+    if (module.getBindingsMap() == null) {
+      ensureParsed(module)
+    }
     if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
       // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
@@ -522,11 +518,8 @@ class Compiler(
             .map { concreteBindings =>
               concreteBindings
             }
-          val ir = context.getIr(module)
-          val currentLocal = ir.unsafeGetMetadata(
-            BindingAnalysis,
-            "Synthetic parsed module missing bindings"
-          )
+          ensureParsed(module)
+          val currentLocal = module.getBindingsMap()
           currentLocal.resolvedImports =
             converted.map(_.resolvedImports).getOrElse(Nil)
           currentLocal.resolvedExports =
@@ -583,9 +576,8 @@ class Compiler(
     context.updateModule(module, _.resetScope)
 
     if (irCachingEnabled && !context.isInteractive(module)) {
-      serializationManager.deserialize(module) match {
-        case Some(_) => return
-        case _       =>
+      if (context.deserializeModule(this, module)) {
+        return
       }
     }
 
@@ -600,9 +592,9 @@ class Compiler(
   def importExportBindings(module: Module): Option[BindingsMap] = {
     if (irCachingEnabled && !context.isInteractive(module)) {
       val libraryName = Option(module.getPackage).map(_.libraryName)
-      libraryName
-        .flatMap(packageRepository.getLibraryBindings(_, serializationManager))
-        .flatMap(_.bindings.entries.get(module.getName))
+      libraryName.flatMap(
+        packageRepository.getLibraryBindings(_, module.getName, context)
+      )
     } else None
   }
 
@@ -692,7 +684,7 @@ class Compiler(
   def runInline(
     srcString: String,
     inlineContext: InlineContext
-  ): Option[RuntimeExpression] = {
+  ): Option[(InlineContext, Expression, Source)] = {
     val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
     val source = Source
       .newBuilder(
@@ -706,7 +698,7 @@ class Compiler(
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
-      Some(newContext.truffleRunInline(context, source, config, compilerOutput))
+      Some((newContext, compilerOutput, source))
     }
   }
 
@@ -723,7 +715,7 @@ class Compiler(
     qualifiedName: String,
     loc: Option[IdentifiedLocation],
     source: Source
-  ): ModuleScope = {
+  ): Unit = {
     val module = Option(context.findTopScopeModule(qualifiedName))
       .getOrElse {
         val locStr = fileLocationFromSection(loc, source)
@@ -741,7 +733,6 @@ class Compiler(
         "Trying to use a module in codegen without generating runtime stubs"
       )
     }
-    module.getScope
   }
 
   /** Parses the given source with the new Rust parser.
@@ -1232,27 +1223,13 @@ class Compiler(
     source.getPath + ":" + srcLocation
   }
 
-  /** Generates code for the truffle interpreter.
-    *
-    * @param ir the program to translate
-    * @param source the source code of the program represented by `ir`
-    * @param scope the module scope in which the code is to be generated
-    */
-  def truffleCodegen(
-    ir: IRModule,
-    source: Source,
-    scope: ModuleScope
-  ): Unit = {
-    context.truffleRunCodegen(source, scope, config, ir)
-  }
-
   /** Performs shutdown actions for the compiler.
     *
     * @param waitForPendingJobCompletion whether or not shutdown should wait for
     *                                    jobs to complete
     */
   def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
-    serializationManager.shutdown(waitForPendingJobCompletion)
+    context.shutdown(waitForPendingJobCompletion)
     shutdownParsingPool(waitForPendingJobCompletion)
   }
 

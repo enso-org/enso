@@ -18,6 +18,7 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import java.util.logging.Level
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeVisualizationsTest
@@ -38,15 +39,14 @@ class RuntimeVisualizationsTest
 
     val pkg: Package[File] =
       PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
-    val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
-    val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder()
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
@@ -61,7 +61,7 @@ class RuntimeVisualizationsTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           Paths.get("../../distribution/component").toFile.getAbsolutePath
         )
-        .logHandler(logOut)
+        .logHandler(System.err)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()

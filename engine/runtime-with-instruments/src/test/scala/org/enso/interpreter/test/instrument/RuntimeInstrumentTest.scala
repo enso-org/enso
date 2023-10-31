@@ -63,6 +63,7 @@ class RuntimeInstrumentTest
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
+        .logHandler(System.err)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )

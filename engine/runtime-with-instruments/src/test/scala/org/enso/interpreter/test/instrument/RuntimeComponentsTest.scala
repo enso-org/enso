@@ -27,7 +27,7 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
+import java.util.logging.Level
 import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -125,7 +125,7 @@ class RuntimeComponentsTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           distributionHome.toString
         )
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
@@ -134,6 +134,7 @@ class RuntimeComponentsTest
           InstrumentTestContext.DISABLE_IR_CACHE
         )
         .out(out)
+        .logHandler(System.err)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )

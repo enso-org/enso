@@ -18,7 +18,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-
+import java.util.logging.Level
 import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
@@ -59,8 +59,7 @@ class RuntimeExecutionEnvironmentTest
         "Enso_Test",
         edition = Some(edition)
       )
-    val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
-    val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
@@ -71,7 +70,7 @@ class RuntimeExecutionEnvironmentTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           distributionHome.toString
         )
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
@@ -82,7 +81,7 @@ class RuntimeExecutionEnvironmentTest
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE
         )
-        //.logHandler(logOut)
+        .logHandler(System.err)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()

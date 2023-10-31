@@ -1,4 +1,4 @@
-import type { Vec2 } from '@/util/vec2'
+import { Vec2 } from '@/util/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { reactive } from 'vue'
 import { createContextStore } from '.'
