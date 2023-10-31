@@ -331,11 +331,14 @@ export class LanguageServer extends ObservableV2<Notifications> {
         if (
           !running ||
           type !== 'File' ||
-          path.segments.length !== segments.length ||
-          path.segments.some((seg, i) => seg !== segments[i])
+          path.segments.length < segments.length ||
+          segments.some((seg, i) => seg !== path.segments[i])
         )
           return
-        callback({ path, kind: 'Added' })
+        callback({
+          path: { rootId: path.rootId, segments: path.segments.slice(segments.length) },
+          kind: 'Added',
+        })
       })
     })
     return () => {

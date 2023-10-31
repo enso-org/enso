@@ -21,6 +21,7 @@ import Compiler from '@/stores/visualization/compiler?worker'
 import { assertNever } from '@/util/assert'
 import type { Opt } from '@/util/opt'
 import { defineKeybinds } from '@/util/shortcuts'
+import { Error as DataError } from 'shared/binaryProtocol'
 import type { DataServer } from 'shared/dataServer'
 import type { Uuid } from 'shared/languageServerTypes'
 import * as vue from 'vue'
@@ -32,7 +33,8 @@ export const stylePathAttribute = 'data-style-path'
 
 const VisualizationModule = z.object({
   // This is UNSAFE, but unavoiable as the type of `Visualization` is too difficult to statically
-  // check.
+  // check. Insteead it will be caught by Vue when trying to mount the visualization, and replaced
+  // with a 'Loading Error' visualization.
   default: z.custom<Visualization>(() => true),
   name: z.string(),
   inputType: z.string().optional(),
@@ -48,7 +50,8 @@ const VisualizationModule = z.object({
 })
 export type VisualizationModule = z.infer<typeof VisualizationModule>
 
-const moduleCache: Record<string, any> = {
+const moduleCache: Record<string, unknown> = {
+  __proto__: null,
   vue,
   get d3() {
     return import('d3')
@@ -171,6 +174,14 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
                     break
                   }
                   const payload = await data.readFile({ rootId, segments: url.pathname.split('/') })
+                  if (payload instanceof DataError) {
+                    postMessage<FetchWorkerError>(worker_, {
+                      type: 'fetch-worker-error',
+                      path: event.data.path,
+                      error: new Error(payload.message() ?? undefined),
+                    })
+                    break
+                  }
                   const contents = payload.contentsArray()
                   if (!contents) {
                     postMessage<FetchWorkerError>(worker_, {
@@ -231,8 +242,8 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
               // Required for 'compilation-result-response' handler above.
               moduleCache[event.data.path] = module
               moduleCache[event.data.path] = await module
-            } catch {
-              moduleCache.delete(event.data.path)
+            } catch (e) {
+              delete moduleCache[event.data.path]
               // No error handling - the same Promise is awaited elsewhere.
             }
             break

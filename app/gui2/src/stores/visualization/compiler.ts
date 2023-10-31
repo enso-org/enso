@@ -30,7 +30,6 @@
 import { assertNever } from '@/util/assert'
 import { parse as babelParse } from '@babel/parser'
 import hash from 'hash-sum'
-import * as map from 'lib0/map'
 import MagicString from 'magic-string'
 import { transform } from 'sucrase'
 import { compileScript, compileStyle, parse } from 'vue/compiler-sfc'
@@ -200,7 +199,6 @@ export interface CompileError {
 // ================
 
 let builtinModules = new Set<string>()
-const alreadyCompiledModules = new Map<string, Promise<void>>()
 
 const assetMimetypes: Record<string, string> = {
   // === Image formats ===
@@ -377,7 +375,12 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
         const isBuiltin = builtinModules.has(path)
         const isRelative = /^[./]/.test(path)
         if (isRelative) {
-          path = new URL(dir + path, location.href).toString()
+          const url = new URL(dir + path, location.href)
+          if (!/^(?:data|https?|ftps?|wss?):$/.test(url.protocol)) {
+            path = url.protocol + new URL('http://example.com/' + url.pathname).pathname.slice(1)
+          } else {
+            path = url.href
+          }
         }
         const extension = isRelative ? extractExtension(path).toLowerCase() : ''
         if (
@@ -410,22 +413,21 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
           if (isBuiltin) {
             // No further action is needed.
           } else {
-            await map.setIfUndefined(alreadyCompiledModules, path, () => {
-              switch (extension) {
-                case 'ts':
-                  return importTS(path)
-
-                case 'vue':
-                  return importVue(path)
-
-                default: {
-                  const mimetype = assetMimetypes[extension]
-                  if (mimetype != null) {
-                    return importAsset(path, mimetype)
-                  }
-                }
+            switch (extension) {
+              case 'ts': {
+                await importTS(path)
+                break
               }
-            })
+              case 'vue': {
+                await importVue(path)
+                break
+              }
+              default: {
+                const mimetype = assetMimetypes[extension]
+                if (mimetype != null) await importAsset(path, mimetype)
+                break
+              }
+            }
           }
         }
         break
@@ -470,7 +472,7 @@ onmessage = async (
     case 'compile-request': {
       try {
         const path = event.data.path
-        await map.setIfUndefined(alreadyCompiledModules, path, () => importVue(path))
+        await importVue(path)
         postMessage<CompilationResultResponse>({
           type: 'compilation-result-response',
           id: event.data.id,

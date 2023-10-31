@@ -171,7 +171,11 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const rootIdOffset = this.createUUID(builder, path.rootId)
     const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
     const command = ReadFileCommand.createReadFileCommand(builder, pathOffset)
-    return await this.send<FileContentsReply>(builder, InboundPayload.READ_FILE_CMD, command)
+    return await this.send<FileContentsReply | Error>(
+      builder,
+      InboundPayload.READ_FILE_CMD,
+      command,
+    )
   }
 
   async writeBytes(

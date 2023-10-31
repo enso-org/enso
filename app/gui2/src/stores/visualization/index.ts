@@ -20,6 +20,9 @@ import type { Event as LSEvent, VisualizationConfiguration } from 'shared/langua
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive, type DefineComponent, type PropType } from 'vue'
 
+/** The directory in the project under which custom visualizations can be found. */
+const customVisualizationsDirectory = 'visualizations'
+
 /** A module containing the default visualization function. */
 const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'
 /** A name of the default visualization function. */
@@ -135,7 +138,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
 
   async function onFileEvent({ kind, path }: LSEvent<'file/event'>) {
     if (path.rootId !== (await projectRoot) || !/\.vue$/.test(path.segments.at(-1) ?? '')) return
-    const pathString = path.segments.join('/')
+    const pathString = customVisualizationsDirectory + '/' + path.segments.join('/')
     const name = currentProjectVisualizationsByPath.get(pathString)
     let id: VisualizationIdentifier | undefined =
       name != null ? { module: { kind: 'CurrentProject' }, name } : undefined
@@ -169,22 +172,21 @@ export const useVisualizationStore = defineStore('visualization', () => {
                 `If it is not a dependency, are you perhaps missing \`name\` or \`inputType\`?`,
             )
           } else {
-            console.error('Error loading visualization:')
-            console.error(error)
+            console.error('Error loading visualization:', error)
           }
         }
         break
       }
       case 'Removed': {
         currentProjectVisualizationsByPath.delete(pathString)
+        for (const el of document.querySelectorAll(
+          `[${stylePathAttribute}="${CSS.escape(currentProjectProtocol + pathString)}"]`,
+        )) {
+          el.remove()
+        }
         if (key) {
           cache.delete(key)
           metadata.delete(key)
-          for (const el of document.querySelectorAll(
-            `[${stylePathAttribute}=${currentProjectProtocol}${pathString}]`,
-          )) {
-            el.remove()
-          }
         }
       }
     }
@@ -195,7 +197,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
       console.error('Could not load custom visualizations: Project directory not found.')
       return
     }
-    ls.watchFiles(projectRoot, ['visualizations'], onFileEvent, rpcWithRetries)
+    ls.watchFiles(projectRoot, [customVisualizationsDirectory], onFileEvent, rpcWithRetries)
   })
 
   function types(type: Opt<string>) {
