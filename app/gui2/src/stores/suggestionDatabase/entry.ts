@@ -1,5 +1,6 @@
 import { assert } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
+import type { Icon } from '@/util/iconName'
 import {
   isIdentifier,
   isQualifiedName,
@@ -62,7 +63,7 @@ export interface SuggestionEntry {
   /** A scope where this suggestion is visible. */
   scope?: SuggestionEntryScope
   /** A name of a custom icon to use when displaying the entry. */
-  iconName?: string
+  iconName?: Icon
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex?: number
 }

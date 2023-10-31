@@ -3,7 +3,8 @@ package org.enso.compiler
 import com.oracle.truffle.api.TruffleFile
 import org.enso.editions.LibraryName
 import org.enso.compiler.context.CompilerContext
-import org.enso.pkg.{ComponentGroups, Package}
+import org.enso.compiler.data.BindingsMap
+import org.enso.pkg.{ComponentGroups, Package, QualifiedName}
 
 import scala.collection.immutable.ListSet
 import scala.jdk.OptionConverters.RichOption
@@ -110,8 +111,9 @@ trait PackageRepository {
   /** Returns a deserialized bindings map for the whole library, if available */
   def getLibraryBindings(
     libraryName: LibraryName,
-    serializationManager: SerializationManager
-  ): Option[ImportExportCache.CachedBindings]
+    moduleName: QualifiedName,
+    context: CompilerContext
+  ): Option[BindingsMap]
 
 }
 
