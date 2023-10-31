@@ -68,6 +68,10 @@ object NativeImage {
     *                            time initialization is set to default
     * @param initializeAtBuildtime a list of classes that should be initialized at
     *                              build time.
+   * @param additionalCp additional class-path entries to be added to the
+   *                     native image.
+   * @param verbose whether to print verbose output from the native image.
+   *
     */
   def buildNativeImage(
     artifactName: String,
@@ -78,7 +82,8 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    additionalCp: Option[String]        = None
+    additionalCp: Seq[String]                = Seq(),
+    verbose: Boolean                         = false
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -170,15 +175,15 @@ object NativeImage {
         shouldContainAll = true
       ).map(_.data.getAbsolutePath)
 
-      val fullCp = additionalCp match {
-        case Some(additionalCp) => componentModules ++ Seq(additionalCp)
-        case None => componentModules
-      }
+      val fullCp = componentModules ++ additionalCp
       val cpStr = fullCp.mkString(File.pathSeparator)
       log.info("Class-path: " + cpStr)
 
+      val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+
       var cmd: Seq[String] =
         Seq(nativeImagePath) ++
+        verboseOpt
         Seq("-cp", cpStr) ++
         quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
@@ -188,17 +193,16 @@ object NativeImage {
         initializeAtRuntimeOptions ++
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
-        additionalOptions
+        additionalOptions ++
+        Seq("-o", artifactName)
 
       cmd = mainClass match {
         case Some(main) =>
           cmd ++
-            Seq(main) ++
-            Seq(artifactName)
+            Seq(main)
         case None =>
           cmd ++
-            Seq("-jar", pathToJAR.toString) ++
-            Seq(artifactName)
+            Seq("-jar", pathToJAR.toString)
       }
 
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
