@@ -223,3 +223,12 @@ spec setup =
             t2.column_names . should_equal ["X", expression]
             t2.at "X" . to_vector . should_equal ["a", "b", "c"]
             t2.at expression . to_vector . should_equal ["fooabar", "foobbar", "foocbar"]
+
+        Test.specify "Should disambiguate between a column reference and a literal string" <|
+            t = table_builder [["X", ["a", "b", "c"]]]
+            t2 = t.set (Column_Operation.Add "prefix" (Column_Ref.Name "X"))
+            t3 = t2.set (Column_Operation.Add "prefix" "X")
+
+            t3.column_names . should_equal ["X", "['prefix'] + [X]", "['prefix'] + 'X'"]
+            t3.at "['prefix'] + [X]" . to_vector . should_equal ["prefixa", "prefixb", "prefixc"]
+            t3.at "['prefix'] + 'X'" . to_vector . should_equal ["prefixX", "prefixX", "prefixX"]
