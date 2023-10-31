@@ -13,7 +13,7 @@ from project.Util import all
 
 spec =
     column0 = Column.from_vector "dates" [Date.new 2020 12 21, Date.new 2023 4 25]
-    column1 = Column.from_vector "datetimes" [Date_Time.new 2020 01 10 3 4 5, Date_Time.new 2020 08 08 5 6 7]
+    column1 = Column.from_vector "datetimes" [Date_Time.new 2020 01 10 3 4 5 zone=Time_Zone.utc, Date_Time.new 2020 08 08 5 6 7 zone=Time_Zone.utc]
     column2 = Column.from_vector "times" [Time_Of_Day.new 1 2 3, Time_Of_Day.new 10 30 35]
     column3 = Column.from_vector "bools" [True, False]
     column4 = Column.from_vector "ints" [100000000, 2222]
@@ -86,7 +86,7 @@ spec =
 
         Test.specify "Date and Date_Time, with empty format string" <|
             expected_dates = Column.from_vector "dates" ["2020-12-21", "2023-04-25"]
-            expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05-05:00[America/New_York]', '2020-08-08 05:06:07-04:00[America/New_York]']
+            expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05Z[UTC]', '2020-08-08 05:06:07Z[UTC]']
             expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
             actual = table.format ["dates", "datetimes", "times"] ""
             actual.column_names . should_equal table.column_names
@@ -97,7 +97,7 @@ spec =
 
         Test.specify "Date and Date_Time, with Nothing format" <|
             expected_dates = Column.from_vector "dates" ["2020-12-21", "2023-04-25"]
-            expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05-05:00[America/New_York]', '2020-08-08 05:06:07-04:00[America/New_York]']
+            expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05Z[UTC]', '2020-08-08 05:06:07Z[UTC]']
             expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
             actual = table.format ["dates", "datetimes", "times"] Nothing
             actual.column_names . should_equal table.column_names
@@ -175,7 +175,7 @@ spec =
     Test.group "All types" <|
         Test.specify "Format all columns" <|
             expected_dates = Column.from_vector "dates" ["2020-12-21", "2023-04-25"]
-            expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05-05:00[America/New_York]', '2020-08-08 05:06:07-04:00[America/New_York]']
+            expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05Z[UTC]', '2020-08-08 05:06:07Z[UTC]']
             expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
             expected_ints = Column.from_vector "ints" ["100000000", "2222"]
             expected_floats = Column.from_vector "floats" ['2.000000009E8', '4444.3']
