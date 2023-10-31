@@ -22,9 +22,9 @@ import type { Uuid } from './yjsModel'
 const DEBUG_LOG_RPC = false
 const RPC_TIMEOUT_MS = 15000
 
-export namespace ErrorCodes {
-  export const FILE_NOT_FOUND = 1003
-  export const CONTENT_ROOT_NOT_FOUND = 1001
+export enum ErrorCode {
+  FILE_NOT_FOUND = 1003,
+  CONTENT_ROOT_NOT_FOUND = 1001,
 }
 
 export class RemoteRpcError {
