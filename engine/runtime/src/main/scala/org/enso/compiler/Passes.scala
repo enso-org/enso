@@ -11,7 +11,6 @@ import org.enso.compiler.pass.lint.{
   UnusedBindings
 }
 import org.enso.compiler.pass.optimise.{
-  ApplicationSaturation,
   LambdaConsolidate,
   UnreachableMatchBranches
 }
@@ -114,8 +113,7 @@ class Passes(
 
   /** Configuration for the passes. */
   private val passConfig: PassConfiguration = PassConfiguration(
-    ApplicationSaturation -->> ApplicationSaturation.Configuration(),
-    AliasAnalysis         -->> AliasAnalysis.Configuration()
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   /** The pass manager for running compiler passes. */

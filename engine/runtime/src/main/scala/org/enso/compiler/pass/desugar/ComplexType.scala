@@ -26,10 +26,7 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{
-  ApplicationSaturation,
-  LambdaConsolidate
-}
+import org.enso.compiler.pass.optimise.{LambdaConsolidate}
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
   IgnoredBindings,
@@ -58,7 +55,6 @@ case object ComplexType extends IRPass {
   override lazy val invalidatedPasses: Seq[IRPass] =
     List(
       AliasAnalysis,
-      ApplicationSaturation,
       DataflowAnalysis,
       DemandAnalysis,
       FunctionBinding,

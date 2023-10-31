@@ -24,7 +24,6 @@ import org.enso.compiler.pass.analyse.DataflowAnalysis.{
   DependencyMapping
 }
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
-import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -44,8 +43,7 @@ class DataflowAnalysisTest extends CompilerTest {
     passes.getPrecursors(DataflowAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
-    AliasAnalysis         -->> AliasAnalysis.Configuration(),
-    ApplicationSaturation -->> ApplicationSaturation.Configuration()
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =
