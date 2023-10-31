@@ -19,7 +19,7 @@ import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
 import type { Path } from 'shared/languageServerTypes'
 import type { LsRpcError } from 'shared/languageServer'
-import { RemoteRpcError, ErrorCodes } from 'shared/languageServer'
+import { RemoteRpcError, ErrorCode } from 'shared/languageServer'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -202,7 +202,7 @@ async function handleDrop(event: DragEvent) {
               await rpc.fileInfo(dataDirPath).then((info) => {
                 console.log(info)
               }).catch((err: LsRpcError) => {
-                if (err.cause instanceof RemoteRpcError && (err.cause.code === ErrorCodes.FILE_NOT_FOUND || err.cause.code === ErrorCodes.CONTENT_ROOT_NOT_FOUND)) {
+                if (err.cause instanceof RemoteRpcError && (err.cause.code === ErrorCode.FILE_NOT_FOUND || err.cause.code === ErrorCode.CONTENT_ROOT_NOT_FOUND)) {
                   console.log(`Data directory not found`)
                 }
               })
