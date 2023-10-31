@@ -7,10 +7,10 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 
 public class SortJoin implements PluggableJoinStrategy {
   @Override
@@ -56,36 +56,63 @@ public class SortJoin implements PluggableJoinStrategy {
       context.safepoint();
     }
 
-    List<OrderedMultiValueKey> keys = new ArrayList<>(leftRowCount);
+    TreeSet<OrderedMultiValueKey> keys = new TreeSet<>();
     for (int i = 0; i < leftRowCount; i++) {
       keys.add(new OrderedMultiValueKey(storages, i, directions));
       context.safepoint();
     }
 
-    keys.sort(compareOnlyFirstKey);
     return new SortedLeftIndex(keys, conditions.get(0), conditions.subList(1, conditions.size()));
   }
 
-  final class SortedLeftIndex {
-    private final List<OrderedMultiValueKey> sortedKeys;
-    private final Between sortCondition;
-    private final List<Between> remainingConditions;
+  static final class SortedLeftIndex {
+    private final NavigableSet<OrderedMultiValueKey> sortedKeys;
 
     private final int[] directions;
     private final Storage<?>[] lowerStorages;
     private final Storage<?>[] upperStorages;
 
-    SortedLeftIndex(List<OrderedMultiValueKey> sortedKeys, Between sortCondition, List<Between> remainingConditions) {
+    SortedLeftIndex(NavigableSet<OrderedMultiValueKey> sortedKeys, Between sortCondition,
+                    List<Between> remainingConditions) {
       this.sortedKeys = sortedKeys;
-      this.sortCondition = sortCondition;
-      this.remainingConditions = remainingConditions;
+      int nConditions = 1 + remainingConditions.size();
+      directions = new int[nConditions];
+      lowerStorages = new Storage<?>[nConditions];
+      upperStorages = new Storage<?>[nConditions];
+      for (int i = 0; i < nConditions; i++) {
+        directions[i] = 1;
+        if (i == 0) {
+          lowerStorages[i] = sortCondition.rightLower().getStorage();
+          upperStorages[i] = sortCondition.rightUpper().getStorage();
+        } else {
+          Between condition = remainingConditions.get(i - 1);
+          lowerStorages[i] = condition.rightLower().getStorage();
+          upperStorages[i] = condition.rightUpper().getStorage();
+        }
+      }
     }
 
     List<Integer> findMatchingLeftRows(int rightRowIx) {
+      if (sortedKeys.isEmpty()) {
+        return Collections.emptyList();
+      }
+
       OrderedMultiValueKey lowerBound = buildLowerBound(rightRowIx);
       OrderedMultiValueKey upperBound = buildUpperBound(rightRowIx);
 
-      int leftMostIx = findLeftBoundGreaterOrEqual(lowerBound);
+      NavigableSet<OrderedMultiValueKey> firstCoordinateMatches = sortedKeys.subSet(lowerBound, true, upperBound, true);
+      ArrayList<Integer> result = new ArrayList<>();
+      Context context = Context.getCurrent();
+      for (OrderedMultiValueKey key : firstCoordinateMatches) {
+        boolean isInRange = lowerBound.compareTo(key) <= 0 && key.compareTo(lowerBound) <= 0;
+        if (isInRange) {
+          result.add(key.getRowIndex());
+        }
+
+        context.safepoint();
+      }
+
+      return result;
     }
 
     private OrderedMultiValueKey buildLowerBound(int rightRowIx) {
@@ -95,24 +122,5 @@ public class SortJoin implements PluggableJoinStrategy {
     private OrderedMultiValueKey buildUpperBound(int rightRowIx) {
       return new OrderedMultiValueKey(upperStorages, rightRowIx, directions);
     }
-
-    private int findLeftBoundGreaterOrEqual(OrderedMultiValueKey lower) {
-      int loc = Collections.binarySearch(sortedKeys, lower, compareOnlyFirstKey);
-      if (loc >= 0) {
-        // We have found _any_ object equal to the lower bound, but we need to find the first one.
-        Context context = Context.getCurrent();
-        while (loc > 0 && compareOnlyFirstKey.compare(sortedKeys.get(loc - 1), lower) == 0) {
-          loc--;
-          context.safepoint();
-        }
-
-        return loc;
-      } else {
-        int insertionPoint = -(loc + 1);
-      }
-    }
-
   }
-
-  private Comparator<OrderedMultiValueKey> compareOnlyFirstKey = new OrderedMultiValueKey.LimitedIndexComparator(1);
 }
