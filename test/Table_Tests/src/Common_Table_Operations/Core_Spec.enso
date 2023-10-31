@@ -3,9 +3,12 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Set_Mode
+from Standard.Table import all
 from Standard.Table.Errors import all
 import Standard.Table.Data.Expression.Expression_Error
+
+from Standard.Database import all
+from Standard.Database.Errors import Integrity_Error
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions

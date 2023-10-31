@@ -1,12 +1,12 @@
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import all
 from Standard.Table.Errors import all
 
 from Standard.Database import all
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
