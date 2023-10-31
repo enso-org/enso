@@ -25,7 +25,6 @@ import org.enso.compiler.pass.resolve.{
   TypeNames,
   TypeSignatures
 }
-import org.enso.interpreter.runtime.`type`.Types
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
@@ -793,7 +792,11 @@ object SuggestionBuilder {
     source: A,
     compiler: Compiler
   ): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, Types.getTypeHierarchy, compiler)
+    new SuggestionBuilder[A](
+      source,
+      compiler.context.getTypeHierarchy(),
+      compiler
+    )
 
   /** A single level of an `IR`.
     *

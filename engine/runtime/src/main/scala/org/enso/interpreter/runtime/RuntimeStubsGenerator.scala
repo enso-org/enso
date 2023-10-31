@@ -1,4 +1,4 @@
-package org.enso.compiler.codegen
+package org.enso.interpreter.runtime
 
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.core.CompilerError

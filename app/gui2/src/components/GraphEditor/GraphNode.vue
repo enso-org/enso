@@ -310,7 +310,7 @@ const editableKeydownHandler = nodeEditBindings.handler({
 
 const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
-let startPos = Vec2.Zero()
+let startPos = Vec2.Zero
 
 const dragPointer = usePointer((pos, event, type) => {
   emit('movePosition', pos.delta)
@@ -326,7 +326,7 @@ const dragPointer = usePointer((pos, event, type) => {
       if (
         Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
         startEvent != null &&
-        pos.absolute.distanceSquare(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
+        pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
         nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
         menuVisible.value = true
@@ -347,10 +347,10 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => {
   const method = expressionInfo.value?.methodCall?.methodPointer
   if (method == null) return undefined
-  const moduleName = tryQualifiedName(method.module)
+  const typeName = tryQualifiedName(method.definedOnType)
   const methodName = tryQualifiedName(method.name)
-  if (!moduleName.ok || !methodName.ok) return undefined
-  const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+  if (!typeName.ok || !methodName.ok) return undefined
+  const qualifiedName = qnJoin(unwrap(typeName), unwrap(methodName))
   const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
   if (id == null) return undefined
   return suggestionDbStore.entries.get(id)

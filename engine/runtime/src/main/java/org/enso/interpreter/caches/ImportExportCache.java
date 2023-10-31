@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.interpreter.caches;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -114,40 +114,19 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
       return byteStream.toByteArray();
     }
 
-    static class MapToBindings implements Serializable {
+    public static final class MapToBindings implements Serializable {
         private final Map<QualifiedName, BindingsMap> _entries;
 
         public MapToBindings(Map<QualifiedName, BindingsMap> entries) {
             this._entries = entries;
         }
 
-        Map<QualifiedName, BindingsMap> entries() {
+        public Map<QualifiedName, BindingsMap> entries() {
             return _entries;
         }
     }
 
-    // CachedBindings is not a record **on purpose**. There appears to be a Frgaal bug leading to invalid compilation error.
-    public static final class CachedBindings {
-        private final LibraryName _libraryName;
-        private final MapToBindings _bindings;
-        private final Optional<List<SourceFile<TruffleFile>>> _sources;
-
-        CachedBindings(LibraryName libraryName, MapToBindings bindings, Optional<List<SourceFile<TruffleFile>>> sources) {
-            this._libraryName = libraryName;
-            this._bindings = bindings;
-            this._sources = sources;
-        }
-
-        LibraryName libraryName() {
-            return _libraryName;
-        }
-        MapToBindings bindings() {
-            return _bindings;
-        }
-        Optional<List<SourceFile<TruffleFile>>> sources() {
-            return _sources;
-        }
-
+    public static record CachedBindings(LibraryName libraryName, MapToBindings bindings, Optional<List<SourceFile<TruffleFile>>> sources) {
     }
 
     public record Metadata(

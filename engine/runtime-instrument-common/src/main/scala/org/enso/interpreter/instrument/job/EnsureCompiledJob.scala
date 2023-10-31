@@ -99,19 +99,31 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[CompilationStatus] = {
-    compile(module)
-    applyEdits(new File(module.getPath)).map { changeset =>
-      compile(module)
-        .map { _ =>
-          invalidateCaches(module, changeset)
-          if (module.isIndexed) {
-            ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
-          } else {
-            AnalyzeModuleJob.analyzeModule(module, changeset)
-          }
-          runCompilationDiagnostics(module)
+    val result = compile(module)
+    result match {
+      case Left(ex) =>
+        logger.log(
+          Level.WARNING,
+          s"Error while ensureCompiledModule ${module.getName}",
+          ex
+        )
+        Some(CompilationStatus.Failure)
+      case _ =>
+        applyEdits(new File(module.getPath)).map { changeset =>
+          compile(module)
+            .map { _ =>
+              invalidateCaches(module, changeset)
+              if (module.isIndexed) {
+                ctx.jobProcessor.runBackground(
+                  AnalyzeModuleJob(module, changeset)
+                )
+              } else {
+                AnalyzeModuleJob.analyzeModule(module, changeset)
+              }
+              runCompilationDiagnostics(module)
+            }
+            .getOrElse(CompilationStatus.Failure)
         }
-        .getOrElse(CompilationStatus.Failure)
     }
   }
 

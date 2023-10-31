@@ -2,7 +2,6 @@ package org.enso.compiler.pass.analyse;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -14,7 +13,6 @@ import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
-import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.QualifiedName;
 import scala.Option;
 import scala.collection.immutable.Seq;
@@ -55,8 +53,10 @@ public final class PrivateModuleAnalysis implements IRPass {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Seq<IRPass> invalidatedPasses() {
-    return ScalaConversions.nil();
+    Object obj = scala.collection.immutable.Nil$.MODULE$;
+    return (scala.collection.immutable.List<IRPass>) obj;
   }
 
   @Override

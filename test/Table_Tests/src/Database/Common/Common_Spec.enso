@@ -135,6 +135,54 @@ run_tests prefix connection upload =
             r3 = connection.query "SELECT * FROM ........"
             r3.should_fail_with SQL_Error
 
+        Test.specify "will fail if the table is modified and a column gets removed" <|
+            name = Name_Generator.random_name "removing-column"
+            Problems.assume_no_problems <|
+                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table connection name temporary=True
+
+            t1 = connection.query name
+            m1 = t1.read
+            Problems.assume_no_problems m1
+            m1.at "a" . to_vector . should_equal [1, 2, 3]
+            m1.at "b" . to_vector . should_equal [4, 5, 6]
+
+            Problems.assume_no_problems <| connection.drop_table name
+            Problems.assume_no_problems <|
+                (Table.new [["a", [100, 200]]]).select_into_database_table connection name temporary=True
+
+            # Reading a column that was kept will work OK
+            t1.at "a" . to_vector . should_equal [100, 200]
+
+            # But reading the whole table will fail on the missing column:
+            m2 = t1.read
+            m2.should_fail_with SQL_Error
+
+        Test.specify "will not fail if the table is modified and a column gets added" <|
+            name = Name_Generator.random_name "adding-column"
+            Problems.assume_no_problems <|
+                (Table.new [["a", [1, 2, 3]], ["b", [4, 5, 6]]]).select_into_database_table connection name temporary=True
+
+            t1 = connection.query name
+            m1 = t1.read
+            Problems.assume_no_problems m1
+            m1.at "a" . to_vector . should_equal [1, 2, 3]
+            m1.at "b" . to_vector . should_equal [4, 5, 6]
+
+            Problems.assume_no_problems <| connection.drop_table name
+            Problems.assume_no_problems <|
+                (Table.new [["a", [100, 200]], ["b", [300, 400]], ["c", [500, 600]]]).select_into_database_table connection name temporary=True
+
+            m2 = t1.read
+            Problems.assume_no_problems m2
+            m2.column_names . should_equal ["a", "b"]
+            m2.at "a" . to_vector . should_equal [100, 200]
+            m2.at "b" . to_vector . should_equal [300, 400]
+
+            t1.at "c" . should_fail_with No_Such_Column
+
+            t2 = connection.query name
+            t2.column_names . should_equal ["a", "b", "c"]
+
     Test.group prefix+"Masking Tables" <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
             t2 = t1.filter (t1.at "a" == 1)
