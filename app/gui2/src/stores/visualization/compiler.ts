@@ -236,6 +236,13 @@ const assetMimetypes: Record<string, string> = {
   '3g2': 'video/3gpp2',
 }
 
+/** Returns {@link Error}s as-is, wraps all other values in an {@link Error}. */
+function toError(error: unknown) {
+  return error instanceof Error ? error : new Error(String(error))
+}
+
+/** Extract the file extension from a URL. If no extension was found, it returns the empty string.
+ */
 function extractExtension(path: string) {
   return path.match(/(?<=^|[.])[^.]+?(?=[#?]|$)/)?.[0] ?? ''
 }
@@ -300,8 +307,8 @@ const decoder = new TextDecoder()
 async function tryFetch(path: string): Promise<FetchResponse> {
   try {
     return await fetchOnMainThread(path)
-  } catch (error: any) {
-    fetchError(path, error)
+  } catch (error) {
+    fetchError(path, toError(error))
     return { contents: emptyBuffer, contentType: undefined }
   }
 }
@@ -326,8 +333,8 @@ async function importTS(path: string) {
       disableESTransforms: true,
       transforms: ['typescript'],
     }).code
-  } catch (error: any) {
-    compileError(path, error)
+  } catch (error) {
+    compileError(path, toError(error))
   }
   if (text != null) {
     addImport(path, await rewriteImports(text, dir, undefined))
@@ -357,8 +364,8 @@ async function importVue(path: string) {
       disableESTransforms: true,
       transforms: ['typescript'],
     }).code
-  } catch (error: any) {
-    compileError(path, error)
+  } catch (error) {
+    compileError(path, toError(error))
   }
   if (text != null) {
     addImport(path, await rewriteImports(text, dir, id))
@@ -478,12 +485,12 @@ onmessage = async (
           id: event.data.id,
           path: event.data.path,
         })
-      } catch (error: any) {
+      } catch (error) {
         postMessage<CompilationErrorResponse>({
           type: 'compilation-error-response',
           id: event.data.id,
           path: event.data.path,
-          error,
+          error: toError(error),
         })
       }
       break

@@ -19,6 +19,7 @@ import type {
 } from '@/stores/visualization/compiler'
 import Compiler from '@/stores/visualization/compiler?worker'
 import { assertNever } from '@/util/assert'
+import { toError } from '@/util/error'
 import type { Opt } from '@/util/opt'
 import { defineKeybinds } from '@/util/shortcuts'
 import { Error as DataError } from 'shared/binaryProtocol'
@@ -123,8 +124,8 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
                   .get(event.data.id)
                   ?.reject(new InvalidVisualizationModuleError(event.data.path))
               }
-            } catch (error: any) {
-              workerCallbacks.get(event.data.id)?.reject(error)
+            } catch (error) {
+              workerCallbacks.get(event.data.id)?.reject(toError(error))
             }
             workerCallbacks.delete(event.data.id)
             break

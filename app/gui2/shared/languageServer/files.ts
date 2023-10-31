@@ -15,7 +15,7 @@ export async function walkFs(
     switch (file.type) {
       case 'Directory':
       case 'DirectoryTruncated': {
-        await walkFs(ls, filePath, cb)
+        walkFs(ls, filePath, cb)
         break
       }
       case 'File':

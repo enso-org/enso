@@ -320,11 +320,8 @@ export class LanguageServer extends ObservableV2<Notifications> {
     retry: <T>(cb: () => Promise<T>) => Promise<T> = (f) => f(),
   ) {
     let running = true
-    retry(() =>
-      this.acquireCapability('file/receivesTreeUpdates', {
-        path: { rootId, segments } satisfies Path,
-      }),
-    ).then(() => {
+    ;(async () => {
+      await retry(() => this.acquireReceivesTreeUpdates({ rootId, segments }))
       if (!running) return
       this.on('file/event', callback)
       walkFs(this, { rootId, segments }, (type, path) => {
@@ -340,7 +337,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
           kind: 'Added',
         })
       })
-    })
+    })()
     return () => {
       running = false
       this.off('file/event', callback)

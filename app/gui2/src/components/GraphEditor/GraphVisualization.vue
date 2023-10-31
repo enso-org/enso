@@ -9,6 +9,7 @@ import {
   useVisualizationStore,
   type Visualization,
 } from '@/stores/visualization'
+import { toError } from '@/util/error'
 import type { Opt } from '@/util/opt'
 import type { Vec2 } from '@/util/vec2'
 import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
@@ -88,8 +89,8 @@ watchEffect(async () => {
       }
       visualization.value = module.default
     }
-  } catch (error: any) {
-    error.value = error as Error
+  } catch (caughtError) {
+    error.value = toError(caughtError)
   }
 })
 

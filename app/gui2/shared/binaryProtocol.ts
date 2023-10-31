@@ -245,7 +245,7 @@ export class Builder {
     this.space = initialSize
   }
 
-  clear(this: Builder): void {
+  clear(): void {
     this.bb.position = 0
     this.space = this.bb.view.byteLength
     this.minAlignment = 1
@@ -266,15 +266,15 @@ export class Builder {
    *
    * @param forceDefaults true always serializes default values
    */
-  forceDefaults(this: Builder, forceDefaults: boolean): void {
+  forceDefaults(forceDefaults: boolean): void {
     this._forceDefaults = forceDefaults
   }
 
-  toArrayBuffer(this: Builder): ArrayBuffer {
+  toArrayBuffer(): ArrayBuffer {
     return this.bb.view.buffer.slice(this.bb.position, this.bb.position + this.offset())
   }
 
-  prep(this: Builder, size: number, additionalBytes: number): void {
+  prep(size: number, additionalBytes: number): void {
     if (size > this.minAlignment) {
       this.minAlignment = size
     }
@@ -290,149 +290,139 @@ export class Builder {
     this.pad(alignSize)
   }
 
-  pad(this: Builder, byteSize: number): void {
+  pad(byteSize: number): void {
     for (let i = 0; i < byteSize; i++) {
       this.bb.view.setInt8(--this.space, 0)
     }
   }
 
-  writeInt8(this: Builder, value: number): void {
+  writeInt8(value: number): void {
     this.bb.view.setInt8((this.space -= 1), value)
   }
 
-  writeInt16(this: Builder, value: number): void {
+  writeInt16(value: number): void {
     this.bb.view.setInt16((this.space -= 2), value, true)
   }
 
-  writeInt32(this: Builder, value: number): void {
+  writeInt32(value: number): void {
     this.bb.view.setInt32((this.space -= 4), value, true)
   }
 
-  writeInt64(this: Builder, value: bigint): void {
+  writeInt64(value: bigint): void {
     this.bb.view.setBigInt64((this.space -= 8), value, true)
   }
 
-  writeFloat32(this: Builder, value: number): void {
+  writeFloat32(value: number): void {
     this.bb.view.setFloat32((this.space -= 4), value, true)
   }
 
-  writeFloat64(this: Builder, value: number): void {
+  writeFloat64(value: number): void {
     this.bb.view.setFloat64((this.space -= 8), value, true)
   }
 
-  addInt8(this: Builder, value: number): void {
+  addInt8(value: number): void {
     this.prep(1, 0)
     this.writeInt8(value)
   }
 
-  addInt16(this: Builder, value: number): void {
+  addInt16(value: number): void {
     this.prep(2, 0)
     this.writeInt16(value)
   }
 
-  addInt32(this: Builder, value: number): void {
+  addInt32(value: number): void {
     this.prep(4, 0)
     this.writeInt32(value)
   }
 
-  addInt64(this: Builder, value: bigint): void {
+  addInt64(value: bigint): void {
     this.prep(8, 0)
     this.writeInt64(value)
   }
 
-  addFloat32(this: Builder, value: number): void {
+  addFloat32(value: number): void {
     this.prep(4, 0)
     this.writeFloat32(value)
   }
 
-  addFloat64(this: Builder, value: number): void {
+  addFloat64(value: number): void {
     this.prep(8, 0)
     this.writeFloat64(value)
   }
 
-  addFieldInt8(this: Builder, voffset: number, value: number, defaultValue: number | null): void {
+  addFieldInt8(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addInt8(value)
       this.slot(voffset)
     }
   }
 
-  addFieldInt16(this: Builder, voffset: number, value: number, defaultValue: number | null): void {
+  addFieldInt16(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addInt16(value)
       this.slot(voffset)
     }
   }
 
-  addFieldInt32(this: Builder, voffset: number, value: number, defaultValue: number | null): void {
+  addFieldInt32(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addInt32(value)
       this.slot(voffset)
     }
   }
 
-  addFieldInt64(this: Builder, voffset: number, value: bigint, defaultValue: bigint | null): void {
+  addFieldInt64(voffset: number, value: bigint, defaultValue: bigint | null): void {
     if (this._forceDefaults || value !== defaultValue) {
       this.addInt64(value)
       this.slot(voffset)
     }
   }
 
-  addFieldFloat32(
-    this: Builder,
-    voffset: number,
-    value: number,
-    defaultValue: number | null,
-  ): void {
+  addFieldFloat32(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addFloat32(value)
       this.slot(voffset)
     }
   }
 
-  addFieldFloat64(
-    this: Builder,
-    voffset: number,
-    value: number,
-    defaultValue: number | null,
-  ): void {
+  addFieldFloat64(voffset: number, value: number, defaultValue: number | null): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addFloat64(value)
       this.slot(voffset)
     }
   }
 
-  addFieldOffset(this: Builder, voffset: number, value: Offset, defaultValue: Offset): void {
+  addFieldOffset(voffset: number, value: Offset, defaultValue: Offset): void {
     if (this._forceDefaults || value != defaultValue) {
       this.addOffset(value)
       this.slot(voffset)
     }
   }
 
-  addFieldStruct(this: Builder, voffset: number, value: Offset, defaultValue: Offset): void {
+  addFieldStruct(voffset: number, value: Offset, defaultValue: Offset): void {
     if (value != defaultValue) {
       this.nested(value)
       this.slot(voffset)
     }
   }
 
-  nested(this: Builder, obj: Offset): void {
+  nested(obj: Offset): void {
     if (obj != this.offset()) {
       throw new TypeError('FlatBuffers: struct must be serialized inline.')
     }
   }
 
-  notNested(this: Builder): void {
+  notNested(): void {
     if (this.isNested) {
       throw new TypeError('FlatBuffers: object serialization must not be nested.')
     }
   }
 
-  slot(this: Builder, voffset: number): void {
+  slot(voffset: number): void {
     if (this.vtable !== null) this.vtable[voffset] = this.offset()
   }
 
-  offset(this: Builder): Offset {
+  offset(): Offset {
     return this.bb.view.byteLength - this.space
   }
 
@@ -449,12 +439,12 @@ export class Builder {
     bb.view = new DataView(newBuffer)
   }
 
-  addOffset(this: Builder, offset: Offset): void {
+  addOffset(offset: Offset): void {
     this.prep(SIZEOF_INT, 0) // Ensure alignment is already done.
     this.writeInt32(this.offset() - offset + SIZEOF_INT)
   }
 
-  startObject(this: Builder, numfields: number): void {
+  startObject(numfields: number): void {
     this.notNested()
     if (this.vtable == null) {
       this.vtable = []
@@ -467,7 +457,7 @@ export class Builder {
     this.objectStart = this.offset()
   }
 
-  endObject(this: Builder): Offset {
+  endObject(): Offset {
     if (this.vtable == null || !this.isNested) {
       throw new globalThis.Error('FlatBuffers: endObject called without startObject')
     }
@@ -528,12 +518,7 @@ export class Builder {
     return vtableloc
   }
 
-  finish(
-    this: Builder,
-    rootTable: Offset,
-    fileIdentifier?: string,
-    shouldIncludeSizePrefix?: boolean,
-  ): Builder {
+  finish(rootTable: Offset, fileIdentifier?: string, shouldIncludeSizePrefix?: boolean): Builder {
     const sizePrefix = shouldIncludeSizePrefix ? SIZE_PREFIX_LENGTH : 0
     if (fileIdentifier) {
       this.prep(this.minAlignment, SIZEOF_INT + FILE_IDENTIFIER_LENGTH + sizePrefix)
@@ -553,12 +538,12 @@ export class Builder {
     return this
   }
 
-  finishSizePrefixed(this: Builder, rootTable: Offset, fileIdentifier?: string): Builder {
+  finishSizePrefixed(rootTable: Offset, fileIdentifier?: string): Builder {
     this.finish(rootTable, fileIdentifier, true)
     return this
   }
 
-  requiredField(this: Builder, table: Offset, field: number): void {
+  requiredField(table: Offset, field: number): void {
     const tableStart = this.bb.view.byteLength - table
     const vtableStart = tableStart - this.bb.view.getInt32(tableStart, true)
     const ok =
@@ -570,19 +555,19 @@ export class Builder {
     }
   }
 
-  startVector(this: Builder, elemSize: number, numElems: number, alignment: number): void {
+  startVector(elemSize: number, numElems: number, alignment: number): void {
     this.notNested()
     this.vectorNumElems = numElems
     this.prep(SIZEOF_INT, elemSize * numElems)
     this.prep(alignment, elemSize * numElems) // Just in case alignment > int.
   }
 
-  endVector(this: Builder): Offset {
+  endVector(): Offset {
     this.writeInt32(this.vectorNumElems)
     return this.offset()
   }
 
-  createSharedString(this: Builder, s: string | Uint8Array): Offset {
+  createSharedString(s: string | Uint8Array): Offset {
     if (!s) {
       return 0
     }
@@ -598,7 +583,7 @@ export class Builder {
     return offset
   }
 
-  createString(this: Builder, s: string | Uint8Array | ArrayBuffer | null | undefined): Offset {
+  createString(s: string | Uint8Array | ArrayBuffer | null | undefined): Offset {
     if (s === null || s === undefined) {
       return 0
     }
@@ -667,39 +652,39 @@ export class ByteBuffer {
     this.view = new DataView(buffer)
   }
 
-  offset(this: ByteBuffer, bbPos: number, vtableOffset: number): Offset {
+  offset(bbPos: number, vtableOffset: number): Offset {
     const vtable = bbPos - this.view.getInt32(bbPos, true)
     return vtableOffset < this.view.getInt16(vtable, true)
       ? this.view.getInt16(vtable + vtableOffset, true)
       : 0
   }
 
-  union(this: ByteBuffer, t: Table, offset: number): Table {
+  union(t: Table, offset: number): Table {
     t.bbPos = offset + this.view.getInt32(offset, true)
     t.bb = this
     return t
   }
 
-  rawMessage(this: ByteBuffer, offset: number): ArrayBuffer {
+  rawMessage(offset: number): ArrayBuffer {
     offset += this.view.getInt32(offset, true)
     const length = this.view.getInt32(offset, true)
     offset += SIZEOF_INT
     return this.view.buffer.slice(offset, offset + length)
   }
 
-  message(this: ByteBuffer, offset: number): string {
+  message(offset: number): string {
     return TEXT_DECODER.decode(this.rawMessage(offset))
   }
 
-  indirect(this: ByteBuffer, offset: Offset): Offset {
+  indirect(offset: Offset): Offset {
     return offset + this.view.getInt32(offset, true)
   }
 
-  vector(this: ByteBuffer, offset: Offset): Offset {
+  vector(offset: Offset): Offset {
     return offset + this.view.getInt32(offset, true) + SIZEOF_INT // data starts after the length
   }
 
-  vectorLength(this: ByteBuffer, offset: Offset): Offset {
+  vectorLength(offset: Offset): Offset {
     return this.view.getInt32(offset + this.view.getInt32(offset, true), true)
   }
 }
@@ -748,22 +733,22 @@ export class InboundMessage implements Table {
     return (obj ?? new InboundMessage()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  messageId(this: InboundMessage, obj?: EnsoUUID): EnsoUUID | null {
+  messageId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  correlationId(this: InboundMessage, obj?: EnsoUUID): EnsoUUID | null {
+  correlationId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  payloadType(this: InboundMessage): InboundPayload {
+  payloadType(): InboundPayload {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? this.bb.view.getUint8(this.bbPos + offset) : InboundPayload.NONE
   }
 
-  payload<T extends Table>(this: InboundMessage, obj: T): T | null {
+  payload<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
     // @ts-expect-error
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
@@ -839,22 +824,22 @@ export class OutboundMessage implements Table {
     )
   }
 
-  messageId(this: OutboundMessage, obj?: EnsoUUID): EnsoUUID | null {
+  messageId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  correlationId(this: OutboundMessage, obj?: EnsoUUID): EnsoUUID | null {
+  correlationId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  payloadType(this: OutboundMessage): OutboundPayload {
+  payloadType(): OutboundPayload {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? this.bb.view.getUint8(this.bbPos + offset) : OutboundPayload.NONE
   }
 
-  payload<T extends Table>(this: OutboundMessage, obj: T): T | null {
+  payload<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
     // @ts-expect-error
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
@@ -912,11 +897,11 @@ export class EnsoUUID implements Table {
     return this
   }
 
-  leastSigBits(this: EnsoUUID): bigint {
+  leastSigBits(): bigint {
     return this.bb.view.getBigUint64(this.bbPos, true)
   }
 
-  mostSigBits(this: EnsoUUID): bigint {
+  mostSigBits(): bigint {
     return this.bb.view.getBigUint64(this.bbPos + 8, true)
   }
 
@@ -946,27 +931,27 @@ export class Error implements Table {
     return (obj ?? new Error()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  code(this: Error): number {
+  code(): number {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.view.getInt32(this.bbPos + offset, true) : 0
   }
 
-  rawMessage(this: Error): ArrayBuffer | null {
+  rawMessage(): ArrayBuffer | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.rawMessage(this.bbPos + offset) : null
   }
 
-  message(this: Error): string | null {
+  message(): string | null {
     const rawMessage = this.rawMessage()
     return rawMessage ? TEXT_DECODER.decode(rawMessage) : null
   }
 
-  dataType(this: Error): ErrorPayload {
+  dataType(): ErrorPayload {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? this.bb.view.getUint8(this.bbPos + offset) : ErrorPayload.NONE
   }
 
-  data<T extends Table>(this: Error, obj: T): T | null {
+  data<T extends Table>(obj: T): T | null {
     const offset = this.bb.offset(this.bbPos, 10)
     // @ts-expect-error
     return offset ? this.bb.union(obj, this.bbPos + offset) : null
@@ -1044,7 +1029,7 @@ export class ReadOutOfBoundsError implements Table {
     )
   }
 
-  fileLength(this: ReadOutOfBoundsError): bigint {
+  fileLength(): bigint {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
@@ -1139,7 +1124,7 @@ export class InitSessionCommand implements Table {
     )
   }
 
-  identifier(this: InitSessionCommand, obj?: EnsoUUID): EnsoUUID | null {
+  identifier(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
@@ -1195,17 +1180,17 @@ export class VisualizationContext implements Table {
     )
   }
 
-  visualizationId(this: VisualizationContext, obj?: EnsoUUID): EnsoUUID | null {
+  visualizationId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  contextId(this: VisualizationContext, obj?: EnsoUUID): EnsoUUID | null {
+  contextId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
 
-  expressionId(this: VisualizationContext, obj?: EnsoUUID): EnsoUUID | null {
+  expressionId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb!) : null
   }
@@ -1278,27 +1263,24 @@ export class VisualizationUpdate implements Table {
     )
   }
 
-  visualizationContext(
-    this: VisualizationUpdate,
-    obj?: VisualizationContext,
-  ): VisualizationContext | null {
+  visualizationContext(obj?: VisualizationContext): VisualizationContext | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset
       ? (obj ?? new VisualizationContext()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
       : null
   }
 
-  data(this: VisualizationUpdate, index: number): number | null {
+  data(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  dataLength(this: VisualizationUpdate): number {
+  dataLength(): number {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  dataArray(this: VisualizationUpdate): Uint8Array | null {
+  dataArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset
       ? new Uint8Array(
@@ -1309,7 +1291,7 @@ export class VisualizationUpdate implements Table {
       : null
   }
 
-  dataString(this: VisualizationUpdate): string | null {
+  dataString(): string | null {
     const buffer = this.dataArray()
     return buffer != null ? TEXT_DECODER.decode(buffer) : null
   }
@@ -1376,23 +1358,23 @@ export class Path implements Table {
     return (obj ?? new Path()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  rootId(this: Path, obj?: EnsoUUID): EnsoUUID | null {
+  rootId(obj?: EnsoUUID): EnsoUUID | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new EnsoUUID()).init(this.bbPos + offset, this.bb) : null
   }
 
-  rawSegments(this: Path, index: number): ArrayBuffer {
+  rawSegments(index: number): ArrayBuffer {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset
       ? this.bb.rawMessage(this.bb.vector(this.bbPos + offset) + index * 4)
       : new Uint8Array()
   }
 
-  segments(this: Path, index: number): string {
+  segments(index: number): string {
     return TEXT_DECODER.decode(this.rawSegments(index))
   }
 
-  segmentsLength(this: Path): number {
+  segmentsLength(): number {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
@@ -1462,22 +1444,22 @@ export class WriteFileCommand implements Table {
     )
   }
 
-  path(this: WriteFileCommand, obj?: Path): Path | null {
+  path(obj?: Path): Path | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new Path()).init(this.bb.indirect(this.bbPos + offset), this.bb!) : null
   }
 
-  contents(this: WriteFileCommand, index: number): number | null {
+  contents(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  contentsLength(this: WriteFileCommand): number {
+  contentsLength(): number {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  contentsArray(this: WriteFileCommand): Uint8Array | null {
+  contentsArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset
       ? new Uint8Array(
@@ -1557,7 +1539,7 @@ export class ReadFileCommand implements Table {
     )
   }
 
-  path(this: ReadFileCommand, obj?: Path): Path | null {
+  path(obj?: Path): Path | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new Path()).init(this.bb.indirect(this.bbPos + offset), this.bb!) : null
   }
@@ -1609,17 +1591,17 @@ export class FileContentsReply implements Table {
     )
   }
 
-  contents(this: FileContentsReply, index: number): number | null {
+  contents(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  contentsLength(this: FileContentsReply): number {
+  contentsLength(): number {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  contentsArray(this: FileContentsReply): Uint8Array | null {
+  contentsArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset
       ? new Uint8Array(
@@ -1690,32 +1672,32 @@ export class WriteBytesCommand implements Table {
     )
   }
 
-  path(this: WriteBytesCommand, obj?: Path): Path | null {
+  path(obj?: Path): Path | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new Path()).init(this.bb.indirect(this.bbPos + offset), this.bb!) : null
   }
 
-  byteOffset(this: WriteBytesCommand): bigint {
+  byteOffset(): bigint {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
-  overwriteExisting(this: WriteBytesCommand): boolean {
+  overwriteExisting(): boolean {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? !!this.bb.view.getInt8(this.bbPos + offset) : false
   }
 
-  bytes(this: WriteBytesCommand, index: number): number | null {
+  bytes(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 10)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  bytesLength(this: WriteBytesCommand): number {
+  bytesLength(): number {
     const offset = this.bb.offset(this.bbPos, 10)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  bytesArray(this: WriteBytesCommand): Uint8Array | null {
+  bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 10)
     return offset
       ? new Uint8Array(
@@ -1809,7 +1791,7 @@ export class WriteBytesReply implements Table {
     )
   }
 
-  checksum(this: WriteBytesReply, obj?: EnsoDigest): EnsoDigest | null {
+  checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset
       ? (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
@@ -1864,7 +1846,7 @@ export class ReadBytesCommand implements Table {
     )
   }
 
-  segment(this: ReadBytesCommand, obj?: FileSegment): FileSegment | null {
+  segment(obj?: FileSegment): FileSegment | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset
       ? (obj ?? new FileSegment()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
@@ -1910,24 +1892,24 @@ export class ReadBytesReply implements Table {
     return (obj ?? new ReadBytesReply()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  checksum(this: ReadBytesReply, obj?: EnsoDigest): EnsoDigest | null {
+  checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset
       ? (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
       : null
   }
 
-  bytes(this: ReadBytesReply, index: number): number | null {
+  bytes(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  bytesLength(this: ReadBytesReply): number {
+  bytesLength(): number {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  bytesArray(this: ReadBytesReply): Uint8Array | null {
+  bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset
       ? new Uint8Array(
@@ -2012,7 +1994,7 @@ export class ChecksumBytesCommand implements Table {
     )
   }
 
-  segment(this: ChecksumBytesCommand, obj?: FileSegment): FileSegment | null {
+  segment(obj?: FileSegment): FileSegment | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset
       ? (obj ?? new FileSegment()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
@@ -2067,7 +2049,7 @@ export class ChecksumBytesReply implements Table {
     )
   }
 
-  checksum(this: ChecksumBytesReply, obj?: EnsoDigest): EnsoDigest | null {
+  checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset
       ? (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
@@ -2113,17 +2095,17 @@ export class EnsoDigest implements Table {
     return (obj ?? new EnsoDigest()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  bytes(this: EnsoDigest, index: number): number | null {
+  bytes(index: number): number | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.view.getUint8(this.bb.vector(this.bbPos + offset) + index) : 0
   }
 
-  bytesLength(this: EnsoDigest): number {
+  bytesLength(): number {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? this.bb.vectorLength(this.bbPos + offset) : 0
   }
 
-  bytesArray(this: EnsoDigest): Uint8Array | null {
+  bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset
       ? new Uint8Array(
@@ -2186,17 +2168,17 @@ export class FileSegment implements Table {
     return (obj ?? new FileSegment()).init(bb.view.getInt32(bb.position, true) + bb.position, bb)
   }
 
-  path(this: FileSegment, obj?: Path): Path | null {
+  path(obj?: Path): Path | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ? (obj ?? new Path()).init(this.bb.indirect(this.bbPos + offset), this.bb!) : null
   }
 
-  byteOffset(this: FileSegment): bigint {
+  byteOffset(): bigint {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
 
-  length(this: FileSegment): bigint {
+  length(): bigint {
     const offset = this.bb.offset(this.bbPos, 8)
     return offset ? this.bb.view.getBigUint64(this.bbPos + offset, true) : 0n
   }
