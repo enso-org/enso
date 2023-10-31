@@ -2,6 +2,7 @@ import { Client } from '@open-rpc/client-js'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
 import { SHA3 } from 'sha3'
+import { z } from 'zod'
 import type {
   Checksum,
   ContextId,
@@ -129,10 +130,9 @@ export class LanguageServer extends ObservableV2<Notifications> {
       }
       return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
     } catch (e) {
-      if (e && typeof e === 'object' && 'code' in e && 'message' in e && typeof e.code === 'number' && typeof e.message === 'string') {
-        const data = 'data' in e ? e.data : undefined
-        const remoteError = new RemoteRpcError(e.code, e.message, data)
-        throw new LsRpcError(remoteError, method, params)
+      const remoteError = RemoteRpcErrorSchema.safeParse(e)
+      if (remoteError.success) {
+        throw new LsRpcError(new RemoteRpcError(remoteError.data), method, params)
       } else if (e instanceof Error) {
         throw new LsRpcError(e, method, params)
       }
