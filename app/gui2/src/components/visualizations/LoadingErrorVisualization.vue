@@ -1,5 +1,5 @@
 <script lang="ts">
-export const name = 'Error Loading Visualization'
+export const name = 'Loading Error'
 export const inputType = 'Any'
 </script>
 
@@ -14,7 +14,7 @@ watchEffect(() => console.error(props.data))
 
 <template>
   <VisualizationContainer belowToolbar>
-    <div class="ErrorLoadingVisualizationVisualization">
+    <div class="LoadingErrorVisualization">
       <div>
         <span>Error loading visualization '<span v-text="props.data.name"></span>':</span>
         <span v-text="props.data.error.message"></span>
@@ -24,13 +24,13 @@ watchEffect(() => console.error(props.data))
 </template>
 
 <style scoped>
-.ErrorLoadingVisualizationVisualization {
+.LoadingErrorVisualization {
   height: 100%;
   display: grid;
   place-items: center;
 }
 
-.ErrorLoadingVisualizationVisualization > div {
+.LoadingErrorVisualization > div {
   display: flex;
   flex-flow: column;
   place-items: center;

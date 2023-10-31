@@ -30,9 +30,9 @@ for (const path of [
 }
 visualizationMetadata.sort((a, b) => order.indexOf(a.name ?? '') - order.indexOf(b.name ?? ''))
 
-console.info('Writing visualization metadata to "./src/util/visualizationMetadata.json"...')
+console.info('Writing visualization metadata to "./src/stores/visualization/metadata.json"...')
 await fs.writeFile(
-  './src/util/visualizationMetadata.json',
+  './src/stores/visualization/metadata.json',
   JSON.stringify(visualizationMetadata, undefined, 2) + '\n',
 )
 console.info('Done.')

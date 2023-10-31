@@ -130,6 +130,7 @@ export interface FetchWorkerError {
  * These should be attached to the DOM - placement does not matter. */
 export interface AddStyleNotification {
   type: 'add-style-notification'
+  path: string
   code: string
 }
 
@@ -243,8 +244,8 @@ function extractExtension(path: string) {
 
 const postMessage: <T>(message: T) => void = globalThis.postMessage
 
-function addStyle(code: string) {
-  postMessage<AddStyleNotification>({ type: 'add-style-notification', code })
+function addStyle(path: string, code: string) {
+  postMessage<AddStyleNotification>({ type: 'add-style-notification', path, code })
 }
 // This is defined to allow for future expansion.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -343,6 +344,7 @@ async function importVue(path: string) {
   const id = hash(raw)
   for (const style of parsed.descriptor.styles) {
     addStyle(
+      path,
       compileStyle({ filename, source: style.content, id, scoped: style.scoped ?? false }).code,
     )
   }

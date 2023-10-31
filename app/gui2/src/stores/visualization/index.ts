@@ -1,7 +1,9 @@
 import { useProjectStore } from '@/stores/project'
 import {
   compile,
+  currentProjectProtocol,
   InvalidVisualizationModuleError,
+  stylePathAttribute,
   type VisualizationModule,
 } from '@/stores/visualization/compilerMessaging'
 import {
@@ -15,7 +17,7 @@ import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
 import { walkFs } from 'shared/languageServer/files'
-import type { FileEventKind, Path, VisualizationConfiguration } from 'shared/languageServerTypes'
+import type { Event as LSEvent, Path, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive, type DefineComponent, type PropType } from 'vue'
 
@@ -130,9 +132,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
             new Promise<void>((resolve, reject) => {
               node.addEventListener('load', () => {
                 resolve()
+                node.remove()
               })
               node.addEventListener('error', () => {
                 reject()
+                node.remove()
               })
             }),
           )
@@ -143,7 +147,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return Promise.allSettled(promises)
   }
 
-  async function onFileEvent(event: { path: Path; kind: FileEventKind }) {
+  async function onFileEvent(event: LSEvent<'file/event'>) {
     const pathString = event.path.segments.join('/')
     const name = currentProjectVisualizationsByPath.get(pathString)
     let id: VisualizationIdentifier | undefined =
@@ -182,7 +186,15 @@ export const useVisualizationStore = defineStore('visualization', () => {
         }
         case 'Removed': {
           currentProjectVisualizationsByPath.delete(pathString)
-          if (key) cache.delete(key)
+          if (key) {
+            cache.delete(key)
+            metadata.delete(key)
+            for (const el of document.querySelectorAll(
+              `[${stylePathAttribute}=${currentProjectProtocol}${pathString}]`,
+            )) {
+              el.remove()
+            }
+          }
         }
       }
     }

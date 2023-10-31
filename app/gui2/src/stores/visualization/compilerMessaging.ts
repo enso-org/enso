@@ -26,6 +26,10 @@ import type { Uuid } from 'shared/languageServerTypes'
 import * as vue from 'vue'
 import { z } from 'zod'
 
+/** The custom URL protocol used internally for project-local assets. */
+export const currentProjectProtocol = 'enso-current-project:'
+export const stylePathAttribute = 'data-style-path'
+
 const VisualizationModule = z.object({
   // This is UNSAFE, but unavoiable as the type of `Visualization` is too difficult to statically
   // check.
@@ -67,6 +71,10 @@ const workerCallbacks = new Map<
   number,
   { resolve: (result: VisualizationModule) => void; reject: (error: Error) => void }
 >()
+
+/** A map from the path of the module to the code of the module.
+ * This is used to prevent duplicated modules, at the cost of increased memory usage. */
+const moduleCode = new Map<string, string>()
 
 function postMessage<T>(worker: Worker, message: T) {
   worker.postMessage(message)
@@ -150,7 +158,7 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
                   }
                   break
                 }
-                case 'enso-current-project:': {
+                case currentProjectProtocol: {
                   const rootId = projectRoot
                   if (!rootId) {
                     postMessage<FetchWorkerError>(worker_, {
@@ -195,13 +203,12 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
           // === Notifications ===
           case 'add-style-notification': {
             const styleNode = document.createElement('style')
+            styleNode.setAttribute(stylePathAttribute, event.data.path)
             styleNode.innerHTML = event.data.code
             document.head.appendChild(styleNode)
             break
           }
           case 'add-raw-import-notification': {
-            // FIXME: include protocol in path so that custom visualizations and their
-            // dependencies do not overwrite builtin visualizations.
             moduleCache[event.data.path] = event.data.value
             break
           }
@@ -215,6 +222,8 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
           }
           case 'add-import-notification': {
             try {
+              if (moduleCode.get(event.data.path) === event.data.code) break
+              moduleCode.set(event.data.path, event.data.code)
               const module = import(
                 /* @vite-ignore */
                 URL.createObjectURL(new Blob([event.data.code], { type: 'text/javascript' }))
@@ -223,7 +232,8 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
               moduleCache[event.data.path] = module
               moduleCache[event.data.path] = await module
             } catch {
-              // Ignored - the same promise is awaited elsewhere.
+              moduleCache.delete(event.data.path)
+              // No error handling - the same Promise is awaited elsewhere.
             }
             break
           }
