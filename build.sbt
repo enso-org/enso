@@ -1706,38 +1706,41 @@ lazy val `engine-runner` = project
     assembly := assembly
       .dependsOn(`runtime-with-instruments` / assembly)
       .value,
-    rebuildNativeImage := NativeImage
-      .buildNativeImage(
-        "runner",
-        staticOnLinux = false,
-        additionalOptions = Seq(
-          "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$",
-          "--macro:truffle",
-          "--language:js",
-          // "-g",
-          //          "-H:+DashboardAll",
-          //          "-H:DashboardDump=runner.bgv"
-          "-Dnic=nic"
-        ),
-        mainClass = Option("org.enso.runner.Main"),
-        cp        = Option("runtime.jar"),
-        initializeAtRuntime = Seq(
-          "org.jline.nativ.JLineLibrary",
-          "io.methvin.watchservice.jna.CarbonAPI",
-          "org.enso.syntax2.Parser",
-          "zio.internal.ZScheduler$$anon$4",
-          "org.enso.runner.Main$",
-          "sun.awt",
-          "sun.java2d",
-          "sun.font",
-          "java.awt",
-          "com.sun.imageio",
-          "akka.http"
+    rebuildNativeImage :=
+      NativeImage
+        .buildNativeImage(
+          "runner",
+          staticOnLinux = false,
+          additionalOptions = Seq(
+            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+            "-H:IncludeResources=.*Main.enso$",
+            // "-g",
+            //          "-H:+DashboardAll",
+            //          "-H:DashboardDump=runner.bgv"
+            "-Dnic=nic",
+          ),
+          mainClass = Some("org.enso.runner.Main"),
+          additionalCp = Seq(
+            "runtime.jar",
+            "runner.jar"
+          ),
+          initializeAtRuntime = Seq(
+            "org.jline.nativ.JLineLibrary",
+            "io.methvin.watchservice.jna.CarbonAPI",
+            "org.enso.syntax2.Parser",
+            "zio.internal.ZScheduler$$anon$4",
+            "org.enso.runner.Main$",
+            "sun.awt",
+            "sun.java2d",
+            "sun.font",
+            "java.awt",
+            "com.sun.imageio",
+            "akka.http"
+          )
         )
-      )
-      .dependsOn(assembly)
-      .value,
+        .dependsOn(assembly)
+        .value
+    ,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
