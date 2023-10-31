@@ -180,6 +180,21 @@ watch(componentBrowserVisible, (visible) => {
     interactionEnded(editingNode)
   }
 })
+
+function handleDrop(event: DragEvent) {
+  if (event.dataTransfer) {
+    if (event.dataTransfer.items) {
+      [...event.dataTransfer.items].forEach((item, i) => {
+        if (item.kind === 'file') {
+          const file = item.getAsFile()
+          if (file) {
+            console.log(`… file[${i}].name = ${file.name}`)
+          }
+        }
+      })
+    }
+  }
+}
 </script>
 
 <template>
@@ -191,6 +206,8 @@ watch(componentBrowserVisible, (visible) => {
     @click="graphBindingsHandler"
     v-on.="navigator.events"
     v-on..="nodeSelection.events"
+    @dragover.prevent
+    @drop.prevent="handleDrop($event)"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
