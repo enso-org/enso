@@ -184,8 +184,26 @@ watch(componentBrowserVisible, (visible) => {
   }
 })
 
+const dataDirName = 'data'
+async function dataDirectoryExists(): Promise<boolean> {
+  const rpc = await projectStore.lsRpcConnection
+  const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
+  if (projectRootId) {
+    const dataDirPath: Path = { rootId: projectRootId.id, segments: [dataDirName] }
+    return rpc.fileInfo(dataDirPath).then((info) => info.attributes.kind.type == 'Directory').catch((err: LsRpcError) => {
+      if (err.cause instanceof RemoteRpcError) {
+        if (err.cause.code == ErrorCode.FILE_NOT_FOUND || err.cause.code == ErrorCode.CONTENT_ROOT_NOT_FOUND) {
+          return false
+        }
+      }
+      throw err
+    })
+  } else {
+    throw new Error('Project root ID not found.')
+  }
+}
+
 async function handleDrop(event: DragEvent) {
-  const dataDirName = 'data'
   if (event.dataTransfer) {
     if (event.dataTransfer.items) {
       [...event.dataTransfer.items].forEach(async (item, i) => {
@@ -193,20 +211,8 @@ async function handleDrop(event: DragEvent) {
           const file = item.getAsFile()
           if (file) {
             console.log(`… file[${i}].name = ${file.name}`)
-            const contentRoots = await projectStore.contentRoots
-            const projectRootId = contentRoots.find((root) => root.type === 'Project')
-            if (projectRootId) {
-              console.log(`Project root id: ${projectRootId.id}`)
-              const dataDirPath: Path = { rootId: projectRootId.id, segments: [dataDirName] }
-              const rpc = await projectStore.lsRpcConnection
-              await rpc.fileInfo(dataDirPath).then((info) => {
-                console.log(info)
-              }).catch((err: LsRpcError) => {
-                if (err.cause instanceof RemoteRpcError && (err.cause.code === ErrorCode.FILE_NOT_FOUND || err.cause.code === ErrorCode.CONTENT_ROOT_NOT_FOUND)) {
-                  console.log(`Data directory not found`)
-                }
-              })
-            }
+            const exists = await dataDirectoryExists()
+            console.log(`Data directory exists: ${exists}`)
           }
         }
       })
