@@ -17,6 +17,9 @@ import * as set from 'lib0/set'
 import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
+import type { Path } from 'shared/languageServerTypes'
+import type { LsRpcError } from 'shared/languageServer'
+import { RemoteRpcError, ErrorCodes } from 'shared/languageServer'
 
 const EXECUTION_MODES = ['design', 'live']
 
@@ -181,14 +184,29 @@ watch(componentBrowserVisible, (visible) => {
   }
 })
 
-function handleDrop(event: DragEvent) {
+async function handleDrop(event: DragEvent) {
+  const dataDirName = 'data'
   if (event.dataTransfer) {
     if (event.dataTransfer.items) {
-      [...event.dataTransfer.items].forEach((item, i) => {
+      [...event.dataTransfer.items].forEach(async (item, i) => {
         if (item.kind === 'file') {
           const file = item.getAsFile()
           if (file) {
             console.log(`… file[${i}].name = ${file.name}`)
+            const contentRoots = await projectStore.contentRoots
+            const projectRootId = contentRoots.find((root) => root.type === 'Project')
+            if (projectRootId) {
+              console.log(`Project root id: ${projectRootId.id}`)
+              const dataDirPath: Path = { rootId: projectRootId.id, segments: [dataDirName] }
+              const rpc = await projectStore.lsRpcConnection
+              await rpc.fileInfo(dataDirPath).then((info) => {
+                console.log(info)
+              }).catch((err: LsRpcError) => {
+                if (err.cause instanceof RemoteRpcError && (err.cause.code === ErrorCodes.FILE_NOT_FOUND || err.cause.code === ErrorCodes.CONTENT_ROOT_NOT_FOUND)) {
+                  console.log(`Data directory not found`)
+                }
+              })
+            }
           }
         }
       })
