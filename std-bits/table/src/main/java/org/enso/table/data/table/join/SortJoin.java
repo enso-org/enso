@@ -9,8 +9,6 @@ import org.graalvm.polyglot.Context;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.NavigableSet;
-import java.util.TreeSet;
 
 public class SortJoin implements PluggableJoinStrategy {
   @Override
@@ -56,23 +54,24 @@ public class SortJoin implements PluggableJoinStrategy {
       context.safepoint();
     }
 
-    TreeSet<OrderedMultiValueKey> keys = new TreeSet<>();
+    ArrayList<OrderedMultiValueKey> keys = new ArrayList<>();
     for (int i = 0; i < leftRowCount; i++) {
       keys.add(new OrderedMultiValueKey(storages, i, directions));
       context.safepoint();
     }
+    keys.sort(null);
 
     return new SortedLeftIndex(keys, conditions.get(0), conditions.subList(1, conditions.size()));
   }
 
-  static final class SortedLeftIndex {
-    private final NavigableSet<OrderedMultiValueKey> sortedKeys;
+  final class SortedLeftIndex {
+    private final List<OrderedMultiValueKey> sortedKeys;
 
     private final int[] directions;
     private final Storage<?>[] lowerStorages;
     private final Storage<?>[] upperStorages;
 
-    SortedLeftIndex(NavigableSet<OrderedMultiValueKey> sortedKeys, Between sortCondition,
+    SortedLeftIndex(ArrayList<OrderedMultiValueKey> sortedKeys, Between sortCondition,
                     List<Between> remainingConditions) {
       this.sortedKeys = sortedKeys;
       int nConditions = 1 + remainingConditions.size();
@@ -100,7 +99,11 @@ public class SortJoin implements PluggableJoinStrategy {
       OrderedMultiValueKey lowerBound = buildLowerBound(rightRowIx);
       OrderedMultiValueKey upperBound = buildUpperBound(rightRowIx);
 
-      NavigableSet<OrderedMultiValueKey> firstCoordinateMatches = sortedKeys.subSet(lowerBound, true, upperBound, true);
+      if (lowerBound.compareTo(upperBound) > 0) {
+        return Collections.emptyList();
+      }
+
+      List<OrderedMultiValueKey> firstCoordinateMatches = findFirstCoordinateMatches(lowerBound, upperBound);
       ArrayList<Integer> result = new ArrayList<>();
       Context context = Context.getCurrent();
       for (OrderedMultiValueKey key : firstCoordinateMatches) {
@@ -113,6 +116,39 @@ public class SortJoin implements PluggableJoinStrategy {
       }
 
       return result;
+    }
+
+    private List<OrderedMultiValueKey> findFirstCoordinateMatches(OrderedMultiValueKey lowerBound,
+                                                                  OrderedMultiValueKey upperBound) {
+      int lowerBoundIx = findLowerBoundIx(lowerBound);
+      int upperBoundIx = findUpperBoundIx(upperBound);
+      return sortedKeys.subList(lowerBoundIx, upperBoundIx);
+    }
+
+    private int findLowerBoundIx(OrderedMultiValueKey lowerBound) {
+      int ix = Collections.binarySearch(sortedKeys, lowerBound);
+      if (ix >= 0) {
+        while (ix > 0 && sortedKeys.get(ix - 1).compareTo(lowerBound) == 0) {
+          ix--;
+        }
+
+        return ix;
+      } else {
+        return -ix - 1;
+      }
+    }
+
+    private int findUpperBoundIx(OrderedMultiValueKey upperBound) {
+      int ix = Collections.binarySearch(sortedKeys, upperBound);
+      if (ix >= 0) {
+        while (ix < sortedKeys.size() - 1 && sortedKeys.get(ix + 1).compareTo(upperBound) == 0) {
+          ix++;
+        }
+
+        return ix + 1;
+      } else {
+        return -ix - 1;
+      }
     }
 
     private OrderedMultiValueKey buildLowerBound(int rightRowIx) {
