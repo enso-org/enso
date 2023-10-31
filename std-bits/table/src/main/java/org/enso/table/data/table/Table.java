@@ -16,9 +16,9 @@ import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.CrossJoin;
-import org.enso.table.data.table.join.IndexJoin;
 import org.enso.table.data.table.join.JoinCondition;
 import org.enso.table.data.table.join.JoinResult;
+import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
 import org.enso.table.problems.ProblemAggregator;
@@ -270,7 +270,7 @@ public class Table {
           "be true.");
     }
 
-    var strategy = new IndexJoin();
+    JoinStrategy strategy = JoinStrategy.createStrategy(conditions);
     JoinResult joinResult = strategy.join(this, right, conditions, problemAggregator);
 
     List<JoinResult> resultsToKeep = new ArrayList<>();
