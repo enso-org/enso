@@ -33,8 +33,8 @@ polyglot java import java.net.http.HttpRequest.BodyPublisher
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import java.nio.file.Path
-polyglot java import org.enso.base.enso_cloud.HTTPBuilder
 polyglot java import org.enso.base.enso_cloud.EnsoKeyValuePair
+polyglot java import org.enso.base.enso_cloud.HTTPBuilder
 polyglot java import org.enso.base.net.http.MultipartBodyBuilder
 polyglot java import org.enso.base.net.http.UrlencodedBodyBuilder
 
@@ -245,7 +245,7 @@ resolve_body_to_publisher_and_boundary body:Request_Body =
 build_form_body_publisher : Map Text (Text | File) -> Boolean -> Pair BodyPublisher Text
 build_form_body_publisher (form_data:(Map Text (Text | File))) (url_encoded:Boolean=False) = case url_encoded of
     True ->
-        body_builder = UrlencodedBodyBuilder.new
+        body_builder = UrlencodedBodyBuilder.newq
         form_data.map_with_key key-> value->
             case value of
                 _ : Text -> body_builder.add_part_text key value

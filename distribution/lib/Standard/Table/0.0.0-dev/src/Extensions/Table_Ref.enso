@@ -8,7 +8,6 @@ import project.Data.Set_Mode.Set_Mode
 import project.Data.Table.Table
 from project.Errors import No_Such_Column, Existing_Column, Missing_Column
 
-
 ## PRIVATE
    A helper type allowing to resolve column references in a context of an underlying table.
 type Table_Ref

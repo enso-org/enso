@@ -2,8 +2,8 @@ import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import project.Data.Json.JS_Object
 import project.Data.Pair.Pair
-import project.Data.Text.Text
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Network.URI.URI
