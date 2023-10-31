@@ -50,8 +50,14 @@ class VisualizationHolder() {
     * @param module the qualified module name
     * @return a list of matching visualization
     */
-  def findByModule(module: QualifiedName): Iterable[Visualization] =
-    visualizationMap.values.flatten.filter(_.module.getName == module)
+  def findByModule(
+    module: QualifiedName
+  ): Iterable[Visualization.AttachedVisualization] =
+    visualizationMap.values.flatten.collect {
+      case visualization: Visualization.AttachedVisualization
+          if visualization.module.getName == module =>
+        visualization
+    }
 
   /** Returns a visualization with the provided id.
     *

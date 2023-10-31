@@ -261,8 +261,13 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
-      case ExecuteExpression(clientId, visualizationId, expressionId, cfg) =>
-        val contextId = cfg.executionContextId
+      case ExecuteExpression(
+            clientId,
+            contextId,
+            visualizationId,
+            expressionId,
+            expression
+          ) =>
         if (store.hasContext(clientId, contextId)) {
           store.getListener(contextId).foreach { listener =>
             listener ! RegisterOneshotVisualization(
@@ -272,17 +277,18 @@ final class ContextRegistry(
             )
           }
           val handler = context.actorOf(
-            AttachVisualizationHandler.props(
+            ExecuteExpressionHandler.props(
               runtimeFailureMapper,
               timeout,
               runtime
             )
           )
           handler.forward(
-            Api.AttachVisualization(
+            Api.ExecuteExpression(
+              contextId,
               visualizationId,
               expressionId,
-              cfg.toApi
+              expression
             )
           )
         } else {

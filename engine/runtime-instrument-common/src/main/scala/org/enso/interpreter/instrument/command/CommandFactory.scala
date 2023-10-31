@@ -37,6 +37,15 @@ object CommandFactory {
       case payload: Api.AttachVisualization =>
         new AttachVisualizationCmd(request.requestId, payload)
 
+      case payload: Api.ExecuteExpression =>
+        new ExecuteExpressionCommand(
+          request.requestId,
+          payload.contextId,
+          payload.visualizationId,
+          payload.expressionId,
+          payload.expression
+        )
+
       case payload: Api.DetachVisualization =>
         new DetachVisualizationCmd(request.requestId, payload)
 

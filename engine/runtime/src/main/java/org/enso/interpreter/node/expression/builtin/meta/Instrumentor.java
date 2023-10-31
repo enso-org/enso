@@ -62,7 +62,7 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   // Callbacks
   //
   @Override
-  public Object findCachedResult(UUID nodeId) {
+  public Object findCachedResult(Object virtualFrame, Object node, UUID nodeId) {
     try {
       if (onEnter != null) {
         var ret = InteropLibrary.getUncached().execute(onEnter, nodeId.toString());

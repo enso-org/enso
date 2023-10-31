@@ -63,7 +63,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public final Object findCachedResult(UUID nodeId) {
+  public final Object findCachedResult(Object virtualFrame, Object node, UUID nodeId) {
     // Add a flag to say it was cached.
     // An array of `ProfilingInfo` in the value update.
     Object result = cache.get(nodeId);
@@ -80,7 +80,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
               calls.get(nodeId),
               cache.getCall(nodeId),
               new ProfilingInfo[] {ExecutionTime.empty()},
-              true);
+              true,
+              ((ExpressionNode) node),
+              ((VirtualFrame) virtualFrame));
       onCachedCallback.accept(value);
       return result;
     }

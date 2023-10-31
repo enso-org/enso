@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -194,17 +195,23 @@ public final class Module implements EnsoObject {
     this.compilationStage = CompilationStage.INITIAL;
   }
 
-  /** @return the literal source of this module. */
+  /**
+   * @return the literal source of this module.
+   */
   public Rope getLiteralSource() {
     return sources.rope();
   }
 
-  /** @return true if this module represents a synthetic (compiler-generated) module */
+  /**
+   * @return true if this module represents a synthetic (compiler-generated) module
+   */
   public boolean isSynthetic() {
     return synthetic;
   }
 
-  /** @return true iff this module is private (project-private). */
+  /**
+   * @return true iff this module is private (project-private).
+   */
   public boolean isPrivate() {
     return ir.isPrivate();
   }
@@ -297,7 +304,9 @@ public final class Module implements EnsoObject {
     }
   }
 
-  /** @return the location of this module. */
+  /**
+   * @return the location of this module.
+   */
   public String getPath() {
     return sources.getPath();
   }
@@ -388,7 +397,9 @@ public final class Module implements EnsoObject {
     context.getCompiler().run(asCompilerModule());
   }
 
-  /** @return IR defined by this module. */
+  /**
+   * @return IR defined by this module.
+   */
   public org.enso.compiler.core.ir.Module getIr() {
     return ir;
   }
@@ -415,7 +426,9 @@ public final class Module implements EnsoObject {
     return map.containsKey(id);
   }
 
-  /** @return the current compilation stage of this module. */
+  /**
+   * @return the current compilation stage of this module.
+   */
   public CompilationStage getCompilationStage() {
     return compilationStage;
   }
@@ -445,7 +458,9 @@ public final class Module implements EnsoObject {
     this.uuidsMap = null;
   }
 
-  /** @return the runtime scope of this module. */
+  /**
+   * @return the runtime scope of this module.
+   */
   public ModuleScope getScope() {
     return scope;
   }
@@ -464,7 +479,9 @@ public final class Module implements EnsoObject {
     }
   }
 
-  /** @return the qualified name of this module. */
+  /**
+   * @return the qualified name of this module.
+   */
   public QualifiedName getName() {
     return name;
   }
@@ -482,7 +499,9 @@ public final class Module implements EnsoObject {
     this.name = name.renameProject(newName);
   }
 
-  /** @return the indexed flag. */
+  /**
+   * @return the indexed flag.
+   */
   public boolean isIndexed() {
     return isIndexed;
   }
@@ -492,27 +511,37 @@ public final class Module implements EnsoObject {
     isIndexed = indexed;
   }
 
-  /** @return the source file of this module. */
+  /**
+   * @return the source file of this module.
+   */
   public TruffleFile getSourceFile() {
     return sources.file();
   }
 
-  /** @return {@code true} if the module is interactive, {@code false} otherwise */
+  /**
+   * @return {@code true} if the module is interactive, {@code false} otherwise
+   */
   public boolean isInteractive() {
     return patchedValues != null;
   }
 
-  /** @return the cache for this module */
+  /**
+   * @return the cache for this module
+   */
   public ModuleCache getCache() {
     return cache;
   }
 
-  /** @return {@code true} if the module was loaded from the cache, {@code false} otherwise */
+  /**
+   * @return {@code true} if the module was loaded from the cache, {@code false} otherwise
+   */
   public boolean wasLoadedFromCache() {
     return wasLoadedFromCache;
   }
 
-  /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
+  /**
+   * @param wasLoadedFromCache whether or not the module was loaded from the cache
+   */
   void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
   }
@@ -525,7 +554,9 @@ public final class Module implements EnsoObject {
     return hasCrossModuleLinks;
   }
 
-  /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
+  /**
+   * @param hasCrossModuleLinks whether or not the module has cross-module links restored
+   */
   void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
     this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
@@ -636,7 +667,9 @@ public final class Module implements EnsoObject {
               .getBuiltinFunction(
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
-      CallerInfo callerInfo = new CallerInfo(virtualFrame.materialize(), localScope, moduleScope);
+      MaterializedFrame materializedFrame =
+          virtualFrame == null ? null : virtualFrame.materialize();
+      CallerInfo callerInfo = new CallerInfo(materializedFrame, localScope, moduleScope);
 
       return callOptimiserNode.executeDispatch(
           null,
@@ -725,7 +758,8 @@ public final class Module implements EnsoObject {
         || member.equals(MethodNames.Module.SET_SOURCE)
         || member.equals(MethodNames.Module.SET_SOURCE_FILE)
         || member.equals(MethodNames.Module.GET_ASSOCIATED_TYPE)
-        || member.equals(MethodNames.Module.EVAL_EXPRESSION);
+        || member.equals(MethodNames.Module.EVAL_EXPRESSION)
+        || member.equals(MethodNames.Module.EVAL_EXPRESSION_LOCAL_SCOPE);
   }
 
   /**
@@ -742,7 +776,8 @@ public final class Module implements EnsoObject {
         MethodNames.Module.SET_SOURCE,
         MethodNames.Module.SET_SOURCE_FILE,
         MethodNames.Module.GET_ASSOCIATED_TYPE,
-        MethodNames.Module.EVAL_EXPRESSION);
+        MethodNames.Module.EVAL_EXPRESSION,
+        MethodNames.Module.EVAL_EXPRESSION_LOCAL_SCOPE);
   }
 
   @Override

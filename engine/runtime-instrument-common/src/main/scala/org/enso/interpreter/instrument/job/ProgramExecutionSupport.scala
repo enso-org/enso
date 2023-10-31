@@ -470,34 +470,32 @@ object ProgramExecutionSupport {
             Level.FINEST,
             "Executing visualization [{0}] on expression [{1}] of [{2}]...",
             Array[Object](
-              visualization.config,
+              visualization.id,
               expressionId,
               Try(TypeOfNode.getUncached.execute(expressionValue))
                 .getOrElse(expressionValue.getClass)
             )
           )
-          visualization.config.expression match {
-            case Api.VisualizationExpression.Text(_, expression) =>
+          visualization match {
+            case visualization: Visualization.AttachedVisualization =>
+              ctx.executionService.callFunctionWithInstrument(
+                visualization.cache,
+                visualization.module,
+                visualization.callback,
+                expressionValue +: visualization.arguments: _*
+              )
+            case visualization: Visualization.OneshotExpression =>
               val ensoRootNode =
                 expressionNode.getRootNode.asInstanceOf[EnsoRootNode]
               val evaluatedExpression = ctx.executionService.evaluateExpression(
                 ensoRootNode.getModuleScope.getModule,
                 ensoRootNode.getLocalScope,
                 virtualFrame,
-                expression
+                visualization.expression
               )
-              val result =
-                ctx.executionService.callFunction(
-                  evaluatedExpression,
-                  expressionValue
-                )
-              result
-            case _ =>
-              ctx.executionService.callFunctionWithInstrument(
-                visualization.cache,
-                visualization.module,
-                visualization.callback,
-                expressionValue +: visualization.arguments: _*
+              ctx.executionService.callFunction(
+                evaluatedExpression,
+                expressionValue
               )
           }
         }
@@ -515,7 +513,7 @@ object ProgramExecutionSupport {
             Level.WARNING,
             "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3}",
             Array[Object](
-              visualization.config,
+              visualization.id,
               expressionId,
               typeOfNode.getOrElse(expressionValue.getClass),
               message,

@@ -18,7 +18,7 @@ public interface IdExecutionService {
      * @return {@code null} should the execution of the node be performed; any other value to skip
      *     the execution and return the value as a result.
      */
-    Object findCachedResult(UUID nodeId);
+    Object findCachedResult(Object virtualFrame, Object node, UUID nodeId);
 
     /**
      * Notifies when an execution of a node is over.

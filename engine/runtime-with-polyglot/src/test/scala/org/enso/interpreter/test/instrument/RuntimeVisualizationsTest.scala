@@ -315,7 +315,7 @@ class RuntimeVisualizationsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  it should "emit visualization update when expression is computed111" in {
+  it should "emit visualization update when expression is computed" in {
     val idMainRes  = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
@@ -379,8 +379,7 @@ class RuntimeVisualizationsTest
             contextId,
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
-              "x -> x + y"
-              //"encode 42"
+              "x -> encode x"
             ),
             "Enso_Test.Test.Visualization"
           )

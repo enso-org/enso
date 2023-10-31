@@ -125,6 +125,10 @@ object Runtime {
         name  = "attachVisualization"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ExecuteExpression],
+        name  = "executeExpression"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.VisualizationAttached],
         name  = "visualizationAttached"
       ),
@@ -1552,6 +1556,13 @@ object Runtime {
       * message will be dropped.
       */
     final case class InitializedNotification() extends ApiResponse
+
+    final case class ExecuteExpression(
+      contextId: ContextId,
+      visualizationId: VisualizationId,
+      expressionId: ExpressionId,
+      expression: String
+    ) extends ApiRequest
 
     /** A request sent from the client to the runtime server, to create a new
       * visualization for an expression identified by `expressionId`.

@@ -7,6 +7,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
@@ -107,13 +108,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         if (!isTopFrame(entryCallTarget)) {
           return;
         }
-        onEnterImpl();
+        onEnterImpl(frame.materialize());
       }
 
       @CompilerDirectives.TruffleBoundary
-      private void onEnterImpl() {
-        UUID nodeId = getNodeId(context.getInstrumentedNode());
-        var result = callbacks.findCachedResult(nodeId);
+      private void onEnterImpl(MaterializedFrame frame) {
+        Node node = context.getInstrumentedNode();
+        UUID nodeId = getNodeId(node);
+        var result = callbacks.findCachedResult(frame, node, nodeId);
         if (result != null) {
           throw context.createUnwind(result);
         }
