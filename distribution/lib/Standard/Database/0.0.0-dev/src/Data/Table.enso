@@ -1213,11 +1213,11 @@ type Table
        Implementation of both `join` and `cross_join`.
     join_or_cross_join : Table -> Join_Kind | Join_Kind_Cross -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join_or_cross_join self right:Table join_kind on right_prefix on_problems =
-        can_proceed =
+        can_proceed = Helpers.ensure_same_connection "table" [self, right] <|
             join_conditions_ok = join_kind != Join_Kind_Cross.Cross || on == []
             if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
                 True
-        if can_proceed then
+        can_proceed.if_not_error <|
             left = self
             table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
             table_name_deduplicator.mark_used [left.name, right.name]
@@ -1372,7 +1372,8 @@ type Table
     @key_columns Widget_Helpers.make_column_name_vector_selector
     lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+        Helpers.ensure_same_connection "table" [self, lookup_table] <|
+            Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1520,7 +1521,7 @@ type Table
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, single_table]
-        all_tables.if_not_error <|
+        Helpers.ensure_same_connection "table" all_tables <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             dialect = self.connection.dialect

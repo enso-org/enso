@@ -246,6 +246,4 @@ spec setup =
             t0 = (Table.new [["W", [1, 2, 4]]]).select_into_database_table alternative_connection "T0" temporary=True
 
             r1 = t1.zip t0
-            case setup.is_database of
-                True ->  r1.should_fail_with Integrity_Error
-                False -> r1.should_fail_with Illegal_Argument
+            r1.should_fail_with Illegal_Argument

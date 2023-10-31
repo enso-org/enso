@@ -434,6 +434,4 @@ spec setup =
             t0 = (Table.new [["A", [3, 2, 1]], ["B", ["x", "y", "z"]]]).select_into_database_table alternative_connection "T0" temporary=True
 
             r1 = t1.lookup_and_replace t0 key_columns="A"
-            case setup.is_database of
-                True ->  r1.should_fail_with Integrity_Error
-                False -> r1.should_fail_with Illegal_Argument
+            r1.should_fail_with Illegal_Argument
