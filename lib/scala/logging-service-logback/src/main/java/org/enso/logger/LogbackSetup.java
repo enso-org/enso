@@ -296,7 +296,7 @@ public final class LogbackSetup extends LoggerSetup {
         Filter<ILoggingEvent> filter;
         LoggersLevels loggers = config != null ? config.getLoggers() : null;
         if (loggers != null && !loggers.isEmpty()) {
-            filter = ApplicationFilter.fromLoggers(loggers, level);
+            filter = ApplicationFilter.fromLoggers(loggers, level, LANG_PREFIX);
         } else {
             filter = null;
         }
@@ -335,4 +335,6 @@ public final class LogbackSetup extends LoggerSetup {
             logger.addAppender(appender);
         }
     }
+
+    private static final String LANG_PREFIX = "enso";
 }

@@ -60,8 +60,8 @@ public class LoggersLevels {
    *
    * @return true if any of the custom log levels are for `org.enso.*` class
    */
-  public boolean hasEnsoLoggers(String languageId) {
-    return loggers.keySet().stream().anyMatch(k -> k.startsWith(languageId + ".org.enso"));
+  public boolean hasEnsoLoggers() {
+    return loggers.keySet().stream().anyMatch(k -> k.startsWith(ENSO_PKG_PREFIX));
   }
 
   /**
@@ -103,4 +103,5 @@ public class LoggersLevels {
   }
 
   private static String SYS_PROP_SUFFIX = ".Logger.level";
+  private static String ENSO_PKG_PREFIX = "org.enso";
 }

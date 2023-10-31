@@ -1,11 +1,6 @@
 package org.enso.runner
 
-import org.enso.logger.{
-  Converter,
-  JulApplicationFilter,
-  JulHandler,
-  LoggerSetup
-}
+import org.enso.logger.{Converter, JulHandler, LoggerSetup}
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
@@ -106,25 +101,20 @@ class ContextFactory {
         } else null
       }
 
+    builder.option(RuntimeOptions.LOG_LEVEL, logLevelName)
     val logHandler = JulHandler.get()
     val logLevels  = LoggerSetup.get().getConfig.getLoggers
-    if (!logLevels.hasEnsoLoggers(LanguageInfo.ID)) {
-      builder.option(
-        RuntimeOptions.LOG_LEVEL,
-        logLevelName
-      )
-    } else {
-      builder.option(
-        RuntimeOptions.LOG_LEVEL,
-        java.util.logging.Level.ALL.getName
-      )
-      val filter = new JulApplicationFilter(
-        new LogLevelFilter(logLevels, julLogLevel)
-      )
-      logHandler.setFilter(filter)
+    if (logLevels.hasEnsoLoggers()) {
+      logLevels.entrySet().forEach { entry =>
+        builder.option(
+          s"log.${LanguageInfo.ID}.${entry.getKey}.level",
+          Converter.toJavaLevel(entry.getValue).getName
+        )
+      }
     }
     builder
       .logHandler(logHandler)
+
     val graalpy = new File(
       new File(
         new File(new File(new File(projectRoot), "polyglot"), "python"),
