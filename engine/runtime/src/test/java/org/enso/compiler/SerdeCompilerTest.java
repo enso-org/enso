@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import org.enso.compiler.core.ir.Module;
@@ -118,6 +119,7 @@ public class SerdeCompilerTest {
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
             .logHandler(mockHandler)
             .option("log.enso.org.enso.compiler.Compiler.level", "FINE")
             .allowAllAccess(true)

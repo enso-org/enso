@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import org.enso.polyglot.MethodNames.Module;
@@ -58,9 +59,9 @@ public class DebuggingEnsoTest {
         )
         .option(
                 RuntimeOptions.LOG_LEVEL,
-                "FINEST"
+                Level.FINEST.getName()
         )
-        .logHandler(OutputStream.nullOutputStream())
+        .logHandler(System.err)
         .build();
 
     context = Context.newBuilder()

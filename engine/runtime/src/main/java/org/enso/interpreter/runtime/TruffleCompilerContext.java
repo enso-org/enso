@@ -37,14 +37,14 @@ final class TruffleCompilerContext implements CompilerContext {
 
   private final EnsoContext context;
   private final TruffleLogger loggerCompiler;
-  private final TruffleLogger loggerManager;
+  private final TruffleLogger loggerSerializationManager;
   private final RuntimeStubsGenerator stubsGenerator;
   private final SerializationManager serializationManager;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
     this.loggerCompiler = context.getLogger(Compiler.class);
-    this.loggerManager = context.getLogger(SerializationManager.class);
+    this.loggerSerializationManager = context.getLogger(SerializationManager.class);
     this.serializationManager = new SerializationManager(this);
     this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
@@ -90,7 +90,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void logSerializationManager(Level level, String msg, Object... args) {
-    loggerManager.log(level, msg, args);
+    loggerSerializationManager.log(level, msg, args);
   }
 
   @Override
