@@ -4,6 +4,12 @@ import {
   InvalidVisualizationModuleError,
   type VisualizationModule,
 } from '@/stores/visualization/compilerMessaging'
+import {
+  fromVisualizationId,
+  toVisualizationId,
+  VisualiationMetadataDb,
+  type VisualizationId,
+} from '@/stores/visualization/metadata'
 import builtinVisualizationMetadata from '@/stores/visualization/metadata.json'
 import { assertNever } from '@/util/assert'
 import { rpcWithRetries } from '@/util/net'
@@ -62,13 +68,8 @@ const dynamicVisualizationPaths: Record<string, string> = {
   'Geo Map': '/visualizations/GeoMapVisualization.vue',
 }
 
-declare const visualizationCacheKeyBrand: unique symbol
-type VisualizationCacheKey = string & { [visualizationCacheKeyBrand]: never }
-
 export const useVisualizationStore = defineStore('visualization', () => {
-  const imports = { ...builtinVisualizationImports }
-  const paths = { ...dynamicVisualizationPaths }
-  const cache = reactive(new Map<VisualizationCacheKey, Promise<VisualizationModule>>())
+  const cache = reactive(new Map<VisualizationId, Promise<VisualizationModule>>())
   /** A map from file path to {@link AbortController}, so that a file change event can stop previous
    * file change event handlers for the same path. */
   const compilationAbortControllers = reactive(new Map<string, AbortController>())
@@ -76,80 +77,36 @@ export const useVisualizationStore = defineStore('visualization', () => {
    * file delete events can remove the cached visualization. */
   const currentProjectVisualizationsByPath = new Map<string, string>()
   const allBuiltinVisualizations = [
-    ...Object.keys(imports),
-    ...Object.keys(paths),
+    ...Object.keys(builtinVisualizationImports),
+    ...Object.keys(dynamicVisualizationPaths),
   ].map<VisualizationIdentifier>((name) => ({
     module: { kind: 'Builtin' },
     name,
   }))
-  const visualizationsForType = reactive(new Map<string, Set<VisualizationCacheKey>>())
-  const typesForVisualization = reactive(new Map<VisualizationCacheKey, ReadonlySet<string>>())
+  const metadata = new VisualiationMetadataDb()
   const proj = useProjectStore()
-  const ls = proj.lsRpcConnection
-  const data = proj.dataConnection
   const projectRoot = proj.contentRoots.then(
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
 
-  function getTypesFromUnion(inputType: Opt<string>) {
-    return new Set(inputType?.split('|').map((type) => type.trim()) ?? ['Any'])
-  }
-
-  function removeVisualizationTypes(id: VisualizationIdentifier) {
-    const key = toVisualizationCacheKey(id)
-    const types = typesForVisualization.get(key)
-    if (!types) return
-    typesForVisualization.delete(key)
-    for (const type of types) {
-      visualizationsForType.get(type)?.delete(key)
-    }
-  }
-
-  function updateVisualizationTypes(id: VisualizationIdentifier, inputType: Opt<string>) {
-    const key = toVisualizationCacheKey(id)
-    const newTypes = getTypesFromUnion(inputType)
-    const types = typesForVisualization.get(key)
-    typesForVisualization.set(key, newTypes)
-    if (types) {
-      for (const type of types) {
-        if (!newTypes.has(type)) {
-          visualizationsForType.get(type)?.delete(key)
-        }
-      }
-    }
-    for (const type of newTypes) {
-      if (!types || !types.has(type)) {
-        let set = visualizationsForType.get(type)
-        if (!set) {
-          set = new Set()
-          visualizationsForType.set(type, set)
-        }
-        set.add(key)
-      }
-    }
-  }
-
-  for (const { name, inputType } of builtinVisualizationMetadata) {
-    if (name === 'Loading' || name === 'Loading Error') continue
-    updateVisualizationTypes(
-      {
-        module: { kind: 'Builtin' },
-        name,
-      },
-      inputType,
+  for (const vizMetadata of builtinVisualizationMetadata) {
+    if (vizMetadata.name === 'Loading' || vizMetadata.name === 'Loading Error') continue
+    metadata.set(
+      toVisualizationId({ module: { kind: 'Builtin' }, name: vizMetadata.name }),
+      vizMetadata,
     )
   }
 
-  function types(type: string | undefined) {
+  function types(type: Opt<string>) {
     const ret =
-      type === undefined
+      type == null
         ? allBuiltinVisualizations
         : [
             ...new Set([
-              ...(visualizationsForType.get(type) ?? []),
-              ...(visualizationsForType.get('Any') ?? []),
+              ...(metadata.types.reverseLookup(type) ?? []),
+              ...(metadata.types.reverseLookup('Any') ?? []),
             ]),
-          ].map(fromVisualizationCacheKey)
+          ].map(fromVisualizationId)
     return ret
   }
 
@@ -187,27 +144,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return Promise.allSettled(promises)
   }
 
-  function toVisualizationCacheKey(meta: VisualizationIdentifier) {
-    return JSON.stringify({
-      // All fields MUST be explicitly written so that the order is consistent.
-      module: {
-        kind: meta.module.kind,
-        name: meta.module.kind === 'Library' ? meta.module.name : undefined,
-      },
-      name: meta.name,
-    }) as VisualizationCacheKey
-  }
-
-  function fromVisualizationCacheKey(key: VisualizationCacheKey): VisualizationIdentifier {
-    return JSON.parse(key)
-  }
-
   async function onFileEvent(event: { path: Path; kind: FileEventKind }) {
     const pathString = event.path.segments.join('/')
     const name = currentProjectVisualizationsByPath.get(pathString)
-    const id: VisualizationIdentifier | undefined =
+    let id: VisualizationIdentifier | undefined =
       name != null ? { module: { kind: 'CurrentProject' }, name } : undefined
-    const key = id && toVisualizationCacheKey(id)
+    const key = id && toVisualizationId(id)
     if (event.path.segments[0] === 'visualizations' && /\.vue$/.test(pathString)) {
       compilationAbortControllers.get(pathString)?.abort()
       compilationAbortControllers.delete(pathString)
@@ -220,22 +162,16 @@ export const useVisualizationStore = defineStore('visualization', () => {
             const vizPromise = compile(
               'enso-current-project:' + pathString,
               await projectRoot,
-              await data,
+              await proj.dataConnection,
             )
             if (key) cache.set(key, vizPromise)
             const viz = await vizPromise
             if (abortController.signal.aborted) break
             if (!id || viz.name !== id.name) {
-              if (id) removeVisualizationTypes(id)
-              const newId: VisualizationIdentifier = {
-                module: { kind: 'CurrentProject' },
-                name: viz.name,
-              }
-              updateVisualizationTypes(newId, viz.inputType)
-              cache.set(toVisualizationCacheKey(newId), vizPromise)
-            } else if (id) {
-              updateVisualizationTypes(id, viz.inputType)
+              id = { module: { kind: 'CurrentProject' }, name: viz.name }
+              cache.set(toVisualizationId(id), vizPromise)
             }
+            metadata.set(toVisualizationId(id), { name: viz.name, inputType: viz.inputType })
           } catch (error) {
             if (key) cache.delete(key)
             if (!(error instanceof InvalidVisualizationModuleError)) {
@@ -281,7 +217,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }
   }
 
-  Promise.all([ls, projectRoot]).then(async ([ls, projectRoot]) => {
+  Promise.all([proj.lsRpcConnection, projectRoot]).then(async ([ls, projectRoot]) => {
     if (!projectRoot) {
       console.error('Could not load custom visualizations: File system content root not found.')
       return
@@ -298,7 +234,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   })
 
   function get(meta: VisualizationIdentifier, ignoreCache = false) {
-    const key = toVisualizationCacheKey(meta)
+    const key = toVisualizationId(meta)
     if (!cache.get(key) || ignoreCache) {
       switch (meta.module.kind) {
         case 'Builtin': {
@@ -319,15 +255,15 @@ export const useVisualizationStore = defineStore('visualization', () => {
   }
 
   async function resolveBuiltinVisualization(type: string) {
-    const builtinImport = imports[type]?.()
+    const builtinImport = builtinVisualizationImports[type]?.()
     if (builtinImport) {
       const module = await builtinImport
       await loadScripts(module)
       return module
     }
-    const builtinDynamicPath = paths[type]
-    if (builtinDynamicPath != null) {
-      const module = await compile(builtinDynamicPath, await projectRoot, await data)
+    const builtinDynamicPath = dynamicVisualizationPaths[type]
+    if (builtinDynamicPath) {
+      const module = await compile(builtinDynamicPath, await projectRoot, await proj.dataConnection)
       await loadScripts(module)
       return module
     }
