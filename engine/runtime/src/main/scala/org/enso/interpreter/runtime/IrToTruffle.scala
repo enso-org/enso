@@ -907,7 +907,7 @@ class IrToTruffle(
         if (
           resolution.isInstanceOf[ResolvedConstructor] || !resolution.module
             .unsafeAsModule()
-            .isSameAs(moduleScope.getModule)
+            .equals(moduleScope.getModule.asCompilerModule)
         ) {
           resolution match {
             case BindingsMap.ResolvedType(module, tp) =>

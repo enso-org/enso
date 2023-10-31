@@ -114,7 +114,9 @@ final class EnsureCompiledJob(
             .map { _ =>
               invalidateCaches(module, changeset)
               if (module.isIndexed) {
-                ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
+                ctx.jobProcessor.runBackground(
+                  AnalyzeModuleJob(module, changeset)
+                )
               } else {
                 AnalyzeModuleJob.analyzeModule(module, changeset)
               }

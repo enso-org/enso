@@ -119,8 +119,6 @@ public interface CompilerContext {
 
     public abstract Package<TruffleFile> getPackage();
 
-    public abstract boolean isSameAs(org.enso.interpreter.runtime.Module m);
-
     public abstract QualifiedName getName();
 
     public abstract BindingsMap getBindingsMap();

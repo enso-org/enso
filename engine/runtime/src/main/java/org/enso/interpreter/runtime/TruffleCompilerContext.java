@@ -385,11 +385,6 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     @Override
-    public boolean isSameAs(org.enso.interpreter.runtime.Module m) {
-      return module == m;
-    }
-
-    @Override
     public QualifiedName getName() {
       return module.getName();
     }
