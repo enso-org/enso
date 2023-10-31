@@ -51,7 +51,6 @@ import org.enso.compiler.pass.analyse.{
   DataflowAnalysis,
   TailCall
 }
-import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   GenericAnnotations,
@@ -908,7 +907,7 @@ class IrToTruffle(
         if (
           resolution.isInstanceOf[ResolvedConstructor] || !resolution.module
             .unsafeAsModule()
-            .isSameAs(moduleScope.getModule)
+            .equals(moduleScope.getModule.asCompilerModule)
         ) {
           resolution match {
             case BindingsMap.ResolvedType(module, tp) =>
@@ -2072,18 +2071,11 @@ class IrToTruffle(
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE
       }
 
-      val appNode = application.getMetadata(ApplicationSaturation) match {
-        case Some(
-              ApplicationSaturation.CallSaturation.Exact(createOptimised)
-            ) =>
-          createOptimised(moduleScope)(scope)(callArgs.toList)
-        case _ =>
-          ApplicationNode.build(
-            this.run(fn, subjectToInstrumentation),
-            callArgs.toArray,
-            defaultsExecutionMode
-          )
-      }
+      val appNode = ApplicationNode.build(
+        this.run(fn, subjectToInstrumentation),
+        callArgs.toArray,
+        defaultsExecutionMode
+      )
 
       setLocation(appNode, loc)
     }

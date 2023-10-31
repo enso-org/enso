@@ -12,6 +12,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File, FileFilter}
 import java.nio.file.{Files, Paths, StandardCopyOption}
+import java.util.logging.Level
 
 trait ModifiedTest
     extends AnyFlatSpec
@@ -62,7 +63,7 @@ trait ModifiedTest
       .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
       .out(output)
       .in(System.in)
-      .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
       .logHandler(System.err)
       .build()
     context.initialize(LanguageInfo.ID)

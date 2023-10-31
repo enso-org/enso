@@ -69,8 +69,6 @@ class Compiler(
   private val irCachingEnabled                 = !context.isIrCachingDisabled
   private val useGlobalCacheLocations          = context.isUseGlobalCacheLocations
   private val isInteractiveMode                = context.isInteractiveMode()
-  private val serializationManager: SerializationManager =
-    new SerializationManager(this)
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
@@ -105,17 +103,13 @@ class Compiler(
   /** Run the initialization sequence. */
   def initialize(): Unit = {
     context.initializeBuiltinsIr(
+      this,
       irCachingEnabled,
-      serializationManager,
       freshNameSupply,
       passes
     )
     packageRepository.initialize().left.foreach(reportPackageError)
   }
-
-  /** @return the serialization manager instance. */
-  def getSerializationManager: SerializationManager =
-    serializationManager
 
   /** @return the package repository instance. */
   def getPackageRepository(): PackageRepository =
@@ -147,7 +141,7 @@ class Compiler(
   def compile(
     shouldCompileDependencies: Boolean,
     useGlobalCacheLocations: Boolean
-  ): Future[Boolean] = {
+  ): Future[java.lang.Boolean] = {
     getPackageRepository().getMainProjectPackage match {
       case None =>
         context.log(
@@ -188,9 +182,10 @@ class Compiler(
               shouldCompileDependencies
             )
 
-            serializationManager.serializeLibrary(
+            context.serializeLibrary(
+              this,
               pkg.libraryName,
-              useGlobalCacheLocations = useGlobalCacheLocations
+              useGlobalCacheLocations
             )
         }
     }
@@ -440,7 +435,8 @@ class Compiler(
             if (isInteractiveMode) {
               context.notifySerializeModule(context.getModuleName(module))
             } else {
-              serializationManager.serializeModule(
+              context.serializeModule(
+                this,
                 module,
                 useGlobalCacheLocations
               )
@@ -580,9 +576,8 @@ class Compiler(
     context.updateModule(module, _.resetScope)
 
     if (irCachingEnabled && !context.isInteractive(module)) {
-      serializationManager.deserialize(module) match {
-        case Some(_) => return
-        case _       =>
+      if (context.deserializeModule(this, module)) {
+        return
       }
     }
 
@@ -597,9 +592,9 @@ class Compiler(
   def importExportBindings(module: Module): Option[BindingsMap] = {
     if (irCachingEnabled && !context.isInteractive(module)) {
       val libraryName = Option(module.getPackage).map(_.libraryName)
-      libraryName
-        .flatMap(packageRepository.getLibraryBindings(_, serializationManager))
-        .flatMap(_.bindings.entries.get(module.getName))
+      libraryName.flatMap(
+        packageRepository.getLibraryBindings(_, module.getName, context)
+      )
     } else None
   }
 
@@ -1234,7 +1229,7 @@ class Compiler(
     *                                    jobs to complete
     */
   def shutdown(waitForPendingJobCompletion: Boolean): Unit = {
-    serializationManager.shutdown(waitForPendingJobCompletion)
+    context.shutdown(waitForPendingJobCompletion)
     shutdownParsingPool(waitForPendingJobCompletion)
   }
 

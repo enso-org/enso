@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.FilerException;
@@ -44,6 +45,7 @@ public class BenchProcessor extends AbstractProcessor {
           "import java.util.List;",
           "import java.util.Objects;",
           "import java.util.concurrent.TimeUnit;",
+          "import java.util.logging.Level;",
           "import org.openjdk.jmh.annotations.Benchmark;",
           "import org.openjdk.jmh.annotations.BenchmarkMode;",
           "import org.openjdk.jmh.annotations.Mode;",
@@ -113,7 +115,11 @@ public class BenchProcessor extends AbstractProcessor {
               .allowExperimentalOptions(true)
               .allowIO(IOAccess.ALL)
               .allowAllAccess(true)
-              .logHandler(new ByteArrayOutputStream())
+              .option(
+                      RuntimeOptions.LOG_LEVEL,
+                      Level.WARNING.getName()
+              )
+              .logHandler(System.err)
               .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
               .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
               .build()) {
@@ -242,7 +248,8 @@ public class BenchProcessor extends AbstractProcessor {
     out.println("      .allowExperimentalOptions(true)");
     out.println("      .allowIO(IOAccess.ALL)");
     out.println("      .allowAllAccess(true)");
-    out.println("      .logHandler(new ByteArrayOutputStream())");
+    out.println("      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())");
+    out.println("      .logHandler(System.err)");
     out.println("      .option(");
     out.println("        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,");
     out.println("        languageHomeOverride.getAbsolutePath()");
