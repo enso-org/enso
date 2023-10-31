@@ -159,10 +159,11 @@ type Excel_Workbook
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
-       - limit: the maximum number of rows to return.
+       - limit: the maximum number of rows to read.
+         If set to `Nothing`, all rows will be returned.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     read : Text -> Integer | Nothing -> Table
-    read self query limit=Nothing =
+    read self query (limit : Integer | Nothing = Nothing) =
         java_headers = Excel_Reader.make_java_headers self.headers
         java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
             case query of

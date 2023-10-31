@@ -948,9 +948,8 @@ type Table
        In the database backend, it first materializes the table to in-memory.
 
        Arguments:
-       - max_rows: The maximum amount of rows to return. It is mainly meant for
-         the Database backend, to limit how many rows are downloaded. In the
-         in-memory backend it is only kept for API compatibility.
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
     rows : Integer | Nothing -> Boolean -> Vector Row
@@ -2141,8 +2140,8 @@ type Table
        Returns a materialized dataframe containing rows of this table.
 
        Arguments:
-       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
-         available rows are fetched.
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
     read : (Integer | Nothing) -> Boolean -> Materialized_Table

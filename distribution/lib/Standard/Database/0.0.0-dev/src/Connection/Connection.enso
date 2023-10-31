@@ -251,8 +251,10 @@ type Connection
 
        Arguments:
        - query: name of the table or sql statement to query.
-         If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
-       - limit: the maximum number of rows to return.
+         If supplied as `Text`, the name is checked against the `tables` list to
+         determine if it is a table or a query.
+       - limit: the maximum number of rows to read.
+         If set to `Nothing`, all rows will be returned.
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `limit`.
 

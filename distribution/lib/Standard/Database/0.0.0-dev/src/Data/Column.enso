@@ -95,8 +95,8 @@ type Column
        Returns a materialized column containing rows of this column.
 
        Arguments:
-       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
-         available rows are fetched.
+       - max_rows: specifies the maximum number of rows to read.
+         If `Nothing`, all available rows are returned.
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
     read : (Nothing | Integer) -> Boolean -> Materialized_Column
