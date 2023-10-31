@@ -27,7 +27,7 @@ export function fromVisualizationId(key: VisualizationId): VisualizationIdentifi
   return JSON.parse(key)
 }
 
-export class VisualiationMetadataDb extends ReactiveDb<VisualizationId, VisualizationMetadata> {
+export class VisualizationMetadataDb extends ReactiveDb<VisualizationId, VisualizationMetadata> {
   types = new ReactiveIndex(this, (key, metadata) =>
     getTypesFromUnion(metadata.inputType).map((type) => [key, type]),
   )

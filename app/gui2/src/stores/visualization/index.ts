@@ -9,7 +9,7 @@ import {
 import {
   fromVisualizationId,
   toVisualizationId,
-  VisualiationMetadataDb,
+  VisualizationMetadataDb,
   type VisualizationId,
 } from '@/stores/visualization/metadata'
 import builtinVisualizationMetadata from '@/stores/visualization/metadata.json'
@@ -83,7 +83,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     module: { kind: 'Builtin' },
     name,
   }))
-  const metadata = new VisualiationMetadataDb()
+  const metadata = new VisualizationMetadataDb()
   const proj = useProjectStore()
   const projectRoot = proj.contentRoots.then(
     (roots) => roots.find((root) => root.type === 'Project')?.id,
