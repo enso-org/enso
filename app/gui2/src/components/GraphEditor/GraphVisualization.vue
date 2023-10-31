@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ErrorLoadingVisualizationVisualization from '@/components/visualizations/ErrorLoadingVisualizationVisualization.vue'
+import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
@@ -115,7 +115,7 @@ provideVisualizationConfig({
 
 const effectiveVisualization = computed(() => {
   if (error.value) {
-    return ErrorLoadingVisualizationVisualization
+    return LoadingErrorVisualization
   }
   if (!visualization.value || effectiveVisualizationData.value == null) {
     return LoadingVisualization

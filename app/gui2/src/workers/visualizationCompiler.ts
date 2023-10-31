@@ -109,10 +109,11 @@ export interface FetchResultWorkerResponse {
 }
 
 // =============================================
-// === Worker Errors (Worker to Main Thread) ===
+// === Worker Errors (Main Thread to Worker) ===
 // =============================================
 
-/** A request to fetch a resource. */
+/** Sent when fetching a dependency failed. Currently, the worker will forward this back to the
+ * main thread as a {@link FetchError}. */
 export interface FetchWorkerError {
   type: 'fetch-worker-error'
   path: string
@@ -171,8 +172,7 @@ export interface AddImportNotification {
 
 // These are sent when a subtask fails to complete execution.
 
-/** Sent when the `fetch` call errored, or returned a failure HTTP status code (any code other than
- * 200-299). */
+/** Sent when the `fetch` call errored. */
 export interface FetchError {
   type: 'fetch-error'
   path: string
@@ -286,7 +286,9 @@ const fetchCallbacks = new Map<
   }
 >()
 
-function fetch_(path: string) {
+/** Fetch on the main thread. This is useful because the main thread may have custom logic for
+ * importing - for example, getting a custom visualization from the project directory. */
+function fetchOnMainThread(path: string) {
   return new Promise<FetchResponse>((resolve, reject) => {
     fetchCallbacks.set(path, { resolve, reject })
     postMessage<FetchWorkerRequest>({ type: 'fetch-worker-request', path })
@@ -298,7 +300,7 @@ const decoder = new TextDecoder()
 
 async function tryFetch(path: string): Promise<FetchResponse> {
   try {
-    return await fetch_(path)
+    return await fetchOnMainThread(path)
   } catch (error: any) {
     fetchError(path, error)
     return { contents: emptyBuffer, contentType: undefined }

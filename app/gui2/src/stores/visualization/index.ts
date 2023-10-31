@@ -4,11 +4,11 @@ import { computed, reactive, type DefineComponent, type PropType } from 'vue'
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
+import builtinVisualizationMetadata from '@/stores/visualization/metadata.json'
 import { assertNever } from '@/util/assert'
 import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineKeybinds } from '@/util/shortcuts'
-import builtinVisualizationMetadata from '@/util/visualizationMetadata.json'
 import type {
   AddImportNotification,
   AddRawImportNotification,
@@ -122,9 +122,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
   const imports = { ...builtinVisualizationImports }
   const paths = { ...dynamicVisualizationPaths }
   const cache = reactive(new Map<VisualizationCacheKey, Promise<VisualizationModule>>())
-  const compilationAbortControllers = reactive(
-    new Map<string /* path, excluding leading / */, AbortController>(),
-  )
+  /** A map from file path to {@link AbortController}, so that a file change event can stop previous
+   * file change event handlers for the same path. */
+  const compilationAbortControllers = reactive(new Map<string, AbortController>())
+  /** A map from file path in the current project, to visualization name. This is required so that
+   * file delete events can remove the cached visualization. */
   const currentProjectVisualizationsByPath = new Map<string, string>()
   let worker: Worker | undefined
   let workerMessageId = 0
@@ -149,7 +151,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
   )
 
   function getTypesFromUnion(inputType: Opt<string>) {
-    if (inputType === '') return new Set<string>()
     return new Set(inputType?.split('|').map((type) => type.trim()) ?? ['Any'])
   }
 
@@ -188,6 +189,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   }
 
   for (const { name, inputType } of builtinVisualizationMetadata) {
+    if (name === 'Loading' || name === 'Loading Error') continue
     updateVisualizationTypes(
       {
         module: { kind: 'Builtin' },
@@ -345,6 +347,8 @@ export const useVisualizationStore = defineStore('visualization', () => {
               break
             }
             case 'add-raw-import-notification': {
+              // FIXME: include protocol in path so that custom visualizations and their
+              // dependencies do not overwrite builtin visualizations.
               moduleCache[event.data.path] = event.data.value
               break
             }
@@ -462,48 +466,32 @@ export const useVisualizationStore = defineStore('visualization', () => {
       compilationAbortControllers.get(pathString)?.abort()
       compilationAbortControllers.delete(pathString)
       switch (event.kind) {
-        case 'Added': {
-          try {
-            const abortController = new AbortController()
-            compilationAbortControllers.set(pathString, abortController)
-            const vizPromise = compile('enso-current-project:' + pathString)
-            const viz = await vizPromise
-            if (abortController.signal.aborted) break
-            const id: VisualizationIdentifier = {
-              module: { kind: 'CurrentProject' },
-              name: viz.name,
-            }
-            const key = toVisualizationCacheKey(id)
-            updateVisualizationTypes(id, viz.inputType)
-            cache.set(key, vizPromise)
-          } catch {
-            // Ignored - the file is either not a module, or contains an error.
-          }
-          break
-        }
+        case 'Added':
         case 'Modified': {
-          if (!key) break
           try {
             const abortController = new AbortController()
             compilationAbortControllers.set(pathString, abortController)
             const vizPromise = compile('enso-current-project:' + pathString)
-            cache.set(key, vizPromise)
+            if (key) cache.set(key, vizPromise)
             const viz = await vizPromise
             if (abortController.signal.aborted) break
-            if (viz.name !== id.name) {
-              removeVisualizationTypes(id)
-              updateVisualizationTypes(
-                { module: { kind: 'CurrentProject' }, name: viz.name },
-                viz.inputType,
-              )
-            } else {
+            if (!id || viz.name !== id.name) {
+              if (id) removeVisualizationTypes(id)
+              const newId: VisualizationIdentifier = {
+                module: { kind: 'CurrentProject' },
+                name: viz.name,
+              }
+              updateVisualizationTypes(newId, viz.inputType)
+              cache.set(toVisualizationCacheKey(newId), vizPromise)
+            } else if (id) {
               updateVisualizationTypes(id, viz.inputType)
             }
           } catch (error) {
-            if (error instanceof InvalidVisualizationModuleError) {
-              cache.delete(key)
+            if (key) cache.delete(key)
+            if (!(error instanceof InvalidVisualizationModuleError)) {
+              console.error('Error loading visualization:')
+              console.error(error)
             }
-            // Else, ignored - the file is not a module.
           }
           break
         }
@@ -556,10 +544,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     )
     ls.on('file/event', onFileEvent)
     await walkFiles(ls, { rootId: projectRoot_.id, segments: ['visualizations'] }, (path) =>
-      onFileEvent({
-        kind: 'Added',
-        path,
-      }),
+      onFileEvent({ path, kind: 'Added' }),
     )
   })
 

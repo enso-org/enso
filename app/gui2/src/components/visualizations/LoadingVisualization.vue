@@ -1,6 +1,6 @@
 <script lang="ts">
 export const name = 'Loading'
-export const inputType = ''
+export const inputType = 'Any'
 </script>
 
 <script setup lang="ts">
