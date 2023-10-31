@@ -12,7 +12,6 @@ import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
-import org.enso.interpreter.util.ScalaConversions;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
@@ -49,8 +48,10 @@ public final class ExportSymbolAnalysis implements IRPass {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Seq<IRPass> invalidatedPasses() {
-    return ScalaConversions.nil();
+    Object obj = scala.collection.immutable.Nil$.MODULE$;
+    return (scala.collection.immutable.List<IRPass>) obj;
   }
 
   @Override

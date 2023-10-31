@@ -346,10 +346,10 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => {
   const method = expressionInfo.value?.methodCall?.methodPointer
   if (method == null) return undefined
-  const moduleName = tryQualifiedName(method.module)
+  const typeName = tryQualifiedName(method.definedOnType)
   const methodName = tryQualifiedName(method.name)
-  if (!moduleName.ok || !methodName.ok) return undefined
-  const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+  if (!typeName.ok || !methodName.ok) return undefined
+  const qualifiedName = qnJoin(unwrap(typeName), unwrap(methodName))
   const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
   if (id == null) return undefined
   return suggestionDbStore.entries.get(id)

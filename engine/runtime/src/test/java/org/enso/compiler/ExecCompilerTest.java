@@ -2,6 +2,7 @@ package org.enso.compiler;
 
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.logging.Level;
 
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -28,7 +29,11 @@ public class ExecCompilerTest {
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
         )
         .option(RuntimeOptions.STRICT_ERRORS, "false")
-        .logHandler(OutputStream.nullOutputStream())
+        .option(
+                RuntimeOptions.LOG_LEVEL,
+                Level.WARNING.getName()
+        )
+        .logHandler(System.err)
         .allowAllAccess(true)
         .build();
     assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));

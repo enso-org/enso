@@ -8,7 +8,6 @@ import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -23,8 +22,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
   val precursorPasses: PassGroup = passes.getPrecursors(UnusedBindings).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
-    ApplicationSaturation -->> ApplicationSaturation.Configuration(),
-    AliasAnalysis         -->> AliasAnalysis.Configuration()
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =
