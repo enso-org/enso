@@ -921,7 +921,7 @@ type Table
                 _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
             expr = SQL_Expression.Constant value
             new_type_ref = SQL_Type_Reference.from_constant sql_type
-            Column.Value ("Constant_" + value.to_text) self.connection new_type_ref expr self.context
+            Column.Value value.pretty self.connection new_type_ref expr self.context
 
     ## PRIVATE
        Create a unique temporary column name.

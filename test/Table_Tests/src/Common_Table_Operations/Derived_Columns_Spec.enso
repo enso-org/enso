@@ -203,4 +203,23 @@ spec setup =
             t = table_builder [["X", [1, 2, 3]]]
             column_op = Column_Operation.Power 2 (Column_Ref.Name "X")
             t2 = t.set column_op . set column_op
-            t2.column_names . should_equal ["X", "[Constant_2] ^ [X]", "[Constant_2] ^ [X] 1"]
+            t2.column_names . should_equal ["X", "[2] ^ [X]", "[2] ^ [X] 1"]
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
+            t2.at "[2] ^ [X]" . to_vector . should_equal [2, 4, 8]
+            t2.at "[2] ^ [X] 1" . to_vector . should_equal [2, 4, 8]
+
+        Test.specify "Should disambiguate two derived columns that would otherwise have had the same name, within the same expression" <|
+            t = table_builder [["X", [1, 2, 3]]]
+            expression = "2 + (2 * 2) + (2 ^ [X])"
+            t2 = t.set expression
+            t2.column_names . should_equal ["X", expression]
+            t2.at "X" . to_vector . should_equal [1, 2, 3]
+            t2.at expression . to_vector . should_equal [8, 10, 14]
+
+        Test.specify "Should use .pretty to distinguish string constants from regular column names" <|
+            t = table_builder [["X", ["a", "b", "c"]]]
+            expression = '"foo" + [X] + "bar"'
+            t2 = t.set expression
+            t2.column_names . should_equal ["X", expression]
+            t2.at "X" . to_vector . should_equal ["a", "b", "c"]
+            t2.at expression . to_vector . should_equal ["fooabar", "foobbar", "foocbar"]
