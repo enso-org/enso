@@ -216,6 +216,39 @@ async function ensureDataDirectoryExists(): Promise<void> {
   }
 }
 
+function splitFilename(filename: string): [string, string] {
+  const dotIndex = filename.lastIndexOf('.');
+ 
+  if (dotIndex !== -1 && dotIndex !== 0) {
+    const stem = filename.substring(0, dotIndex);
+    const extension = filename.substring(dotIndex + 1);
+    return [stem, extension];
+  }
+  
+  // If no extension found or dot is at the beginning or end of filename,
+  // consider it as the stem with an empty extension.
+  return [filename, ''];
+}
+
+async function pickUniqueName(originalName: string): Promise<string> {
+  const rpc = await projectStore.lsRpcConnection
+  const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
+  if (projectRootId) {
+    const files = await rpc.listFiles({ rootId: projectRootId.id, segments: [dataDirName] })
+    const existingNames = new Set(files.paths.map((path) => path.name))
+    const [stem, extension] = splitFilename(originalName)
+    let candidate = originalName
+    let num = 1
+    while (existingNames.has(candidate)) {
+      candidate = `${stem}_${num}.${extension}`
+      num += 1
+    }
+    return candidate
+  } else {
+    throw new Error('Project root ID not found.')
+  }
+}
+
 async function handleDrop(event: DragEvent) {
   if (event.dataTransfer) {
     if (event.dataTransfer.items) {
@@ -225,6 +258,8 @@ async function handleDrop(event: DragEvent) {
           if (file) {
             console.log(`… file[${i}].name = ${file.name}`)
             await ensureDataDirectoryExists()
+            const name = await pickUniqueName('test.txt')
+            console.log(`Unique name: ${name}`)
           }
         }
       })
