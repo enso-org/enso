@@ -13,7 +13,7 @@ watchEffect(() => console.error(props.data))
 </script>
 
 <template>
-  <VisualizationContainer belowToolbar>
+  <VisualizationContainer :belowToolbar="true">
     <div class="LoadingErrorVisualization">
       <div>
         <span>Error loading visualization '<span v-text="props.data.name"></span>':</span>

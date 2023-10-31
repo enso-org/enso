@@ -74,10 +74,7 @@ watch(
 )
 
 watchEffect(async () => {
-  if (props.currentType == null) {
-    return
-  }
-
+  if (props.currentType == null) return
   visualization.value = undefined
   try {
     const module = await visualizationStore.get(props.currentType).value
@@ -127,10 +124,12 @@ const effectiveVisualization = computed(() => {
 
 <template>
   <div class="GraphVisualization">
-    <component
-      :is="effectiveVisualization"
-      :data="effectiveVisualizationData"
-      @update:preprocessor="updatePreprocessor"
-    />
+    <Suspense>
+      <component
+        :is="effectiveVisualization"
+        :data="effectiveVisualizationData"
+        @update:preprocessor="updatePreprocessor"
+      />
+    </Suspense>
   </div>
 </template>

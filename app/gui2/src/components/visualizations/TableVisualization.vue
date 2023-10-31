@@ -60,21 +60,20 @@ interface UnknownTable {
 
 <script setup lang="ts">
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model'
-import {
-  Grid,
-  ModuleRegistry,
-  type ColDef,
-  type ColumnResizedEvent,
-  type GridOptions,
-  type HeaderValueGetterParams,
+import type {
+  ColDef,
+  ColumnResizedEvent,
+  GridOptions,
+  HeaderValueGetterParams,
 } from '@ag-grid-community/core'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import { LicenseManager } from '@ag-grid-enterprise/core'
 import { useDebounceFn } from '@vueuse/core'
 import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
+const { useVisualizationConfig } = await import('@/providers/visualizationConfig')
+const { ClientSideRowModelModule } = await import('@ag-grid-community/client-side-row-model')
+const { Grid, ModuleRegistry } = await import('@ag-grid-community/core')
+const { LicenseManager } = await import('@ag-grid-enterprise/core')
 
 ModuleRegistry.registerModules([ClientSideRowModelModule])
 

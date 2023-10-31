@@ -1,3 +1,12 @@
+import * as geoMapVisualization from '@/components/visualizations/GeoMapVisualization.vue'
+import * as heatmapVisualization from '@/components/visualizations/HeatmapVisualization.vue'
+import * as histogramVisualization from '@/components/visualizations/HistogramVisualization.vue'
+import * as imageBase64Visualization from '@/components/visualizations/ImageBase64Visualization.vue'
+import * as jsonVisualization from '@/components/visualizations/JSONVisualization.vue'
+import * as scatterplotVisualization from '@/components/visualizations/ScatterplotVisualization.vue'
+import * as sqlVisualization from '@/components/visualizations/SQLVisualization.vue'
+import * as tableVisualization from '@/components/visualizations/TableVisualization.vue'
+import * as warningsVisualization from '@/components/visualizations/WarningsVisualization.vue'
 import { useProjectStore } from '@/stores/project'
 import {
   compile,
@@ -12,7 +21,6 @@ import {
   VisualizationMetadataDb,
   type VisualizationId,
 } from '@/stores/visualization/metadata'
-import builtinVisualizationMetadata from '@/stores/visualization/metadata.json'
 import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
@@ -43,7 +51,7 @@ export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
 
 export type Visualization = DefineComponent<
   // Props
-  { data: { type: PropType<unknown>; required: true } },
+  { data: { type: PropType<any>; required: true } },
   {},
   unknown,
   {},
@@ -56,20 +64,22 @@ export type Visualization = DefineComponent<
   }
 >
 
-const builtinVisualizationImports: Record<string, () => Promise<VisualizationModule>> = {
-  JSON: () => import('@/components/visualizations/JSONVisualization.vue') as any,
-  Table: () => import('@/components/visualizations/TableVisualization.vue') as any,
-  Histogram: () => import('@/components/visualizations/HistogramVisualization.vue') as any,
-  Heatmap: () => import('@/components/visualizations/HeatmapVisualization.vue') as any,
-  'SQL Query': () => import('@/components/visualizations/SQLVisualization.vue') as any,
-  Image: () => import('@/components/visualizations/ImageBase64Visualization.vue') as any,
-  Warnings: () => import('@/components/visualizations/WarningsVisualization.vue') as any,
-}
+const builtinVisualizations: VisualizationModule[] = [
+  jsonVisualization,
+  // FIXME [sb]: what is the cause of the type errors?!
+  tableVisualization as VisualizationModule,
+  scatterplotVisualization as VisualizationModule,
+  histogramVisualization,
+  heatmapVisualization,
+  sqlVisualization,
+  geoMapVisualization as VisualizationModule,
+  imageBase64Visualization,
+  warningsVisualization,
+]
 
-const dynamicVisualizationPaths: Record<string, string> = {
-  'Scatter Plot': '/visualizations/ScatterplotVisualization.vue',
-  'Geo Map': '/visualizations/GeoMapVisualization.vue',
-}
+const builtinVisualizationsByName = Object.fromEntries(
+  builtinVisualizations.map((viz) => [viz.name, viz]),
+)
 
 export const useVisualizationStore = defineStore('visualization', () => {
   const cache = reactive(new Map<VisualizationId, Promise<VisualizationModule>>())
@@ -79,10 +89,9 @@ export const useVisualizationStore = defineStore('visualization', () => {
   /** A map from file path in the current project, to visualization name. This is required so that
    * file delete events can remove the cached visualization. */
   const currentProjectVisualizationsByPath = new Map<string, string>()
-  const allBuiltinVisualizations = [
-    ...Object.keys(builtinVisualizationImports),
-    ...Object.keys(dynamicVisualizationPaths),
-  ].map<VisualizationIdentifier>((name) => ({
+  const allBuiltinVisualizations = Object.values(
+    builtinVisualizations,
+  ).map<VisualizationIdentifier>(({ name }) => ({
     module: { kind: 'Builtin' },
     name,
   }))
@@ -92,12 +101,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
 
-  for (const vizMetadata of builtinVisualizationMetadata) {
-    if (vizMetadata.name === 'Loading' || vizMetadata.name === 'Loading Error') continue
-    metadata.set(
-      toVisualizationId({ module: { kind: 'Builtin' }, name: vizMetadata.name }),
-      vizMetadata,
-    )
+  for (const { name, inputType } of builtinVisualizations) {
+    metadata.set(toVisualizationId({ module: { kind: 'Builtin' }, name }), {
+      name,
+      inputType,
+    })
   }
 
   const scriptsNode = document.head.appendChild(document.createElement('div'))
@@ -137,7 +145,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   }
 
   async function onFileEvent({ kind, path }: LSEvent<'file/event'>) {
-    if (path.rootId !== (await projectRoot) || !/\.vue$/.test(path.segments.at(-1) ?? '')) return
+    if (path.rootId !== (await projectRoot) || !/[.]vue$/.test(path.segments.at(-1) ?? '')) return
     const pathString = customVisualizationsDirectory + '/' + path.segments.join('/')
     const name = currentProjectVisualizationsByPath.get(pathString)
     let id: VisualizationIdentifier | undefined =
@@ -235,19 +243,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
   }
 
   async function resolveBuiltinVisualization(type: string) {
-    const builtinImport = builtinVisualizationImports[type]?.()
-    if (builtinImport) {
-      const module = await builtinImport
-      await loadScripts(module)
-      return module
-    }
-    const builtinDynamicPath = dynamicVisualizationPaths[type]
-    if (builtinDynamicPath) {
-      const module = await compile(builtinDynamicPath, await projectRoot, await proj.dataConnection)
-      await loadScripts(module)
-      return module
-    }
-    throw new Error(`Unknown visualization type: ${type}`)
+    const module = builtinVisualizationsByName[type]
+    if (!module) throw new Error(`Unknown visualization type: ${type}`)
+    await loadScripts(module)
+    return module
   }
 
   return { types, get }

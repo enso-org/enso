@@ -36,8 +36,8 @@ interface Error {
 <script setup lang="ts">
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
 import { DEFAULT_THEME, type RGBA, type Theme } from '@/components/visualizations/builtins'
-import * as sqlFormatter from 'sql-formatter'
 import { computed } from 'vue'
+const sqlFormatter = await import('sql-formatter')
 
 const props = defineProps<{ data: Data }>()
 

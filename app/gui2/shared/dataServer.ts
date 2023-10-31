@@ -140,20 +140,20 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return identifier
   }
 
-  initSession(): Promise<Success> {
+  initSession(): Promise<Success | Error> {
     const builder = new Builder()
     const identifierOffset = this.createUUID(builder, this.clientId)
     const commandOffset = InitSessionCommand.createInitSessionCommand(builder, identifierOffset)
-    return this.send<Success>(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
+    return this.send(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
   }
 
-  async writeFile(path: LSPath, contents: string | ArrayBuffer | Uint8Array) {
+  async writeFile(
+    path: LSPath,
+    contents: string | ArrayBuffer | Uint8Array,
+  ): Promise<Success | Error> {
     const builder = new Builder()
     const contentsOffset = builder.createString(contents)
-    const segmentOffsets = [...path.segments]
-      .reverse()
-      .map((segment) => builder.createString(segment))
-      .reverse()
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
     const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
     const rootIdOffset = this.createUUID(builder, path.rootId)
     const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
@@ -161,32 +161,28 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return await this.send(builder, InboundPayload.WRITE_FILE_CMD, command)
   }
 
-  async readFile(path: LSPath) {
+  async readFile(path: LSPath): Promise<FileContentsReply | Error> {
     const builder = new Builder()
-    const segmentOffsets = [...path.segments]
-      .reverse()
-      .map((segment) => builder.createString(segment))
-      .reverse()
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
     const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
     const rootIdOffset = this.createUUID(builder, path.rootId)
     const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
     const command = ReadFileCommand.createReadFileCommand(builder, pathOffset)
-    return await this.send<FileContentsReply | Error>(
-      builder,
-      InboundPayload.READ_FILE_CMD,
-      command,
-    )
+    return await this.send(builder, InboundPayload.READ_FILE_CMD, command)
   }
 
   async writeBytes(
-    path: string,
+    path: LSPath,
     index: bigint,
     overwriteExisting: boolean,
     contents: string | ArrayBuffer | Uint8Array,
-  ): Promise<WriteBytesReply> {
+  ): Promise<WriteBytesReply | Error> {
     const builder = new Builder()
     const bytesOffset = builder.createString(contents)
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const rootIdOffset = this.createUUID(builder, path.rootId)
+    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
     const command = WriteBytesCommand.createWriteBytesCommand(
       builder,
       pathOffset,
@@ -194,24 +190,32 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       overwriteExisting,
       bytesOffset,
     )
-    return await this.send<WriteBytesReply>(builder, InboundPayload.WRITE_BYTES_CMD, command)
+    return await this.send(builder, InboundPayload.WRITE_BYTES_CMD, command)
   }
 
-  async readBytes(path: string, index: bigint, length: bigint): Promise<ReadBytesReply> {
+  async readBytes(path: LSPath, index: bigint, length: bigint): Promise<ReadBytesReply | Error> {
     const builder = new Builder()
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const rootIdOffset = this.createUUID(builder, path.rootId)
+    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
     const command = ReadBytesCommand.createReadBytesCommand(builder, segmentOffset)
-    return await this.send<ReadBytesReply>(builder, InboundPayload.READ_BYTES_CMD, command)
+    return await this.send(builder, InboundPayload.READ_BYTES_CMD, command)
   }
 
-  async checksumBytes(path: string, index: bigint, length: bigint): Promise<ChecksumBytesReply> {
+  async checksumBytes(
+    path: LSPath,
+    index: bigint,
+    length: bigint,
+  ): Promise<ChecksumBytesReply | Error> {
     const builder = new Builder()
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const rootIdOffset = this.createUUID(builder, path.rootId)
+    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
     const command = ChecksumBytesCommand.createChecksumBytesCommand(builder, segmentOffset)
-    return await this.send<ChecksumBytesReply>(builder, InboundPayload.WRITE_BYTES_CMD, command)
+    return await this.send(builder, InboundPayload.WRITE_BYTES_CMD, command)
   }
-
-  // TODO: check whether any of these may send an "error" message instead
 }
