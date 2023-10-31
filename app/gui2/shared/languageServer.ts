@@ -22,11 +22,27 @@ import type { Uuid } from './yjsModel'
 const DEBUG_LOG_RPC = false
 const RPC_TIMEOUT_MS = 15000
 
+export namespace ErrorCodes {
+  export const FILE_NOT_FOUND = 1003
+  export const CONTENT_ROOT_NOT_FOUND = 1001
+}
+
+export class RemoteRpcError {
+  code: number
+  message: string
+  data?: any
+  constructor(code: number, message: string, data?: any | undefined) {
+    this.code = code
+    this.message = message
+    this.data = data
+  }
+}
+
 export class LsRpcError extends Error {
-  cause: Error
+  cause: RemoteRpcError | Error
   request: string
   params: object
-  constructor(cause: Error, request: string, params: object) {
+  constructor(cause: RemoteRpcError | Error, request: string, params: object) {
     super(`Language server request '${request}' failed.`)
     this.cause = cause
     this.request = request
@@ -64,7 +80,11 @@ export class LanguageServer extends ObservableV2<Notifications> {
       }
       return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
     } catch (e) {
-      if (e instanceof Error) {
+      if (e && typeof e === 'object' && 'code' in e && 'message' in e && typeof e.code === 'number' && typeof e.message === 'string') {
+        const data = 'data' in e ? e.data : undefined
+        const remoteError = new RemoteRpcError(e.code, e.message, data)
+        throw new LsRpcError(remoteError, method, params)
+      } else if (e instanceof Error) {
         throw new LsRpcError(e, method, params)
       }
       throw e
