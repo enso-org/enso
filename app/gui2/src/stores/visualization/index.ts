@@ -11,11 +11,10 @@ import {
   type VisualizationId,
 } from '@/stores/visualization/metadata'
 import builtinVisualizationMetadata from '@/stores/visualization/metadata.json'
-import { assertNever } from '@/util/assert'
 import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
-import type { LanguageServer } from 'shared/languageServer'
+import { walkFs } from 'shared/languageServer/files'
 import type { FileEventKind, Path, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive, type DefineComponent, type PropType } from 'vue'
@@ -189,34 +188,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }
   }
 
-  async function walkFiles(ls: LanguageServer, path: Path, cb: (path: Path) => void) {
-    for (const file of (await ls.listFiles(path)).paths) {
-      const filePath: Path = {
-        rootId: file.path.rootId,
-        segments: [...file.path.segments, file.name],
-      }
-      switch (file.type) {
-        case 'Directory':
-        case 'DirectoryTruncated': {
-          await walkFiles(ls, filePath, cb)
-          break
-        }
-        case 'File': {
-          cb(filePath)
-          break
-        }
-        case 'Other':
-        case 'SymlinkLoop': {
-          // Ignored.
-          break
-        }
-        default: {
-          assertNever(file)
-        }
-      }
-    }
-  }
-
   Promise.all([proj.lsRpcConnection, projectRoot]).then(async ([ls, projectRoot]) => {
     if (!projectRoot) {
       console.error('Could not load custom visualizations: File system content root not found.')
@@ -228,8 +199,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
       }),
     )
     ls.on('file/event', onFileEvent)
-    await walkFiles(ls, { rootId: projectRoot, segments: ['visualizations'] }, (path) =>
-      onFileEvent({ path, kind: 'Added' }),
+    await walkFs(
+      ls,
+      { rootId: projectRoot, segments: ['visualizations'] },
+      (type, path) => type === 'File' && onFileEvent({ path, kind: 'Added' }),
     )
   })
 
