@@ -163,7 +163,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
           metadata.set(toVisualizationId(id), { name: viz.name, inputType: viz.inputType })
         } catch (error) {
           if (key) cache.delete(key)
-          if (!(error instanceof InvalidVisualizationModuleError)) {
+          if (error instanceof InvalidVisualizationModuleError) {
+            console.info(
+              `Imported local file '${pathString}' which is not a visualization. ` +
+                `If it is not a dependency, are you perhaps missing \`name\` or \`inputType\`?`,
+            )
+          } else {
             console.error('Error loading visualization:')
             console.error(error)
           }
