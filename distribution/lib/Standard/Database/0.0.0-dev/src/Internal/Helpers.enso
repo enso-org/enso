@@ -34,7 +34,9 @@ check_integrity entity1 entity2 =
    - entity2: The entity to check against the first.
 check_connection : (Table | Column) -> (Table | Column) -> Boolean
 check_connection entity1 entity2 =
-    Meta.is_same_object entity1.connection entity2.connection
+    # The `if_not_error` is needed `Meta.is_same_object` does not forward dataflow errors.
+    entity1.if_not_error <| entity2.if_not_error <|
+        Meta.is_same_object entity1.connection entity2.connection
 
 ## PRIVATE
 ensure_same_connection : Text -> Vector -> Any -> Any ! Illegal_Argument
