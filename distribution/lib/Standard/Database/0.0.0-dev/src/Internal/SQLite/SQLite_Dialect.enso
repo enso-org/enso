@@ -286,9 +286,10 @@ make_internal_generator_dialect =
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [is_inf, floating_point_div, mod_op]
+    other = [["RUNTIME_ERROR", make_runtime_error_op]]
 
     bool = [bool_or]
-    my_mappings = text + counts + stats + arith_extensions + bool
+    my_mappings = text + counts + stats + arith_extensions + bool + other
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -481,3 +482,21 @@ make_custom_cast column target_value_type type_mapping =
         result.put expr
 
     result.get
+
+## PRIVATE
+   The RUNTIME_ERROR operation should allow the query to compile fine and it
+   will not prevent it from running if the branch including this operation is
+   not taken. But if the branch is computed, it should ensure the query fails.
+
+   This query never returns a value, so its type should be polymorphic. However,
+   that is not possible - so currently the SQLite dialect just does not handle
+   inferring a type for it. Thus, it should only be used in places that will not
+   need client-side type inference (e.g. WHERE clause is ok).
+   This can be changed in the future, if needed.
+make_runtime_error_op arguments =
+    if arguments.length != 2 then
+        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 2 arguments (error message and a variable to ensure deferred execution).")
+    error_message = arguments.at 0
+    variable_to_defer = arguments.at 1
+    # We have to ensure that the implementation of SQLite that we use does not have a MATCH function defined which would make the code below succeed.
+    Builder.code "match('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] ', " ++ variable_to_defer ++ ")"

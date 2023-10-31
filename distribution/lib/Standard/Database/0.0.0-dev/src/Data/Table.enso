@@ -29,7 +29,6 @@ import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Constant_Column.Constant_Column
-import Standard.Table.Internal.Lookup_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
@@ -50,6 +49,7 @@ import project.Data.Take_Drop_Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.Common.Lookup_Query_Helper
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -61,7 +61,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Data.Take_Drop_Helpers import Take_Drop
-from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation
+from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation, SQL_Error
 
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
@@ -1212,16 +1212,12 @@ type Table
     ## PRIVATE
        Implementation of both `join` and `cross_join`.
     join_or_cross_join : Table -> Join_Kind | Join_Kind_Cross -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
-    join_or_cross_join self right join_kind on right_prefix on_problems =
-        can_proceed = if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table right "right") else
-            same_backend = case right of
-                _ : Table -> True
-                _ -> False
+    join_or_cross_join self right:Table join_kind on right_prefix on_problems =
+        can_proceed = Helpers.ensure_same_connection "table" [self, right] <|
             join_conditions_ok = join_kind != Join_Kind_Cross.Cross || on == []
-            if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. You need to upload the in-memory table before joining it with a database one, or materialize this table.") else
-                if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
-                    True
-        if can_proceed then
+            if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
+                True
+        can_proceed.if_not_error <|
             left = self
             table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
             table_name_deduplicator.mark_used [left.name, right.name]
@@ -1314,14 +1310,13 @@ type Table
 
          The ordering of rows in the resulting table is not specified.
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
-    cross_join self right right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
-        if check_db_table "right" right then
-            limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
-                True ->
-                    [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
-                False -> []
-            on_problems.attach_problems_before limit_problems <|
-                self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
+    cross_join self right:Table right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
+        limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
+            True ->
+                [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+            False -> []
+        on_problems.attach_problems_before limit_problems <|
+            self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
 
     ## Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
@@ -1358,8 +1353,8 @@ type Table
            specified in `key_columns`, a `Missing_Input_Columns` error is raised.
          - If an empty vector is provided for `key_columns`, a
            `No_Input_Columns_Selected` error is raised.
-         - If the lookup table contains multiple rows with the same values in
-           the `key_columns`, an `Non_Unique_Key` error is raised.
+         - If a single row is matched by multiple entries in the lookup table,
+           a `Non_Unique_Key` error is raised.
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
@@ -1377,8 +1372,8 @@ type Table
     @key_columns Widget_Helpers.make_column_name_vector_selector
     lookup_and_replace : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     lookup_and_replace self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        _ = [lookup_table, key_columns, add_new_columns, allow_unmatched_rows, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.lookup_and_replace is not implemented yet for the Database backends.")
+        Helpers.ensure_same_connection "table" [self, lookup_table] <|
+            Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1522,11 +1517,11 @@ type Table
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    union self tables:Vector|Table match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
-            v : Vector -> [self] + v
+            v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, single_table]
-        all_tables.all (check_db_table "tables") . if_not_error <|
+        Helpers.ensure_same_connection "table" all_tables <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             dialect = self.connection.dialect
@@ -2154,7 +2149,8 @@ type Table
             False ->
                 sql = preprocessed.to_sql
                 column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
-                materialized_table = self.connection.read_statement sql column_type_suggestions
+                materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
+                    Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
 
                 expected_types = self.columns.map .value_type
                 actual_types = materialized_table.columns.map .value_type
@@ -2528,19 +2524,6 @@ type Wrapped_Error
     Value value
 
 ## PRIVATE
-   Checks if the argument is a proper table and comes from the current backend.
-   It returns True or throws a dataflow error explaining the issue.
-
-   TODO [RW]: this should check that the tables are on the same connection
-check_db_table arg_name table =
-    if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table arg_name) else
-            same_backend = table.is_a Table
-            case same_backend of
-                False ->
-                    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
-                True -> True
-
-## PRIVATE
    By default, join on the first column, unless it's a cross join, in which
    case there are no join conditions.
 default_join_condition : Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
@@ -2552,6 +2535,11 @@ default_join_condition table join_kind = case join_kind of
 Materialized_Table.from (that:Table) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+
+## PRIVATE
+Table.from (that:Materialized_Table) =
+    _ = [that]
+    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Either materialize the other table using `.read` or upload the table into the database using `.select_into_database_table`.")
 
 ## PRIVATE
 Table_Ref.from (that:Table) = Table_Ref.Value that

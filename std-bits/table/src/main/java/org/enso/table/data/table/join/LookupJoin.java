@@ -35,7 +35,6 @@ public class LookupJoin {
 
     LookupJoin joiner = new LookupJoin(keys, columnDescriptions, allowUnmatchedRows, problemAggregator);
     joiner.checkNullsInKey();
-    joiner.verifyLookupUniqueness();
     return joiner.join();
   }
 
@@ -75,22 +74,6 @@ public class LookupJoin {
     UnorderedMultiValueKey nullKey = lookupIndex.findAnyNullKey();
     if (nullKey != null) {
       throw new NullValuesInKeyColumns(nullKey.getValues());
-    }
-  }
-
-  private void verifyLookupUniqueness() {
-    if (!lookupIndex.isUnique()) {
-      // Find the duplicated key
-      for (Map.Entry<UnorderedMultiValueKey, List<Integer>> group : lookupIndex.mapping().entrySet()) {
-        int groupSize = group.getValue().size();
-        if (groupSize > 1) {
-          UnorderedMultiValueKey key = group.getKey();
-          List<Object> exampleValues = IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();
-          throw new NonUniqueLookupKey(keyColumnNames, exampleValues, groupSize);
-        }
-      }
-
-      assert false : "isUnique returned false, but no duplicated key was found.";
     }
   }
 
@@ -145,8 +128,12 @@ public class LookupJoin {
       }
     }
 
+    if (lookupRowIndices.size() > 1) {
+      List<Object> exampleValues = IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();
+      throw new NonUniqueLookupKey(keyColumnNames, exampleValues, lookupRowIndices.size());
+    }
+
     assert !lookupRowIndices.isEmpty() : "No Index group should be empty.";
-    assert lookupRowIndices.size() == 1 : "This should have been checked in verifyLookupUniqueness()";
     return lookupRowIndices.get(0);
   }
 
