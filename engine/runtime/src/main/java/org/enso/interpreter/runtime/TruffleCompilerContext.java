@@ -330,7 +330,7 @@ final class TruffleCompilerContext implements CompilerContext {
     public void close() {
       if (map != null) {
         if (module.bindings != null) {
-          throw new IllegalStateException("Reassigining bindings to " + module);
+          loggerCompiler.log(Level.FINE, "Reassigining bindings to {0}", module);
         }
         module.bindings = map;
       }
@@ -382,11 +382,6 @@ final class TruffleCompilerContext implements CompilerContext {
     /** Intentionally not public. */
     final org.enso.interpreter.runtime.Module unsafeModule() {
       return module;
-    }
-
-    @Override
-    public boolean isSameAs(org.enso.interpreter.runtime.Module m) {
-      return module == m;
     }
 
     @Override
