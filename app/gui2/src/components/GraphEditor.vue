@@ -203,6 +203,19 @@ async function dataDirectoryExists(): Promise<boolean> {
   }
 }
 
+async function ensureDataDirectoryExists(): Promise<void> {
+  const rpc = await projectStore.lsRpcConnection
+  const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
+  if (projectRootId) {
+    const dataDirExists = await dataDirectoryExists()
+    if (!dataDirExists) {
+      await rpc.createFile({ type: 'Directory', name: dataDirName, path: { rootId: projectRootId.id, segments: [] } })
+    }
+  } else {
+    throw new Error('Project root ID not found.')
+  }
+}
+
 async function handleDrop(event: DragEvent) {
   if (event.dataTransfer) {
     if (event.dataTransfer.items) {
@@ -211,8 +224,7 @@ async function handleDrop(event: DragEvent) {
           const file = item.getAsFile()
           if (file) {
             console.log(`… file[${i}].name = ${file.name}`)
-            const exists = await dataDirectoryExists()
-            console.log(`Data directory exists: ${exists}`)
+            await ensureDataDirectoryExists()
           }
         }
       })
