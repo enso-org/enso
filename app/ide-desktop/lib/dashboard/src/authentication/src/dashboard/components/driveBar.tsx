@@ -47,6 +47,9 @@ export default function DriveBar(props: DriveBarProps) {
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
+    const isHomeCategory =
+        category === categorySwitcher.Category.home ||
+        backend.type === backendModule.BackendType.local
 
     React.useEffect(() => {
         return shortcuts.registerKeyboardHandlers({
@@ -70,9 +73,9 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-8 py-0.5">
             <div className="flex gap-2.5">
                 <button
-                    disabled={category !== categorySwitcher.Category.home}
+                    disabled={!isHomeCategory}
                     className="flex items-center bg-frame rounded-full h-8 px-2.5"
-                    {...(category !== categorySwitcher.Category.home
+                    {...(!isHomeCategory
                         ? {
                               title: 'You can only create a new project in Home.',
                           }
@@ -84,7 +87,7 @@ export default function DriveBar(props: DriveBarProps) {
                 >
                     <span
                         className={`font-semibold whitespace-nowrap leading-5 h-6 py-px ${
-                            category !== categorySwitcher.Category.home ? 'opacity-50' : ''
+                            !isHomeCategory ? 'opacity-50' : ''
                         }`}
                     >
                         New Project
@@ -93,8 +96,8 @@ export default function DriveBar(props: DriveBarProps) {
                 <div className="flex items-center text-black-a50 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
-                            active={category === categorySwitcher.Category.home}
-                            disabled={category !== categorySwitcher.Category.home}
+                            active={isHomeCategory}
+                            disabled={!isHomeCategory}
                             error="You can only create a new folder in Home."
                             image={AddFolderIcon}
                             disabledOpacityClassName="opacity-20"
@@ -106,8 +109,8 @@ export default function DriveBar(props: DriveBarProps) {
                     )}
                     {backend.type !== backendModule.BackendType.local && (
                         <Button
-                            active={category === categorySwitcher.Category.home}
-                            disabled={category !== categorySwitcher.Category.home}
+                            active={isHomeCategory}
+                            disabled={!isHomeCategory}
                             error="You can only create a new data connector in Home."
                             image={AddConnectorIcon}
                             disabledOpacityClassName="opacity-20"
@@ -137,8 +140,8 @@ export default function DriveBar(props: DriveBarProps) {
                         }}
                     />
                     <Button
-                        active={category === categorySwitcher.Category.home}
-                        disabled={category !== categorySwitcher.Category.home}
+                        active={isHomeCategory}
+                        disabled={!isHomeCategory}
                         error="You can only upload files to Home."
                         image={DataUploadIcon}
                         disabledOpacityClassName="opacity-20"
