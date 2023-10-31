@@ -16,8 +16,7 @@ import builtinVisualizationMetadata from '@/stores/visualization/metadata.json'
 import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
 import { defineStore } from 'pinia'
-import { walkFs } from 'shared/languageServer/files'
-import type { Event as LSEvent, Path, VisualizationConfiguration } from 'shared/languageServerTypes'
+import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, reactive, type DefineComponent, type PropType } from 'vue'
 
@@ -98,19 +97,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
     )
   }
 
-  function types(type: Opt<string>) {
-    const ret =
-      type == null
-        ? allBuiltinVisualizations
-        : [
-            ...new Set([
-              ...(metadata.types.reverseLookup(type) ?? []),
-              ...(metadata.types.reverseLookup('Any') ?? []),
-            ]),
-          ].map(fromVisualizationId)
-    return ret
-  }
-
   const scriptsNode = document.head.appendChild(document.createElement('div'))
   scriptsNode.classList.add('visualization-scripts')
   const loadedScripts = new Set<string>()
@@ -147,76 +133,78 @@ export const useVisualizationStore = defineStore('visualization', () => {
     return Promise.allSettled(promises)
   }
 
-  async function onFileEvent(event: LSEvent<'file/event'>) {
-    const pathString = event.path.segments.join('/')
+  async function onFileEvent({ kind, path }: LSEvent<'file/event'>) {
+    if (path.rootId !== (await projectRoot) || !/\.vue$/.test(path.segments.at(-1) ?? '')) return
+    const pathString = path.segments.join('/')
     const name = currentProjectVisualizationsByPath.get(pathString)
     let id: VisualizationIdentifier | undefined =
       name != null ? { module: { kind: 'CurrentProject' }, name } : undefined
     const key = id && toVisualizationId(id)
-    if (event.path.segments[0] === 'visualizations' && /\.vue$/.test(pathString)) {
-      compilationAbortControllers.get(pathString)?.abort()
-      compilationAbortControllers.delete(pathString)
-      switch (event.kind) {
-        case 'Added':
-        case 'Modified': {
-          try {
-            const abortController = new AbortController()
-            compilationAbortControllers.set(pathString, abortController)
-            const vizPromise = compile(
-              'enso-current-project:' + pathString,
-              await projectRoot,
-              await proj.dataConnection,
-            )
-            if (key) cache.set(key, vizPromise)
-            const viz = await vizPromise
-            if (abortController.signal.aborted) break
-            if (!id || viz.name !== id.name) {
-              id = { module: { kind: 'CurrentProject' }, name: viz.name }
-              cache.set(toVisualizationId(id), vizPromise)
-            }
-            metadata.set(toVisualizationId(id), { name: viz.name, inputType: viz.inputType })
-          } catch (error) {
-            if (key) cache.delete(key)
-            if (!(error instanceof InvalidVisualizationModuleError)) {
-              console.error('Error loading visualization:')
-              console.error(error)
-            }
+    compilationAbortControllers.get(pathString)?.abort()
+    compilationAbortControllers.delete(pathString)
+    switch (kind) {
+      case 'Added':
+      case 'Modified': {
+        try {
+          const abortController = new AbortController()
+          compilationAbortControllers.set(pathString, abortController)
+          const vizPromise = compile(
+            'enso-current-project:' + pathString,
+            await projectRoot,
+            await proj.dataConnection,
+          )
+          if (key) cache.set(key, vizPromise)
+          const viz = await vizPromise
+          if (abortController.signal.aborted) break
+          if (!id || viz.name !== id.name) {
+            id = { module: { kind: 'CurrentProject' }, name: viz.name }
+            cache.set(toVisualizationId(id), vizPromise)
           }
-          break
+          metadata.set(toVisualizationId(id), { name: viz.name, inputType: viz.inputType })
+        } catch (error) {
+          if (key) cache.delete(key)
+          if (!(error instanceof InvalidVisualizationModuleError)) {
+            console.error('Error loading visualization:')
+            console.error(error)
+          }
         }
-        case 'Removed': {
-          currentProjectVisualizationsByPath.delete(pathString)
-          if (key) {
-            cache.delete(key)
-            metadata.delete(key)
-            for (const el of document.querySelectorAll(
-              `[${stylePathAttribute}=${currentProjectProtocol}${pathString}]`,
-            )) {
-              el.remove()
-            }
+        break
+      }
+      case 'Removed': {
+        currentProjectVisualizationsByPath.delete(pathString)
+        if (key) {
+          cache.delete(key)
+          metadata.delete(key)
+          for (const el of document.querySelectorAll(
+            `[${stylePathAttribute}=${currentProjectProtocol}${pathString}]`,
+          )) {
+            el.remove()
           }
         }
       }
     }
   }
 
-  Promise.all([proj.lsRpcConnection, projectRoot]).then(async ([ls, projectRoot]) => {
+  Promise.all([proj.lsRpcConnection, projectRoot]).then(([ls, projectRoot]) => {
     if (!projectRoot) {
-      console.error('Could not load custom visualizations: File system content root not found.')
+      console.error('Could not load custom visualizations: Project directory not found.')
       return
     }
-    await rpcWithRetries(() =>
-      ls.acquireCapability('file/receivesTreeUpdates', {
-        path: { rootId: projectRoot, segments: [] } satisfies Path,
-      }),
-    )
-    ls.on('file/event', onFileEvent)
-    await walkFs(
-      ls,
-      { rootId: projectRoot, segments: ['visualizations'] },
-      (type, path) => type === 'File' && onFileEvent({ path, kind: 'Added' }),
-    )
+    ls.watchFiles(projectRoot, ['visualizations'], onFileEvent, rpcWithRetries)
   })
+
+  function types(type: Opt<string>) {
+    const ret =
+      type == null
+        ? allBuiltinVisualizations
+        : [
+            ...new Set([
+              ...(metadata.types.reverseLookup(type) ?? []),
+              ...(metadata.types.reverseLookup('Any') ?? []),
+            ]),
+          ].map(fromVisualizationId)
+    return ret
+  }
 
   function get(meta: VisualizationIdentifier, ignoreCache = false) {
     const key = toVisualizationId(meta)

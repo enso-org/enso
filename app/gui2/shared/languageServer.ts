@@ -2,9 +2,11 @@ import { Client } from '@open-rpc/client-js'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
 import { SHA3 } from 'sha3'
+import { walkFs } from './languageServer/files'
 import type {
   Checksum,
   ContextId,
+  Event,
   ExecutionEnvironment,
   ExpressionId,
   FileEdit,
@@ -306,6 +308,40 @@ export class LanguageServer extends ObservableV2<Notifications> {
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#runtimegetcomponentgroups) */
   getComponentGroups(): Promise<response.GetComponentGroups> {
     return this.request('runtime/getComponentGroups', {})
+  }
+
+  /** A helper function to subscribe to file updates.
+   * Please use `ls.on('file/event')` directly if the initial `'Added'` notifications are not
+   * needed. */
+  watchFiles(
+    rootId: Uuid,
+    segments: string[],
+    callback: (event: Event<'file/event'>) => void,
+    retry: <T>(cb: () => Promise<T>) => Promise<T> = (f) => f(),
+  ) {
+    let running = true
+    retry(() =>
+      this.acquireCapability('file/receivesTreeUpdates', {
+        path: { rootId, segments } satisfies Path,
+      }),
+    ).then(() => {
+      if (!running) return
+      this.on('file/event', callback)
+      walkFs(this, { rootId, segments }, (type, path) => {
+        if (
+          !running ||
+          type !== 'File' ||
+          path.segments.length !== segments.length ||
+          path.segments.some((seg, i) => seg !== segments[i])
+        )
+          return
+        callback({ path, kind: 'Added' })
+      })
+    })
+    return () => {
+      running = false
+      this.off('file/event', callback)
+    }
   }
 
   dispose() {
