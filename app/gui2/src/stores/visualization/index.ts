@@ -1,36 +1,18 @@
-import * as vue from 'vue'
-import { computed, reactive, type DefineComponent, type PropType } from 'vue'
-
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore } from '@/stores/project'
+import {
+  compile,
+  InvalidVisualizationModuleError,
+  type VisualizationModule,
+} from '@/stores/visualization/compilerMessaging'
 import builtinVisualizationMetadata from '@/stores/visualization/metadata.json'
 import { assertNever } from '@/util/assert'
 import { rpcWithRetries } from '@/util/net'
 import type { Opt } from '@/util/opt'
-import { defineKeybinds } from '@/util/shortcuts'
-import type {
-  AddImportNotification,
-  AddRawImportNotification,
-  AddStyleNotification,
-  AddURLImportNotification,
-  CompilationErrorResponse,
-  CompilationResultResponse,
-  CompileError,
-  CompileRequest,
-  FetchError,
-  FetchResultWorkerResponse,
-  FetchWorkerError,
-  FetchWorkerRequest,
-  InvalidMimetypeError,
-  RegisterBuiltinModulesRequest,
-} from '@/workers/visualizationCompiler'
-import Compiler from '@/workers/visualizationCompiler?worker'
 import { defineStore } from 'pinia'
 import type { LanguageServer } from 'shared/languageServer'
 import type { FileEventKind, Path, VisualizationConfiguration } from 'shared/languageServerTypes'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { z } from 'zod'
+import { computed, reactive, type DefineComponent, type PropType } from 'vue'
 
 /** A module containing the default visualization function. */
 const DEFAULT_VISUALIZATION_MODULE = 'Standard.Visualization.Preprocessor'
@@ -50,17 +32,6 @@ export const DEFAULT_VISUALIZATION_IDENTIFIER: VisualizationIdentifier = {
   name: 'JSON',
 }
 
-const moduleCache: Record<string, any> = {
-  vue,
-  get d3() {
-    return import('d3')
-  },
-  builtins: { VisualizationContainer, useVisualizationConfig, defineKeybinds },
-}
-// @ts-expect-error Intentionally not defined in `env.d.ts` as it is a mistake to access anywhere
-// else.
-window.__visualizationModules = moduleCache
-
 export type Visualization = DefineComponent<
   // Props
   { data: { type: PropType<unknown>; required: true } },
@@ -75,30 +46,6 @@ export type Visualization = DefineComponent<
     'update:preprocessor'?: (module: string, method: string, ...args: string[]) => void
   }
 >
-
-const VisualizationModule = z.object({
-  // This is UNSAFE, but unavoiable as the type of `Visualization` is too difficult to statically
-  // check.
-  default: z.custom<Visualization>(() => true),
-  name: z.string(),
-  inputType: z.string().optional(),
-  defaultPreprocessor: (
-    z.string().array().min(2) as unknown as z.ZodType<
-      [module: string, method: string, ...args: string[]]
-    >
-  )
-    .readonly()
-    .optional(),
-  scripts: z.string().array().optional(),
-  styles: z.string().array().optional(),
-})
-type VisualizationModule = z.infer<typeof VisualizationModule>
-
-class InvalidVisualizationModuleError extends TypeError {
-  constructor(public path: string) {
-    super(`The module '${path}' is not a visualization.`)
-  }
-}
 
 const builtinVisualizationImports: Record<string, () => Promise<VisualizationModule>> = {
   JSON: () => import('@/components/visualizations/JSONVisualization.vue') as any,
@@ -128,12 +75,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
   /** A map from file path in the current project, to visualization name. This is required so that
    * file delete events can remove the cached visualization. */
   const currentProjectVisualizationsByPath = new Map<string, string>()
-  let worker: Worker | undefined
-  let workerMessageId = 0
-  const workerCallbacks = new Map<
-    number,
-    { resolve: (result: VisualizationModule) => void; reject: (error: Error) => void }
-  >()
   const allBuiltinVisualizations = [
     ...Object.keys(imports),
     ...Object.keys(paths),
@@ -147,7 +88,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
   const ls = proj.lsRpcConnection
   const data = proj.dataConnection
   const projectRoot = proj.contentRoots.then(
-    (roots) => roots.find((root) => root.type === 'Project') ?? null,
+    (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
 
   function getTypesFromUnion(inputType: Opt<string>) {
@@ -210,201 +151,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
             ]),
           ].map(fromVisualizationCacheKey)
     return ret
-  }
-
-  function postMessage<T>(worker: Worker, message: T) {
-    worker.postMessage(message)
-  }
-
-  // TODO: remove outdated styles
-  async function compile(path: string) {
-    if (worker == null) {
-      const worker_ = (worker = new Compiler())
-      postMessage<RegisterBuiltinModulesRequest>(worker, {
-        type: 'register-builtin-modules-request',
-        modules: Object.keys(moduleCache),
-      })
-      worker.addEventListener(
-        'message',
-        async (
-          event: MessageEvent<
-            // === Responses ===
-            | CompilationResultResponse
-            | CompilationErrorResponse
-            // === Worker Requests ===
-            | FetchWorkerRequest
-            // === Notifications ===
-            | AddStyleNotification
-            | AddRawImportNotification
-            | AddURLImportNotification
-            | AddImportNotification
-            // === Errors ===
-            | FetchError
-            | InvalidMimetypeError
-            | CompileError
-          >,
-        ) => {
-          switch (event.data.type) {
-            // === Responses ===
-            case 'compilation-result-response': {
-              try {
-                const module = await moduleCache[event.data.path]
-                const vizModule = VisualizationModule.parse(module)
-                if (vizModule) {
-                  workerCallbacks.get(event.data.id)?.resolve(vizModule)
-                } else {
-                  workerCallbacks
-                    .get(event.data.id)
-                    ?.reject(new InvalidVisualizationModuleError(event.data.path))
-                }
-              } catch (error: any) {
-                workerCallbacks.get(event.data.id)?.reject(error)
-              }
-              workerCallbacks.delete(event.data.id)
-              break
-            }
-            case 'compilation-error-response': {
-              console.error(`Error compiling visualization '${event.data.path}':`, event.data.error)
-              workerCallbacks.get(event.data.id)?.reject(event.data.error)
-              workerCallbacks.delete(event.data.id)
-              break
-            }
-            // === Worker Requests ===
-            case 'fetch-worker-request': {
-              try {
-                const url = new URL(event.data.path, location.href)
-                switch (url.protocol) {
-                  case 'http:':
-                  case 'https:': {
-                    const response = await fetch(url)
-                    if (response.ok) {
-                      postMessage<FetchResultWorkerResponse>(worker_, {
-                        type: 'fetch-result-worker-response',
-                        path: event.data.path,
-                        contents: await response.arrayBuffer(),
-                        contentType: response.headers.get('Content-Type') ?? undefined,
-                      })
-                    } else {
-                      postMessage<FetchWorkerError>(worker_, {
-                        type: 'fetch-worker-error',
-                        path: event.data.path,
-                        error: new Error(
-                          `\`fetch\` returned status code ${response.status} (${response.statusText})`,
-                        ),
-                      })
-                    }
-                    break
-                  }
-                  case 'enso-current-project:': {
-                    const rootId = (await projectRoot)?.id
-                    if (!rootId) {
-                      postMessage<FetchWorkerError>(worker_, {
-                        type: 'fetch-worker-error',
-                        path: event.data.path,
-                        error: new Error(
-                          'Could not find a file system content root for the current project.',
-                        ),
-                      })
-                      break
-                    }
-                    const payload = await (
-                      await data
-                    ).readFile({ rootId, segments: url.pathname.split('/') })
-                    const contents = payload.contentsArray()
-                    if (!contents) {
-                      postMessage<FetchWorkerError>(worker_, {
-                        type: 'fetch-worker-error',
-                        path: event.data.path,
-                        error: new Error(
-                          `An invalid response was recieved when fetching '${url.pathname}' from the current project.`,
-                        ),
-                      })
-                      break
-                    }
-                    postMessage<FetchResultWorkerResponse>(worker_, {
-                      type: 'fetch-result-worker-response',
-                      path: event.data.path,
-                      contents,
-                      contentType: undefined,
-                    })
-                    break
-                  }
-                }
-              } catch (error) {
-                postMessage<FetchWorkerError>(worker_, {
-                  type: 'fetch-worker-error',
-                  path: event.data.path,
-                  error: error instanceof Error ? error : new Error(`${error}`),
-                })
-              }
-              break
-            }
-            // === Notifications ===
-            case 'add-style-notification': {
-              const styleNode = document.createElement('style')
-              styleNode.innerHTML = event.data.code
-              document.head.appendChild(styleNode)
-              break
-            }
-            case 'add-raw-import-notification': {
-              // FIXME: include protocol in path so that custom visualizations and their
-              // dependencies do not overwrite builtin visualizations.
-              moduleCache[event.data.path] = event.data.value
-              break
-            }
-            case 'add-url-import-notification': {
-              moduleCache[event.data.path] = {
-                default: URL.createObjectURL(
-                  new Blob([event.data.value], { type: event.data.mimeType }),
-                ),
-              }
-              break
-            }
-            case 'add-import-notification': {
-              try {
-                const module = import(
-                  /* @vite-ignore */
-                  URL.createObjectURL(new Blob([event.data.code], { type: 'text/javascript' }))
-                )
-                // Required for 'compilation-result-response' handler above.
-                moduleCache[event.data.path] = module
-                moduleCache[event.data.path] = await module
-              } catch {
-                // Ignored - the same promise is awaited elsewhere.
-              }
-              break
-            }
-            // === Errors ===
-            case 'fetch-error': {
-              console.error(`Error fetching '${event.data.path}':`, event.data.error)
-              break
-            }
-            case 'invalid-mimetype-error': {
-              console.error(
-                `Expected mimetype of '${event.data.path}' to be '${event.data.expected}', ` +
-                  `but received '${event.data.actual}' instead`,
-              )
-              break
-            }
-            case 'compile-error': {
-              console.error(`Error compiling '${event.data.path}':`, event.data.error)
-              break
-            }
-            default: {
-              assertNever(event.data)
-            }
-          }
-        },
-      )
-      worker.addEventListener('error', (event) => console.error(event.error))
-    }
-    const id = workerMessageId
-    workerMessageId += 1
-    const promise = new Promise<VisualizationModule>((resolve, reject) => {
-      workerCallbacks.set(id, { resolve, reject })
-    })
-    postMessage<CompileRequest>(worker, { type: 'compile-request', id, path })
-    return await promise
   }
 
   const scriptsNode = document.head.appendChild(document.createElement('div'))
@@ -471,7 +217,11 @@ export const useVisualizationStore = defineStore('visualization', () => {
           try {
             const abortController = new AbortController()
             compilationAbortControllers.set(pathString, abortController)
-            const vizPromise = compile('enso-current-project:' + pathString)
+            const vizPromise = compile(
+              'enso-current-project:' + pathString,
+              await projectRoot,
+              await data,
+            )
             if (key) cache.set(key, vizPromise)
             const viz = await vizPromise
             if (abortController.signal.aborted) break
@@ -531,19 +281,18 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }
   }
 
-  ls.then(async (ls) => {
-    const projectRoot_ = await projectRoot
-    if (!projectRoot_) {
+  Promise.all([ls, projectRoot]).then(async ([ls, projectRoot]) => {
+    if (!projectRoot) {
       console.error('Could not load custom visualizations: File system content root not found.')
       return
     }
     await rpcWithRetries(() =>
       ls.acquireCapability('file/receivesTreeUpdates', {
-        path: { rootId: projectRoot_.id, segments: [] } satisfies Path,
+        path: { rootId: projectRoot, segments: [] } satisfies Path,
       }),
     )
     ls.on('file/event', onFileEvent)
-    await walkFiles(ls, { rootId: projectRoot_.id, segments: ['visualizations'] }, (path) =>
+    await walkFiles(ls, { rootId: projectRoot, segments: ['visualizations'] }, (path) =>
       onFileEvent({ path, kind: 'Added' }),
     )
   })
@@ -578,7 +327,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
     }
     const builtinDynamicPath = paths[type]
     if (builtinDynamicPath != null) {
-      const module = await compile(builtinDynamicPath)
+      const module = await compile(builtinDynamicPath, await projectRoot, await data)
       await loadScripts(module)
       return module
     }
