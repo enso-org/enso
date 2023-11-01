@@ -5,7 +5,7 @@ module org.enso.runtime {
   requires java.se;
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
-  requires org.slf4j;
+  requires static org.slf4j;
 
   uses org.slf4j.spi.SLF4JServiceProvider;
 
