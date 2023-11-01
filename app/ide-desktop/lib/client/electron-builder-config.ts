@@ -230,8 +230,6 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             ) {
                 const {
                     packager: {
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                        platformSpecificBuildOptions: buildOptions,
                         appInfo: { productFilename: appName },
                         config: { mac: macConfig },
                     },
