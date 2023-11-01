@@ -487,15 +487,11 @@ object ProgramExecutionSupport {
             case visualization: Visualization.OneshotExpression =>
               val ensoRootNode =
                 expressionNode.getRootNode.asInstanceOf[EnsoRootNode]
-              val evaluatedExpression = ctx.executionService.evaluateExpression(
+              ctx.executionService.evaluateExpression(
                 ensoRootNode.getModuleScope.getModule,
                 ensoRootNode.getLocalScope,
                 virtualFrame,
                 visualization.expression
-              )
-              ctx.executionService.callFunction(
-                evaluatedExpression,
-                expressionValue
               )
           }
         }
