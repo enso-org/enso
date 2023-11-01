@@ -14,18 +14,20 @@ fcTest.prop({
 })
 
 fcTest.prop({
-  arr: fc
-    .array(fc.float())
-    .map((a) => ({ arr: a.sort((a, b) => a - b), i: Math.floor(Math.random() * a.length) })),
+  arr: fc.array(fc.float({ noNaN: true })).map((a) => ({
+    arr: a.sort((a, b) => a - b),
+    i: Math.max(0, a.indexOf(a[Math.floor(Math.random() * a.length)]!)),
+  })),
 })('partitionPoint (ascending)', ({ arr: { arr, i } }) => {
   const target = arr[i]!
   expect(partitionPoint(arr, (n) => n < target)).toEqual(i)
 })
 
 fcTest.prop({
-  arr: fc
-    .array(fc.float())
-    .map((a) => ({ arr: a.sort((a, b) => b - a), i: Math.floor(Math.random() * a.length) })),
+  arr: fc.array(fc.float({ noNaN: true })).map((a) => ({
+    arr: a.sort((a, b) => b - a),
+    i: Math.max(0, a.indexOf(a[Math.floor(Math.random() * a.length)]!)),
+  })),
 })('partitionPoint (descending)', ({ arr: { arr, i } }) => {
   const target = arr[i]!
   expect(partitionPoint(arr, (n) => n > target)).toEqual(i)
