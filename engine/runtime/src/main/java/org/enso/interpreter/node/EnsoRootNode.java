@@ -56,27 +56,24 @@ public abstract class EnsoRootNode extends RootNode {
     this.sourceLength = sourceSection == null ? NO_SOURCE : sourceSection.getCharLength();
   }
 
-  /** *  Builds a {@link FrameDescriptor} from the alias analysis scope metadata for the local scope.
-    * See [[AliasAnalysis.Graph.Scope.allDefinitions]].
-    *
-    * @return {@link FrameDescriptor} built from the variable definitions in the local localScope.
-    */
+  /**
+   * Builds a {@link FrameDescriptor} from the alias analysis scope metadata
+   * for the local scope. See [[AliasAnalysis.Graph.Scope.allDefinitions]].
+   *
+   * @return {@link FrameDescriptor} built from the variable definitions in
+   * the local localScope.
+   */
   private static FrameDescriptor buildFrameDescriptor(LocalScope localScope) {
-      var descriptorBuilder = FrameDescriptor.newBuilder();
-      descriptorBuilder.addSlot(FrameSlotKind.Object, LocalScope.monadicStateSlotName(), null);
-      for (var definition : ScalaConversions.asJava(localScope.scope().allDefinitions())) {
-        var returnedFrameIdx =
-          descriptorBuilder.addSlot(
-            FrameSlotKind.Illegal,
-            definition.symbol(),
-            null
-            );
-            // assert(localFrameSlotIdxs(definition.id) == returnedFrameIdx)
-      }
-      descriptorBuilder.defaultValue(DataflowError.UNINITIALIZED);
-      var frameDescriptor = descriptorBuilder.build();
-      // assert(LocalScope.internalSlots.length + localFrameSlotIdxs.size == frameDescriptor.getNumberOfSlots)
-      return frameDescriptor;
+    var descriptorBuilder = FrameDescriptor.newBuilder();
+    descriptorBuilder.addSlot(FrameSlotKind.Object, LocalScope.monadicStateSlotName(), null);
+    for (var definition : ScalaConversions.asJava(localScope.scope().allDefinitions())) {
+      descriptorBuilder.addSlot(
+        FrameSlotKind.Illegal, definition.symbol(), null
+      );
+    }
+    descriptorBuilder.defaultValue(DataflowError.UNINITIALIZED);
+    var frameDescriptor = descriptorBuilder.build();
+    return frameDescriptor;
   }
 
   /**
