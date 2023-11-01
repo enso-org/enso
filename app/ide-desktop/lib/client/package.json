@@ -33,7 +33,7 @@
     "electron-builder": "Cannot be updated to a newer version because of a NSIS installer issue: https://github.com/enso-org/enso/issues/5169"
   },
   "devDependencies": {
-    "crypto-js": "4.1.1",
+    "crypto-js": "4.2.0",
     "electron": "25.7.0",
     "electron-builder": "^22.14.13",
     "@electron/notarize": "2.1.0",
