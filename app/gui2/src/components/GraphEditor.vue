@@ -20,7 +20,8 @@ import GraphNodes from './GraphEditor/GraphNodes.vue'
 import type { Path } from 'shared/languageServerTypes'
 import type { LsRpcError } from 'shared/languageServer'
 import { RemoteRpcError, ErrorCode } from 'shared/languageServer'
-
+import { sha3_224 } from 'js-sha3'
+ 
 const EXECUTION_MODES = ['design', 'live']
 
 const viewportNode = ref<HTMLElement>()
@@ -252,15 +253,23 @@ async function pickUniqueName(originalName: string): Promise<string> {
 async function upload(name: string, file: File): Promise<void> {
   // const rpc = await projectStore.lsRpcConnection
   const data = await projectStore.dataConnection
+  const rpc = await projectStore.lsRpcConnection
   const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
   if (projectRootId) {
     const remotePath = { rootId: projectRootId.id, segments: [dataDirName, name] }
     let offset = BigInt(0)
+    let checksum = sha3_224.create()
     const writableStream = new WritableStream<Uint8Array>({
       async write(chunk) {
         console.log(`Writing ${chunk.length} bytes to destination`)
         await data.writeBytes(remotePath, offset, false, chunk)
+        checksum.update(chunk.buffer)
         offset += BigInt(chunk.length)
+      },
+      async close() {
+        console.log(`Final hash: ${checksum.hex()}`)
+        const hash = await rpc.fileChecksum(remotePath)
+        console.log(`Hash from engine: ${hash.checksum}`)
       }
     })
     const readableStream = file.stream()
@@ -280,9 +289,9 @@ async function handleDrop(event: DragEvent) {
             if (file) {
               console.log(`… file[${i}].name = ${file.name}`)
               await ensureDataDirectoryExists()
-              const name = await pickUniqueName('test.txt')
+              const name = await pickUniqueName(file.name)
               console.log(`Unique name: ${name}`)
-              await upload('test.txt', file)
+              await upload(name, file)
             }
           }
         })
