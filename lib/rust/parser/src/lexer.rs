@@ -146,25 +146,24 @@ impl<'s> Lexer<'s> {
     fn next_input_char(&mut self) -> bool {
         let next = self.iterator.next();
         if let Some((current_offset, current_char)) = next {
-            let is_newline = self.current_char == Some('\n');
             let prev = self.current_offset;
-            let prev_char = self.current_char;
+            let char_len16 = self.current_char.map_or(0, |c| c.len_utf16() as u32);
             self.current_offset = Location {
                 utf8:  u32_from(current_offset),
-                utf16: prev.utf16 + prev_char.map_or(0, |c| c.len_utf16() as u32),
-                line:  prev.line + u32::from(is_newline),
-                col:   if is_newline { 0 } else { prev.col + u32::from(prev_char.is_some()) },
+                utf16: prev.utf16 + char_len16,
+                line:  prev.line,
+                col16: prev.col16 + char_len16,
             };
             self.current_char = Some(current_char);
             true
         } else if let Some(c) = self.current_char {
-            let is_newline = c == '\n';
             let prev = self.current_offset;
+            let char_len16 = c.len_utf16() as u32;
             self.current_offset = Location {
                 utf8:  u32_from(self.input.len()),
-                utf16: prev.utf16 + c.len_utf16() as u32,
-                line:  prev.line + u32::from(is_newline),
-                col:   if is_newline { 0 } else { prev.col + 1 },
+                utf16: prev.utf16 + char_len16,
+                line:  prev.line,
+                col16: prev.col16 + char_len16,
             };
             self.current_char = None;
             true
@@ -1043,6 +1042,7 @@ impl<'s> Lexer<'s> {
                     } else {
                         before_newline = text_start;
                     }
+                    self.advance_line_pos();
                     let newline_end = self.mark_without_whitespace();
                     let token =
                         self.make_token(before_newline, newline_end, token::Variant::newline());
@@ -1312,13 +1312,25 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     #[allow(clippy::collapsible_if)]
     fn line_break(&mut self) -> Option<Token<'s, ()>> {
-        self.token(|this| {
-            if !this.take_1('\n') {
-                if this.take_1('\r') {
-                    this.take_1('\n');
-                }
+        let token = self.token(|this| {
+            let matched = if this.take_1('\n') {
+                true
+            } else if this.take_1('\r') {
+                this.take_1('\n');
+                true
+            } else {
+                false
+            };
+            if matched {
+                this.advance_line_pos()
             }
-        })
+        });
+        token
+    }
+
+    fn advance_line_pos(&mut self) {
+        self.current_offset.line += 1;
+        self.current_offset.col16 = 0;
     }
 
     fn newlines(&mut self) {
@@ -1844,6 +1856,12 @@ mod tests {
     #[test]
     fn test_doc_comment() {
         let code = ["## Foo.", "main = 23"].join("\n");
+        lex_and_validate_spans(&code);
+    }
+
+    #[test]
+    fn test_comment() {
+        let code = ["# comment", "main = 23"].join("\n");
         lex_and_validate_spans(&code);
     }
 

@@ -34,12 +34,12 @@ pub struct Location {
     /// Offset from the beginning, in UTF-16 code units (two-byte words).
     #[reflect(hide)]
     pub utf16: u32,
-    /// Offset from the first line.
+    /// Line number, starting from 0. The recognized line terminators are CR, LF, or CRLF.
     #[reflect(hide)]
     pub line:  u32,
-    /// Offset from start of line, in Unicode characters.
+    /// Offset from start of line, in UTF-16 code units.
     #[reflect(hide)]
-    pub col:   u32,
+    pub col16: u32,
 }
 
 impl Add<Length> for Location {
@@ -50,7 +50,7 @@ impl Add<Length> for Location {
             utf8:  self.utf8 + rhs.utf8,
             utf16: self.utf16 + rhs.utf16,
             line:  self.line + rhs.newlines,
-            col:   if rhs.newlines == 0 { self.col } else { 0 } + rhs.line_chars,
+            col16: if rhs.newlines == 0 { self.col16 } else { 0 } + rhs.line_chars16,
         }
     }
 }
@@ -119,11 +119,11 @@ impl<'s> Code<'s> {
     pub fn split_at(&self, split: Length) -> (Self, Self) {
         let (left, right) = self.repr.split_at(usize::try_from(split.utf8).unwrap());
         let right_len = Length {
-            utf8:       self.len.utf8 - split.utf8,
-            utf16:      self.len.utf16 - split.utf16,
-            newlines:   self.len.newlines - split.newlines,
-            line_chars: self.len.line_chars
-                - if split.newlines == 0 { split.line_chars } else { 0 },
+            utf8:         self.len.utf8 - split.utf8,
+            utf16:        self.len.utf16 - split.utf16,
+            newlines:     self.len.newlines - split.newlines,
+            line_chars16: self.len.line_chars16
+                - if split.newlines == 0 { split.line_chars16 } else { 0 },
         };
         (Self { repr: StrRef(left), offset: self.offset, len: split }, Self {
             repr:   StrRef(right),
@@ -243,15 +243,15 @@ pub struct Length {
     /// An offset, in UTF-8 code units (bytes).
     #[reflect(skip)]
     #[serde(skip)]
-    pub utf8:       u32,
+    pub utf8:         u32,
     /// An offset, in UTF-16 code units (two-byte words).
-    pub utf16:      u32,
+    pub utf16:        u32,
     /// A difference in line numbers.
     #[reflect(hide)]
-    pub newlines:   u32,
-    /// If `newlines` is 0, this is the difference in character positions within a line; if
-    /// `newlines` is nonzero, this is the character position within the line ending the range.
-    pub line_chars: u32,
+    pub newlines:     u32,
+    /// If `newlines` is 0, this is the difference in UTF-16 code-unit positions within a line; if
+    /// `newlines` is nonzero, this is the position within the line ending the range.
+    pub line_chars16: u32,
 }
 
 impl Length {
@@ -260,16 +260,17 @@ impl Length {
     pub fn of(s: &str) -> Self {
         let mut utf16 = 0;
         let mut newlines = 0;
-        let mut line_chars = 0;
+        let mut line_chars16 = 0;
         for c in s.chars() {
-            utf16 += c.len_utf16() as u32;
-            line_chars += 1;
+            let char_len16 = c.len_utf16() as u32;
+            utf16 += char_len16;
+            line_chars16 += char_len16;
             if c == '\n' {
                 newlines += 1;
-                line_chars = 0;
+                line_chars16 = 0;
             }
         }
-        Self { utf8: u32::try_from(s.len()).unwrap(), utf16, newlines, line_chars }
+        Self { utf8: u32::try_from(s.len()).unwrap(), utf16, newlines, line_chars16 }
     }
 
     /// Returns true if the code is empty.
@@ -296,12 +297,12 @@ impl Add for Length {
 
     #[inline(always)]
     fn add(self, rhs: Self) -> Self::Output {
-        let Self { utf8, utf16, newlines, line_chars } = self;
+        let Self { utf8, utf16, newlines, line_chars16: line_chars } = self;
         Self {
-            utf8:       utf8 + rhs.utf8,
-            utf16:      utf16 + rhs.utf16,
-            newlines:   newlines + rhs.newlines,
-            line_chars: if rhs.newlines == 0 { line_chars } else { 0 } + rhs.line_chars,
+            utf8:         utf8 + rhs.utf8,
+            utf16:        utf16 + rhs.utf16,
+            newlines:     newlines + rhs.newlines,
+            line_chars16: if rhs.newlines == 0 { line_chars } else { 0 } + rhs.line_chars16,
         }
     }
 }
@@ -361,11 +362,12 @@ pub mod debug {
                 if let Some(loc) = self.locations.remove(&(i as u32)) {
                     assert_eq!(loc, pos);
                 }
-                pos.utf16 += c.len_utf16() as u32;
-                pos.col += 1;
+                let char_len = c.len_utf16() as u32;
+                pos.utf16 += char_len;
+                pos.col16 += char_len;
                 if c == '\n' {
                     pos.line += 1;
-                    pos.col = 0;
+                    pos.col16 = 0;
                 }
             }
             if let Some(loc) = self.locations.remove(&(input.len() as u32)) {
