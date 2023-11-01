@@ -35,7 +35,7 @@
   "devDependencies": {
     "crypto-js": "4.1.1",
     "electron": "25.7.0",
-    "electron-builder": "^22.14.13",
+    "electron-builder": "^24.6.4",
     "electron-notarize": "1.2.2",
     "enso-common": "^1.0.0",
     "esbuild": "^0.19.3",
