@@ -249,21 +249,47 @@ async function pickUniqueName(originalName: string): Promise<string> {
   }
 }
 
+async function upload(name: string, file: File): Promise<void> {
+  // const rpc = await projectStore.lsRpcConnection
+  const data = await projectStore.dataConnection
+  const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
+  if (projectRootId) {
+    const remotePath = { rootId: projectRootId.id, segments: [dataDirName, name] }
+    let offset = BigInt(0)
+    const writableStream = new WritableStream<Uint8Array>({
+      async write(chunk) {
+        console.log(`Writing ${chunk.length} bytes to destination`)
+        await data.writeBytes(remotePath, offset, false, chunk)
+        offset += BigInt(chunk.length)
+      }
+    })
+    const readableStream = file.stream()
+    await readableStream.pipeTo(writableStream)
+  } else {
+    throw new Error('Project root ID not found.')
+  }
+}
+
 async function handleDrop(event: DragEvent) {
-  if (event.dataTransfer) {
-    if (event.dataTransfer.items) {
-      [...event.dataTransfer.items].forEach(async (item, i) => {
-        if (item.kind === 'file') {
-          const file = item.getAsFile()
-          if (file) {
-            console.log(`… file[${i}].name = ${file.name}`)
-            await ensureDataDirectoryExists()
-            const name = await pickUniqueName('test.txt')
-            console.log(`Unique name: ${name}`)
+  try {
+    if (event.dataTransfer) {
+      if (event.dataTransfer.items) {
+        [...event.dataTransfer.items].forEach(async (item, i) => {
+          if (item.kind === 'file') {
+            const file = item.getAsFile()
+            if (file) {
+              console.log(`… file[${i}].name = ${file.name}`)
+              await ensureDataDirectoryExists()
+              const name = await pickUniqueName('test.txt')
+              console.log(`Unique name: ${name}`)
+              await upload('test.txt', file)
+            }
           }
-        }
-      })
+        })
+      }
     }
+  } catch (err) {
+    console.log(`Uploading file failed. ${err}`)
   }
 }
 </script>
