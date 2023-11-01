@@ -70,13 +70,16 @@ export class LanguageServerSession extends ObservableV2<Events> {
       }
     })
 
-    this.ls.on('file/event', (event) => {
+    this.ls.on('file/event', async (event) => {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
       }
       switch (event.kind) {
         case 'Added':
-          this.getModuleModel(event.path).open()
+          const fileInfo = await this.ls.fileInfo(event.path)
+          if (fileInfo.attributes.kind.type == 'File') {
+            this.getModuleModel(event.path).open()
+          }
           break
         case 'Modified':
           this.getModuleModelIfExists(event.path)?.reload()
