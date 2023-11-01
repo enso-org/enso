@@ -49,11 +49,11 @@ class Passes(
       ImportSymbolAnalysis,
       AmbiguousImportsAnalysis
     ) ++ (if (config.privateCheckEnabled) {
-      List (
-        PrivateModuleAnalysis.INSTANCE
-      )
-      } else List())
-      ++ List(
+            List(
+              PrivateModuleAnalysis.INSTANCE
+            )
+          } else List())
+    ++ List(
       ExportSymbolAnalysis.INSTANCE,
       ShadowedPatternFields,
       UnreachableMatchBranches,
