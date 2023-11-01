@@ -125,6 +125,7 @@ const effectiveVisualization = computed(() => {
 <template>
   <div class="GraphVisualization">
     <Suspense>
+      <template #fallback><LoadingVisualization :data="{}" /></template>
       <component
         :is="effectiveVisualization"
         :data="effectiveVisualizationData"
