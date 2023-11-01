@@ -34,8 +34,6 @@ import project.Data.List_Spec
 import project.Data.Locale_Spec
 import project.Data.Map_Spec
 import project.Data.Maybe_Spec
-import project.Data.Noise.Generator_Spec as Noise_Generator_Spec
-import project.Data.Noise_Spec
 import project.Data.Numbers_Spec
 import project.Data.Ordering_Spec
 import project.Data.Ordering.Comparator_Spec
@@ -120,8 +118,6 @@ main = Test_Suite.run_main <|
     Meta_Location_Spec.spec
     Names_Spec.spec
     Equals_Spec.spec
-    Noise_Generator_Spec.spec
-    Noise_Spec.spec
     Numbers_Spec.spec
     Ordering_Spec.spec
     Comparator_Spec.spec

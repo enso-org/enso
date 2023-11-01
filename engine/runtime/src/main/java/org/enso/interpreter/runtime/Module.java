@@ -22,10 +22,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
-import org.enso.compiler.ModuleCache;
+import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
@@ -36,7 +38,6 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
@@ -45,7 +46,6 @@ import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
-import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
@@ -152,6 +152,16 @@ public final class Module implements EnsoObject {
   }
 
   /**
+   * Unwraps runtime module from compiler module.
+   *
+   * @param module module created by {@link #asCompilerModule()} method
+   * @return
+   */
+  public static Module fromCompilerModule(CompilerContext.Module module) {
+    return ((TruffleCompilerContext.Module) module).unsafeModule();
+  }
+
+  /**
    * Creates an empty module.
    *
    * @param name the qualified name of the newly created module.
@@ -247,8 +257,8 @@ public final class Module implements EnsoObject {
       }
       if (patchedValues.simpleUpdate(update)) {
         this.sources = this.sources.newWith(source);
-        final Function1<Expression, Expression> fn =
-            new Function1<Expression, Expression>() {
+        final java.util.function.Function<Expression, Expression> fn =
+            new java.util.function.Function<Expression, Expression>() {
               @Override
               public Expression apply(Expression v1) {
                 if (v1 == change) {
@@ -374,7 +384,7 @@ public final class Module implements EnsoObject {
     if (source == null) return;
     scope.reset();
     compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(this);
+    context.getCompiler().run(asCompilerModule());
   }
 
   /** @return IR defined by this module. */
@@ -520,6 +530,15 @@ public final class Module implements EnsoObject {
   }
 
   /**
+   * Turns this module into appropriate {@link CompilerContext} wrapper.
+   *
+   * @return instance of {@link CompilerContext.Module} that delegates to this module
+   */
+  public final CompilerContext.Module asCompilerModule() {
+    return new TruffleCompilerContext.Module(this);
+  }
+
+  /**
    * Handles member invocations through the polyglot API.
    *
    * <p>The exposed members are:
@@ -606,12 +625,12 @@ public final class Module implements EnsoObject {
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {
-      return context.getCompiler().generateDocs(module);
+      return context.getCompiler().generateDocs(module.asCompilerModule());
     }
 
     @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, EnsoContext context) {
-      String[] imports = context.getCompiler().gatherImportStatements(module);
+      String[] imports = context.getCompiler().gatherImportStatements(module.asCompilerModule());
       return ArrayLikeHelpers.wrapStrings(imports);
     }
 

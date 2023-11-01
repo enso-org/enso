@@ -1,0 +1,13 @@
+{
+  "include": ["scripts/**/*"],
+  "compilerOptions": {
+    "module": "Node16",
+    "target": "ES2017",
+    "strict": true,
+    "allowJs": true,
+    "checkJs": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "types": ["node"]
+  }
+}

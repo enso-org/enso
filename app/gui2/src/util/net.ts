@@ -1,6 +1,16 @@
-import { Err, Error, Ok, rejectionToResult, type Result } from '@/util/result'
+import { Err, Ok, ResultError, rejectionToResult, type Result } from '@/util/result'
+import { WebSocketTransport } from '@open-rpc/client-js'
+import type {
+  IJSONRPCNotificationResponse,
+  JSONRPCRequestData,
+} from '@open-rpc/client-js/build/Request'
+import { Transport } from '@open-rpc/client-js/build/transports/Transport'
+import type { ArgumentsType } from '@vueuse/core'
+import { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
+import type { Notifications } from 'shared/languageServerTypes'
+import { WebsocketClient } from 'shared/websocket'
 
 export interface BackoffOptions<E> {
   maxRetries?: number
@@ -12,7 +22,7 @@ export interface BackoffOptions<E> {
    * When this function returns `false`, the backoff is immediately aborted. When this function is
    * not provided, the backoff will always continue until the maximum number of retries is reached.
    */
-  onBeforeRetry?: (error: Error<E>, retryCount: number, delay: number) => boolean | void
+  onBeforeRetry?: (error: ResultError<E>, retryCount: number, delay: number) => boolean | void
 }
 
 const defaultBackoffOptions: Required<BackoffOptions<any>> = {
@@ -68,6 +78,63 @@ export async function rpcWithRetries<T>(
 
 type QueueTask<State> = (state: State) => Promise<State>
 
+export function createRpcTransport(url: string): Transport {
+  if (url.startsWith('mock://')) {
+    const mockName = url.slice('mock://'.length)
+    return new MockTransport(mockName)
+  } else {
+    return new WebSocketTransport(url)
+  }
+}
+
+export function createWebsocketClient(
+  url: string,
+  options?: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean },
+): WebsocketClient {
+  if (url.startsWith('mock://')) {
+    return new ObservableV2() as WebsocketClient
+  } else {
+    const client = new WebsocketClient(url, options)
+    client.connect()
+    return client
+  }
+}
+
+interface MockTransportData {
+  (method: string, params: any, transport: MockTransport): Promise<any>
+}
+
+export class MockTransport extends Transport {
+  name: string
+  static mocks: Map<string, MockTransportData> = new Map()
+  constructor(name: string) {
+    super()
+    this.name = name
+  }
+
+  static addMock(name: string, data: MockTransportData) {
+    MockTransport.mocks.set(name, data)
+  }
+  connect(): Promise<any> {
+    return Promise.resolve()
+  }
+  close(): void {}
+  sendData(data: JSONRPCRequestData, timeout?: number | null): Promise<any> {
+    if (Array.isArray(data)) return Promise.all(data.map((d) => this.sendData(d.request, timeout)))
+    return (
+      MockTransport.mocks.get(this.name)?.(data.request.method, data.request.params, this) ??
+      Promise.reject()
+    )
+  }
+  emit<N extends keyof Notifications>(method: N, params: ArgumentsType<Notifications[N]>[0]): void {
+    this.transportRequestManager.transportEventChannel.emit('notification', {
+      jsonrpc: '2.0',
+      method,
+      params,
+    } as IJSONRPCNotificationResponse)
+  }
+}
+
 /**
  * A serializing queue of asynchronous tasks transforming a state. Each task is a function that
  * takes the current state and produces a promise to the transformed state. Each task waits for the
@@ -107,9 +174,7 @@ export class AsyncQueue<State> {
   async waitForCompletion(): Promise<State> {
     let lastState: State
     do {
-      console.log('this.lastTask', this.lastTask)
       lastState = await this.lastTask
-      console.log('lastState', lastState)
     } while (this.taskRunning)
     return lastState
   }
@@ -180,7 +245,7 @@ if (import.meta.vitest) {
       const promise = exponentialBackoff(task, { maxRetries: 4 })
       vi.runAllTimersAsync()
       const result = await promise
-      expect(result).toEqual({ ok: false, error: new Error(1) })
+      expect(result).toEqual({ ok: false, error: new ResultError(1) })
       expect(task).toHaveBeenCalledTimes(5)
     })
 
@@ -226,8 +291,8 @@ if (import.meta.vitest) {
       vi.runAllTimersAsync()
       await promise
       expect(onBeforeRetry).toHaveBeenCalledTimes(2)
-      expect(onBeforeRetry).toHaveBeenNthCalledWith(1, new Error(3), 0, 1000)
-      expect(onBeforeRetry).toHaveBeenNthCalledWith(2, new Error(2), 1, 2000)
+      expect(onBeforeRetry).toHaveBeenNthCalledWith(1, new ResultError(3), 0, 1000)
+      expect(onBeforeRetry).toHaveBeenNthCalledWith(2, new ResultError(2), 1, 2000)
     })
   })
 }

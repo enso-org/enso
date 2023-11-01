@@ -286,6 +286,7 @@ lazy val enso = (project in file("."))
     launcher,
     downloader,
     `runtime-parser`,
+    `runtime-compiler`,
     `runtime-language-epb`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
@@ -314,7 +315,8 @@ lazy val enso = (project in file("."))
     `simple-httpbin`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
-    `benchmark-java-helpers`
+    `benchmark-java-helpers`,
+    `bench-processor`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -1357,8 +1359,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"       %% "cats-core"             % catsVersion,
       "junit"                % "junit"                 % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
-      "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test,
-      "com.lihaoyi"         %% "fansi"                 % fansiVersion
+      "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test
     ),
     // Dependencies with "Runtime" scope - we don't need them for compilation, just provide them
     // at runtime (in module-path).
@@ -1424,8 +1425,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`logging-truffle-connector`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
-  .dependsOn(`runtime-parser`)
-  .dependsOn(pkg)
+  .dependsOn(`runtime-compiler`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
@@ -1443,6 +1443,23 @@ lazy val `runtime-parser` =
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
+
+lazy val `runtime-compiler` =
+  (project in file("engine/runtime-compiler"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
+        "com.lihaoyi"   %% "fansi"           % fansiVersion
+      )
+    )
+    .dependsOn(`runtime-parser`)
+    .dependsOn(pkg)
+    .dependsOn(`polyglot-api`)
+    .dependsOn(editions)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))

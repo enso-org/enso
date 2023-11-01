@@ -1666,28 +1666,27 @@ type Table
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right:Table (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
-        if check_table "right" right then
-            # [left_unmatched, matched, right_unmatched]
-            rows_to_keep = case join_kind of
-                Join_Kind.Inner           -> [False, True, False]
-                Join_Kind.Left_Outer      -> [True, True, False]
-                Join_Kind.Right_Outer     -> [False, True, True]
-                Join_Kind.Full            -> [True, True, True]
-                Join_Kind.Left_Exclusive  -> [True, False, False]
-                Join_Kind.Right_Exclusive -> [False, False, True]
+        # [left_unmatched, matched, right_unmatched]
+        rows_to_keep = case join_kind of
+            Join_Kind.Inner           -> [False, True, False]
+            Join_Kind.Left_Outer      -> [True, True, False]
+            Join_Kind.Right_Outer     -> [False, True, True]
+            Join_Kind.Full            -> [True, True, True]
+            Join_Kind.Left_Exclusive  -> [True, False, False]
+            Join_Kind.Right_Exclusive -> [False, False, True]
 
-            columns_to_keep = case join_kind of
-                Join_Kind.Left_Exclusive  -> [True, False]
-                Join_Kind.Right_Exclusive -> [False, True]
-                _                         -> [True, True]
+        columns_to_keep = case join_kind of
+            Join_Kind.Left_Exclusive  -> [True, False]
+            Join_Kind.Right_Exclusive -> [False, True]
+            _                         -> [True, True]
 
-            join_resolution = make_join_helpers self right . resolve on on_problems
-            right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
+        join_resolution = make_join_helpers self right . resolve on on_problems
+        right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
 
-            java_conditions = join_resolution.conditions
-            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
-            Table.Value new_java_table
+        java_conditions = join_resolution.conditions
+        new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+            self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+        Table.Value new_java_table
 
     ## ALIAS cartesian join
        GROUP Standard.Base.Calculations
@@ -1726,15 +1725,14 @@ type Table
          layout order while for database tables the order may be unspecified).
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
     cross_join self right:Table right_row_limit=100 right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
-        if check_table "right" right then
-            limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
-                True ->
-                    [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
-                False -> []
-            on_problems.attach_problems_before limit_problems <|
-                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                    self.java_table.crossJoin right.java_table right_prefix java_aggregator
-                Table.Value new_java_table
+        limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
+            True ->
+                [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+            False -> []
+        on_problems.attach_problems_before limit_problems <|
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.crossJoin right.java_table right_prefix java_aggregator
+            Table.Value new_java_table
 
     ## Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
@@ -1771,8 +1769,8 @@ type Table
            specified in `key_columns`, a `Missing_Input_Columns` error is raised.
          - If an empty vector is provided for `key_columns`, a
            `No_Input_Columns_Selected` error is raised.
-         - If the lookup table contains multiple rows with the same values in
-           the `key_columns`, an `Non_Unique_Key` error is raised.
+         - If a single row is matched by multiple entries in the lookup table,
+           a `Non_Unique_Key` error is raised.
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
@@ -1874,20 +1872,19 @@ type Table
     @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
     zip self right:Table keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
-        if check_table "right" right then
-            keep_unmatched_bool = case keep_unmatched of
-                Report_Unmatched -> True
-                b : Boolean -> b
-            report_mismatch = keep_unmatched == Report_Unmatched
+        keep_unmatched_bool = case keep_unmatched of
+            Report_Unmatched -> True
+            b : Boolean -> b
+        report_mismatch = keep_unmatched == Report_Unmatched
 
-            left_row_count = self.row_count
-            right_row_count = right.row_count
-            problems = if (left_row_count == right_row_count) || report_mismatch.not then [] else
-                [Row_Count_Mismatch.Error left_row_count right_row_count]
-            on_problems.attach_problems_before problems <|
-                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                    self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
-                Table.Value new_java_table
+        left_row_count = self.row_count
+        right_row_count = right.row_count
+        problems = if (left_row_count == right_row_count) || report_mismatch.not then [] else
+            [Row_Count_Mismatch.Error left_row_count right_row_count]
+        on_problems.attach_problems_before problems <|
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
+            Table.Value new_java_table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
@@ -1980,12 +1977,11 @@ type Table
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    union self tables:Vector|Table match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
-            v : Vector -> [self] + v
-            single_column : Column -> [self, single_column.to_table]
+            v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, single_table]
-        all_tables.all (check_table "tables") . if_not_error <|
+        all_tables.if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
@@ -2530,17 +2526,6 @@ make_join_helpers left_table right_table =
     make_between _ left right_lower right_upper =
         Java_Join_Between.new left.java_column right_lower.java_column right_upper.java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
-
-## PRIVATE
-   Checks if the argument is a proper table and comes from the current backend.
-   It returns True or throws a dataflow error explaining the issue.
-check_table arg_name table =
-    if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table arg_name) else
-            same_backend = table.is_a Table
-            case same_backend of
-                False ->
-                    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
-                True -> True
 
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.

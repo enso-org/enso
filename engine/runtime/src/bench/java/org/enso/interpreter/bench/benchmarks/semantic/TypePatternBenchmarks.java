@@ -1,6 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import org.enso.polyglot.MethodNames.Module;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
@@ -12,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.logging.Level;
 
 
 @BenchmarkMode(Mode.AverageTime)
@@ -31,7 +33,11 @@ public class TypePatternBenchmarks {
       .allowExperimentalOptions(true)
       .allowIO(IOAccess.ALL)
       .allowAllAccess(true)
-      .logHandler(new ByteArrayOutputStream())
+      .option(
+              RuntimeOptions.LOG_LEVEL,
+              Level.WARNING.getName()
+      )
+      .logHandler(System.err)
       .option(
         "enso.languageHomeOverride",
         Paths.get("../../distribution/component").toFile().getAbsolutePath()

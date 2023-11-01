@@ -45,7 +45,7 @@ import { computed, ref, watchPostEffect } from 'vue'
 import * as d3 from 'd3'
 
 import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
 
 const props = defineProps<{ data: Data }>()
 
@@ -88,17 +88,17 @@ const fill = computed(() =>
     .domain([0, d3.max(buckets.value, (d) => d.value) ?? 1]),
 )
 
-const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
+const width = ref(Math.max(config.width ?? 0, config.nodeSize.x))
 watchPostEffect(() => {
-  width.value = config.value.fullscreen
+  width.value = config.fullscreen
     ? containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
+    : Math.max(config.width ?? 0, config.nodeSize.x)
 })
-const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+const height = ref(config.height ?? (config.nodeSize.x * 3) / 4)
 watchPostEffect(() => {
-  height.value = config.value.fullscreen
+  height.value = config.fullscreen
     ? containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
+    : config.height ?? (config.nodeSize.x * 3) / 4
 })
 const boxWidth = computed(() => Math.max(0, width.value - MARGIN.left - MARGIN.right))
 const boxHeight = computed(() => Math.max(0, height.value - MARGIN.top - MARGIN.bottom))

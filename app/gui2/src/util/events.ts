@@ -2,8 +2,7 @@ import type { Opt } from '@/util/opt'
 import { Vec2 } from '@/util/vec2'
 import {
   computed,
-  onMounted,
-  onUnmounted,
+  onScopeDispose,
   proxyRefs,
   ref,
   shallowRef,
@@ -43,10 +42,8 @@ export function useEvent(
   handler: (event: unknown) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
-  onMounted(() => {
-    target.addEventListener(event, handler, options)
-  })
-  onUnmounted(() => {
+  target.addEventListener(event, handler, options)
+  onScopeDispose(() => {
     target.removeEventListener(event, handler, options)
   })
 }
@@ -141,7 +138,8 @@ export function useResizeObserver(
   elementRef: Ref<Element | undefined | null>,
   useContentRect = true,
 ): Ref<Vec2> {
-  const sizeRef = shallowRef<Vec2>(Vec2.Zero())
+  const sizeRef = shallowRef<Vec2>(Vec2.Zero)
+  if (typeof ResizeObserver === 'undefined') return sizeRef
   const observer = new ResizeObserver((entries) => {
     let rect: { width: number; height: number } | null = null
     for (const entry of entries) {

@@ -216,7 +216,7 @@ public final class Builtins {
       if (module.getSource() == null) {
         initializeBuiltinsSource();
       }
-      BuiltinsIrBuilder.build(context, module, freshNameSupply, passes);
+      BuiltinsIrBuilder.build(context, module.asCompilerModule(), freshNameSupply, passes);
     } catch (IOException e) {
       e.printStackTrace();
     }
