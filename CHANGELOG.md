@@ -832,6 +832,7 @@
 [7776]: https://github.com/enso-org/enso/pull/7776
 [7807]: https://github.com/enso-org/enso/pull/7807
 [7826]: https://github.com/enso-org/enso/pull/7826
+[7859]: https://github.com/enso-org/enso/pull/7859
 [7908]: https://github.com/enso-org/enso/pull/7908
 [7913]: https://github.com/enso-org/enso/pull/7913
 [7947]: https://github.com/enso-org/enso/pull/7947
