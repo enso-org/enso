@@ -9,6 +9,7 @@ import org.enso.compiler.core.ir.{
   Expression,
   Function,
   IdentifiedLocation,
+  Location,
   Module,
   Name
 }
@@ -23,7 +24,6 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
-import org.enso.syntax.text.Location
 
 import java.util.UUID
 
@@ -172,7 +172,7 @@ case object LambdaConsolidate extends IRPass {
           case Some(location) =>
             Some(
               IdentifiedLocation(
-                Location(
+                new Location(
                   location.start,
                   chainedLambdas.last.location.getOrElse(location).location.end
                 ),

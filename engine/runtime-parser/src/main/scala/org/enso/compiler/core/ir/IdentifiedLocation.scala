@@ -1,7 +1,5 @@
 package org.enso.compiler.core.ir
 
-import org.enso.syntax.text.Location
-
 import java.util.UUID
 
 /** Couples a location with a possible source identifier.

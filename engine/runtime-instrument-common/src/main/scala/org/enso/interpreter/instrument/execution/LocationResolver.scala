@@ -2,9 +2,9 @@ package org.enso.interpreter.instrument.execution
 
 import com.oracle.truffle.api.source.SourceSection
 import org.enso.compiler.core.{ExternalID, IR, Identifier}
+import org.enso.compiler.core.ir.Location
 import org.enso.compiler.core.ir.IdentifiedLocation
 import org.enso.interpreter.runtime.Module
-import org.enso.syntax.text.Location
 import org.enso.text.editing.{model, IndexedSource}
 
 import java.util.UUID
@@ -121,7 +121,7 @@ object LocationResolver {
     source: A
   ): Location = {
     val range = sectionToRange(section)
-    Location(
+    new Location(
       IndexedSource[A].toIndex(range.start, source),
       IndexedSource[A].toIndex(range.end, source)
     )

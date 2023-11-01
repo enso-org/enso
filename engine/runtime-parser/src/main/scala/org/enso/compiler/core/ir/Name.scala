@@ -3,7 +3,6 @@ package org.enso.compiler.core.ir
 import org.enso.compiler.core.{ConstantsNames, IR, Identifier}
 import org.enso.compiler.core.IR.randomId
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
-import org.enso.syntax.text.Location
 
 import java.util.UUID
 
@@ -184,7 +183,7 @@ object Name {
           identLoc.flatMap(loc => {
             Some(
               IdentifiedLocation(
-                Location(
+                new Location(
                   loc.location.start,
                   segment.location
                     .flatMap(l => Some(l.location.end))
