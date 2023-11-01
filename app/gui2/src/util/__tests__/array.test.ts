@@ -18,7 +18,7 @@ fcTest.prop({
     const sorted = a.sort((a, b) => a - b)
     return fc.record({
       arr: fc.constant(sorted),
-      i: fc.nat({ max: sorted.length }).map((i) => Math.max(0, a.indexOf(a[i]!))),
+      i: fc.nat({ max: Math.max(sorted.length - 1, 0) }).map((i) => Math.max(0, a.indexOf(a[i]!))),
     })
   }),
 })('partitionPoint (ascending)', ({ arr: { arr, i } }) => {
@@ -31,7 +31,7 @@ fcTest.prop({
     const sorted = a.sort((a, b) => b - a)
     return fc.record({
       arr: fc.constant(sorted),
-      i: fc.nat({ max: sorted.length }).map((i) => Math.max(0, a.indexOf(a[i]!))),
+      i: fc.nat({ max: Math.max(sorted.length - 1, 0) }).map((i) => Math.max(0, a.indexOf(a[i]!))),
     })
   }),
 })('partitionPoint (descending)', ({ arr: { arr, i } }) => {
