@@ -55,6 +55,11 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
+  public boolean isPrivateCheckDisabled() {
+    return context.isPrivateCheckDisabled();
+  }
+
+  @Override
   public boolean isUseGlobalCacheLocations() {
     return context.isUseGlobalCache();
   }

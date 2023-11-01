@@ -150,6 +150,7 @@ public final class EnsoContext {
             = new CompilerConfig(
                     isParallelismEnabled,
                     true,
+                    !isPrivateCheckDisabled,
                     getOption(RuntimeOptions.STRICT_ERRORS_KEY),
                     scala.Option.empty());
     this.home = home;
