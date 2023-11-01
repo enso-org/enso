@@ -187,18 +187,18 @@ object NativeImage {
 
       var cmd: Seq[String] =
         Seq(nativeImagePath) ++
-        verboseOpt
-      Seq("-cp", cpStr) ++
-      quickBuildOption ++
-      debugParameters ++ staticParameters ++ configs ++
-      Seq("--no-fallback", "--no-server") ++
-      Seq("-march=compatibility") ++
-      initializeAtBuildtimeOptions ++
-      initializeAtRuntimeOptions ++
-      buildMemoryLimitOptions ++
-      runtimeMemoryOptions ++
-      additionalOptions ++
-      Seq("-o", artifactName)
+        verboseOpt ++
+        Seq("-cp", cpStr) ++
+        quickBuildOption ++
+        debugParameters ++ staticParameters ++ configs ++
+        Seq("--no-fallback", "--no-server") ++
+        Seq("-march=compatibility") ++
+        initializeAtBuildtimeOptions ++
+        initializeAtRuntimeOptions ++
+        buildMemoryLimitOptions ++
+        runtimeMemoryOptions ++
+        additionalOptions ++
+        Seq("-o", artifactName)
 
       cmd = mainClass match {
         case Some(main) =>
