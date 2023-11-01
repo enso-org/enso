@@ -297,12 +297,12 @@ impl Add for Length {
 
     #[inline(always)]
     fn add(self, rhs: Self) -> Self::Output {
-        let Self { utf8, utf16, newlines, line_chars16: line_chars } = self;
+        let Self { utf8, utf16, newlines, line_chars16 } = self;
         Self {
             utf8:         utf8 + rhs.utf8,
             utf16:        utf16 + rhs.utf16,
             newlines:     newlines + rhs.newlines,
-            line_chars16: if rhs.newlines == 0 { line_chars } else { 0 } + rhs.line_chars16,
+            line_chars16: if rhs.newlines == 0 { line_chars16 } else { 0 } + rhs.line_chars16,
         }
     }
 }
