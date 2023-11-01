@@ -76,9 +76,11 @@ export class LanguageServerSession extends ObservableV2<Events> {
       }
       switch (event.kind) {
         case 'Added':
-          const fileInfo = await this.ls.fileInfo(event.path)
-          if (fileInfo.attributes.kind.type == 'File') {
-            this.getModuleModel(event.path).open()
+          if (isSourceFile(event.path)) {
+            const fileInfo = await this.ls.fileInfo(event.path)
+            if (fileInfo.attributes.kind.type == 'File') {
+              this.getModuleModel(event.path).open()
+            }
           }
           break
         case 'Modified':
@@ -181,6 +183,10 @@ export class LanguageServerSession extends ObservableV2<Events> {
   getYDoc(guid: string): WSSharedDoc | undefined {
     return this.docs.get(guid)
   }
+}
+
+const isSourceFile = (path: Path): boolean => {
+  return path.segments[0] === 'src' && path.segments[path.segments.length - 1].endsWith('.enso')
 }
 
 const pathToModuleName = (path: Path): string => {
