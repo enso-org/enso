@@ -281,6 +281,7 @@ lazy val enso = (project in file("."))
     launcher,
     downloader,
     `runtime-parser`,
+    `runtime-compiler`,
     `runtime-language-epb`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
@@ -1352,8 +1353,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion              % Test,
       "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
-      "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
-      "com.lihaoyi"        %% "fansi"                 % fansiVersion
+      "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
@@ -1418,8 +1418,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`logging-truffle-connector`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
-  .dependsOn(`runtime-parser`)
-  .dependsOn(pkg)
+  .dependsOn(`runtime-compiler`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
@@ -1437,6 +1436,23 @@ lazy val `runtime-parser` =
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
+
+lazy val `runtime-compiler` =
+  (project in file("engine/runtime-compiler"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
+        "com.lihaoyi"   %% "fansi"           % fansiVersion
+      )
+    )
+    .dependsOn(`runtime-parser`)
+    .dependsOn(pkg)
+    .dependsOn(`polyglot-api`)
+    .dependsOn(editions)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))

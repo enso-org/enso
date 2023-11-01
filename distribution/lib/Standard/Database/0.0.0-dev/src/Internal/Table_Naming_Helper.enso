@@ -94,7 +94,7 @@ type Table_Naming_Helper
         if max_size.is_nothing.not && (naming_properties.encoded_size (prefix + minimum_randomness_template) > max_size) then Error.throw (Illegal_State.Error "The prefix has size "+(naming_properties.encoded_size prefix).to_text+" while max table name size is "+max_size.to_text+" - there is not enough space to safely generate random names.") else
             go ix =
                 if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries+". Giving up.") else
-                    base_name = prefix + Random.random_uuid
+                    base_name = prefix + Random.uuid
                     name = self.truncate_if_needed base_name
                     if self.connection.table_exists name . not then name else
                         @Tail_Call go (ix + 1)

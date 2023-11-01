@@ -64,12 +64,12 @@ public class AvoidIdInstrumentationTagTest {
   }
 
   @Test
-  public void avoidIdInstrumentationInLambdaMapFunctionWithNoise() throws Exception {
+  public void avoidIdInstrumentationInLambdaMapFunctionWithFloor() throws Exception {
     var code = """
     from Standard.Base import all
     import Standard.Visualization
 
-    run n = 0.up_to n . map i-> 1.noise * i
+    run n = 0.up_to n . map i-> 1.floor * i
     """;
     var src = Source.newBuilder("enso", code, "TestLambda.enso").build();
     var module = context.eval(src);
@@ -80,7 +80,7 @@ public class AvoidIdInstrumentationTagTest {
     Predicate<SourceSection> isLambda = (ss) -> {
       var sameSrc = ss.getSource().getCharacters().toString().equals(src.getCharacters().toString());
       var st = ss.getCharacters().toString();
-      return sameSrc && st.contains("noise") && !st.contains("map");
+      return sameSrc && st.contains("floor") && !st.contains("map");
     };
 
     assertAvoidIdInstrumentationTag(isLambda);
