@@ -26,7 +26,7 @@ import org.enso.compiler.pass.analyse.DataflowAnalysis.{
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 import org.enso.interpreter.test.Metadata
 import org.scalatest.Assertion
 

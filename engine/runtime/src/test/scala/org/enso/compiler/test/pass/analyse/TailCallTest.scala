@@ -18,7 +18,7 @@ import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 
 class TailCallTest extends CompilerTest {
 

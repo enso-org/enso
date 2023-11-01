@@ -17,7 +17,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 
 class LambdaConsolidateTest extends CompilerTest {
 

@@ -10,7 +10,7 @@ import java.util.Objects;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
 

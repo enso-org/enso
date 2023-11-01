@@ -15,7 +15,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.CompilationStage
 

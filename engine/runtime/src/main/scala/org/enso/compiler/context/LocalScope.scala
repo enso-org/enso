@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.scope
+package org.enso.compiler.context
 
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
@@ -158,8 +158,7 @@ class LocalScope(
 }
 object LocalScope {
 
-  /** Constructs a local scope for an
-    * [[org.enso.interpreter.node.EnsoRootNode]].
+  /** Constructs a local scope for an [[EnsoRootNode]].
     *
     * @return a defaulted local scope
     */
