@@ -10,9 +10,9 @@ import { LanguageServer } from 'shared/languageServer'
 import { reactive, ref, type Ref } from 'vue'
 
 export class SuggestionDb {
-  private internal = new ReactiveDb<SuggestionId, SuggestionEntry>()
-  nameToId = new ReactiveIndex(this.internal, (id, entry) => [[entryQn(entry), id]])
-  parent = new ReactiveIndex(this.internal, (id, entry) => {
+  _internal = new ReactiveDb<SuggestionId, SuggestionEntry>()
+  nameToId = new ReactiveIndex(this._internal, (id, entry) => [[entryQn(entry), id]])
+  parent = new ReactiveIndex(this._internal, (id, entry) => {
     let qualifiedName: Opt<QualifiedName>
     if (entry.memberOf) {
       qualifiedName = entry.memberOf
@@ -26,16 +26,16 @@ export class SuggestionDb {
     return []
   })
   set(id: SuggestionId, entry: SuggestionEntry): void {
-    this.internal.set(id, reactive(entry))
+    this._internal.set(id, reactive(entry))
   }
   get(id: SuggestionId): SuggestionEntry | undefined {
-    return this.internal.get(id)
+    return this._internal.get(id)
   }
   delete(id: SuggestionId): boolean {
-    return this.internal.delete(id)
+    return this._internal.delete(id)
   }
   entries(): IterableIterator<[SuggestionId, SuggestionEntry]> {
-    return this.internal.entries()
+    return this._internal.entries()
   }
 }
 

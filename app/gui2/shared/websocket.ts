@@ -115,7 +115,7 @@ type WebsocketEvents = {
 }
 
 export class WebsocketClient extends ObservableV2<WebsocketEvents> {
-  ws: any
+  ws: WebSocket | null
   binaryType
   sendPings
   connected
@@ -149,7 +149,7 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
           ) {
             // no message received in a long time - not even your own awareness
             // updates (which are updated every 15 seconds)
-            this.ws.close()
+            this.ws?.close()
           }
         }, messageReconnectTimeout / 2)
       : 0
@@ -157,13 +157,10 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
   }
 
   send(message: {} | ArrayBuffer | Blob) {
-    if (this.ws) {
-      const encoded =
-        message instanceof ArrayBuffer || message instanceof Blob
-          ? message
-          : JSON.stringify(message)
-      this.ws.send(encoded)
-    }
+    if (!this.ws) return
+    const encoded =
+      message instanceof ArrayBuffer || message instanceof Blob ? message : JSON.stringify(message)
+    this.ws.send(encoded)
   }
 
   destroy() {
@@ -174,14 +171,12 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
 
   disconnect() {
     this.shouldConnect = false
-    if (this.ws !== null) {
-      this.ws.close()
-    }
+    this.ws?.close()
   }
 
   connect() {
     this.shouldConnect = true
-    if (!this.connected && this.ws === null) {
+    if (!this.connected && !this.ws) {
       setupWS(this)
     }
   }

@@ -79,6 +79,7 @@
     "@types/mapbox-gl": "^2.7.13",
     "@types/node": "^18.17.5",
     "@types/shuffle-seed": "^1.1.0",
+    "@types/wicg-file-system-access": "^2023.10.2",
     "@types/ws": "^8.5.5",
     "@vitejs/plugin-react": "^4.0.4",
     "@vitejs/plugin-vue": "^4.3.1",

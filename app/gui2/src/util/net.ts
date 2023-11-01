@@ -6,7 +6,6 @@ import type {
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import type { ArgumentsType } from '@vueuse/core'
-import { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
 import type { Notifications } from 'shared/languageServerTypes'
@@ -92,7 +91,9 @@ export function createWebsocketClient(
   options?: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean },
 ): WebsocketClient {
   if (url.startsWith('mock://')) {
-    return new ObservableV2() as WebsocketClient
+    const mockWs = new MockWebSocketClient(url)
+    if (options?.binaryType) mockWs.binaryType = options.binaryType
+    return mockWs
   } else {
     const client = new WebsocketClient(url, options)
     client.connect()
@@ -132,6 +133,59 @@ export class MockTransport extends Transport {
       method,
       params,
     } as IJSONRPCNotificationResponse)
+  }
+}
+
+export class MockWebSocket extends EventTarget implements WebSocket {
+  readonly CONNECTING = WebSocket.CONNECTING
+  readonly OPEN = WebSocket.OPEN
+  readonly CLOSING = WebSocket.CLOSING
+  readonly CLOSED = WebSocket.CLOSED
+  readyState: number = WebSocket.OPEN
+  binaryType: BinaryType = 'blob'
+  readonly bufferedAmount = 0
+  readonly extensions = ''
+  readonly protocol = ''
+  onopen: ((this: WebSocket, ev: Event) => any) | null = null
+  onclose: ((this: WebSocket, ev: CloseEvent) => any) | null = null
+  onmessage: ((this: WebSocket, ev: MessageEvent<any>) => any) | null = null
+  onerror: ((this: WebSocket, ev: Event) => any) | null = null
+  protected mockCb: (
+    data: string | ArrayBufferLike | Blob | ArrayBufferView,
+    send: (data: string | ArrayBufferLike | Blob | ArrayBufferView) => void,
+  ) => void = () => {}
+
+  constructor(public url: string) {
+    super()
+  }
+
+  mock(
+    cb: (
+      data: string | ArrayBufferLike | Blob | ArrayBufferView,
+      send: (data: string | ArrayBufferLike | Blob | ArrayBufferView) => void,
+    ) => void,
+  ) {
+    this.mockCb = cb
+  }
+
+  mockMessage(data: string | ArrayBufferLike | Blob | ArrayBufferView) {
+    this.dispatchEvent(new MessageEvent('message', { data }))
+  }
+
+  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
+    this.mockCb(data, this.mockMessage.bind(this))
+  }
+
+  close() {
+    this.readyState = WebSocket.CLOSED
+  }
+}
+
+export class MockWebSocketClient extends WebsocketClient {
+  ws: MockWebSocket
+  constructor(url: string) {
+    super(url)
+    this.ws = new MockWebSocket(url)
   }
 }
 
