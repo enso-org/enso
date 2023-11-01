@@ -192,14 +192,13 @@ final class PathWatcher(
 
   private def startWatcher(
     watcher: Watcher
-  ): Either[FileSystemFailure, Unit] = {
+  ): Either[FileSystemFailure, Unit] =
     Either
       .catchNonFatal {
         fileWatcher = Some(watcher)
         exec.exec__(ec => ZIO.attempt(watcher.start(ec.asJava)))
       }
       .leftMap(errorHandler)
-  }
 
   private def stopWatcher(): Either[FileSystemFailure, Unit] =
     Either
