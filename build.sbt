@@ -663,7 +663,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
+      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
       "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
       "io.circe"           %% "circe-yaml"       % circeYamlVersion,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
@@ -2166,8 +2166,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
