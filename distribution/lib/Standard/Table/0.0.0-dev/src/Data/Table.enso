@@ -15,6 +15,7 @@ from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Calculations.Column_Operation.Column_Operation
+import project.Data.Blank_Selector.Blank_Selector
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Column_Ref.Column_Ref
@@ -52,6 +53,7 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Widget_Helpers
+
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
@@ -412,9 +414,9 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when_any: By default, only columns consisting of all blank cells are
-         selected. If set to `True`, columns with one or more blank values are
-         selected.
+       - when: By default, only columns consisting of all blank cells are
+         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or
+         more blank values are selected.
        - treat_nans_as_blank: specifies whether `Number.nan` is considered as
          blank. By default, it is not.
 
@@ -425,9 +427,9 @@ type Table
          Select completely blank columns from a table.
 
              table.select_blank_columns
-    select_blank_columns : Boolean -> Boolean -> Table ! No_Output_Columns
-    select_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
-        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank
+    select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
+    select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
 
@@ -438,8 +440,8 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when_any: By default, only columns consisting of all blank cells are
-         selected. If set to `True`, columns with one or more blank values are
+       - when By default, only columns consisting of all blank cells are
+         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or more blank values are
          selected.
        - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
@@ -451,9 +453,9 @@ type Table
          Remove completely blank columns from a table.
 
              table.remove_blank_columns
-    remove_blank_columns : Boolean -> Boolean -> Table ! No_Output_Columns
-    remove_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
-        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank invert_selection=True
+    remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
+    remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
 
@@ -2016,15 +2018,16 @@ type Table
        Remove rows which are all blank or containing blank values.
 
        Arguments:
-       - when_any: If `True`, then remove any row containing any blank values.
-         If `False`, then only remove rows with all blank values.
+       - when: If Blank_Selector.Any_Cell_Blank, then remove any row containing
+        any blank values.
+         If Blank_Selector.All_Cells_Blank, then only remove rows with all blank values.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    filter_blank_rows : Boolean -> Boolean -> Table
-    filter_blank_rows self when_any=False treat_nans_as_blank=False =
-        Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
+    filter_blank_rows : Blank_Selector -> Boolean -> Table
+    filter_blank_rows self when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=False =
+        Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
     ## ALIAS count
        GROUP Standard.Base.Metadata
