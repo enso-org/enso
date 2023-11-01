@@ -65,6 +65,7 @@ class RuntimeVersionManager(
     * Returns None if that version is not installed.
     */
   def findGraalRuntime(version: GraalVMVersion): Option[GraalRuntime] = {
+    logger.info("BBB0 {}", this.environment.getEnvPath("ENSO_JVM_PATH"))
     val explicitPathOpt = this.environment.getEnvPath("ENSO_JVM_PATH")
     val graalRuntimeOpt = explicitPathOpt
       .map(path => {
@@ -73,7 +74,9 @@ class RuntimeVersionManager(
         runtime
       })
       .orElse {
+        logger.info("BBB1")
         val pathOpt = findGraalRuntimeOnSearchPath(version)
+        logger.info("BBB1 {}", pathOpt)
         pathOpt.map { path =>
           // TODO [RW] for now an exception is thrown if the installation is
           //  corrupted, in #1052 offer to repair the broken installation

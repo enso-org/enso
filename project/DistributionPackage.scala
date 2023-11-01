@@ -294,6 +294,7 @@ object DistributionPackage {
     all.addAll(args.asJava)
     pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
+    log.info(s"BBB2 ${System.getProperty("java.home")} ")
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
     if (args.contains("--debug")) {
       all.remove("--debug")
