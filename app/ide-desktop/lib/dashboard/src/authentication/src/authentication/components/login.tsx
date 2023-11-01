@@ -99,7 +99,7 @@ export default function Login() {
                                 validate
                                 type="email"
                                 autoComplete="email"
-                                placeholder="Email"
+                                placeholder="Enter your email"
                                 value={email}
                                 setValue={setEmail}
                                 shouldReportValidityRef={shouldReportValidityRef}
@@ -115,7 +115,7 @@ export default function Login() {
                                 validate
                                 type="password"
                                 autoComplete="current-password"
-                                placeholder="Password"
+                                placeholder="Enter your password"
                                 pattern={validation.PASSWORD_PATTERN}
                                 error={validation.PASSWORD_ERROR}
                                 value={password}

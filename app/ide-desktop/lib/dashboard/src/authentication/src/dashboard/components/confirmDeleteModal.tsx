@@ -60,8 +60,8 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                     onSubmit()
                 }}
             >
-                <div>Are you sure you want to delete {description}?</div>
-                <div className="flex gap-2">
+                <div className="relative">Are you sure you want to delete {description}?</div>
+                <div className="relative flex gap-2">
                     <button
                         type="submit"
                         className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"

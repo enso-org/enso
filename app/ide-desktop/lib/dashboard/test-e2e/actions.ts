@@ -25,7 +25,7 @@ export function locateEmailInput(page: test.Locator | test.Page) {
 
 /** Find a password input (if any) on the current page. */
 export function locatePasswordInput(page: test.Locator | test.Page) {
-    return page.getByLabel('Password')
+    return page.getByPlaceholder('Enter your password')
 }
 
 /** Find a "confirm password" input (if any) on the current page. */
@@ -40,12 +40,12 @@ export function locateOldPasswordInput(page: test.Locator | test.Page) {
 
 /** Find a "new password" input (if any) on the current page. */
 export function locateNewPasswordInput(page: test.Locator | test.Page) {
-    return page.getByLabel('New password')
+    return page.getByPlaceholder('Enter your new password')
 }
 
 /** Find a "confirm new password" input (if any) on the current page. */
 export function locateConfirmNewPasswordInput(page: test.Locator | test.Page) {
-    return page.getByLabel('Confirm new password')
+    return page.getByPlaceholder('Confirm your new password')
 }
 
 /** Find a "username" input (if any) on the current page. */

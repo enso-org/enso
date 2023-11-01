@@ -43,7 +43,7 @@ export default function SetUsername() {
                             type="text"
                             name="username"
                             autoComplete="off"
-                            placeholder="Username"
+                            placeholder="Enter your username"
                             value={username}
                             setValue={setUsername}
                         />
