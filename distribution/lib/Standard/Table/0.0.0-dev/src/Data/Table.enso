@@ -1475,6 +1475,10 @@ type Table
     @column Column_Operation.default_widget
     set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column:(Text | Column | Constant_Column | Column_Operation) new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+        problem_builder = Problem_Builder.new
+        unique = self.column_naming_helper.create_unique_name_strategy
+        unique.mark_used self.column_names
+
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column -> column
@@ -1482,8 +1486,17 @@ type Table
             _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        renamed = if new_name == "" then resolved else resolved.rename new_name
-        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
+        name_is_generated column = case column of
+            _ : Column -> False
+            _ -> True
+
+        ## If `new_name` was specified, use that. Otherwise, if `column` is a
+           `Column`, use its name. In these two cases, do not make it unique.
+           Otherwise, make it unique.
+        new_column_name = if new_name != "" then new_name else
+            if name_is_generated column then unique.make_unique resolved.name else resolved.name
+        renamed = resolved.rename new_column_name
+        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
             check_add_mode = case set_mode of
                 Set_Mode.Add_Or_Update -> True
                 Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
@@ -1491,9 +1504,12 @@ type Table
                 Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
                     Error.throw (Missing_Column.Error renamed.name)
 
-            check_add_mode.if_not_error <|
+            new_table = check_add_mode.if_not_error <|
                 if resolved.length != self.row_count then Error.throw (Row_Count_Mismatch.Error self.row_count resolved.length) else
                     Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
+
+            problem_builder.report_unique_name_strategy unique
+            problem_builder.attach_problems_after on_problems new_table
 
     ## Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.
@@ -1532,7 +1548,7 @@ type Table
     make_constant_column : Any -> Column
     make_constant_column self value =
         if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
-            Column.from_vector_repeated ("Constant_" + UUID.randomUUID.to_text) [value] self.row_count
+            Column.from_vector_repeated value.pretty [value] self.row_count
 
     ## PRIVATE
        Create a unique temporary column name.
