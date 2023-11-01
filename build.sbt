@@ -2735,12 +2735,17 @@ updateLibraryManifests := {
   val libraries = Editions.standardLibraries.map(libName =>
     BundledLibrary(libName, stdLibVersion)
   )
-  val runnerCp  = (LocalProject("engine-runner") / Compile / fullClasspath).value
-  val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
+  val runnerCp  = (LocalProject("engine-runner") / Runtime / fullClasspath).value
+  val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
   val fullCp    = (runnerCp ++ runtimeCp).distinct
   val modulesOnModulePath =
     JPMSUtils
-      .filterModulesFromClasspath(fullCp, JPMSUtils.componentModules, log)
+      .filterModulesFromClasspath(
+        fullCp,
+        JPMSUtils.componentModules,
+        log,
+        shouldContainAll = true
+      )
       .map(_.data)
   val modulePath = modulesOnModulePath ++ Seq(file("runtime.jar"))
   val runnerJar  = (LocalProject("engine-runner") / assembly).value
