@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.scope
 
-import com.oracle.truffle.api.frame.{FrameDescriptor, FrameSlotKind}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
   Id,
@@ -8,7 +7,6 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
   Scope => AliasScope
 }
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
-import org.enso.interpreter.runtime.error.DataflowError
 
 import scala.jdk.CollectionConverters._
 
@@ -41,7 +39,6 @@ class LocalScope(
   final val flattenToParent: Boolean                  = false,
   private val parentFrameSlotIdxs: Map[Graph.Id, Int] = Map()
 ) {
-  lazy val frameDescriptor: FrameDescriptor = buildFrameDescriptor()
   private lazy val localFrameSlotIdxs: Map[Graph.Id, Int] =
     gatherLocalFrameSlotIdxs()
 
@@ -76,20 +73,6 @@ class LocalScope(
       flattenToParent,
       allFrameSlotIdxs
     )
-  }
-
-  /** Returns frame slot index to a monadic state, which is considered an internal slot.
-    * @return
-    */
-  def monadicStateSlotIdx: Int = {
-    LocalScope.internalSlots.zipWithIndex
-      .find { case ((_, name), _) => name == LocalScope.monadicStateSlotName }
-      .map(_._2)
-      .getOrElse(
-        throw new IllegalStateException(
-          s"$LocalScope.monadicStateSlotName slot should be present in every frame descriptor"
-        )
-      )
   }
 
   /** Get a frame slot index for a given identifier.
@@ -134,39 +117,6 @@ class LocalScope(
   def flattenBindings: java.util.Map[String, FramePointer] =
     flattenBindingsWithLevel(0).asJava
 
-  private def addInternalSlots(
-    descriptorBuilder: FrameDescriptor.Builder
-  ): Unit = {
-    for ((slotKind, name) <- LocalScope.internalSlots) {
-      descriptorBuilder.addSlot(slotKind, name, null)
-    }
-  }
-
-  /** Builds a [[FrameDescriptor]] from the alias analysis scope metadata for the local scope.
-    * See [[AliasAnalysis.Graph.Scope.allDefinitions]].
-    *
-    * @return [[FrameDescriptor]] built from the variable definitions in the local scope.
-    */
-  private def buildFrameDescriptor(): FrameDescriptor = {
-    val descriptorBuilder = FrameDescriptor.newBuilder()
-    addInternalSlots(descriptorBuilder)
-    for (definition <- scope.allDefinitions) {
-      val returnedFrameIdx =
-        descriptorBuilder.addSlot(
-          FrameSlotKind.Illegal,
-          definition.symbol,
-          null
-        )
-      assert(localFrameSlotIdxs(definition.id) == returnedFrameIdx)
-    }
-    descriptorBuilder.defaultValue(DataflowError.UNINITIALIZED)
-    val frameDescriptor = descriptorBuilder.build()
-    assert(
-      LocalScope.internalSlots.length + localFrameSlotIdxs.size == frameDescriptor.getNumberOfSlots
-    )
-    frameDescriptor
-  }
-
   /** Gather local variables from the alias scope information.
     * Does not include any variables from the parent scopes.
     * @return Mapping of local variable identifiers to their
@@ -175,7 +125,7 @@ class LocalScope(
     */
   private def gatherLocalFrameSlotIdxs(): Map[Id, Int] = {
     scope.allDefinitions.zipWithIndex.map { case (definition, i) =>
-      definition.id -> (i + LocalScope.internalSlots.size)
+      definition.id -> (i + LocalScope.internalSlotsSize)
     }.toMap
   }
 
@@ -203,7 +153,7 @@ class LocalScope(
   }
 
   override def toString: String = {
-    s"LocalScope(${frameDescriptor.toString})"
+    s"LocalScope(${allFrameSlotIdxs.keySet})"
   }
 }
 object LocalScope {
@@ -223,13 +173,11 @@ object LocalScope {
     )
   }
 
-  private val monadicStateSlotName = "<<monadic_state>>"
-
   /** Internal slots are prepended at the beginning of every [[FrameDescriptor]].
     * Every tuple of the list denotes frame slot kind and its name.
     * Note that `info` for a frame slot is not used by Enso.
     */
-  def internalSlots: List[(FrameSlotKind, String)] = List(
-    (FrameSlotKind.Object, monadicStateSlotName)
-  )
+  def monadicStateSlotName: String   = "<<monadic_state>>"
+  private def internalSlotsSize: Int = 1
+
 }
