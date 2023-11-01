@@ -9,10 +9,6 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
 }
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 import org.enso.interpreter.runtime.error.DataflowError
-import org.enso.interpreter.runtime.scope.LocalScope.{
-  internalSlots,
-  monadicStateSlotName
-}
 
 import scala.jdk.CollectionConverters._
 
@@ -86,12 +82,12 @@ class LocalScope(
     * @return
     */
   def monadicStateSlotIdx: Int = {
-    internalSlots.zipWithIndex
-      .find { case ((_, name), _) => name == monadicStateSlotName }
+    LocalScope.internalSlots.zipWithIndex
+      .find { case ((_, name), _) => name == LocalScope.monadicStateSlotName }
       .map(_._2)
       .getOrElse(
         throw new IllegalStateException(
-          s"$monadicStateSlotName slot should be present in every frame descriptor"
+          s"$LocalScope.monadicStateSlotName slot should be present in every frame descriptor"
         )
       )
   }
@@ -141,7 +137,7 @@ class LocalScope(
   private def addInternalSlots(
     descriptorBuilder: FrameDescriptor.Builder
   ): Unit = {
-    for ((slotKind, name) <- internalSlots) {
+    for ((slotKind, name) <- LocalScope.internalSlots) {
       descriptorBuilder.addSlot(slotKind, name, null)
     }
   }
@@ -166,7 +162,7 @@ class LocalScope(
     descriptorBuilder.defaultValue(DataflowError.UNINITIALIZED)
     val frameDescriptor = descriptorBuilder.build()
     assert(
-      internalSlots.length + localFrameSlotIdxs.size == frameDescriptor.getNumberOfSlots
+      LocalScope.internalSlots.length + localFrameSlotIdxs.size == frameDescriptor.getNumberOfSlots
     )
     frameDescriptor
   }
@@ -179,7 +175,7 @@ class LocalScope(
     */
   private def gatherLocalFrameSlotIdxs(): Map[Id, Int] = {
     scope.allDefinitions.zipWithIndex.map { case (definition, i) =>
-      definition.id -> (i + internalSlots.size)
+      definition.id -> (i + LocalScope.internalSlots.size)
     }.toMap
   }
 
