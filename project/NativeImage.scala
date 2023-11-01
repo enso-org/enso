@@ -68,10 +68,9 @@ object NativeImage {
     *                            time initialization is set to default
     * @param initializeAtBuildtime a list of classes that should be initialized at
     *                              build time.
-   * @param additionalCp additional class-path entries to be added to the
-   *                     native image.
-   * @param verbose whether to print verbose output from the native image.
-   *
+    * @param additionalCp additional class-path entries to be added to the
+    *                     native image.
+    * @param verbose whether to print verbose output from the native image.
     */
   def buildNativeImage(
     artifactName: String,
@@ -97,7 +96,9 @@ object NativeImage {
         (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
 
       if (!file(nativeImagePath).exists()) {
-        log.error("Unexpected: Native Image component not found in the JVM distribution.")
+        log.error(
+          "Unexpected: Native Image component not found in the JVM distribution."
+        )
         log.error("Is this a GraalVM distribution?")
         log.error(
           "On older distributions, you can install Native Image with `gu install native-image`."
@@ -164,19 +165,22 @@ object NativeImage {
         }
 
       val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
-      val runnerCp = (LocalProject("engine-runner") / Runtime / fullClasspath).value
-      val ourCp = (Runtime / fullClasspath).value
+      val runnerCp =
+        (LocalProject("engine-runner") / Runtime / fullClasspath).value
+      val ourCp      = (Runtime / fullClasspath).value
       val cpToSearch = (ourCp ++ runtimeCp ++ runnerCp).distinct
       // componentModules must be on class-path at all times
-      val componentModules: Seq[String] = JPMSUtils.filterModulesFromClasspath(
-        cpToSearch,
-        JPMSUtils.componentModules,
-        log,
-        shouldContainAll = true
-      ).map(_.data.getAbsolutePath)
+      val componentModules: Seq[String] = JPMSUtils
+        .filterModulesFromClasspath(
+          cpToSearch,
+          JPMSUtils.componentModules,
+          log,
+          shouldContainAll = true
+        )
+        .map(_.data.getAbsolutePath)
 
       val fullCp = componentModules ++ additionalCp
-      val cpStr = fullCp.mkString(File.pathSeparator)
+      val cpStr  = fullCp.mkString(File.pathSeparator)
       log.info("Class-path: " + cpStr)
 
       val verboseOpt = if (verbose) Seq("--verbose") else Seq()
@@ -184,25 +188,25 @@ object NativeImage {
       var cmd: Seq[String] =
         Seq(nativeImagePath) ++
         verboseOpt
-        Seq("-cp", cpStr) ++
-        quickBuildOption ++
-        debugParameters ++ staticParameters ++ configs ++
-        Seq("--no-fallback", "--no-server") ++
-        Seq("-march=compatibility") ++
-        initializeAtBuildtimeOptions ++
-        initializeAtRuntimeOptions ++
-        buildMemoryLimitOptions ++
-        runtimeMemoryOptions ++
-        additionalOptions ++
-        Seq("-o", artifactName)
+      Seq("-cp", cpStr) ++
+      quickBuildOption ++
+      debugParameters ++ staticParameters ++ configs ++
+      Seq("--no-fallback", "--no-server") ++
+      Seq("-march=compatibility") ++
+      initializeAtBuildtimeOptions ++
+      initializeAtRuntimeOptions ++
+      buildMemoryLimitOptions ++
+      runtimeMemoryOptions ++
+      additionalOptions ++
+      Seq("-o", artifactName)
 
       cmd = mainClass match {
         case Some(main) =>
           cmd ++
-            Seq(main)
+          Seq(main)
         case None =>
           cmd ++
-            Seq("-jar", pathToJAR.toString)
+          Seq("-jar", pathToJAR.toString)
       }
 
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq

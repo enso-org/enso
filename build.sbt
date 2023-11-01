@@ -20,11 +20,11 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion  = "2.13.11"
+val scalacVersion = "2.13.11"
 // source version of the Java language
-val javaVersion    = "21"
+val javaVersion = "21"
 // version of the GraalVM JDK
-val graalVersion   = "21.0.1"
+val graalVersion = "21.0.1"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
@@ -514,7 +514,6 @@ lazy val componentModulesPaths =
   )
 }
 
-
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
@@ -664,7 +663,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
-      "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
+      "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
       "io.circe"           %% "circe-yaml"       % circeYamlVersion,
       "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
       "commons-io"          % "commons-io"       % commonsIoVersion
@@ -1623,9 +1622,9 @@ lazy val `runtime-with-polyglot` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
-        "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion % "provided",
-        "org.graalvm.tools"    % "insight-tool"  % graalMavenPackagesVersion % "provided",
-        "org.scalatest"       %% "scalatest"     % scalatestVersion          % Test
+        "org.graalvm.polyglot" % "polyglot"     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.tools"    % "insight-tool" % graalMavenPackagesVersion % "provided",
+        "org.scalatest"       %% "scalatest"    % scalatestVersion          % Test
       )
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
@@ -1717,7 +1716,7 @@ lazy val `engine-runner` = project
             // "-g",
             //          "-H:+DashboardAll",
             //          "-H:DashboardDump=runner.bgv"
-            "-Dnic=nic",
+            "-Dnic=nic"
           ),
           mainClass = Some("org.enso.runner.Main"),
           additionalCp = Seq(
@@ -1739,8 +1738,7 @@ lazy val `engine-runner` = project
           )
         )
         .dependsOn(assembly)
-        .value
-    ,
+        .value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
@@ -2724,7 +2722,8 @@ updateLibraryManifests := {
   val runtimeCp = (LocalProject("runtime") / Compile / fullClasspath).value
   val fullCp    = (runnerCp ++ runtimeCp).distinct
   val modulesOnModulePath =
-    JPMSUtils.filterModulesFromClasspath(fullCp, JPMSUtils.componentModules, log)
+    JPMSUtils
+      .filterModulesFromClasspath(fullCp, JPMSUtils.componentModules, log)
       .map(_.data)
   val modulePath = modulesOnModulePath ++ Seq(file("runtime.jar"))
   val runnerJar  = (LocalProject("engine-runner") / assembly).value

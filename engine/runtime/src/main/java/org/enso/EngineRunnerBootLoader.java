@@ -8,8 +8,8 @@ import java.nio.file.Path;
 /**
  * {@code runner.jar} is a fat jar containing all the dependencies for engine-runner, however, it
  * cannot be put on module-path, neither class-path, because it cannot be used in conjunction with
- * {@code runtime.jar} fat jar. For now, this class is a workaround that just tries to invoke
- * {@link org.enso.runner.Main.main} from {@code runner.jar} using a custom class loader.
+ * {@code runtime.jar} fat jar. For now, this class is a workaround that just tries to invoke {@link
+ * org.enso.runner.Main.main} from {@code runner.jar} using a custom class loader.
  */
 public final class EngineRunnerBootLoader {
   private EngineRunnerBootLoader() {}
@@ -34,7 +34,8 @@ public final class EngineRunnerBootLoader {
   }
 
   private static Path getDefaultRunnerJarPath() {
-    var runtimeJar = EngineRunnerBootLoader.class.getProtectionDomain().getCodeSource().getLocation();
+    var runtimeJar =
+        EngineRunnerBootLoader.class.getProtectionDomain().getCodeSource().getLocation();
     try {
       var runnerJarUri = runtimeJar.toURI().resolve(defaultRunnerJar);
       return Path.of(runnerJarUri);

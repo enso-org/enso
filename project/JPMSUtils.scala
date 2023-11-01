@@ -26,12 +26,12 @@ import java.nio.file.{
   * @see
   */
 object JPMSUtils {
-  val slf4jVersion = "2.0.9"
+  val slf4jVersion          = "2.0.9"
   val logbackClassicVersion = "1.3.7"
 
   /** The list of modules that are included in the `component` directory in engine distribution.
-   * When invoking the `java` command, these modules need to be put on the module-path.
-   */
+    * When invoking the `java` command, these modules need to be put on the module-path.
+    */
   val componentModules: Seq[ModuleID] =
     GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
       "org.slf4j"      % "slf4j-api"       % slf4jVersion,
@@ -40,12 +40,12 @@ object JPMSUtils {
     )
 
   /** Filters modules by their IDs from the given classpath.
-   * @param cp The classpath to filter
-   * @param modules These modules are looked for in the class path
-   * @param shouldContainAll If true, the method will throw an exception if not all modules were found
-   *                         in the classpath.
-   * @return The classpath with only the provided modules searched by their IDs.
-   */
+    * @param cp The classpath to filter
+    * @param modules These modules are looked for in the class path
+    * @param shouldContainAll If true, the method will throw an exception if not all modules were found
+    *                         in the classpath.
+    * @return The classpath with only the provided modules searched by their IDs.
+    */
   def filterModulesFromClasspath(
     cp: Def.Classpath,
     modules: Seq[ModuleID],
@@ -55,8 +55,8 @@ object JPMSUtils {
     def shouldFilterModule(module: ModuleID): Boolean = {
       modules.exists(m =>
         m.organization == module.organization &&
-          m.name == module.name &&
-          m.revision == module.revision
+        m.name == module.name &&
+        m.revision == module.revision
       )
     }
     val ret = cp.filter(dep => {
@@ -84,7 +84,6 @@ object JPMSUtils {
       )
     truffleRelatedArtifacts
   }
-
 
   /** There may be multiple module-info.class files comming from different
     * dependencies. We care only about the one from the `runtime` project.
