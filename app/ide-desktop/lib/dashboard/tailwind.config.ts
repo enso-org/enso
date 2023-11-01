@@ -69,6 +69,9 @@ export const theme = {
             xl: '1.1875rem',
             '4xl': '2.375rem',
         },
+        borderRadius: {
+            '4xl': '2rem',
+        },
         lineHeight: {
             '144.5': '144.5%',
             '170': '170%',

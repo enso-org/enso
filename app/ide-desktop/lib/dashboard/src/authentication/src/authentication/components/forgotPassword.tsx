@@ -12,6 +12,7 @@ import * as auth from '../providers/auth'
 import SvgMask from './svgMask'
 
 import Input from './input'
+import SubmitButton from './submitButton'
 import SvgIcon from './svgIcon'
 
 // ======================
@@ -25,72 +26,39 @@ export default function ForgotPassword() {
     const [email, setEmail] = React.useState('')
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center">
-            <div className="flex flex-col bg-white shadow-md p-8 rounded-md w-full max-w-md">
-                <div className="font-medium self-center text-xl uppercase text-gray-800">
-                    Forgot Your Password?
-                </div>
-                <div className="mt-10">
-                    <form
-                        onSubmit={async event => {
-                            event.preventDefault()
-                            await forgotPassword(email)
-                        }}
-                    >
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="email"
-                                className="mb-1 text-xs tracking-wide text-gray-600"
-                            >
-                                E-Mail Address:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <SvgMask src={AtIcon} />
-                                </SvgIcon>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    autoComplete="email"
-                                    placeholder="E-Mail Address"
-                                    value={email}
-                                    setValue={setEmail}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex w-full">
-                            <button
-                                type="submit"
-                                className={
-                                    'flex items-center justify-center focus:outline-none text-white text-sm ' +
-                                    'bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition ' +
-                                    'duration-150 ease-in'
-                                }
-                            >
-                                <span className="mr-2 uppercase">Send link</span>
-                                <span>
-                                    <SvgMask src={ArrowRightIcon} />
-                                </span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <div className="flex justify-center items-center mt-6">
-                    <router.Link
-                        to={app.LOGIN_PATH}
-                        className={
-                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs ' +
-                            'text-center'
-                        }
-                    >
-                        <span>
-                            <SvgMask src={GoBackIcon} />
-                        </span>
-                        <span className="ml-2">Go back to login</span>
-                    </router.Link>
-                </div>
-            </div>
+        <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
+            <form
+                className="flex flex-col gap-6 bg-frame-selected rounded-2xl shadow-md p-8 w-full max-w-md"
+                onSubmit={async event => {
+                    event.preventDefault()
+                    await forgotPassword(email)
+                }}
+            >
+                <div className="font-medium self-center text-xl">Forgot Your Password?</div>
+                <label className="flex flex-col gap-1">
+                    Email
+                    <div className="relative">
+                        <SvgIcon src={AtIcon} />
+                        <Input
+                            required
+                            validate
+                            type="email"
+                            autoComplete="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            setValue={setEmail}
+                        />
+                    </div>
+                </label>
+                <SubmitButton text="Send link" icon={ArrowRightIcon} />
+            </form>
+            <router.Link
+                to={app.LOGIN_PATH}
+                className="flex gap-2 items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
+            >
+                <SvgMask src={GoBackIcon} />
+                Go back to login
+            </router.Link>
         </div>
     )
 }

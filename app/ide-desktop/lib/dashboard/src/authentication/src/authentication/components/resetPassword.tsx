@@ -15,6 +15,7 @@ import * as string from '../../string'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
+import SubmitButton from './submitButton'
 import SvgIcon from './svgIcon'
 import SvgMask from './svgMask'
 
@@ -53,148 +54,86 @@ export default function ResetPassword() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center">
-            <div className={'flex flex-col bg-white shadow-md p-8 rounded-md w-full ' + 'max-w-md'}>
-                <div className="font-medium self-center text-xl uppercase text-gray-800">
-                    Reset Your Password
-                </div>
-                <div className="mt-10">
-                    <form
-                        onSubmit={async event => {
-                            event.preventDefault()
-                            await onSubmit()
-                        }}
-                    >
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="email"
-                                className="mb-1 text-xs tracking-wide text-gray-600"
-                            >
-                                E-Mail Address:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <SvgMask src={AtIcon} />
-                                </SvgIcon>
-                                <Input
-                                    required
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    autoComplete="email"
-                                    placeholder="E-Mail Address"
-                                    value={email}
-                                    setValue={setEmail}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="code"
-                                className="mb-1 text-xs tracking-wide text-gray-600"
-                            >
-                                Confirmation Code:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <SvgMask src={LockIcon} />
-                                </SvgIcon>
-                                <Input
-                                    required
-                                    id="code"
-                                    type="text"
-                                    name="code"
-                                    autoComplete="one-time-code"
-                                    placeholder="Confirmation Code"
-                                    value={code}
-                                    setValue={setCode}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="new_password"
-                                className="mb-1 text-xs tracking-wide text-gray-600"
-                            >
-                                New Password:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <SvgMask src={LockIcon} />
-                                </SvgIcon>
-                                <Input
-                                    required
-                                    validate
-                                    id="new_password"
-                                    type="password"
-                                    name="new_password"
-                                    autoComplete="new-password"
-                                    placeholder="New Password"
-                                    pattern={validation.PASSWORD_PATTERN}
-                                    error={validation.PASSWORD_ERROR}
-                                    value={newPassword}
-                                    setValue={setNewPassword}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="new_password_confirm"
-                                className="mb-1 text-xs tracking-wide text-gray-600"
-                            >
-                                Confirm New Password:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <SvgMask src={LockIcon} />
-                                </SvgIcon>
-                                <Input
-                                    required
-                                    validate
-                                    id="new_password_confirm"
-                                    type="password"
-                                    name="new_password_confirm"
-                                    autoComplete="new-password"
-                                    placeholder="Confirm New Password"
-                                    pattern={string.regexEscape(newPassword)}
-                                    error={validation.CONFIRM_PASSWORD_ERROR}
-                                    value={newPasswordConfirm}
-                                    setValue={setNewPasswordConfirm}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex w-full">
-                            <button
-                                type="submit"
-                                className={
-                                    'flex items-center justify-center focus:outline-none text-white text-sm ' +
-                                    'bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition ' +
-                                    'duration-150 ease-in'
-                                }
-                            >
-                                <span className="mr-2 uppercase">Reset</span>
-                                <span>
-                                    <SvgMask src={ArrowRightIcon} />
-                                </span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <div className="flex justify-center items-center mt-6">
-                    <router.Link
-                        to={app.LOGIN_PATH}
-                        className={
-                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs ' +
-                            'text-center'
-                        }
-                    >
-                        <span>
-                            <SvgMask src={GoBackIcon} />
-                        </span>
-                        <span className="ml-2">Go back to login</span>
-                    </router.Link>
-                </div>
-            </div>
+        <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
+            <form
+                className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
+                onSubmit={async event => {
+                    event.preventDefault()
+                    await onSubmit()
+                }}
+            >
+                <div className="font-medium self-center text-xl">Reset Your Password</div>
+                <label className="flex flex-col gap-1">
+                    Email:
+                    <div className="relative">
+                        <SvgIcon src={AtIcon} />
+                        <Input
+                            required
+                            type="email"
+                            autoComplete="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            setValue={setEmail}
+                        />
+                    </div>
+                </label>
+                <label className="flex flex-col gap-1">
+                    Confirmation code:
+                    <div className="relative">
+                        <SvgIcon src={LockIcon} />
+                        <Input
+                            required
+                            type="text"
+                            autoComplete="one-time-code"
+                            placeholder="Enter the confirmation code"
+                            value={code}
+                            setValue={setCode}
+                        />
+                    </div>
+                </label>
+                <label className="flex flex-col gap-1">
+                    New Password:
+                    <div className="relative">
+                        <SvgIcon src={LockIcon} />
+                        <Input
+                            required
+                            validate
+                            type="password"
+                            autoComplete="new-password"
+                            placeholder="Enter your new password"
+                            pattern={validation.PASSWORD_PATTERN}
+                            error={validation.PASSWORD_ERROR}
+                            value={newPassword}
+                            setValue={setNewPassword}
+                        />
+                    </div>
+                </label>
+                <label className="flex flex-col gap-1">
+                    Confirm New Password:
+                    <div className="relative">
+                        <SvgIcon src={LockIcon} />
+                        <Input
+                            required
+                            validate
+                            type="password"
+                            autoComplete="new-password"
+                            placeholder="Confirm your new password"
+                            pattern={string.regexEscape(newPassword)}
+                            error={validation.CONFIRM_PASSWORD_ERROR}
+                            value={newPasswordConfirm}
+                            setValue={setNewPasswordConfirm}
+                        />
+                    </div>
+                </label>
+                <SubmitButton text="Reset" icon={ArrowRightIcon} />
+            </form>
+            <router.Link
+                to={app.LOGIN_PATH}
+                className="flex gap-2 items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
+            >
+                <SvgMask src={GoBackIcon} />
+                Go back to login
+            </router.Link>
         </div>
     )
 }
