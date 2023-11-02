@@ -3,9 +3,13 @@ package org.enso.compiler.core.ir;
 import java.util.UUID;
 import scala.Option;
 
-public record IdentifiedLocation(Location location, Option<UUID> id) {
+public record IdentifiedLocation(Location location, UUID uuid) {
   public IdentifiedLocation(Location location) {
-    this(location, Option.empty());
+    this(location, (UUID)null);
+  }
+
+  public IdentifiedLocation(Location location, Option<UUID> uuid) {
+    this(location, uuid.isEmpty() ? null : uuid.get());
   }
 
   /** @return the character index of the start of this source location.
@@ -24,5 +28,10 @@ public record IdentifiedLocation(Location location, Option<UUID> id) {
   */
   public int length() {
     return location().length();
+  }
+
+  /** @return option with/out UUID */
+  public Option<UUID> id() {
+    return Option.apply(uuid());
   }
 }
