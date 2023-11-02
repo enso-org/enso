@@ -22,7 +22,6 @@ import GraphNodes from './GraphEditor/GraphNodes.vue'
 const EXECUTION_MODES = ['design', 'live']
 
 const viewportNode = ref<HTMLElement>()
-const componentBrowser = ref<HTMLElement>()
 const navigator = provideGraphNavigator(viewportNode)
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
@@ -185,7 +184,7 @@ watch(componentBrowserVisible, (visible) => {
   }
 })
 
-function onComponentBrowserFinished(content: String) {
+function onComponentBrowserFinished(content: string) {
   if (content != null && graphStore.editedNodeInfo != null) {
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   }
@@ -205,12 +204,11 @@ watch(
   (editedInfo) => {
     if (editedInfo != null) {
       const targetNode = graphStore.nodes.get(editedInfo.id)
-      const targetPos = targetNode?.position ?? Vec2.Zero()
+      const targetPos = targetNode?.position ?? Vec2.Zero
       const offset = new Vec2(20, 35)
       componentBrowserPosition.value = targetPos.add(offset)
       componentBrowserInputContent.value = getNodeContent(editedInfo.id)
       componentBrowserVisible.value = true
-      componentBrowser.value?.focus()
     } else {
       componentBrowserVisible.value = false
     }

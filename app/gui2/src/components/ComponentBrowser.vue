@@ -30,7 +30,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  finished: [String]
+  finished: [selectedExpression: string]
 }>()
 
 onMounted(() => {

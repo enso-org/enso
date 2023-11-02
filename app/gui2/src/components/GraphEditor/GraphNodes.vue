@@ -32,19 +32,6 @@ function moveNode(movedId: ExprId, delta: Vec2) {
 function hoverNode(id: ExprId | undefined) {
   if (selection != null) selection.hoveredNode = id
 }
-
-function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
-  if (id == null) {
-    graphStore.editedNodeInfo = null
-    return
-  }
-  if (cursorPosition == null) {
-    console.warn('setEditedNode: cursorPosition is null')
-    return
-  }
-  const range = [cursorPosition, cursorPosition] as ContentRange
-  graphStore.editedNodeInfo = { id, range }
-}
 </script>
 
 <template>
@@ -54,7 +41,7 @@ function setEditedNode(id: ExprId | null, cursorPosition: number | null) {
     :key="id"
     :node="node"
     :edited="false"
-    @update:edited="setEditedNode(id, $event)"
+    @update:edited="graphStore.setEditedNode(id, $event)"
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
     @updateExprRect="graphStore.updateExprRect"

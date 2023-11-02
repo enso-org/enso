@@ -310,9 +310,6 @@ const editableKeydownHandler = nodeEditBindings.handler({
 })
 
 function startEditingHandler(event: PointerEvent) {
-  console.log('editablePointerdownHandler')
-  event.preventDefault()
-
   let range, textNode, offset
   offset = 0
 
