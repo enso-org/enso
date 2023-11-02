@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
+import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
@@ -1852,16 +1853,18 @@ type Table
          `Nothing` is provided, the default formatting settings of the backend
          will be used. `Nothing` is currently the only setting accepted by the
          Database backends.
-       - error_on_missing_columns: if `True` (the default) raises an error if
-         any column is missing. Otherwise, reported as a problem.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
-           `Missing_Input_Columns` is raised as an error or problem
-           following the `error_on_missing_columns` rules.
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
          - If a column selected for parsing is not a text column, an
            `Invalid_Value_Type` error is raised.
          - If no columns have been selected for parsing,
@@ -1882,6 +1885,85 @@ type Table
         selected.fold self table-> column_to_parse->
             new_column = column_to_parse.parse type format on_problems
             table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
+
+    ## GROUP Standard.Base.Conversions
+       Formats `Column`s within a `Table` using a format string,
+       `Date_Time_Formatter`, or `Column` of format strings.
+
+       Arguments:
+       - columns: The columns to format. The columns can have different types,
+         but all columns must be compatible with any provided `format` value.
+       - format: The type-dependent format string to use to format the values.
+         If `format` is `""` or `Nothing`, .to_text is used to format the value.
+         In case of date/time columns, the format can also be a
+         `Date_Time_Formatter`. If `format` is a `Column`, it must be a text
+         column.
+       - locale: The locale in which the format should be interpreted.
+         If a `Date_Time_Formatter` is provided for `format` and the `locale` is
+         set to anything else than `Locale.default`, then that locale will
+         override the formatters locale.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a provided `format` value is not compatible with all selected
+           columns, an Illegal_Argument error will be thrown, or a
+           Date_Time_Format_Parse_Error in the case of a badly-formed date/time
+           format.
+         - If no columns have been selected for formatting, a
+           `No_Input_Columns_Selected` error is raised.
+
+       ? Supported Types
+         - `Value_Type.Date`
+         - `Value_Type.Date_Time`
+         - `Value_Type.Time`
+         - `Value_Type.Integer`
+         - `Value_Type.Float`
+         - `Value_Type.Boolean`
+
+       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
+
+          See `Date_Time_Formatter` for more details.
+
+       ? `Value_Type.Integer`, `Value_Type.Float` format strings
+
+         Numeric format strings are specified by the Java DecimalFormat class.
+         See https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
+         for a complete format specification.
+
+       ? `Value_Type.Boolean` format strings
+
+         Format strings for `Boolean` consist of two values that represent true
+         and false, separated by a `|`.
+
+       > Example
+         Format the first and last boolean columns as 'Yes'/'No'.
+
+             table.format columns=[0, -1] format="Yes|No"
+
+       > Example
+         Format dates in a column using the format `yyyyMMdd`.
+
+             table.format "birthday" "yyyyMMdd"
+
+       > Example
+         Format all columns in the table using the default formatter.
+
+             table.format
+    @columns Widget_Helpers.make_column_name_vector_selector
+    @locale Locale.default_widget
+    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | Column | Nothing -> Locale -> Boolean -> Problem_Behavior -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument
+    format self columns format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
+        _ = [columns, format, locale, error_on_missing_columns, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.format is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        Splits a column of text into a set of new columns.

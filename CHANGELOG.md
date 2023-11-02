@@ -581,6 +581,8 @@
 - [Added `Table.expand_column` and improved JSON deserialization.][7859]
 - [Implemented `Table.auto_value_types` for in-memory tables.][7908]
 - [Implemented Text.substring to easily select part of a Text field][7913]
+- [Implemented new selector for when parameter in `filter_blank_rows`,
+  `select_blank_columns`, `remove_blank_columns`][7935]
 - [Implemented basic XML support][7947]
 - [Implemented `Table.lookup_and_replace` for the in-memory backend.][7979]
 - [Added `Column_Operation` to `Table.set` allowing for more streamlined flow of
@@ -588,8 +590,7 @@
 - [Implemented `Table.expand_to_rows` for the in-memory backend.][8029]
 - [Added XML support for `.to Table` and `.expand_column`.][8083]
 - [Added `Previous_Value` option to `fill_nothing` and `fill_empty`.][8105]
-- [Implemented new selector for when parameter in `filter_blank_rows`,
-  `select_blank_columns`, `remove_blank_columns`][7935]
+- [Added `Table.format` for the in-memory backend.][8150]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -835,13 +836,14 @@
 [7859]: https://github.com/enso-org/enso/pull/7859
 [7908]: https://github.com/enso-org/enso/pull/7908
 [7913]: https://github.com/enso-org/enso/pull/7913
+[7935]: https://github.com/enso-org/enso/pull/7935
 [7947]: https://github.com/enso-org/enso/pull/7947
 [7979]: https://github.com/enso-org/enso/pull/7979
 [8005]: https://github.com/enso-org/enso/pull/8005
 [8029]: https://github.com/enso-org/enso/pull/8029
 [8083]: https://github.com/enso-org/enso/pull/8083
 [8105]: https://github.com/enso-org/enso/pull/8105
-[7935]: https://github.com/enso-org/enso/pull/7935
+[8150]: https://github.com/enso-org/enso/pull/8150
 
 #### Enso Compiler
 
