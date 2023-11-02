@@ -1583,9 +1583,7 @@ type Table
             _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        name_is_generated column = case column of
-            _ : Column -> False
-            _ -> True
+        name_is_generated column = column.is_a Column . not
 
         ## If `new_name` was specified, use that. Otherwise, if `column` is a
            `Column`, use its name. In these two cases, do not make it unique.

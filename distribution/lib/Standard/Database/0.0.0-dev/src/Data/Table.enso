@@ -854,9 +854,7 @@ type Table
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Date_Range` for `set` in the database.")
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        name_is_generated column = case column of
-            _ : Column -> False
-            _ -> True
+        name_is_generated column = column.is_a Column . not
 
         ## If `new_name` was specified, use that. Otherwise, if `column` is a
            `Column`, use its name. In these two cases, do not make it unique.
