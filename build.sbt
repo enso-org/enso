@@ -1572,23 +1572,15 @@ lazy val `runtime-with-instruments` =
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
+      // Exclude all the Truffle/Graal related artifacts from the Uber jar
       assembly / assemblyExcludedJars := {
         val pkgsToExclude = JPMSUtils.componentModules
-
         val ourFullCp = (Runtime / fullClasspath).value
-
-        def shouldPkgBeExcluded(pkg: ModuleID): Boolean = {
-          pkgsToExclude.exists { excludePkg =>
-            pkg.name == excludePkg.name &&
-            pkg.organization == excludePkg.organization &&
-            pkg.revision == excludePkg.revision
-          }
-        }
-        ourFullCp.filter { pkg =>
-          val pkgModuleID =
-            pkg.metadata.get(AttributeKey[ModuleID]("moduleID")).get
-          shouldPkgBeExcluded(pkgModuleID)
-        }
+        JPMSUtils.filterModulesFromClasspath(
+          ourFullCp,
+          pkgsToExclude,
+          streams.value.log
+        )
       },
       assembly / assemblyMergeStrategy := {
         case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
