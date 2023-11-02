@@ -1,9 +1,14 @@
-package org.enso.base;
+package org.enso.base.random;
 
 import java.util.Arrays;
 import java.util.Random;
 
 public class Random_Utils {
+  /** Default `seed` used to initialize new instances of `Random` */
+  public static long getDefaultSeed() {
+    return java.lang.System.nanoTime();
+  }
+
   /** Samples k random values from the input. */
   public static Object[] sample(Object[] array, int k, Random rng) {
     k = Math.min(k, array.length);

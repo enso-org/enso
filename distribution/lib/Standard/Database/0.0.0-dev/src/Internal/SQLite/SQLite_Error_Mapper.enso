@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from project.Errors import SQL_Error
+from project.Errors import SQL_Error, Invariant_Violation
 
 polyglot java import org.sqlite.SQLiteErrorCode
 polyglot java import org.sqlite.SQLiteException
@@ -14,3 +14,13 @@ type SQLite_Error_Mapper
         case error.java_exception of
             sqlite_exception : SQLiteException ->
                 sqlite_exception.getResultCode == SQLiteErrorCode.SQLITE_CONSTRAINT_PRIMARYKEY
+
+    ## PRIVATE
+    transform_custom_errors : SQL_Error -> Any
+    transform_custom_errors error =
+        invariant_failure_message = "unable to use function MATCH in the requested context"
+        message = error.java_exception.getMessage
+        if message.contains invariant_failure_message . not then error else
+            query_contains_invariant_check = error.related_query.if_nothing "" . contains "ENSO INVARIANT VIOLATED"
+            if query_contains_invariant_check . not then error else
+                Invariant_Violation.Error Nothing error

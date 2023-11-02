@@ -10,7 +10,7 @@ options = Bench.options . set_warmup (Bench.phase_conf 2 2) . set_measure (Bench
 
 create_table : Integer -> Table
 create_table num_rows =
-    rng = Random.new 42
+    rng = Random.new_generator 42
     x = Vector.new num_rows _-> rng.integer min=0 max=50
     y = Vector.new num_rows _-> rng.integer min=0 max=10000
     t = Table.new [["X", x], ["Y", y]]

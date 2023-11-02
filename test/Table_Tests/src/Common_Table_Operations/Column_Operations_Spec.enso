@@ -1237,7 +1237,7 @@ spec setup =
 
         Test.specify "Should create the correct column name" <|
             t = table_builder [["x", ["1", "2", "3"]]]
-            t.at "x" . const 12 . name . take 9 . should_equal "Constant_"
+            t.at "x" . const 12 . name . should_equal "12"
 
         Test.specify "Should not allow the creation of a constant column of columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]

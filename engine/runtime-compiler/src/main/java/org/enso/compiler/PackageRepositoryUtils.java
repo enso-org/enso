@@ -3,7 +3,6 @@ package org.enso.compiler;
 import com.oracle.truffle.api.TruffleFile;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
-import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 
@@ -20,7 +19,8 @@ public final class PackageRepositoryUtils {
    */
   public static Optional<QualifiedName> getModuleNameForFile(
       PackageRepository packageRepository, TruffleFile file) {
-    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
+    return scala.jdk.javaapi.CollectionConverters.asJava(packageRepository.getLoadedPackages())
+        .stream()
         .filter(pkg -> file.startsWith(pkg.sourceDir()))
         .map(pkg -> pkg.moduleNameForFile(file))
         .findFirst();
