@@ -305,15 +305,15 @@ function fetchOnMainThread(path: string) {
   })
 }
 
-const emptyBuffer = new Uint8Array().buffer
 const decoder = new TextDecoder()
 
 async function tryFetch(path: string): Promise<FetchResponse> {
   try {
     return await fetchOnMainThread(path)
-  } catch (error) {
-    fetchError(path, toError(error))
-    return { contents: emptyBuffer, contentType: undefined }
+  } catch (rawError) {
+    const error = toError(rawError)
+    fetchError(path, error)
+    throw error
   }
 }
 

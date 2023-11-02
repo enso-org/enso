@@ -40,10 +40,9 @@ const maxReconnectTimeout = 2500
 // @todo - this should depend on awareness.outdatedTime
 const messageReconnectTimeout = 30000
 
-const setupWS = (wsclient: WebsocketClient) => {
-  if (wsclient.shouldConnect && wsclient.ws === null) {
-    // @ts-ignore I don't know why `lib` is misconfigured.
-    const websocket = new WebSocket(wsclient.url)
+const setupWS = (wsclient: WebsocketClient, ws?: WebSocket | null | undefined) => {
+  if (wsclient.shouldConnect && (wsclient.ws === null || ws)) {
+    const websocket = ws ?? new WebSocket(wsclient.url)
     const binaryType = wsclient.binaryType
     let pingTimeout: any = null
     if (binaryType) {
@@ -174,10 +173,11 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
     this.ws?.close()
   }
 
-  connect() {
+  connect(ws?: WebSocket | null | undefined) {
     this.shouldConnect = true
-    if (!this.connected && !this.ws) {
-      setupWS(this)
+    if (ws) this.ws = ws
+    if ((!this.connected && !this.ws) || ws) {
+      setupWS(this, ws)
     }
   }
 }

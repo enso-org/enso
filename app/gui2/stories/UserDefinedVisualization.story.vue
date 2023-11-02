@@ -17,28 +17,30 @@ const fsSources = (
 
 const fsSource = ref<'editor' | 'fs'>('editor')
 const directory = ref<FileSystemDirectoryHandle>()
-const type = ref('Scatterplot')
+const type = ref('Example Visualization')
 const isCircularMenuVisible = ref(false)
 
 // Opening angle brackets for top-level elements escaped to avoid breaking Vue.
 const code = ref(`\
 \x3cscript lang="ts">
-export const name = 'Mock Visualization'
+export const name = 'Example Visualization'
 export const inputType = 'Any'
 \x3c/script>
 
 \x3cscript setup lang="ts">
-const props = defineProps<{ data: unknown }>();
+import { VisualizationContainer } from 'builtins'
+const props = defineProps<{ data: unknown }>()
 \x3c/script>
 
 \x3ctemplate>
-  <div class="green-dot" v-text="props.data"></div>
+  <VisualizationContainer :belowToolbar="true">
+    <pre><code class="green-text" v-text="props.data"></code></pre>
+  </VisualizationContainer>
 \x3c/template>
 
 \x3cstyle scoped>
-.green-dot {
-  border-radius: 9999px;
-  background: green;
+.green-text {
+  color: green;
 }
 \x3c/style>`)
 
@@ -59,6 +61,12 @@ const currentType = computed<VisualizationIdentifier>(() => ({
   module: { kind: 'CurrentProject' },
   name: type.value,
 }))
+
+const mockFsWrapperProps = computed(() => ({
+  prefix: ['visualizations'],
+  files: fsSource.value === 'editor' ? { 'ExampleVisualization.vue': code.value } : undefined,
+  directory: directory.value,
+}))
 </script>
 
 <template>
@@ -69,10 +77,7 @@ const currentType = computed<VisualizationIdentifier>(() => ({
     autoPropsDisabled
   >
     <div style="height: 322px">
-      <MockFSWrapper
-        :files="fsSource === 'editor' ? { 'MockVisualization.vue': code } : undefined"
-        :directory="directory"
-      >
+      <MockFSWrapper v-bind="mockFsWrapperProps">
         <GraphVisualization
           :currentType="currentType"
           :data="data"

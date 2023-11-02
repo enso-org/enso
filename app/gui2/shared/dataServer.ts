@@ -76,21 +76,19 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       const binaryMessage = OutboundMessage.getRootAsOutboundMessage(new ByteBuffer(rawPayload))
       const payloadType = binaryMessage.payloadType()
       const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
-      if (payload != null) {
-        this.emit(`${payloadType}`, [payload, null])
-        const id = binaryMessage.correlationId()
-        if (id != null) {
-          const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-          this.emit(`${payloadType}`, [payload, uuid])
-          const callback = this.resolveCallbacks.get(uuid)
-          callback?.(payload)
-        } else if (payload instanceof VisualizationUpdate) {
-          const id = payload.visualizationContext()?.visualizationId()
-          if (id != null) {
-            const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-            this.emit(`${payloadType}`, [payload, uuid])
-          }
-        }
+      if (!payload) return
+      this.emit(`${payloadType}`, [payload, null])
+      const id = binaryMessage.correlationId()
+      if (id != null) {
+        const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+        this.emit(`${payloadType}`, [payload, uuid])
+        const callback = this.resolveCallbacks.get(uuid)
+        callback?.(payload)
+      } else if (payload instanceof VisualizationUpdate) {
+        const id = payload.visualizationContext()?.visualizationId()
+        if (!id) return
+        const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+        this.emit(`${payloadType}`, [payload, uuid])
       }
     })
   }
@@ -109,10 +107,9 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     payloadOffset: number,
   ): Promise<T> {
     const messageUuid = random.uuidv4()
-    const messageId = this.createUUID(builder, messageUuid)
     const rootTable = InboundMessage.createInboundMessage(
       builder,
-      messageId,
+      this.createUUID(builder, messageUuid),
       0 /* correlation id */,
       payloadType,
       payloadOffset,
@@ -126,8 +123,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
 
   protected createUUID(builder: Builder, uuid: string) {
     const [leastSigBits, mostSigBits] = uuidToBits(uuid)
-    const identifier = EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
-    return identifier
+    return EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
   }
 
   initSession(): Promise<Success | Error> {

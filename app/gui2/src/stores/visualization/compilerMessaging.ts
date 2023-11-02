@@ -278,6 +278,6 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
   const promise = new Promise<VisualizationModule>((resolve, reject) => {
     workerCallbacks.set(id, { resolve, reject })
   })
-  postMessage<CompileRequest>(worker, { type: 'compile-request', id, path })
+  postMessage<CompileRequest>(worker, { type: 'compile-request', id, path, recompile: true })
   return await promise
 }

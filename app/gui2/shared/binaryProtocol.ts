@@ -886,6 +886,21 @@ export class OutboundMessage implements Table {
     OutboundMessage.addPayload(builder, payloadOffset)
     return OutboundMessage.endOutboundMessage(builder)
   }
+
+  static createOutboundMessage2(
+    builder: Builder,
+    createMessageId: (builder: Builder) => Offset,
+    createCorrelationId: (builder: Builder) => Offset,
+    payloadType: OutboundPayload,
+    payloadOffset: Offset,
+  ): Offset {
+    OutboundMessage.startOutboundMessage(builder)
+    OutboundMessage.addMessageId(builder, createMessageId(builder))
+    OutboundMessage.addCorrelationId(builder, createCorrelationId(builder))
+    OutboundMessage.addPayloadType(builder, payloadType)
+    OutboundMessage.addPayload(builder, payloadOffset)
+    return OutboundMessage.endOutboundMessage(builder)
+  }
 }
 
 export class EnsoUUID implements Table {
@@ -1057,7 +1072,7 @@ export class ReadOutOfBoundsError implements Table {
 export class None implements Table {
   bb!: ByteBuffer
   bbPos: number = 0
-  init(i: number, bb: ByteBuffer): Success {
+  init(i: number, bb: ByteBuffer): None {
     this.bbPos = i
     this.bb = bb
     return this

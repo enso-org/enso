@@ -106,11 +106,9 @@ interface MockTransportData {
 }
 
 export class MockTransport extends Transport {
-  name: string
   static mocks: Map<string, MockTransportData> = new Map()
-  constructor(name: string) {
+  constructor(public name: string) {
     super()
-    this.name = name
   }
 
   static addMock(name: string, data: MockTransportData) {
@@ -136,7 +134,15 @@ export class MockTransport extends Transport {
   }
 }
 
+export interface WebSocketHandler {
+  (
+    data: string | ArrayBufferLike | Blob | ArrayBufferView,
+    send: (data: string | ArrayBufferLike | Blob | ArrayBufferView) => void,
+  ): void
+}
+
 export class MockWebSocket extends EventTarget implements WebSocket {
+  static mocks: Map<string, WebSocketHandler> = new Map()
   readonly CONNECTING = WebSocket.CONNECTING
   readonly OPEN = WebSocket.OPEN
   readonly CLOSING = WebSocket.CLOSING
@@ -150,42 +156,37 @@ export class MockWebSocket extends EventTarget implements WebSocket {
   onclose: ((this: WebSocket, ev: CloseEvent) => any) | null = null
   onmessage: ((this: WebSocket, ev: MessageEvent<any>) => any) | null = null
   onerror: ((this: WebSocket, ev: Event) => any) | null = null
-  protected mockCb: (
-    data: string | ArrayBufferLike | Blob | ArrayBufferView,
-    send: (data: string | ArrayBufferLike | Blob | ArrayBufferView) => void,
-  ) => void = () => {}
 
-  constructor(public url: string) {
-    super()
+  static addMock(name: string, data: WebSocketHandler) {
+    MockWebSocket.mocks.set(name, data)
   }
 
-  mock(
-    cb: (
-      data: string | ArrayBufferLike | Blob | ArrayBufferView,
-      send: (data: string | ArrayBufferLike | Blob | ArrayBufferView) => void,
-    ) => void,
+  constructor(
+    public url: string,
+    public name: string,
   ) {
-    this.mockCb = cb
-  }
-
-  mockMessage(data: string | ArrayBufferLike | Blob | ArrayBufferView) {
-    this.dispatchEvent(new MessageEvent('message', { data }))
+    super()
+    this.addEventListener('open', (ev) => this.onopen?.(ev))
+    this.addEventListener('close', (ev) => this.onclose?.(ev as CloseEvent))
+    this.addEventListener('message', (ev) => this.onmessage?.(ev as MessageEvent<any>))
+    this.addEventListener('error', (ev) => this.onerror?.(ev))
+    setTimeout(() => this.dispatchEvent(new Event('open')), 0)
   }
 
   send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
-    this.mockCb(data, this.mockMessage.bind(this))
+    MockWebSocket.mocks.get(this.name)?.(data, (data) =>
+      this.dispatchEvent(new MessageEvent('message', { data })),
+    )
   }
-
   close() {
     this.readyState = WebSocket.CLOSED
   }
 }
 
 export class MockWebSocketClient extends WebsocketClient {
-  ws: MockWebSocket
   constructor(url: string) {
     super(url)
-    this.ws = new MockWebSocket(url)
+    super.connect(new MockWebSocket(url, url.slice('mock://'.length)))
   }
 }
 

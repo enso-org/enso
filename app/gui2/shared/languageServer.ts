@@ -390,8 +390,6 @@ export class LanguageServer extends ObservableV2<Notifications> {
   ) {
     let running = true
     ;(async () => {
-      await retry(() => this.acquireReceivesTreeUpdates({ rootId, segments }))
-      if (!running) return
       this.on('file/event', callback)
       walkFs(this, { rootId, segments }, (type, path) => {
         if (
@@ -406,6 +404,8 @@ export class LanguageServer extends ObservableV2<Notifications> {
           kind: 'Added',
         })
       })
+      await retry(() => this.acquireReceivesTreeUpdates({ rootId, segments }))
+      if (!running) return
     })()
     return () => {
       running = false

@@ -69,7 +69,7 @@ function switchToDefaultPreprocessor() {
 }
 
 watch(
-  () => props.currentType,
+  () => [props.currentType, visualization.value],
   () => (error.value = undefined),
 )
 
@@ -85,6 +85,27 @@ watchEffect(async () => {
         switchToDefaultPreprocessor()
       }
       visualization.value = module.default
+    } else {
+      switch (props.currentType.module.kind) {
+        case 'Builtin': {
+          error.value = new Error(
+            `The builtin visualization '${props.currentType.name}' was not found.`,
+          )
+          break
+        }
+        case 'CurrentProject': {
+          error.value = new Error(
+            `The visualization '${props.currentType.name}' was not found in the current project.`,
+          )
+          break
+        }
+        case 'Library': {
+          error.value = new Error(
+            `The visualization '${props.currentType.name}' was not found in the library '${props.currentType.module.name}'.`,
+          )
+          break
+        }
+      }
     }
   } catch (caughtError) {
     error.value = toError(caughtError)

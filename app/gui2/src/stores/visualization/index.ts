@@ -153,6 +153,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
     const key = id && toVisualizationId(id)
     compilationAbortControllers.get(pathString)?.abort()
     compilationAbortControllers.delete(pathString)
+    // FIXME [sb]: Ideally these should be deleted as late as possible, instead of immediately.
+    for (const el of document.querySelectorAll(
+      `[${stylePathAttribute}="${CSS.escape(currentProjectProtocol + pathString)}"]`,
+    )) {
+      el.remove()
+    }
     switch (kind) {
       case 'Added':
       case 'Modified': {
@@ -160,7 +166,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           const abortController = new AbortController()
           compilationAbortControllers.set(pathString, abortController)
           const vizPromise = compile(
-            'enso-current-project:' + pathString,
+            currentProjectProtocol + pathString,
             await projectRoot,
             await proj.dataConnection,
           )
@@ -168,6 +174,10 @@ export const useVisualizationStore = defineStore('visualization', () => {
           const viz = await vizPromise
           if (abortController.signal.aborted) break
           if (!id || viz.name !== id.name) {
+            if (key && id && viz.name !== id.name) {
+              cache.delete(key)
+              metadata.delete(key)
+            }
             id = { module: { kind: 'CurrentProject' }, name: viz.name }
             cache.set(toVisualizationId(id), vizPromise)
           }
@@ -180,18 +190,13 @@ export const useVisualizationStore = defineStore('visualization', () => {
                 `If it is not a dependency, are you perhaps missing \`name\` or \`inputType\`?`,
             )
           } else {
-            console.error('Error loading visualization:', error)
+            console.error('Could not load visualization:', error)
           }
         }
         break
       }
       case 'Removed': {
         currentProjectVisualizationsByPath.delete(pathString)
-        for (const el of document.querySelectorAll(
-          `[${stylePathAttribute}="${CSS.escape(currentProjectProtocol + pathString)}"]`,
-        )) {
-          el.remove()
-        }
         if (key) {
           cache.delete(key)
           metadata.delete(key)
