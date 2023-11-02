@@ -127,8 +127,11 @@ export class DistributedModule {
     this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
   }
 
-  insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length] as const
+  insertNewNode(offset: number, pattern: string, expression: string, meta: NodeMetadata): ExprId {
+    // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
+    const lhs = `    ${pattern} = `
+    const content = lhs + expression
+    const range = [offset + lhs.length, offset + content.length] as const
     const newId = random.uuidv4() as ExprId
     this.transact(() => {
       this.doc.contents.insert(offset, content + '\n')

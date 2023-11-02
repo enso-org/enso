@@ -10,7 +10,7 @@ import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 import org.scalatest.Inside
 
 class UnusedBindingsTest extends CompilerTest with Inside {
