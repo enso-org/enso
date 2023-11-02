@@ -271,7 +271,7 @@ public class Table {
     }
 
     JoinStrategy strategy = JoinStrategy.createStrategy(conditions);
-    JoinResult joinResult = strategy.join(this, right, conditions, problemAggregator);
+    JoinResult joinResult = strategy.join(problemAggregator);
 
     List<JoinResult> resultsToKeep = new ArrayList<>();
 

@@ -1,3 +1,3 @@
 package org.enso.table.data.table.join;
 
-public interface JoinCondition {}
+public sealed interface JoinCondition permits HashableCondition, Between {}

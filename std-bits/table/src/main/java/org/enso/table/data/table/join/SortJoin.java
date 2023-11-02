@@ -2,133 +2,126 @@ package org.enso.table.data.table.join;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
-import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
-public class SortJoin implements PluggableJoinStrategy {
-  @Override
-  public JoinResult join(Table left, Table right, List<JoinCondition> conditions, ProblemAggregator problemAggregator) {
-    assert !conditions.isEmpty();
-    List<Between> rangeConditions = conditions.stream().map(c -> {
-      if (c instanceof Between b) {
-        return b;
-      } else {
-        throw new IllegalArgumentException("Only Between conditions are supported for SortJoin.");
-      }
-    }).toList();
+public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
-    SortedLeftIndex leftIndex = buildSortedLeftIndex(rangeConditions);
-    JoinResult.Builder resultBuilder = new JoinResult.Builder();
+  public SortJoin(List<Between> conditions) {
+    conditionsHelper = new JoinStrategy.ConditionsHelper(conditions);
 
     Context context = Context.getCurrent();
-    int rightRowCount = right.rowCount();
+    int nConditions = conditions.size();
+    directions = new int[nConditions];
+    leftStorages = new Storage<?>[nConditions];
+    lowerStorages = new Storage<?>[nConditions];
+    upperStorages = new Storage<?>[nConditions];
+    for (int i = 0; i < nConditions; i++) {
+      directions[i] = 1;
+      leftStorages[i] = conditions.get(i).left().getStorage();
+      lowerStorages[i] = conditions.get(i).rightLower().getStorage();
+      upperStorages[i] = conditions.get(i).rightUpper().getStorage();
+      context.safepoint();
+    }
+  }
+
+  private final JoinStrategy.ConditionsHelper conditionsHelper;
+
+  private final int[] directions;
+  private final Storage<?>[] leftStorages;
+  private final Storage<?>[] lowerStorages;
+  private final Storage<?>[] upperStorages;
+
+  @Override
+  public JoinResult join(ProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
+
+    int leftRowCount = conditionsHelper.getLeftTableRowCount();
+    List<OrderedMultiValueKey> leftKeys = new ArrayList<>(leftRowCount);
+    for (int i = 0; i < leftRowCount; i++) {
+      leftKeys.add(new OrderedMultiValueKey(leftStorages, i, directions));
+      context.safepoint();
+    }
+
+    NavigableSet<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
+    JoinResult.Builder resultBuilder = new JoinResult.Builder();
+
+    if (leftIndex.isEmpty()) {
+      return resultBuilder.build();
+    }
+
+    int rightRowCount = conditionsHelper.getRightTableRowCount();
     for (int rightRowIx = 0; rightRowIx < rightRowCount; rightRowIx++) {
-      List<Integer> leftRows = leftIndex.findMatchingLeftRows(rightRowIx);
-      for (int leftRowIx : leftRows) {
-        resultBuilder.addRow(leftRowIx, rightRowIx);
-
-        context.safepoint();
-      }
-
+      addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
       context.safepoint();
     }
 
     return resultBuilder.build();
   }
 
-  private SortedLeftIndex buildSortedLeftIndex(List<Between> conditions) {
+  @Override
+  public void joinSubsets(List<Integer> leftGroup, List<Integer> rightGroup, JoinResult.Builder resultBuilder, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
 
-    assert !conditions.isEmpty();
-    int leftRowCount = conditions.get(0).left().getStorage().size();
-    int[] directions = new int[conditions.size()];
-    Storage<?>[] storages = new Storage<?>[conditions.size()];
-    for (int i = 0; i < conditions.size(); i++) {
-      directions[i] = 1;
-      storages[i] = conditions.get(i).left().getStorage();
-      context.safepoint();
+    List<OrderedMultiValueKey> leftKeys = leftGroup.stream().map(i-> new OrderedMultiValueKey(leftStorages, i, directions)).toList();
+    NavigableSet<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
+
+    if (leftIndex.isEmpty()) {
+      return;
     }
 
-    TreeSet<OrderedMultiValueKey> keys = new TreeSet<>();
-    for (int i = 0; i < leftRowCount; i++) {
+    for (int rightRowIx : rightGroup) {
+      addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
       context.safepoint();
-      OrderedMultiValueKey key = new OrderedMultiValueKey(storages, i, directions);
+    }
+  }
+
+  private NavigableSet<OrderedMultiValueKey> buildSortedLeftIndex(List<OrderedMultiValueKey> keys) {
+    Context context = Context.getCurrent();
+    TreeSet<OrderedMultiValueKey> index = new TreeSet<>();
+    for (var key : keys) {
+      context.safepoint();
       if (key.hasAnyNulls()) {
         continue;
       }
-      keys.add(key);
+      index.add(key);
     }
-
-    return new SortedLeftIndex(keys, conditions.get(0), conditions.subList(1, conditions.size()));
+    return index;
   }
 
-  static final class SortedLeftIndex {
-    private final NavigableSet<OrderedMultiValueKey> sortedKeys;
+  private OrderedMultiValueKey buildLowerBound(int rightRowIx) {
+    return new OrderedMultiValueKey(lowerStorages, rightRowIx, directions);
+  }
 
-    private final int[] directions;
-    private final Storage<?>[] lowerStorages;
-    private final Storage<?>[] upperStorages;
+  private OrderedMultiValueKey buildUpperBound(int rightRowIx) {
+    return new OrderedMultiValueKey(upperStorages, rightRowIx, directions);
+  }
 
-    SortedLeftIndex(NavigableSet<OrderedMultiValueKey> sortedKeys, Between sortCondition,
-                    List<Between> remainingConditions) {
-      this.sortedKeys = sortedKeys;
-      int nConditions = 1 + remainingConditions.size();
-      directions = new int[nConditions];
-      lowerStorages = new Storage<?>[nConditions];
-      upperStorages = new Storage<?>[nConditions];
-      for (int i = 0; i < nConditions; i++) {
-        directions[i] = 1;
-        if (i == 0) {
-          lowerStorages[i] = sortCondition.rightLower().getStorage();
-          upperStorages[i] = sortCondition.rightUpper().getStorage();
-        } else {
-          Between condition = remainingConditions.get(i - 1);
-          lowerStorages[i] = condition.rightLower().getStorage();
-          upperStorages[i] = condition.rightUpper().getStorage();
-        }
-      }
+  void addMatchingLeftRows(NavigableSet<OrderedMultiValueKey> sortedKeys, int rightRowIx,
+                           JoinResult.Builder resultBuilder) {
+    OrderedMultiValueKey lowerBound = buildLowerBound(rightRowIx);
+    OrderedMultiValueKey upperBound = buildUpperBound(rightRowIx);
+
+    // If the match interval is invalid or empty, there is nothing to do.
+    if (lowerBound.hasAnyNulls() || upperBound.hasAnyNulls() || lowerBound.compareTo(upperBound) > 0) {
+      return;
     }
 
-    List<Integer> findMatchingLeftRows(int rightRowIx) {
-      if (sortedKeys.isEmpty()) {
-        return Collections.emptyList();
+    NavigableSet<OrderedMultiValueKey> firstCoordinateMatches = sortedKeys.subSet(lowerBound, true, upperBound, true);
+    ArrayList<Integer> result = new ArrayList<>();
+    Context context = Context.getCurrent();
+    for (OrderedMultiValueKey key : firstCoordinateMatches) {
+      boolean isInRange = lowerBound.compareTo(key) <= 0 && key.compareTo(upperBound) <= 0;
+      if (isInRange) {
+        resultBuilder.addRow(key.getRowIndex(), rightRowIx);
       }
 
-      OrderedMultiValueKey lowerBound = buildLowerBound(rightRowIx);
-      OrderedMultiValueKey upperBound = buildUpperBound(rightRowIx);
-
-      if (lowerBound.compareTo(upperBound) > 0 || lowerBound.hasAnyNulls() || upperBound.hasAnyNulls()) {
-        return Collections.emptyList();
-      }
-
-      NavigableSet<OrderedMultiValueKey> firstCoordinateMatches = sortedKeys.subSet(lowerBound, true, upperBound, true);
-      ArrayList<Integer> result = new ArrayList<>();
-      Context context = Context.getCurrent();
-      for (OrderedMultiValueKey key : firstCoordinateMatches) {
-        boolean isInRange = lowerBound.compareTo(key) <= 0 && key.compareTo(upperBound) <= 0;
-        if (isInRange) {
-          result.add(key.getRowIndex());
-        }
-
-        context.safepoint();
-      }
-
-      return result;
-    }
-
-    private OrderedMultiValueKey buildLowerBound(int rightRowIx) {
-      return new OrderedMultiValueKey(lowerStorages, rightRowIx, directions);
-    }
-
-    private OrderedMultiValueKey buildUpperBound(int rightRowIx) {
-      return new OrderedMultiValueKey(upperStorages, rightRowIx, directions);
+      context.safepoint();
     }
   }
 }
