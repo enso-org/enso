@@ -5,6 +5,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -50,33 +51,37 @@ public abstract class Persistance<T> {
       }
   }
 
-  public static Generator newGenerator(ByteBuffer buffer) {
-    return new Generator(buffer);
+  public static Generator newGenerator(OutputStream out) {
+    return new Generator(out);
   }
 
   public static final class Generator {
     private final PersistanceMap map = new PersistanceMap();
-    private final ByteBuffer buffer;
+    private final OutputStream main;
     private final Map<Object,Integer> knownObjects = new IdentityHashMap<>();
+    private int position;
 
-    private Generator(ByteBuffer buffer) {
-      this.buffer = buffer;
+    private Generator(OutputStream out) {
+      this.main = out;
+      this.position = 0;
     }
 
-    public <T> Reference<T> writeObject(T obj) throws IOException {
+    public <T> int writeObject(T obj) throws IOException {
       if (obj == null) {
-        return Reference.none();
+        return -1;
       }
       var found = knownObjects.get(obj);
       if (found == null) {
         var p = map.forType(obj.getClass());
         var os = new ByteArrayOutputStream();
         p.writeInline(obj, new ReferenceOutput(this, os));
-        found = this.buffer.position();
-        this.buffer.put(os.toByteArray());
+        found = this.position;
+        var arr = os.toByteArray();
+        main.write(arr);
+        this.position += arr.length;
         knownObjects.put(obj, found);
       }
-      return Reference.from(buffer, found);
+      return found;
     }
 
     final void writeIndirect(Object obj, Output out) throws IOException {
@@ -90,8 +95,10 @@ public abstract class Persistance<T> {
         var os = new ByteArrayOutputStream();
         var osData = new ReferenceOutput(this, os);
         p.writeInline(obj, osData);
-        found = buffer.position();
-        buffer.put(os.toByteArray());
+        found = position;
+        var arr = os.toByteArray();
+        main.write(arr);
+        position += arr.length;
         knownObjects.put(obj, found);
       }
       out.writeInt(p.id);

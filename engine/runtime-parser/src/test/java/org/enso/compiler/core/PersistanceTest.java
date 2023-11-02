@@ -2,6 +2,7 @@ package org.enso.compiler.core;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.UUID;
@@ -51,13 +52,15 @@ public class PersistanceTest {
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
-    var buf = ByteBuffer.allocate(512);
-    var gen = Persistance.newGenerator(buf);
-    var ref = gen.writeObject(l);
-    buf.flip();
+    var out = new ByteArrayOutputStream();
+    var gen = Persistance.newGenerator(out);
+    var at = gen.writeObject(l);
+    var arr = out.toByteArray();
+    var buf = ByteBuffer.wrap(arr);
     if (expectedSize >= 0) {
-      assertEquals(expectedSize, buf.limit());
+      assertEquals(expectedSize, arr.length);
     }
+    var ref = Persistance.Reference.from(buf, at);
     return ref.get(clazz);
   }
 
