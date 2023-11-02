@@ -130,5 +130,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     /** Use this transform instead, if the element should not be scaled. */
     prescaledTransform,
     sceneMousePos,
+    clientToScenePos,
   })
 }
