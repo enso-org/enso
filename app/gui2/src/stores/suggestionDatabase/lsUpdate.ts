@@ -10,8 +10,9 @@ import {
   type SuggestionEntryScope,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import { assert } from '@/util/assert'
+import { assert, assertNever } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
+import type { Icon } from '@/util/iconName'
 import { type Opt } from '@/util/opt'
 import {
   qnJoin,
@@ -38,8 +39,8 @@ interface UnfinishedEntry {
   reexportedIn?: QualifiedName
   documentation?: Doc.Section[]
   scope?: SuggestionEntryScope
-  iconName?: string
-  groupIndex?: number
+  iconName?: Icon
+  groupIndex?: number | undefined
 }
 
 function setLsName(
@@ -193,7 +194,7 @@ export function entryFromLs(
           })
         }
         case 'local': {
-          const entry = { kind: SuggestionKind.Function, arguments: [] }
+          const entry = { kind: SuggestionKind.Local, arguments: [] }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)
@@ -203,6 +204,8 @@ export function entryFromLs(
             ...entry,
           })
         }
+        default:
+          assertNever(lsEntry)
       }
     },
   )

@@ -6,6 +6,9 @@ import java.nio.file.Paths;
 import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.logging.Level;
+
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
@@ -41,7 +44,11 @@ public class NestedPatternCompilationBenchmarks {
                 .allowExperimentalOptions(true)
                 .allowIO(IOAccess.ALL)
                 .allowAllAccess(true)
-                .logHandler(new ByteArrayOutputStream())
+                .option(
+                        RuntimeOptions.LOG_LEVEL,
+                        Level.WARNING.getName()
+                )
+                .logHandler(System.err)
                 .option(
                         "enso.languageHomeOverride",
                         Paths.get("../../distribution/component").toFile().getAbsolutePath()
@@ -65,7 +72,7 @@ public class NestedPatternCompilationBenchmarks {
 
             list_of_6 =
                 List.Cons 1 (List.Cons 2 (List.Cons 3 (List.Cons 4 (List.Cons 5 (List.Cons 6 List.Nil)))))
-        """;
+            """;
     }
 
     @Benchmark

@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -132,7 +133,9 @@ class GatherDiagnosticsTest extends CompilerTest {
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
       diagnostics should have size 2
-      diagnostics.map(_.message).toSet shouldEqual Set(
+      diagnostics
+        .map(_.message(null))
+        .toSet shouldEqual Set(
         "Unused variable unused.",
         "Unused function argument x."
       )

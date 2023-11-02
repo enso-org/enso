@@ -15,6 +15,7 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
+import java.util.logging.Level
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeAsyncCommandsTest
@@ -42,7 +43,7 @@ class RuntimeAsyncCommandsTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
         .option(
           RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
           "false"
@@ -65,6 +66,7 @@ class RuntimeAsyncCommandsTest
         )
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
+        .logHandler(System.err)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )
@@ -139,9 +141,8 @@ class RuntimeAsyncCommandsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnoreExpressionUpdates(
-      3
+      2
     ) should contain theSameElementsAs Seq(
-      Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -224,7 +225,7 @@ class RuntimeAsyncCommandsTest
       Api.Request(requestId, Api.InterruptContextRequest(contextId))
     )
     context.receiveNIgnoreExpressionUpdates(
-      4
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.InterruptContextResponse(contextId)),
       Api.Response(
@@ -244,8 +245,7 @@ class RuntimeAsyncCommandsTest
       ),
       Api.Response(
         Api.ExecutionComplete(contextId)
-      ),
-      Api.Response(Api.BackgroundJobsStartedNotification())
+      )
     )
   }
 }

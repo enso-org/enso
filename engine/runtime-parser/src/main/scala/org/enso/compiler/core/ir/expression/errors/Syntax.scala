@@ -2,9 +2,12 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+import org.enso.compiler.core.IR.randomId
 
+import java.util.UUID
 import scala.annotation.unused
 
 /** A representation of an Enso syntax error.
@@ -17,15 +20,15 @@ import scala.annotation.unused
 sealed case class Syntax(
   at: IdentifiedLocation,
   reason: Syntax.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage      = MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with module.scope.Definition
     with module.scope.Export
     with module.scope.Import
     with IRKind.Primitive {
-  override protected var id: Identifier = randomId
+  var id: UUID @Identifier = randomId
 
   /** Creates a copy of `this`.
     *
@@ -41,7 +44,7 @@ sealed case class Syntax(
     reason: Syntax.Reason          = reason,
     passData: MetadataStorage      = passData,
     diagnostics: DiagnosticStorage = diagnostics,
-    id: Identifier                 = id
+    id: UUID @Identifier           = id
   ): Syntax = {
     val res = Syntax(at, reason, passData, diagnostics)
     res.id = id
@@ -70,7 +73,9 @@ sealed case class Syntax(
   override val location: Option[IdentifiedLocation] = Option(at)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Syntax = this
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Syntax = this
 
   /** @inheritdoc */
   override def toString: String =
@@ -89,10 +94,10 @@ sealed case class Syntax(
   override def children: List[IR] = List()
 
   /** @inheritdoc */
-  override def message: String = reason.explanation
+  override def message(source: Source): String = reason.explanation
 
   /** @inheritdoc */
-  override def formattedMessage: String = s"${message}."
+  override def formattedMessage(source: Source): String = s"${message(source)}."
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
 

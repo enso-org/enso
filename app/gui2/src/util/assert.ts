@@ -1,9 +1,9 @@
 export function assertNever(x: never): never {
-  bail('Unexpected object: ' + x)
+  bail('Unexpected object: ' + JSON.stringify(x))
 }
 
-export function assert(condition: boolean): asserts condition {
-  if (!condition) bail('Assertion failed')
+export function assert(condition: boolean, message?: string): asserts condition {
+  if (!condition) bail(message ? `Assertion failed: ${message}` : 'Assertion failed')
 }
 
 export function assertUnreachable(): never {

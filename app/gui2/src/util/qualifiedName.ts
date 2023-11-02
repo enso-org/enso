@@ -1,4 +1,3 @@
-import type { Opt } from '@/util/opt'
 import { Err, Ok, unwrap, type Result } from '@/util/result'
 
 declare const identifierBrand: unique symbol
@@ -34,9 +33,15 @@ export function tryQualifiedName(str: string): Result<QualifiedName> {
   return isQualifiedName(str) ? Ok(str) : Err(`"${str}" is not a valid qualified name`)
 }
 
+/** The index of the `.` between the last segment and all other segments.
+ * The start of the last segment is one higher than this index. */
+export function qnLastSegmentIndex(name: QualifiedName) {
+  return name.lastIndexOf('.')
+}
+
 /** Split the qualified name to parent and last segment (name). */
-export function qnSplit(name: QualifiedName): [Opt<QualifiedName>, Identifier] {
-  const separator = name.lastIndexOf('.')
+export function qnSplit(name: QualifiedName): [QualifiedName | null, Identifier] {
+  const separator = qnLastSegmentIndex(name)
   const parent = separator > 0 ? (name.substring(0, separator) as QualifiedName) : null
   const lastSegment = name.substring(separator + 1) as Identifier
   return [parent, lastSegment]
@@ -44,18 +49,30 @@ export function qnSplit(name: QualifiedName): [Opt<QualifiedName>, Identifier] {
 
 /** Get the last segment of qualified name. */
 export function qnLastSegment(name: QualifiedName): Identifier {
-  const separator = name.lastIndexOf('.')
+  const separator = qnLastSegmentIndex(name)
   return name.substring(separator + 1) as Identifier
 }
 
 /** Get the parent qualified name (without last segment) */
-export function qnParent(name: QualifiedName): Opt<QualifiedName> {
-  const separator = name.lastIndexOf('.')
+export function qnParent(name: QualifiedName): QualifiedName | null {
+  const separator = qnLastSegmentIndex(name)
   return separator > 1 ? (name.substring(0, separator) as QualifiedName) : null
 }
 
 export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName {
   return `${left}.${right}` as QualifiedName
+}
+
+export function qnSegments(name: QualifiedName): Identifier[] {
+  return name.split('.').map((segment) => segment as Identifier)
+}
+
+export function qnSlice(
+  name: QualifiedName,
+  start?: number | undefined,
+  end?: number | undefined,
+): Result<QualifiedName> {
+  return tryQualifiedName(qnSegments(name).slice(start, end).join('.'))
 }
 
 /** Checks if given full qualified name is considered a top element of some project.
@@ -64,7 +81,7 @@ export function qnJoin(left: QualifiedName, right: QualifiedName): QualifiedName
  * The element is considered a top element if there is max 1 segment in the path.
  */
 export function qnIsTopElement(name: QualifiedName): boolean {
-  return (name.match(/\./g)?.length ?? 0) <= 2
+  return !/[.].*?[.].*?[.]/.test(name)
 }
 
 if (import.meta.vitest) {

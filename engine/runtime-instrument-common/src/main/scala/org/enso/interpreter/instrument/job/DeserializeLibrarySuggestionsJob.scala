@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.job
 
 import org.enso.editions.LibraryName
+import org.enso.interpreter.runtime.SerializationManager
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -13,8 +14,17 @@ import scala.jdk.CollectionConverters._
   * @param libraryName the name of loaded library
   */
 final class DeserializeLibrarySuggestionsJob(
-  libraryName: LibraryName
-) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority) {
+  val libraryName: LibraryName
+) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority)
+    with UniqueJob[Unit] {
+
+  /** @inheritdoc */
+  override def equalsTo(that: UniqueJob[_]): Boolean =
+    that match {
+      case that: DeserializeLibrarySuggestionsJob =>
+        this.libraryName == that.libraryName
+      case _ => false
+    }
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
@@ -22,8 +32,9 @@ final class DeserializeLibrarySuggestionsJob(
       Level.FINE,
       s"Deserializing suggestions for library [$libraryName]."
     )
-    val serializationManager =
-      ctx.executionService.getContext.getCompiler.getSerializationManager
+    val serializationManager = SerializationManager(
+      ctx.executionService.getContext.getCompiler.context
+    )
     serializationManager
       .deserializeSuggestions(libraryName)
       .foreach { cachedSuggestions =>

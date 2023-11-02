@@ -1,9 +1,8 @@
 package org.enso.interpreter.instrument.job;
 
 import java.util.logging.Level;
-import org.enso.compiler.SerializationManager;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
-import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 
@@ -21,8 +20,9 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
 
   @Override
   public Void run(RuntimeContext ctx) {
-    EnsoContext ensoContext = ctx.executionService().getContext();
-    SerializationManager serializationManager = ensoContext.getCompiler().getSerializationManager();
+    var ensoContext = ctx.executionService().getContext();
+    var compiler = ensoContext.getCompiler();
+    SerializationManager serializationManager = SerializationManager.apply(compiler.context());
     boolean useGlobalCacheLocations = ensoContext.isUseGlobalCache();
     var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
     try {
@@ -41,7 +41,8 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                   return;
                 }
 
-                serializationManager.serializeModule(module, useGlobalCacheLocations, false);
+                serializationManager.serializeModule(
+                    compiler, module.asCompilerModule(), useGlobalCacheLocations, false);
               });
     } finally {
       ctx.locking().releaseWriteCompilationLock();
@@ -54,5 +55,10 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                   + " milliseconds");
     }
     return null;
+  }
+
+  @Override
+  public String toString() {
+    return "SerializeModuleJob(" + moduleName.toString() + ")";
   }
 }

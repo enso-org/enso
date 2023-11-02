@@ -17,7 +17,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 
 class LambdaConsolidateTest extends CompilerTest {
 
@@ -297,6 +297,9 @@ class LambdaConsolidateTest extends CompilerTest {
       ws should not be empty
       ws.head.shadowedName shouldEqual "x"
       ws.head.shadower shouldBe ir.arguments(1)
+      ws.head.message(
+        null
+      ) shouldBe "The argument 'x' is shadowed by another one with the same name."
     }
 
     "consolidate chained lambdas if the chaining occurs via a single-lined block" in {

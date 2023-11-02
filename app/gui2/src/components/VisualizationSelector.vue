@@ -56,22 +56,23 @@ onMounted(() => {
   top: 100%;
   margin-top: 12px;
   left: -12px;
+
+  &:before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 16px;
+    background: var(--color-app-bg);
+    backdrop-filter: var(--blur-app-bg);
+  }
 }
 
 .VisualizationSelector > * {
   position: relative;
 }
 
-.VisualizationSelector > .background {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 16px;
-  background: var(--color-app-bg);
-  backdrop-filter: var(--blur-app-bg);
-}
-
-ul {
+.VisualizationSelector > ul {
   display: flex;
   flex-flow: column;
   list-style-type: none;

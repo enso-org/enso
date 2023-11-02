@@ -20,17 +20,19 @@ export function useToastAndLog() {
     const logger = loggerProvider.useLogger()
     return React.useCallback(
         <T,>(
-            messagePrefix: string,
+            messagePrefix: string | null,
             error?: errorModule.MustNotBeKnown<T>,
             options?: toastify.ToastOptions
         ) => {
             const message =
                 error == null
-                    ? `${messagePrefix}.`
+                    ? `${messagePrefix ?? ''}.`
                     : // DO NOT explicitly pass the generic parameter anywhere else.
                       // It is only being used here because this function also checks for
                       // `MustNotBeKnown<T>`.
-                      `${messagePrefix}: ${errorModule.getMessageOrToString<unknown>(error)}`
+                      `${
+                          messagePrefix != null ? messagePrefix + ': ' : ''
+                      }${errorModule.getMessageOrToString<unknown>(error)}`
             const id = toastify.toast.error(message, options)
             logger.error(message)
             return id

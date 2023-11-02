@@ -5,15 +5,18 @@ import BlankIcon from 'enso-assets/blank.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
-import type * as assetTreeNode from '../assetTreeNode'
+import * as assetTreeNode from '../assetTreeNode'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as download from '../../download'
+import * as drag from '../drag'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
+import * as identity from '../identity'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
+import * as set from '../set'
 import * as visibilityModule from '../visibility'
 
 import * as assetsTable from './assetsTable'
@@ -71,6 +74,7 @@ export default function AssetRow(props: AssetRowProps) {
         // parent.
         rawItem.item = asset
     }, [asset, rawItem])
+    const setAsset = assetTreeNode.useSetAsset(asset, setItem)
 
     React.useEffect(() => {
         if (selected && visibility !== visibilityModule.Visibility.visible) {
@@ -273,16 +277,114 @@ export default function AssetRow(props: AssetRowProps) {
                         })
                     } catch (error) {
                         setVisibility(visibilityModule.Visibility.visible)
-                        toastAndLog(
-                            errorModule.tryGetMessage(error)?.slice(0, -1) ??
-                                `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
-                        )
+                        toastAndLog(null, error)
                     }
                 }
                 break
             }
+            case assetEventModule.AssetEventType.temporarilyAddLabels: {
+                const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
+                setRowState(oldRowState =>
+                    oldRowState.temporarilyAddedLabels === labels &&
+                    oldRowState.temporarilyRemovedLabels === set.EMPTY
+                        ? oldRowState
+                        : {
+                              ...oldRowState,
+                              temporarilyAddedLabels: labels,
+                              temporarilyRemovedLabels: set.EMPTY,
+                          }
+                )
+                break
+            }
+            case assetEventModule.AssetEventType.temporarilyRemoveLabels: {
+                const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
+                setRowState(oldRowState =>
+                    oldRowState.temporarilyAddedLabels === set.EMPTY &&
+                    oldRowState.temporarilyRemovedLabels === labels
+                        ? oldRowState
+                        : {
+                              ...oldRowState,
+                              temporarilyAddedLabels: set.EMPTY,
+                              temporarilyRemovedLabels: labels,
+                          }
+                )
+                break
+            }
+            case assetEventModule.AssetEventType.addLabels: {
+                setRowState(oldRowState =>
+                    oldRowState.temporarilyAddedLabels === set.EMPTY
+                        ? oldRowState
+                        : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+                )
+                const labels = asset.labels
+                if (
+                    event.ids.has(item.key) &&
+                    (labels == null || [...event.labelNames].some(label => !labels.includes(label)))
+                ) {
+                    const newLabels = [
+                        ...(labels ?? []),
+                        ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
+                    ]
+                    setAsset(oldAsset => ({ ...oldAsset, labels: newLabels }))
+                    try {
+                        await backend.associateTag(asset.id, newLabels, asset.title)
+                    } catch (error) {
+                        setAsset(oldAsset => ({ ...oldAsset, labels }))
+                        toastAndLog(null, error)
+                    }
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.removeLabels: {
+                setRowState(oldRowState =>
+                    oldRowState.temporarilyAddedLabels === set.EMPTY
+                        ? oldRowState
+                        : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+                )
+                const labels = asset.labels
+                if (
+                    event.ids.has(item.key) &&
+                    labels != null &&
+                    [...event.labelNames].some(label => labels.includes(label))
+                ) {
+                    const newLabels = labels.filter(label => !event.labelNames.has(label))
+                    setAsset(oldAsset => ({ ...oldAsset, labels: newLabels }))
+                    try {
+                        await backend.associateTag(asset.id, newLabels, asset.title)
+                    } catch (error) {
+                        setAsset(oldAsset => ({ ...oldAsset, labels }))
+                        toastAndLog(null, error)
+                    }
+                }
+                break
+            }
+            case assetEventModule.AssetEventType.deleteLabel: {
+                setAsset(oldAsset => {
+                    let found = identity.identity<boolean>(false)
+                    const labels =
+                        oldAsset.labels?.filter(label => {
+                            if (label === event.labelName) {
+                                found = true
+                                return false
+                            } else {
+                                return true
+                            }
+                        }) ?? null
+                    return found ? { ...oldAsset, labels } : oldAsset
+                })
+                break
+            }
         }
     })
+
+    const clearDragState = React.useCallback(() => {
+        setIsDraggedOver(false)
+        setRowState(oldRowState =>
+            oldRowState.temporarilyAddedLabels === set.EMPTY
+                ? oldRowState
+                : { ...oldRowState, temporarilyAddedLabels: set.EMPTY }
+        )
+    }, [])
 
     switch (asset.type) {
         case backendModule.AssetType.directory:
@@ -325,10 +427,9 @@ export default function AssetRow(props: AssetRowProps) {
                         initialRowState={rowState}
                         setRowState={setRowState}
                         onDragOver={event => {
+                            props.onDragOver?.(event)
                             if (item.item.type === backendModule.AssetType.directory) {
-                                const payload = assetsTable.tryGetAssetRowsDragPayload(
-                                    event.dataTransfer
-                                )
+                                const payload = drag.ASSET_ROWS.lookup(event)
                                 if (
                                     payload != null &&
                                     payload.every(innerItem => innerItem.key !== item.key)
@@ -338,18 +439,19 @@ export default function AssetRow(props: AssetRowProps) {
                                 }
                             }
                         }}
-                        onDragEnd={() => {
-                            setIsDraggedOver(false)
+                        onDragEnd={event => {
+                            clearDragState()
+                            props.onDragEnd?.(event)
                         }}
-                        onDragLeave={() => {
-                            setIsDraggedOver(false)
+                        onDragLeave={event => {
+                            clearDragState()
+                            props.onDragLeave?.(event)
                         }}
                         onDrop={event => {
-                            setIsDraggedOver(false)
+                            props.onDrop?.(event)
+                            clearDragState()
                             if (item.item.type === backendModule.AssetType.directory) {
-                                const payload = assetsTable.tryGetAssetRowsDragPayload(
-                                    event.dataTransfer
-                                )
+                                const payload = drag.ASSET_ROWS.lookup(event)
                                 if (
                                     payload != null &&
                                     payload.every(innerItem => innerItem.key !== item.key)

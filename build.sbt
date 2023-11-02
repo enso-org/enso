@@ -281,6 +281,7 @@ lazy val enso = (project in file("."))
     launcher,
     downloader,
     `runtime-parser`,
+    `runtime-compiler`,
     `runtime-language-epb`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
@@ -308,7 +309,9 @@ lazy val enso = (project in file("."))
     `std-aws`,
     `simple-httpbin`,
     `enso-test-java-helpers`,
-    `exploratory-benchmark-java-helpers`
+    `exploratory-benchmark-java-helpers`,
+    `benchmark-java-helpers`,
+    `bench-processor`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -457,11 +460,11 @@ val zio = Seq(
 val bcpkixJdk15Version      = "1.70"
 val bumpVersion             = "0.1.3"
 val declineVersion          = "2.4.1"
-val directoryWatcherVersion = "0.9.10"
+val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "32.0.0-jre"
 val jlineVersion            = "3.23.0"
-val jgitVersion             = "6.3.0.202209071007-r"
+val jgitVersion             = "6.7.0.202309050840-r"
 val diffsonVersion          = "4.4.0"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.14"
@@ -1350,8 +1353,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion              % Test,
       "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test,
-      "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test,
-      "com.lihaoyi"        %% "fansi"                 % fansiVersion
+      "org.hamcrest"        % "hamcrest-all"          % hamcrestVersion           % Test
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
@@ -1386,6 +1388,7 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
+      .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
@@ -1415,8 +1418,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`logging-truffle-connector`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
-  .dependsOn(`runtime-parser`)
-  .dependsOn(pkg)
+  .dependsOn(`runtime-compiler`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
@@ -1434,6 +1436,23 @@ lazy val `runtime-parser` =
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
+
+lazy val `runtime-compiler` =
+  (project in file("engine/runtime-compiler"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
+        "com.lihaoyi"   %% "fansi"           % fansiVersion
+      )
+    )
+    .dependsOn(`runtime-parser`)
+    .dependsOn(pkg)
+    .dependsOn(`polyglot-api`)
+    .dependsOn(editions)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))
@@ -2120,6 +2139,9 @@ lazy val `std-base` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
@@ -2200,12 +2222,35 @@ lazy val `exploratory-benchmark-java-helpers` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
+lazy val `benchmark-java-helpers` = project
+  .in(
+    file(
+      "test/Benchmarks/polyglot-sources/benchmark-java-helpers"
+    )
+  )
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      file(
+        "test/Benchmarks/polyglot/java/benchmark-java-helpers.jar"
+      ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
+    )
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .enablePlugins(Antlr4Plugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     Antlr4 / antlr4PackageName := Some("org.enso.table.expressions"),
@@ -2243,6 +2288,9 @@ lazy val `std-image` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
@@ -2269,6 +2317,9 @@ lazy val `std-google-api` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `google-api-polyglot-root` / "std-google-api.jar",
     libraryDependencies ++= Seq(
@@ -2293,6 +2344,9 @@ lazy val `std-database` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
@@ -2321,6 +2375,9 @@ lazy val `std-aws` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
     libraryDependencies ++= Seq(
@@ -2531,12 +2588,14 @@ pkgStdLibInternal := Def.inputTask {
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
+      (`benchmark-java-helpers` / Compile / packageBin).value
     case "AWS" =>
       (`std-aws` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
+      (`benchmark-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
       (`std-database` / Compile / packageBin).value
       (`std-image` / Compile / packageBin).value

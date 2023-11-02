@@ -3,9 +3,12 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Set_Mode
+from Standard.Table import all
 from Standard.Table.Errors import all
 import Standard.Table.Data.Expression.Expression_Error
+
+from Standard.Database import all
+from Standard.Database.Errors import Integrity_Error
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -162,6 +165,17 @@ spec setup =
                     table.at "Z" . to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
                 problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
                 Problems.test_problem_handling action2 problems2 tester2
+
+        Test.specify "should gracefully handle columns from different backends" <|
+            t1 = table_builder [["A", [1, 2, 3]]]
+            alternative_connection = Database.connect (SQLite In_Memory)
+            t0 = (Table.new [["X", [3, 2, 1]]]).select_into_database_table alternative_connection "T0" temporary=True
+            c0 = t0.at "X"
+
+            r1 = t1.set c0
+            case setup.is_database of
+                True ->  r1.should_fail_with Integrity_Error
+                False -> r1.should_fail_with Illegal_Argument
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.nio.file.Paths;
+import java.util.logging.Level;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.io.IOAccess;
@@ -26,7 +27,7 @@ public class VerifyJavaScriptIsAvailableTest {
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option("log.level", "FINE")
+            .option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
             .logHandler(handler)
             .allowAllAccess(true)
             .build();

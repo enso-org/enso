@@ -1,5 +1,6 @@
 package org.enso.compiler.test.semantic
 
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Module, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
@@ -14,8 +15,9 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 import java.nio.file.Paths
+import java.util.logging.Level
 
 /** Tests a single package with multiple modules for import/export resolution.
   * Checks whether the exported symbols and defined entities metadata of the modules
@@ -40,7 +42,7 @@ class ImportExportTest
     .allowCreateThread(false)
     .out(out)
     .err(out)
-    .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+    .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
     .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
     .logHandler(System.err)
     .option(
@@ -68,8 +70,10 @@ class ImportExportTest
   implicit private class CreateModule(moduleCode: String) {
     def createModule(moduleName: QualifiedName): runtime.Module = {
       val module = new runtime.Module(moduleName, null, moduleCode)
-      langCtx.getPackageRepository.registerModuleCreatedInRuntime(module)
-      langCtx.getCompiler.run(module)
+      langCtx.getPackageRepository.registerModuleCreatedInRuntime(
+        module.asCompilerModule()
+      )
+      langCtx.getCompiler.run(module.asCompilerModule())
       module
     }
   }
@@ -121,7 +125,8 @@ class ImportExportTest
       mainIr.imports.head match {
         case importErr: errors.ImportExport =>
           fail(
-            s"Import should be resolved, but instead produced errors.ImportExport with ${importErr.reason.message}"
+            s"Import should be resolved, but instead produced errors.ImportExport with ${importErr.reason
+              .message(null)}"
           )
         case _ => ()
       }
@@ -884,6 +889,65 @@ class ImportExportTest
       allWarns.foreach(_.symbolName shouldEqual "A_Type")
       allWarns.foreach(_.originalImport shouldEqual origImport)
     }
+
+    "serialize duplicated import warning" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from $namespace.$packageName.A_Module import A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val warn = mainIr
+        .imports(1)
+        .diagnostics
+        .collect({ case w: Warning.DuplicatedImport => w })
+      warn.size shouldEqual 1
+      val baos   = new ByteArrayOutputStream()
+      val stream = new ObjectOutputStream(baos)
+      mainIr.preorder.foreach(
+        _.passData.prepareForSerialization(langCtx.getCompiler)
+      )
+      stream.writeObject(mainIr)
+      baos.toByteArray should not be empty
+    }
+
+    "serialize ambiguous import error" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      s"""
+         |type B_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type
+           |import $namespace.$packageName.B_Module.B_Type as A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[errors.ImportExport]
+        .reason
+        .asInstanceOf[errors.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      val baos   = new ByteArrayOutputStream()
+      val stream = new ObjectOutputStream(baos)
+      mainIr.preorder.foreach(
+        _.passData.prepareForSerialization(langCtx.getCompiler)
+      )
+      stream.writeObject(mainIr)
+      baos.toByteArray should not be empty
+    }
   }
 
   "Import resolution for three modules" should {
@@ -928,7 +992,8 @@ class ImportExportTest
       mainIr.imports.head
         .asInstanceOf[errors.ImportExport]
         .reason
-        .message should include("A_Type")
+        .message(null) should include("A_Type")
+
     }
 
     "resolve all symbols (types and static module methods) from the module" in {

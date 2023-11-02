@@ -8,8 +8,9 @@
     "build": "tsx bundle.ts",
     "watch": "tsx watch.ts",
     "start": "tsx start.ts",
-    "test": "npx --yes playwright install && npm run test-unit && npm run test-component && npm run test-e2e-and-log",
+    "test": "npm run test-unit",
     "test-unit": "playwright test",
+    "test-browsers": "npx --yes playwright install && npm run test-component && npm run test-e2e-and-log",
     "test-component": "playwright test -c playwright-component.config.ts",
     "test-e2e": "npx playwright test -c playwright-e2e.config.ts",
     "test-e2e-and-log": "npm run test-e2e || npx tsx log-screenshot-diffs.ts"

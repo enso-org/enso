@@ -8,10 +8,9 @@ import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.context.LocalScope
 import org.scalatest.Inside
 
 class UnusedBindingsTest extends CompilerTest with Inside {
@@ -23,8 +22,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
   val precursorPasses: PassGroup = passes.getPrecursors(UnusedBindings).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
-    ApplicationSaturation -->> ApplicationSaturation.Configuration(),
-    AliasAnalysis         -->> AliasAnalysis.Configuration()
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =
@@ -206,6 +204,59 @@ class UnusedBindingsTest extends CompilerTest with Inside {
       lintMeta1.head.name.name shouldEqual "a"
 
       lintMeta2 shouldBe empty
+    }
+
+    "report human-readable names for shadowed arguments" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |f a a = 10
+          |main =
+          |    f 0 1
+          |""".stripMargin.preprocessModule.lint
+
+      inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
+        inside(definition.body) { case f: Function.Lambda =>
+          val lintMeta = f.arguments(1).diagnostics.collect {
+            case u: warnings.Unused.FunctionArgument => u
+          }
+
+          lintMeta should not be empty
+          lintMeta.head shouldBe an[warnings.Unused.FunctionArgument]
+          lintMeta.head.name.name shouldEqual "a"
+        }
+      }
+    }
+
+    "report human-readable names for shadowed bindings in patterns" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |case x of
+          |    Cons a a -> 10
+          |""".stripMargin.preprocessExpression.get.lint
+          .asInstanceOf[Expression.Block]
+          .returnValue
+          .asInstanceOf[Case.Expr]
+
+      val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
+      val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
+      val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
+
+      val lintMeta1 = field1.diagnostics.collect { case u: warnings.Unused =>
+        u
+      }
+      val lintMeta2 = field2.diagnostics.collect { case u: warnings.Unused =>
+        u
+      }
+
+      lintMeta2 should not be empty
+      lintMeta2.head shouldBe an[warnings.Unused.PatternBinding]
+      lintMeta2.head.name.name shouldEqual "a"
+
+      lintMeta1 shouldBe empty
     }
   }
 }

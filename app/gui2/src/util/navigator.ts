@@ -1,5 +1,5 @@
-import { Rect } from '@/stores/rect'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/util/events'
+import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
 import { computed, proxyRefs, ref, type Ref } from 'vue'
 
@@ -8,12 +8,13 @@ function elemRect(target: Element | undefined): Rect {
     const domRect = target.getBoundingClientRect()
     return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
   }
-  return Rect.Zero()
+  return Rect.Zero
 }
 
+export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>) {
   const size = useResizeObserver(viewportNode)
-  const center = ref<Vec2>(Vec2.Zero())
+  const center = ref<Vec2>(Vec2.Zero)
   const scale = ref(1)
   const panPointer = usePointer((pos) => {
     center.value = center.value.addScaled(pos.delta, -1 / scale.value)
@@ -33,7 +34,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     )
   }
 
-  let zoomPivot = Vec2.Zero()
+  let zoomPivot = Vec2.Zero
   const zoomPointer = usePointer((pos, _event, ty) => {
     if (ty === 'start') {
       zoomPivot = clientToScenePos(pos.initial)
@@ -61,25 +62,21 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     return `${v.pos.x} ${v.pos.y} ${v.size.x} ${v.size.y}`
   })
 
-  const transformValue = computed(() => {
+  const translate = computed<Vec2>(() => {
     const nodeSize = size.value
     const { x, y } = center.value
     const s = scale.value
     const w = nodeSize.x / s
     const h = nodeSize.y / s
-    return { x: -x + w / 2, y: -y + h / 2 }
+    return new Vec2(-x + w / 2, -y + h / 2)
   })
 
   const transform = computed(
-    () =>
-      `scale(${scale.value}) translate(${transformValue.value.x}px, ${transformValue.value.y}px)`,
+    () => `scale(${scale.value}) translate(${translate.value.x}px, ${translate.value.y}px)`,
   )
 
   const prescaledTransform = computed(
-    () =>
-      `translate(${transformValue.value.x * scale.value}px, ${
-        transformValue.value.y * scale.value
-      }px)`,
+    () => `translate(${translate.value.x * scale.value}px, ${translate.value.y * scale.value}px)`,
   )
 
   useEvent(
@@ -126,11 +123,13 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         }
       },
     },
+    translate,
     scale,
     viewBox,
     transform,
     /** Use this transform instead, if the element should not be scaled. */
     prescaledTransform,
     sceneMousePos,
+    clientToScenePos,
   })
 }

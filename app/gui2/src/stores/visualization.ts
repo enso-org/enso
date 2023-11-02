@@ -92,7 +92,7 @@ const dynamicVisualizationPaths: Record<string, string> = {
 export const useVisualizationStore = defineStore('visualization', () => {
   const imports = { ...builtinVisualizationImports }
   const paths = { ...dynamicVisualizationPaths }
-  let cache: Record<string, VisualizationModule> = {}
+  const cache: Map<string, Promise<VisualizationModule>> = reactive(new Map())
   let worker: Worker | undefined
   let workerMessageId = 0
   const workerCallbacks: Record<
@@ -155,10 +155,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
         ? allVisualizations
         : visualizationsForType.get(type) ?? visualizationsForAny.value
     return ret
-  }
-
-  function register(module: VisualizationModule) {
-    console.log(`registering visualization: name=${module.name}, inputType=${module.inputType}`)
   }
 
   function postMessage<T>(worker: Worker, message: T) {
@@ -302,27 +298,35 @@ export const useVisualizationStore = defineStore('visualization', () => {
       return
     }
     const type = meta.name
-    let module = cache[type]
-    if (module == null) {
-      module = await imports[type]?.()
+    const cached = cache.get(type)
+    if (cached) {
+      return await cached
+    } else {
+      const resolved = resolveBuiltinVisualization(type)
+      cache.set(type, resolved)
+      return await resolved
     }
-    if (module == null) {
-      const path = paths[type]
-      if (path != null) {
-        module = await compile(path)
-      }
+  }
+
+  async function resolveBuiltinVisualization(type: string) {
+    const builtinImport = imports[type]?.()
+    if (builtinImport) {
+      const module = await builtinImport
+      await loadScripts(module)
+      return module
     }
-    if (module == null) {
-      return
+    const builtinDynamicPath = paths[type]
+    if (builtinDynamicPath != null) {
+      const module = await compile(builtinDynamicPath)
+      console.log(module)
+      await loadScripts(module)
+      return module
     }
-    register(module)
-    await loadScripts(module)
-    cache[type] = module
-    return module
+    throw new Error(`Unknown visualization type: ${type}`)
   }
 
   function clear() {
-    cache = {}
+    cache.clear()
   }
 
   return { types, get, clear }
