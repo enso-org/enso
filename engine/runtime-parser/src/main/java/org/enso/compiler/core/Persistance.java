@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,7 @@ public abstract class Persistance<T> {
   }
 
   public static final class Generator {
+    private final PersistanceMap map = new PersistanceMap();
     private final ByteBuffer buffer;
     private final Map<Object,Integer> knownObjects = new IdentityHashMap<>();
 
@@ -65,14 +67,10 @@ public abstract class Persistance<T> {
       if (found != null) {
         return found;
       }
-      for (var p : ServiceLoader.load(Persistance.class)) {
-        if (p.clazz == obj.getClass()) {
-            var at = p.writeWith(obj, this);
-            knownObjects.put(obj, at);
-            return at;
-        }
-      }
-      throw new IOException("No Persistance for " + obj.getClass().getName());
+      var p = map.forType(obj.getClass());
+      var at = p.writeWith(obj, this);
+      knownObjects.put(obj, at);
+      return at;
     }
   }
 
@@ -354,6 +352,45 @@ public abstract class Persistance<T> {
       var arr = new byte[len];
       readFully(arr);
       return new String(arr, StandardCharsets.UTF_8);
+    }
+  }
+
+  private static final class PersistanceMap {
+    private final Map<Integer, Persistance<?>> ids = new HashMap<>();
+    private final Map<Class<?>, Persistance<?>> types = new HashMap<>();
+    private final int versionStamp;
+
+    private PersistanceMap() {
+      var hash = 0;
+      for (var p : ServiceLoader.load(Persistance.class)) {
+        var prevId = ids.put(p.id, p);
+        if (prevId != null) {
+          throw new IllegalStateException("Multiple registrations for ID " + p.id + " " + prevId + " != " + p);
+        }
+        hash += p.id;
+        var prevType = types.put(p.clazz, p);
+        if (prevType != null) {
+          throw new IllegalStateException("Multiple registrations for " + p.clazz.getName() + " " + prevId + " != " + p);
+        }
+      }
+      versionStamp = hash;
+    }
+
+    @SuppressWarnings("unchecked")
+    final <T> Persistance<T> forType(Class<T> type) {
+      var p = types.get(type);
+      if (p == null) {
+        throw new IllegalStateException("No persistance for " + type.getName());
+      }
+      return (Persistance<T>) p;
+    }
+
+    final Persistance<?> forId(int id) {
+      var p = ids.get(id);
+      if (p == null) {
+        throw new IllegalStateException("No persistance for " + id);
+      }
+      return p;
     }
   }
 }
