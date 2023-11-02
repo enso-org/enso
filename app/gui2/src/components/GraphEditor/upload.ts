@@ -1,4 +1,4 @@
-import { sha3_224, Keccak } from '@noble/hashes/sha3'
+import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
 import { bytesToHex } from '@noble/hashes/utils'
 import type { DataServer } from 'shared/dataServer'
@@ -22,7 +22,7 @@ export class Uploader {
     this.binary = binary
     this.file = file
     this.projectRootId = projectRootId
-    this.checksum = sha3_224.create()
+    this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
   }
 
@@ -69,9 +69,7 @@ export class Uploader {
     const hexChecksum = bytesToHex(this.checksum.digest())
     if (hexChecksum != engineChecksum.checksum) {
       throw new Error(
-        `Uploading file failed, checksum does not match. ${hexChecksum} != ${
-          engineChecksum.checksum
-        }`,
+        `Uploading file failed, checksum does not match. ${hexChecksum} != ${engineChecksum.checksum}`,
       )
     }
   }
