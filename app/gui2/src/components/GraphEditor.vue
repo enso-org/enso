@@ -2,6 +2,7 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -13,15 +14,17 @@ import { colorFromString } from '@/util/colors'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/util/events'
 import { Interaction } from '@/util/interaction'
 import { Vec2 } from '@/util/vec2'
+import type { Hasher } from 'js-sha3'
+import { sha3_224 } from 'js-sha3'
 import * as set from 'lib0/set'
+import type { DataServer } from 'shared/dataServer'
+import type { LanguageServer, LsRpcError } from 'shared/languageServer'
+import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
+import type { ContentRoot, Path, Uuid } from 'shared/languageServerTypes'
 import { computed, onMounted, ref, watch } from 'vue'
 import GraphEdges from './GraphEditor/GraphEdges.vue'
 import GraphNodes from './GraphEditor/GraphNodes.vue'
-import type { Path } from 'shared/languageServerTypes'
-import type { LsRpcError } from 'shared/languageServer'
-import { RemoteRpcError, ErrorCode } from 'shared/languageServer'
-import { sha3_224 } from 'js-sha3'
- 
+
 const EXECUTION_MODES = ['design', 'live']
 
 const viewportNode = ref<HTMLElement>()
@@ -185,120 +188,29 @@ watch(componentBrowserVisible, (visible) => {
   }
 })
 
-const dataDirName = 'data'
-async function dataDirectoryExists(): Promise<boolean> {
-  const rpc = await projectStore.lsRpcConnection
-  const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
-  if (projectRootId) {
-    const dataDirPath: Path = { rootId: projectRootId.id, segments: [dataDirName] }
-    return rpc.fileInfo(dataDirPath).then((info) => info.attributes.kind.type == 'Directory').catch((err: LsRpcError) => {
-      if (err.cause instanceof RemoteRpcError) {
-        if (err.cause.code == ErrorCode.FILE_NOT_FOUND || err.cause.code == ErrorCode.CONTENT_ROOT_NOT_FOUND) {
-          return false
-        }
-      }
-      throw err
-    })
-  } else {
-    throw new Error('Project root ID not found.')
-  }
-}
-
-async function ensureDataDirectoryExists(): Promise<void> {
-  const rpc = await projectStore.lsRpcConnection
-  const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
-  if (projectRootId) {
-    const dataDirExists = await dataDirectoryExists()
-    if (!dataDirExists) {
-      await rpc.createFile({ type: 'Directory', name: dataDirName, path: { rootId: projectRootId.id, segments: [] } })
-    }
-  } else {
-    throw new Error('Project root ID not found.')
-  }
-}
-
-function splitFilename(filename: string): [string, string] {
-  const dotIndex = filename.lastIndexOf('.');
- 
-  if (dotIndex !== -1 && dotIndex !== 0) {
-    const stem = filename.substring(0, dotIndex);
-    const extension = filename.substring(dotIndex + 1);
-    return [stem, extension];
-  }
-  
-  // If no extension found or dot is at the beginning or end of filename,
-  // consider it as the stem with an empty extension.
-  return [filename, ''];
-}
-
-async function pickUniqueName(originalName: string): Promise<string> {
-  const rpc = await projectStore.lsRpcConnection
-  const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
-  if (projectRootId) {
-    const files = await rpc.listFiles({ rootId: projectRootId.id, segments: [dataDirName] })
-    const existingNames = new Set(files.paths.map((path) => path.name))
-    const [stem, extension] = splitFilename(originalName)
-    let candidate = originalName
-    let num = 1
-    while (existingNames.has(candidate)) {
-      candidate = `${stem}_${num}.${extension}`
-      num += 1
-    }
-    return candidate
-  } else {
-    throw new Error('Project root ID not found.')
-  }
-}
-
-async function upload(name: string, file: File): Promise<void> {
-  // const rpc = await projectStore.lsRpcConnection
-  const data = await projectStore.dataConnection
-  const rpc = await projectStore.lsRpcConnection
-  const projectRootId = await projectStore.contentRoots.then((roots) => roots.find((root) => root.type == 'Project'))
-  if (projectRootId) {
-    const remotePath = { rootId: projectRootId.id, segments: [dataDirName, name] }
-    let offset = BigInt(0)
-    let checksum = sha3_224.create()
-    const writableStream = new WritableStream<Uint8Array>({
-      async write(chunk) {
-        console.log(`Writing ${chunk.length} bytes to destination`)
-        await data.writeBytes(remotePath, offset, false, chunk)
-        checksum.update(chunk.buffer)
-        offset += BigInt(chunk.length)
-      },
-      async close() {
-        console.log(`Final hash: ${checksum.hex()}`)
-        const hash = await rpc.fileChecksum(remotePath)
-        console.log(`Hash from engine: ${hash.checksum}`)
-      }
-    })
-    const readableStream = file.stream()
-    await readableStream.pipeTo(writableStream)
-  } else {
-    throw new Error('Project root ID not found.')
-  }
-}
-
-async function handleDrop(event: DragEvent) {
+async function handleFileDrop(event: DragEvent) {
   try {
-    if (event.dataTransfer) {
-      if (event.dataTransfer.items) {
-        [...event.dataTransfer.items].forEach(async (item, i) => {
-          if (item.kind === 'file') {
-            const file = item.getAsFile()
-            if (file) {
-              console.log(`… file[${i}].name = ${file.name}`)
-              await ensureDataDirectoryExists()
-              const name = await pickUniqueName(file.name)
-              console.log(`Unique name: ${name}`)
-              await upload(name, file)
-            }
+    if (event.dataTransfer && event.dataTransfer.items) {
+      ;[...event.dataTransfer.items].forEach(async (item) => {
+        if (item.kind === 'file') {
+          const file = item.getAsFile()
+          if (file) {
+            const clientPos = new Vec2(event.clientX, event.clientY)
+            const pos = navigator.clientToScenePos(clientPos)
+            const uploader = await Uploader.create(
+              projectStore.lsRpcConnection,
+              projectStore.dataConnection,
+              projectStore.contentRoots,
+              file,
+            )
+            const name = await uploader.upload()
+            graphStore.createNode(pos, uploadedExpression(name))
           }
-        })
-      }
+        }
+      })
     }
   } catch (err) {
-    console.log(`Uploading file failed. ${err}`)
+    console.error(`Uploading file failed. ${err}`)
   }
 }
 </script>
@@ -313,7 +225,7 @@ async function handleDrop(event: DragEvent) {
     v-on.="navigator.events"
     v-on..="nodeSelection.events"
     @dragover.prevent
-    @drop.prevent="handleDrop($event)"
+    @drop.prevent="handleFileDrop($event)"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
