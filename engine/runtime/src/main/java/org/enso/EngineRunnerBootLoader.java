@@ -1,5 +1,7 @@
 package org.enso;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -16,21 +18,29 @@ public final class EngineRunnerBootLoader {
 
   private static final String defaultRunnerJar = "runner/runner.jar";
 
-  public static void main(String[] args) throws Exception {
+  private static final PrefferingLoader loader;
+
+  static {
     var ensoRunnerProp = System.getProperty("enso.runner");
     var runnerJarPath =
         ensoRunnerProp != null ? Path.of(ensoRunnerProp) : getDefaultRunnerJarPath();
     if (!runnerJarPath.toFile().exists()) {
       throw new IllegalStateException("Cannot find runner fat jar at " + runnerJarPath);
     }
-    var url = runnerJarPath.toUri().toURL();
-    var parentLoader = ClassLoader.getSystemClassLoader();
-
-    try (var loader = new PrefferingLoader(new URL[] {url}, parentLoader)) {
-      var clazz = loader.loadClass("org.enso.runner.Main");
-      var main = clazz.getMethod("main", String[].class);
-      main.invoke(null, (Object) args);
+    URL url;
+    try {
+      url = runnerJarPath.toUri().toURL();
+    } catch (MalformedURLException e) {
+      throw new IllegalStateException(e);
     }
+    var parentLoader = ClassLoader.getSystemClassLoader();
+    loader = new PrefferingLoader(new URL[] {url}, parentLoader);
+  }
+
+  public static void main(String[] args) throws Exception {
+    var clazz = loader.loadClass("org.enso.runner.Main");
+    var main = clazz.getMethod("main", String[].class);
+    main.invoke(null, (Object) args);
   }
 
   private static Path getDefaultRunnerJarPath() {
@@ -51,11 +61,7 @@ public final class EngineRunnerBootLoader {
 
     @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException {
-      try {
-        return findClass(name);
-      } catch (ClassNotFoundException ex) {
-        return super.loadClass(name);
-      }
+      return loadClass(name, false);
     }
 
     @Override
