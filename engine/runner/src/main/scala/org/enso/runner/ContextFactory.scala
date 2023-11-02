@@ -26,6 +26,7 @@ class ContextFactory {
     * @param repl the Repl manager to use for this context
     * @param logLevel the log level for this context
     * @param enableIrCaches whether or not IR caching should be enabled
+    * @param disablePrivateCheck If `private` keyword should be disabled.
     * @param strictErrors whether or not to use strict errors
     * @param useGlobalIrCacheLocation whether or not to use the global IR cache
     *                                 location
@@ -42,6 +43,7 @@ class ContextFactory {
     logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean,
+    disablePrivateCheck: Boolean           = false,
     strictErrors: Boolean                  = false,
     useGlobalIrCacheLocation: Boolean      = true,
     enableAutoParallelism: Boolean         = false,
@@ -76,6 +78,10 @@ class ContextFactory {
         useGlobalIrCacheLocation.toString
       )
       .option(RuntimeOptions.DISABLE_IR_CACHES, (!enableIrCaches).toString)
+      .option(
+        RuntimeOptions.DISABLE_PRIVATE_CHECK,
+        disablePrivateCheck.toString
+      )
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option(RuntimeOptions.LOG_MASKING, logMasking.toString)
       .options(options)
