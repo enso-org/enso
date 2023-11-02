@@ -45,7 +45,7 @@ export class Uploader {
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
     const writableStream = new WritableStream<Uint8Array>({
-      async write(chunk) {
+      async write(chunk: Uint8Array) {
         await uploader.binary.writeBytes(remotePath, uploader.uploadedBytes, false, chunk)
         uploader.checksum.update(chunk.buffer)
         uploader.uploadedBytes += BigInt(chunk.length)
@@ -54,6 +54,10 @@ export class Uploader {
         // Disabled until https://github.com/enso-org/enso/issues/6691 is fixed.
         // uploader.assertChecksum(remotePath)
       },
+      async abort(reason: string) {
+        await uploader.rpc.deleteFile(remotePath)
+        throw new Error(`Uploading process aborted. ${reason}`)
+      }
     })
     await this.file.stream().pipeTo(writableStream)
     return name
