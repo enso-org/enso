@@ -18,7 +18,7 @@ public final class EngineRunnerBootLoader {
 
   private static final String defaultRunnerJar = "runner/runner.jar";
 
-  private static final PrefferingLoader loader;
+  private static final ClassLoader loader;
 
   static {
     var ensoRunnerProp = System.getProperty("enso.runner");
@@ -34,7 +34,7 @@ public final class EngineRunnerBootLoader {
       throw new IllegalStateException(e);
     }
     var parentLoader = ClassLoader.getSystemClassLoader();
-    loader = new PrefferingLoader(new URL[] {url}, parentLoader);
+    loader = new URLClassLoader("RunnerBootLoader", new URL[] {url}, parentLoader);
   }
 
   public static void main(String[] args) throws Exception {
@@ -51,30 +51,6 @@ public final class EngineRunnerBootLoader {
       return Path.of(runnerJarUri);
     } catch (URISyntaxException e) {
       throw new IllegalStateException(e);
-    }
-  }
-
-  private static class PrefferingLoader extends URLClassLoader {
-    PrefferingLoader(URL[] urls, ClassLoader parentLoader) {
-      super(urls, parentLoader);
-    }
-
-    @Override
-    public Class<?> loadClass(String name) throws ClassNotFoundException {
-      return loadClass(name, false);
-    }
-
-    @Override
-    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-      try {
-        var clazz = findClass(name);
-        if (resolve) {
-          clazz.getMethods();
-        }
-        return clazz;
-      } catch (ClassNotFoundException ex) {
-        return super.loadClass(name, resolve);
-      }
     }
   }
 }
