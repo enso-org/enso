@@ -1243,7 +1243,7 @@ spec setup =
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
 
-    Test.group prefix+"Table.make_constant_columnasdfasdf" <|
+    Test.group prefix+"Table.make_constant_column" <|
         Test.specify "Should allow the creation of constant columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.make_constant_column True . to_vector . should_equal [True, True, True]
