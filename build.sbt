@@ -1428,6 +1428,8 @@ lazy val `runtime-parser` =
     .settings(
       frgaalJavaCompilerSetting,
       instrumentationSettings,
+      commands += WithDebugCommand.withDebug,
+      fork := true,
       libraryDependencies ++= Seq(
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
