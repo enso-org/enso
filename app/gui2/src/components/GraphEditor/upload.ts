@@ -1,5 +1,5 @@
 import type { Hasher } from 'js-sha3'
-import { sha3_224 } from 'js-sha3'
+import { sha3_224 as SHA3 } from 'js-sha3'
 import type { DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
 import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
@@ -21,7 +21,7 @@ export class Uploader {
     this.binary = binary
     this.file = file
     this.projectRootId = projectRootId
-    this.checksum = sha3_224.create()
+    this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
   }
 
@@ -57,7 +57,7 @@ export class Uploader {
       async abort(reason: string) {
         await uploader.rpc.deleteFile(remotePath)
         throw new Error(`Uploading process aborted. ${reason}`)
-      }
+      },
     })
     await this.file.stream().pipeTo(writableStream)
     return name
