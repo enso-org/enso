@@ -9,6 +9,7 @@ import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
 import org.junit.Test;
 import scala.Option;
+import scala.collection.immutable.List;
 
 public class PersistanceTest {
   @Test
@@ -36,8 +37,20 @@ public class PersistanceTest {
         "UUIDs aren't serialized", new IdentifiedLocation(il.location(), Option.empty()), in);
   }
 
+  @Test
+  public void scalaList() throws Exception {
+    var idLoc1 = new IdentifiedLocation(new Location(1, 5));
+    var idLoc2 = new IdentifiedLocation(new Location(2, 4), Option.apply(UUID.randomUUID()));
+    var in = join(idLoc2, join(idLoc1, nil()));
+
+    var out = serde(List.class, in, 36);
+
+    assertEquals("Two elements", 2, out.size());
+    assertEquals("UUIDs aren't serialized", new IdentifiedLocation(idLoc2.location()), out.head());
+    assertEquals("Tail is the same", idLoc1, out.last());
+  }
+
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
-    assertEquals(clazz, l.getClass());
     var buf = ByteBuffer.allocate(512);
     var gen = Persistance.newGenerator(buf);
     var ref = gen.writeObject(l);
@@ -46,5 +59,15 @@ public class PersistanceTest {
       assertEquals(expectedSize, buf.limit());
     }
     return ref.get(clazz);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static final <T> scala.collection.immutable.List<T> nil() {
+    return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
+  }
+
+  private static final <T> scala.collection.immutable.List<T> join(
+      T head, scala.collection.immutable.List<T> tail) {
+    return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 }

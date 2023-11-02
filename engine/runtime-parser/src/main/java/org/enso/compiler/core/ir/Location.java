@@ -15,7 +15,7 @@ public record Location(int start, int end) {
   @ServiceProvider(service = Persistance.class)
   public static final class Persist extends Persistance<Location> {
     public Persist() {
-      super(Location.class, 1);
+      super(Location.class, false, 1);
     }
 
     @Override

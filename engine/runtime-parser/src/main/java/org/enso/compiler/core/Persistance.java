@@ -1,11 +1,12 @@
 package org.enso.compiler.core;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -15,42 +16,30 @@ import org.enso.compiler.core.Persistance.Reference;
 
 public abstract class Persistance<T> {
   private final Class<T> clazz;
+  private final boolean includingSubclasses;
   private final int id;
 
-  protected Persistance(Class<T> clazz, int id) {
+  protected Persistance(Class<T> clazz, boolean includingSubclasses, int id) {
     this.clazz = clazz;
+    this.includingSubclasses = includingSubclasses;
     this.id = id;
   }
 
   protected abstract void writeObject(T obj, Output out) throws IOException;
   protected abstract T readObject(Input in) throws IOException, ClassNotFoundException;
 
-  public static abstract class Output implements DataOutput {
-    Output() {
-    }
-
+  public static interface Output extends DataOutput {
     public abstract <T> void writeInline(Class<T> clazz, T obj) throws IOException;
     public abstract void writeObject(Object obj) throws IOException;
   }
 
-  public static abstract class Input implements DataInput {
-    Input() {
-    }
-
+  public static interface Input extends DataInput {
     public abstract <T> T readInline(Class<T> clazz) throws IOException;
     public abstract Object readObject() throws IOException;
   }
 
   final void writeInline(Object obj, Output out) throws IOException {
     writeObject(clazz.cast(obj), out);
-  }
-
-  final int writeDirect(Object obj, Generator into) throws IOException {
-    var output = new OutputImpl(into);
-    var at = into.buffer.position();
-    into.buffer.putInt(id);
-    writeObject(clazz.cast(obj), output);
-    return at;
   }
 
   final T readWith(Input in) {
@@ -81,12 +70,41 @@ public abstract class Persistance<T> {
       var found = knownObjects.get(obj);
       if (found == null) {
         var p = map.forType(obj.getClass());
+        var os = new ByteArrayOutputStream();
+        p.writeInline(obj, new ReferenceOutput(this, os));
         found = this.buffer.position();
-        p.writeInline(obj, new OutputImpl(this));
+        this.buffer.put(os.toByteArray());
         knownObjects.put(obj, found);
       }
       return Reference.from(buffer, found);
     }
+
+    final void writeIndirect(Object obj, Output out) throws IOException {
+      if (obj == null) {
+        out.writeInt(0);
+        return;
+      }
+      var p = map.forType(obj.getClass());
+      var found = knownObjects.get(obj);
+      if (found == null) {
+        var os = new ByteArrayOutputStream();
+        var osData = new ReferenceOutput(this, os);
+        p.writeInline(obj, osData);
+        found = buffer.position();
+        buffer.put(os.toByteArray());
+        knownObjects.put(obj, found);
+      }
+      out.writeInt(p.id);
+      out.writeInt(found);
+    }
+  }
+
+  static Object readIndirect(ByteBuffer buffer, PersistanceMap map, Input in) throws IOException {
+    var id = in.readInt();
+    var at = in.readInt();
+    var p = map.forId(id);
+    var inData = new InputImpl(buffer, at);
+    return p.readWith(inData);
   }
 
   public static sealed abstract class Reference<T> {
@@ -142,11 +160,12 @@ public abstract class Persistance<T> {
     }
   }
 
-  private static final class OutputImpl extends Output {
-    final Generator generator;
+  private static final class ReferenceOutput extends DataOutputStream implements Output {
+    private final Generator generator;
 
-    OutputImpl(Generator buffer) {
-      this.generator = buffer;
+    ReferenceOutput(Generator g, ByteArrayOutputStream out) {
+      super(out);
+      this.generator = g;
     }
 
     @Override
@@ -158,96 +177,13 @@ public abstract class Persistance<T> {
       p.writeInline(obj, this);
     }
 
-
-
     @Override
     public void writeObject(Object obj) throws IOException {
-      var p = generator.map.forType(obj.getClass());
-      var at = p.writeDirect(obj, generator);
-      writeInt(at);
-    }
-
-    @Override
-    public void write(int b) throws IOException {
-      writeByte(b);
-    }
-
-    @Override
-    public void write(byte[] b) throws IOException {
-      generator.buffer.put(b);
-    }
-
-    @Override
-    public void write(byte[] b, int off, int len) throws IOException {
-      write(Arrays.copyOfRange(b, off, len));
-    }
-
-    private static final byte[] TRUE = new byte[] { 1 };
-    private static final byte[] FALSE = new byte[] { 0 };
-
-    @Override
-    public void writeBoolean(boolean v) throws IOException {
-      write(v ? TRUE : FALSE);
-    }
-
-    @Override
-    public void writeByte(int v) throws IOException {
-      write(new byte[] { (byte) v });
-    }
-
-    @Override
-    public void writeShort(int v) throws IOException {
-      write(new byte[] { (byte) (v >> 8), (byte) (v & 0xff) });
-    }
-
-    @Override
-    public void writeChar(int v) throws IOException {
-      writeShort(v);
-    }
-
-    @Override
-    public void writeInt(int v) throws IOException {
-      write(new byte[] { (byte) (v >> 24 & 0xff), (byte) (v >> 16 & 0xff), (byte) (v >> 8 & 0xff), (byte) (v & 0xff) });
-    }
-
-    @Override
-    public void writeLong(long v) throws IOException {
-      var hi = v >> 32;
-      write(new byte[] {
-        (byte) (hi >> 24 & 0xff), (byte) (hi >> 16 & 0xff), (byte) (hi >> 8 & 0xff), (byte) (hi & 0xff),
-        (byte) (v >> 24 & 0xff), (byte) (v >> 16 & 0xff), (byte) (v >> 8 & 0xff), (byte) (v & 0xff)
-      });
-    }
-
-    @Override
-    public void writeFloat(float v) throws IOException {
-      writeInt(Float.floatToRawIntBits(v));
-    }
-
-    @Override
-    public void writeDouble(double v) throws IOException {
-      writeLong(Double.doubleToRawLongBits(v));
-    }
-
-    @Override
-    public void writeBytes(String s) throws IOException {
-      writeUTF(s);
-    }
-
-    @Override
-    public void writeChars(String s) throws IOException {
-      writeUTF(s);
-    }
-
-    @Override
-    public void writeUTF(String s) throws IOException {
-      var arr = s.getBytes(StandardCharsets.UTF_8);
-      writeInt(arr.length);
-      write(arr);
+      this.generator.writeIndirect(obj, this);
     }
   }
 
-  private static final class InputImpl extends Input {
+  private static final class InputImpl implements Input {
     private final PersistanceMap map = new PersistanceMap();
     private final ByteBuffer buf;
     private int at;
@@ -265,9 +201,8 @@ public abstract class Persistance<T> {
 
     @Override
     public Object readObject() throws IOException {
-      var id = readInt();
-      var p = map.forId(id);
-      return p.readWith(this);
+      var obj = readIndirect(buf, map, this);
+      return obj;
     }
 
     public int read() throws IOException {
@@ -413,10 +348,32 @@ public abstract class Persistance<T> {
     }
 
     @SuppressWarnings("unchecked")
+    private synchronized <T> Persistance<T> searchSupertype(String name, Class<T> type) {
+      // synchronized as it mutes the types map
+      // however over time the types map gets saturated and
+      // the synchronization will get less frequent
+      // please note that Persistance as well as Class (as a key) have all fields final =>
+      // as soon as they become visible from other threads, they have to look consistent
+      NOT_FOUND: if (type != null) {
+        var p = types.get(type);
+        if (p != null) {
+          if (!p.includingSubclasses) {
+            break NOT_FOUND;
+          }
+        } else {
+          p = searchSupertype(name, type.getSuperclass());
+          types.put(type, p);
+        }
+        return (Persistance<T>) p;
+      }
+      throw new IllegalStateException("No persistance for " + name);
+    }
+
+    @SuppressWarnings("unchecked")
     final <T> Persistance<T> forType(Class<T> type) {
       var p = types.get(type);
       if (p == null) {
-        throw new IllegalStateException("No persistance for " + type.getName());
+        p = searchSupertype(type.getName(), type);
       }
       return (Persistance<T>) p;
     }
