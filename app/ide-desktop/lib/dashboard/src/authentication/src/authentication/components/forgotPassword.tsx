@@ -1,7 +1,6 @@
 /** @file Container responsible for rendering and interactions in first half of forgot password
  * flow. */
 import * as React from 'react'
-import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
@@ -9,11 +8,10 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import SvgMask from './svgMask'
 
 import Input from './input'
+import Link from './link'
 import SubmitButton from './submitButton'
-import SvgIcon from './svgIcon'
 
 // ======================
 // === ForgotPassword ===
@@ -35,30 +33,20 @@ export default function ForgotPassword() {
                 }}
             >
                 <div className="font-medium self-center text-xl">Forgot Your Password?</div>
-                <label className="flex flex-col gap-1">
-                    Email
-                    <div className="relative">
-                        <SvgIcon src={AtIcon} />
-                        <Input
-                            required
-                            validate
-                            type="email"
-                            autoComplete="email"
-                            placeholder="Enter your email"
-                            value={email}
-                            setValue={setEmail}
-                        />
-                    </div>
-                </label>
+                <Input
+                    required
+                    validate
+                    type="email"
+                    autoComplete="email"
+                    label="Email"
+                    icon={AtIcon}
+                    placeholder="Enter your email"
+                    value={email}
+                    setValue={setEmail}
+                />
                 <SubmitButton text="Send link" icon={ArrowRightIcon} />
             </form>
-            <router.Link
-                to={app.LOGIN_PATH}
-                className="flex gap-2 items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
-            >
-                <SvgMask src={GoBackIcon} />
-                Go back to login
-            </router.Link>
+            <Link to={app.LOGIN_PATH} icon={GoBackIcon} text="Go back to login" />
         </div>
     )
 }

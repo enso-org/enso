@@ -1,4 +1,4 @@
-/** @file Styled wrapper around FontAwesome icons. */
+/** @file A fixed-size container for a {@link fontawesome.FontAwesomeIcon FontAwesomeIcon}. */
 import * as React from 'react'
 
 import * as fontawesome from '@fortawesome/react-fontawesome'

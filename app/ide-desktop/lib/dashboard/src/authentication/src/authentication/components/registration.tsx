@@ -13,9 +13,8 @@ import * as validation from '../../dashboard/validation'
 
 import * as app from '../../components/app'
 import Input from './input'
+import Link from './link'
 import SubmitButton from './submitButton'
-import SvgIcon from './svgIcon'
-import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -51,64 +50,46 @@ export default function Registration() {
                 }}
             >
                 <div className="font-medium self-center text-xl">Create a new account</div>
-                <label className="flex flex-col gap-1">
-                    Email
-                    <div className="relative">
-                        <SvgIcon src={AtIcon} />
-                        <Input
-                            required
-                            validate
-                            type="email"
-                            autoComplete="email"
-                            placeholder="Enter your email"
-                            value={email}
-                            setValue={setEmail}
-                        />
-                    </div>
-                </label>
-                <label className="flex flex-col gap-1">
-                    Password
-                    <div className="relative">
-                        <SvgIcon src={LockIcon} />
-                        <Input
-                            required
-                            validate
-                            type="password"
-                            autoComplete="new-password"
-                            placeholder="Enter your password"
-                            pattern={validation.PASSWORD_PATTERN}
-                            error={validation.PASSWORD_ERROR}
-                            value={password}
-                            setValue={setPassword}
-                        />
-                    </div>
-                </label>
-                <label className="flex flex-col gap-1">
-                    Confirm password
-                    <div className="relative">
-                        <SvgIcon src={LockIcon} />
-                        <Input
-                            required
-                            validate
-                            type="password"
-                            autoComplete="new-password"
-                            placeholder="Confirm your password"
-                            pattern={string.regexEscape(password)}
-                            error={validation.CONFIRM_PASSWORD_ERROR}
-                            value={confirmPassword}
-                            setValue={setConfirmPassword}
-                        />
-                    </div>
-                </label>
+                <Input
+                    required
+                    validate
+                    type="email"
+                    autoComplete="email"
+                    label="Email"
+                    icon={AtIcon}
+                    placeholder="Enter your email"
+                    value={email}
+                    setValue={setEmail}
+                />
+                <Input
+                    required
+                    validate
+                    type="password"
+                    autoComplete="new-password"
+                    label="Password"
+                    icon={LockIcon}
+                    placeholder="Enter your password"
+                    pattern={validation.PASSWORD_PATTERN}
+                    error={validation.PASSWORD_ERROR}
+                    value={password}
+                    setValue={setPassword}
+                />
+                <Input
+                    required
+                    validate
+                    type="password"
+                    autoComplete="new-password"
+                    label="Confirm password"
+                    icon={LockIcon}
+                    placeholder="Confirm your password"
+                    pattern={string.regexEscape(password)}
+                    error={validation.CONFIRM_PASSWORD_ERROR}
+                    value={confirmPassword}
+                    setValue={setConfirmPassword}
+                />
                 <SubmitButton disabled={isSubmitting} text="Register" icon={CreateAccountIcon} />
             </form>
-            <router.Link
-                to={app.LOGIN_PATH}
-                className="flex gap-2 items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
-            >
-                <SvgMask src={GoBackIcon} />
-                Already have an account?
-            </router.Link>
+            <Link to={app.LOGIN_PATH} icon={GoBackIcon} text="Already have an account?" />
         </div>
     )
 }

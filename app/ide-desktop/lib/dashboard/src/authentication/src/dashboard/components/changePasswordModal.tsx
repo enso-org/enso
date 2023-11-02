@@ -9,10 +9,9 @@ import * as modalProvider from '../../providers/modal'
 import * as string from '../../string'
 import * as validation from '../validation'
 
-import Input from './input'
+import Input from '../../authentication/components/input'
 import Modal from './modal'
 import SubmitButton from '../../authentication/components/submitButton'
-import SvgIcon from '../../authentication/components/svgIcon'
 
 // ===========================
 // === ChangePasswordModal ===
@@ -47,63 +46,51 @@ export default function ChangePasswordModal() {
                 }}
             >
                 <div className="self-center text-xl">Change your password</div>
-                <label className="flex flex-col gap-1">
-                    Old password
-                    <div className="relative">
-                        <SvgIcon src={LockIcon} />
-                        <Input
-                            autoFocus
-                            required
-                            validate
-                            id="old_password"
-                            type="password"
-                            name="old_password"
-                            autoComplete="current-password"
-                            placeholder="Enter your old password"
-                            pattern={validation.PASSWORD_PATTERN}
-                            error={validation.PASSWORD_ERROR}
-                            value={oldPassword}
-                            setValue={setOldPassword}
-                            className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
-                        />
-                    </div>
-                </label>
-                <label className="flex flex-col gap-1">
-                    New password
-                    <div className="relative">
-                        <SvgIcon src={LockIcon} />
-                        <Input
-                            required
-                            validate
-                            type="password"
-                            autoComplete="new-password"
-                            placeholder="Enter your new password"
-                            pattern={validation.PASSWORD_PATTERN}
-                            error={validation.PASSWORD_ERROR}
-                            value={newPassword}
-                            setValue={setNewPassword}
-                            className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
-                        />
-                    </div>
-                </label>
-                <label className="flex flex-col gap-1">
-                    Confirm new password
-                    <div className="relative">
-                        <SvgIcon src={LockIcon} />
-                        <Input
-                            required
-                            validate
-                            type="password"
-                            autoComplete="new-password"
-                            placeholder="Confirm your new password"
-                            pattern={string.regexEscape(newPassword)}
-                            error={validation.CONFIRM_PASSWORD_ERROR}
-                            value={confirmNewPassword}
-                            setValue={setConfirmNewPassword}
-                            className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
-                        />
-                    </div>
-                </label>
+                <Input
+                    autoFocus
+                    required
+                    validate
+                    id="old_password"
+                    type="password"
+                    name="old_password"
+                    autoComplete="current-password"
+                    label="Old password"
+                    icon={LockIcon}
+                    placeholder="Enter your old password"
+                    pattern={validation.PASSWORD_PATTERN}
+                    error={validation.PASSWORD_ERROR}
+                    value={oldPassword}
+                    setValue={setOldPassword}
+                    className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
+                />
+                <Input
+                    required
+                    validate
+                    type="password"
+                    autoComplete="new-password"
+                    label="New password"
+                    icon={LockIcon}
+                    placeholder="Enter your new password"
+                    pattern={validation.PASSWORD_PATTERN}
+                    error={validation.PASSWORD_ERROR}
+                    value={newPassword}
+                    setValue={setNewPassword}
+                    className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
+                />
+                <Input
+                    required
+                    validate
+                    type="password"
+                    autoComplete="new-password"
+                    label="Confirm new password"
+                    icon={LockIcon}
+                    placeholder="Confirm your new password"
+                    pattern={string.regexEscape(newPassword)}
+                    error={validation.CONFIRM_PASSWORD_ERROR}
+                    value={confirmNewPassword}
+                    setValue={setConfirmNewPassword}
+                    className="text-sm placeholder-gray-500 pl-10 pr-4 rounded-full w-full py-2"
+                />
                 <SubmitButton disabled={isSubmitting} text="Reset" icon={ArrowRightIcon} />
             </form>
         </Modal>

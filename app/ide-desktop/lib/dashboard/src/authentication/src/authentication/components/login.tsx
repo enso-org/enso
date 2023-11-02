@@ -15,9 +15,8 @@ import * as validation from '../../dashboard/validation'
 import * as app from '../../components/app'
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
+import Link from './link'
 import SubmitButton from './submitButton'
-import SvgIcon from './svgIcon'
-import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -90,63 +89,53 @@ export default function Login() {
                         setIsSubmitting(false)
                     }}
                 >
-                    <label className="flex flex-col gap-1">
-                        Email
-                        <div className="relative">
-                            <SvgIcon src={AtIcon} />
-                            <Input
-                                required
-                                validate
-                                type="email"
-                                autoComplete="email"
-                                placeholder="Enter your email"
-                                value={email}
-                                setValue={setEmail}
-                                shouldReportValidityRef={shouldReportValidityRef}
-                            />
-                        </div>
-                    </label>
-                    <label className="flex flex-col gap-1">
-                        Password
-                        <div className="relative">
-                            <SvgIcon src={LockIcon} />
-                            <Input
-                                required
-                                validate
-                                type="password"
-                                autoComplete="current-password"
-                                placeholder="Enter your password"
-                                pattern={validation.PASSWORD_PATTERN}
-                                error={validation.PASSWORD_ERROR}
-                                value={password}
-                                setValue={setPassword}
-                                shouldReportValidityRef={shouldReportValidityRef}
-                            />
-                        </div>
-                        <router.Link
-                            to={app.FORGOT_PASSWORD_PATH}
-                            className="text-xs text-blue-500 hover:text-blue-700 text-end"
-                        >
-                            Forgot Your Password?
-                        </router.Link>
-                    </label>
+                    <Input
+                        required
+                        validate
+                        type="email"
+                        autoComplete="email"
+                        label="Email"
+                        icon={AtIcon}
+                        placeholder="Enter your email"
+                        value={email}
+                        setValue={setEmail}
+                        shouldReportValidityRef={shouldReportValidityRef}
+                    />
+                    <Input
+                        required
+                        validate
+                        type="password"
+                        autoComplete="current-password"
+                        label="Password"
+                        icon={LockIcon}
+                        placeholder="Enter your password"
+                        pattern={validation.PASSWORD_PATTERN}
+                        error={validation.PASSWORD_ERROR}
+                        value={password}
+                        setValue={setPassword}
+                        shouldReportValidityRef={shouldReportValidityRef}
+                        footer={
+                            <router.Link
+                                to={app.FORGOT_PASSWORD_PATH}
+                                className="text-xs text-blue-500 hover:text-blue-700 text-end"
+                            >
+                                Forgot Your Password?
+                            </router.Link>
+                        }
+                    />
                     <SubmitButton disabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
                 </form>
             </div>
-            <router.Link
+            <Link
                 to={app.REGISTRATION_PATH}
-                className="flex gap-2 items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
-            >
-                <SvgMask src={CreateAccountIcon} />
-                Don&apos;t have an account?
-            </router.Link>
-            <router.Link
+                icon={CreateAccountIcon}
+                text="Don't have an account?"
+            />
+            <Link
                 to={app.ENTER_OFFLINE_MODE_PATH}
-                className="flex gap-2 items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
-            >
-                <SvgMask src={ArrowRightIcon} />
-                Continue without creating an account
-            </router.Link>
+                icon={ArrowRightIcon}
+                text="Continue without creating an account"
+            />
         </div>
     )
 }

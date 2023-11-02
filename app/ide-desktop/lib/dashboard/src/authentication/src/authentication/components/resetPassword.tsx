@@ -15,9 +15,8 @@ import * as string from '../../string'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
+import Link from './link'
 import SubmitButton from './submitButton'
-import SvgIcon from './svgIcon'
-import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -62,78 +61,56 @@ export default function ResetPassword() {
                     await onSubmit()
                 }}
             >
-                <div className="font-medium self-center text-xl">Reset Your Password</div>
-                <label className="flex flex-col gap-1">
-                    Email:
-                    <div className="relative">
-                        <SvgIcon src={AtIcon} />
-                        <Input
-                            required
-                            type="email"
-                            autoComplete="email"
-                            placeholder="Enter your email"
-                            value={email}
-                            setValue={setEmail}
-                        />
-                    </div>
-                </label>
-                <label className="flex flex-col gap-1">
-                    Confirmation code:
-                    <div className="relative">
-                        <SvgIcon src={LockIcon} />
-                        <Input
-                            required
-                            type="text"
-                            autoComplete="one-time-code"
-                            placeholder="Enter the confirmation code"
-                            value={code}
-                            setValue={setCode}
-                        />
-                    </div>
-                </label>
-                <label className="flex flex-col gap-1">
-                    New Password:
-                    <div className="relative">
-                        <SvgIcon src={LockIcon} />
-                        <Input
-                            required
-                            validate
-                            type="password"
-                            autoComplete="new-password"
-                            placeholder="Enter your new password"
-                            pattern={validation.PASSWORD_PATTERN}
-                            error={validation.PASSWORD_ERROR}
-                            value={newPassword}
-                            setValue={setNewPassword}
-                        />
-                    </div>
-                </label>
-                <label className="flex flex-col gap-1">
-                    Confirm New Password:
-                    <div className="relative">
-                        <SvgIcon src={LockIcon} />
-                        <Input
-                            required
-                            validate
-                            type="password"
-                            autoComplete="new-password"
-                            placeholder="Confirm your new password"
-                            pattern={string.regexEscape(newPassword)}
-                            error={validation.CONFIRM_PASSWORD_ERROR}
-                            value={newPasswordConfirm}
-                            setValue={setNewPasswordConfirm}
-                        />
-                    </div>
-                </label>
+                <div className="font-medium self-center text-xl">Reset your password</div>
+                <Input
+                    required
+                    type="email"
+                    autoComplete="email"
+                    label="Email"
+                    icon={AtIcon}
+                    placeholder="Enter your email"
+                    value={email}
+                    setValue={setEmail}
+                />
+                <Input
+                    required
+                    type="text"
+                    autoComplete="one-time-code"
+                    label="Confirmation code"
+                    icon={LockIcon}
+                    placeholder="Enter the confirmation code"
+                    value={code}
+                    setValue={setCode}
+                />
+                <Input
+                    required
+                    validate
+                    type="password"
+                    autoComplete="new-password"
+                    label="New password"
+                    icon={LockIcon}
+                    placeholder="Enter your new password"
+                    pattern={validation.PASSWORD_PATTERN}
+                    error={validation.PASSWORD_ERROR}
+                    value={newPassword}
+                    setValue={setNewPassword}
+                />
+                <Input
+                    required
+                    validate
+                    type="password"
+                    autoComplete="new-password"
+                    label="Confirm new password"
+                    icon={LockIcon}
+                    placeholder="Confirm your new password"
+                    pattern={string.regexEscape(newPassword)}
+                    error={validation.CONFIRM_PASSWORD_ERROR}
+                    value={newPasswordConfirm}
+                    setValue={setNewPasswordConfirm}
+                />
                 <SubmitButton text="Reset" icon={ArrowRightIcon} />
             </form>
-            <router.Link
-                to={app.LOGIN_PATH}
-                className="flex gap-2 items-center font-bold text-blue-500 hover:text-blue-700 text-xs text-center"
-            >
-                <SvgMask src={GoBackIcon} />
-                Go back to login
-            </router.Link>
+            <Link to={app.LOGIN_PATH} icon={GoBackIcon} text="Go back to login" />
         </div>
     )
 }

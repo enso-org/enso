@@ -10,7 +10,6 @@ import * as backendProvider from '../../providers/backend'
 
 import Input from './input'
 import SubmitButton from './submitButton'
-import SvgIcon from './svgIcon'
 
 // ===================
 // === SetUsername ===
@@ -35,20 +34,17 @@ export default function SetUsername() {
                 }}
             >
                 <div className="font-medium self-center text-xl">Set your username</div>
-                <div className="flex flex-col">
-                    <div className="relative">
-                        <SvgIcon src={AtIcon} />
-                        <Input
-                            id="username"
-                            type="text"
-                            name="username"
-                            autoComplete="off"
-                            placeholder="Enter your username"
-                            value={username}
-                            setValue={setUsername}
-                        />
-                    </div>
-                </div>
+                <Input
+                    id="username"
+                    type="text"
+                    name="username"
+                    autoComplete="off"
+                    label={null}
+                    icon={AtIcon}
+                    placeholder="Enter your username"
+                    value={username}
+                    setValue={setUsername}
+                />
                 <SubmitButton text="Set username" icon={ArrowRightIcon} />
             </form>
         </div>
