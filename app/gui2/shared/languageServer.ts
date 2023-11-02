@@ -1,7 +1,7 @@
 import { Client } from '@open-rpc/client-js'
+import { sha3_224 } from 'js-sha3'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
-import { sha3_224 } from 'js-sha3'
 import { z } from 'zod'
 import type {
   Checksum,
