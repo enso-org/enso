@@ -3,15 +3,13 @@ package org.enso.table.data.index;
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 
-import java.util.Arrays;
 import java.util.Comparator;
 
 /**
  * A multi-value key for ordered operations like sorting.
  *
  * <p>It is meant to be used by sorted collections relying on {@code compareTo}, like {@code
- * TreeMap}. It uses an {@code objectComparator} that should expose the Enso comparison logic to the
- * Java-verse.
+ * TreeMap}. It uses an {@code objectComparator} that should expose the Enso comparison logic to the Java-verse.
  *
  * <p>It currently does not support hashing, as we do not have a hashing implementation consistent
  * with Enso's comparison semantics.
@@ -23,7 +21,7 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
   private final int[] directions;
 
   public OrderedMultiValueKey(
-          Storage<?>[] storages, int rowIndex, int[] directions) {
+      Storage<?>[] storages, int rowIndex, int[] directions) {
     this(storages, rowIndex, directions, ObjectComparator.DEFAULT);
   }
 
@@ -77,41 +75,7 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
 
   @Override
   public String toString() {
-    return "OrderedMultiValueKey{row="+rowIndex+"}";
+    return "OrderedMultiValueKey{row=" + rowIndex + "}";
   }
 
-  /**
-   * A comparator that uses only the first n elements of the key for comparisons.
-   * <p>
-   * It may be useful when sorting by just a prefix of the key - if the rest of the key does not play a role in the
-   * ordering, we can treat them as equal for the purposes of sorting - possibly allowing the sort algorithm to do less
-   * work.
-   */
-  public static class LimitedIndexComparator implements Comparator<OrderedMultiValueKey> {
-    private final int n;
-
-    public LimitedIndexComparator(int n) {
-      assert n > 0;
-      this.n = n;
-    }
-
-    @Override
-    public int compare(OrderedMultiValueKey o1, OrderedMultiValueKey o2) {
-      if (o1.storages.length != o2.storages.length) {
-        throw new ClassCastException("Incomparable keys.");
-      }
-
-      assert n <= o1.storages.length;
-      assert Arrays.equals(o1.directions, o2.directions);
-
-      for (int i = 0; i < n; i++) {
-        int comparison = o1.objectComparator.compare(o1.get(i), o2.get(i));
-        if (comparison != 0) {
-          return comparison * o1.directions[i];
-        }
-      }
-
-      return 0;
-    }
-  }
 }
