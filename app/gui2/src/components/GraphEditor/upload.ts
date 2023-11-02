@@ -41,7 +41,7 @@ export class Uploader {
   }
 
   async upload(): Promise<string> {
-    this.ensureDataDirExists()
+    await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
