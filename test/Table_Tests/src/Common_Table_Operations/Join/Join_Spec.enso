@@ -170,7 +170,7 @@ spec setup =
             t2 = table_builder [["lower", [1, 10, 8, 12]], ["upper", [1, 12, 30, 0]], ["Z", [1, 2, 3, 4]]]
 
             r1 = t1.join join_kind=Join_Kind.Inner t2 on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["X", "Z"]
-            expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
+            r1.column_names . should_equal ["X", "Y", "lower", "upper", "Z"]
             r1 . at "X" . to_vector . should_equal     [1, 10, 10, 12, 12]
             r1 . at "Y" . to_vector . should_equal     [1, 2,  2,  3,  3]
             r1 . at "lower" . to_vector . should_equal [1, 10, 8,  10, 8]
@@ -182,7 +182,7 @@ spec setup =
             t2 = table_builder [["lower", ["a", "b"]], ["upper", ["a", "ccc"]], ["Z", [10, 20]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["X", "Z"]
-            expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
+            r1.column_names . should_equal ["X", "Y", "lower", "upper", "Z"]
             r1 . at "X" . to_vector . should_equal     ["a", "b",   "c"]
             r1 . at "Y" . to_vector . should_equal     [1,    2,     3]
             r1 . at "lower" . to_vector . should_equal ["a", "b",   "b"]

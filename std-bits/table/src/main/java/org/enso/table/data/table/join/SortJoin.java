@@ -58,8 +58,12 @@ public class SortJoin implements PluggableJoinStrategy {
 
     TreeSet<OrderedMultiValueKey> keys = new TreeSet<>();
     for (int i = 0; i < leftRowCount; i++) {
-      keys.add(new OrderedMultiValueKey(storages, i, directions));
       context.safepoint();
+      OrderedMultiValueKey key = new OrderedMultiValueKey(storages, i, directions);
+      if (key.hasAnyNulls()) {
+        continue;
+      }
+      keys.add(key);
     }
 
     return new SortedLeftIndex(keys, conditions.get(0), conditions.subList(1, conditions.size()));
@@ -100,11 +104,15 @@ public class SortJoin implements PluggableJoinStrategy {
       OrderedMultiValueKey lowerBound = buildLowerBound(rightRowIx);
       OrderedMultiValueKey upperBound = buildUpperBound(rightRowIx);
 
+      if (lowerBound.compareTo(upperBound) > 0 || lowerBound.hasAnyNulls() || upperBound.hasAnyNulls()) {
+        return Collections.emptyList();
+      }
+
       NavigableSet<OrderedMultiValueKey> firstCoordinateMatches = sortedKeys.subSet(lowerBound, true, upperBound, true);
       ArrayList<Integer> result = new ArrayList<>();
       Context context = Context.getCurrent();
       for (OrderedMultiValueKey key : firstCoordinateMatches) {
-        boolean isInRange = lowerBound.compareTo(key) <= 0 && key.compareTo(lowerBound) <= 0;
+        boolean isInRange = lowerBound.compareTo(key) <= 0 && key.compareTo(upperBound) <= 0;
         if (isInRange) {
           result.add(key.getRowIndex());
         }
