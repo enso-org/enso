@@ -7,8 +7,7 @@ from Standard.Test import Bench
 
 from project.Config import extended_tests
 
-#options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 2 10)
-options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 4)
+options = Bench.options . set_warmup (Bench.phase_conf 2 4) . set_measure (Bench.phase_conf 2 5)
 
 type Scenario
     Value table1 table2
@@ -158,8 +157,7 @@ type Data
         Data.Value (create_scenario_equals num_rows) (create_scenario_equals_medium_groups num_rows) (create_scenario_equals_ignore_case num_rows) (create_scenario_between num_rows) (create_scenario_mixed num_rows) (create_scenario_equals_2d num_rows) (create_scenario_between_2d num_rows) (create_scenario_between_2d_belts num_rows) (create_scenario_antijoin num_rows)
 
 collect_benches = Bench.build builder->
-    #num_rows = 100000
-    num_rows = 20000
+    num_rows = 100000
     data = Data.create num_rows
 
     builder.group ("Join_" + num_rows.to_text) options group_builder->
@@ -198,7 +196,6 @@ collect_benches = Bench.build builder->
             r = scenario.table1.join scenario.table2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
             assert (r.row_count == scenario.table1.row_count)
 
-        # TODO further tuning needed to show the real issue in these tests
         group_builder.specify "Between_2D_Belts_All" <|
             scenario = data.between2d_belts
             r = scenario.table1.join scenario.table2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
