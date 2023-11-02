@@ -196,7 +196,7 @@ collect_benches = Bench.build builder->
             r = scenario.table1.join scenario.table2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
             assert (r.row_count == scenario.table1.row_count)
 
-        group_builder.specify "Between_2D_Belts_All" <|
+        if extended_tests then group_builder.specify "Between_2D_Belts_All" <|
             scenario = data.between2d_belts
             r = scenario.table1.join scenario.table2 on=[Join_Condition.Between "x" "x_lows" "x_highs", Join_Condition.Between "y" "y_lows" "y_highs"]
             assert (r.row_count == scenario.table1.row_count)
