@@ -340,7 +340,7 @@ public abstract class Persistance<T> {
 
     private PersistanceMap() {
       var hash = 0;
-      for (var p : ServiceLoader.load(Persistance.class)) {
+      for (var p : ServiceLoader.load(Persistance.class, getClass().getClassLoader())) {
         var prevId = ids.put(p.id, p);
         if (prevId != null) {
           throw new IllegalStateException("Multiple registrations for ID " + p.id + " " + prevId + " != " + p);
