@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Expression,
   Function,
+  IdentifiedLocation,
   Module,
   Name,
   Type
@@ -267,8 +268,9 @@ case object LambdaShorthandToLambda extends IRPass {
             name
           case it => desugarExpression(it, freshNameSupply)
         }
-        val newVec       = vector.copy(newItems)
-        val locWithoutId = newVec.location.map(_.copy(id = None))
+        val newVec = vector.copy(newItems)
+        val locWithoutId =
+          newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
           val defArg = DefinitionArgument.Specified(
             bindingName,

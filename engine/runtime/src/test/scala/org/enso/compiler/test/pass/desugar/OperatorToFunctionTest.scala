@@ -5,8 +5,8 @@ import org.enso.compiler.core.ir.{
   Empty,
   Expression,
   IdentifiedLocation,
-  Name,
-  Location
+  Location,
+  Name
 }
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.desugar.OperatorToFunction
@@ -31,7 +31,7 @@ class OperatorToFunctionTest extends CompilerTest {
     left: Expression,
     right: Expression
   ): (Operator.Binary, Application.Prefix) = {
-    val loc = IdentifiedLocation(new Location(1, 33))
+    val loc = new IdentifiedLocation(new Location(1, 33))
 
     val leftArg  = CallArgument.Specified(None, left, left.location)
     val rightArg = CallArgument.Specified(None, right, right.location)

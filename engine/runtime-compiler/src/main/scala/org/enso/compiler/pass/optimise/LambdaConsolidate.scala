@@ -171,7 +171,7 @@ case object LambdaConsolidate extends IRPass {
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
             Some(
-              IdentifiedLocation(
+              new IdentifiedLocation(
                 new Location(
                   location.start,
                   chainedLambdas.last.location.getOrElse(location).location.end

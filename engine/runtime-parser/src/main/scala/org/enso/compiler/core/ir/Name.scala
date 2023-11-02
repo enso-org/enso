@@ -182,7 +182,7 @@ object Name {
         (identLoc, segment) => {
           identLoc.flatMap(loc => {
             Some(
-              IdentifiedLocation(
+              new IdentifiedLocation(
                 new Location(
                   loc.location.start,
                   segment.location
