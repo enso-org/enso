@@ -31,8 +31,7 @@ public class PersistanceTest {
     assertEquals(clazz, l.getClass());
     var buf = ByteBuffer.allocate(512);
     var gen = Persistance.newGenerator(buf);
-    var whereIsIt = gen.writeObject(l);
-    var ref = Persistance.Reference.from(buf.flip(), whereIsIt);
+    var ref = gen.writeObject(l);
     return ref.get(clazz);
   }
 }

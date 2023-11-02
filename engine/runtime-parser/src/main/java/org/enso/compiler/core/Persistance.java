@@ -1,18 +1,17 @@
 package org.enso.compiler.core;
 
-import java.io.DataInput;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+
+import org.enso.compiler.core.Persistance.Reference;
 
 public abstract class Persistance<T> {
   private final Class<T> clazz;
@@ -23,18 +22,14 @@ public abstract class Persistance<T> {
     this.id = id;
   }
 
-
   protected abstract void writeObject(T obj, ObjectOutput out) throws IOException;
   protected abstract T readObject(ObjectInput in) throws IOException, ClassNotFoundException;
 
-  final int writeWith(Object obj, Generator into) throws IOException {
+  final int writeDirect(Object obj, Generator into) throws IOException {
+    var output = new OperationOutput(into);
     var at = into.buffer.position();
     into.buffer.putInt(id);
-    var output = new OperationOutput(into);
     writeObject(clazz.cast(obj), output);
-    for (var arr : output.data) {
-      into.buffer.put(arr);
-    }
     return at;
   }
 
@@ -59,30 +54,35 @@ public abstract class Persistance<T> {
       this.buffer = buffer;
     }
 
-    public int writeObject(Object obj) throws IOException {
+    public <T> Reference<T> writeObject(T obj) throws IOException {
       if (obj == null) {
-        return -1;
+        return Reference.none();
       }
       var found = knownObjects.get(obj);
-      if (found != null) {
-        return found;
+      if (found == null) {
+        var p = map.forType(obj.getClass());
+        found = p.writeDirect(obj, this);
+        knownObjects.put(obj, found);
       }
-      var p = map.forType(obj.getClass());
-      var at = p.writeWith(obj, this);
-      knownObjects.put(obj, at);
-      return at;
+      return Reference.from(buffer, found);
     }
   }
 
-
   public static sealed abstract class Reference<T> {
+    private static final Reference<?> NULL = new MemoryReference<>(null);
+
     private Reference() {
+    }
+
+    @SuppressWarnings("unchecked")
+    public static final <T> Reference<T> none() {
+      return (Reference<T>) NULL;
     }
 
     public <V> V get(Class<V> expectedType) {
       var value = switch (this) {
         case MemoryReference m -> m.value;
-        case BufferReference b -> b.readObject(expectedType);
+        case BufferReference<T> b -> b.readObject(expectedType);
       };
       return expectedType.cast(value);
     }
@@ -107,13 +107,13 @@ public abstract class Persistance<T> {
     }
 
     final <T> T readObject(Class<T> clazz) {
-      for (var p : ServiceLoader.load(Persistance.class)) {
-        if (p.clazz == clazz) {
-            return clazz.cast(p.readWith(new Input(buffer, offset)));
-        }
+      try {
+        var in = new Input(buffer, offset);
+        var obj = in.readObject();
+        return clazz.cast(obj);
+      } catch (ClassNotFoundException | IOException ex) {
+        throw new IllegalStateException(ex);
       }
-      throw new IllegalStateException("No Persistance for " + clazz.getName());
-
     }
   }
 
@@ -127,7 +127,6 @@ public abstract class Persistance<T> {
 
   private static final class OperationOutput implements ObjectOutput {
     final Generator generator;
-    final List<byte[]> data = new ArrayList<>();
 
     OperationOutput(Generator buffer) {
       this.generator = buffer;
@@ -135,7 +134,8 @@ public abstract class Persistance<T> {
 
     @Override
     public void writeObject(Object obj) throws IOException {
-      int at = generator.writeObject(obj);
+      var p = generator.map.forType(obj.getClass());
+      var at = p.writeDirect(obj, generator);
       writeInt(at);
     }
 
@@ -146,7 +146,7 @@ public abstract class Persistance<T> {
 
     @Override
     public void write(byte[] b) throws IOException {
-      data.add(b);
+      generator.buffer.put(b);
     }
 
     @Override
@@ -167,7 +167,7 @@ public abstract class Persistance<T> {
 
     @Override
     public void writeBoolean(boolean v) throws IOException {
-      data.add(v ? TRUE : FALSE);
+      write(v ? TRUE : FALSE);
     }
 
     @Override
@@ -227,6 +227,7 @@ public abstract class Persistance<T> {
     }
   }
   private static final class Input implements ObjectInput {
+    private final PersistanceMap map = new PersistanceMap();
     private final ByteBuffer buf;
     private int at;
 
@@ -237,7 +238,9 @@ public abstract class Persistance<T> {
 
     @Override
     public Object readObject() throws ClassNotFoundException, IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
+      var id = readInt();
+      var p = map.forId(id);
+      return p.readWith(this);
     }
 
     @Override
@@ -247,13 +250,15 @@ public abstract class Persistance<T> {
 
     @Override
     public int read(byte[] b) throws IOException {
-      buf.get(at += b.length, b);
+      buf.get(at, b);
+      at += b.length;
       return b.length;
     }
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-      buf.get(at += len, b, off, len);
+      buf.get(at, b, off, len);
+      at += len;
       return len;
     }
 
@@ -307,7 +312,9 @@ public abstract class Persistance<T> {
 
     @Override
     public short readShort() throws IOException {
-      return buf.getShort(at += 2);
+      var s = buf.getShort(at);
+      at  += 2;
+      return s;
     }
 
     @Override
@@ -323,22 +330,30 @@ public abstract class Persistance<T> {
 
     @Override
     public int readInt() throws IOException {
-      return buf.getInt(at += 4);
+      var i = buf.getInt(at);
+      at += 4;
+      return i;
     }
 
     @Override
     public long readLong() throws IOException {
-      return buf.getLong(at += 8);
+      var l = buf.getLong(at);
+      at += 8;
+      return l;
     }
 
     @Override
     public float readFloat() throws IOException {
-      return buf.getFloat(at += 4);
+      var f = buf.getFloat(at);
+      at += 4;
+      return f;
     }
 
     @Override
     public double readDouble() throws IOException {
-      return buf.getDouble(at += 8);
+      var d = buf.getDouble(at);
+      at += 8;
+      return d;
     }
 
     @Override
