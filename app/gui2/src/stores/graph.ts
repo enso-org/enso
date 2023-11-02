@@ -380,7 +380,7 @@ function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
       outerExprId: ast.astId,
       binding: ast.map((t) => t.pattern).repr(),
       rootSpan: ast.map((t) => t.expr),
-      position: Vec2.Zero(),
+      position: Vec2.Zero,
       vis: undefined,
     }
   } else {
@@ -388,7 +388,7 @@ function nodeFromAst(ast: AstExtended<Ast.Tree>): Node {
       outerExprId: ast.astId,
       binding: '',
       rootSpan: ast,
-      position: Vec2.Zero(),
+      position: Vec2.Zero,
       vis: undefined,
     }
   }

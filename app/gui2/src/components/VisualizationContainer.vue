@@ -102,13 +102,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             hidden: config.fullscreen,
           }"
         >
-          <div class="background"></div>
           <button class="image-button active" @pointerdown.stop="config.hide()">
             <SvgIcon class="icon" name="eye" />
           </button>
         </div>
         <div class="toolbar">
-          <div class="background"></div>
           <button
             class="image-button active"
             @pointerdown.stop="config.fullscreen = !config.fullscreen"
@@ -136,8 +134,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             />
           </div>
         </div>
-        <div class="toolbar">
-          <div class="background"></div>
+        <div v-if="$slots.toolbar" class="toolbar">
           <slot name="toolbar"></slot>
         </div>
       </div>
@@ -218,7 +215,8 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   gap: 12px;
   padding: 8px;
 
-  > .background.background {
+  &:before {
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
@@ -230,7 +228,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   }
 }
 
-.toolbar:not(:first-child):not(:has(> :nth-child(2))) {
+.toolbar:not(:first-child):not(:has(> *)) {
   display: none;
 }
 
@@ -286,14 +284,12 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 .icon-container {
   display: inline-flex;
 }
-</style>
 
-<style>
-.VisualizationContainer > .toolbars > .toolbar > * {
+.VisualizationContainer :deep(> .toolbars > .toolbar > *) {
   position: relative;
 }
 
-.image-button {
+:deep(.image-button) {
   cursor: none;
   background: none;
   padding: 0;
@@ -301,11 +297,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   opacity: 30%;
 }
 
-.image-button.active {
+:deep(.image-button.active) {
   opacity: unset;
 }
 
-.image-button > * {
+:deep(.image-button > *) {
   vertical-align: top;
 }
 </style>

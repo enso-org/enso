@@ -21,7 +21,6 @@ import GraphNodes from './GraphEditor/GraphNodes.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
-const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const componentBrowser = ref<HTMLElement>()
 const navigator = provideGraphNavigator(viewportNode)
@@ -29,7 +28,7 @@ const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
 const componentBrowserInputContent = ref('')
-const componentBrowserPosition = ref(Vec2.Zero())
+const componentBrowserPosition = ref(Vec2.Zero)
 const suggestionDb = useSuggestionDbStore()
 
 const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
@@ -129,7 +128,7 @@ const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigat
 /// Track play button presses.
 function onPlayButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
-    const modeValue = mode.value
+    const modeValue = projectStore.executionMode
     if (modeValue == undefined) {
       return
     }
@@ -139,7 +138,7 @@ function onPlayButtonPress() {
 
 /// Watch for changes in the execution mode.
 watch(
-  () => mode.value,
+  () => projectStore.executionMode,
   (modeValue) => {
     projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
   },
@@ -245,7 +244,7 @@ watch(
       :initialCaretPosition="graphStore.editedNodeInfo?.range ?? [0, 0]"
     />
     <TopBar
-      v-model:mode="mode"
+      v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
       :breadcrumbs="['main', 'ad_analytics']"
@@ -254,13 +253,11 @@ watch(
       @forward="console.log('breadcrumbs \'forward\' button clicked.')"
       @execute="onPlayButtonPress()"
     />
-    <div ref="codeEditorArea">
-      <Suspense>
-        <Transition>
-          <CodeEditor v-if="showCodeEditor" />
-        </Transition>
+    <Transition>
+      <Suspense ref="codeEditorArea">
+        <CodeEditor v-if="showCodeEditor" />
       </Suspense>
-    </div>
+    </Transition>
     <SelectionBrush
       v-if="scaledMousePos"
       :position="scaledMousePos"

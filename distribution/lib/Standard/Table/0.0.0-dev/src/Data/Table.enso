@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Out_Of_Memory
@@ -15,6 +16,7 @@ from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Calculations.Column_Operation.Column_Operation
+import project.Data.Blank_Selector.Blank_Selector
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Column_Ref.Column_Ref
@@ -52,6 +54,7 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Widget_Helpers
+
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
@@ -412,9 +415,9 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when_any: By default, only columns consisting of all blank cells are
-         selected. If set to `True`, columns with one or more blank values are
-         selected.
+       - when: By default, only columns consisting of all blank cells are
+         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or
+         more blank values are selected.
        - treat_nans_as_blank: specifies whether `Number.nan` is considered as
          blank. By default, it is not.
 
@@ -425,9 +428,9 @@ type Table
          Select completely blank columns from a table.
 
              table.select_blank_columns
-    select_blank_columns : Boolean -> Boolean -> Table ! No_Output_Columns
-    select_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
-        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank
+    select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
+    select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
 
@@ -438,8 +441,8 @@ type Table
        rows are present, all columns are considered blank.
 
        Arguments:
-       - when_any: By default, only columns consisting of all blank cells are
-         selected. If set to `True`, columns with one or more blank values are
+       - when By default, only columns consisting of all blank cells are
+         selected. If set to Blank_Selector.Any_Cell_Blank, columns with one or more blank values are
          selected.
        - treat_nans_as_blank: specified whether `Number.nan` is considered as
          blank. By default, it is not.
@@ -451,9 +454,9 @@ type Table
          Remove completely blank columns from a table.
 
              table.remove_blank_columns
-    remove_blank_columns : Boolean -> Boolean -> Table ! No_Output_Columns
-    remove_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
-        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank invert_selection=True
+    remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
+    remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells_Blank) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
         if new_columns.length == 0 then Error.throw (No_Output_Columns) else
             Table.new new_columns
 
@@ -840,7 +843,7 @@ type Table
         Table.Value java_table
 
     ## GROUP Standard.Base.Conversions
-       Parses columns within a Table to a specific value type.
+       Parses columns within a `Table` to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected).
 
@@ -866,16 +869,18 @@ type Table
          `Nothing` is provided, the default formatting settings of the backend
          will be used. `Nothing` is currently the only setting accepted by the
          Database backends.
-       - error_on_missing_columns: if `True` (the default) raises an error if
-         any column is missing. Otherwise, reported as a problem.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
 
        ! Error Conditions
 
          - If a column in `columns` is not in the input table, a
-           `Missing_Input_Columns` is raised as an error or problem
-           following the `error_on_missing_columns` rules.
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
          - If a column selected for parsing is not a text column, an
            `Invalid_Value_Type` error is raised.
          - If no columns have been selected for parsing,
@@ -958,6 +963,98 @@ type Table
                         parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
                         parser.parseColumn storage parse_problem_aggregator
                     Column.Value (Java_Column.new column.name new_storage)
+            Table.new new_columns
+
+    ## GROUP Standard.Base.Conversions
+       Formats `Column`s within a `Table` using a format string,
+       `Date_Time_Formatter`, or `Column` of format strings.
+
+       Arguments:
+       - columns: The columns to format. The columns can have different types,
+         but all columns must be compatible with any provided `format` value.
+       - format: The type-dependent format string to use to format the values.
+         If `format` is `""` or `Nothing`, .to_text is used to format the value.
+         In case of date/time columns, the format can also be a
+         `Date_Time_Formatter`. If `format` is a `Column`, it must be a text
+         column.
+       - locale: The locale in which the format should be interpreted.
+         If a `Date_Time_Formatter` is provided for `format` and the `locale` is
+         set to anything else than `Locale.default`, then that locale will
+         override the formatters locale.
+       - error_on_missing_columns: Specifies if a missing input column should
+         result in an error regardless of the `on_problems` settings. Defaults
+         to `True`.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default.
+
+       ! Error Conditions
+
+         - If a column in `columns` is not in the input table, a
+           `Missing_Input_Columns` is raised as an error, unless
+           `error_on_missing_columns` is set to `False`, in which case the
+           problem is reported according to the `on_problems` setting.
+         - If a provided `format` value is not compatible with all selected
+           columns, an Illegal_Argument error will be thrown, or a
+           Date_Time_Format_Parse_Error in the case of a badly-formed date/time
+           format.
+         - If no columns have been selected for formatting, a
+           `No_Input_Columns_Selected` error is raised.
+
+       ? Supported Types
+         - `Value_Type.Date`
+         - `Value_Type.Date_Time`
+         - `Value_Type.Time`
+         - `Value_Type.Integer`
+         - `Value_Type.Float`
+         - `Value_Type.Boolean`
+
+       ? `Value_Type.Date`, `Value_Type.Date_Time`, `Value_Type.Time` format strings
+
+          See `Date_Time_Formatter` for more details.
+
+       ? `Value_Type.Integer`, `Value_Type.Float` format strings
+
+         Numeric format strings are specified by the Java DecimalFormat class.
+         See https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html
+         for a complete format specification.
+
+       ? `Value_Type.Boolean` format strings
+
+         Format strings for `Boolean` consist of two values that represent true
+         and false, separated by a `|`.
+
+       > Example
+         Format the first and last boolean columns as 'Yes'/'No'.
+
+             table.format columns=[0, -1] format="Yes|No"
+
+       > Example
+         Format dates in a column using the format `yyyyMMdd`.
+
+             table.format "birthday" "yyyyMMdd"
+
+       > Example
+         Format all columns in the table using the default formatter.
+
+             table.format
+    @columns Widget_Helpers.make_column_name_vector_selector
+    @locale Locale.default_widget
+    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | Column | Nothing -> Locale -> Boolean -> Problem_Behavior -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument
+    format self columns format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
+        select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+        selected_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True select_problem_builder
+        select_problem_builder.attach_problems_before on_problems <|
+            selected_column_names = case selected_columns.is_empty of
+                True ->
+                    no_columns_problem_behavior = case error_on_missing_columns of
+                        True -> Problem_Behavior.Report_Error
+                        False -> on_problems
+                    no_columns_problem_behavior.attach_problem_before No_Input_Columns_Selected Map.empty
+                False ->
+                    Map.from_vector <| selected_columns.map c-> [c.name, True]
+
+            new_columns = self.columns.map column-> if selected_column_names.contains_key column.name . not then column else
+                column.format format locale
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
@@ -1475,6 +1572,10 @@ type Table
     @column Column_Operation.default_widget
     set : Text | Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column:(Text | Column | Constant_Column | Column_Operation) new_name="" set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+        problem_builder = Problem_Builder.new
+        unique = self.column_naming_helper.create_unique_name_strategy
+        unique.mark_used self.column_names
+
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
             _ : Column -> column
@@ -1482,8 +1583,17 @@ type Table
             _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        renamed = if new_name == "" then resolved else resolved.rename new_name
-        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
+        name_is_generated column = case column of
+            _ : Column -> False
+            _ -> True
+
+        ## If `new_name` was specified, use that. Otherwise, if `column` is a
+           `Column`, use its name. In these two cases, do not make it unique.
+           Otherwise, make it unique.
+        new_column_name = if new_name != "" then new_name else
+            if name_is_generated column then unique.make_unique resolved.name else resolved.name
+        renamed = resolved.rename new_column_name
+        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
             check_add_mode = case set_mode of
                 Set_Mode.Add_Or_Update -> True
                 Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
@@ -1491,9 +1601,12 @@ type Table
                 Set_Mode.Update -> if self.java_table.getColumnByName renamed.name . is_nothing . not then True else
                     Error.throw (Missing_Column.Error renamed.name)
 
-            check_add_mode.if_not_error <|
+            new_table = check_add_mode.if_not_error <|
                 if resolved.length != self.row_count then Error.throw (Row_Count_Mismatch.Error self.row_count resolved.length) else
                     Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
+
+            problem_builder.report_unique_name_strategy unique
+            problem_builder.attach_problems_after on_problems new_table
 
     ## Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.
@@ -1532,7 +1645,7 @@ type Table
     make_constant_column : Any -> Column
     make_constant_column self value =
         if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
-            Column.from_vector_repeated ("Constant_" + UUID.randomUUID.to_text) [value] self.row_count
+            Column.from_vector_repeated value.pretty [value] self.row_count
 
     ## PRIVATE
        Create a unique temporary column name.
@@ -1666,28 +1779,27 @@ type Table
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right:Table (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
-        if check_table "right" right then
-            # [left_unmatched, matched, right_unmatched]
-            rows_to_keep = case join_kind of
-                Join_Kind.Inner           -> [False, True, False]
-                Join_Kind.Left_Outer      -> [True, True, False]
-                Join_Kind.Right_Outer     -> [False, True, True]
-                Join_Kind.Full            -> [True, True, True]
-                Join_Kind.Left_Exclusive  -> [True, False, False]
-                Join_Kind.Right_Exclusive -> [False, False, True]
+        # [left_unmatched, matched, right_unmatched]
+        rows_to_keep = case join_kind of
+            Join_Kind.Inner           -> [False, True, False]
+            Join_Kind.Left_Outer      -> [True, True, False]
+            Join_Kind.Right_Outer     -> [False, True, True]
+            Join_Kind.Full            -> [True, True, True]
+            Join_Kind.Left_Exclusive  -> [True, False, False]
+            Join_Kind.Right_Exclusive -> [False, False, True]
 
-            columns_to_keep = case join_kind of
-                Join_Kind.Left_Exclusive  -> [True, False]
-                Join_Kind.Right_Exclusive -> [False, True]
-                _                         -> [True, True]
+        columns_to_keep = case join_kind of
+            Join_Kind.Left_Exclusive  -> [True, False]
+            Join_Kind.Right_Exclusive -> [False, True]
+            _                         -> [True, True]
 
-            join_resolution = make_join_helpers self right . resolve on on_problems
-            right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
+        join_resolution = make_join_helpers self right . resolve on on_problems
+        right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
 
-            java_conditions = join_resolution.conditions
-            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
-            Table.Value new_java_table
+        java_conditions = join_resolution.conditions
+        new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+            self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
+        Table.Value new_java_table
 
     ## ALIAS cartesian join
        GROUP Standard.Base.Calculations
@@ -1726,15 +1838,14 @@ type Table
          layout order while for database tables the order may be unspecified).
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
     cross_join self right:Table right_row_limit=100 right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
-        if check_table "right" right then
-            limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
-                True ->
-                    [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
-                False -> []
-            on_problems.attach_problems_before limit_problems <|
-                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                    self.java_table.crossJoin right.java_table right_prefix java_aggregator
-                Table.Value new_java_table
+        limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
+            True ->
+                [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+            False -> []
+        on_problems.attach_problems_before limit_problems <|
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.crossJoin right.java_table right_prefix java_aggregator
+            Table.Value new_java_table
 
     ## Replaces values in this table by values from a lookup table.
        New values are looked up in the lookup table based on the `key_columns`.
@@ -1771,8 +1882,8 @@ type Table
            specified in `key_columns`, a `Missing_Input_Columns` error is raised.
          - If an empty vector is provided for `key_columns`, a
            `No_Input_Columns_Selected` error is raised.
-         - If the lookup table contains multiple rows with the same values in
-           the `key_columns`, an `Non_Unique_Key` error is raised.
+         - If a single row is matched by multiple entries in the lookup table,
+           a `Non_Unique_Key` error is raised.
          - If a column that is being updated from the lookup table has a type
            that is not compatible with the type of the corresponding column in
            this table, a `No_Common_Type` error is raised.
@@ -1874,20 +1985,19 @@ type Table
     @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
     zip self right:Table keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
-        if check_table "right" right then
-            keep_unmatched_bool = case keep_unmatched of
-                Report_Unmatched -> True
-                b : Boolean -> b
-            report_mismatch = keep_unmatched == Report_Unmatched
+        keep_unmatched_bool = case keep_unmatched of
+            Report_Unmatched -> True
+            b : Boolean -> b
+        report_mismatch = keep_unmatched == Report_Unmatched
 
-            left_row_count = self.row_count
-            right_row_count = right.row_count
-            problems = if (left_row_count == right_row_count) || report_mismatch.not then [] else
-                [Row_Count_Mismatch.Error left_row_count right_row_count]
-            on_problems.attach_problems_before problems <|
-                new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                    self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
-                Table.Value new_java_table
+        left_row_count = self.row_count
+        right_row_count = right.row_count
+        problems = if (left_row_count == right_row_count) || report_mismatch.not then [] else
+            [Row_Count_Mismatch.Error left_row_count right_row_count]
+        on_problems.attach_problems_before problems <|
+            new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
+                self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
+            Table.Value new_java_table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
@@ -1980,12 +2090,11 @@ type Table
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    union self tables:Vector|Table match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
-            v : Vector -> [self] + v
-            single_column : Column -> [self, single_column.to_table]
+            v : Vector -> [self] + (v.map t-> Table.from t)
             single_table -> [self, single_table]
-        all_tables.all (check_table "tables") . if_not_error <|
+        all_tables.if_not_error <|
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
@@ -2004,15 +2113,16 @@ type Table
        Remove rows which are all blank or containing blank values.
 
        Arguments:
-       - when_any: If `True`, then remove any row containing any blank values.
-         If `False`, then only remove rows with all blank values.
+       - when: If Blank_Selector.Any_Cell_Blank, then remove any row containing
+        any blank values.
+         If Blank_Selector.All_Cells_Blank, then only remove rows with all blank values.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as blank.
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    filter_blank_rows : Boolean -> Boolean -> Table
-    filter_blank_rows self when_any=False treat_nans_as_blank=False =
-        Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
+    filter_blank_rows : Blank_Selector -> Boolean -> Table
+    filter_blank_rows self when=Blank_Selector.Any_Cell_Blank treat_nans_as_blank=False =
+        Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
     ## ALIAS count
        GROUP Standard.Base.Metadata
@@ -2530,17 +2640,6 @@ make_join_helpers left_table right_table =
     make_between _ left right_lower right_upper =
         Java_Join_Between.new left.java_column right_lower.java_column right_upper.java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
-
-## PRIVATE
-   Checks if the argument is a proper table and comes from the current backend.
-   It returns True or throws a dataflow error explaining the issue.
-check_table arg_name table =
-    if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table arg_name) else
-            same_backend = table.is_a Table
-            case same_backend of
-                False ->
-                    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
-                True -> True
 
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.

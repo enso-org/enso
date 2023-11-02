@@ -1,0 +1,239 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Runtime import assert
+
+import Standard.Table.Internal.Lookup_Helpers
+import Standard.Table.Internal.Lookup_Helpers.Lookup_Column
+from Standard.Table import Join_Kind, Value_Type
+from Standard.Table.Errors import all
+
+import project.Data.Table.Table
+import project.Internal.IR.Context.Context
+import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Internal.Upload_Table import check_for_null_keys
+
+## PRIVATE
+   Implementation of `lookup_and_replace` for Database backend.
+   See `Table.lookup_and_replace` for more details.
+build_lookup_query : Table -> Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+build_lookup_query base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems =
+    lookup_columns = Lookup_Helpers.prepare_columns_for_lookup base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
+    lookup_columns.if_not_error <| check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows <|
+        column_naming_helper = base_table.connection.base_connection.column_naming_helper
+        unique_name_strategy = column_naming_helper.create_unique_name_strategy
+        unique_name_strategy.mark_used base_table.column_names
+        unique_name_strategy.mark_used lookup_table.column_names
+
+        subquery_setup = prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy
+
+        # We need to construct the context _before_ constructing the columns, to be able to use it in column construction (for inferring types).
+        new_ctx = make_context_for_lookup_join lookup_columns subquery_setup
+        infer_type_in_result expr =
+            SQL_Type_Reference.new base_table.connection new_ctx expr
+
+        ## TODO [RW] here we will perform as many fetches as there are
+           Replace_Column instances, but technically we could perform just
+           one fetch fetching all column types - TODO we should do that.
+           See #6118.
+        new_columns = lookup_columns.map_with_index ix-> c-> case c of
+            Lookup_Column.Key_Column _ _ -> subquery_setup.get_self_column ix
+            Lookup_Column.Keep_Column _  -> subquery_setup.get_self_column ix
+            Lookup_Column.Replace_Column _ _ expected_type ->
+                dialect = base_table.connection.dialect
+                subquery_setup.create_merged_column ix expected_type dialect infer_type_in_result allow_unmatched_rows
+            Lookup_Column.Add_Column _ -> subquery_setup.get_lookup_column ix
+
+        ## Originally, I wanted to add invariant checks to all columns (or some of them),
+           but storing it in WHERE has 2 benefits:
+           1. The query is actually _simpler_ - instead of having the check in the expression for _every_ column
+              or multiple columns, we have it only once.
+           2. We have a guarantee that the query optimizer will not remove it (which could happen if it was a separate
+              column, or was added only to some column and these columns got removed in subsequent steps) - which is
+              paramount to ensuring that our rows will not get duplicated in case the key uniqueness gets violated.
+        new_ctx_with_invariant_check = new_ctx.add_where_filters [make_invariant_check subquery_setup.lookup_counter allow_unmatched_rows]
+
+        precheck_for_duplicate_matches lookup_columns subquery_setup base_table.connection new_ctx <|
+            Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx_with_invariant_check
+
+## PRIVATE
+   Checks if they key contains NULL values or if there would be unmatched rows
+   (if `allow_unmatched_rows` is `False`), and reports any errors.
+check_initial_invariants : Table -> Table -> Vector Lookup_Column -> Boolean -> Any -> Any
+check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows ~continuation =
+    key_column_names = lookup_columns.flat_map c-> case c of
+        Lookup_Column.Key_Column base_column lookup_column ->
+            assert (base_column.name == lookup_column.name) "Columns should have equal names."
+            [lookup_column.name]
+        _ -> []
+    check_for_null_keys lookup_table key_column_names <|
+        if allow_unmatched_rows then continuation else
+            unmatched_rows = base_table.join lookup_table on=key_column_names join_kind=Join_Kind.Left_Exclusive . select_columns key_column_names
+            unmatched_example = unmatched_rows.read max_rows=1
+            if unmatched_example.row_count == 0 then continuation else
+                first_row = unmatched_example.rows.first
+                Error.throw (Unmatched_Rows_In_Lookup.Error first_row.to_vector)
+
+## PRIVATE
+   Prepares the lookup table counter that is used for two things:
+   1. It allows us to check if a given row had found a match in the lookup row
+      and decide which value to use in `Replace_Column` case (the counter will
+      be `1` if there is a match and `NULL` if there is not).
+   2. It allows us to find duplicate matches - if a row with counter >1 is found,
+      that means that a single row has matched multiple rows in the lookup table
+      and we should report an error.
+make_lookup_counter_column dialect lookup_columns unique_name_strategy =
+    grouping_expressions = lookup_columns.flat_map c-> case c of
+        Lookup_Column.Key_Column _ lookup_column -> [lookup_column.expression]
+        _ -> []
+    row_number_expression = SQL_Expression.Operation "ROW_NUMBER_IN_GROUP" grouping_expressions
+    sql_type = dialect.get_type_mapping.value_type_to_sql Value_Type.Integer Problem_Behavior.Ignore
+    Internal_Column.Value (unique_name_strategy.make_unique "lookup_counter") (SQL_Type_Reference.from_constant sql_type) row_number_expression
+
+## PRIVATE
+   Gathers information about prepared subqueries in one place - to make it
+   easier to pass this context between various helper functions.
+
+   The setup is prepared in such a way, that for each `Lookup_Column` we have a
+   vector of base table columns and lookup table columns corresponding to it.
+   Depending on the type of the `Lookup_Column`, one of these vectors may be
+   empty. The helper functions `get_self_column` and `get_lookup_column` allow
+   easy access of the corresponding columns for the given index - this should be
+   used with `lookup_columns.map_with_index`.
+type Lookup_Subquery_Setup
+    ## PRIVATE
+    Value self_sub lookup_sub lookup_counter new_table_name
+
+    ## PRIVATE
+    get_self_column self ix =
+        self.self_sub.new_columns.at ix . first
+
+    ## PRIVATE
+    get_lookup_column self ix =
+        self.lookup_sub.new_columns.at ix . first
+
+    ## PRIVATE
+       Creates an `Internal_Column` representing the `Replace_Column` scenario:
+       taking data from lookup table if it was matched, and from base table
+       otherwise.
+       This method also ensure that the column has the expected type, unifying
+       types of the two sources.
+    create_merged_column self ix expected_type dialect infer_type_in_result allow_unmatched_rows =
+        self_col = self.get_self_column ix
+        lookup_col = self.get_lookup_column ix
+        is_lookup_found = SQL_Expression.Operation "==" [self.lookup_counter.expression, SQL_Expression.Literal "1"]
+        expression = case allow_unmatched_rows of
+            True  -> SQL_Expression.Operation "CASE" [is_lookup_found, lookup_col.expression, self_col.expression]
+            False -> Error.throw (Illegal_State.Error "Assumed that prepare_columns_for_lookup never returns Replace_Column if allow_unmatched_rows=False. This is a bug in the Database library.")
+        input_column = Internal_Column.Value self_col.name (infer_type_in_result expression) expression
+        adapted = dialect.adapt_unified_column input_column expected_type infer_type_in_result
+        Internal_Column.Value self_col.name adapted.sql_type_reference adapted.expression
+
+## PRIVATE
+   Wraps the two source tables into subqueries and creates a set of new columns
+   (encapsulated as `Lookup_Subquery_Setup`), together with the `lookup_counter`
+   column (see `make_lookup_counter_column`), that are valid in the context of a
+   lookup join query (it translates the source columns valid in the input
+   contexts, to the external join context).
+prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
+    table_name_deduplicator = base_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+    self_alias = table_name_deduplicator.make_unique base_table.name
+    lookup_alias = table_name_deduplicator.make_unique lookup_table.name
+    new_table_name = table_name_deduplicator.make_unique <|
+        base_table.name + "_" + lookup_table.name
+
+    lookup_counter_base = make_lookup_counter_column lookup_table.connection.dialect lookup_columns unique_name_strategy
+
+    self_requested_columns = Vector.new_builder
+    lookup_requested_columns = Vector.new_builder
+
+    lookup_columns.each c-> case c of
+        Lookup_Column.Key_Column base_column key_column ->
+            self_requested_columns.append [base_column]
+            lookup_requested_columns.append [key_column]
+        Lookup_Column.Keep_Column base_column ->
+            self_requested_columns.append [base_column]
+            lookup_requested_columns.append []
+        Lookup_Column.Replace_Column base_column lookup_column _ ->
+            self_requested_columns.append [base_column]
+            lookup_requested_columns.append [lookup_column]
+        Lookup_Column.Add_Column lookup_column ->
+            self_requested_columns.append []
+            lookup_requested_columns.append [lookup_column]
+
+    self_sub = base_table.context.as_subquery self_alias self_requested_columns.to_vector
+    lookup_sub = lookup_table.context.as_subquery lookup_alias lookup_requested_columns.to_vector+[[lookup_counter_base]]
+    lookup_counter = lookup_sub.new_columns.at -1 . first
+
+    Lookup_Subquery_Setup.Value self_sub lookup_sub lookup_counter new_table_name
+
+## PRIVATE
+   Creates a context for the lookup join query.
+make_context_for_lookup_join lookup_columns subquery_setup =
+    on_expressions = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
+        Lookup_Column.Key_Column _ _ ->
+            self_col = subquery_setup.get_self_column ix
+            lookup_col = subquery_setup.get_lookup_column ix
+            [SQL_Expression.Operation "==" [self_col.expression, lookup_col.expression]]
+        _ -> []
+
+    new_from = From_Spec.Join SQL_Join_Kind.Left subquery_setup.self_sub.subquery subquery_setup.lookup_sub.subquery on_expressions
+    Context.for_subquery new_from
+
+## PRIVATE
+   Runs a query that checks if there are any duplicate matches in the lookup
+   result. The query tries to minimize the amount of work and data that is
+   transferred, but it may not be cheap. It is however needed to be able to
+   report errors early.
+precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx ~continuation =
+    key_columns_for_duplicate_check = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
+        Lookup_Column.Key_Column _ _ -> [subquery_setup.get_self_column ix]
+        _ -> []
+    table_for_duplicate_check = Table.Value subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
+    duplicate_lookup_matches = table_for_duplicate_check.filter 0 (Filter_Condition.Greater than=1) . read max_rows=1
+    case duplicate_lookup_matches.row_count > 0 of
+        True ->
+            first_example_row = duplicate_lookup_matches.read.rows.first.to_vector
+            duplicate_example_count = first_example_row.first
+            duplicate_example_key = first_example_row.drop 1
+            Error.throw (Non_Unique_Key.Error (key_columns_for_duplicate_check.map .name) duplicate_example_key duplicate_example_count)
+        False -> continuation
+
+## PRIVATE
+   Creates an expression that can be baked into the query (preferably in such
+   a way that it will not get removed after query transformations), that will
+   fail if the 'key uniqueness' invariant and the 'all rows matching'
+   (if `allow_unmatched_rows=False`) are violated when the query is being
+   materialized.
+
+   This is needed, because the initial checks are run when the query is built,
+   but there is no guarantee that the table will not be changed before the query
+   is actually materialized. If in the meantime, the data is modified and
+   invariants are broken, the query may return completely unexpected results
+   (e.g. rows of the source table could get duplicated, which should never
+   happen with `lookup_and_replace`).
+
+   This additional checks ensures that if the invariants are broken, the query
+   will fail instead of returning corrupted data. Its error reporting may be
+   limited in comparison to the initial checks which may compute more
+   information.
+make_invariant_check lookup_counter allow_unmatched_rows =
+    make_error message =
+        SQL_Expression.Operation "RUNTIME_ERROR" [SQL_Expression.Text_Literal "lookup_and_replace: "+message, lookup_counter.expression]
+
+    exact_match =
+        is_matched = SQL_Expression.Operation "==" [lookup_counter.expression, SQL_Expression.Literal "1"]
+        [is_matched, SQL_Expression.Literal "TRUE"]
+    unmatched =
+        is_unmatched = SQL_Expression.Operation "IS_NULL" [lookup_counter.expression]
+        case allow_unmatched_rows of
+            True  -> [is_unmatched, SQL_Expression.Literal "TRUE"]
+            False -> [is_unmatched, make_error "Some rows have no matches in the lookup table."]
+
+    # This will be matched if the first branches do not match - this should happen if there is more than 1 match for a row.
+    fallback = [make_error "Duplicate matches found in the lookup table."]
+
+    SQL_Expression.Operation "CASE" unmatched+exact_match+fallback

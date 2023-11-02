@@ -1,10 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database import all
+from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -393,3 +395,12 @@ spec setup =
                 # And this should report Column_Type_Mismatch as the more important error too.
                 #t1.union t2 allow_type_widening=False on_problems=Problem_Behavior.Report_Error . should_fail_with Column_Type_Mismatch
                 t1.union t2 allow_type_widening=False on_problems=Problem_Behavior.Report_Error . should_fail_with No_Output_Columns
+
+        Test.specify "should gracefully handle tables from different backends" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+
+            alternative_connection = Database.connect (SQLite In_Memory)
+            t0 = (Table.new [["A", [1, 2, 4]], ["B", ["10", "20", "30"]]]).select_into_database_table alternative_connection "T0" temporary=True
+
+            r1 = t1.union t0
+            r1.should_fail_with Illegal_Argument

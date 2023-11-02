@@ -193,7 +193,7 @@ base_dialect =
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
-    windows = [["ROW_NUMBER", make_row_number]]
+    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
     base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
     Internal_Dialect.Value base_map wrap_in_quotes
 
@@ -219,7 +219,7 @@ make_iif arguments = case arguments.length of
    An IR expression for constructing SQL `CASE` expressions.
 case_when : Vector Builder -> Builder
 case_when arguments =
-    if arguments.length < 4 then Error.throw (Illegal_State.Error "CASE_WHEN needs at least 3 arguments.") else
+    if arguments.length < 3 then Error.throw (Illegal_State.Error "CASE_WHEN needs at least 3 arguments.") else
         fallback = arguments.last
         cases = arguments.drop (Last 1)
         if cases.length % 2 != 0 then Error.throw (Illegal_State.Error "CASE_WHEN expects an odd number of arguments (two arguments for each case and a fallback).") else
@@ -287,6 +287,14 @@ make_row_number (arguments : Vector) (metadata : Row_Number_Metadata) = if argum
     Builder.code "(row_number() OVER (" ++ group_part ++ " ORDER BY " ++ Builder.join ", " ordering ++ ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
 
 ## PRIVATE
+   A helper for `lookup_and_replace`, and perhaps other operation.
+   It creates an expression that returns a row number within a group.
+make_row_number_in_group arguments =
+    if arguments.length == 0 then
+        Panic.throw <| Illegal_State.Error "The operation ROW_NUMBER_IN_GROUP requires at least one argument."
+    Builder.code "row_number() OVER (PARTITION BY " ++ (Builder.join ", " arguments) ++ ")"
+
+## PRIVATE
 
    Builds code for an expression.
 
@@ -299,6 +307,9 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     SQL_Expression.Constant value -> Builder.interpolation value
     SQL_Expression.Literal value -> Builder.code value
+    SQL_Expression.Text_Literal value ->
+        escaped = value.replace "'" "''"
+        Builder.code ("'" + escaped + "'")
     SQL_Expression.Operation kind arguments metadata ->
         op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
