@@ -6,8 +6,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.UUID;
+import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
+import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.Module;
 import org.junit.Test;
 import scala.Option;
 import scala.collection.immutable.List;
@@ -49,6 +52,17 @@ public class PersistanceTest {
     assertEquals("Two elements", 2, out.size());
     assertEquals("UUIDs aren't serialized", new IdentifiedLocation(idLoc2.location()), out.head());
     assertEquals("Tail is the same", idLoc1, out.last());
+  }
+
+  @Test
+  public void serializeModule() throws Exception {
+    var meta = new MetadataStorage(nil());
+    var diag = new DiagnosticStorage(nil());
+    var m = new Module(nil(), nil(), nil(), true, Option.empty(), meta, diag);
+
+    var out = serde(Module.class, m, -1);
+
+    assertEquals("Same", m, out);
   }
 
   private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
