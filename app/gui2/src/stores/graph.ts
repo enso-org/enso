@@ -357,7 +357,7 @@ export const useGraphStore = defineStore('graph', () => {
 })
 
 function randomString() {
-  return Math.random().toString(36).substring(2, 10)
+  return 'operator' + Math.round(Math.random() * 100000)
 }
 
 export interface Node {
