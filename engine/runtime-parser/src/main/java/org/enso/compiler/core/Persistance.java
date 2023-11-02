@@ -81,7 +81,8 @@ public abstract class Persistance<T> {
       var found = knownObjects.get(obj);
       if (found == null) {
         var p = map.forType(obj.getClass());
-        found = p.writeDirect(obj, this);
+        found = this.buffer.position();
+        p.writeInline(obj, new OutputImpl(this));
         knownObjects.put(obj, found);
       }
       return Reference.from(buffer, found);
@@ -127,13 +128,9 @@ public abstract class Persistance<T> {
     }
 
     final <T> T readObject(Class<T> clazz) {
-      try {
-        var in = new InputImpl(buffer, offset);
-        var obj = in.readObject();
-        return clazz.cast(obj);
-      } catch (IOException ex) {
-        throw raise(RuntimeException.class, ex);
-      }
+      var in = new InputImpl(buffer, offset);
+      var obj = in.readInline(clazz);
+      return obj;
     }
   }
 

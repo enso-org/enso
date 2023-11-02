@@ -14,7 +14,7 @@ public class PersistanceTest {
   @Test
   public void locationTest() throws Exception {
     var l = new Location(12, 33);
-    var n = serde(Location.class, l, 12);
+    var n = serde(Location.class, l, 8);
 
     assertEquals(12, n.start());
     assertEquals(33, n.end());
@@ -24,14 +24,14 @@ public class PersistanceTest {
   @Test
   public void identifiedLocation() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), Option.empty());
-    var in = serde(IdentifiedLocation.class, il, 12);
+    var in = serde(IdentifiedLocation.class, il, 8);
     assertEquals(il, in);
   }
 
   @Test
   public void identifiedLocationNoUUID() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), Option.apply(UUID.randomUUID()));
-    var in = serde(IdentifiedLocation.class, il, 12);
+    var in = serde(IdentifiedLocation.class, il, 8);
     assertEquals(
         "UUIDs aren't serialized", new IdentifiedLocation(il.location(), Option.empty()), in);
   }
