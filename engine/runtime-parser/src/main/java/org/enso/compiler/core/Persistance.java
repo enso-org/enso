@@ -86,7 +86,7 @@ public abstract class Persistance<T> {
 
     final void writeIndirect(Object obj, Output out) throws IOException {
       if (obj == null) {
-        out.writeInt(0);
+        out.writeInt(-1);
         return;
       }
       var p = map.forType(obj.getClass());
@@ -101,14 +101,17 @@ public abstract class Persistance<T> {
         position += arr.length;
         knownObjects.put(obj, found);
       }
-      out.writeInt(p.id);
       out.writeInt(found);
+      out.writeInt(p.id);
     }
   }
 
   static Object readIndirect(ByteBuffer buffer, PersistanceMap map, Input in) throws IOException {
-    var id = in.readInt();
     var at = in.readInt();
+    if (at < 0) {
+      return null;
+    }
+    var id = in.readInt();
     var p = map.forId(id);
     var inData = new InputImpl(buffer, at);
     return p.readWith(inData);
@@ -177,9 +180,6 @@ public abstract class Persistance<T> {
 
     @Override
     public <T> void writeInline(Class<T> clazz, T obj) throws IOException {
-      if (clazz != obj.getClass()) {
-        throw new IOException("Cannot store " + obj + " as " + clazz.getName());
-      }
       var p = generator.map.forType(clazz);
       p.writeInline(obj, this);
     }
