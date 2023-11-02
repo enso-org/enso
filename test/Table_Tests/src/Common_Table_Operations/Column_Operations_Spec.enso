@@ -1243,6 +1243,21 @@ spec setup =
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
 
+    Test.group prefix+"Table.make_constant_columnasdfasdf" <|
+        Test.specify "Should allow the creation of constant columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.make_constant_column True . to_vector . should_equal [True, True, True]
+            t.make_constant_column 12 . to_vector . should_equal [12, 12, 12]
+            t.make_constant_column 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
+            t.make_constant_column "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
+
+        Test.specify "Should allow the creation of constant columns on a table with no rows" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            empty = t.take 0
+            constant = empty.make_constant_column 42
+            empty2 = empty.set constant
+            empty2.column_names.should_equal ['x', '42']
+
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
     Value

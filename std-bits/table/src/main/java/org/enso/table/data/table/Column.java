@@ -168,12 +168,12 @@ public class Column {
    * @return a column with given name and items
    */
   public static Column fromRepeatedItems(String name, List<Value> items, int repeat, ProblemAggregator problemAggregator) {
-    if (repeat < 1) {
-      throw new IllegalArgumentException("Repeat count must be positive.");
-    }
-
-    if (repeat == 1) {
+    if (repeat < 0) {
+      throw new IllegalArgumentException("Repeat count must be non-negative.");
+    } else if (repeat == 1) {
       return fromItems(name, items, null, problemAggregator);
+    } else if (repeat == 0) {
+      return new Column(name, new InferredBuilder(0, problemAggregator).seal());
     }
 
     Context context = Context.getCurrent();
