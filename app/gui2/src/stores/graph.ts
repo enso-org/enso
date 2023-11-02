@@ -250,8 +250,7 @@ export const useGraphStore = defineStore('graph', () => {
       vis: null,
     }
     const ident = generateUniqueIdent()
-    const content = `${ident} = ${expression}`
-    return mod.insertNewNode(mod.doc.contents.length, content, meta)
+    return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
   }
 
   function deleteNode(id: ExprId) {
