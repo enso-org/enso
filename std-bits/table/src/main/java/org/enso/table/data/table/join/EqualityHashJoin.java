@@ -21,14 +21,10 @@ public class EqualityHashJoin implements JoinStrategy {
     this.remainingMatcher = remainingMatcher;
 
     List<HashEqualityCondition> equalConditions =
-        conditions.stream()
-            .filter(EqualityHashJoin::isSupported)
-            .map(EqualityHashJoin::makeHashEqualityCondition)
-            .toList();
+        conditions.stream().filter(EqualityHashJoin::isSupported).map(EqualityHashJoin::makeHashEqualityCondition).toList();
 
     if (equalConditions.isEmpty()) {
-      throw new IllegalArgumentException(
-          "EqualityHashJoin is applicable if there is at least one equality condition.");
+      throw new IllegalArgumentException("EqualityHashJoin is applicable if there is at least one equality condition.");
     }
 
     leftEquals = equalConditions.stream().map(HashEqualityCondition::left).toArray(Column[]::new);
@@ -45,12 +41,10 @@ public class EqualityHashJoin implements JoinStrategy {
   public JoinResult join(ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
 
-    var leftIndex =
-        MultiValueIndex.makeUnorderedIndex(leftEquals, conditionsHelper.getLeftTableRowCount(), textFoldingStrategies
-            , problemAggregator);
-    var rightIndex =
-        MultiValueIndex.makeUnorderedIndex(rightEquals, conditionsHelper.getRightTableRowCount(),
-            textFoldingStrategies, problemAggregator);
+    var leftIndex = MultiValueIndex.makeUnorderedIndex(leftEquals, conditionsHelper.getLeftTableRowCount(),
+        textFoldingStrategies, problemAggregator);
+    var rightIndex = MultiValueIndex.makeUnorderedIndex(rightEquals, conditionsHelper.getRightTableRowCount(),
+        textFoldingStrategies, problemAggregator);
 
     JoinResult.Builder resultBuilder = new JoinResult.Builder();
     for (var leftEntry : leftIndex.mapping().entrySet()) {
@@ -79,22 +73,18 @@ public class EqualityHashJoin implements JoinStrategy {
   private static HashEqualityCondition makeHashEqualityCondition(HashableCondition eq) {
     switch (eq) {
       case Equals e -> {
-        return new HashEqualityCondition(
-            e.left(), e.right(), TextFoldingStrategy.unicodeNormalizedFold);
+        return new HashEqualityCondition(e.left(), e.right(), TextFoldingStrategy.unicodeNormalizedFold);
       }
       case EqualsIgnoreCase e -> {
-        return new HashEqualityCondition(
-            e.left(), e.right(), TextFoldingStrategy.caseInsensitiveFold(e.locale()));
+        return new HashEqualityCondition(e.left(), e.right(), TextFoldingStrategy.caseInsensitiveFold(e.locale()));
       }
-      default -> throw new IllegalStateException(
-          "Impossible: trying to convert condition "
-              + eq
-              + " to a HashEqualityCondition, but it should not be marked as supported. This is a"
-              + " bug in the Table library.");
+      default ->
+          throw new IllegalStateException("Impossible: trying to convert condition " + eq + " to a " +
+              "HashEqualityCondition, but it should not be marked as supported. This is a" + " bug in the Table " +
+              "library.");
     }
   }
 
-  private record HashEqualityCondition(
-      Column left, Column right, TextFoldingStrategy textFoldingStrategy) {
+  private record HashEqualityCondition(Column left, Column right, TextFoldingStrategy textFoldingStrategy) {
   }
 }

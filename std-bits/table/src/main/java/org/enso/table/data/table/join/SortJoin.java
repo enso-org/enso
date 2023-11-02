@@ -1,14 +1,13 @@
 package org.enso.table.data.table.join;
 
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.index.OrderedMultiValueKey;
-import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.polyglot.Context;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.index.OrderedMultiValueKey;
+import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Context;
 
 public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
@@ -65,10 +64,15 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
   }
 
   @Override
-  public void joinSubsets(List<Integer> leftGroup, List<Integer> rightGroup, JoinResult.Builder resultBuilder, ProblemAggregator problemAggregator) {
+  public void joinSubsets(
+      List<Integer> leftGroup,
+      List<Integer> rightGroup,
+      JoinResult.Builder resultBuilder,
+      ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
 
-    List<OrderedMultiValueKey> leftKeys = leftGroup.stream().map(i-> new OrderedMultiValueKey(leftStorages, i, directions)).toList();
+    List<OrderedMultiValueKey> leftKeys =
+        leftGroup.stream().map(i -> new OrderedMultiValueKey(leftStorages, i, directions)).toList();
     NavigableSet<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
 
     if (leftIndex.isEmpty()) {
@@ -102,17 +106,22 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     return new OrderedMultiValueKey(upperStorages, rightRowIx, directions);
   }
 
-  void addMatchingLeftRows(NavigableSet<OrderedMultiValueKey> sortedKeys, int rightRowIx,
-                           JoinResult.Builder resultBuilder) {
+  void addMatchingLeftRows(
+      NavigableSet<OrderedMultiValueKey> sortedKeys,
+      int rightRowIx,
+      JoinResult.Builder resultBuilder) {
     OrderedMultiValueKey lowerBound = buildLowerBound(rightRowIx);
     OrderedMultiValueKey upperBound = buildUpperBound(rightRowIx);
 
     // If the match interval is invalid or empty, there is nothing to do.
-    if (lowerBound.hasAnyNulls() || upperBound.hasAnyNulls() || lowerBound.compareTo(upperBound) > 0) {
+    if (lowerBound.hasAnyNulls()
+        || upperBound.hasAnyNulls()
+        || lowerBound.compareTo(upperBound) > 0) {
       return;
     }
 
-    NavigableSet<OrderedMultiValueKey> firstCoordinateMatches = sortedKeys.subSet(lowerBound, true, upperBound, true);
+    NavigableSet<OrderedMultiValueKey> firstCoordinateMatches =
+        sortedKeys.subSet(lowerBound, true, upperBound, true);
     ArrayList<Integer> result = new ArrayList<>();
     Context context = Context.getCurrent();
     for (OrderedMultiValueKey key : firstCoordinateMatches) {

@@ -1,5 +1,11 @@
 package org.enso.table.operations;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -11,13 +17,6 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.IntStream;
 
 public class AddRowNumber {
 
@@ -61,11 +60,11 @@ public class AddRowNumber {
     Storage<?>[] orderingStorages =
         Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
     long[] numbers = new long[n];
-    List<OrderedMultiValueKey> keys = new ArrayList<>(
-        IntStream.range(0, n)
-            .mapToObj(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
-            .toList()
-    );
+    List<OrderedMultiValueKey> keys =
+        new ArrayList<>(
+            IntStream.range(0, n)
+                .mapToObj(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
+                .toList());
 
     keys.sort(null);
 
@@ -117,8 +116,8 @@ public class AddRowNumber {
   }
 
   /**
-   * A helper for computing consecutive numbers based on a start and step. It will throw an
-   * {@link java.lang.ArithmeticException} if the next number overflows.
+   * A helper for computing consecutive numbers based on a start and step. It will throw an {@link
+   * java.lang.ArithmeticException} if the next number overflows.
    */
   private static class RangeIterator {
     private final long start;
