@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.UUID;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.Location;
 import org.junit.Test;
@@ -25,6 +26,13 @@ public class PersistanceTest {
     var il = new IdentifiedLocation(new Location(5, 19), Option.empty());
     var in = serde(IdentifiedLocation.class, il);
     assertEquals(il, in);
+  }
+
+  @Test
+  public void identifiedLocationNoUUID() throws Exception {
+    var il = new IdentifiedLocation(new Location(5, 19), Option.apply(UUID.randomUUID()));
+    var in = serde(IdentifiedLocation.class, il);
+    assertEquals("UUIDs aren't serialized", il.copy(il.copy$default$1(), Option.empty()), in);
   }
 
   private static <T> T serde(Class<T> clazz, T l) throws IOException {
