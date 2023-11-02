@@ -18,14 +18,16 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.polyglot.CompilationStage;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
+
+import org.enso.compiler.core.Persistance;
+
+import akka.http.impl.engine.http2.client.PersistentConnection;
 
 public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCache.Metadata> {
 
@@ -50,24 +52,11 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
 
     @Override
     protected CachedModule deserialize(EnsoContext context, byte[] data, Metadata meta, TruffleLogger logger) throws ClassNotFoundException, IOException, ClassNotFoundException {
-        try (var stream = new ObjectInputStream(new ByteArrayInputStream(data)) {
-          @Override
-          protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
-            var clazz = super.readClassDescriptor();
-            System.err.println("CLASS: " + clazz.getName());
-            return clazz;
-          }
-        }) {
-          if (stream.readObject() instanceof Module ir) {
-              try {
-                  return new CachedModule(ir,CompilationStage.valueOf(meta.compilationStage()), module.getSource());
-              } catch (IOException ioe) {
-                  throw new ClassNotFoundException(ioe.getMessage());
-              }
-          } else {
-              throw new ClassNotFoundException("Expected Module, got " + data.getClass());
-          }
-        }
+      var buf = ByteBuffer.wrap(data);
+      var at = buf.getInt(0);
+      var ref = Persistance.Reference.from(buf, at);
+      var mod = ref.get(Module.class);
+      return new CachedModule(mod, CompilationStage.valueOf(meta.compilationStage()), module.getSource());
     }
 
     @Override
@@ -165,25 +154,16 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
           }
         }
       }
-      try (var stream = new ObjectOutputStream(byteStream) {
-        void filterUUIDs() {
-          enableReplaceObject(true);
-        }
-
-        @Override
-        protected Object replaceObject(Object obj) throws IOException {
-          if (obj instanceof UUID) {
-            return null;
-          }
-          return obj;
-        }
-      }) {
-        if (noUUIDs) {
-          stream.filterUUIDs();
-        }
-        stream.writeObject(entry.moduleIR());
-      }
-      return byteStream.toByteArray();
+      var prelude = new byte[4];
+      byteStream.write(prelude);
+      var gen = Persistance.newGenerator(byteStream);
+      var at = gen.writeObject(entry.moduleIR()) + prelude.length;
+      var arr = byteStream.toByteArray();
+      arr[0] = (byte) ((at >> 24) & 0xff);
+      arr[1] = (byte) ((at >> 16) & 0xff);
+      arr[2] = (byte) ((at >> 8) & 0xff);
+      arr[3] = (byte) (at & 0xff);
+      return arr;
     }
 
     public record CachedModule(Module moduleIR, CompilationStage compilationStage, Source source) {
