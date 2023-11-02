@@ -1,5 +1,6 @@
-import type { Hasher } from 'js-sha3'
-import { sha3_224 as SHA3 } from 'js-sha3'
+import { sha3_224, Keccak } from '@noble/hashes/sha3'
+import type { Hash } from '@noble/hashes/utils'
+import { bytesToHex } from '@noble/hashes/utils'
 import type { DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
 import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
@@ -13,7 +14,7 @@ export class Uploader {
   private binary: DataServer
   private file: File
   private projectRootId: Uuid
-  private checksum: Hasher
+  private checksum: Hash<Keccak>
   private uploadedBytes: bigint
 
   private constructor(rpc: LanguageServer, binary: DataServer, file: File, projectRootId: Uuid) {
@@ -21,7 +22,7 @@ export class Uploader {
     this.binary = binary
     this.file = file
     this.projectRootId = projectRootId
-    this.checksum = SHA3.create()
+    this.checksum = sha3_224.create()
     this.uploadedBytes = BigInt(0)
   }
 
@@ -47,7 +48,7 @@ export class Uploader {
     const writableStream = new WritableStream<Uint8Array>({
       async write(chunk: Uint8Array) {
         await uploader.binary.writeBytes(remotePath, uploader.uploadedBytes, false, chunk)
-        uploader.checksum.update(chunk.buffer)
+        uploader.checksum.update(chunk)
         uploader.uploadedBytes += BigInt(chunk.length)
       },
       async close() {
@@ -65,9 +66,10 @@ export class Uploader {
 
   private async assertChecksum(path: Path) {
     const engineChecksum = await this.rpc.fileChecksum(path)
-    if (this.checksum.hex() != engineChecksum.checksum) {
+    const hexChecksum = bytesToHex(this.checksum.digest())
+    if (hexChecksum != engineChecksum.checksum) {
       throw new Error(
-        `Uploading file failed, checksum does not match. ${this.checksum.hex()} != ${
+        `Uploading file failed, checksum does not match. ${hexChecksum} != ${
           engineChecksum.checksum
         }`,
       )
