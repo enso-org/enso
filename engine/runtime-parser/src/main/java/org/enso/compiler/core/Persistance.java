@@ -1,8 +1,8 @@
 package org.enso.compiler.core;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -22,22 +22,36 @@ public abstract class Persistance<T> {
     this.id = id;
   }
 
-  protected abstract void writeObject(T obj, ObjectOutput out) throws IOException;
-  protected abstract T readObject(ObjectInput in) throws IOException, ClassNotFoundException;
+  protected abstract void writeObject(T obj, Output out) throws IOException;
+  protected abstract T readObject(Input in) throws IOException, ClassNotFoundException;
+
+  public static abstract class Output implements DataOutput {
+    Output() {
+    }
+
+    public abstract void writeObject(Object obj) throws IOException;
+  }
+
+  public static abstract class Input implements DataInput {
+    Input() {
+    }
+
+    public abstract Object readObject() throws IOException;
+  }
 
   final int writeDirect(Object obj, Generator into) throws IOException {
-    var output = new OperationOutput(into);
+    var output = new OutputImpl(into);
     var at = into.buffer.position();
     into.buffer.putInt(id);
     writeObject(clazz.cast(obj), output);
     return at;
   }
 
-  final T readWith(ObjectInput in) {
+  final T readWith(Input in) {
       try {
         return readObject(in);
       } catch (IOException | ClassNotFoundException ex) {
-        throw new IllegalStateException(ex);
+        throw raise(RuntimeException.class, ex);
       }
   }
 
@@ -108,11 +122,11 @@ public abstract class Persistance<T> {
 
     final <T> T readObject(Class<T> clazz) {
       try {
-        var in = new Input(buffer, offset);
+        var in = new InputImpl(buffer, offset);
         var obj = in.readObject();
         return clazz.cast(obj);
-      } catch (ClassNotFoundException | IOException ex) {
-        throw new IllegalStateException(ex);
+      } catch (IOException ex) {
+        throw raise(RuntimeException.class, ex);
       }
     }
   }
@@ -125,10 +139,10 @@ public abstract class Persistance<T> {
     }
   }
 
-  private static final class OperationOutput implements ObjectOutput {
+  private static final class OutputImpl extends Output {
     final Generator generator;
 
-    OperationOutput(Generator buffer) {
+    OutputImpl(Generator buffer) {
       this.generator = buffer;
     }
 
@@ -152,14 +166,6 @@ public abstract class Persistance<T> {
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
       write(Arrays.copyOfRange(b, off, len));
-    }
-
-    @Override
-    public void flush() throws IOException {
-    }
-
-    @Override
-    public void close() throws IOException {
     }
 
     private static final byte[] TRUE = new byte[] { 1 };
@@ -226,54 +232,49 @@ public abstract class Persistance<T> {
       write(arr);
     }
   }
-  private static final class Input implements ObjectInput {
+
+  private static final class InputImpl extends Input {
     private final PersistanceMap map = new PersistanceMap();
     private final ByteBuffer buf;
     private int at;
 
-    Input(ByteBuffer buf, int at) {
+    InputImpl(ByteBuffer buf, int at) {
       this.buf = buf;
       this.at = at;
     }
 
     @Override
-    public Object readObject() throws ClassNotFoundException, IOException {
+    public Object readObject() throws IOException {
       var id = readInt();
       var p = map.forId(id);
       return p.readWith(this);
     }
 
-    @Override
     public int read() throws IOException {
       return buf.get(at++);
     }
 
-    @Override
     public int read(byte[] b) throws IOException {
       buf.get(at, b);
       at += b.length;
       return b.length;
     }
 
-    @Override
     public int read(byte[] b, int off, int len) throws IOException {
       buf.get(at, b, off, len);
       at += len;
       return len;
     }
 
-    @Override
     public long skip(long n) throws IOException {
       at += Math.toIntExact(n);
       return at;
     }
 
-    @Override
     public int available() throws IOException {
       return buf.limit() - at;
     }
 
-    @Override
     public void close() throws IOException {
     }
 
@@ -407,5 +408,10 @@ public abstract class Persistance<T> {
       }
       return p;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E)t;
   }
 }

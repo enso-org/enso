@@ -19,13 +19,13 @@ public record Location(int start, int end) {
     }
 
     @Override
-    protected void writeObject(Location obj, ObjectOutput out) throws IOException {
+    protected void writeObject(Location obj, Output out) throws IOException {
       out.writeInt(obj.start());
       out.writeInt(obj.end());
     }
 
     @Override
-    protected Location readObject(ObjectInput in) throws IOException, ClassNotFoundException {
+    protected Location readObject(Input in) throws IOException, ClassNotFoundException {
       return new Location(in.readInt(), in.readInt());
     }
   }
