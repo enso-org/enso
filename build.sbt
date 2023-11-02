@@ -1681,10 +1681,16 @@ lazy val `engine-runner` = project
     assembly / assemblyJarName := "runner.jar",
     assembly / test := {},
     assembly / assemblyOutputPath := file("runner.jar"),
-    assembly / assemblyExcludedJars :=
-      JPMSUtils.filterTruffleAndGraalArtifacts(
-        (Compile / fullClasspath).value
-      ),
+    // Exclude all Truffle classes and classes that we share with runtime.jar - we want
+    // runner.jar to be as thin as possible and share as least amount of classes with runtime.jar
+    // as possible.
+    assembly / assemblyExcludedJars := {
+      val ourCp = (Compile / fullClasspath).value
+      val truffleCp = JPMSUtils.filterTruffleAndGraalArtifacts(ourCp)
+      val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
+      val intersect = runtimeCp.intersect(ourCp)
+      (intersect ++ truffleCp).distinct
+    },
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
         MergeStrategy.discard
