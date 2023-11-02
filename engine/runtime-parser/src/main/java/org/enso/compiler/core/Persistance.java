@@ -29,6 +29,7 @@ public abstract class Persistance<T> {
     Output() {
     }
 
+    public abstract <T> void writeInline(Class<T> clazz, T obj) throws IOException;
     public abstract void writeObject(Object obj) throws IOException;
   }
 
@@ -36,7 +37,12 @@ public abstract class Persistance<T> {
     Input() {
     }
 
+    public abstract <T> T readInline(Class<T> clazz) throws IOException;
     public abstract Object readObject() throws IOException;
+  }
+
+  final void writeInline(Object obj, Output out) throws IOException {
+    writeObject(clazz.cast(obj), out);
   }
 
   final int writeDirect(Object obj, Generator into) throws IOException {
@@ -147,6 +153,17 @@ public abstract class Persistance<T> {
     }
 
     @Override
+    public <T> void writeInline(Class<T> clazz, T obj) throws IOException {
+      if (clazz != obj.getClass()) {
+        throw new IOException("Cannot store " + obj + " as " + clazz.getName());
+      }
+      var p = generator.map.forType(clazz);
+      p.writeInline(obj, this);
+    }
+
+
+
+    @Override
     public void writeObject(Object obj) throws IOException {
       var p = generator.map.forType(obj.getClass());
       var at = p.writeDirect(obj, generator);
@@ -241,6 +258,12 @@ public abstract class Persistance<T> {
     InputImpl(ByteBuffer buf, int at) {
       this.buf = buf;
       this.at = at;
+    }
+
+    @Override
+    public <T> T readInline(Class<T> clazz) {
+      var p = map.forType(clazz);
+      return p.readWith(this);
     }
 
     @Override
