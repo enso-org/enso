@@ -32,7 +32,8 @@ public class PersistanceTest {
   public void identifiedLocationNoUUID() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), Option.apply(UUID.randomUUID()));
     var in = serde(IdentifiedLocation.class, il);
-    assertEquals("UUIDs aren't serialized", il.copy(il.copy$default$1(), Option.empty()), in);
+    assertEquals(
+        "UUIDs aren't serialized", new IdentifiedLocation(il.location(), Option.empty()), in);
   }
 
   private static <T> T serde(Class<T> clazz, T l) throws IOException {
