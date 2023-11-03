@@ -1587,7 +1587,7 @@ type Table
            `Column`, use its name. In these two cases, do not make it unique.
            Otherwise, make it unique.
         new_column_name = if new_name != "" then new_name else
-            if column.is_a Column . not then unique.make_unique resolved.name else resolved.name
+            if column.is_a Column then resolved.name else unique.make_unique resolved.name
         renamed = resolved.rename new_column_name
         renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names renamed.name <|
             check_add_mode = case set_mode of
