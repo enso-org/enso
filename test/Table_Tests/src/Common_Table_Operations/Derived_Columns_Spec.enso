@@ -229,6 +229,6 @@ spec setup =
             t2 = t.set (Column_Operation.Add "prefix" (Column_Ref.Name "X"))
             t3 = t2.set (Column_Operation.Add "prefix" "X")
 
-            t3.column_names . should_equal ["X", "['prefix'] + [X]", "['prefix'] + 'X'"]
-            t3.at "['prefix'] + [X]" . to_vector . should_equal ["prefixa", "prefixb", "prefixc"]
-            t3.at "['prefix'] + 'X'" . to_vector . should_equal ["prefixX", "prefixX", "prefixX"]
+            t3.column_names . should_equal ["X", "[prefix] + [X]", "[prefix] + 'X'"]
+            t3.at "[prefix] + [X]" . to_vector . should_equal ["prefixa", "prefixb", "prefixc"]
+            t3.at "[prefix] + 'X'" . to_vector . should_equal ["prefixX", "prefixX", "prefixX"]
