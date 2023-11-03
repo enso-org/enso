@@ -5,6 +5,9 @@ import type { DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
 import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
 import type { ContentRoot, Path, Uuid } from 'shared/languageServerTypes'
+import { Awareness } from 'y-protocols/awareness'
+import type { UploadingFile } from '@/stores/graph'
+import { Vec2 } from '@/util/vec2'
 
 export const uploadedExpression = (name: string) => `enso_project.data/"${name}" . read`
 const DATA_DIR_NAME = 'data'
@@ -16,33 +19,42 @@ export class Uploader {
   private projectRootId: Uuid
   private checksum: Hash<Keccak>
   private uploadedBytes: bigint
+  private awareness: Awareness
+  private position: Vec2
 
-  private constructor(rpc: LanguageServer, binary: DataServer, file: File, projectRootId: Uuid) {
+  private constructor(rpc: LanguageServer, binary: DataServer, awareness: Awareness, file: File, projectRootId: Uuid, position: Vec2) {
     this.rpc = rpc
     this.binary = binary
+    this.awareness = awareness
     this.file = file
     this.projectRootId = projectRootId
     this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
+    this.position = position
   }
 
   static async create(
     rpc: Promise<LanguageServer>,
     binary: Promise<DataServer>,
     contentRoots: Promise<ContentRoot[]>,
+    awareness: Awareness,
     file: File,
+    position: Vec2,
   ): Promise<Uploader> {
     const projectRootId = await contentRoots.then((roots) =>
       roots.find((root) => root.type == 'Project'),
     )
     if (!projectRootId) throw new Error('Unable to find project root, uploading not possible.')
-    const instance = new Uploader(await rpc, await binary, file, projectRootId.id)
+    const instance = new Uploader(await rpc, await binary, awareness, file, projectRootId.id, position)
     return instance
   }
 
   async upload(): Promise<string> {
     await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
+    const existingUploads = this.awareness.getLocalState()?.uploading ?? []
+    const uploadingFile: UploadingFile = { name, percentage: 0, position: this.position }
+    this.awareness.setLocalStateField('uploading', [...existingUploads, uploadingFile])
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
     const writableStream = new WritableStream<Uint8Array>({
@@ -50,10 +62,17 @@ export class Uploader {
         await uploader.binary.writeBytes(remotePath, uploader.uploadedBytes, false, chunk)
         uploader.checksum.update(chunk)
         uploader.uploadedBytes += BigInt(chunk.length)
+        const uploads: UploadingFile[] = uploader.awareness.getLocalState()?.uploading ?? []
+        const currentUpload = uploads.find((file) => file.name === name)
+        if (currentUpload) {
+          currentUpload.percentage = Math.round((Number(uploader.uploadedBytes) / uploader.file.size) * 100)
+        }
+        uploader.awareness.setLocalStateField('uploading', uploads)
       },
       async close() {
         // Disabled until https://github.com/enso-org/enso/issues/6691 is fixed.
         // uploader.assertChecksum(remotePath)
+        uploader.cleanup(name)
       },
       async abort(reason: string) {
         await uploader.rpc.deleteFile(remotePath)
@@ -62,6 +81,15 @@ export class Uploader {
     })
     await this.file.stream().pipeTo(writableStream)
     return name
+  }
+
+  private cleanup(name: string) {
+    const uploads: UploadingFile[] = this.awareness.getLocalState()?.uploading ?? []
+    const toRemove = uploads.findIndex((file) => file.name === name)
+    if (toRemove != -1) {
+      uploads.splice(toRemove, 1)
+    }
+    this.awareness.setLocalStateField('uploading', uploads)
   }
 
   private async assertChecksum(path: Path) {

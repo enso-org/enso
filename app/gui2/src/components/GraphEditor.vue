@@ -199,7 +199,9 @@ async function handleFileDrop(event: DragEvent) {
               projectStore.lsRpcConnection,
               projectStore.dataConnection,
               projectStore.contentRoots,
+              projectStore.awareness,
               file,
+              pos,
             )
             const name = await uploader.upload()
             graphStore.createNode(pos, uploadedExpression(name))

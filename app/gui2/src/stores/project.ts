@@ -423,6 +423,9 @@ export const useProjectStore = defineStore('project', () => {
 
   const doc = new Y.Doc()
   const awareness = new Awareness(doc)
+  awareness.setLocalState({
+    uploading: [],
+  })
 
   const config = injectGuiConfig()
   const projectName = config.value.startup?.project

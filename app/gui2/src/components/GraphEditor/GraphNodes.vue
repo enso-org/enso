@@ -5,6 +5,8 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
+import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
+import { computed } from 'vue'
 
 const graphStore = useGraphStore()
 const selection = injectGraphSelection(true)
@@ -32,6 +34,11 @@ function moveNode(movedId: ExprId, delta: Vec2) {
 function hoverNode(id: ExprId | undefined) {
   if (selection != null) selection.hoveredNode = id
 }
+
+const uploadingFiles = computed(() => {
+  return [...graphStore.uploadingFiles.values()].flat()
+})
+
 </script>
 
 <template>
@@ -50,4 +57,5 @@ function hoverNode(id: ExprId | undefined) {
     @movePosition="moveNode(id, $event)"
     @outputPortAction="graphStore.createEdgeFromOutput(id)"
   />
+  <UploadingFile v-for="(file, index) in uploadingFiles" :key="index" :file="file" />
 </template>

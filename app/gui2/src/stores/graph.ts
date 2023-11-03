@@ -21,6 +21,19 @@ import {
 import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
 
+export interface AwarenessUpdates {
+  added: number[],
+  removed: number[],
+  updated: number[],
+}
+
+export interface UploadingFile {
+  name: string,
+  percentage: number,
+  position: Vec2,
+}
+export type ClientId = number
+
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
 
@@ -327,9 +340,18 @@ export const useGraphStore = defineStore('graph', () => {
     exprRects.set(id, rect)
   }
 
+  const uploadingFiles = reactive(new Map<ClientId, UploadingFile[]>())
+  proj.awareness.on('change', (updates: AwarenessUpdates) => {
+    updates.removed.forEach((id) => uploadingFiles.delete(id))
+    for (const id of [...updates.added, ...updates.updated]) {
+      uploadingFiles.set(id, proj.awareness.getStates().get(id)?.uploading ?? [])
+    }
+  })
+
   return {
     _ast,
     transact,
+    uploadingFiles,
     nodes,
     exprNodes,
     unconnectedEdge,
