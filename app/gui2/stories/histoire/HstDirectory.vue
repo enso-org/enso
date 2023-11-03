@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/// <reference types="wicg-file-system-access" />
 import { ref } from 'vue'
 import HstWrapper from './HstWrapper.vue'
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/stores/project'
+import { mockFsDirectoryHandle } from '@/util/convert/fsAccess'
 import { MockWebSocket, type WebSocketHandler } from '@/util/net'
 import { createSHA3 } from 'hash-wasm'
 import * as random from 'lib0/random'
@@ -55,144 +56,10 @@ const PAYLOAD_CONSTRUCTOR = {
   [InboundPayload.CHECKSUM_BYTES_CMD]: ChecksumBytesCommand,
 } satisfies Record<InboundPayload, new () => Table>
 
-function arrayIsSame(a: unknown[], b: unknown) {
-  return Array.isArray(b) && a.length === b.length && a.every((item, i) => b[i] === item)
-}
-
 const sha3 = createSHA3(224)
 
-function mockFsFileHandle(
-  contents: string | ArrayBuffer,
-  name: string,
-  path: string[] = [],
-): FileSystemFileHandle {
-  return {
-    kind: 'file',
-    isFile: true,
-    isDirectory: false,
-    // Spreaded to avoid excess property error.
-    ...{ _path: path },
-    name,
-    queryPermission() {
-      // Unimplemented.
-      throw new Error('Cannot query permission in a read-only mock.')
-    },
-    requestPermission() {
-      // Unimplemented.
-      throw new Error('Cannot request permission in a read-only mock.')
-    },
-    async isSameEntry(other) {
-      return this.kind === other.kind && '_path' in other && arrayIsSame(path, other._path)
-    },
-    async getFile() {
-      return new File([contents], name)
-    },
-    createWritable() {
-      throw new Error('Cannot create a writable strean from a read-only mock.')
-    },
-  }
-}
-
-function mockFsDirectoryHandle(
-  tree: FileTree,
-  name: string,
-  path: string[] = [],
-): FileSystemDirectoryHandle {
-  return {
-    kind: 'directory',
-    isFile: false,
-    isDirectory: true,
-    name,
-    // Spreaded to avoid excess property error.
-    ...{ _path: path },
-    async isSameEntry(other) {
-      return this.kind === other.kind && '_path' in other && arrayIsSame(path, other._path)
-    },
-    async resolve(possibleDescendant) {
-      if (!('_path' in possibleDescendant)) return null
-      if (!Array.isArray(possibleDescendant._path)) return null
-      if (possibleDescendant._path.length < path.length) return null
-      if (possibleDescendant._path.slice(0, path.length).some((segment, i) => segment !== path[i]))
-        return null
-      const descendantPath: string[] = possibleDescendant._path
-      return descendantPath.slice(path.length)
-    },
-    queryPermission() {
-      // Unimplemented.
-      throw new Error('Cannot query permission in a read-only mock.')
-    },
-    requestPermission() {
-      // Unimplemented.
-      throw new Error('Cannot request permission in a read-only mock.')
-    },
-    async getDirectoryHandle(name) {
-      const entry = tree[name]
-      if (!entry || typeof entry === 'string' || entry instanceof ArrayBuffer) {
-        const error = new DOMException(
-          `The directory '${[...path, name].join('/')}' was not found.`,
-          'NotFoundError',
-        )
-        throw error
-      }
-      return mockFsDirectoryHandle(entry, name, [...path, name])
-    },
-    async getFileHandle(name) {
-      const entry = tree[name]
-      if (entry == null || (typeof entry !== 'string' && !(entry instanceof ArrayBuffer))) {
-        const error = new DOMException(
-          `The file '${[...path, name].join('/')}' could not be found.`,
-          'NotFoundError',
-        )
-        throw error
-      }
-      return mockFsFileHandle(entry, name, [...path, name])
-    },
-    getDirectory(name) {
-      return this.getDirectoryHandle(name)
-    },
-    getFile(name) {
-      return this.getFileHandle(name)
-    },
-    async removeEntry() {
-      throw new Error('Cannot remove an entry from a read-only mock.')
-    },
-    async *keys() {
-      for (const name in tree) yield name
-    },
-    async *values() {
-      for (const name in tree) {
-        const entry = tree[name]!
-        if (typeof entry === 'string' || entry instanceof ArrayBuffer) {
-          yield mockFsFileHandle(entry, name, [...path, name])
-        } else {
-          yield mockFsDirectoryHandle(entry, name, [...path, name])
-        }
-      }
-    },
-    getEntries() {
-      return this.values()
-    },
-    async *entries() {
-      for (const name in tree) {
-        const entry = tree[name]!
-        if (typeof entry === 'string' || entry instanceof ArrayBuffer) {
-          yield [name, mockFsFileHandle(entry, name, [...path, name])]
-        } else {
-          yield [name, mockFsDirectoryHandle(entry, name, [...path, name])]
-        }
-      }
-    },
-    [Symbol.asyncIterator]() {
-      return this.entries()
-    },
-  }
-}
-
 function pathSegments(path: Path) {
-  const segments: string[] = []
-  const length = path.segmentsLength()
-  for (let i = 0; i < length; i += 1) segments.push(path.segments(i))
-  return segments
+  return Array.from({ length: path.segmentsLength() }, (_, i) => path.segments(i))
 }
 
 async function readFile(dir: FileSystemDirectoryHandle, segments: string[]) {
@@ -245,10 +112,7 @@ MockWebSocket.addMock('data', async (data, send) => {
 })
 
 watchEffect(async (onCleanup) => {
-  let maybeDirectory = props.directory
-  if (props.files) {
-    maybeDirectory = mockFsDirectoryHandle(props.files, '(root)')
-  }
+  let maybeDirectory = props.files ? mockFsDirectoryHandle(props.files, '(root)') : props.directory
   if (!maybeDirectory) return
   const prefixLength = props.prefix?.length ?? 0
   const directory = maybeDirectory
@@ -400,7 +264,7 @@ watchEffect(async (onCleanup) => {
     if (!response) return
     const correlationUuid = binaryMessage.messageId()
     if (!correlationUuid) return
-    const rootTable = OutboundMessage.createOutboundMessage2(
+    const rootTable = OutboundMessage.createOutboundMessage(
       builder,
       createMessageId,
       createCorrelationId(correlationUuid),

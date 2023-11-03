@@ -109,8 +109,8 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const messageUuid = random.uuidv4()
     const rootTable = InboundMessage.createInboundMessage(
       builder,
-      this.createUUID(builder, messageUuid),
-      0 /* correlation id */,
+      this.createUUID(messageUuid),
+      null /* correlation id */,
       payloadType,
       payloadOffset,
     )
@@ -121,15 +121,17 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return promise
   }
 
-  protected createUUID(builder: Builder, uuid: string) {
+  protected createUUID(uuid: string) {
     const [leastSigBits, mostSigBits] = uuidToBits(uuid)
-    return EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
+    return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
   }
 
   initSession(): Promise<Success | Error> {
     const builder = new Builder()
-    const identifierOffset = this.createUUID(builder, this.clientId)
-    const commandOffset = InitSessionCommand.createInitSessionCommand(builder, identifierOffset)
+    const commandOffset = InitSessionCommand.createInitSessionCommand(
+      builder,
+      this.createUUID(this.clientId),
+    )
     return this.send(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
   }
 
@@ -141,8 +143,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const contentsOffset = builder.createString(contents)
     const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
     const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
-    const rootIdOffset = this.createUUID(builder, path.rootId)
-    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const command = WriteFileCommand.createWriteFileCommand(builder, pathOffset, contentsOffset)
     return await this.send(builder, InboundPayload.WRITE_FILE_CMD, command)
   }
@@ -151,8 +152,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const builder = new Builder()
     const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
     const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
-    const rootIdOffset = this.createUUID(builder, path.rootId)
-    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const command = ReadFileCommand.createReadFileCommand(builder, pathOffset)
     return await this.send(builder, InboundPayload.READ_FILE_CMD, command)
   }
@@ -167,8 +167,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const bytesOffset = builder.createString(contents)
     const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
     const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
-    const rootIdOffset = this.createUUID(builder, path.rootId)
-    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const command = WriteBytesCommand.createWriteBytesCommand(
       builder,
       pathOffset,
@@ -183,8 +182,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const builder = new Builder()
     const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
     const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
-    const rootIdOffset = this.createUUID(builder, path.rootId)
-    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
     const command = ReadBytesCommand.createReadBytesCommand(builder, segmentOffset)
     return await this.send(builder, InboundPayload.READ_BYTES_CMD, command)
@@ -198,8 +196,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const builder = new Builder()
     const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
     const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
-    const rootIdOffset = this.createUUID(builder, path.rootId)
-    const pathOffset = Path.createPath(builder, rootIdOffset, segmentsOffset)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
     const command = ChecksumBytesCommand.createChecksumBytesCommand(builder, segmentOffset)
     return await this.send(builder, InboundPayload.WRITE_BYTES_CMD, command)
