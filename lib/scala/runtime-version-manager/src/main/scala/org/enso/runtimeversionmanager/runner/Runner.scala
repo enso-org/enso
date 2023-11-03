@@ -183,10 +183,23 @@ class Runner(
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
       val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)
+      val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
 
-      val jvmArguments =
-        manifestOptions ++ environmentOptions ++ commandLineOptions ++
-        Seq("-jar", runnerJar)
+      var jvmArguments =
+        manifestOptions ++ environmentOptions ++ commandLineOptions
+      if (shouldInvokeViaModulePath) {
+        jvmArguments = jvmArguments :++ Seq(
+          "--module-path",
+          engine.componentDirPath.toAbsolutePath.normalize.toString,
+          "-m",
+          "org.enso.runtime/org.enso.EngineRunnerBootLoader"
+        )
+      } else {
+        jvmArguments = jvmArguments :++ Seq(
+          "-jar",
+          runnerJar
+        )
+      }
 
       val loggingConnectionArguments =
         if (runSettings.connectLoggerIfAvailable)
