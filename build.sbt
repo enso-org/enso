@@ -1591,10 +1591,6 @@ lazy val `runtime-with-instruments` =
           MergeStrategy.discard
         case PathList("META-INF", "services", xs @ _*) =>
           MergeStrategy.concat
-        // reference.conf from akka artifacts has to be in the runtime.jar fat jar so that it
-        // is accessible for language server
-        case PathList("reference.conf") =>
-          MergeStrategy.concat
         case PathList(xs @ _*) if xs.last.contains("module-info") =>
           JPMSUtils.removeAllModuleInfoExcept("runtime")
         case _ => MergeStrategy.first
