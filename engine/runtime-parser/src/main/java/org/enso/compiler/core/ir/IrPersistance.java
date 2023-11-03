@@ -1,6 +1,7 @@
 package org.enso.compiler.core.ir;
 
 import java.io.IOException;
+
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
@@ -140,6 +141,95 @@ public final class IrPersistance {
     protected DiagnosticStorage readObject(Input in) throws IOException, ClassNotFoundException {
       return new DiagnosticStorage(
           (scala.collection.immutable.List) scala.collection.immutable.Nil$.MODULE$);
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistNameLiteral extends Persistance<Name.Literal> {
+    public PersistNameLiteral() {
+      super(Name.Literal.class, false, 351);
+    }
+
+    @Override
+    protected void writeObject(Name.Literal obj, Output out) throws IOException {
+      out.writeUTF(obj.name());
+      out.writeBoolean(obj.isMethod());
+      out.writeInline(Option.class, obj.location());
+      out.writeInline(Option.class, obj.originalName());
+      out.writeInline(MetadataStorage.class, obj.passData());
+      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Name.Literal readObject(Input in) throws IOException, ClassNotFoundException {
+      var name = in.readUTF();
+      var isMethod = in.readBoolean();
+      var location = in.readInline(Option.class);
+      var originalName = in.readInline(Option.class);
+      var meta = in.readInline(MetadataStorage.class);
+      var diag = in.readInline(DiagnosticStorage.class);
+      return new Name.Literal(name, isMethod, location, originalName, meta, diag);
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistNameQualified extends Persistance<Name.Qualified> {
+    public PersistNameQualified() {
+      super(Name.Qualified.class, false, 352);
+    }
+
+    @Override
+    protected void writeObject(Name.Qualified obj, Output out) throws IOException {
+      out.writeInline(List.class, obj.parts());
+      out.writeInline(Option.class, obj.location());
+      out.writeInline(MetadataStorage.class, obj.passData());
+      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Name.Qualified readObject(Input in) throws IOException, ClassNotFoundException {
+      var parts = in.readInline(List.class);
+      var location = in.readInline(Option.class);
+      var meta = in.readInline(MetadataStorage.class);
+      var diag = in.readInline(DiagnosticStorage.class);
+      return new Name.Qualified(parts, location, meta, diag);
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistImportModuleStorage extends Persistance<Import.Module> {
+    public PersistImportModuleStorage() {
+      super(Import.Module.class, false, 342);
+    }
+
+    @Override
+    protected void writeObject(Import.Module obj, Output out) throws IOException {
+      out.writeInline(Name.Qualified.class, obj.name());
+      out.writeInline(Option.class, obj.rename());
+      out.writeBoolean(obj.isAll());
+      out.writeInline(Option.class, obj.onlyNames());
+      out.writeInline(Option.class, obj.hiddenNames());
+      out.writeInline(Option.class, obj.location());
+      out.writeBoolean(obj.isSynthetic());
+      out.writeInline(MetadataStorage.class, obj.passData());
+      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Import.Module readObject(Input in) throws IOException, ClassNotFoundException {
+      var name = in.readInline(Name.Qualified.class);
+      var rename = in.readInline(Option.class);
+      var isAll = in.readBoolean();
+      var onlyNames = in.readInline(Option.class);
+      var hiddenNames = in.readInline(Option.class);
+      var location = in.readInline(Option.class);
+      var isSynthetic = in.readBoolean();
+      var meta = in.readInline(MetadataStorage.class);
+      var diag = in.readInline(DiagnosticStorage.class);
+      return new Import.Module(name, rename, isAll, onlyNames, hiddenNames, location, isSynthetic, meta, diag);
     }
   }
 }

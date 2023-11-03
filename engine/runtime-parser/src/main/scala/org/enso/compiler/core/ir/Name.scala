@@ -205,7 +205,7 @@ object Name {
     * @param diagnostics compiler diagnostics for this node
     * @return a copy of `this`, updated with the specified values
     */
-  sealed case class Qualified(
+  final case class Qualified(
     parts: List[Name],
     location: Option[IdentifiedLocation],
     passData: MetadataStorage      = MetadataStorage(),
