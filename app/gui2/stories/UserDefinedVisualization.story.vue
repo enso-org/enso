@@ -83,6 +83,7 @@ const mockFsWrapperProps = computed(() => ({
           :data="data"
           :nodeSize="nodeSize"
           :isCircularMenuVisible="isCircularMenuVisible"
+          @setVisualizationId="$event.module.kind === 'CurrentProject' && (type = $event.name)"
         />
       </MockFSWrapper>
     </div>

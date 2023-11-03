@@ -89,12 +89,6 @@ export const useVisualizationStore = defineStore('visualization', () => {
   /** A map from file path in the current project, to visualization name. This is required so that
    * file delete events can remove the cached visualization. */
   const currentProjectVisualizationsByPath = new Map<string, string>()
-  const allBuiltinVisualizations = Object.values(
-    builtinVisualizations,
-  ).map<VisualizationIdentifier>(({ name }) => ({
-    module: { kind: 'Builtin' },
-    name,
-  }))
   const metadata = new VisualizationMetadataDb()
   const proj = useProjectStore()
   const projectRoot = proj.contentRoots.then(
@@ -173,6 +167,7 @@ export const useVisualizationStore = defineStore('visualization', () => {
           if (key) cache.set(key, vizPromise)
           const viz = await vizPromise
           if (abortController.signal.aborted) break
+          currentProjectVisualizationsByPath.set(pathString, viz.name)
           if (!id || viz.name !== id.name) {
             if (key && id && viz.name !== id.name) {
               cache.delete(key)
@@ -213,17 +208,15 @@ export const useVisualizationStore = defineStore('visualization', () => {
     ls.watchFiles(projectRoot, [customVisualizationsDirectory], onFileEvent, rpcWithRetries)
   })
 
-  function types(type: Opt<string>) {
-    const ret =
+  function* types(type: Opt<string>) {
+    const types =
       type == null
-        ? allBuiltinVisualizations
-        : [
-            ...new Set([
-              ...(metadata.types.reverseLookup(type) ?? []),
-              ...(metadata.types.reverseLookup('Any') ?? []),
-            ]),
-          ].map(fromVisualizationId)
-    return ret
+        ? metadata.keys()
+        : new Set([
+            ...(metadata.types.reverseLookup(type) ?? []),
+            ...(metadata.types.reverseLookup('Any') ?? []),
+          ])
+    for (const type of types) yield fromVisualizationId(type)
   }
 
   function get(meta: VisualizationIdentifier, ignoreCache = false) {

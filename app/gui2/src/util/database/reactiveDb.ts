@@ -26,7 +26,7 @@ export type OnDelete = (cleanupFn: () => void) => void
 export class ReactiveDb<K, V> extends ObservableV2<{
   entryAdded(key: K, value: V, onDelete: OnDelete): void
 }> {
-  internal: Map<K, V>
+  protected internal: Map<K, V>
   onDelete: Map<K, Set<() => void>>
 
   constructor() {
@@ -93,6 +93,24 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    */
   entries(): IterableIterator<[K, V]> {
     return this.internal.entries()
+  }
+
+  /**
+   * Retrieves an iterator over keys in the database, equivalent to `Map.keys`.
+   *
+   * @returns An iterator that yields keys in the database.
+   */
+  keys(): IterableIterator<K> {
+    return this.internal.keys()
+  }
+
+  /**
+   * Retrieves an iterator over values in the database, equivalent to `Map.values`.
+   *
+   * @returns An iterator that yields values in the database.
+   */
+  values(): IterableIterator<V> {
+    return this.internal.values()
   }
 }
 
