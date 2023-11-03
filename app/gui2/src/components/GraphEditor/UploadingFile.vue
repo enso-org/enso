@@ -13,8 +13,8 @@ const transform = computed(() => {
 </script>
 
 <template>
-  <div class="UploadingFile" :style="{ transform }">
-    <span>{{ 'Uploading file ' + props.file.name + ' ' + props.file.percentage }}</span>
+  <div class="UploadingFile" :style="{ transform, 'background-position': `${200 - props.file.percentage}% 0`, }">
+    <span>{{ `Uploading ${props.file.name} (${props.file.percentage}%)` }}</span>
   </div>
 </template>
 
@@ -31,6 +31,7 @@ const transform = computed(() => {
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
-  background: white;
+  background: linear-gradient(to right, #e0e0e0 0%, #e0e0e0 50%, #ffffff 50%, #ffffff 100%);
+  background-size: 200% 100%;
 }
 </style>
