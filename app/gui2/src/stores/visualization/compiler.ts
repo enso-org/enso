@@ -27,6 +27,7 @@
  *   thread.
  * - A `CompilationResultResponse` with id `1` and path `/Viz.vue` is sent to the main thread. */
 
+import { assertNever } from '@/util/assert'
 import { parse as babelParse } from '@babel/parser'
 import hash from 'hash-sum'
 import * as map from 'lib0/map'
@@ -44,12 +45,14 @@ import { compileScript, compileStyle, parse } from 'vue/compiler-sfc'
  * The `path` is either an absolute URL (`http://doma.in/path/to/TheScript.vue`), or a root-relative
  * URL (`/visualizations/TheScript.vue`). Relative URLs (`./TheScript.vue`) are NOT valid.
  *
- * Note that compiling files other than Vue files (TypeScript, SVG etc.) are currently NOT
+ * Note that compiling files other than Vue files (TypeScript, SVG etc.) is currently NOT
  * supported. */
 export interface CompileRequest {
   type: 'compile-request'
   id: number
   path: string
+  /** If true, the module MUST always be recompiled. */
+  recompile?: boolean
 }
 
 /** A request to mark modules as built-in, indicating that the compiler should re-write the imports
@@ -85,6 +88,40 @@ export interface CompilationErrorResponse {
   error: Error
 }
 
+// ===============================================
+// === Worker Requests (Worker to Main Thread) ===
+// ===============================================
+
+/** A request to fetch a resource. */
+export interface FetchWorkerRequest {
+  type: 'fetch-worker-request'
+  path: string
+}
+
+// ================================================
+// === Worker Responses (Main Thread to Worker) ===
+// ================================================
+
+/** A request sent in response to a {@link FetchWorkerRequest}. */
+export interface FetchResultWorkerResponse {
+  type: 'fetch-result-worker-response'
+  path: string
+  contents: ArrayBuffer
+  contentType: string | undefined
+}
+
+// =============================================
+// === Worker Errors (Main Thread to Worker) ===
+// =============================================
+
+/** Sent when fetching a dependency failed. Currently, the worker will forward this back to the
+ * main thread as a {@link FetchError}. */
+export interface FetchWorkerError {
+  type: 'fetch-worker-error'
+  path: string
+  error: Error
+}
+
 // =============================================
 // === Notifications (Worker to Main Thread) ===
 // =============================================
@@ -95,6 +132,7 @@ export interface CompilationErrorResponse {
  * These should be attached to the DOM - placement does not matter. */
 export interface AddStyleNotification {
   type: 'add-style-notification'
+  path: string
   code: string
 }
 
@@ -137,8 +175,7 @@ export interface AddImportNotification {
 
 // These are sent when a subtask fails to complete execution.
 
-/** Sent when the `fetch` call errored, or returned a failure HTTP status code (any code other than
- * 200-299). */
+/** Sent when the `fetch` call errored. */
 export interface FetchError {
   type: 'fetch-error'
   path: string
@@ -203,14 +240,21 @@ const assetMimetypes: Record<string, string> = {
   '3g2': 'video/3gpp2',
 }
 
+/** Returns {@link Error}s as-is, wraps all other values in an {@link Error}. */
+function toError(error: unknown) {
+  return error instanceof Error ? error : new Error(String(error))
+}
+
+/** Extract the file extension from a URL. If no extension was found, it returns the empty string.
+ */
 function extractExtension(path: string) {
   return path.match(/(?<=^|[.])[^.]+?(?=[#?]|$)/)?.[0] ?? ''
 }
 
 const postMessage: <T>(message: T) => void = globalThis.postMessage
 
-function addStyle(code: string) {
-  postMessage<AddStyleNotification>({ type: 'add-style-notification', code })
+function addStyle(path: string, code: string) {
+  postMessage<AddStyleNotification>({ type: 'add-style-notification', path, code })
 }
 // This is defined to allow for future expansion.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -239,44 +283,62 @@ function compileError(path: string, error: Error) {
   postMessage<CompileError>({ type: 'compile-error', path, error })
 }
 
-async function tryFetch(path: string) {
+interface FetchResponse {
+  contents: ArrayBuffer
+  contentType: string | undefined
+}
+
+const fetchCallbacks = new Map<
+  string,
+  {
+    resolve: (contents: FetchResponse) => void
+    reject: (error: Error) => void
+  }
+>()
+
+/** Fetch on the main thread. This is useful because the main thread may have custom logic for
+ * importing - for example, getting a custom visualization from the project directory. */
+function fetchOnMainThread(path: string) {
+  return new Promise<FetchResponse>((resolve, reject) => {
+    fetchCallbacks.set(path, { resolve, reject })
+    postMessage<FetchWorkerRequest>({ type: 'fetch-worker-request', path })
+  })
+}
+
+const decoder = new TextDecoder()
+
+async function tryFetch(path: string): Promise<FetchResponse> {
   try {
-    const response = await fetch(path)
-    if (!response.ok) {
-      fetchError(
-        path,
-        new Error(`\`fetch\` returned status code ${response.status} (${response.statusText})`),
-      )
-    }
-    return response
-  } catch (error: any) {
+    return await fetchOnMainThread(path)
+  } catch (rawError) {
+    const error = toError(rawError)
     fetchError(path, error)
-    return new Response()
+    throw error
   }
 }
 
 async function importAsset(path: string, mimeType: string) {
   const response = await tryFetch(path)
-  const actualMimeType = response.headers.get('Content-Type')?.toLowerCase()
+  const actualMimeType = response.contentType?.toLowerCase()
   if (actualMimeType != null && actualMimeType != mimeType) {
     invalidMimetypeError(path, mimeType, actualMimeType)
     return
   }
-  const blob = await response.blob()
+  const blob = response.contents
   addUrlImport(path, mimeType, blob)
 }
 
 async function importTS(path: string) {
   const dir = path.replace(/[^/\\]+$/, '')
-  const scriptTs = await (await tryFetch(path)).text()
+  const scriptTs = decoder.decode((await tryFetch(path)).contents)
   let text: string | undefined
   try {
     text = transform(scriptTs, {
       disableESTransforms: true,
       transforms: ['typescript'],
     }).code
-  } catch (error: any) {
-    compileError(path, error)
+  } catch (error) {
+    compileError(path, toError(error))
   }
   if (text != null) {
     addImport(path, await rewriteImports(text, dir, undefined))
@@ -285,12 +347,13 @@ async function importTS(path: string) {
 
 async function importVue(path: string) {
   const dir = path.replace(/[^/\\]+$/, '')
-  const raw = await (await tryFetch(path)).text()
+  const raw = decoder.decode((await tryFetch(path)).contents)
   const filename = path.match(/[^/\\]+$/)?.[0]!
   const parsed = parse(raw, { filename })
   const id = hash(raw)
   for (const style of parsed.descriptor.styles) {
     addStyle(
+      path,
       compileStyle({ filename, source: style.content, id, scoped: style.scoped ?? false }).code,
     )
   }
@@ -305,8 +368,8 @@ async function importVue(path: string) {
       disableESTransforms: true,
       transforms: ['typescript'],
     }).code
-  } catch (error: any) {
-    compileError(path, error)
+  } catch (error) {
+    compileError(path, toError(error))
   }
   if (text != null) {
     addImport(path, await rewriteImports(text, dir, id))
@@ -323,7 +386,12 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
         const isBuiltin = builtinModules.has(path)
         const isRelative = /^[./]/.test(path)
         if (isRelative) {
-          path = new URL(dir + path, location.href).toString()
+          const url = new URL(dir + path, location.href)
+          if (!/^(?:data|https?|ftps?|wss?):$/.test(url.protocol)) {
+            path = url.protocol + new URL('http://example.com/' + url.pathname).pathname.slice(1)
+          } else {
+            path = url.href
+          }
         }
         const extension = isRelative ? extractExtension(path).toLowerCase() : ''
         if (
@@ -390,30 +458,52 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
   return s.toString()
 }
 
-onmessage = async (event: MessageEvent<RegisterBuiltinModulesRequest | CompileRequest>) => {
+onmessage = async (
+  event: MessageEvent<
+    RegisterBuiltinModulesRequest | CompileRequest | FetchResultWorkerResponse | FetchWorkerError
+  >,
+) => {
   switch (event.data.type) {
     case 'register-builtin-modules-request': {
       builtinModules = new Set(event.data.modules)
       break
     }
+    case 'fetch-result-worker-response': {
+      fetchCallbacks.get(event.data.path)?.resolve({
+        contents: event.data.contents,
+        contentType: event.data.contentType,
+      })
+      fetchCallbacks.delete(event.data.path)
+      break
+    }
+    case 'fetch-worker-error': {
+      fetchCallbacks.get(event.data.path)?.reject(event.data.error)
+      fetchCallbacks.delete(event.data.path)
+      break
+    }
     case 'compile-request': {
       try {
         const path = event.data.path
-        await map.setIfUndefined(alreadyCompiledModules, path, () => importVue(path))
+        await (event.data.recompile
+          ? importVue(path)
+          : map.setIfUndefined(alreadyCompiledModules, path, () => importVue(path)))
         postMessage<CompilationResultResponse>({
           type: 'compilation-result-response',
           id: event.data.id,
           path: event.data.path,
         })
-      } catch (error: any) {
+      } catch (error) {
         postMessage<CompilationErrorResponse>({
           type: 'compilation-error-response',
           id: event.data.id,
           path: event.data.path,
-          error,
+          error: toError(error),
         })
       }
       break
+    }
+    default: {
+      assertNever(event.data)
     }
   }
 }
