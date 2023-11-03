@@ -30,6 +30,7 @@ collect_benches = Bench.build builder->
 main =
     benches = collect_benches
     result = run_main benches
+    third_node = 2 + 2
 `)
 </script>
 

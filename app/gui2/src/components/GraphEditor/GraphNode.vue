@@ -31,7 +31,8 @@ const emit = defineEmits<{
   updateRect: [rect: Rect]
   updateExprRect: [id: ExprId, rect: Rect]
   updateContent: [updates: [range: ContentRange, content: string][]]
-  movePosition: [delta: Vec2]
+  dragging: [offset: Vec2]
+  draggingCommited: []
   setVisualizationId: [id: Opt<VisualizationIdentifier>]
   setVisualizationVisible: [visible: boolean]
   delete: []
@@ -62,7 +63,7 @@ const projectStore = useProjectStore()
 watchEffect(() => {
   const size = nodeSize.value
   if (!size.isZero()) {
-    emit('updateRect', new Rect(props.node.position, nodeSize.value))
+    emit('updateRect', new Rect(props.node.visiblePosition ?? props.node.position, nodeSize.value))
   }
 })
 
@@ -78,7 +79,7 @@ const bgStyleVariables = computed(() => {
 })
 
 const transform = computed(() => {
-  let pos = props.node.position
+  let pos = props.node.visiblePosition ?? props.node.position
   return `translate(${pos.x}px, ${pos.y}px)`
 })
 
@@ -312,7 +313,11 @@ let startEvent: PointerEvent | null = null
 let startPos = Vec2.Zero
 
 const dragPointer = usePointer((pos, event, type) => {
-  emit('movePosition', pos.delta)
+  console.log('EVENT', type)
+  if (type !== 'start') {
+    const fullOffset = pos.absolute.sub(startPos)
+    emit('dragging', fullOffset)
+  }
   switch (type) {
     case 'start': {
       startEpochMs.value = Number(new Date())
@@ -332,6 +337,7 @@ const dragPointer = usePointer((pos, event, type) => {
       }
       startEvent = null
       startEpochMs.value = 0
+      emit('draggingCommited')
     }
   }
 })
