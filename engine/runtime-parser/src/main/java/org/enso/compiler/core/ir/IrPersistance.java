@@ -379,6 +379,33 @@ public final class IrPersistance {
     }
   }
 
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistMethodReference extends Persistance<Name.MethodReference> {
+    public PersistMethodReference() {
+      super(Name.MethodReference.class, false, 362);
+    }
+
+    @Override
+    protected void writeObject(Name.MethodReference obj, Output out) throws IOException {
+      out.writeInline(Option.class, obj.typePointer());
+      out.writeObject(obj.methodName());
+      out.writeInline(Option.class, obj.location());
+      out.writeInline(MetadataStorage.class, obj.passData());
+      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Name.MethodReference readObject(Input in) throws IOException, ClassNotFoundException {
+      var typePointer = in.readInline(Option.class);
+      var methodName = (Name) in.readObject();
+      var location = in.readInline(Option.class);
+      var meta = in.readInline(MetadataStorage.class);
+      var diag = in.readInline(DiagnosticStorage.class);
+      return new Name.MethodReference(typePointer, methodName, location, meta, diag);
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static <T> scala.collection.immutable.List<T> nil() {
     return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
