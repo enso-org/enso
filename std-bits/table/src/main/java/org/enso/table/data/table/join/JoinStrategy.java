@@ -1,5 +1,10 @@
 package org.enso.table.data.table.join;
 
+import org.enso.table.data.table.join.conditions.Between;
+import org.enso.table.data.table.join.conditions.Equals;
+import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
+import org.enso.table.data.table.join.conditions.HashableCondition;
+import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.problems.ProblemAggregator;
 
 import java.util.List;

@@ -4,6 +4,9 @@ import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.join.conditions.Equals;
+import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
+import org.enso.table.data.table.join.conditions.HashableCondition;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 

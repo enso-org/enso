@@ -6,6 +6,7 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
+import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 

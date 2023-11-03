@@ -16,7 +16,7 @@ import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.CrossJoin;
-import org.enso.table.data.table.join.JoinCondition;
+import org.enso.table.data.table.join.conditions.JoinCondition;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.error.UnexpectedColumnTypeException;
