@@ -21,7 +21,7 @@ public class EqualityHashJoin implements JoinStrategy {
     this.remainingMatcher = remainingMatcher;
 
     List<HashEqualityCondition> equalConditions =
-        conditions.stream().filter(EqualityHashJoin::isSupported).map(EqualityHashJoin::makeHashEqualityCondition).toList();
+        conditions.stream().map(EqualityHashJoin::makeHashEqualityCondition).toList();
 
     if (equalConditions.isEmpty()) {
       throw new IllegalArgumentException("EqualityHashJoin is applicable if there is at least one equality condition.");
@@ -62,14 +62,6 @@ public class EqualityHashJoin implements JoinStrategy {
     return resultBuilder.build();
   }
 
-  private static boolean isSupported(JoinCondition condition) {
-    return switch (condition) {
-      case Equals ignored -> true;
-      case EqualsIgnoreCase ignored -> true;
-      default -> false;
-    };
-  }
-
   private static HashEqualityCondition makeHashEqualityCondition(HashableCondition eq) {
     switch (eq) {
       case Equals e -> {
@@ -78,10 +70,6 @@ public class EqualityHashJoin implements JoinStrategy {
       case EqualsIgnoreCase e -> {
         return new HashEqualityCondition(e.left(), e.right(), TextFoldingStrategy.caseInsensitiveFold(e.locale()));
       }
-      default ->
-          throw new IllegalStateException("Impossible: trying to convert condition " + eq + " to a " +
-              "HashEqualityCondition, but it should not be marked as supported. This is a" + " bug in the Table " +
-              "library.");
     }
   }
 
