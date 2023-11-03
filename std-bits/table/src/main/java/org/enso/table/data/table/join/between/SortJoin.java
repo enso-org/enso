@@ -1,9 +1,5 @@
 package org.enso.table.data.table.join.between;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NavigableSet;
-import java.util.TreeSet;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.join.JoinResult;
@@ -12,6 +8,11 @@ import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.NavigableSet;
 
 public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
@@ -43,22 +44,22 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
   @Override
   public JoinResult join(ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
+    JoinResult.Builder resultBuilder = new JoinResult.Builder();
 
     int leftRowCount = conditionsHelper.getLeftTableRowCount();
+    int rightRowCount = conditionsHelper.getRightTableRowCount();
+    if (leftRowCount == 0 || rightRowCount == 0) {
+      // if one group is completely empty, there will be no matches to report
+      return resultBuilder.build();
+    }
     List<OrderedMultiValueKey> leftKeys = new ArrayList<>(leftRowCount);
     for (int i = 0; i < leftRowCount; i++) {
       leftKeys.add(new OrderedMultiValueKey(leftStorages, i, directions));
       context.safepoint();
     }
 
-    NavigableSet<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
-    JoinResult.Builder resultBuilder = new JoinResult.Builder();
+    SortedListIndex<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
 
-    if (leftIndex.isEmpty()) {
-      return resultBuilder.build();
-    }
-
-    int rightRowCount = conditionsHelper.getRightTableRowCount();
     for (int rightRowIx = 0; rightRowIx < rightRowCount; rightRowIx++) {
       addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
       context.safepoint();
@@ -77,11 +78,12 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
     List<OrderedMultiValueKey> leftKeys =
         leftGroup.stream().map(i -> new OrderedMultiValueKey(leftStorages, i, directions)).toList();
-    NavigableSet<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
-
-    if (leftIndex.isEmpty()) {
+    if (leftKeys.isEmpty()) {
+      // left group is completely empty - there will be no matches at all
       return;
     }
+
+    SortedListIndex<OrderedMultiValueKey> leftIndex = buildSortedLeftIndex(leftKeys);
 
     for (int rightRowIx : rightGroup) {
       addMatchingLeftRows(leftIndex, rightRowIx, resultBuilder);
@@ -89,17 +91,8 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     }
   }
 
-  private NavigableSet<OrderedMultiValueKey> buildSortedLeftIndex(List<OrderedMultiValueKey> keys) {
-    Context context = Context.getCurrent();
-    TreeSet<OrderedMultiValueKey> index = new TreeSet<>();
-    for (var key : keys) {
-      context.safepoint();
-      if (key.hasAnyNulls()) {
-        continue;
-      }
-      index.add(key);
-    }
-    return index;
+  private SortedListIndex<OrderedMultiValueKey> buildSortedLeftIndex(List<OrderedMultiValueKey> keys) {
+    return SortedListIndex.build(keys, firstCoordinateComparator);
   }
 
   private OrderedMultiValueKey buildLowerBound(int rightRowIx) {
@@ -111,7 +104,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
   }
 
   void addMatchingLeftRows(
-      NavigableSet<OrderedMultiValueKey> sortedKeys,
+      SortedListIndex<OrderedMultiValueKey> sortedLeftIndex,
       int rightRowIx,
       JoinResult.Builder resultBuilder) {
     OrderedMultiValueKey lowerBound = buildLowerBound(rightRowIx);
@@ -124,9 +117,8 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
       return;
     }
 
-    NavigableSet<OrderedMultiValueKey> firstCoordinateMatches =
-        sortedKeys.subSet(lowerBound, true, upperBound, true);
-    ArrayList<Integer> result = new ArrayList<>();
+    List<OrderedMultiValueKey> firstCoordinateMatches =
+        sortedLeftIndex.findSubRange(lowerBound, upperBound);
     Context context = Context.getCurrent();
     for (OrderedMultiValueKey key : firstCoordinateMatches) {
       boolean isInRange = lowerBound.compareTo(key) <= 0 && key.compareTo(upperBound) <= 0;
@@ -137,4 +129,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
       context.safepoint();
     }
   }
+
+  private final Comparator<OrderedMultiValueKey> firstCoordinateComparator =
+      new OrderedMultiValueKey.LimitedIndexComparator(1);
 }
