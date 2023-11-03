@@ -213,15 +213,15 @@ spec setup =
                 rows.length . should_equal 8
 
                 rows.at 0 . should_equal [20, 3, Nothing, Nothing, Nothing]
-                rows.at 1 . should_equal [ 1, 4,  0, 3, 'a']
-                rows.at 2 . should_equal [ 1, 1,  0, 3, 'a']
-                rows.at 3 . should_equal [ 1, 7,  0, 3, 'a']
-                rows.at 4 . should_equal [ 1, 7,  0, 3, 'a']
-                rows.at 5 . should_equal [ 2, 5,  0, 3, 'a']
-                rows.at 6 . should_equal [10, 2, 10, 0, 'b']
+                rows.at 1 . should_equal [ 1, 1,  0,  3, 'a']
+                rows.at 2 . should_equal [ 1, 4,  0,  3, 'a']
+                rows.at 3 . should_equal [ 2, 5,  0,  3, 'a']
+                rows.at 4 . should_equal [ 1, 7,  0,  3, 'a']
+                rows.at 5 . should_equal [ 1, 7,  0,  3, 'a']
+                rows.at 6 . should_equal [10, 2, 10, 10, 'b']
                 rows.at 7 . should_equal [Nothing, Nothing, 10, 0, 'c']
 
-        Test.specify "should correctly handle Between edge cases (1)" <|
+        Test.specify "should correctly handle Between edge cases (2)" <|
             # 6. multiple Between conditions
             xs = [0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4]
             ys = [1, 2, 3, 1, 9, 2, 3, 2, 4, 2, 1, 1, 1, 2]
@@ -231,14 +231,14 @@ spec setup =
             t2 = table_builder [["lx", [1]], ["ux", [3]], ["ly", [1]], ["uy", [2]]]
             r2 = t1.join t2 join_kind=Join_Kind.Inner on=[Join_Condition.Between "X" "lx" "ux", Join_Condition.Between "Y" "ly" "uy"] |> materialize |> _.order_by ["X", "Y"]
             within_table r2 <|
-                r2.at "X" . to_vector . should_equal [1, 1, 2, 2, 3, 3]
-                r2.at "Y" . to_vector . should_equal [1, 2, 2, 3, 1, 2]
+                r2.at "X" . to_vector . should_equal [1, 1, 2, 3, 3]
+                r2.at "Y" . to_vector . should_equal [1, 2, 2, 1, 2]
 
             t3 = table_builder [["lx", [1.9]], ["ux", [3]], ["ly", [1]], ["uy", [2]]]
             r3 = t1.join t3 join_kind=Join_Kind.Inner on=[Join_Condition.Between "X" "lx" "ux", Join_Condition.Between "Y" "ly" "uy"] |> materialize |> _.order_by ["X", "Y"]
             within_table r3 <|
-                r3.at "X" . to_vector . should_equal [2, 2, 3, 3]
-                r3.at "Y" . to_vector . should_equal [2, 3, 1, 2]
+                r3.at "X" . to_vector . should_equal [2, 3, 3]
+                r3.at "Y" . to_vector . should_equal [2, 1, 2]
 
         Test.specify "should correctly handle Between edge cases (3)" <|
             # 7. duplicated rows on both sides

@@ -1,5 +1,6 @@
 package org.enso.table.data.table.join.between;
 
+import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.join.JoinResult;
@@ -76,7 +77,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     Context context = Context.getCurrent();
 
     List<OrderedMultiValueKey> leftKeys =
-        leftGroup.stream().map(i -> new OrderedMultiValueKey(leftStorages, i, directions)).toList();
+        leftGroup.stream().map(i -> new OrderedMultiValueKey(leftStorages, i, directions, objectComparator)).toList();
     if (leftKeys.isEmpty()) {
       // left group is completely empty - there will be no matches at all
       return;
@@ -95,14 +96,14 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
   }
 
   private OrderedMultiValueKey buildLowerBound(int rightRowIx) {
-    return new OrderedMultiValueKey(lowerStorages, rightRowIx, directions);
+    return new OrderedMultiValueKey(lowerStorages, rightRowIx, directions, objectComparator);
   }
 
   private OrderedMultiValueKey buildUpperBound(int rightRowIx) {
-    return new OrderedMultiValueKey(upperStorages, rightRowIx, directions);
+    return new OrderedMultiValueKey(upperStorages, rightRowIx, directions, objectComparator);
   }
 
-  void addMatchingLeftRows(
+  private void addMatchingLeftRows(
       SortedListIndex<OrderedMultiValueKey> sortedLeftIndex,
       int rightRowIx,
       JoinResult.Builder resultBuilder) {
@@ -120,8 +121,7 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
         sortedLeftIndex.findSubRange(lowerBound, upperBound);
     Context context = Context.getCurrent();
     for (OrderedMultiValueKey key : firstCoordinateMatches) {
-      boolean isInRange = lowerBound.compareTo(key) <= 0 && key.compareTo(upperBound) <= 0;
-      if (isInRange) {
+      if (isInRange(key, lowerBound, upperBound)) {
         resultBuilder.addRow(key.getRowIndex(), rightRowIx);
       }
 
@@ -129,6 +129,28 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     }
   }
 
+  private boolean isInRange(OrderedMultiValueKey key, OrderedMultiValueKey lowerBound, OrderedMultiValueKey upperBound) {
+    assert key.getNumberOfColumns() == lowerBound.getNumberOfColumns();
+    assert key.getNumberOfColumns() == upperBound.getNumberOfColumns();
+
+    // Note: we cannot just use `compareTo`, because we are now not checking that the key is between the bounds in lexicographic order.
+    // Instead, we are checking if the key is between the bounds for all dimensions.
+
+    int n = key.getNumberOfColumns();
+    for (int i = 0; i < n; i++) {
+      var keyValue = key.get(i);
+      var lowerBoundValue = lowerBound.get(i);
+      var upperBoundValue = upperBound.get(i);
+      boolean fitsInThisDimension = objectComparator.compare(keyValue, lowerBoundValue) >= 0 && objectComparator.compare(keyValue, upperBoundValue) <= 0;
+      if (!fitsInThisDimension) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private final ObjectComparator objectComparator = ObjectComparator.DEFAULT;
   private final Comparator<OrderedMultiValueKey> firstCoordinateComparator =
       new OrderedMultiValueKey.ProjectionComparator(0);
 }
