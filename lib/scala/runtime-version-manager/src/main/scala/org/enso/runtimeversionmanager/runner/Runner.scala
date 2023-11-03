@@ -222,11 +222,26 @@ class Runner(
           prepareAndRunCommand(engine, overriddenCommand)
         }
       case None =>
-        runtimeVersionManager.withEngineAndRuntime(engineVersion) {
-          (engine, runtime) =>
-            prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
+        if (needsRuntime(engineVersion)) {
+          runtimeVersionManager.withEngineAndRuntime(engineVersion) {
+            (engine, runtime) =>
+              prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
+          }
+        } else {
+          runtimeVersionManager.withEngine(engineVersion) { engine =>
+              prepareAndRunCommand(engine, JavaCommand.systemJavaCommand)
+          }
         }
     }
+  }
+
+  /**
+   * Returns true if for the provided engine version, we also need to load or install
+   * GraalVM runtime.
+   */
+  private def needsRuntime(engineVersion: SemVer): Boolean = {
+    val engine = runtimeVersionManager.findOrInstallEngine(engineVersion)
+    engine.needsGraalDistribution
   }
 
   /** Returns arguments that should be added to a launched component to connect

@@ -1,9 +1,4 @@
-package org.enso.runtimeversionmanager.test
-
-import org.enso.runtimeversionmanager.components.{
-  GraalVMComponent,
-  RuntimeComponentUpdater
-}
+package org.enso.runtimeversionmanager.components
 
 import scala.util.Try
 

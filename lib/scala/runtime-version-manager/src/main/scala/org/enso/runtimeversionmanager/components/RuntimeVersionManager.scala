@@ -754,7 +754,8 @@ class RuntimeVersionManager(
     */
   private def installGraalRuntime(
     runtimeVersion: GraalVMVersion
-  ): GraalRuntime =
+  ): GraalRuntime = {
+    assert(!runtimeVersion.isUnchained, "For Truffle unchained, there is nothing to be downloaded")
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       logger.info("Installing GraalVM runtime [{}].", runtimeVersion)
       val runtimePackage =
@@ -841,6 +842,7 @@ class RuntimeVersionManager(
           throw e
       }
     }
+  }
 
   /** Install components required for the specified runtime on the specified OS.
     *
