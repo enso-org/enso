@@ -103,6 +103,15 @@ spec setup =
             r = t3.join t4 join_kind=Join_Kind.Inner on=["X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]
             check_xy_joined r
 
+        Test.specify "should correctly handle duplicated rows in Equals" <|
+            t1 = table_builder [["X", [1, 2, 2, 3]]]
+            t2 = table_builder [["X", [1, 2, 2, 4]]]
+            r1 = t1.join t2 join_kind=Join_Kind.Full on="X" . order_by "X"
+            within_table r1 <|
+                # Both 2's from t1 match with _both_ ones from t2 _each_, so in total we get 4 `2` pairs:
+                r1.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 2, 2, 3]
+                r1.at "Right X" . to_vector . should_equal [4, 1, 2, 2, 2, 2, Nothing]
+
         Test.specify "should allow to join on text equality ignoring case" <|
             t1 = table_builder [["X", ["a", "B"]], ["Y", [1, 2]]]
             t2 = table_builder [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
