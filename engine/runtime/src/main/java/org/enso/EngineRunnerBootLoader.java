@@ -70,7 +70,7 @@ public final class EngineRunnerBootLoader {
       try {
         return super.loadClass(name);
       } catch (ClassNotFoundException ex) {
-        if (name.startsWith("org.graalvm.")) {
+        if (name.startsWith("org.graalvm.") || name.startsWith("java")) {
           return systemClassLoader.loadClass(name);
         } else {
           throw ex;
