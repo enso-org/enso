@@ -1,7 +1,6 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import type { UploadingFile } from '@/stores/graph'
-  import { Vec2 } from '@/util/vec2'
   const props = defineProps<{
     file: UploadingFile,
   }>()
@@ -29,7 +28,6 @@ const transform = computed(() => {
   white-space: nowrap;
   padding: 4px 8px;
   z-index: 2;
-  transition: outline 0.2s ease;
   outline: 0px solid transparent;
   background: linear-gradient(to right, #e0e0e0 0%, #e0e0e0 50%, #ffffff 50%, #ffffff 100%);
   background-size: 200% 100%;

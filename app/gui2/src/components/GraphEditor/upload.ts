@@ -4,7 +4,7 @@ import { bytesToHex } from '@noble/hashes/utils'
 import type { DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
 import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
-import type { ContentRoot, Path, Uuid } from 'shared/languageServerTypes'
+import type { ContentRoot, Path, StackItem, Uuid } from 'shared/languageServerTypes'
 import { Awareness } from 'y-protocols/awareness'
 import type { UploadingFile } from '@/stores/graph'
 import { Vec2 } from '@/util/vec2'
@@ -21,8 +21,9 @@ export class Uploader {
   private uploadedBytes: bigint
   private awareness: Awareness
   private position: Vec2
+  private stackItem: StackItem
 
-  private constructor(rpc: LanguageServer, binary: DataServer, awareness: Awareness, file: File, projectRootId: Uuid, position: Vec2) {
+  private constructor(rpc: LanguageServer, binary: DataServer, awareness: Awareness, file: File, projectRootId: Uuid, position: Vec2, stackItem: StackItem) {
     this.rpc = rpc
     this.binary = binary
     this.awareness = awareness
@@ -31,6 +32,7 @@ export class Uploader {
     this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
     this.position = position
+    this.stackItem = stackItem
   }
 
   static async create(
@@ -40,12 +42,13 @@ export class Uploader {
     awareness: Awareness,
     file: File,
     position: Vec2,
+    stackItem: StackItem,
   ): Promise<Uploader> {
     const projectRootId = await contentRoots.then((roots) =>
       roots.find((root) => root.type == 'Project'),
     )
     if (!projectRootId) throw new Error('Unable to find project root, uploading not possible.')
-    const instance = new Uploader(await rpc, await binary, awareness, file, projectRootId.id, position)
+    const instance = new Uploader(await rpc, await binary, awareness, file, projectRootId.id, position, stackItem)
     return instance
   }
 
@@ -53,7 +56,7 @@ export class Uploader {
     await this.ensureDataDirExists()
     const name = await this.pickUniqueName(this.file.name)
     const existingUploads = this.awareness.getLocalState()?.uploading ?? []
-    const uploadingFile: UploadingFile = { name, percentage: 0, position: this.position }
+    const uploadingFile: UploadingFile = { name, percentage: 0, position: this.position, stackItem: this.stackItem }
     this.awareness.setLocalStateField('uploading', [...existingUploads, uploadingFile])
     const remotePath: Path = { rootId: this.projectRootId, segments: [DATA_DIR_NAME, name] }
     const uploader = this
@@ -75,6 +78,7 @@ export class Uploader {
         uploader.cleanup(name)
       },
       async abort(reason: string) {
+        uploader.cleanup(name)
         await uploader.rpc.deleteFile(remotePath)
         throw new Error(`Uploading process aborted. ${reason}`)
       },

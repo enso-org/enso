@@ -30,6 +30,7 @@ export interface AwarenessUpdates {
 export interface UploadingFile {
   name: string,
   percentage: number,
+  stackItem: StackItem,
   position: Vec2,
 }
 export type ClientId = number

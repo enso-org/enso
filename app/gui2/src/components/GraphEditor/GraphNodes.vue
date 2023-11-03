@@ -7,7 +7,9 @@ import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import { computed } from 'vue'
+import { useProjectStore } from '@/stores/project'
 
+const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
@@ -36,7 +38,8 @@ function hoverNode(id: ExprId | undefined) {
 }
 
 const uploadingFiles = computed(() => {
-  return [...graphStore.uploadingFiles.values()].flat()
+  const currentStackItem = projectStore.executionContext.getStackTop()
+  return [...graphStore.uploadingFiles.values()].flat().filter((file) => file.stackItem == currentStackItem)
 })
 
 </script>

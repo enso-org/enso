@@ -202,6 +202,7 @@ async function handleFileDrop(event: DragEvent) {
               projectStore.awareness,
               file,
               pos,
+              projectStore.executionContext.getStackTop(),
             )
             const name = await uploader.upload()
             graphStore.createNode(pos, uploadedExpression(name))
