@@ -80,6 +80,7 @@ public final class EnsoContext {
   private final EnsoLanguage language;
   private final Env environment;
   private final boolean assertionsEnabled;
+  private final boolean isPrivateCheckDisabled;
   private @CompilationFinal
   Compiler compiler;
   private final PrintStream out;
@@ -140,6 +141,7 @@ public final class EnsoContext {
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled
             = getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
+    this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs
@@ -148,6 +150,7 @@ public final class EnsoContext {
             = new CompilerConfig(
                     isParallelismEnabled,
                     true,
+                    !isPrivateCheckDisabled,
                     getOption(RuntimeOptions.STRICT_ERRORS_KEY),
                     scala.Option.empty());
     this.home = home;
@@ -727,6 +730,13 @@ public final class EnsoContext {
    */
   public boolean isInlineCachingDisabled() {
     return isInlineCachingDisabled;
+  }
+
+  /**
+   * @return when {@code private} keyword should be checked.
+   */
+  public boolean isPrivateCheckDisabled() {
+    return isPrivateCheckDisabled;
   }
 
   /**

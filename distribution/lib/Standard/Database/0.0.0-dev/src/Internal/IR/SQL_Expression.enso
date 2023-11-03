@@ -37,6 +37,18 @@ type SQL_Expression
     Literal (value : Text)
 
     ## PRIVATE
+       A text literal that should be inserted into a query, wrapped in quotes
+       with any quotes it may contain escaped.
+
+       This is useful to avoid requiring unnecessary interpolations for text
+       constants in queries.
+
+       User-provided values should always be passed as interpolated `Constant`s.
+       This should only be used for 'statically' known constants - ones baked
+       into the library source code.
+    Text_Literal (value : Text)
+
+    ## PRIVATE
 
        The internal representation of an SQL expression built from an operation
        and sub-expressions.

@@ -153,7 +153,7 @@ public class ExecCompilerTest {
           polyglot java import java.util.Random
 
           run seed =
-              operator1 = Random.new seed
+              operator1 = Random.new_generator seed
           """);
     var run = module.invokeMember("eval_expression", "run");
     try {

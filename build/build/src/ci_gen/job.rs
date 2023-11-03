@@ -232,6 +232,10 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
                 secret::APPLE_NOTARIZATION_PASSWORD,
                 &crate::ide::web::env::APPLEIDPASS,
             )
+            .with_secret_exposed_as(
+                secret::APPLE_NOTARIZATION_TEAM_ID,
+                &crate::ide::web::env::APPLETEAMID,
+            )
             .with_env(&crate::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true"),
         _ => step,
     }

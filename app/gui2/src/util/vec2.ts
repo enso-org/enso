@@ -67,4 +67,8 @@ export class Vec2 {
   lerp(to: Vec2, t: number): Vec2 {
     return new Vec2(this.x + (to.x - this.x) * t, this.y + (to.y - this.y) * t)
   }
+
+  toString(): string {
+    return `(${this.x}, ${this.y})`
+  }
 }

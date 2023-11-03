@@ -297,7 +297,8 @@ make_internal_generator_dialect =
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
     date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff]]
     special_overrides = [is_null, is_empty]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
+    other = [["RUNTIME_ERROR", make_runtime_error_op]]
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -727,3 +728,26 @@ as_int32 expr =
 
 ## PRIVATE
 postgres_statement_setter = Statement_Setter.default
+
+## PRIVATE
+   The RUNTIME_ERROR operation should allow the query to compile fine and it
+   will not prevent it from running if the branch including this operation is
+   not taken. But if the branch is computed, it should ensure the query fails.
+
+   This query never returns a value, so its type should be polymorphic. However,
+   that is not possible - so currently it just 'pretends' that it would return a
+   Boolean - because that is the type we expect in the use-case. This can be
+   altered if needed.
+
+   It takes a variable as the second argument. It can be any value that is not
+   statically known - this ensure that the optimizer will not be able to
+   pre-compute the expression too early (which could make the query fail
+   spuriously). See `make_invariant_check` in `Lookup_Query_Helper` for an
+   example.
+make_runtime_error_op arguments =
+    if arguments.length != 2 then
+        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 2 arguments (error message and a variable to ensure deferred execution).")
+    error_message = arguments.at 0
+    variable_to_defer = arguments.at 1
+
+    Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
