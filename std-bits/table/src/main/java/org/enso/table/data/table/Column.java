@@ -161,19 +161,18 @@ public class Column {
   }
 
   /**
-   * Creates a new column with given name and elements.
+   * Creates a new column with given name and an element to repeat.
    *
    * @param name the name to use
-   * @param items the items contained in the column
+   * @param items the item repeated in the column
    * @return a column with given name and items
    */
-  public static Column fromRepeatedItems(String name, List<Value> items, int repeat, ProblemAggregator problemAggregator) {
+  public static Column fromRepeatedItem(String name, Value item, int repeat, ProblemAggregator problemAggregator) {
     if (repeat < 0) {
       throw new IllegalArgumentException("Repeat count must be non-negative.");
     } else if (repeat == 1) {
-      return fromItems(name, items, null, problemAggregator);
+      return fromItems(name, List.of(item), null, problemAggregator);
     } else if (repeat == 0) {
-      var item = items.get(0);
       Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
       var builder = new InferredBuilder(1, problemAggregator);
       builder.initBuilderFor(converted);
@@ -181,21 +180,12 @@ public class Column {
     }
 
     Context context = Context.getCurrent();
-    var totalSize = items.size() * repeat;
 
-    var values = new ArrayList<Object>(items.size());
-    // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
-    // to revert replace with: for (Value item : items) {
-    for (Object item : items) {
-      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
-      values.add(converted);
-      context.safepoint();
-    }
+    Object value = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
 
-    var builder = new InferredBuilder(totalSize, problemAggregator);
-    for (int i = 0; i < totalSize; i++) {
-      var item = values.get(i % items.size());
-      builder.appendNoGrow(item);
+    var builder = new InferredBuilder(repeat, problemAggregator);
+    for (int i = 0; i < repeat; i++) {
+      builder.appendNoGrow(value);
       context.safepoint();
     }
 

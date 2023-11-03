@@ -1643,7 +1643,7 @@ type Table
     make_constant_column : Any -> Column
     make_constant_column self value =
         if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
-            Column.from_vector_repeated value.to_text [value] self.row_count
+            Column.from_vector_repeated value.to_text value self.row_count
 
     ## PRIVATE
        Create a unique temporary column name.
