@@ -15,8 +15,8 @@ import org.enso.compiler.core.ir.Module;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
-import scala.collection.Seq;
 import scala.collection.immutable.List;
+import scala.collection.immutable.Seq;
 
 public class PersistanceTest {
   @Test

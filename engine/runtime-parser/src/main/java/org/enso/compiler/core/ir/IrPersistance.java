@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
+import org.enso.interpreter.dsl.Persistable;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 import scala.collection.Iterator;
@@ -16,6 +17,7 @@ import scala.collection.immutable.AbstractSeq;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
+@Persistable(clazz = Polyglot.Java.class, id = 703)
 public final class IrPersistance {
   private IrPersistance() {}
 

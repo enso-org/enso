@@ -1443,6 +1443,7 @@ lazy val `runtime-parser` =
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
+    .dependsOn(`interpreter-dsl` % "provided")
 
 lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
