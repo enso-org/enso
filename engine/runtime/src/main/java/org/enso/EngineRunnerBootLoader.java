@@ -1,6 +1,5 @@
 package org.enso;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -11,9 +10,14 @@ import java.nio.file.Path;
  * {@code runner.jar} is a fat jar containing all the dependencies for engine-runner, however, it
  * cannot be put on module-path, neither class-path, because it cannot be used in conjunction with
  * {@code runtime.jar} fat jar. For now, this class is a workaround that just tries to invoke {@link
- * org.enso.runner.Main.main} from {@code runner.jar} using a custom class loader.
+ * org.enso.runner.Main.main} from {@code runner.jar} using a custom class loader that loads classes
+ * only from {@code runner.jar}.
+ *
+ * <p>Note that it is vital that all akka related classes are loaded from {@code runner.jar} and not
+ * from {@code runtime.jar}.
  */
 public final class EngineRunnerBootLoader {
+
   private EngineRunnerBootLoader() {}
 
   private static final String defaultRunnerJar = "runner/runner.jar";
@@ -33,8 +37,7 @@ public final class EngineRunnerBootLoader {
     } catch (MalformedURLException e) {
       throw new IllegalStateException(e);
     }
-    var parentLoader = ClassLoader.getSystemClassLoader();
-    loader = new URLClassLoader("RunnerBootLoader", new URL[] {url}, parentLoader);
+    loader = new IsolatedClassLoader(url);
   }
 
   public static void main(String[] args) throws Exception {
@@ -51,6 +54,28 @@ public final class EngineRunnerBootLoader {
       return Path.of(runnerJarUri);
     } catch (URISyntaxException e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  private static final class IsolatedClassLoader extends URLClassLoader {
+    private final ClassLoader systemClassLoader;
+
+    public IsolatedClassLoader(URL runnerJarUrl) {
+      super("org.enso.IsolatedClassLoader", new URL[] {runnerJarUrl}, null);
+      this.systemClassLoader = ClassLoader.getSystemClassLoader();
+    }
+
+    @Override
+    public Class<?> loadClass(String name) throws ClassNotFoundException {
+      try {
+        return super.loadClass(name);
+      } catch (ClassNotFoundException ex) {
+        if (name.startsWith("org.graalvm.")) {
+          return systemClassLoader.loadClass(name);
+        } else {
+          throw ex;
+        }
+      }
     }
   }
 }
