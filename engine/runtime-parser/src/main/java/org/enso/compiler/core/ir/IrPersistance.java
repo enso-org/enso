@@ -434,6 +434,35 @@ public final class IrPersistance {
     }
   }
 
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistFunctionLambda extends Persistance<Function.Lambda> {
+    public PersistFunctionLambda() {
+      super(Function.Lambda.class, false, 363);
+    }
+
+    @Override
+    protected void writeObject(Function.Lambda obj, Output out) throws IOException {
+      out.writeInline(List.class, obj.arguments());
+      out.writeObject(obj.body());
+      out.writeInline(Option.class, obj.location());
+      out.writeBoolean(obj.canBeTCO());
+      out.writeInline(MetadataStorage.class, obj.passData());
+      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Function.Lambda readObject(Input in) throws IOException, ClassNotFoundException {
+      var arguments = in.readInline(List.class);
+      var body = (Expression) in.readObject();
+      var location = in.readInline(Option.class);
+      var canBeTCO = in.readBoolean();
+      var meta = in.readInline(MetadataStorage.class);
+      var diag = in.readInline(DiagnosticStorage.class);
+      return new Function.Lambda(arguments, body, location, canBeTCO, meta, diag);
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static <T> scala.collection.immutable.List<T> nil() {
     return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
