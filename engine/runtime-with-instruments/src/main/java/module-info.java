@@ -1,4 +1,4 @@
-module org.enso.runtime {
+open module org.enso.runtime {
   requires java.base;
   requires java.compiler;
   requires java.desktop;
