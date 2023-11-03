@@ -1258,7 +1258,6 @@ spec setup =
             empty2 = empty.set constant
             empty2.column_names.should_equal ['x', '42']
 
-    Test.group "asdfasdf" <|
         Test.specify "Should create a column of the correct type on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
