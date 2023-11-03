@@ -96,14 +96,12 @@ class UpsertVisualizationJob(
           )
           cachedValue match {
             case Some(value) =>
-              ProgramExecutionSupport.sendVisualizationUpdate(
+              ProgramExecutionSupport.executeAndSendVisualizationUpdate(
                 config.executionContextId,
                 stack.headOption.get.syncState,
                 visualization,
                 expressionId,
-                value,
-                null,
-                null
+                value
               )
               None
             case None =>

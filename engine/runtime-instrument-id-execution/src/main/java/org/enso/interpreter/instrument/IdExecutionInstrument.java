@@ -23,9 +23,13 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.expression.debug.EvalNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -61,6 +65,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
     private final CallTarget entryCallTarget;
     private final Callbacks callbacks;
+    private final ExecutionSupport executionSupport;
     private final Timer timer;
 
     /**
@@ -70,9 +75,10 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      * @param callbacks communication with users
      * @param timer the timer for timing execution
      */
-    IdEventNodeFactory(CallTarget entryCallTarget, Callbacks callbacks, Timer timer) {
+    IdEventNodeFactory(CallTarget entryCallTarget, Callbacks callbacks, ExecutionSupport executionSupport, Timer timer) {
       this.entryCallTarget = entryCallTarget;
       this.callbacks = callbacks;
+      this.executionSupport = executionSupport;
       this.timer = timer;
     }
 
@@ -106,14 +112,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         if (!isTopFrame(entryCallTarget)) {
           return;
         }
-        onEnterImpl(frame.materialize());
-      }
 
-      @CompilerDirectives.TruffleBoundary
-      private void onEnterImpl(MaterializedFrame frame) {
         Node node = context.getInstrumentedNode();
         UUID nodeId = getNodeId(node);
-        var result = callbacks.findCachedResult(frame, node, nodeId);
+
+        callbacks.onEnter(nodeId);
+        Object result = executionSupport.findCachedResult(frame.materialize(), node, nodeId);
         if (result != null) {
           throw context.createUnwind(result);
         }
@@ -143,7 +147,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             throw context.createUnwind(cachedResult);
           }
         } else if (node instanceof ExpressionNode expressionNode) {
-          onExpressionReturn(result, frame, expressionNode, context, nanoTimeElapsed);
+          onExpressionReturn(result, expressionNode.getId(), context, nanoTimeElapsed);
         }
       }
 
@@ -159,14 +163,24 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
 
       private void onExpressionReturn(
-          Object result, VirtualFrame frame, ExpressionNode node, EventContext context, long elapsedTime) {
+          Object result, UUID nodeId, EventContext context, long elapsedTime) {
+        callbacks.onExpressionReturn(nodeId, result, elapsedTime);
         boolean isPanic =
             result instanceof AbstractTruffleException && !(result instanceof DataflowError);
+        executionSupport.updateCachedResult(nodeId, result, isPanic, elapsedTime);
 
-        callbacks.updateCachedResult(frame, node, result, isPanic, elapsedTime);
         if (isPanic) {
           throw context.createUnwind(result);
         }
+      }
+
+      private Object evaluateExpression(VirtualFrame frame, Node node, String expression) {
+        EvalNode eval = EvalNode.build();
+        EnsoRootNode rootNode = (EnsoRootNode) node.getRootNode();
+        CallerInfo callerInfo = new CallerInfo(frame.materialize(), rootNode.getLocalScope(), rootNode.getModuleScope());
+        State state = State.create(EnsoContext.get(node));
+
+        return eval.execute(callerInfo, state, Text.create(expression));
       }
 
       @CompilerDirectives.TruffleBoundary
@@ -235,7 +249,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    */
   @Override
   public EventBinding<ExecutionEventNodeFactory> bind(
-      TruffleObject mod, CallTarget entryCallTarget, Callbacks callbacks, Object timer) {
+      TruffleObject mod, CallTarget entryCallTarget, Callbacks callbacks, ExecutionSupport executionSupport, Object timer) {
     var module = (Module) mod;
     var builder =
         SourceSectionFilter.newBuilder()
@@ -253,7 +267,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
     }
     var filter = builder.build();
-    var factory = new IdEventNodeFactory(entryCallTarget, callbacks, (Timer) timer);
+    var factory = new IdEventNodeFactory(entryCallTarget, callbacks, executionSupport, (Timer) timer);
     return env.getInstrumenter().attachExecutionEventFactory(filter, factory);
   }
 }

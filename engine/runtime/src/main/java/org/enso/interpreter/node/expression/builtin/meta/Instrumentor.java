@@ -9,6 +9,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.polyglot.debugger.DefaultExecutionSupport;
 import org.enso.polyglot.debugger.IdExecutionService;
 
 import com.oracle.truffle.api.CallTarget;
@@ -46,7 +47,7 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
     this.onReturn = onReturn != null ? onReturn : orig.onReturn;
     this.onCall = onCall != null ? onCall : orig.onCall;
     this.handle = !activate ? null : service.bind(
-      module, target, this, new Timer.Disabled()
+      module, target, this, DefaultExecutionSupport.getInstance(), new Timer.Disabled()
     );
   }
 
@@ -62,23 +63,19 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
   // Callbacks
   //
   @Override
-  public Object findCachedResult(Object virtualFrame, Object node, UUID nodeId) {
+  public void onEnter(UUID nodeId) {
     try {
       if (onEnter != null) {
-        var ret = InteropLibrary.getUncached().execute(onEnter, nodeId.toString());
-        ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
-        return handle.isDisposed() ? null : ret;
+        InteropLibrary.getUncached().execute(onEnter, nodeId.toString());
       }
     } catch (InteropException ignored) {
     }
-    return null;
   }
 
   @Override
-  public void updateCachedResult(Object virtualFrame, Object node, Object result, boolean isPanic, long nanoElapsedTime) {
+  public void onExpressionReturn(UUID nodeId, Object result, long nanoElapsedTime) {
     try {
       if (onReturn != null) {
-        UUID nodeId = ((ExpressionNode) node).getId();
         InteropLibrary.getUncached().execute(onReturn, nodeId.toString(), result);
       }
     } catch (InteropException ignored) {

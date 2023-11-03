@@ -29,8 +29,8 @@ import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
+import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
@@ -55,6 +55,7 @@ import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
@@ -161,6 +162,7 @@ public final class ExecutionService {
    * @param onCachedCallback the consumer of the cached value events.
    */
   public void execute(
+      VisualizationHolder visualizationHolder,
       Module module,
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
@@ -169,7 +171,8 @@ public final class ExecutionService {
       UUID nextExecutionItem,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
-      Consumer<ExecutionService.ExpressionValue> onCachedCallback)
+      Consumer<ExecutionService.ExpressionValue> onCachedCallback,
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback)
       throws ArityException,
           SourceNotFoundException,
           UnsupportedMessageException,
@@ -180,17 +183,20 @@ public final class ExecutionService {
     }
     var callbacks =
         new ExecutionCallbacks(
+            visualizationHolder,
             nextExecutionItem,
             cache,
             methodCallsCache,
             syncState,
             onCachedCallback,
             onComputedCallback,
-            funCallCallback);
+            funCallCallback,
+            onExecutedVisualizationCallback);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service ->
-                service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
+                service.bind(
+                    module, call.getFunction().getCallTarget(), callbacks, callbacks, this.timer));
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(call);
@@ -219,13 +225,15 @@ public final class ExecutionService {
       String moduleName,
       String typeName,
       String methodName,
+      VisualizationHolder visualizationHolder,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
       Consumer<ExecutionService.ExpressionCall> funCallCallback,
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
-      Consumer<ExecutionService.ExpressionValue> onCachedCallback)
+      Consumer<ExecutionService.ExpressionValue> onCachedCallback,
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback)
       throws ArityException,
           TypeNotFoundException,
           MethodNotFoundException,
@@ -237,6 +245,7 @@ public final class ExecutionService {
     FunctionCallInstrumentationNode.FunctionCall call =
         prepareFunctionCall(module, typeName, methodName);
     execute(
+        visualizationHolder,
         module,
         call,
         cache,
@@ -245,7 +254,8 @@ public final class ExecutionService {
         nextExecutionItem,
         funCallCallback,
         onComputedCallback,
-        onCachedCallback);
+        onCachedCallback,
+        onExecutedVisualizationCallback);
   }
 
   /**
@@ -325,7 +335,11 @@ public final class ExecutionService {
    * @return the result of calling the function
    */
   public Object callFunctionWithInstrument(
-      RuntimeCache cache, Module module, Object function, Object... arguments) {
+      VisualizationHolder visualizationHolder,
+      RuntimeCache cache,
+      Module module,
+      Object function,
+      Object... arguments) {
     UUID nextExecutionItem = null;
     CallTarget entryCallTarget =
         (function instanceof Function) ? ((Function) function).getCallTarget() : null;
@@ -336,19 +350,22 @@ public final class ExecutionService {
         (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
     Consumer<ExpressionValue> onCachedCallback =
         (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
+    Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
 
     var callbacks =
         new ExecutionCallbacks(
+            visualizationHolder,
             nextExecutionItem,
             cache,
             methodCallsCache,
             syncState,
             onCachedCallback,
             onComputedCallback,
-            funCallCallback);
+            funCallCallback,
+            onExecutedVisualizationCallback);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
-            service -> service.bind(module, entryCallTarget, callbacks, this.timer));
+            service -> service.bind(module, entryCallTarget, callbacks, callbacks, this.timer));
     Object p = context.getThreadManager().enter();
     try {
       return call.getCallTarget().call(function, arguments);
@@ -625,8 +642,6 @@ public final class ExecutionService {
     private final FunctionCallInfo cachedCallInfo;
     private final ProfilingInfo[] profilingInfo;
     private final boolean wasCached;
-    private final ExpressionNode expressionNode;
-    private final VirtualFrame virtualFrame;
 
     /**
      * Creates a new instance of this class.
@@ -657,31 +672,6 @@ public final class ExecutionService {
       this.cachedCallInfo = cachedCallInfo;
       this.profilingInfo = profilingInfo;
       this.wasCached = wasCached;
-      this.expressionNode = null;
-      this.virtualFrame = null;
-    }
-
-    public ExpressionValue(
-        UUID expressionId,
-        Object value,
-        String type,
-        String cachedType,
-        FunctionCallInfo callInfo,
-        FunctionCallInfo cachedCallInfo,
-        ProfilingInfo[] profilingInfo,
-        boolean wasCached,
-        ExpressionNode expressionNode,
-        VirtualFrame virtualFrame) {
-      this.expressionId = expressionId;
-      this.value = value;
-      this.type = type;
-      this.cachedType = cachedType;
-      this.callInfo = callInfo;
-      this.cachedCallInfo = cachedCallInfo;
-      this.profilingInfo = profilingInfo;
-      this.wasCached = wasCached;
-      this.expressionNode = expressionNode;
-      this.virtualFrame = virtualFrame;
     }
 
     @Override
@@ -777,14 +767,6 @@ public final class ExecutionService {
      */
     public boolean isFunctionCallChanged() {
       return !Objects.equals(callInfo, cachedCallInfo);
-    }
-
-    public ExpressionNode getExpressionNode() {
-      return expressionNode;
-    }
-
-    public VirtualFrame getVirtualFrame() {
-      return virtualFrame;
     }
   }
 
