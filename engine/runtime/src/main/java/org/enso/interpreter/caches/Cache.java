@@ -217,7 +217,7 @@ public abstract class Cache<T, M extends Cache.Metadata> {
                   }
 
                   logger.log(logLevel, "Unable to load a cache [" + logName + "]");
-                } catch (IOException e) {
+                } catch (Exception e) {
                   logger.log(
                       Level.WARNING,
                       "Unable to load a cache [" + logName + "]: " + e.getMessage(),
