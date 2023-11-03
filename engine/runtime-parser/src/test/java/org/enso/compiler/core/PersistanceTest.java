@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.IdentifiedLocation;
@@ -12,7 +13,9 @@ import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.junit.Test;
+import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
+import scala.collection.Seq;
 import scala.collection.immutable.List;
 
 public class PersistanceTest {
@@ -55,6 +58,39 @@ public class PersistanceTest {
   }
 
   @Test
+  public void lazyScalaSequence() throws Exception {
+    var s1 = new LazySeq("Hello");
+    var s2 = new LazySeq("World");
+
+    var second = new boolean[1];
+    @SuppressWarnings("unchecked")
+    var in =
+        (Seq<String>)
+            Seq.fill(
+                2,
+                () -> {
+                  if (second[0]) {
+                    return s2;
+                  }
+                  second[0] = true;
+                  return s1;
+                });
+    assertEquals("Seq with two elements created", 2, in.length());
+
+    LazySeq.forbidden = true;
+    var out = serde(Seq.class, in, -1);
+
+    assertEquals("Two elements", 2, out.size());
+
+    LazySeq.forbidden = false;
+
+    assertEquals("Lazily deserialized s2", s2, out.head());
+    assertNotSame("Lazily deserialized s2", s2, out.head());
+    assertEquals("Lazily deserialized s1", s1, out.last());
+    assertNotSame("Lazily deserialized s1", s1, out.head());
+  }
+
+  @Test
   public void serializeModule() throws Exception {
     var meta = new MetadataStorage(nil());
     var diag = new DiagnosticStorage(nil());
@@ -74,7 +110,7 @@ public class PersistanceTest {
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length);
     }
-    var ref = Persistance.Reference.from(buf, at);
+    var ref = Persistance.Reference.from(null, buf, at);
     return ref.get(clazz);
   }
 
@@ -86,5 +122,72 @@ public class PersistanceTest {
   private static final <T> scala.collection.immutable.List<T> join(
       T head, scala.collection.immutable.List<T> tail) {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
+  }
+
+  private static class LazySeq implements CharSequence {
+
+    private static boolean forbidden;
+
+    private final String value;
+
+    public LazySeq(String value) {
+      if (forbidden) {
+        throw new IllegalStateException("Cannot create LazySeq right now!");
+      }
+      this.value = value;
+    }
+
+    public char charAt(int index) {
+      return value.charAt(index);
+    }
+
+    public int length() {
+      return value.length();
+    }
+
+    public CharSequence subSequence(int beginIndex, int endIndex) {
+      return value.subSequence(beginIndex, endIndex);
+    }
+
+    @Override
+    public int hashCode() {
+      int hash = 5;
+      hash = 53 * hash + Objects.hashCode(this.value);
+      return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      final LazySeq other = (LazySeq) obj;
+      return Objects.equals(this.value, other.value);
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistLazySeq extends Persistance<LazySeq> {
+
+    public PersistLazySeq() {
+      super(LazySeq.class, false, 432432);
+    }
+
+    @Override
+    protected void writeObject(LazySeq obj, Output out) throws IOException {
+      out.writeUTF(obj.value);
+    }
+
+    @Override
+    protected LazySeq readObject(Input in) throws IOException, ClassNotFoundException {
+      var s = in.readUTF();
+      return new LazySeq(s);
+    }
   }
 }

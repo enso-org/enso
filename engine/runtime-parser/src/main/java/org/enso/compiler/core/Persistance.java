@@ -2,6 +2,7 @@ package org.enso.compiler.core;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -37,6 +38,7 @@ public abstract class Persistance<T> {
   public static interface Input extends DataInput {
     public abstract <T> T readInline(Class<T> clazz) throws IOException;
     public abstract Object readObject() throws IOException;
+    public <T> Reference<T> readReference(Class<T> clazz) throws IOException;
   }
 
   final void writeInline(Object obj, Output out) throws IOException {
@@ -117,6 +119,21 @@ public abstract class Persistance<T> {
     return p.readWith(inData);
   }
 
+  @SuppressWarnings("unchecked")
+  static <T> Reference<T> readIndirectAsReference(ByteBuffer buffer, PersistanceMap map, Input in, Class<T> clazz) throws IOException {
+    var at = in.readInt();
+    if (at < 0) {
+      return null;
+    }
+    var id = in.readInt();
+    var p = map.forId(id);
+    if (clazz.isAssignableFrom(p.clazz)) {
+      return Reference.from((Persistance<T>)p, buffer, at);
+    } else {
+      throw new IOException("Expecting " + clazz.getName() + " but found " + p.clazz.getName());
+    }
+  }
+
   public static sealed abstract class Reference<T> {
     private static final Reference<?> NULL = new MemoryReference<>(null);
 
@@ -141,21 +158,35 @@ public abstract class Persistance<T> {
     }
 
     public static <V> Reference<V> from(ByteBuffer buffer, int offset) {
-      return new BufferReference<>(buffer, offset);
+      return from(null, buffer, offset);
+    }
+
+    static <V> Reference<V> from(Persistance<V> p, ByteBuffer buffer, int offset) {
+      return new BufferReference<>(p, buffer, offset);
     }
   }
 
 
   private static final class BufferReference<T> extends Reference<T> {
+    private final Persistance<T> p;
     private final ByteBuffer buffer;
     private final int offset;
 
-    BufferReference(ByteBuffer buffer, int offset) {
+    BufferReference(Persistance<T> p, ByteBuffer buffer, int offset) {
+      this.p = p;
       this.buffer = buffer;
       this.offset = offset;
     }
 
+    @SuppressWarnings("unchecked")
     final <T> T readObject(Class<T> clazz) {
+      if (p != null) {
+        if (clazz.isAssignableFrom(p.clazz)) {
+          clazz = (Class) p.clazz;
+        } else {
+          throw new ClassCastException();
+        }
+      }
       var in = new InputImpl(buffer, offset);
       var obj = in.readInline(clazz);
       return obj;
@@ -209,6 +240,12 @@ public abstract class Persistance<T> {
     @Override
     public Object readObject() throws IOException {
       var obj = readIndirect(buf, map, this);
+      return obj;
+    }
+
+    @Override
+    public <T> Reference<T> readReference(Class<T> clazz) throws IOException {
+      var obj = readIndirectAsReference(buf, map, this, clazz);
       return obj;
     }
 
@@ -326,10 +363,7 @@ public abstract class Persistance<T> {
 
     @Override
     public String readUTF() throws IOException {
-      var len = readInt();
-      var arr = new byte[len];
-      readFully(arr);
-      return new String(arr, StandardCharsets.UTF_8);
+      return DataInputStream.readUTF(this);
     }
   }
 

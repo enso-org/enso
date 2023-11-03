@@ -1,13 +1,19 @@
 package org.enso.compiler.core.ir;
 
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import org.enso.compiler.core.Persistance;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
+import scala.collection.Iterator;
+import scala.collection.SeqFactory;
+import scala.collection.immutable.AbstractSeq;
 import scala.collection.immutable.List;
+import scala.collection.immutable.Seq;
 
 public final class IrPersistance {
   private IrPersistance() {}
@@ -75,6 +81,83 @@ public final class IrPersistance {
         list = scala.collection.immutable.$colon$colon$.MODULE$.apply(elem, list);
       }
       return list;
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistScalaSeq extends Persistance<Seq> {
+    public PersistScalaSeq() {
+      super(Seq.class, true, 4433);
+    }
+
+    @Override
+    protected void writeObject(Seq list, Output out) throws IOException {
+      var size = list.size();
+      out.writeInt(size);
+      for (var i = 0; i < size; i++) {
+        out.writeObject(list.apply(i));
+      }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Seq readObject(Input in) throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      Reference<?>[] arr = new Reference<?>[size];
+      for (var i = 0; i < size; i++) {
+        arr[i] = in.readReference(Object.class);
+      }
+      return new AbstractSeq() {
+        @Override
+        public Object apply(int i) throws IndexOutOfBoundsException {
+          return arr[i].get(Object.class);
+        }
+
+        @Override
+        public int length() {
+          return size;
+        }
+
+        @Override
+        public boolean isDefinedAt(int idx) {
+          return 0 <= idx && idx < size;
+        }
+
+        @Override
+        public boolean isDefinedAt(Object idx) {
+          throw new IllegalStateException();
+        }
+
+        @Override
+        public Object apply(Object i) throws IndexOutOfBoundsException {
+          throw new IllegalStateException();
+        }
+
+        @Override
+        public SeqFactory iterableFactory() {
+          return super.iterableFactory();
+        }
+
+        @Override
+        public Iterator iterator() {
+          return new Iterator() {
+            private int at;
+
+            @Override
+            public boolean hasNext() {
+              return at < size;
+            }
+
+            @Override
+            public Object next() throws NoSuchElementException {
+              if (at >= size) {
+                throw new NoSuchElementException();
+              }
+              return apply(at++);
+            }
+          };
+        }
+      };
     }
   }
 
@@ -267,5 +350,42 @@ public final class IrPersistance {
       return new Export.Module(
           name, rename, isAll, onlyNames, hiddenNames, location, isSynthetic, meta, diag);
     }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistMethodExplicit extends Persistance<Method.Explicit> {
+    public PersistMethodExplicit() {
+      super(Method.Explicit.class, false, 361);
+    }
+
+    @Override
+    protected void writeObject(Method.Explicit obj, Output out) throws IOException {
+      out.writeInline(Name.MethodReference.class, obj.methodReference());
+      out.writeInline(Seq.class, obj.bodyList());
+      out.writeInline(Option.class, obj.location());
+      out.writeInline(MetadataStorage.class, obj.passData());
+      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Method.Explicit readObject(Input in) throws IOException, ClassNotFoundException {
+      var ref = in.readInline(Name.MethodReference.class);
+      var bodyList = in.readInline(Seq.class);
+      var location = in.readInline(Option.class);
+      var meta = in.readInline(MetadataStorage.class);
+      var diag = in.readInline(DiagnosticStorage.class);
+      return new Method.Explicit(ref, bodyList, location, meta, diag);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T> scala.collection.immutable.List<T> nil() {
+    return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
+  }
+
+  private static <T> scala.collection.immutable.List<T> join(
+      T head, scala.collection.immutable.List<T> tail) {
+    return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 }
