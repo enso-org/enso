@@ -7,6 +7,8 @@ import * as React from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
+import * as sentry from '@sentry/react'
+
 import * as app from '../../components/app'
 import type * as authServiceModule from '../service'
 import * as backendModule from '../../dashboard/backend'
@@ -19,6 +21,7 @@ import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
+import LoadingScreen from '../components/loadingScreen'
 
 // =================
 // === Constants ===
@@ -200,6 +203,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
     const goOfflineInternal = React.useCallback(() => {
         setInitialized(true)
+        sentry.setUser(null)
         setUserSession(OFFLINE_USER_SESSION)
         if (supportsLocalBackend) {
             setBackendWithoutSavingType(new localBackend.LocalBackend(projectManagerUrl))
@@ -252,6 +256,7 @@ export function AuthProvider(props: AuthProviderProps) {
             } else if (session == null) {
                 setInitialized(true)
                 if (!initialized) {
+                    sentry.setUser(null)
                     setUserSession(null)
                 }
             } else {
@@ -306,11 +311,19 @@ export function AuthProvider(props: AuthProviderProps) {
                 }
                 let newUserSession: UserSession
                 if (organization == null) {
+                    sentry.setUser({ email: session.email })
                     newUserSession = {
                         type: UserSessionType.partial,
                         ...session,
                     }
                 } else {
+                    sentry.setUser({
+                        id: organization.id,
+                        email: organization.email,
+                        username: organization.name,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        ip_address: '{{auto}}',
+                    })
                     newUserSession = {
                         type: UserSessionType.full,
                         ...session,
@@ -492,6 +505,7 @@ export function AuthProvider(props: AuthProviderProps) {
     const signOut = async () => {
         deinitializeSession()
         setInitialized(false)
+        sentry.setUser(null)
         setUserSession(null)
         localStorage.clearUserSpecificEntries()
         // This should not omit success and error toasts as it is not possible
@@ -530,7 +544,7 @@ export function AuthProvider(props: AuthProviderProps) {
     return (
         <AuthContext.Provider value={value}>
             {/* Only render the underlying app after we assert for the presence of a current user. */}
-            {initialized && children}
+            {initialized ? children : <LoadingScreen />}
         </AuthContext.Provider>
     )
 }

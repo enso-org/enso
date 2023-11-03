@@ -250,8 +250,7 @@ export const useGraphStore = defineStore('graph', () => {
       vis: null,
     }
     const ident = generateUniqueIdent()
-    const content = `${ident} = ${expression}`
-    return mod.insertNewNode(mod.doc.contents.length, content, meta)
+    return mod.insertNewNode(mod.doc.contents.length, ident, expression, meta)
   }
 
   function deleteNode(id: ExprId) {
@@ -358,7 +357,7 @@ export const useGraphStore = defineStore('graph', () => {
 })
 
 function randomString() {
-  return Math.random().toString(36).substring(2, 10)
+  return 'operator' + Math.round(Math.random() * 100000)
 }
 
 export interface Node {

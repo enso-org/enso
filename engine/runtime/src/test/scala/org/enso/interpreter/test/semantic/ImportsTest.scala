@@ -1,6 +1,7 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterException, PackageTest}
+import org.enso.polyglot.RuntimeOptions
 
 class ImportsTest extends PackageTest {
   implicit def messagingNatureOInterpreterException
@@ -255,5 +256,19 @@ class ImportsTest extends PackageTest {
     evalTestProject(
       "Test_Private_Modules_5"
     ) shouldEqual 42
+  }
+
+  "Private modules" should "be able to mix private and public submodules when private checks are disabled" in {
+    evalTestProject(
+      "Test_Private_Modules_4",
+      Map(RuntimeOptions.DISABLE_PRIVATE_CHECK -> "true")
+    ) shouldEqual 42
+  }
+
+  "Private modules" should "be able to import private modules from different project when private checks are disabled" in {
+    evalTestProject(
+      "Test_Private_Modules_3",
+      Map(RuntimeOptions.DISABLE_PRIVATE_CHECK -> "true")
+    ) shouldEqual "Success"
   }
 }

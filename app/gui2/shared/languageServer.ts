@@ -1,7 +1,8 @@
+import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
+import { bytesToHex } from '@noble/hashes/utils'
 import { Client } from '@open-rpc/client-js'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
-import { SHA3 } from 'sha3'
 import { z } from 'zod'
 import type {
   Checksum,
@@ -383,5 +384,5 @@ export class LanguageServer extends ObservableV2<Notifications> {
 }
 
 export function computeTextChecksum(text: string): Checksum {
-  return new SHA3(224).update(text).digest('hex') as Checksum
+  return bytesToHex(SHA3.create().update(text).digest()) as Checksum
 }

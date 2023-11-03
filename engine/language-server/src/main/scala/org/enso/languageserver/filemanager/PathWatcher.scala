@@ -23,11 +23,11 @@ import org.enso.languageserver.filemanager.PathWatcher.{
   ForwardResponse
 }
 import org.enso.languageserver.util.UnhandledLogging
-import zio._
+import zio.ZIO
 
 import java.io.File
 import scala.concurrent.Await
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /** Starts [[Watcher]], handles errors, converts and sends
   * events to the client.
@@ -81,7 +81,7 @@ final class PathWatcher(
         _       <- ZIO.fromEither(startWatcher(watcher))
       } yield ()
 
-    exec
+    val executedResult = exec
       .exec(result)
       .map {
         case Right(()) => CapabilityAcquired
@@ -89,15 +89,29 @@ final class PathWatcher(
       }
       .pipeTo(sender())
 
-    pathToWatchResult.onComplete {
-      case Success(Right(root)) =>
-        logger.info("Initialized [{}] for [{}].", watcherFactory.getClass, path)
-        context.become(initializedStage(root, path, clients))
-      case Success(Left(err)) =>
-        logger.error("Failed to resolve the path [{}]. {}", path, err)
-        context.stop(self)
+    Try(Await.ready(executedResult, config.timeout)) match {
+      case Success(_) =>
+        pathToWatchResult.onComplete {
+          case Success(Right(root)) =>
+            logger.info(
+              "Initialized [{}] for [{}].",
+              watcherFactory.getClass,
+              path
+            )
+            context.become(initializedStage(root, path, clients))
+          case Success(Left(err)) =>
+            logger.error("Failed to resolve the path [{}]. {}", path, err)
+            context.stop(self)
+          case Failure(err) =>
+            logger.error("Failed to resolve the path [{}]", path, err)
+            context.stop(self)
+        }
       case Failure(err) =>
-        logger.error("Failed to resolve the path [{}]", path, err)
+        logger.error(
+          "Failed to initialize path watcher for path [{}]. {}",
+          path,
+          err
+        )
         context.stop(self)
     }
   }
@@ -182,7 +196,7 @@ final class PathWatcher(
     Either
       .catchNonFatal {
         fileWatcher = Some(watcher)
-        exec.exec_(ZIO.attempt(watcher.start()))
+        exec.exec__(ec => ZIO.attempt(watcher.start(ec.asJava)))
       }
       .leftMap(errorHandler)
 

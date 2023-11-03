@@ -3,10 +3,14 @@
  * This module declares the main DOM structure for the authentication/dashboard app. */
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
+import * as reactRouter from 'react-router-dom'
+
+import * as sentry from '@sentry/react'
 
 import * as detect from 'enso-common/src/detect'
 
 import type * as app from './components/app'
+import * as config from './config'
 import App from './components/app'
 
 // =================
@@ -15,6 +19,8 @@ import App from './components/app'
 
 /** The `id` attribute of the root element that the app will be rendered into. */
 const ROOT_ELEMENT_ID = 'enso-dashboard'
+/** The fraction of non-erroring interactions that should be sampled by Sentry. */
+const SENTRY_SAMPLE_RATE = 0.005
 
 // ===========
 // === run ===
@@ -31,6 +37,26 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 function run(props: app.AppProps) {
     const { logger, supportsDeepLinks } = props
     logger.log('Starting authentication/dashboard UI.')
+    sentry.init({
+        dsn: 'https://0dc7cb80371f466ab88ed01739a7822f@o4504446218338304.ingest.sentry.io/4506070404300800',
+        environment: config.ENVIRONMENT,
+        integrations: [
+            new sentry.BrowserTracing({
+                routingInstrumentation: sentry.reactRouterV6Instrumentation(
+                    React.useEffect,
+                    reactRouter.useLocation,
+                    reactRouter.useNavigationType,
+                    reactRouter.createRoutesFromChildren,
+                    reactRouter.matchRoutes
+                ),
+            }),
+            new sentry.Replay(),
+        ],
+        tracesSampleRate: SENTRY_SAMPLE_RATE,
+        tracePropagationTargets: [config.ACTIVE_CONFIG.apiUrl.split('//')[1] ?? ''],
+        replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
+        replaysOnErrorSampleRate: 1.0,
+    })
     /** The root element into which the authentication/dashboard app will be rendered. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
     if (root == null) {
@@ -40,13 +66,15 @@ function run(props: app.AppProps) {
         // via the browser.
         const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
         reactDOM.createRoot(root).render(
-            detect.IS_DEV_MODE ? (
-                <React.StrictMode>
-                    <App {...props} />
-                </React.StrictMode>
-            ) : (
-                <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
-            )
+            <sentry.ErrorBoundary>
+                {detect.IS_DEV_MODE ? (
+                    <React.StrictMode>
+                        <App {...props} />
+                    </React.StrictMode>
+                ) : (
+                    <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
+                )}
+            </sentry.ErrorBoundary>
         )
     }
 }
