@@ -1,4 +1,4 @@
-package org.enso.table.data.table.join;
+package org.enso.table.data.table.join.between;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +6,9 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
+import org.enso.table.data.table.join.JoinResult;
+import org.enso.table.data.table.join.JoinStrategy;
+import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;

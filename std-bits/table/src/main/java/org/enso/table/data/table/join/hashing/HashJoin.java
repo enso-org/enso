@@ -1,9 +1,12 @@
-package org.enso.table.data.table.join;
+package org.enso.table.data.table.join.hashing;
 
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.join.JoinResult;
+import org.enso.table.data.table.join.JoinStrategy;
+import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.Equals;
 import org.enso.table.data.table.join.conditions.EqualsIgnoreCase;
 import org.enso.table.data.table.join.conditions.HashableCondition;
@@ -18,13 +21,13 @@ import java.util.List;
  * It then delegates to {@code remainingMatcher} to perform the remaining conditions on the matching pairs of row
  * subsets.
  */
-public class EqualityHashJoin implements JoinStrategy {
-  public EqualityHashJoin(List<HashableCondition> conditions, PluggableJoinStrategy remainingMatcher) {
+public class HashJoin implements JoinStrategy {
+  public HashJoin(List<HashableCondition> conditions, PluggableJoinStrategy remainingMatcher) {
     conditionsHelper = new JoinStrategy.ConditionsHelper(conditions);
     this.remainingMatcher = remainingMatcher;
 
     List<HashEqualityCondition> equalConditions =
-        conditions.stream().map(EqualityHashJoin::makeHashEqualityCondition).toList();
+        conditions.stream().map(HashJoin::makeHashEqualityCondition).toList();
 
     if (equalConditions.isEmpty()) {
       throw new IllegalArgumentException("EqualityHashJoin is applicable if there is at least one equality condition.");

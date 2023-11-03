@@ -1,4 +1,4 @@
-package org.enso.table.data.table.join;
+package org.enso.table.data.table.join.lookup;
 
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.Builder;
