@@ -66,7 +66,7 @@ pub struct Code<'s> {
     #[deref]
     pub repr: StrRef<'s>,
     #[reflect(flatten)]
-    offset:   Location,
+    start:    Location,
     /// The length of the source code.
     #[reflect(flatten)]
     pub len:  Length,
@@ -78,13 +78,13 @@ impl<'s> Code<'s> {
     pub fn from_str_at_location(repr: &'s str, location: Location) -> Self {
         let len = Length::of(repr);
         let repr = StrRef(repr);
-        Self { repr, offset: location, len }
+        Self { repr, start: location, len }
     }
 
     /// Return a code reference at the beginning of the document. This can be used in testing, when
     /// accurate code references are not needed.
     #[inline(always)]
-    pub fn from_str_without_offset(repr: &'s str) -> Self {
+    pub fn from_str_without_location(repr: &'s str) -> Self {
         Self::from_str_at_location(repr, default())
     }
 
@@ -92,27 +92,27 @@ impl<'s> Code<'s> {
     /// value.
     #[inline(always)]
     pub fn take_as_prefix(&mut self) -> Self {
-        let end = self.offset + self.len;
+        let end = self.start + self.len;
         Self {
-            repr:   mem::take(&mut self.repr),
-            offset: mem::replace(&mut self.offset, end),
-            len:    mem::take(&mut self.len),
+            repr:  mem::take(&mut self.repr),
+            start: mem::replace(&mut self.start, end),
+            len:   mem::take(&mut self.len),
         }
     }
 
     /// Return a 0-length `Code` located immediately before the start of this `Code`.
     pub fn position_before(&self) -> Self {
-        Self { repr: default(), offset: self.offset, len: default() }
+        Self { repr: default(), start: self.start, len: default() }
     }
 
     /// Return a 0-length `Code` located immediately after the end of this `Code`.
     pub fn position_after(&self) -> Self {
-        Self { repr: default(), offset: self.offset + self.len, len: default() }
+        Self { repr: default(), start: self.start + self.len, len: default() }
     }
 
     /// Return the start and end of the UTF-16 source code for this element.
     pub fn range(&self) -> Range<Location> {
-        self.offset..(self.offset + self.len)
+        self.start..(self.start + self.len)
     }
 
     /// Split the code at the given location.
@@ -125,21 +125,21 @@ impl<'s> Code<'s> {
             line_chars16: self.len.line_chars16
                 - if split.newlines == 0 { split.line_chars16 } else { 0 },
         };
-        (Self { repr: StrRef(left), offset: self.offset, len: split }, Self {
-            repr:   StrRef(right),
-            offset: self.offset + split,
-            len:    right_len,
+        (Self { repr: StrRef(left), start: self.start, len: split }, Self {
+            repr:  StrRef(right),
+            start: self.start + split,
+            len:   right_len,
         })
     }
 
     /// Return a reference to an empty string, not associated with any location in the document.
     pub fn empty_without_location() -> Self {
-        Self { repr: StrRef(""), offset: default(), len: default() }
+        Self { repr: StrRef(""), start: default(), len: default() }
     }
 
     /// Return a reference to an empty string.
     pub fn empty(location: Location) -> Self {
-        Self { repr: StrRef(""), offset: location, len: default() }
+        Self { repr: StrRef(""), start: location, len: default() }
     }
 
     /// Length of the code in bytes.
@@ -163,7 +163,7 @@ impl<'s> Code<'s> {
     /// Return this value with its start position removed (set to 0). This can be used to compare
     /// values ignoring offsets.
     pub fn without_location(&self) -> Self {
-        Self { repr: self.repr.clone(), offset: default(), len: self.len }
+        Self { repr: self.repr.clone(), start: default(), len: self.len }
     }
 }
 
@@ -207,10 +207,10 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
         match (self.is_empty(), other.is_empty()) {
             (false, true) => (),
             (true, true) => {
-                // The span builder works by starting with `Span::empty_without_offset()`, and
-                // appending to the right side. In order to ensure every span has an offset: When
+                // The span builder works by starting with `Span::empty_without_location()`, and
+                // appending to the right side. In order to ensure every span has a location: When
                 // the LHS is empty, take the location from the RHS even if the RHS is also empty.
-                self.offset = other.offset;
+                self.start = other.start;
             }
             (true, false) => {
                 *self = other.clone();
@@ -261,13 +261,16 @@ impl Length {
         let mut utf16 = 0;
         let mut newlines = 0;
         let mut line_chars16 = 0;
+        let mut prev = None;
         for c in s.chars() {
             let char_len16 = c.len_utf16() as u32;
             utf16 += char_len16;
             line_chars16 += char_len16;
-            if c == '\n' {
-                newlines += 1;
+            if c == '\r' || c == '\n' {
                 line_chars16 = 0;
+            }
+            if c == '\r' || (c == '\n' && prev != Some('\r')) {
+                newlines += 1;
             }
         }
         Self { utf8: u32::try_from(s.len()).unwrap(), utf16, newlines, line_chars16 }
@@ -357,6 +360,7 @@ pub mod debug {
         /// Check all previously-added locations for consistency with the input.
         pub fn check(mut self, input: &str) {
             let mut pos = Location::default();
+            let mut prev = None;
             for (i, c) in input.char_indices() {
                 pos.utf8 = i as u32;
                 if let Some(loc) = self.locations.remove(&(i as u32)) {
@@ -365,10 +369,13 @@ pub mod debug {
                 let char_len = c.len_utf16() as u32;
                 pos.utf16 += char_len;
                 pos.col16 += char_len;
-                if c == '\n' {
-                    pos.line += 1;
+                if c == '\r' || c == '\n' {
                     pos.col16 = 0;
                 }
+                if c == '\r' || (c == '\n' && prev != Some('\r')) {
+                    pos.line += 1;
+                }
+                prev = Some(c);
             }
             if let Some(loc) = self.locations.remove(&(input.len() as u32)) {
                 pos.utf8 = input.len() as u32;

@@ -29,6 +29,7 @@ use lexpr::Value;
 use std::collections::HashSet;
 
 
+
 // =====================
 // === S-expressions ===
 // =====================
@@ -126,10 +127,10 @@ fn strip_hidden_fields(tree: Value) -> Value {
         ":spanLeftOffsetCodeLenUtf16",
         ":spanLeftOffsetCodeLenNewlines",
         ":spanLeftOffsetCodeLenLineChars16",
-        ":spanLeftOffsetCodeOffsetUtf8",
-        ":spanLeftOffsetCodeOffsetUtf16",
-        ":spanLeftOffsetCodeOffsetLine",
-        ":spanLeftOffsetCodeOffsetCol16",
+        ":spanLeftOffsetCodeStartUtf8",
+        ":spanLeftOffsetCodeStartUtf16",
+        ":spanLeftOffsetCodeStartLine",
+        ":spanLeftOffsetCodeStartCol16",
         ":spanCodeLengthUtf8",
         ":spanCodeLengthUtf16",
         ":spanCodeLengthNewlines",

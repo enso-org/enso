@@ -212,7 +212,7 @@ impl<'s> Lexer<'s> {
             let offset =
                 Offset(visible_offset, Code::from_str_at_location(offset_code, left_offset_start));
             self.spaces_after_lexeme();
-            assert_eq!(left_offset_start + Length::of(offset_code), start);
+            debug_assert_eq!(left_offset_start + Length::of(offset_code), start);
             Token(offset, Code::from_str_at_location(code, start), elem)
         })
     }
@@ -1310,7 +1310,6 @@ impl<'s> Lexer<'s> {
 // =============
 
 impl<'s> Lexer<'s> {
-    #[allow(clippy::collapsible_if)]
     fn line_break(&mut self) -> Option<Token<'s, ()>> {
         let token = self.token(|this| {
             let matched = if this.take_1('\n') {
@@ -1467,7 +1466,7 @@ pub mod test {
     pub use token::*;
 
     fn test_code(code: &str) -> Code {
-        Code::from_str_without_offset(code)
+        Code::from_str_without_location(code)
     }
 
     /// Constructor.
@@ -1554,7 +1553,7 @@ mod tests {
     }
 
     fn test_code(code: &str) -> Code {
-        Code::from_str_without_offset(code)
+        Code::from_str_without_location(code)
     }
 
     fn test_lexer_many<'s>(inputs: Vec<(&'s str, Vec<Token<'s>>)>) {
@@ -1883,6 +1882,13 @@ mod tests {
     fn test_based_numbers() {
         lex_and_validate_spans("0x23");
         lex_and_validate_spans("2_010101");
+    }
+
+    #[test]
+    fn test_line_endings() {
+        //lex_and_validate_spans("Windows\r\n...");
+        //lex_and_validate_spans("Linux\n...");
+        lex_and_validate_spans("Classic Mac OS\r...");
     }
 }
 
