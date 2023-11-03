@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
 import scala.collection.Iterator;
@@ -317,9 +318,36 @@ public final class IrPersistance {
   }
 
   @ServiceProvider(service = Persistance.class)
+  public static final class PersistPolyglot extends Persistance<Polyglot> {
+    public PersistPolyglot() {
+      super(Polyglot.class, false, 343);
+    }
+
+    @Override
+    protected void writeObject(Polyglot obj, Output out) throws IOException {
+      out.writeObject(obj.entity());
+      out.writeInline(Option.class, obj.rename());
+      out.writeInline(Option.class, obj.location());
+      out.writeInline(MetadataStorage.class, obj.passData());
+      out.writeInline(DiagnosticStorage.class, obj.diagnostics());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected Polyglot readObject(Input in) throws IOException, ClassNotFoundException {
+      var entity = (Polyglot.Entity) in.readObject();
+      var rename = in.readInline(Option.class);
+      var location = in.readInline(Option.class);
+      var meta = in.readInline(MetadataStorage.class);
+      var diag = in.readInline(DiagnosticStorage.class);
+      return new Polyglot(entity, rename, location, meta, diag);
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
   public static final class PersistExportModuleStorage extends Persistance<Export.Module> {
     public PersistExportModuleStorage() {
-      super(Export.Module.class, false, 343);
+      super(Export.Module.class, false, 344);
     }
 
     @Override
