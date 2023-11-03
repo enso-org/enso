@@ -12,7 +12,6 @@ import org.graalvm.polyglot.Context;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.NavigableSet;
 
 public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
 
@@ -131,5 +130,5 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
   }
 
   private final Comparator<OrderedMultiValueKey> firstCoordinateComparator =
-      new OrderedMultiValueKey.LimitedIndexComparator(1);
+      new OrderedMultiValueKey.ProjectionComparator(0);
 }
