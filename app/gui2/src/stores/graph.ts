@@ -5,7 +5,6 @@ import { useObserveYjs } from '@/util/crdt'
 import type { Opt } from '@/util/opt'
 import type { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
-import { iteratorFilter, mapIterator } from 'lib0/iterator'
 import * as map from 'lib0/map'
 import * as set from 'lib0/set'
 import { defineStore } from 'pinia'
@@ -19,9 +18,8 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, reactive, ref, watch, type ComputedRef } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import * as Y from 'yjs'
-import { SnapGrid } from './graph/snap'
 
 export const useGraphStore = defineStore('graph', () => {
   const proj = useProjectStore()
@@ -120,6 +118,7 @@ export const useGraphStore = defineStore('graph', () => {
       if (op.action === 'update') {
         const data = meta.get(id)
         const node = nodes.get(id as ExprId)
+        console.log(data, node)
         if (data != null && node != null) {
           assignUpdatedMetadata(node, data)
         }
@@ -156,7 +155,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   function assignUpdatedMetadata(node: Node, meta: NodeMetadata) {
     const newPosition = new Vec2(meta.x, -meta.y)
-    console.log('assignUpdatedMetadata', newPosition, node.position)
+    console.log('assignUpdatedMetadata', newPosition, node.position, node.visiblePosition)
     if (!node.position.equals(newPosition)) {
       node.position = newPosition
     }
@@ -331,13 +330,6 @@ export const useGraphStore = defineStore('graph', () => {
     exprRects.set(id, rect)
   }
 
-  function createSnapGrid(excludedNodes: Iterable<ExprId>) {
-    const excludeSet = new Set<ExprId>()
-    for (const excluded of excludedNodes) excludeSet.add(excluded)
-    const withoutExcluded = iteratorFilter(nodeRects.entries(), ([id]) => !excludeSet.has(id))
-    return new SnapGrid(Array.from(withoutExcluded, ([_, rect]) => rect))
-  }
-
   return {
     _ast,
     transact,
@@ -364,7 +356,6 @@ export const useGraphStore = defineStore('graph', () => {
     stopCapturingUndo,
     updateNodeRect,
     updateExprRect,
-    createSnapGrid,
   }
 })
 

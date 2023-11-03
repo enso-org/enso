@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import { SnapGrid } from '@/components/GraphEditor/snap'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
-import { SnapGrid } from '@/stores/graph/snap'
 import { useApproach } from '@/util/animation'
 import { Rect } from '@/util/rect'
 import { Vec2 } from '@/util/vec2'
-import { watch } from 'fs'
-import { mapIterator } from 'lib0/iterator'
+import { iteratorFilter } from 'lib0/iterator'
 import { abs } from 'lib0/math'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
 import { ref, watchEffect, type Ref, type WatchStopHandle } from 'vue'
@@ -31,7 +30,7 @@ class Drag {
 
   constructor(movedId: ExprId) {
     this.draggedNodes = selection?.isSelected(movedId) ? Array.from(selection.selected) : [movedId]
-    this.grid = graphStore.createSnapGrid(this.draggedNodes)
+    this.grid = this.createSnapGrid()
 
     this.stopPositionUpdate = watchEffect(() => {
       for (const id of this.draggedNodes) {
@@ -53,10 +52,8 @@ class Drag {
       const node = graphStore.nodes.get(id)
       if (rect != null && node != null) rects.push(new Rect(node.position.add(offset), rect.size))
     }
-    console.log(rects[0].pos)
     const snap = this.grid.snappedMany(rects, Drag.THRESHOLD)
     const newSnappedOffset = offset.add(snap)
-    console.log(snap)
     this.snapXTarget.value = snap.x
     if (abs(newSnappedOffset.x - oldSnappedOffset.x) < 2.0) {
       this.snapX.skip()
@@ -68,12 +65,27 @@ class Drag {
   }
 
   finishDragging(): void {
+    this.stopPositionUpdate()
     for (const id of this.draggedNodes) {
       const node = graphStore.nodes.get(id)
       if (node == null || node.visiblePosition == null) continue
-      graphStore.setNodePosition(id, node.visiblePosition)
+      const newPosition = node.position
+        .add(this.offset.value)
+        .add(new Vec2(this.snapXTarget.value, this.snapYTarget.value))
+      console.log('New Position', newPosition)
+      graphStore.setNodePosition(id, newPosition)
       delete node.visiblePosition
     }
+  }
+
+  private createSnapGrid() {
+    const excludeSet = new Set<ExprId>()
+    for (const node of this.draggedNodes) excludeSet.add(node)
+    const withoutExcluded = iteratorFilter(
+      graphStore.nodeRects.entries(),
+      ([id]) => !excludeSet.has(id),
+    )
+    return new SnapGrid(Array.from(withoutExcluded, ([_, rect]) => rect))
   }
 }
 
