@@ -173,7 +173,11 @@ public class Column {
     } else if (repeat == 1) {
       return fromItems(name, items, null, problemAggregator);
     } else if (repeat == 0) {
-      return new Column(name, new InferredBuilder(0, problemAggregator).seal());
+      var item = items.get(0);
+      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
+      var builder = new InferredBuilder(1, problemAggregator);
+      builder.initBuilderFor(converted);
+      return new Column(name, builder.seal());
     }
 
     Context context = Context.getCurrent();

@@ -96,7 +96,7 @@ public class InferredBuilder extends Builder {
     }
   }
 
-  private void initBuilderFor(Object o) {
+  public void initBuilderFor(Object o) {
     int initialCapacity = Math.max(initialSize, currentSize);
     if (o instanceof Boolean) {
       currentBuilder = new BoolBuilder();

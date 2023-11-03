@@ -1258,6 +1258,17 @@ spec setup =
             empty2 = empty.set constant
             empty2.column_names.should_equal ['x', '42']
 
+    Test.group "asdfasdf" <|
+        Test.specify "Should create a column of the correct type on a table with no rows" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            empty = t.take 0
+            [[False, Value_Type.Boolean], [42,  Value_Type.Integer], ["42",  Value_Type.Char], ["foo", Value_Type.Char], [1.0, Value_Type.Float]].map pair->
+                value = pair.at 0
+                typ = pair.at 1
+                c = empty.make_constant_column value
+                c . value_type . should_equal typ
+                (empty.set c).at value.to_text . value_type . should_equal typ
+
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
     Value
