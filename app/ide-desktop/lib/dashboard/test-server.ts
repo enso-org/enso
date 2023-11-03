@@ -22,7 +22,7 @@ const OPTS = bundler.bundlerOptions({ outputPath: '/', devMode: true })
 OPTS.define['REDIRECT_OVERRIDE'] = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
-    path.resolve(THIS_PATH, 'src', 'index.tsx'),
+    path.resolve(THIS_PATH, 'src', 'index.ts'),
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
 OPTS.write = false
