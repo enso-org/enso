@@ -1,4 +1,8 @@
+/// <reference lib="DOM" />
 /* eslint-env browser */
+
+// The refernce to DOM types is requiredto use `WebSocket` as a type.
+// This is preferable over using `any`, for additional type safety.
 
 /* The MIT License (MIT)
  *
