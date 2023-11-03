@@ -160,7 +160,7 @@ case object FunctionBinding extends IRPass {
 
           definition.Method.Explicit(
             methRef,
-            newBody,
+            List(newBody),
             loc,
             passData,
             diagnostics

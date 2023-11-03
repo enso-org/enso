@@ -49,13 +49,24 @@ object Method {
     */
   sealed case class Explicit(
     override val methodReference: Name.MethodReference,
-    override val body: Expression,
+    val bodyList: Seq[Expression],
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage,
+    override val diagnostics: DiagnosticStorage
   ) extends Method
       with IRKind.Primitive {
+    def this(
+      methodReference: Name.MethodReference,
+      body: Expression,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage      = MetadataStorage(),
+      diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) = {
+      this(methodReference, Seq(body), location, passData, diagnostics);
+    }
+
     var id: UUID @Identifier = randomId
+    val body                 = bodyList.head
 
     /** Creates a copy of `this`.
       *
@@ -77,7 +88,7 @@ object Method {
     ): Explicit = {
       val res = Explicit(
         methodReference,
-        body,
+        List(body),
         location,
         passData,
         diagnostics
@@ -182,6 +193,20 @@ object Method {
       case _ => false
     }
 
+  }
+
+  object Explicit {
+    def unapply(m: Explicit): Option[
+      (
+        Name.MethodReference,
+        Expression,
+        Option[IdentifiedLocation],
+        MetadataStorage,
+        DiagnosticStorage
+      )
+    ] = {
+      Some((m.methodReference, m.body, m.location, m.passData, m.diagnostics))
+    }
   }
 
   /** The definition of a method for a given constructor using sugared

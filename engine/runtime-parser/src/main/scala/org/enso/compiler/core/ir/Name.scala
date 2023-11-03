@@ -44,7 +44,7 @@ object Name {
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
-  sealed case class MethodReference(
+  final case class MethodReference(
     typePointer: Option[Name],
     methodName: Name,
     location: Option[IdentifiedLocation],
