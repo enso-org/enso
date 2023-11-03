@@ -172,21 +172,20 @@ public class Column {
       throw new IllegalArgumentException("Repeat count must be non-negative.");
     } else if (repeat == 1) {
       return fromItems(name, List.of(item), null, problemAggregator);
-    } else if (repeat == 0) {
-      Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
-      var builder = new InferredBuilder(1, problemAggregator);
-      builder.initBuilderFor(converted);
-      return new Column(name, builder.seal());
     }
+
+    var builder = new InferredBuilder(repeat, problemAggregator);
+    Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
 
     Context context = Context.getCurrent();
 
-    Object value = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
-
-    var builder = new InferredBuilder(repeat, problemAggregator);
-    for (int i = 0; i < repeat; i++) {
-      builder.appendNoGrow(value);
-      context.safepoint();
+    if (repeat != 0) {
+      for (int i = 0; i < repeat; i++) {
+        builder.appendNoGrow(converted);
+        context.safepoint();
+      }
+    } else {
+      builder.initBuilderFor(converted);
     }
 
     return new Column(name, builder.seal());
