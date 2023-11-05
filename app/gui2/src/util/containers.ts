@@ -1,6 +1,6 @@
+import type { NonEmptyArray } from '@/util/array.ts'
 import { assertDefined, assertEqual } from '@/util/assert'
 import { expect, test } from 'vitest'
-import type {NonEmptyArray} from "@/util/array.ts";
 
 /**
  * Map that supports Object-based keys.
@@ -59,7 +59,7 @@ export class MappedKeyMap<Key, Value> {
   }
 
   /** Iterate over the values in the map. */
-  *[Symbol.iterator](): IterableIterator<[Key, Value]> {
+  [Symbol.iterator](): IterableIterator<[Key, Value]> {
     return this.map.values()
   }
 }
