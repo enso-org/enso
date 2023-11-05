@@ -188,6 +188,13 @@ class TestCase {
         `Found expected unresolved symbol usage at ${this.prettyPrint(unresolvedSymbol)}.`,
       )
     }
+
+    assertEqual(
+      this.expectedUnresolvedSymbols.size,
+      analyzer.unresolvedSymbols.size,
+      'Unresolved symbols count mismatch.',
+    )
+
     return analyzer
   }
 
@@ -244,84 +251,83 @@ test('Annotations parsing', () => {
   validateAnnotation([58, 59], AnnotationType.Usage, 2, 'y')
 })
 
-test('Plain dependency', () => {
-  const analyzer = TestCase.parseAndRun('main =\n    «1,x» = 1\n    »1,x«')
-  assertEmpty(analyzer.unresolvedSymbols)
-})
+function runTestCase(code: string) {
+  return () => TestCase.parseAndRun(code)
+}
 
-test('Unresolved dependency', () => {
-  const analyzer = TestCase.parseAndRun('main =\n    «1,x» = 1\n    »2,y«')
-  assertLength(analyzer.unresolvedSymbols, 1) // `y` is not in scope.
-})
+test(
+  'Plain dependency',
+  runTestCase(`main =
+    «1,x» = 1
+    »1,x«`),
+)
 
-test('Local variable shadowed by the lambda argument', () => {
-  const analyzer = TestCase.parseAndRun(`main =
+test(
+  'Unresolved dependency',
+  runTestCase(`main =
+    «1,x» = 1
+    »2,y«`),
+)
+
+test(
+  'Local variable shadowed by the lambda argument',
+  runTestCase(`main =
     «1,x» = 1
     «2,y» = 2
     z = «3,x» -> »3,x« + »2,y«
-    u = »1,x« + »2,y«`)
-  assertEmpty(analyzer.unresolvedSymbols)
-})
+    u = »1,x« + »2,y«`),
+)
 
-test('Plain symbol usage', () => {
-  const analyzer = TestCase.parseAndRun('»1,x«')
-  assertLength(analyzer.unresolvedSymbols, 1) // `x` is not in scope.
-})
+test('Plain symbol usage', runTestCase('»1,x«'))
 
-test('Accessors', () => {
-  const analyzer = TestCase.parseAndRun(`main =
+test(
+  'Accessors',
+  runTestCase(`main =
     «1,x» = 1
-    »1,x«.x.y »2,arg«`)
-  assertLength(analyzer.unresolvedSymbols, 1) // `arg` is not in scope.
-})
+    »1,x«.x.y »2,arg«`),
+)
 
-test('Function argument', () => {
-  const analyzer = TestCase.parseAndRun(`main =
+test(
+  'Function argument',
+  runTestCase(`main =
     «1,func» «2,arg» = »2,arg« + 1
-    »1,func« »3,arg«`)
-  assertLength(analyzer.unresolvedSymbols, 1) // `arg` is not in scope.
-})
+    »1,func« »3,arg«`),
+)
 
-test('Multi-segment application', () => {
-  const analyzer = TestCase.parseAndRun(`main =
+test(
+  'Multi-segment application',
+  runTestCase(`main =
     «1,x» = True
-    if »1,x« then »2,y« else »3,z«`)
-})
+    if »1,x« then »2,y« else »3,z«`),
+)
 
-test('Complex?', () => {
-  const code = `## PRIVATE
+test(
+  'Function and case of',
+  runTestCase(`## PRIVATE
    Given a positive index and a list, returns the node.
 find_node_from_start «3,list» «4,index» =
     «1,loop» «2,current» «5,idx» = case »2,current« of
         Nil -> if »5,idx« == 0 then »2,current« else Error.throw (Index_Out_Of_Bounds.Error »4,index« »4,index«-»5,idx«+1)
         Cons _ «7,xs» -> if »5,idx« == 0 then »2,current« else @Tail_Call »1,loop« »7,xs« (»5,idx« - 1)
     »1,loop« »3,list« »4,index«
-    »6,idx«`
+    »6,idx«`),
+)
 
-  const analyzer = TestCase.parseAndRun(code)
-  assertLength(analyzer.unresolvedSymbols, 1) // The last line's `idx` - as it is now out of scope.
-})
-
-test('Named argument application', () => {
-  const code = `«1,main» =
+test(
+  'Named argument application',
+  runTestCase(`«1,main» =
     «2,hundred» = 100
-    »3,summarize_transaction« (price = »2,hundred«)`
-  const analyzer = TestCase.parseAndRun(code)
-  assertLength(analyzer.unresolvedSymbols, 1) // `summarize_transaction`
-  // Note: the `price` argument is not a variable usage and should be ignored by the alias analysis.
-})
+    »3,summarize_transaction« (price = »2,hundred«)`),
+)
 
-test('Default argument application', () => {
-  const code = `«1,main» =
-    »3,summarize_transaction« default`
-  const analyzer = TestCase.parseAndRun(code)
-  assertLength(analyzer.unresolvedSymbols, 1) // `summarize_transaction`
-  // Note: the `default` keyword is not a variable usage and should be ignored by the alias analysis.
-})
+test(
+  'Default argument application',
+  runTestCase(`«1,main» =
+    »3,summarize_transaction« default`),
+)
 
-test('Text literals', () => {
-  const code = `«1,main» =
-    «2,fmt_string» = 'Hello, my age is \`»3,time«.now.year - »4,birthday«\`'`
-  const analyzer = TestCase.parseAndRun(code)
-  assertLength(analyzer.unresolvedSymbols, 2) // `time` and `birthday`
-})
+test(
+  'Text literals',
+  runTestCase(`«1,main» =
+    «2,fmt_string» = 'Hello, my age is \`»3,time«.now.year - »4,birthday«\`'`),
+)

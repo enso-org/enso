@@ -1,8 +1,7 @@
-import { TextElement, Token, Tree } from '@/generated/ast'
+import { Token, Tree } from '@/generated/ast'
 import { assert } from '@/util/assert'
 import {
   astPrettyPrintType,
-  childrenAstNodes,
   parseEnso,
   parsedTreeOrTokenRange,
   readAstOrTokenSpan,
@@ -268,7 +267,7 @@ export class AliasAnalyzer {
         this.processTree(node.func)
         // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
         break
-      case Tree.Type.OprApp:
+      case Tree.Type.OprApp: {
         const opr = node.opr.ok ? readAstOrTokenSpan(node.opr.value, this.code) : ''
         switch (opr) {
           case LAMBDA_OPERATOR:
@@ -290,6 +289,7 @@ export class AliasAnalyzer {
             break
         }
         break
+      }
       case Tree.Type.MultiSegmentApp:
         for (const segment of node.segments) {
           // Intentionally omit segment header, as it is not a variable usage.
