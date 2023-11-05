@@ -11,6 +11,14 @@ export class Rect {
 
   static Zero = new Rect(Vec2.Zero, Vec2.Zero)
 
+  static FromDomRect(domRect: DOMRect): Rect {
+    return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
+  }
+
+  offsetBy(offset: Vec2): Rect {
+    return new Rect(this.pos.add(offset), this.size)
+  }
+
   get left(): number {
     return this.pos.x
   }

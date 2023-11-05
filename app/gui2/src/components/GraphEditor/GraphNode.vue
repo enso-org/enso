@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
-import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import type { Node } from '@/stores/graph'
+import { useGraphStore, type Node } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useApproach } from '@/util/animation'
@@ -19,6 +18,7 @@ import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
 import GraphVisualization from './GraphVisualization.vue'
+import NodeWidgetTree from './NodeWidgetTree.vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -41,6 +41,10 @@ const emit = defineEmits<{
 }>()
 
 const nodeSelection = injectGraphSelection(true)
+const graph = useGraphStore()
+const isSourceOfDraggedEdge = computed(
+  () => graph.unconnectedEdge?.source === props.node.rootSpan.astId,
+)
 
 const nodeId = computed(() => props.node.rootSpan.astId)
 const rootNode = ref<HTMLElement>()
@@ -67,7 +71,11 @@ watchEffect(() => {
 })
 
 const outputHovered = ref(false)
-const hoverAnimation = useApproach(() => (outputHovered.value ? 1 : 0), 50, 0.01)
+const hoverAnimation = useApproach(
+  () => (outputHovered.value || isSourceOfDraggedEdge.value ? 1 : 0),
+  50,
+  0.01,
+)
 
 const bgStyleVariables = computed(() => {
   return {
@@ -108,10 +116,6 @@ function updateRange(range: ContentRange, threhsold: number, adjust: number) {
 
 function updateOffset(offset: number, threhsold: number, adjust: number) {
   return offset >= threhsold ? offset + adjust : offset
-}
-
-function updateExprRect(id: ExprId, rect: Rect) {
-  emit('updateExprRect', id, rect)
 }
 
 interface TextEdit {
@@ -372,9 +376,8 @@ const color = computed(() =>
     ? `var(--group-color-${suggestionDbStore.groups[suggestionEntry.value.groupIndex]?.name})`
     : colorFromString(expressionInfo.value?.typename ?? 'Unknown'),
 )
-
-function hoverExpr(id: ExprId | undefined) {
-  if (nodeSelection != null) nodeSelection.hoveredExpr = id
+const updateExprRect = (expr: ExprId, rect: Rect) => {
+  emit('updateExprRect', expr, rect)
 }
 </script>
 
@@ -419,17 +422,12 @@ function hoverExpr(id: ExprId | undefined) {
       ><span
         ref="editableRootNode"
         class="editable"
-        contenteditable
         spellcheck="false"
         @beforeinput="editContent"
         @keydown="editableKeydownHandler"
         @pointerdown.stop
         @blur="projectStore.stopCapturingUndo()"
-        ><NodeTree
-          :ast="node.rootSpan"
-          :nodeSpanStart="node.rootSpan.span()[0]"
-          @updateExprRect="updateExprRect"
-          @updateHoveredExpr="hoverExpr($event)"
+        ><NodeWidgetTree :ast="node.rootSpan" @updateExprRect="updateExprRect"
       /></span>
     </div>
     <svg class="bgPaths" :style="bgStyleVariables">
@@ -441,8 +439,8 @@ function hoverExpr(id: ExprId | undefined) {
         @pointerdown="emit('outputPortAction')"
       />
       <rect class="outputPort" />
+      <text class="outputTypeName">{{ outputTypeName }}</text>
     </svg>
-    <div class="outputTypeName">{{ outputTypeName }}</div>
   </div>
 </template>
 
@@ -457,7 +455,7 @@ function hoverExpr(id: ExprId | undefined) {
   display: flex;
 
   --output-port-max-width: 6px;
-  --output-port-overlap: 0.1px;
+  --output-port-overlap: 0.2px;
   --output-port-hover-width: 8px;
 }
 .outputPort,
@@ -498,6 +496,16 @@ function hoverExpr(id: ExprId | undefined) {
   pointer-events: all;
 }
 
+.outputTypeName {
+  user-select: none;
+  pointer-events: none;
+  z-index: 10;
+  text-anchor: middle;
+  opacity: calc(var(--hover-animation) * var(--hover-animation));
+  fill: var(--node-color-primary);
+  transform: translate(50%, calc(var(--node-height) + var(--output-port-max-width) + 16px));
+}
+
 .bgFill {
   width: var(--node-width);
   height: var(--node-height);
@@ -507,22 +515,16 @@ function hoverExpr(id: ExprId | undefined) {
   transition: fill 0.2s ease;
 }
 
-.bgPaths .bgPaths:hover {
-  opacity: 1;
-}
-
 .GraphNode {
   --node-height: 32px;
   --node-border-radius: 16px;
-
-  --node-group-color: #357ab9;
 
   --node-color-primary: color-mix(
     in oklab,
     var(--node-group-color) 100%,
     var(--node-group-color) 0%
   );
-  --node-color-port: color-mix(in oklab, var(--node-color-primary) 75%, white 15%);
+  --node-color-port: color-mix(in oklab, var(--node-color-primary) 85%, white 15%);
   --node-color-error: color-mix(in oklab, var(--node-group-color) 30%, rgb(255, 0, 0) 70%);
 
   &.executionState-Unknown,
@@ -626,22 +628,5 @@ function hoverExpr(id: ExprId | undefined) {
 
 .CircularMenu {
   z-index: 1;
-}
-
-.outputTypeName {
-  user-select: none;
-  position: absolute;
-  left: 50%;
-  top: 110%;
-  transform: translateX(-50%);
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-  pointer-events: none;
-  z-index: 10;
-  color: var(--node-color-primary);
-}
-
-.GraphNode:hover .outputTypeName {
-  opacity: 1;
 }
 </style>

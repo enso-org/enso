@@ -3,8 +3,10 @@ import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore } from '@/stores/graph'
+import type { Rect } from '@/util/rect'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
+import { watchEffect } from 'vue'
 
 const graphStore = useGraphStore()
 const selection = injectGraphSelection(true)
@@ -22,7 +24,7 @@ function moveNode(movedId: ExprId, delta: Vec2) {
   const scaledDelta = delta.scale(1 / (navigator?.scale ?? 1))
   graphStore.transact(() => {
     for (const id of selection?.isSelected(movedId) ? selection.selected : [movedId]) {
-      const node = graphStore.nodes.get(id)
+      const node = graphStore.db.getNode(id)
       if (node == null) continue
       graphStore.setNodePosition(id, node.position.add(scaledDelta))
     }
@@ -32,16 +34,23 @@ function moveNode(movedId: ExprId, delta: Vec2) {
 function hoverNode(id: ExprId | undefined) {
   if (selection != null) selection.hoveredNode = id
 }
+
+function updateExprRect(nodeId: ExprId, expr: ExprId, rect: Rect) {
+  const nodeRect = graphStore.nodeRects.get(nodeId)
+  if (nodeRect == null) return
+  const localRect = rect.offsetBy(nodeRect.pos.inverse())
+  graphStore.updateExprRect(expr, localRect)
+}
 </script>
 
 <template>
   <GraphNode
-    v-for="[id, node] in graphStore.nodes"
+    v-for="[id, node] in graphStore.db.allNodes()"
     :key="id"
     :node="node"
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
-    @updateExprRect="graphStore.updateExprRect"
+    @updateExprRect="(expr, rect) => updateExprRect(id, expr, rect)"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
     @updateContent="updateNodeContent(id, $event)"

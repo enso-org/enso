@@ -51,7 +51,7 @@ function createNodeFromEdgeDrop(source: ExprId) {
   console.log(`TODO: createNodeFromEdgeDrop(${JSON.stringify(source)})`)
 }
 function createEdge(source: ExprId, target: ExprId) {
-  const sourceNode = graphStore.nodes.get(source)
+  const sourceNode = graphStore.db.getNode(source)
   if (sourceNode == null) return
   // TODO: Check alias analysis to see if the binding is shadowed.
   graphStore.setExpressionContent(target, sourceNode.binding)

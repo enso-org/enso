@@ -6,6 +6,7 @@ import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
+import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -23,6 +24,7 @@ const EXECUTION_MODES = ['design', 'live']
 const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = provideGraphNavigator(viewportNode)
+const _ = provideWidgetRegistry()
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const componentBrowserVisible = ref(false)
@@ -31,13 +33,7 @@ const suggestionDb = useSuggestionDbStore()
 
 const nodeSelection = provideGraphSelection(navigator, graphStore.nodeRects, {
   onSelected(id) {
-    const node = graphStore.nodes.get(id)
-    if (node) {
-      // When a node is selected, we want to reorder it to be visually at the top. This is done by
-      // reinserting it into the nodes map, which is later iterated over in the template.
-      graphStore.nodes.delete(id)
-      graphStore.nodes.set(id, node)
-    }
+    graphStore.db.moveNodeToTop(id)
   },
 })
 
@@ -90,7 +86,7 @@ const graphBindingsHandler = graphBindings.handler({
     graphStore.transact(() => {
       const allVisible = set
         .toArray(nodeSelection.selected)
-        .every((id) => !(graphStore.nodes.get(id)?.vis?.visible !== true))
+        .every((id) => !(graphStore.db.getNode(id)?.vis?.visible !== true))
 
       for (const nodeId of nodeSelection.selected) {
         graphStore.setNodeVisualizationVisible(nodeId, !allVisible)

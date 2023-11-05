@@ -7,7 +7,7 @@ import { type Opt } from '@/util/opt'
 import { qnParent, type QualifiedName } from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { reactive, ref, type Ref } from 'vue'
+import { markRaw, reactive, ref, type Ref } from 'vue'
 
 export class SuggestionDb {
   internal: ReactiveDb<SuggestionId, SuggestionEntry>
@@ -122,5 +122,5 @@ export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
   const groups = ref<Group[]>([])
 
   const synchronizer = new Synchronizer(entries, groups)
-  return { entries, groups, _synchronizer: synchronizer }
+  return { entries: markRaw(entries), groups, _synchronizer: synchronizer }
 })

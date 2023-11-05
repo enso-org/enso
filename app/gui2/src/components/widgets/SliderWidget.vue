@@ -27,24 +27,30 @@ const inputValue = computed({
     return props.modelValue
   },
   set(value) {
+    console.log('set', value)
     emit('update:modelValue', value)
   },
 })
 </script>
 
 <template>
-  <div ref="sliderNode" class="Slider" v-on="dragPointer.events">
+  <div ref="sliderNode" class="SliderWidget" v-on="dragPointer.events">
     <div class="fraction" :style="{ width: sliderWidth }"></div>
-    <input v-model.number="inputValue" type="number" :size="1" class="value" />
+    <input
+      v-model.number="inputValue"
+      type="number"
+      :size="1"
+      class="value"
+      @input.capture="console.log($event)"
+    />
   </div>
 </template>
 
 <style scoped>
-.Slider {
+.SliderWidget {
   clip-path: inset(0 round var(--radius-full));
   position: relative;
   user-select: none;
-  display: flex;
   justify-content: space-around;
   background: var(--color-widget);
   border-radius: var(--radius-full);
@@ -72,6 +78,16 @@ const inputValue = computed({
   padding-bottom: 1px;
   appearance: textfield;
   -moz-appearance: textfield;
+  cursor: none;
+}
+
+input {
+  width: 100%;
+  border-radius: inherit;
+  &:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 15%);
+  }
 }
 
 input::-webkit-outer-spin-button,

@@ -32,6 +32,10 @@ export class Vec2 {
     return dx * dx + dy * dy
   }
 
+  inverse(): Vec2 {
+    return new Vec2(-this.x, -this.y)
+  }
+
   add(other: Vec2): Vec2 {
     return new Vec2(this.x + other.x, this.y + other.y)
   }
