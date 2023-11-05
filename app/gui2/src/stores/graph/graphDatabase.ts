@@ -24,7 +24,6 @@ export class GraphDb {
       }
       return true
     })
-    console.log('idents', idents)
     return idents
   })
   nodeExpressions = new ReactiveIndex(this.nodes, (id, entry) => {
@@ -65,9 +64,14 @@ export class GraphDb {
     return this.nodes.get(id)
   }
 
-  edges() {
-    return this.connections.forward.values()
-  }
+  // edges() {
+  //   return mapIterator(this.connections.allReverse(), ([target, sources]) => {
+  //     return {
+  //       target,
+  //       source: set.first(sources),
+  //     }
+  //   })
+  // }
 
   allNodes(): IterableIterator<[ExprId, Node]> {
     return this.nodes.entries()

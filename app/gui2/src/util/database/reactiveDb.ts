@@ -219,6 +219,16 @@ export class ReactiveIndex<K, V, IK, IV> {
     remove(this.reverse, value, key)
   }
 
+  allForward(): IterableIterator<[IK, Set<IV>]> {
+    this.effects.flush()
+    return this.forward.entries()
+  }
+
+  allReverse(): IterableIterator<[IV, Set<IK>]> {
+    this.effects.flush()
+    return this.reverse.entries()
+  }
+
   /** Look for key in the forward index.
    * Returns a set of values associated with the given index key.
    *

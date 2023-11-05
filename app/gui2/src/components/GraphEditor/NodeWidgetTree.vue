@@ -16,9 +16,7 @@ const emit = defineEmits<{
 
 const spanStart = computed(() => props.ast.span()[0])
 const tree = provideWidgetTree(spanStart)
-tree.on('rect', (id, rect) => {
-  emit('updateExprRect', id, rect)
-})
+tree.on('rect', (id, rect) => emit('updateExprRect', id, rect))
 </script>
 
 <template>

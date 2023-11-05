@@ -3,6 +3,7 @@ import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import { injectGraphSelection } from '@/providers/graphSelection.ts'
 import { useGraphStore } from '@/stores/graph'
 import { Interaction } from '@/util/interaction.ts'
+import * as set from 'lib0/set'
 import type { ExprId } from 'shared/yjsModel.ts'
 import { watch } from 'vue'
 
@@ -26,7 +27,7 @@ class EditingEdge extends Interaction {
     if (graphStore.unconnectedEdge == null) return false
     const source = graphStore.unconnectedEdge.source ?? selection?.hoveredNode
     const target = graphStore.unconnectedEdge.target ?? selection?.hoveredExpr
-    const targetNode = target != null ? graphStore.exprNodes.get(target) : undefined
+    const targetNode = target != null ? lookupExprNode(target) : undefined
     graphStore.transact(() => {
       if (source != null && source != targetNode) {
         if (target == null) {
@@ -68,6 +69,10 @@ watch(
     }
   },
 )
+
+function lookupExprNode(exprId: ExprId): ExprId | undefined {
+  return set.first(graphStore.db.nodeExpressions.reverseLookup(exprId))
+}
 </script>
 
 <template>
@@ -77,7 +82,7 @@ watch(
     :edge="edge"
     :nodeRects="graphStore.nodeRects"
     :exprRects="graphStore.exprRects"
-    :exprNodes="graphStore.exprNodes"
+    :lookupExprNode="lookupExprNode"
     @disconnectSource="graphStore.disconnectSource(edge)"
     @disconnectTarget="graphStore.disconnectTarget(edge)"
   />

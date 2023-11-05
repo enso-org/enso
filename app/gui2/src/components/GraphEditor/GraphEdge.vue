@@ -15,7 +15,7 @@ const props = defineProps<{
   edge: Edge
   nodeRects: Map<ExprId, Rect>
   exprRects: Map<ExprId, Rect>
-  exprNodes: Map<ExprId, ExprId>
+  lookupExprNode: (exprId: ExprId) => ExprId | undefined
 }>()
 
 const emit = defineEmits<{
@@ -32,7 +32,7 @@ const targetPos = computed<PosMaybeSized | null>(() => {
     props.edge.target ??
     (selection?.hoveredNode != props.edge.source ? selection?.hoveredExpr : undefined)
   if (targetExpr != null) {
-    const targetNodeId = props.exprNodes.get(targetExpr)
+    const targetNodeId = props.lookupExprNode(targetExpr)
     if (targetNodeId == null) return null
     const targetNodeRect = props.nodeRects.get(targetNodeId)
     const targetRect = props.exprRects.get(targetExpr)
@@ -45,7 +45,7 @@ const targetPos = computed<PosMaybeSized | null>(() => {
   }
 })
 const sourcePos = computed<PosMaybeSized | null>(() => {
-  const targetNode = props.edge.target != null ? props.exprNodes.get(props.edge.target) : undefined
+  const targetNode = props.edge.target != null ? props.lookupExprNode(props.edge.target) : undefined
   const sourceNode =
     props.edge.source ?? (selection?.hoveredNode != targetNode ? selection?.hoveredNode : undefined)
   if (sourceNode != null) {
@@ -446,7 +446,7 @@ function arrowPosition(): Vec2 | undefined {
   const target = targetPos.value
   const source = sourcePos.value
   if (target == null || source == null) return
-  if (Math.abs(target.pos.y - source.pos.y) < ThreeCorner.BACKWARD_EDGE_ARROW_THRESHOLD) return
+  if (target.pos.y > source.pos.y - ThreeCorner.BACKWARD_EDGE_ARROW_THRESHOLD) return
   if (points[1] == null) return
   return source.pos.add(points[1])
 }

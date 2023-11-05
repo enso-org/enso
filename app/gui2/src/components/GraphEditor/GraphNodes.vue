@@ -6,7 +6,6 @@ import { useGraphStore } from '@/stores/graph'
 import type { Rect } from '@/util/rect'
 import type { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId } from 'shared/yjsModel'
-import { watchEffect } from 'vue'
 
 const graphStore = useGraphStore()
 const selection = injectGraphSelection(true)

@@ -71,7 +71,7 @@ export class LazySyncEffectSet {
             },
           },
         )
-        this._dirtyRunners.add(runner)
+        runner.effect.scheduler?.()
         return () => runner.effect.stop()
       }) ?? nop
     )

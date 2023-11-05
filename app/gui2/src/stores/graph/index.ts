@@ -18,7 +18,7 @@ import {
   type VisualizationIdentifier,
   type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch } from 'vue'
+import { computed, reactive, ref, toRef, watch, watchEffect } from 'vue'
 import * as Y from 'yjs'
 
 export { type Node } from '@/stores/graph/graphDatabase'
@@ -39,7 +39,6 @@ export const useGraphStore = defineStore('graph', () => {
     toRef(suggestionDb, 'groups'),
     proj.computedValueRegistry,
   )
-  const exprNodes = reactive(new Map<ExprId, ExprId>())
   const nodeRects = reactive(new Map<ExprId, Rect>())
   const exprRects = reactive(new Map<ExprId, Rect>())
 
@@ -124,8 +123,7 @@ export const useGraphStore = defineStore('graph', () => {
   const edges = computed(() => {
     const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
     const edges = []
-    console.log('compute edges')
-    for (const [target, sources] of db.connections.reverse.entries()) {
+    for (const [target, sources] of db.connections.allReverse()) {
       if (target === disconnectedEdgeTarget) continue
       for (const source of sources) {
         edges.push({ source, target })
@@ -245,8 +243,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   return {
     transact,
-    db: markRaw(db),
-    exprNodes,
+    db,
     unconnectedEdge,
     edges,
     nodeRects,
