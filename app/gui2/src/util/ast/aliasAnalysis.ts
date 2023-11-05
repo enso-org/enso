@@ -10,9 +10,9 @@ import {
 } from '@/util/ast'
 
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
+import type { LazyObject } from '@/util/parserSupport.ts'
 import type { ContentRange } from '../../../shared/yjsModel'
 import { IdMap, rangeIsBefore } from '../../../shared/yjsModel'
-import type {LazyObject} from "@/util/parserSupport.ts";
 
 /** Whether the debug logs of the alias analyzer should be enabled.
  *
@@ -72,7 +72,6 @@ export enum IdentifierType {
   Type = 'Type',
   TypeVariable = 'TypeVariable',
   Variable = 'Variable',
-
 }
 
 /** Check, what kind of identifier the given string is.
@@ -83,7 +82,7 @@ export function identifierKind(identifier: string): IdentifierType {
   // Identifier kinds, as per draft Enso spec:
   // https://github.com/enso-org/design/blob/wip/wd/enso-spec/epics/enso-spec-1.0/03.%20Code%20format%20and%20layout.md
   // Regex that matches any character that is allowed as part of operator identifier.
-  const operatorCharacter = /[!$%&*+\-/<>^~|:\\=.]/;
+  const operatorCharacter = /[!$%&*+\-/<>^~|:\\=.]/
   const firstCharacter = identifier.charAt(0)
   if (firstCharacter.match(operatorCharacter)) {
     return IdentifierType.Operator
@@ -327,10 +326,10 @@ export class AliasAnalyzer {
           if (pattern) {
             const armStart = parsedTreeOrTokenRange(pattern)[0]
             const armEnd = expression
-                ? parsedTreeOrTokenRange(expression)[1]
-                : arrow
-                    ? parsedTreeOrTokenRange(arrow)[1]
-                    : parsedTreeOrTokenRange(pattern)[1]
+              ? parsedTreeOrTokenRange(expression)[1]
+              : arrow
+              ? parsedTreeOrTokenRange(arrow)[1]
+              : parsedTreeOrTokenRange(pattern)[1]
 
             const armRange: ContentRange = [armStart, armEnd]
             this.withNewScopeOver(armRange, () => {

@@ -26,7 +26,14 @@
  */
 
 import type { ContentRange } from '@/../../../../shared/yjsModel'
-import {assert, assertDefined, assertEmpty, assertEqual, assertLength, assertNotEqual} from '@/util/assert'
+import {
+  assert,
+  assertDefined,
+  assertEmpty,
+  assertEqual,
+  assertLength,
+  assertNotEqual,
+} from '@/util/assert'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { expect, test } from 'vitest'
 import { IdMap } from '../../../../shared/yjsModel'
@@ -162,10 +169,7 @@ class TestCase {
     // Check that each expected connection is present.
     for (const [source, targets] of this.expectedAliases) {
       const foundTargets = analyzer.aliases.get(source)
-      assertDefined(
-        foundTargets,
-        `Expected binding ${this.prettyPrint(source)} not found.`,
-      )
+      assertDefined(foundTargets, `Expected binding ${this.prettyPrint(source)} not found.`)
       console.log(`Found expected binding ${this.prettyPrint(source)}`)
 
       for (const target of targets) {
@@ -180,7 +184,9 @@ class TestCase {
         analyzer.unresolvedSymbols.has(unresolvedSymbol),
         `Expected unresolved symbol usage ${this.prettyPrint(unresolvedSymbol)} not observed.`,
       )
-      console.log(`Found expected unresolved symbol usage at ${this.prettyPrint(unresolvedSymbol)}.`)
+      console.log(
+        `Found expected unresolved symbol usage at ${this.prettyPrint(unresolvedSymbol)}.`,
+      )
     }
     return analyzer
   }
@@ -241,7 +247,6 @@ test('Annotations parsing', () => {
 test('Plain dependency', () => {
   const analyzer = TestCase.parseAndRun('main =\n    «1,x» = 1\n    »1,x«')
   assertEmpty(analyzer.unresolvedSymbols)
-
 })
 
 test('Unresolved dependency', () => {
@@ -250,7 +255,7 @@ test('Unresolved dependency', () => {
 })
 
 test('Local variable shadowed by the lambda argument', () => {
-  const analyzer =  TestCase.parseAndRun(`main =
+  const analyzer = TestCase.parseAndRun(`main =
     «1,x» = 1
     «2,y» = 2
     z = «3,x» -> »3,x« + »2,y«
