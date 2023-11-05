@@ -9,8 +9,9 @@ import {
   readTokenSpan,
 } from '@/util/ast'
 
-import { NonEmptyStack, ObjectKeyedMap, ObjectKeyedSet } from '@/util/containers'
+import { NonEmptyStack, MappedKeyMap, MappedSet } from '@/util/containers'
 import type { ContentRange } from '../../../shared/yjsModel'
+import {IdMap, rangeIsBefore} from "../../../shared/yjsModel";
 
 /** Whether the debug logs of the alias analyzer should be enabled.
  *
@@ -20,23 +21,34 @@ const LOGGING_ENABLED = true
 
 class Scope {
   /** The variables defined in this scope. */
-  bindings: ObjectKeyedMap<string, Token> = new ObjectKeyedMap()
-
-  /** The children scopes. */
-  children: Scope[] = []
+  bindings: Map<string, Token> = new Map()
 
   /** Construct a new scope for the given range. If the parent scope is provided, the new scope will be added to its
    * children.
    *
    * @param range The range of the code that is covered by this scope.
-   * @param parent The parent scope. If not provided, the scope will be considered the root scope.
+   * @param parent The parent scope.
    */
   constructor(
     public range?: ContentRange,
-    parent?: Scope,
-  ) {
-    if (parent != null) {
-      parent.children.push(this)
+    public parent?: Scope,
+  ) {}
+
+  /** Resolve the given identifier to a token that defines it.
+   *
+   * @param identifier The identifier to resolve.
+   * @param location The location of the usage of the identifier. It affects visibility of the bindings within this
+   * scope, so the variables are not visible before they are defined. If not provided, the lookup will include all
+   * symbols from the scope.
+   */
+  resolve(identifier: string, location?: ContentRange): Token | undefined {
+    const localBinding = this.bindings.get(identifier)
+    if (localBinding != null && (location == null || rangeIsBefore(parsedTreeOrTokenRange(localBinding), location))) {
+      return localBinding
+    } else if (this.parent != null) {
+      return this.parent.resolve(identifier, location)
+    } else {
+      return undefined
     }
   }
 }
@@ -47,9 +59,21 @@ enum Context {
   Expression = 'Expression',
 }
 
+enum IdentifierType {
+  Type = 'Type',
+  Variable = 'Variable',
+}
+
+export function identifierKind(identifier: string): IdentifierType {
+  // FIXME: empty string? operator?
+  return identifier.charAt(0) === identifier.charAt(0).toUpperCase()
+    ? IdentifierType.Type
+    : IdentifierType.Variable
+}
+
 export class AliasAnalyzer {
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
-  readonly unresolvedSymbols: ObjectKeyedSet<ContentRange> = new ObjectKeyedSet()
+  readonly unresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
 
   /** The AST representation of the code. */
   readonly ast: Tree
@@ -63,8 +87,7 @@ export class AliasAnalyzer {
   /** The stack for keeping track whether we are in a pattern or expression context. */
   private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
 
-  public readonly aliases: ObjectKeyedMap<ContentRange, ObjectKeyedSet<ContentRange>> =
-    new ObjectKeyedMap()
+  public readonly aliases = new MappedKeyMap<ContentRange, MappedSet<ContentRange>>(IdMap.keyForRange)
 
   /**
    * @param code text representation of the code.
@@ -99,7 +122,7 @@ export class AliasAnalyzer {
     log(`Binding ${identifier}@[${range}]`)
     scope.bindings.set(identifier, token)
     assert(!this.aliases.has(range), `Token at ${range} is already bound.`)
-    this.aliases.set(range, new ObjectKeyedSet())
+    this.aliases.set(range, new MappedSet<ContentRange>(IdMap.keyForRange))
   }
 
   addConnection(source: Token, target: Token) {
@@ -138,18 +161,16 @@ export class AliasAnalyzer {
 
   /** Method that processes a single AST node. */
   public process() {
-    this.processNode(this.ast)
+    this.processTree(this.ast)
   }
 
-  processToken(token?: Token): void {
+  handleToken(token?: Token): void {
     if (token == null) {
       return
     }
 
     const repr = readTokenSpan(token, this.code)
-
-    // We require first character to be lowercase, to avoid working with type names.
-    if (repr.length > 0 && repr.charAt(0) !== repr.charAt(0).toUpperCase()) {
+    if (identifierKind(repr) === IdentifierType.Variable) {
       if (this.contexts.top === Context.Pattern) {
         this.bind(token)
       } else {
@@ -159,7 +180,7 @@ export class AliasAnalyzer {
   }
 
   /** Method that processes a single AST node. */
-  processNode(node?: Tree): void {
+  processTree(node?: Tree): void {
     if (node == null) {
       return
     }
@@ -178,23 +199,23 @@ export class AliasAnalyzer {
     if (node.type === Tree.Type.BodyBlock) {
       this.withNewScopeOver(node, () => {
         for (const child of childrenAstNodes(node)) {
-          this.processNode(child)
+          this.processTree(child)
         }
       })
     } else if (node.type === Tree.Type.Ident) {
-      this.processToken(node.token)
+      this.handleToken(node.token)
     } else if (node.type === Tree.Type.TextLiteral) {
       for (const element of node.elements) {
         if (element.type === TextElement.Type.Splice) {
-          this.processNode(element.expression)
+          this.processTree(element.expression)
         }
       }
     } else if (node.type === Tree.Type.NamedApp) {
-      this.processNode(node.func)
+      this.processTree(node.func)
       // Intentionally omit name, as it is not a variable usage.
-      this.processNode(node.arg)
+      this.processTree(node.arg)
     } else if (node.type === Tree.Type.DefaultApp) {
-      this.processNode(node.func)
+      this.processTree(node.func)
       // Intentionally omit `default` keyword, because it is a keyword, not a variable usage.
     } else if (
       node.type === Tree.Type.OprApp &&
@@ -205,9 +226,9 @@ export class AliasAnalyzer {
       // Note that this is not a Tree.Type.Lambda, as that is for "new" lambdas syntax, like `\x -> x`.
       this.withNewScopeOver(node, () => {
         this.withContext(Context.Pattern, () => {
-          this.processNode(node.lhs)
+          this.processTree(node.lhs)
         })
-        this.processNode(node.rhs)
+        this.processTree(node.rhs)
       })
     } else if (
       node.type === Tree.Type.OprApp &&
@@ -215,50 +236,50 @@ export class AliasAnalyzer {
       readAstOrTokenSpan(node.opr.value, this.code) === '.'
     ) {
       // Accessor expression.
-      this.processNode(node.lhs)
+      this.processTree(node.lhs)
       // Don't process the right-hand side, as it will be a method call, which is not a variable usage.
     } else if (node.type === Tree.Type.MultiSegmentApp) {
       for (const segment of node.segments) {
-        this.processNode(segment.body)
+        this.processTree(segment.body)
       }
     } else if (node.type === Tree.Type.Assignment) {
       this.withContext(Context.Pattern, () => {
-        this.processNode(node.pattern)
+        this.processTree(node.pattern)
       })
-      this.processNode(node.expr)
+      this.processTree(node.expr)
     } else if (node.type === Tree.Type.Function) {
       this.withContext(Context.Pattern, () => {
-        this.processNode(node.name)
+        this.processTree(node.name)
       })
       this.withNewScopeOver(node, () => {
         for (const argument of node.args) {
           this.withContext(Context.Pattern, () => {
-            this.processNode(argument.pattern)
+            this.processTree(argument.pattern)
           })
-          this.processNode(argument.default?.expression)
+          this.processTree(argument.default?.expression)
         }
-        this.processNode(node.body)
+        this.processTree(node.body)
       })
     } else if (node.type === Tree.Type.CaseOf) {
-      this.processNode(node.expression)
+      this.processTree(node.expression)
       for (const caseLine of node.cases) {
         if (caseLine.case?.pattern) {
           this.withNewScopeOver(caseLine.case?.expression ?? caseLine.case?.pattern, () => {
             this.withContext(Context.Pattern, () => {
-              this.processNode(caseLine.case?.pattern)
+              this.processTree(caseLine.case?.pattern)
             })
-            this.processNode(caseLine.case?.expression)
+            this.processTree(caseLine.case?.expression)
           })
         }
       }
     } else if (node.type === Tree.Type.Documented) {
-      this.processNode(node.expression)
+      this.processTree(node.expression)
     } else {
       node.visitChildren((child) => {
         if (Tree.isInstance(child)) {
-          this.processNode(child)
+          this.processTree(child)
         } else if (Token.isInstance(child)) {
-          this.processToken(child)
+          this.handleToken(child)
         }
       })
       log(`Catch-all for ${astPrettyPrintType(node)} at ${range}:\n${repr}\n`)

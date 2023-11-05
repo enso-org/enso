@@ -26,9 +26,11 @@
  */
 
 import { assert, assertDefined, assertEqual, assertLength, assertNotEqual } from '@/util/assert'
-import { ObjectKeyedMap, ObjectKeyedSet } from '@/util/containers'
-import type { ContentRange } from '../../../../shared/yjsModel'
+import { MappedKeyMap, MappedSet } from '@/util/containers'
+import type { ContentRange } from '@/../../../../shared/yjsModel'
 import { AliasAnalyzer } from '../aliasAnalysis'
+import {IdMap} from "../../../../shared/yjsModel";
+import { test, expect } from 'vitest'
 
 /** The type of annotation. */
 enum AnnotationType {
@@ -53,9 +55,9 @@ class Annotation {
 /** Parse annotations from the annotated code. See the file-top comment for the syntax. */
 function parseAnnotations(annotatedCode: string): {
   unannotatedCode: string
-  annotations: ObjectKeyedMap<ContentRange, Annotation>
+  annotations: MappedKeyMap<ContentRange, Annotation>
 } {
-  const annotations = new ObjectKeyedMap()
+  const annotations = new MappedKeyMap(IdMap.keyForRange)
 
   // Iterate over all annotations (either bindings or usages).
   // I.e. we want to cover both `«1,x»` and `»1,x«` cases, while keeping the track of the annotation type.
@@ -72,7 +74,9 @@ function parseAnnotations(annotatedCode: string): {
 
       // Sanity check: either both binding prefix and name are present, or both usage prefix and name are present.
       // Otherwise, we have an internal error in the regex.
-      assertEqual(bindingPrefix != null, bindingName != null)
+
+      expect(bindingPrefix != null).toBe(bindingName != null)
+
       assertEqual(usagePrefix != null, usageName != null)
       assertNotEqual(bindingPrefix != null, usagePrefix != null)
 
@@ -99,10 +103,10 @@ function parseAnnotations(annotatedCode: string): {
 /** Alias analysis test case, typically parsed from an annotated code. */
 class TestCase {
   /** The expected aliases. */
-  expectedAliases: ObjectKeyedMap<ContentRange, ContentRange[]> = new ObjectKeyedMap()
+  readonly expectedAliases = new MappedKeyMap<ContentRange, ContentRange[]>(IdMap.keyForRange)
 
   /** The expected unresolved symbols. */
-  unresolvedSymbols: ObjectKeyedSet<ContentRange> = new ObjectKeyedSet()
+  readonly unresolvedSymbols = new MappedSet<ContentRange>(IdMap.keyForRange)
 
   /**
    * @param code The code of the program to be tested, without annotations.
@@ -182,138 +186,142 @@ class TestCase {
   }
 }
 
-if (import.meta.vitest) {
-  const { test } = import.meta.vitest
+test('Annotations parsing', () => {
+  const annotatedCode = `main =
+  «1,x» = 1
+  «2,y» = 2
+  z = «3,x» -> »3,x« + »2,y«
+  u = »1,x« + »2,y«`
 
-  test('Annotations parsing', () => {
-    const annotatedCode = `main =
-    «1,x» = 1
-    «2,y» = 2
-    z = «3,x» -> »3,x« + »2,y«
-    u = »1,x« + »2,y«`
+  const expectedUnannotatedCode = `main =
+  x = 1
+  y = 2
+  z = x -> x + y
+  u = x + y`
 
-    const expectedUnannotatedCode = `main =
-    x = 1
-    y = 2
-    z = x -> x + y
-    u = x + y`
+  const { unannotatedCode, annotations } = parseAnnotations(annotatedCode)
+  assert(unannotatedCode === expectedUnannotatedCode)
+  assert(annotations.size === 7)
+  const validateAnnotation = (
+    range: ContentRange,
+    kind: AnnotationType,
+    prefix: number,
+    identifier: string,
+  ) => {
+    try {
+      const a = annotations.get(range)
 
-    const { unannotatedCode, annotations } = parseAnnotations(annotatedCode)
-    assert(unannotatedCode === expectedUnannotatedCode)
-    assert(annotations.size === 7)
-    const validateAnnotation = (
-      range: ContentRange,
-      kind: AnnotationType,
-      prefix: number,
-      identifier: string,
-    ) => {
-      try {
-        const a = annotations.get(range)
-        assertDefined(a, `Annotation is not defined.`)
-        assertEqual(a.kind, kind, 'Invalid annotation kind.')
-        assertEqual(a.id, prefix, 'Invalid annotation prefix.')
-        assertEqual(
-          unannotatedCode.substring(range[0], range[1]),
-          identifier,
-          'Invalid annotation identifier.',
-        )
-      } catch (e) {
-        const message = `Invalid annotation at [${range}]: ${e}`
-        throw new Error(message)
-      }
+      assertDefined(a, `Annotation is not defined.`)
+      assertEqual(a.kind, kind, 'Invalid annotation kind.')
+      assertEqual(a.id, prefix, 'Invalid annotation prefix.')
+      assertEqual(
+        unannotatedCode.substring(range[0], range[1]),
+        identifier,
+        'Invalid annotation identifier.',
+      )
+    } catch (e) {
+      const message = `Invalid annotation at [${range}]: ${e}`
+      throw new Error(message)
     }
+  }
 
-    validateAnnotation([11, 12], AnnotationType.Binding, 1, 'x')
-    validateAnnotation([21, 22], AnnotationType.Binding, 2, 'y')
-    validateAnnotation([35, 36], AnnotationType.Binding, 3, 'x')
-    validateAnnotation([40, 41], AnnotationType.Usage, 3, 'x')
-    validateAnnotation([44, 45], AnnotationType.Usage, 2, 'y')
-    validateAnnotation([54, 55], AnnotationType.Usage, 1, 'x')
-    validateAnnotation([58, 59], AnnotationType.Usage, 2, 'y')
-  })
+  validateAnnotation([11, 12], AnnotationType.Binding, 1, 'x')
+  validateAnnotation([21, 22], AnnotationType.Binding, 2, 'y')
+  validateAnnotation([35, 36], AnnotationType.Binding, 3, 'x')
+  validateAnnotation([40, 41], AnnotationType.Usage, 3, 'x')
+  validateAnnotation([44, 45], AnnotationType.Usage, 2, 'y')
+  validateAnnotation([54, 55], AnnotationType.Usage, 1, 'x')
+  validateAnnotation([58, 59], AnnotationType.Usage, 2, 'y')
+})
 
-  test('Plain dependency', () => {
-    const code = 'main =\n    «1,x» = 1\n    »1,x«'
-    TestCase.parseAndRun(code)
-  })
+test.each([
+    'main =\n    «1,x» = 1\n    »1,x«',
+    'main =\n    «1,x» = 1\n    »2,y«',
+  ])(`Alias analysis: %s`, (annotatedCode) => {
+  TestCase.parseAndRun(annotatedCode)
+})
 
-  test('Unresolved dependency', () => {
-    const code = 'main =\n    «1,x» = 1\n    »2,y«'
-    TestCase.parseAndRun(code)
-  })
+test('Plain dependency', () => {
+  const code = 'main =\n    «1,x» = 1\n    »1,x«'
+  TestCase.parseAndRun(code)
+})
 
-  test('Local variable shadowed by the lambda argument', () => {
-    const code = `main =
-    «1,x» = 1
-    «2,y» = 2
-    z = «3,x» -> »3,x« + »2,y«
-    u = »1,x« + »2,y«`
+test('Unresolved dependency', () => {
+  const code = 'main =\n    «1,x» = 1\n    »2,y«'
+  TestCase.parseAndRun(code)
+})
 
-    TestCase.parseAndRun(code)
-  })
+test('Local variable shadowed by the lambda argument', () => {
+  const code = `main =
+  «1,x» = 1
+  «2,y» = 2
+  z = «3,x» -> »3,x« + »2,y«
+  u = »1,x« + »2,y«`
 
-  test('Plain symbol usage', () => {
-    const code = '»1,x«'
-    TestCase.parseAndRun(code)
-  })
+  TestCase.parseAndRun(code)
+})
 
-  test('Accessors', () => {
-    const code = `main =
-    «1,x» = 1
-    »1,x«.x.y »2,arg«`
-    TestCase.parseAndRun(code)
-  })
+test('Plain symbol usage', () => {
+  const code = '»1,x«'
+  TestCase.parseAndRun(code)
+})
 
-  test('Function argument', () => {
-    const code = `main =
-    «1,func» «2,arg» = »2,arg« + 1
-    »1,func« »3,arg«`
-    TestCase.parseAndRun(code)
-  })
+test('Accessors', () => {
+  const code = `main =
+  «1,x» = 1
+  »1,x«.x.y »2,arg«`
+  TestCase.parseAndRun(code)
+})
 
-  test('Multi-segment application', () => {
-    const code = `main =
-    «1,x» = True
-    if »1,x« then »2,y« else »3,z«`
-    const analyzer = TestCase.parseAndRun(code)
-    assertLength(analyzer.unresolvedSymbols, 2) // `y` and `z` are not in scope.
-  })
+test('Function argument', () => {
+  const code = `main =
+  «1,func» «2,arg» = »2,arg« + 1
+  »1,func« »3,arg«`
+  TestCase.parseAndRun(code)
+})
 
-  test('Complex?', () => {
-    const code = `## PRIVATE
-   Given a positive index and a list, returns the node.
+test('Multi-segment application', () => {
+  const code = `main =
+  «1,x» = True
+  if »1,x« then »2,y« else »3,z«`
+  const analyzer = TestCase.parseAndRun(code)
+  assertLength(analyzer.unresolvedSymbols, 2) // `y` and `z` are not in scope.
+})
+
+test('Complex?', () => {
+  const code = `## PRIVATE
+ Given a positive index and a list, returns the node.
 find_node_from_start «3,list» «4,index» =
-    «1,loop» «2,current» «5,idx» = case »2,current« of
-        Nil -> if »5,idx« == 0 then »2,current« else Error.throw (Index_Out_Of_Bounds.Error »4,index« »4,index«-»5,idx«+1)
-        Cons _ «7,xs» -> if »5,idx« == 0 then »2,current« else @Tail_Call »1,loop« »7,xs« (»5,idx« - 1)
-    »1,loop« »3,list« »4,index«
-    »6,idx«`
+  «1,loop» «2,current» «5,idx» = case »2,current« of
+      Nil -> if »5,idx« == 0 then »2,current« else Error.throw (Index_Out_Of_Bounds.Error »4,index« »4,index«-»5,idx«+1)
+      Cons _ «7,xs» -> if »5,idx« == 0 then »2,current« else @Tail_Call »1,loop« »7,xs« (»5,idx« - 1)
+  »1,loop« »3,list« »4,index«
+  »6,idx«`
 
-    const analyzer = TestCase.parseAndRun(code)
-    assertLength(analyzer.unresolvedSymbols, 1) // The last line's `idx` - as it is now out of scope.
-  })
+  const analyzer = TestCase.parseAndRun(code)
+  assertLength(analyzer.unresolvedSymbols, 1) // The last line's `idx` - as it is now out of scope.
+})
 
-  test('Named argument application', () => {
-    const code = `«1,main» =
-    «2,hundred» = 100
-    »3,summarize_transaction« (price = »2,hundred«)`
-    const analyzer = TestCase.parseAndRun(code)
-    assertLength(analyzer.unresolvedSymbols, 1) // `summarize_transaction`
-    // Note: the `price` argument is not a variable usage and should be ignored by the alias analysis.
-  })
+test('Named argument application', () => {
+  const code = `«1,main» =
+  «2,hundred» = 100
+  »3,summarize_transaction« (price = »2,hundred«)`
+  const analyzer = TestCase.parseAndRun(code)
+  assertLength(analyzer.unresolvedSymbols, 1) // `summarize_transaction`
+  // Note: the `price` argument is not a variable usage and should be ignored by the alias analysis.
+})
 
-  test('Default argument application', () => {
-    const code = `«1,main» =
-    »3,summarize_transaction« default`
-    const analyzer = TestCase.parseAndRun(code)
-    assertLength(analyzer.unresolvedSymbols, 1) // `summarize_transaction`
-    // Note: the `default` keyword is not a variable usage and should be ignored by the alias analysis.
-  })
+test('Default argument application', () => {
+  const code = `«1,main» =
+  »3,summarize_transaction« default`
+  const analyzer = TestCase.parseAndRun(code)
+  assertLength(analyzer.unresolvedSymbols, 1) // `summarize_transaction`
+  // Note: the `default` keyword is not a variable usage and should be ignored by the alias analysis.
+})
 
-  test('Text literals', () => {
-    const code = `«1,main» =
-    «2,fmt_string» = 'Hello, my age is \`»3,time«.now.year - »4,birthday«\`'`
-    const analyzer = TestCase.parseAndRun(code)
-    assertLength(analyzer.unresolvedSymbols, 2) // `time` and `birthday`
-  })
-}
+test('Text literals', () => {
+  const code = `«1,main» =
+  «2,fmt_string» = 'Hello, my age is \`»3,time«.now.year - »4,birthday«\`'`
+  const analyzer = TestCase.parseAndRun(code)
+  assertLength(analyzer.unresolvedSymbols, 2) // `time` and `birthday`
+})

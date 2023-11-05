@@ -1,5 +1,6 @@
 import { assertDefined, assertEqual } from '@/util/assert'
 import { expect, test } from 'vitest'
+import type {NonEmptyArray} from "@/util/array.ts";
 
 /**
  * Map that supports Object-based keys.
@@ -9,16 +10,17 @@ import { expect, test } from 'vitest'
  * @template Key The type of the keys.
  * @template Value The type of the values.
  */
-export class ObjectKeyedMap<Key extends Object, Value> {
+export class MappedKeyMap<Key, Value> {
   /** The inner map that stores the values. */
-  private readonly map = new Map<string, [Key, Value]>()
+  private readonly map = new Map<any, [Key, Value]>()
 
-  /** Construct a new map, optionally setting a custom key mapper.
+  /** Construct a new map with a custom key mapper.
    *
-   * @param keyMapper The function that maps the keys to strings. By default, strings are generated using {@link JSON.stringify}.
+   * @param keyMapper The function that maps the user-facing keys to internal keys. It can be some sort of hash function or custom to-string converter.
+   * The function should return values that are `===`-equal for keys that should be considered equal.
    *
    */
-  constructor(private readonly keyMapper: (key: Key) => string = JSON.stringify) {}
+  constructor(private readonly keyMapper: (key: Key) => any) {}
 
   /** Set the value for the given key. */
   set(key: Key, value: Value): this {
@@ -58,64 +60,60 @@ export class ObjectKeyedMap<Key extends Object, Value> {
 
   /** Iterate over the values in the map. */
   *[Symbol.iterator](): IterableIterator<[Key, Value]> {
-    for (const [_innerKey, [key, value]] of this.map.entries()) {
-      yield [key, value]
-    }
+    return this.map.values()
   }
 }
 
 /**
- * Set that supports Object-based keys.
+ * Set that uses a provided function to map the values to keys.
  *
- * Internally keys are converted to strings using the provided {@link keyMapper} function and then compared.
+ * It is useful e.g. when the values are objects, and we want to use different equality semantics than the default.
  *
- * @template Key The type of the keys.
+ * @template T The type of the values.
  */
-export class ObjectKeyedSet<Key extends Object> {
+export class MappedSet<T extends Object> {
   /** The inner set that stores the keys. */
-  private readonly set = new Set<string>()
+  private readonly set = new Map<any, T>()
 
-  /** Construct a new set, optionally setting a custom key mapper.
-   *
-   * @param keyMapper The function that maps the keys to strings. By default, strings are generated using {@link JSON.stringify}.
+  /** Construct a new set, optionally setting a custom value mapper.
+   * @param valueMapper The function that maps the keys to strings. It can be some sort of a hash function or custom to-string converter.
+   * The function should return values that are `===`-equal for values that should be considered equal.
    *
    */
-  constructor(private readonly keyMapper: (key: Key) => string = JSON.stringify) {}
+  constructor(private readonly valueMapper: (key: T) => any) {}
 
-  /** Add the given key to the set. */
-  add(key: Key): this {
-    const innerKey = this.keyMapper(key)
-    this.set.add(innerKey)
+  /** Add the given value to the set. */
+  add(value: T): this {
+    const innerKey = this.valueMapper(value)
+    this.set.set(innerKey, value)
     return this
   }
 
-  /** Check if the set contains the given key. */
-  has(key: Key): boolean {
-    const innerKey = this.keyMapper(key)
+  /** Check if the set contains the given value. */
+  has(value: T): boolean {
+    const innerKey = this.valueMapper(value)
     return this.set.has(innerKey)
   }
 
-  /** Remove the given key from the set. */
-  delete(key: Key): boolean {
-    const innerKey = this.keyMapper(key)
+  /** Remove the given value from the set. */
+  delete(value: T): boolean {
+    const innerKey = this.valueMapper(value)
     return this.set.delete(innerKey)
   }
 
-  /** Remove all keys from the set. */
+  /** Remove all values from the set. */
   clear(): void {
     this.set.clear()
   }
 
-  /** Get the number of keys in the set. */
+  /** Get the number of values in the set. */
   get size(): number {
     return this.set.size
   }
 
-  /** Iterate over the keys in the set. */
-  *[Symbol.iterator](): IterableIterator<Key> {
-    for (const innerKey of this.set) {
-      yield JSON.parse(innerKey) as Key
-    }
+  /** Iterate over the values in the set. */
+  [Symbol.iterator](): IterableIterator<T> {
+    return this.set.values()
   }
 }
 
@@ -125,7 +123,7 @@ export class ObjectKeyedSet<Key extends Object> {
  */
 export class NonEmptyStack<T> {
   /** The "actual" stack of elements. */
-  private readonly stack: T[]
+  private readonly stack: NonEmptyArray<T>
 
   /** Construct a new stack with the given initial value.
    *
@@ -170,7 +168,7 @@ export class NonEmptyStack<T> {
 
 if (import.meta.vitest) {
   test('MyMap with number[] keys', () => {
-    const map = new ObjectKeyedMap<number[], string>()
+    const map = new MappedKeyMap((key: number[]) => key.join(','))
 
     const key1 = [1, 2, 3]
     const key2 = [4, 5, 6]
@@ -209,8 +207,8 @@ if (import.meta.vitest) {
     expect(map.get(key2)).toBe(undefined)
   })
 
-  test('ObjectKeyedSet', () => {
-    const set = new ObjectKeyedSet<{ a: number }>()
+  test('MappedSet', () => {
+    const set = new MappedSet<Object>(JSON.stringify)
 
     const key1 = { a: 1 }
     const key2 = { a: 2 }
@@ -242,5 +240,8 @@ if (import.meta.vitest) {
     set.clear()
     expect(set.size).toBe(0)
     expect(set.has(key2)).toBe(false)
+
+    const asArray2 = Array.from(set)
+    expect(asArray2).toEqual([])
   })
 }
