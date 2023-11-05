@@ -301,14 +301,19 @@ watch(
 )
 
 const editableKeydownHandler = nodeEditBindings.handler({
-  selectAll() {
-    const element = editableRootNode.value
-    const selection = window.getSelection()
-    if (element == null || selection == null) return
-    const range = document.createRange()
-    range.selectNodeContents(element)
-    selection.removeAllRanges()
-    selection.addRange(range)
+  // selectAll() {
+  //   const element = editableRootNode.value
+  //   const selection = window.getSelection()
+  //   if (element == null || selection == null) return
+  //   const range = document.createRange()
+  //   range.selectNodeContents(element)
+  //   selection.removeAllRanges()
+  //   selection.addRange(range)
+  // },
+  cancel(e) {
+    if (e.target instanceof HTMLElement) {
+      e.target.blur()
+    }
   },
 })
 
@@ -424,6 +429,7 @@ const updateExprRect = (expr: ExprId, rect: Rect) => {
         ref="editableRootNode"
         class="editable"
         spellcheck="false"
+        contenteditable="true"
         @beforeinput="editContent"
         @keydown="editableKeydownHandler"
         @pointerdown.stop

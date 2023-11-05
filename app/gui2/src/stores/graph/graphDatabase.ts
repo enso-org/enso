@@ -120,10 +120,6 @@ export class GraphDb {
         this.nodes.delete(nodeId)
       }
     }
-    console.log('manual flush')
-    // this should not be required:
-    this.idents.effects.flush()
-    this.connections.effects.flush()
   }
 
   assignUpdatedMetadata(node: Node, meta: NodeMetadata) {

@@ -230,7 +230,10 @@ export class IdMap {
       if (!(isUuid(expr) && rangeBuffer instanceof Uint8Array)) return
       const indices = this.modelToIndices(rangeBuffer)
       if (indices == null) return
-      this.rangeToExpr.set(IdMap.keyForRange(indices), expr as ExprId)
+      const key = IdMap.keyForRange(indices)
+      if (!this.rangeToExpr.has(key)) {
+        this.rangeToExpr.set(key, expr as ExprId)
+      }
     })
 
     this.finished = false

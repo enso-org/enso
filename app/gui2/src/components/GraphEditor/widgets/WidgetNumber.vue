@@ -4,7 +4,10 @@ import { useGraphStore } from '@/stores/graph'
 import { type AstExtended } from '@/util/ast'
 import { computed } from 'vue'
 
-const props = defineProps<{ nodeSpanStart: number; ast: AstExtended }>()
+const props = defineProps<{
+  nodeSpanStart: number
+  ast: AstExtended
+}>()
 const graph = useGraphStore()
 const value = computed({
   get() {
@@ -17,7 +20,14 @@ const value = computed({
 </script>
 
 <template>
-  <SliderWidget v-model="value" class="WidgetNumber" :min="-1000" :max="1000" />
+  <SliderWidget
+    v-model="value"
+    class="WidgetNumber"
+    :min="-1000"
+    :max="1000"
+    contenteditable="false"
+    @beforeinput.stop
+  />
 </template>
 
 <style scoped>
