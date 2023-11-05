@@ -7,7 +7,7 @@ import scala.collection.mutable
 
 /** A mutable holder of all visualizations attached to an execution context.
   */
-class VisualizationHolder() {
+class VisualizationHolder {
 
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
@@ -75,6 +75,6 @@ class VisualizationHolder() {
 object VisualizationHolder {
 
   /** Returns an empty visualization holder. */
-  def empty = new VisualizationHolder()
+  def empty = new VisualizationHolder
 
 }

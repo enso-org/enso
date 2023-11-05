@@ -96,9 +96,11 @@ object ProgramExecutionSupport {
         val onExecutedVisualizationCallback: Consumer[ExecutedVisualization] = {
           executedVisualization =>
             val visualizationResult =
-              if (executedVisualization.error() eq null)
-                Right(executedVisualization.result())
-              else Left(executedVisualization.error())
+              Either.cond(
+                executedVisualization.error() eq null,
+                executedVisualization.result(),
+                executedVisualization.error()
+              )
             sendVisualizationUpdate(
               visualizationResult,
               contextId,
@@ -528,15 +530,17 @@ object ProgramExecutionSupport {
       case Left(error) =>
         val message =
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
-        val typeOfNode = Try(TypeOfNode.getUncached.execute(expressionValue))
-        if (!typeOfNode.map(TypesGen.isPanicSentinel).getOrElse(false)) {
+        if (!TypesGen.isPanicSentinel(expressionValue)) {
+          val typeOfNode =
+            Option(TypeOfNode.getUncached.execute(expressionValue))
+              .getOrElse(expressionValue.getClass)
           ctx.executionService.getLogger.log(
             Level.WARNING,
             "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3}",
             Array[Object](
               visualizationId,
               expressionId,
-              typeOfNode.getOrElse(expressionValue.getClass),
+              typeOfNode,
               message,
               error
             )

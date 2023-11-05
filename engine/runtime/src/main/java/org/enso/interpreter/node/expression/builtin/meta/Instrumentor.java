@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import java.util.UUID;
 
 import org.enso.interpreter.instrument.Timer;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
