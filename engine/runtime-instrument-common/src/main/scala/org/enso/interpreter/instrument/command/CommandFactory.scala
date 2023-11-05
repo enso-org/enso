@@ -50,7 +50,7 @@ object CommandFactory {
         new RenameSymbolCmd(request.requestId, payload)
 
       case payload: Api.OpenFileNotification =>
-        new OpenFileCmd(payload)
+        new OpenFileCmd(request.requestId, payload)
       case payload: Api.CloseFileNotification => new CloseFileCmd(payload)
       case payload: Api.EditFileNotification  => new EditFileCmd(payload)
       case payload: Api.SetExpressionValueNotification =>

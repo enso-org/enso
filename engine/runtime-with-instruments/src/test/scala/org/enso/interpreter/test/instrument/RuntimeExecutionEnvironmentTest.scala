@@ -160,9 +160,11 @@ class RuntimeExecutionEnvironmentTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenedFileNotification)
+    )
 
     // push main
     context.send(
@@ -259,9 +261,11 @@ class RuntimeExecutionEnvironmentTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(requestId, Api.OpenFileNotification(mainFile, contents))
     )
-    context.receiveNone shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenedFileNotification)
+    )
 
     // push main
     context.send(

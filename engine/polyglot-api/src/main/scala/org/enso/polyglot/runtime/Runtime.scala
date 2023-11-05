@@ -101,6 +101,10 @@ object Runtime {
         name  = "setModuleSourcesNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.OpenedFileNotification.type],
+        name  = "moduleSourcesSetNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.EditFileNotification],
         name  = "editFileNotification"
       ),
@@ -1484,6 +1488,10 @@ object Runtime {
         s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
         ")"
     }
+
+    /** A notification from the server confirming opening a file.
+      */
+    final case object OpenedFileNotification extends ApiResponse
 
     /** A notification sent to the server about in-memory file contents being
       * edited.
