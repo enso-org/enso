@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
-import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.MethodCallsCache;
@@ -75,9 +74,6 @@ public final class ExecutionService {
   private final ExecuteRootNode execute = new ExecuteRootNode();
   private final CallRootNode call = new CallRootNode();
   private final InvokeMemberRootNode invoke = new InvokeMemberRootNode();
-  private final InvokeMemberLocalScopeRootNode invokeLocalScope =
-      new InvokeMemberLocalScopeRootNode();
-
   private final Timer timer;
 
   /**
@@ -269,25 +265,6 @@ public final class ExecutionService {
     Object p = context.getThreadManager().enter();
     try {
       return invoke.getCallTarget().call(module, expression);
-    } finally {
-      context.getThreadManager().leave(p);
-    }
-  }
-
-  /**
-   * Evaluates an expression in the local scope.
-   *
-   * @param module the global scope for the expression
-   * @param localScope the local scope for the expression
-   * @param virtualFrame the virtual frame containing values of local variables
-   * @param expression the expression to evaluate
-   * @return a result of evaluation
-   */
-  public Object evaluateExpression(
-      Module module, LocalScope localScope, VirtualFrame virtualFrame, String expression) {
-    Object p = context.getThreadManager().enter();
-    try {
-      return invokeLocalScope.getCallTarget().call(module, expression, localScope, virtualFrame);
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -562,36 +539,6 @@ public final class ExecutionService {
       Object expression = arguments[1];
       try {
         return iop.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
-      } catch (UnknownIdentifierException
-          | UnsupportedTypeException
-          | ArityException
-          | UnsupportedMessageException ex) {
-        throw raise(RuntimeException.class, ex);
-      }
-    }
-  }
-
-  private static final class InvokeMemberLocalScopeRootNode extends RootNode {
-    @Node.Child private InteropLibrary iop = InteropLibrary.getFactory().createDispatched(5);
-
-    InvokeMemberLocalScopeRootNode() {
-      super(null);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-      Object[] arguments = frame.getArguments();
-      Object module = arguments[0];
-      Object expression = arguments[1];
-      Object localScope = arguments[2];
-      Object virtualFrame = arguments[3];
-      try {
-        return iop.invokeMember(
-            module,
-            MethodNames.Module.EVAL_EXPRESSION_LOCAL_SCOPE,
-            expression,
-            localScope,
-            virtualFrame);
       } catch (UnknownIdentifierException
           | UnsupportedTypeException
           | ArityException

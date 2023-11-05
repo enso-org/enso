@@ -120,31 +120,6 @@ public class Types {
   }
 
   /**
-   * Extracts element of the arguments array by its index.
-   *
-   * @param arguments the arguments array
-   * @param cls the class of the element to extract
-   * @param index the index of the element to extract
-   * @param <A> the type of the element
-   * @return the extracted element of the array
-   * @throws ArityException if the array does not have exactly one element
-   * @throws UnsupportedTypeException if the only element is not an instance of {@code cls}
-   */
-  @SuppressWarnings("unchecked")
-  public static <A> A extractArgument(Object[] arguments, Class<A> cls, int index)
-      throws ArityException, UnsupportedTypeException {
-    if (arguments.length <= index) {
-      throw ArityException.create(0, arguments.length - 1, index);
-    }
-
-    if (!(cls.isInstance(arguments[index]))) {
-      throw UnsupportedTypeException.create(
-          arguments, "The argument #" + index + " must be a " + cls.getSimpleName() + ".");
-    }
-    return (A) arguments[index];
-  }
-
-  /**
    * Asserts that the arguments array has exactly one element of a given type and extracts it.
    *
    * @param arguments the arguments array

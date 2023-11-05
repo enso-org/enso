@@ -13,7 +13,6 @@ public class MethodNames {
 
   public static class Module {
     public static final String EVAL_EXPRESSION = "eval_expression";
-    public static final String EVAL_EXPRESSION_LOCAL_SCOPE = "eval_expression_local_scope";
     public static final String GET_ASSOCIATED_TYPE = "get_associated_type";
     public static final String GET_TYPE = "get_type";
 
