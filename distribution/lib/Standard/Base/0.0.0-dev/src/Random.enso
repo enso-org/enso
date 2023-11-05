@@ -1,99 +1,340 @@
 import project.Any.Any
-import project.Data.Boolean.Boolean
-import project.Data.Json.JS_Object
-import project.Data.Numbers.Float
-import project.Data.Numbers.Integer
+import project.Data.Array.Array
+import project.Data.Range.Range
 import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Range.Date_Range
+import project.Data.Time.Period.Period
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Time_Period.Time_Period
+import project.Data.Map.Map
+import project.Data.Set.Set
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Nothing.Nothing
+import project.Runtime.Ref.Ref
 import project.System
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Numbers import Float, Integer
+from project.Data.Range.Extensions import all
 
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.UUID
-polyglot java import org.enso.base.Random_Utils
+polyglot java import org.enso.base.random.Random_Utils
+polyglot java import org.enso.base.random.RandomInstanceHolder
 
-## PRIVATE
-   UNSTABLE
-   Returns a default seed to use for random number generation.
+type Random
+    ## PRIVATE
+       GROUP Random
 
-   The returned seed may differ between each call to this method.
-get_default_seed : Integer
-get_default_seed = System.nano_time
+       Create a new `Random_Generator` with the specified seed.
 
-## Constructs a new random number generator.
-new : Integer -> Random_Number_Generator
-new seed=get_default_seed =
-    Random_Number_Generator.Value (Java_Random.new seed)
+       Arguments:
+       - seed: The seed used to initialze the `Random_Generator`.
 
-type Random_Number_Generator
-    ## A random number generator.
-    Value java_random
+       > Example
+         Create a new `Random_Generator` and use it.
+
+             import Standard.Base.Random.Random
+
+             rng = Random.oew_generator 42
+             i = rng.integer 0 10
+    new_generator : Integer -> Random_Generator
+    new_generator (seed:Integer|Nothing=Nothing) = Random_Generator.new seed
+
+    ## TEXT_ONLY
+       GROUP Random
+
+       Set the seed of the default `Random_Generator` instance.
+
+       Arguments:
+       - seed: The seed used to initialze the default `Random_Generator`.
+
+       > Example
+         Set the seed of the default `Random_Generator` to 42.
+
+             import Standard.Base.Random.Random
+
+             Random.set_seed 42
+    set_seed : Integer -> Nothing
+    set_seed seed:Integer = Random_Generator.global_random_generator.set_seed seed
 
     ## GROUP Random
-       Gets the next random Boolean.
-    boolean : Float
+       Return a random `Integer` between `min` (inclusive) and `max`
+       (exclusive).
+
+       Arguments:
+       - min: The minimum value of the range to pick from (inclusive).
+       - max: The maximum value of the range to pick from (exclusive).
+
+       > Example
+         Generate an integer between 1 and 10.
+
+              import Standard.Base.Random.Random
+
+              i = Random.integer 1 11
+    integer : Integer -> Integer -> Integer ! Illegal_Argument
+    integer (min:Integer) (max:Integer) = Random_Generator.global_random_generator.integer min max
+
+    ## GROUP Random
+       Return a random `Float` in the specified range.
+
+       Arguments:
+       - min: The minimum value of the range to pick from (inclusive).
+       - max: The maximum value of the range to pick from (exclusive).
+
+       > Example
+         Generate a float between 2.3 and 3.4.
+
+              import Standard.Base.Random.Random
+
+              i = Random.float 2.3 3.4
+    float : Float -> Float -> Float
+    float (min:Float=0.0) (max:Float=1.0) = Random_Generator.global_random_generator.float min max
+
+    ## GROUP Random
+       Return a random `Boolean` using the default instance of
+       `Random_Generator`.
+
+       > Example
+         Generate a random boolean.
+
+             import Standard.Base.Random.Random
+
+             b = Random.boolean
+    boolean : Boolean
+    boolean = Random_Generator.global_random_generator.boolean
+
+    ## GROUP Random
+       Return a random Gaussian-distributed `Float` with the specified mean and
+       standard deviation.
+
+       Arguments:
+       - standard_deviation: The standard deviation of the sampled distribution.
+       - mean: The mean of the sampled distribution.
+
+       > Example
+         Generate an gaussian float.
+
+              import Standard.Base.Random.Random
+
+              f = Random.gaussian
+    gaussian : Float -> Float -> Float
+    gaussian (standard_deviation:Float=1.0) (mean:Float=0.0) = Random_Generator.global_random_generator.gaussian standard_deviation mean
+
+    ## GROUP Random
+       Returns `count` indices sampled from the range 0 (inclusive) to n
+       (exclusive) without replacement.
+
+       Arguments:
+       - n: The end of the range to sample from (exclusive).
+       - count: The number of samples to take.
+
+       > Example
+         Generate 10 random indices between 0 and 100.
+
+              import Standard.Base.Random.Random
+
+              indices = Random.indices 100 10
+    indices : Integer -> Integer -> Vector Integer
+    indices (n:Integer) (count:Integer=1) = Random_Generator.global_random_generator.indices n count
+
+    ## GROUP Random
+       Return a `Date` within the specified `Date_Range`.
+
+       Arguments:
+       - start_date: The lower bound of the range to pick from (inclusive).
+       - end_date: The upper bound of the range to pick from (exclusive).
+
+       > Example
+         Generate a random date.
+
+             import Standard.Base.Random.Random
+
+             d = Random.date (Date.new 2023 03 01) (Date.new 2023 10 15)
+    date : Date -> Date -> Boolean -> Date
+    date start_date:Date end_date:Date end_exclusive=True = Random_Generator.global_random_generator.date start_date end_date end_exclusive
+
+    ## GROUP Random
+       Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
+
+       Arguments:
+       - start_time: The lower bound of the range to pick from (inclusive).
+       - end_time: The upper bound of the range to pick from (inclusive).
+
+       The generated time is at a granularity of 1 second. Random values are
+       generated for hours, minutes and seconds. The `nanoseconds` field is
+       always 0.
+
+       Note: the time range end is inclusive because it is impossible to specify
+       an end time after the last second of the day.
+
+       > Example
+         Generate a random time.
+
+             import Standard.Base.Random.Random
+
+             start = Time_Of_Day.new 8 12 15
+             end = Time_Of_Day.new 9 40 2
+             t = Random.time start end
+    time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
+    time (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
+        Random_Generator.global_random_generator.time start_time end_time
+
+    ## GROUP Random
+       Return a new UUID.
+
+       ! Random Seed
+         `uuid` does not use the underlying `java.util.Random` instance, and is
+         therefore not affected by `set_seed`.
+
+       > Example
+         Generate a uuid.
+
+             import Standard.Base.Random.Random
+
+             uuid = Random.uuid
+    uuid : Text
+    uuid = Random_Generator.global_random_generator.uuid
+
+    ## GROUP Random
+       Returns a new `Vector` containing a random sample of the input vector,
+       with or without replacement.
+
+       Arguments:
+       - vector: The `Vector` to take items from.
+       - count: The number of items to return.
+       - with_replacement: If false, each value in the `Vector` can only be
+         selected once during a single call; the returned values will contain no
+         duplicates. If true, values from the `Vector` can be returned multiple
+         times and duplicates are possible.
+
+       ? Selection without replacement
+
+         If `with_replacement` is false, and `count` is equal to the size of the
+         collection, a random permutation of the collection is returned.
+
+         If `with_replacement` is false, and `count` is greater than the size of
+         the collection, an `Illegal_Argument` error is thrown. (If `count` is
+         greater than the size of the collection, `items` will run out of values
+         to choose from, and will not be able to return enough values.)
+
+       > Example
+         Sample a vector.
+
+             import Standard.Base.Random.Random
+
+             items = Random.items [1, 2, 3, 4]
+    items : (Vector Any | Array Any) -> Integer -> Boolean -> Vector Any ! Illegal_Argument
+    items (v : Vector Any | Array Any) (count:Integer=1) (with_replacement:Boolean=False) = Random_Generator.global_random_generator.items v count with_replacement
+
+    ## GROUP Random
+       Returns a random permutation of the input `Vector`.
+
+       Arguments:
+       - vector: The `Vector` to permute.
+
+       > Example
+         Permute a vector.
+
+             import Standard.Base.Random.Random
+
+             permuted = Random.permute [1, 2, 3, 4]
+    permute : Vector Any -> Vector Any
+    permute (v:Vector) = Random_Generator.global_random_generator.permute v
+
+# PRIVATE
+type Random_Generator
+    ## PRIVATE
+       Create a new rng with the given seed.
+    new : Integer|Nothing -> Random_Generator
+    new (seed:Integer|Nothing) =
+        seed_resolved = seed.if_nothing get_default_seed
+        Random_Generator.Value (RandomInstanceHolder.new seed_resolved)
+
+    ## PRIVATE
+    Value (random_instance_holder:RandomInstanceHolder)
+
+    ## PRIVATE
+    global_random_generator : Random_Generator
+    global_random_generator = RandomInstanceHolder.singleton Random_Generator.Value
+
+    ## PRIVATE
+    set_seed : Integer -> Nothing
+    set_seed self seed = self.random_instance_holder.setSeed seed
+
+    ## PRIVATE
+    java_random : Java_Random
+    java_random self = self.random_instance_holder.getCurrentRandom
+
+    ## PRIVATE
+    integer : Integer -> Integer -> Integer ! Illegal_Argument
+    integer self (min:Integer) (max:Integer) =
+        range = max - min
+        if range >= Java_Integer.MAX_VALUE then Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.") else
+          min + (self.java_random.nextInt range)
+
+    ## PRIVATE
+    float : Float -> Float -> Float
+    float self (min:Float=0.0) (max:Float=1.0) =
+        range = max - min
+        self.java_random.nextDouble * range + min
+
+    ## PRIVATE
+    boolean : Boolean
     boolean self =
         self.java_random.nextBoolean
 
-    ## GROUP Random
-       Gets the next random Float between 0 and 1.
-    float : Float
-    float self =
-        self.java_random.nextDouble
-
-    ## GROUP Random
-       Gets the next random Float from a normal distribution with mean 0 and std-dev 1.
-    gaussian : Float
-    gaussian self =
-        self.java_random.nextGaussian
-
-    ## GROUP Random
-       Gets the next random integer between min (inclusive) and max (exclusive).
-
-       Arguments:
-        - min: the minimum value (inclusive) of the random integer.
-        - max: the maximum value (exclusive) of the random integer.
-    integer : Integer -> Integer -> Integer
-    integer self min=0 max=100 =
-        range = max - min
-        if range < Java_Integer.MAX_VALUE then min + (self.java_random.nextInt range) else
-            Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.")
+    ## PRIVATE
+    gaussian : Float -> Float -> Float
+    gaussian self (standard_deviation:Float=1.0) (mean:Float=0.0) =
+        self.java_random.nextGaussian * standard_deviation + mean
 
     ## PRIVATE
-       Serialise to JS_Object
-    to_js_object : JS_Object
-    to_js_object self =
-        JS_Object.from_pairs [["type", "Random_Number_Generator"], ["constructor", "new"]]
+    indices : Integer -> Integer -> Vector Integer
+    indices self (n:Integer) (count:Integer=1) =
+        array = Random_Utils.random_indices n count self.java_random
+        Vector.from_polyglot_array array
 
     ## PRIVATE
-       Convert to a display representation of this Random_Number_Generator.
-    to_display_text : Text
-    to_display_text self = "Random_Number_Generator"
+    date : Date -> Date -> Boolean -> Date
+    date self start_date:Date end_date:Date end_exclusive=True =
+        date_range = start_date.up_to end_date include_end=end_exclusive.not
+        date_range.at (self.integer 0 date_range.length)
+
+    ## PRIVATE
+    time : Time_Of_Day -> Time_Of_Day -> Time_Of_Day
+    time self (start_time:Time_Of_Day=(Time_Of_Day.new 0 0 0)) (end_time:Time_Of_Day=(Time_Of_Day.new 23 59 59)) =
+        ## The time range end is inclusive because it is impossible to specify
+           an end time after the last second of the day.
+        seconds = self.integer 0 (end_time.to_seconds - start_time.to_seconds + 1)
+        start_time.date_add seconds Time_Period.Second
+
+    ## PRIVATE
+    uuid : Text
+    uuid self = UUID.randomUUID.to_text
+
+    ## PRIVATE
+    items : (Vector Any | Array Any) -> Integer -> Boolean -> Any ! Illegal_Argument
+    items self (v : Vector Any | Array Any) (count:Integer=1) (with_replacement:Boolean=False) =
+        case with_replacement of
+            True ->
+                len = v.length
+                0.up_to count . map _-> v.at (self.integer 0 len)
+            False ->
+                if count > v.length then Error.throw (Illegal_Argument.Error "`count` cannot be greater than the size of the collection when `with_replacement` is false") else
+                  new_array = Random_Utils.sample v count self.java_random
+                  Vector.from_polyglot_array new_array
+
+    ## PRIVATE
+    permute : Vector Any -> Vector Any
+    permute self (v:Vector) = self.items v v.length False
 
 ## PRIVATE
-   Returns a new vector containing a random sample of the input vector, without
-   replacement.
+   Returns a default seed to use for random number generation.
 
-   If the amount of elements to select is larger than the input vector size, it
-   returns a random permutation of the input vector.
-sample : Vector Any -> Integer -> Random_Number_Generator -> Vector Any
-sample vector k rng =
-    new_array = Random_Utils.sample vector k rng.java_random
-    Vector.from_polyglot_array new_array
-
-## PRIVATE
-   Returns `k` indices sampled from the range [0, n-1] without replacement.
-
-   If `k >= n`, it will return a random permutation of the indices.
-random_indices : Integer -> Integer -> Random_Number_Generator -> Vector Integer
-random_indices n k rng =
-    array = Random_Utils.random_indices n k rng.java_random
-    Vector.from_polyglot_array array
-
-## PRIVATE
-   Generates a text representation of a randomly generated UUID.
-random_uuid : Text
-random_uuid =
-    UUID.randomUUID.to_text
+   The returned seed will likely differ between each call to this method.
+get_default_seed : Integer
+get_default_seed = Random_Utils.getDefaultSeed

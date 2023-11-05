@@ -179,14 +179,17 @@ operations_map =
     handle_cast _ =
         Panic.throw (Illegal_State.Error "Cast relies on its own type inference logic, so this code should never be reached. This is a bug in the Database library.")
 
+    handle_runtime_error _ =
+        Panic.throw (Illegal_State.Error "RUNTIME_ERROR should not be part of direct type inference, so this code should never be reached. This is a bug in the Database library.")
+
     always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_EMPTY", "LIKE", "IS_IN", "IS_IN_COLUMN", "starts_with", "ends_with", "contains", "BOOL_OR", "IS_INF"]
     always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP", "ROUND"]
     always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM", "REPLACE"]
-    always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS", "ROW_NUMBER"]
+    always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS", "ROW_NUMBER", "ROW_NUMBER_IN_GROUP"]
     same_as_first = ["TRUNCATE", "CEIL", "FLOOR"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE"]
-    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case]]
+    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case], ["RUNTIME_ERROR", handle_runtime_error]]
     Map.from_vector <|
         v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
         v2 = always_floating_ops.map [_, const SQLite_Types.real]

@@ -3,6 +3,8 @@ package org.enso.interpreter.runtime
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.context.CompilerContext
+import org.enso.compiler.context.FramePointer
+import org.enso.compiler.context.LocalScope
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -51,7 +53,6 @@ import org.enso.compiler.pass.analyse.{
   DataflowAnalysis,
   TailCall
 }
-import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   GenericAnnotations,
@@ -105,11 +106,7 @@ import org.enso.interpreter.runtime.callable.{
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.scope.{
-  FramePointer,
-  LocalScope,
-  ModuleScope
-}
+import org.enso.interpreter.runtime.scope.{ModuleScope}
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
@@ -908,7 +905,7 @@ class IrToTruffle(
         if (
           resolution.isInstanceOf[ResolvedConstructor] || !resolution.module
             .unsafeAsModule()
-            .isSameAs(moduleScope.getModule)
+            .equals(moduleScope.getModule.asCompilerModule)
         ) {
           resolution match {
             case BindingsMap.ResolvedType(module, tp) =>
@@ -2072,18 +2069,11 @@ class IrToTruffle(
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE
       }
 
-      val appNode = application.getMetadata(ApplicationSaturation) match {
-        case Some(
-              ApplicationSaturation.CallSaturation.Exact(createOptimised)
-            ) =>
-          createOptimised(moduleScope)(scope)(callArgs.toList)
-        case _ =>
-          ApplicationNode.build(
-            this.run(fn, subjectToInstrumentation),
-            callArgs.toArray,
-            defaultsExecutionMode
-          )
-      }
+      val appNode = ApplicationNode.build(
+        this.run(fn, subjectToInstrumentation),
+        callArgs.toArray,
+        defaultsExecutionMode
+      )
 
       setLocation(appNode, loc)
     }

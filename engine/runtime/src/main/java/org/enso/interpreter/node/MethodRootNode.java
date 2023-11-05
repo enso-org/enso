@@ -3,12 +3,12 @@ package org.enso.interpreter.node;
 import java.util.function.Supplier;
 
 import org.enso.compiler.core.CompilerError;
+import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import com.oracle.truffle.api.CompilerDirectives;

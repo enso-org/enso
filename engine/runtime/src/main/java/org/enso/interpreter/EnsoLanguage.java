@@ -24,7 +24,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.IrToTruffle;
-import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -242,6 +242,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       var redirectConfigWithStrictErrors = new CompilerConfig(
           false,
           false,
+          true,
           true,
           scala.Option.apply(new PrintStream(outputRedirect))
       );

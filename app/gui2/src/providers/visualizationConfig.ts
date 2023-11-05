@@ -6,7 +6,7 @@ import { createContextStore } from '.'
 export interface VisualizationConfig {
   /** Possible visualization types that can be switched to. */
   background?: string
-  readonly types: readonly VisualizationIdentifier[]
+  readonly types: Iterable<VisualizationIdentifier>
   readonly currentType: VisualizationIdentifier
   readonly isCircularMenuVisible: boolean
   readonly nodeSize: Vec2

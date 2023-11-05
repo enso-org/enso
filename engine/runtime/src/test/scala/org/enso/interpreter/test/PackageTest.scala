@@ -8,17 +8,21 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.Paths
+import java.util.logging.Level
 
 trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
   val output = new ByteArrayOutputStream()
 
-  def evalTestProject(name: String): Value = {
+  def evalTestProject(
+    name: String,
+    customOptions: Map[String, String] = Map.empty
+  ): Value = {
     val pkgPath =
       new File(getClass.getClassLoader.getResource(name).getPath)
     val pkg        = PackageManager.Default.fromDirectory(pkgPath).get
     val mainFile   = pkg.mainFile
     val mainModule = pkg.moduleNameForFile(mainFile)
-    val context = Context
+    val ctxBuilder = Context
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
@@ -35,9 +39,12 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .out(output)
       .in(System.in)
-      .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+      .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
       .logHandler(System.err)
-      .build()
+    for ((key, value) <- customOptions) {
+      ctxBuilder.option(key, value)
+    }
+    val context = ctxBuilder.build()
     context.initialize(LanguageInfo.ID)
     val executionContext = new PolyglotContext(context)
     InterpreterException.rethrowPolyglot(

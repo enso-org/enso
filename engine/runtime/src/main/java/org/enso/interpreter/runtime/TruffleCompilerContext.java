@@ -37,14 +37,14 @@ final class TruffleCompilerContext implements CompilerContext {
 
   private final EnsoContext context;
   private final TruffleLogger loggerCompiler;
-  private final TruffleLogger loggerManager;
+  private final TruffleLogger loggerSerializationManager;
   private final RuntimeStubsGenerator stubsGenerator;
   private final SerializationManager serializationManager;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
     this.loggerCompiler = context.getLogger(Compiler.class);
-    this.loggerManager = context.getLogger(SerializationManager.class);
+    this.loggerSerializationManager = context.getLogger(SerializationManager.class);
     this.serializationManager = new SerializationManager(this);
     this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
@@ -52,6 +52,11 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public boolean isIrCachingDisabled() {
     return context.isIrCachingDisabled();
+  }
+
+  @Override
+  public boolean isPrivateCheckDisabled() {
+    return context.isPrivateCheckDisabled();
   }
 
   @Override
@@ -90,7 +95,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void logSerializationManager(Level level, String msg, Object... args) {
-    loggerManager.log(level, msg, args);
+    loggerSerializationManager.log(level, msg, args);
   }
 
   @Override
@@ -330,7 +335,7 @@ final class TruffleCompilerContext implements CompilerContext {
     public void close() {
       if (map != null) {
         if (module.bindings != null) {
-          throw new IllegalStateException("Reassigining bindings to " + module);
+          loggerCompiler.log(Level.FINE, "Reassigining bindings to {0}", module);
         }
         module.bindings = map;
       }
@@ -382,11 +387,6 @@ final class TruffleCompilerContext implements CompilerContext {
     /** Intentionally not public. */
     final org.enso.interpreter.runtime.Module unsafeModule() {
       return module;
-    }
-
-    @Override
-    public boolean isSameAs(org.enso.interpreter.runtime.Module m) {
-      return module == m;
     }
 
     @Override

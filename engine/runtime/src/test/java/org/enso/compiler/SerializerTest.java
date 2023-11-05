@@ -5,9 +5,9 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.SerializationManager;
 import org.enso.pkg.PackageManager;
@@ -28,7 +28,8 @@ public class SerializerTest {
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .logHandler(OutputStream.nullOutputStream())
+            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .logHandler(System.err)
             .allowAllAccess(true)
             .build();
     assertNotNull("Enso language is supported", ctx.getEngine().getLanguages().get("enso"));
