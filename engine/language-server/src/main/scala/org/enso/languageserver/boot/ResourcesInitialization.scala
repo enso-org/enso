@@ -61,7 +61,8 @@ object ResourcesInitialization {
           ),
           new TruffleContextInitialization(ec, truffleContext, eventStream)
         )
-      )
+      ),
+      ec
     )
   }
 }

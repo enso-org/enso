@@ -2,6 +2,7 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import TopBar from '@/components/TopBar.vue'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -21,7 +22,6 @@ import GraphNodes from './GraphEditor/GraphNodes.vue'
 
 const EXECUTION_MODES = ['design', 'live']
 
-const mode = ref('design')
 const viewportNode = ref<HTMLElement>()
 const navigator = provideGraphNavigator(viewportNode)
 const _ = provideWidgetRegistry()
@@ -121,7 +121,7 @@ const scaledSelectionAnchor = computed(() => nodeSelection.anchor?.scale(navigat
 /// Track play button presses.
 function onPlayButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
-    const modeValue = mode.value
+    const modeValue = projectStore.executionMode
     if (modeValue == undefined) {
       return
     }
@@ -131,7 +131,7 @@ function onPlayButtonPress() {
 
 /// Watch for changes in the execution mode.
 watch(
-  () => mode.value,
+  () => projectStore.executionMode,
   (modeValue) => {
     projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
   },
@@ -177,6 +177,32 @@ watch(componentBrowserVisible, (visible) => {
     interactionEnded(editingNode)
   }
 })
+
+async function handleFileDrop(event: DragEvent) {
+  try {
+    if (event.dataTransfer && event.dataTransfer.items) {
+      ;[...event.dataTransfer.items].forEach(async (item) => {
+        if (item.kind === 'file') {
+          const file = item.getAsFile()
+          if (file) {
+            const clientPos = new Vec2(event.clientX, event.clientY)
+            const pos = navigator.clientToScenePos(clientPos)
+            const uploader = await Uploader.create(
+              projectStore.lsRpcConnection,
+              projectStore.dataConnection,
+              projectStore.contentRoots,
+              file,
+            )
+            const name = await uploader.upload()
+            graphStore.createNode(pos, uploadedExpression(name))
+          }
+        }
+      })
+    }
+  } catch (err) {
+    console.error(`Uploading file failed. ${err}`)
+  }
+}
 </script>
 
 <template>
@@ -188,6 +214,8 @@ watch(componentBrowserVisible, (visible) => {
     @click="graphBindingsHandler"
     v-on.="navigator.events"
     v-on..="nodeSelection.events"
+    @dragover.prevent
+    @drop.prevent="handleFileDrop($event)"
   >
     <svg :viewBox="navigator.viewBox">
       <GraphEdges @startInteraction="setCurrentInteraction" @endInteraction="interactionEnded" />
@@ -202,7 +230,7 @@ watch(componentBrowserVisible, (visible) => {
       @finished="componentBrowserVisible = false"
     />
     <TopBar
-      v-model:mode="mode"
+      v-model:mode="projectStore.executionMode"
       :title="projectStore.name"
       :modes="EXECUTION_MODES"
       :breadcrumbs="['main', 'ad_analytics']"

@@ -37,21 +37,19 @@ export function visIdentifierEquals(a: VisualizationIdentifier, b: Visualization
   return a.name === b.name && object.equalFlat(a.module, b.module)
 }
 
-export interface NodeMetadata {
-  x: number
-  y: number
-  vis: VisualizationMetadata | null
-}
+export type ProjectSetting = string
 
 export class DistributedProject {
   doc: Y.Doc
   name: Y.Text
   modules: Y.Map<Y.Doc>
+  settings: Y.Map<ProjectSetting>
 
   constructor(doc: Y.Doc) {
     this.doc = doc
     this.name = this.doc.getText('name')
     this.modules = this.doc.getMap('modules')
+    this.settings = this.doc.getMap('settings')
   }
 
   moduleNames(): string[] {
@@ -95,6 +93,12 @@ export class DistributedProject {
   }
 }
 
+export interface NodeMetadata {
+  x: number
+  y: number
+  vis: VisualizationMetadata | null
+}
+
 export class ModuleDoc {
   ydoc: Y.Doc
   contents: Y.Text
@@ -123,8 +127,11 @@ export class DistributedModule {
     this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
   }
 
-  insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length] as const
+  insertNewNode(offset: number, pattern: string, expression: string, meta: NodeMetadata): ExprId {
+    // Spaces at the beginning are needed to place the new node in scope of the `main` function with proper indentation.
+    const lhs = `    ${pattern} = `
+    const content = lhs + expression
+    const range = [offset + lhs.length, offset + content.length] as const
     const newId = random.uuidv4() as ExprId
     this.transact(() => {
       this.doc.contents.insert(offset, content + '\n')

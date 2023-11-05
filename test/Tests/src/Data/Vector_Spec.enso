@@ -458,6 +458,8 @@ type_spec name alter = Test.group name <|
         vec.take . should_equal [1]
         vec.drop . should_equal [2, 3, 4, 5, 6]
 
+        IO.println 'AAA'
+        IO.println (Meta.get_simple_type_name vec)
         vec.take (2.up_to 4) . should_equal [3, 4]
         vec.take (0.up_to 0) . should_equal []
         vec.take (100.up_to 100) . should_fail_with Index_Out_Of_Bounds
@@ -559,10 +561,11 @@ type_spec name alter = Test.group name <|
 
         vec.take (Sample 0) . should_equal []
         alter [] . take (Sample 0) . should_equal []
-        alter [] . take (Sample 1) . should_equal []
+        alter [] . take (Sample 1) . should_fail_with Illegal_Argument
         alter ["a"] . take (Sample 1) . should_equal ["a"]
         alter ["a", "a", "a"] . take (Sample 1) . should_equal ["a"]
-        alter ["a", "a", "a"] . take (Sample 100) . should_equal ["a", "a", "a"]
+        alter ["a", "a", "a"] . take (Sample 3) . should_equal ["a", "a", "a"]
+        alter ["a", "a", "a"] . take (Sample 100) . should_fail_with Illegal_Argument
 
         vec.drop (Sample 0) . should_equal vec
         alter [] . drop (Sample 0) . should_equal []
@@ -570,6 +573,16 @@ type_spec name alter = Test.group name <|
         alter ["a"] . drop (Sample 1) . should_equal []
         alter ["a", "a", "a"] . drop (Sample 1) . should_equal ["a", "a"]
         alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
+
+    Test.group "take/drop Sample non-determinism" <|
+        v = 0.up_to 20 . to_vector
+
+        Test.specify "sampling should be deterministic when a seed is supplied" <|
+            v.take (Sample 3 seed=4200000) . should_equal (v.take (Sample 3 seed=4200000))
+
+        Test.specify "sampling should be non-deterministic when a seed is not supplied" <|
+            0.up_to 3 . map _->
+                v.take (Sample 3) . should_not_equal (v.take (Sample 3))
 
     Test.specify "take/drop should gracefully handle missing constructor arguments" <|
         [].take "FOO" . should_fail_with Type_Error

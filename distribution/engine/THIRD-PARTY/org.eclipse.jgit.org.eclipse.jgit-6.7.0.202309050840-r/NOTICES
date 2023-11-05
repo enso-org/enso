@@ -88,6 +88,8 @@ Copyright (C) 2008, 2022 Marek Zawirski <marek.zawirski@gmail.com> and others
 
 Copyright (C) 2008, 2022 Shawn O. Pearce <spearce@spearce.org> and others
 
+Copyright (C) 2008, 2023 Google Inc. and others
+
 Copyright (C) 2008, Charles O'Farrell <charleso@charleso.org>
 
 Copyright (C) 2008, Florian Köberle <florianskarten@web.de>
@@ -338,8 +340,6 @@ Copyright (C) 2011, 2019 GitHub Inc. and others
 
 Copyright (C) 2011, 2019 Google Inc. and others
 
-Copyright (C) 2011, 2020 Matthias Sohn <matthias.sohn@sap.com> and others
-
 Copyright (C) 2011, 2020, Matthias Sohn <matthias.sohn@sap.com> and others
 
 Copyright (C) 2011, 2021 IBM Corporation and others
@@ -349,6 +349,8 @@ Copyright (C) 2011, 2022 Chris Aniszczyk <caniszczyk@gmail.com> and others
 Copyright (C) 2011, 2022 Christoph Brill <egore911@egore911.de> and others
 
 Copyright (C) 2011, 2022 Google Inc. and others
+
+Copyright (C) 2011, 2023 Matthias Sohn <matthias.sohn@sap.com> and others
 
 Copyright (C) 2011, Chris Aniszczyk <caniszczyk@gmail.com>
 
@@ -398,9 +400,9 @@ Copyright (C) 2012 Christian Halstrick and others
 
 Copyright (C) 2012 Google Inc. and others
 
-Copyright (C) 2012, 2021 GitHub Inc. and others
-
 Copyright (C) 2012, 2022, Robin Rosenberg and others
+
+Copyright (C) 2012, 2023 GitHub Inc. and others
 
 Copyright (C) 2012, Christian Halstrick <christian.halstrick@sap.com> and others
 
@@ -638,6 +640,10 @@ Copyright (C) 2021, Google Inc. and others
 
 Copyright (C) 2021, Google LLC. and others
 
+Copyright (C) 2021, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2021, Tencent.
+
 Copyright (C) 2021, Thomas Wolf <thomas.wolf@paranor.ch> and others
 
 Copyright (C) 2022 Thomas Wolf <thomas.wolf@paranor.ch> and others
@@ -646,13 +652,29 @@ Copyright (C) 2022,  Matthias Sohn <matthias.sohn@sap.com> and others
 
 Copyright (C) 2022, Fabio Ponciroli <ponch78@gmail.com> and others
 
-Copyright (C) 2022, Google Inc. and others
+Copyright (C) 2022, Google LLC and others
+
+Copyright (C) 2022, Matthias Sohn <matthias.sohn@sap.com> and others
 
 Copyright (C) 2022, Simeon Andreev and others
 
 Copyright (C) 2022, Tencent.
 
 Copyright (C) 2022, Workday Inc.
+
+Copyright (C) 2023, Google Inc. and others
+
+Copyright (C) 2023, Google LLC
+
+Copyright (C) 2023, Google LLC and others
+
+Copyright (C) 2023, Google LLC.
+
+Copyright (C) 2023, SAP SE and others
+
+Copyright (C) 2023, Tencent.
+
+Copyright (C) 2023, Thomas Wolf <twolf@apache.org> and others
 
 Copyright (c) 2014 Konrad Kügler and others
 
@@ -671,6 +693,8 @@ Copyright (c) 2020, Google LLC  and others
 Copyright (c) 2020, Google LLC and others
 
 Copyright (c) 2021 Qualcomm Innovation Center, Inc.
+
+Copyright (c) 2023 Qualcomm Innovation Center, Inc.
 
 Copyright 2017 Marc Stevens <marc@marc-stevens.nl>, Dan Shumow <danshu@microsoft.com>
 

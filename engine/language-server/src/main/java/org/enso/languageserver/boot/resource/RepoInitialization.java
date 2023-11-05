@@ -67,7 +67,7 @@ public class RepoInitialization implements InitializationComponent {
   public CompletableFuture<Void> init() {
     return initSqlDatabase()
         .thenComposeAsync(v -> initSuggestionsRepo(), executor)
-        .thenRun(() -> isInitialized = true);
+        .thenRunAsync(() -> isInitialized = true, executor);
   }
 
   private CompletableFuture<Void> initSqlDatabase() {
@@ -92,7 +92,8 @@ public class RepoInitialization implements InitializationComponent {
             () -> logger.info("Initializing suggestions repo [{}]...", sqlDatabase), executor)
         .thenComposeAsync(
             v ->
-                doInitSuggestionsRepo().exceptionallyComposeAsync(this::recoverInitializationError),
+                doInitSuggestionsRepo()
+                    .exceptionallyComposeAsync(this::recoverInitializationError, executor),
             executor)
         .thenRunAsync(
             () -> logger.info("Initialized Suggestions repo [{}].", sqlDatabase), executor)
@@ -171,6 +172,6 @@ public class RepoInitialization implements InitializationComponent {
   }
 
   private CompletionStage<Void> doInitSuggestionsRepo() {
-    return FutureConverters.asJava(sqlSuggestionsRepo.init()).thenAccept(res -> {});
+    return FutureConverters.asJava(sqlSuggestionsRepo.init()).thenAcceptAsync(res -> {}, executor);
   }
 }

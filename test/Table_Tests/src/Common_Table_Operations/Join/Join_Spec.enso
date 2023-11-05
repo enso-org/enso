@@ -1,10 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import all hiding Table
+from Standard.Table import all
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database import all
+from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -647,3 +649,10 @@ spec setup =
                 r3.at 2 . should_equal [Nothing, 10, 7, 7, 200]
                 r3.at 3 . should_equal [2, 20, 2, Nothing, Nothing]
                 r3.at 4 . should_equal [3, 30, 3, Nothing, Nothing]
+
+        Test.specify "should gracefully handle tables from different backends" <|
+            alternative_connection = Database.connect (SQLite In_Memory)
+            t0 = (Table.new [["X", [1, 2, 4]], ["Z", [10, 20, 30]]]).select_into_database_table alternative_connection "T0" temporary=True
+
+            r1 = t1.join t0
+            r1.should_fail_with Illegal_Argument

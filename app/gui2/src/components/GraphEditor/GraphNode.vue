@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
+import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
@@ -17,8 +19,6 @@ import { unwrap } from '@/util/result'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
-import GraphVisualization from './GraphVisualization.vue'
-import NodeWidgetTree from './NodeWidgetTree.vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -292,6 +292,7 @@ onUpdated(() => {
     }
   }
 })
+
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
@@ -350,10 +351,10 @@ const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unk
 const suggestionEntry = computed(() => {
   const method = expressionInfo.value?.methodCall?.methodPointer
   if (method == null) return undefined
-  const moduleName = tryQualifiedName(method.module)
+  const typeName = tryQualifiedName(method.definedOnType)
   const methodName = tryQualifiedName(method.name)
-  if (!moduleName.ok || !methodName.ok) return undefined
-  const qualifiedName = qnJoin(unwrap(moduleName), unwrap(methodName))
+  if (!typeName.ok || !methodName.ok) return undefined
+  const qualifiedName = qnJoin(unwrap(typeName), unwrap(methodName))
   const [id] = suggestionDbStore.entries.nameToId.lookup(qualifiedName)
   if (id == null) return undefined
   return suggestionDbStore.entries.get(id)

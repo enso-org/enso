@@ -10,7 +10,6 @@
 
 import { LazySyncEffectSet } from '@/util/reactivity'
 // eslint-disable-next-line vue/prefer-import-from-vue
-import { pauseTracking, resetTracking, trigger, type TriggerOpTypes } from '@vue/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
@@ -29,12 +28,12 @@ export type OnDelete = (cleanupFn: () => void) => void
 export class ReactiveDb<K, V> extends ObservableV2<{
   entryAdded(key: K, value: V, onDelete: OnDelete): void
 }> {
-  internal: Map<K, V>
+  _internal: Map<K, V>
   onDelete: Map<K, Set<() => void>>
 
   constructor() {
     super()
-    this.internal = reactive(map.create())
+    this._internal = reactive(map.create())
     this.onDelete = map.create()
   }
 
@@ -49,7 +48,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
     // Trigger a reactive update when replacing one entry with another.
     this.delete(key)
 
-    this.internal.set(key, value)
+    this._internal.set(key, value)
     const onDelete: OnDelete = (callback) => {
       const callbacks = map.setIfUndefined(this.onDelete, key, set.create)
       callbacks.add(callback)
@@ -65,7 +64,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    */
   /** Same as `Map.get` */
   get(key: K): V | undefined {
-    return this.internal.get(key)
+    return this._internal.get(key)
   }
 
   /**
@@ -77,7 +76,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
   delete(key: K): boolean {
     this.onDelete.get(key)?.forEach((callback) => callback())
     this.onDelete.delete(key)
-    return this.internal.delete(key)
+    return this._internal.delete(key)
   }
 
   /**
@@ -86,7 +85,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    * @returns The number of key-value pairs in the database.
    */
   get size(): number {
-    return this.internal.size
+    return this._internal.size
   }
 
   /**
@@ -95,7 +94,7 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    * @returns An iterator that yields key-value pairs in the database.
    */
   entries(): IterableIterator<[K, V]> {
-    return this.internal.entries()
+    return this._internal.entries()
   }
 
   /**
@@ -104,7 +103,16 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    * @returns An iterator that yields keys in the database.
    */
   keys(): IterableIterator<K> {
-    return this.internal.keys()
+    return this._internal.keys()
+  }
+
+  /**
+   * Retrieves an iterator over values in the database, equivalent to `Map.values`.
+   *
+   * @returns An iterator that yields values in the database.
+   */
+  values(): IterableIterator<V> {
+    return this._internal.values()
   }
 
   /**
@@ -114,10 +122,10 @@ export class ReactiveDb<K, V> extends ObservableV2<{
    *
    */
   moveToLast(id: K) {
-    const value = this.internal.get(id)
+    const value = this._internal.get(id)
     if (value !== undefined) {
-      this.internal.delete(id)
-      this.internal.set(id, value)
+      this._internal.delete(id)
+      this._internal.set(id, value)
     }
     // // Trigger deps that track iteration order of the entire map, but nothing else. Triggering a
     // // delete operation without specifying any specific key does exactly that.

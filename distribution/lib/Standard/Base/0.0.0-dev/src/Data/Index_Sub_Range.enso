@@ -12,13 +12,14 @@ import project.Math
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
+import project.Nothing.Nothing
 import project.Panic.Panic
-import project.Random
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
+from project.Random import Random, get_default_seed
 
 type Index_Sub_Range
     ## Select the first `count` items.
@@ -52,7 +53,7 @@ type Index_Sub_Range
 
        If `count` is greater than the length of the input, a random permutation
        of all elements from the input is selected.
-    Sample (count:Integer) (seed:Integer=Random.get_default_seed)
+    Sample (count:Integer) (seed:Integer|Nothing=Nothing)
 
     ## Gets every Nth entry.
 
@@ -211,8 +212,8 @@ take_helper length at single_slice slice_ranges range = case range of
         trimmed = resolve_ranges indices length
         slice_ranges trimmed
     Index_Sub_Range.Sample count seed ->
-        rng = Random.new seed
-        indices_to_take = Random.random_indices length count rng
+        rng = Random.new_generator seed
+        indices_to_take = rng.indices length count
         take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index indices_to_take)
     Index_Sub_Range.Every step start ->
         if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
@@ -264,8 +265,8 @@ drop_helper length at single_slice slice_ranges range = case range of
         inverted = invert_range_selection normalized length needs_sorting=True
         slice_ranges inverted
     Index_Sub_Range.Sample count seed ->
-        rng = Random.new seed
-        indices_to_drop = Random.random_indices length count rng
+        rng = Random.new_generator seed
+        indices_to_drop = rng.indices length count
         drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index indices_to_drop)
     Index_Sub_Range.Every step start ->
         if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
