@@ -173,17 +173,13 @@ export class AliasAnalyzer {
   use(token: Token) {
     const identifier = readTokenSpan(token, this.code)
     const range = parsedTreeOrTokenRange(token)
-
-    for (const scope of this.scopes.valuesFromTop()) {
-      const binding = scope.bindings.get(identifier)
-      if (binding != null) {
-        this.addConnection(binding, token)
-        return
-      }
+    const binding = this.scopes.top.resolve(identifier, range)
+    if (binding != null) {
+      this.addConnection(binding, token)
+    } else {
+      log(`Usage of ${identifier}@[${range}] is unresolved.`)
+      this.unresolvedSymbols.add(range)
     }
-
-    log(`Usage of ${identifier}@[${range}] is unresolved.`)
-    this.unresolvedSymbols.add(range)
   }
 
   /** Method that processes a single AST node. */
