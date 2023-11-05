@@ -18,7 +18,7 @@ import type {LazyObject} from "@/util/parserSupport.ts";
  *
  * It is recommended to keep them disabled (unless debugging this module), as they are very noisy and can.
  */
-const LOGGING_ENABLED = true
+const LOGGING_ENABLED = false
 
 class Scope {
   /** The variables defined in this scope. */
