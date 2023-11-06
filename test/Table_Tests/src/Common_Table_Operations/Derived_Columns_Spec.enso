@@ -236,3 +236,4 @@ spec setup =
         Test.specify "Should not disambiguate if set_mode is Update" <|
             t = table_builder [["X", [1, 2, 3]]]
             t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1) set_mode=Set_Mode.Update
+            t2.at "X" . to_vector . should_equal [2, 3, 4]
