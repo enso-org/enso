@@ -31,6 +31,7 @@ import org.enso.interpreter.service.ExecutionService.ExpressionValue;
 import org.enso.interpreter.service.ExecutionService.FunctionCallInfo;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
+import scala.collection.Iterator;
 
 final class ExecutionCallbacks
     implements IdExecutionService.Callbacks, IdExecutionService.ExecutionSupport {
@@ -102,31 +103,35 @@ final class ExecutionCallbacks
   public Object findCachedResult(Object materializedFrame, Object node, UUID nodeId) {
     Object result = getCachedResult(nodeId);
 
-    Visualization visualization = findVisualization(nodeId);
-    if (visualization instanceof Visualization.OneshotExpression oneshotExpression) {
-      EnsoRootNode ensoRootNode = ((EnsoRootNode) ((Node) node).getRootNode());
-      CallerInfo callerInfo =
-          new CallerInfo(
-              ((MaterializedFrame) materializedFrame),
-              ensoRootNode.getLocalScope(),
-              ensoRootNode.getModuleScope());
+    Iterator<Visualization> visualizations = findVisualizations(nodeId);
+    while (visualizations.hasNext()) {
+      Visualization visualization = visualizations.next();
 
-      Object visualizationResult = null;
-      Throwable visualizationError = null;
-      try {
-        visualizationResult =
-            evalNode.execute(
-                callerInfo,
-                State.create(EnsoContext.get(null)),
-                Text.create(oneshotExpression.expression()));
-      } catch (Exception exception) {
-        visualizationError = exception;
+      if (visualization instanceof Visualization.OneshotExpression oneshotExpression) {
+        EnsoRootNode ensoRootNode = ((EnsoRootNode) ((Node) node).getRootNode());
+        CallerInfo callerInfo =
+            new CallerInfo(
+                ((MaterializedFrame) materializedFrame),
+                ensoRootNode.getLocalScope(),
+                ensoRootNode.getModuleScope());
+
+        Object visualizationResult = null;
+        Throwable visualizationError = null;
+        try {
+          visualizationResult =
+              evalNode.execute(
+                  callerInfo,
+                  State.create(EnsoContext.get(null)),
+                  Text.create(oneshotExpression.expression()));
+        } catch (Exception exception) {
+          visualizationError = exception;
+        }
+
+        ExecutedVisualization executedVisualization =
+            new ExecutedVisualization(
+                visualizationResult, visualizationError, visualization.id(), nodeId, result);
+        callOnExecutedVisualizationCallback(executedVisualization);
       }
-
-      ExecutedVisualization executedVisualization =
-          new ExecutedVisualization(
-              visualizationResult, visualizationError, visualization.id(), nodeId, result);
-      callOnExecutedVisualizationCallback(executedVisualization);
     }
 
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
@@ -204,8 +209,8 @@ final class ExecutionCallbacks
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Visualization findVisualization(UUID nodeId) {
-    return visualizationHolder.find(nodeId).headOption().getOrElse(() -> null);
+  private Iterator<Visualization> findVisualizations(UUID nodeId) {
+    return visualizationHolder.find(nodeId).iterator();
   }
 
   @CompilerDirectives.TruffleBoundary
