@@ -216,7 +216,7 @@ function onComponentBrowserFinished(content: string) {
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
   }
   componentBrowserVisible.value = false
-  graphStore.editedNodeInfo = null
+  graphStore.editedNodeInfo = undefined
 }
 
 function getNodeContent(id: ExprId): string {
