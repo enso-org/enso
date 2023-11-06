@@ -25,8 +25,8 @@
     "build-rust-ffi": "wasm-pack build ./rust-ffi --release --target web",
     "generate-ast-schema": "cargo run -p enso-parser-schema > src/generated/ast-schema.json",
     "generate-ast-types": "tsx ./parser-codegen/index.ts src/generated/ast-schema.json src/generated/ast.ts",
-    "preinstall": "npm run build-rust-ffi && npm run generate-ast-schema && npm run generate-ast-types",
-    "generate-icon-metadata": "node scripts/generateIcons.js"
+    "preinstall": "npm run build-rust-ffi && npm run generate-ast-schema && npm run generate-ast-types && npm run generate-metadata",
+    "generate-metadata": "node scripts/generateIconMetadata.js"
   },
   "dependencies": {
     "@ag-grid-community/client-side-row-model": "^30.2.0",
@@ -79,6 +79,7 @@
     "@types/mapbox-gl": "^2.7.13",
     "@types/node": "^18.17.5",
     "@types/shuffle-seed": "^1.1.0",
+    "@types/wicg-file-system-access": "^2023.10.2",
     "@types/ws": "^8.5.5",
     "@vitejs/plugin-react": "^4.0.4",
     "@vitejs/plugin-vue": "^4.3.1",
@@ -93,6 +94,7 @@
     "eslint": "^8.49.0",
     "eslint-plugin-vue": "^9.16.1",
     "floating-vue": "^2.0.0-beta.24",
+    "hash-wasm": "^4.10.0",
     "histoire": "^0.17.2",
     "jsdom": "^22.1.0",
     "postcss-nesting": "^12.0.1",

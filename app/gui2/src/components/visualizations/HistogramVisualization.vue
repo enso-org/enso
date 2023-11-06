@@ -1,5 +1,11 @@
 <script lang="ts">
+import SvgIcon from '@/components/SvgIcon.vue'
+import VisualizationContainer from '@/components/VisualizationContainer.vue'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { useEvent, useEventConditional } from '@/util/events'
+import { getTextWidth } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
+import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Histogram'
 export const inputType =
@@ -105,16 +111,7 @@ interface Bin {
 </script>
 
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
-
-import * as d3 from 'd3'
-
-import SvgIcon from '@/components/SvgIcon.vue'
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig'
-
-import { useEvent, useEventConditional } from '@/util/events'
-import { getTextWidth } from '@/util/measurement'
+const d3 = await import('d3')
 
 const MARGIN = 25
 const AXIS_LABEL_HEIGHT = 10

@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import { Vec2 } from '@/util/vec2'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import ScatterplotVisualization from '@/components/visualizations/ScatterplotVisualization.vue'
 import { ref } from 'vue'
-
-const isCircularMenuVisible = ref(false)
 
 const data = ref<any>({
   axis: {
@@ -17,12 +13,6 @@ const data = ref<any>({
     { x: 0.4, y: 0.2, label: 'baz', color: '#0000FF', shape: 'square', size: 0.3 },
   ],
 })
-
-const nodeSize = ref(new Vec2(400, 32))
-const currentType: VisualizationIdentifier = {
-  module: { kind: 'Builtin' },
-  name: 'Scatterplot',
-}
 </script>
 
 <template>
@@ -32,12 +22,9 @@ const currentType: VisualizationIdentifier = {
     :layout="{ type: 'grid', width: 400 }"
     autoPropsDisabled
   >
-    <GraphVisualization
-      :currentType="currentType"
-      :data="data"
-      :nodeSize="nodeSize"
-      :isCircularMenuVisible="isCircularMenuVisible"
-    />
+    <div style="height: 322px">
+      <ScatterplotVisualization :data="data" />
+    </div>
 
     <template #controls>
       <HstJson v-model="data" title="data" />

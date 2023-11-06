@@ -13,6 +13,8 @@ import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
+import org.enso.table.data.index.MultiValueKeyBase;
+import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.CrossJoin;
@@ -207,12 +209,19 @@ public class Table {
    * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
    * @return a table indexed by the proper column
    */
-  public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator,
-                       ProblemAggregator problemAggregator) {
+  public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
-    MultiValueIndex<?> index = MultiValueIndex.makeOrderedIndex(columns, this.rowCount(), directionInts,
-        objectComparator, problemAggregator);
-    OrderMask mask = new OrderMask(index.makeOrderMap(this.rowCount()));
+    int n = rowCount();
+    Context context = Context.getCurrent();
+    final Storage<?>[] storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    OrderedMultiValueKey[] keys = new OrderedMultiValueKey[n];
+    for (int i = 0; i < n; i++) {
+      keys[i] = new OrderedMultiValueKey(storages, i, directionInts, objectComparator);
+      context.safepoint();
+    }
+    Arrays.sort(keys);
+    int[] positions = Arrays.stream(keys).mapToInt(MultiValueKeyBase::getRowIndex).toArray();
+    OrderMask mask = new OrderMask(positions);
     return this.applyMask(mask);
   }
 

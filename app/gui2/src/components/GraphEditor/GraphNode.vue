@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeTree from '@/components/GraphEditor/NodeTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
@@ -18,7 +19,6 @@ import { unwrap } from '@/util/result'
 import { Vec2 } from '@/util/vec2'
 import type { ContentRange, ExprId, VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUpdated, reactive, ref, watch, watchEffect } from 'vue'
-import GraphVisualization from './GraphVisualization.vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -288,6 +288,7 @@ onUpdated(() => {
     }
   }
 })
+
 watch(
   () => [isAutoEvaluationDisabled.value, isDocsVisible.value, isVisualizationVisible.value],
   () => {
