@@ -37,8 +37,11 @@ function hoverNode(id: ExprId | undefined) {
 <template>
   <GraphNode
     v-for="[id, node] in graphStore.nodes"
+    v-show="id != graphStore.editedNodeInfo?.id"
     :key="id"
     :node="node"
+    :edited="false"
+    @update:edited="graphStore.setEditedNode(id, $event)"
     @updateRect="graphStore.updateNodeRect(id, $event)"
     @delete="graphStore.deleteNode(id)"
     @updateExprRect="graphStore.updateExprRect"
